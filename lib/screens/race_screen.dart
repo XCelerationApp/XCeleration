@@ -1,7 +1,7 @@
 // import 'dart:io';
 import 'package:flutter/material.dart';
 import 'timing_screen.dart';
-import '../runners_management.dart';
+import 'runners_management_screen.dart';
 // import 'bib_number_screen.dart';
 // import 'package:provider/provider.dart';
 import '../database_helper.dart';
@@ -101,7 +101,7 @@ class _RaceScreenState extends State<RaceScreen> {
                     RaceInfoScreen(raceId: race.race_id),
                     if (showResults) ResultsScreen(raceId: race.race_id) else TimingScreen(raceId: race.race_id),
                     // BibNumberScreen (),
-                    RunnersManagement(raceId: race.race_id, shared: false),
+                    RunnersManagementScreen(raceId: race.race_id, shared: false),
                 ],
             ),
           ),

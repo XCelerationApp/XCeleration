@@ -1,4 +1,4 @@
-import 'package:race_timing_app/screens/results_screen.dart';
+// import 'package:race_timing_app/screens/results_screen.dart';
 import 'package:race_timing_app/utils/time_formatter.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -212,7 +212,12 @@ class _TimingScreenState extends State<TimingScreen> {
         _processQRData(result.rawContent);
       }
     } catch (e) {
-      _showErrorMessage('Failed to scan QR code: $e');
+      if (e is MissingPluginException) {
+        _showErrorMessage('The QR code scanner is not available on this device.');
+      }
+      else {
+        _showErrorMessage('Failed to scan QR code: $e');
+      }
     }
   }
 
@@ -368,16 +373,19 @@ class _TimingScreenState extends State<TimingScreen> {
                     padding: const EdgeInsets.all(8.0), // Padding around the button
                     child: LayoutBuilder(
                       builder: (context, constraints) {
-                      double fontSize = constraints.maxWidth * 0.12; // Scalable font size
+                      double fontSize = constraints.maxWidth * 0.11; // Scalable font size
                         return ElevatedButton(
                           onPressed: startTime == null ? _startRace : _stopRace,
                           style: ElevatedButton.styleFrom(
                             minimumSize: Size(0, constraints.maxWidth * 0.15), // Button height scales
                             maximumSize: Size(double.infinity, constraints.maxWidth * 0.35),
                           ),
-                          child: Text(
-                            startTime == null ? 'Start Race' : 'Stop Race',
-                            style: TextStyle(fontSize: fontSize),
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: MediaQuery.of(context).size.width * 0.05, vertical: MediaQuery.of(context).size.width * 0.02),
+                            child: Text(
+                              startTime == null ? 'Start Race' : 'Stop Race',
+                              style: TextStyle(fontSize: fontSize),
+                            ),
                           ),
                         );
                       },
@@ -405,7 +413,7 @@ class _TimingScreenState extends State<TimingScreen> {
                       ),
                     ),
                   ),
-                if (startTime == null && records.isNotEmpty)
+                if (startTime == null && records.isNotEmpty && records[0]['bib_number'] != null)
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.all(8.0), // Padding around the button
@@ -430,7 +438,7 @@ class _TimingScreenState extends State<TimingScreen> {
             ),
 
             // Records Section
-            if (records.isNotEmpty)
+            if (records.isNotEmpty || true)
               Expanded(
                 child: ListView.builder(
                   controller: _scrollController,
@@ -485,28 +493,28 @@ class _TimingScreenState extends State<TimingScreen> {
                             //     ),
                               ],
                             ),
-                            SizedBox(height: MediaQuery.of(context).size.width * 0.02),
-                            if (record['name'] != null)
-                              Text(
-                                'Name: ${record['name']}',
-                                style: TextStyle(
-                                  fontSize: MediaQuery.of(context).size.width * 0.035
-                                ),
-                              ),
-                            if (record['grade'] != null)
-                              Text(
-                                'Grade: ${record['grade']}',
-                                style: TextStyle(
-                                  fontSize: MediaQuery.of(context).size.width * 0.035
-                                ),
-                              ),
-                            if (record['school'] != null)
-                              Text(
-                                'School: ${record['school']}',
-                                style: TextStyle(
-                                  fontSize: MediaQuery.of(context).size.width * 0.035
-                                ),
-                              ),
+                            // SizedBox(height: MediaQuery.of(context).size.width * 0.02),
+                            // if (record['name'] != null)
+                            //   Text(
+                            //     'Name: ${record['name']}',
+                            //     style: TextStyle(
+                            //       fontSize: MediaQuery.of(context).size.width * 0.035
+                            //     ),
+                            //   ),
+                            // if (record['grade'] != null)
+                            //   Text(
+                            //     'Grade: ${record['grade']}',
+                            //     style: TextStyle(
+                            //       fontSize: MediaQuery.of(context).size.width * 0.035
+                            //     ),
+                            //   ),
+                            // if (record['school'] != null)
+                            //   Text(
+                            //     'School: ${record['school']}',
+                            //     style: TextStyle(
+                            //       fontSize: MediaQuery.of(context).size.width * 0.035
+                            //     ),
+                            //   ),
                           ],
                         ),
                       ),
@@ -514,7 +522,7 @@ class _TimingScreenState extends State<TimingScreen> {
                   },
                 ),
               ),
-              if ((startTime == null && records.isEmpty) || (startTime != null))
+              if (startTime != null)
                 Padding(
                   padding: const EdgeInsets.all(8.0), // Padding around the button
                   child: LayoutBuilder(

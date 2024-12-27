@@ -4,21 +4,21 @@ import 'package:race_timing_app/file_processing.dart';
 import 'package:race_timing_app/database_helper.dart';
 // import 'package:race_timing_app/models/race.dart';
 
-class RunnersManagement extends StatefulWidget {
+class RunnersManagementScreen extends StatefulWidget {
   final int raceId;
   final bool shared;
 
-  const RunnersManagement({
-    super.key, 
+  const RunnersManagementScreen({
+    Key? key, 
     required this.raceId,
     required this.shared,
-  });
+  }) : super(key: key);
 
   @override
-  State<RunnersManagement> createState() => _RunnersManagementState();
+  State<RunnersManagementScreen> createState() => _RunnersManagementScreenState();
 }
 
-class _RunnersManagementState extends State<RunnersManagement> {
+class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
   final _nameController = TextEditingController();
   final _gradeController = TextEditingController();
   final _schoolController = TextEditingController();
@@ -95,7 +95,7 @@ class _RunnersManagementState extends State<RunnersManagement> {
   }
 
   Future<void> _deleteRunner() async {
-    final bib = int.tryParse(_deleteBibController.text);
+    final bib = int.tryParse(_deleteBibController.text) ?? null;
 
     if (bib == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -141,6 +141,79 @@ class _RunnersManagementState extends State<RunnersManagement> {
             child: const Text('Add'),
           ),
         ],
+      ),
+    );
+  }
+
+  Future<void> _showEditRunnerPopup(BuildContext context, Map<String, dynamic> runnerData) async {
+    // final bibNumberText = runnerData['bib_number'].toString();
+    // if (bibNumberText.isEmpty) {
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //     const SnackBar(content: Text('Please enter a Bib Number.'),),
+    //   );
+    //   return;
+    // }
+    // final bibNumber = int.tryParse(bibNumberText);
+    // if (bibNumber == null) {
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //     const SnackBar(content: Text('Please enter a valid Bib Number.'),),
+    //   );
+    //   return;
+    // }
+    // final runner = _runners.firstWhere(
+    //   (runner) => runner['bib_number'] == bibNumber,
+    // );
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+      title: const Text('Edit Runner'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildTextField(_nameController, 'Full Name', initialValue: runnerData['name'], isNumeric: false),
+            _buildTextField(_gradeController, 'Grade', initialValue: runnerData['grade'].toString(), isNumeric: true),
+            _buildTextField(_schoolController, 'School', initialValue: runnerData['school'], isNumeric: false),
+            _buildTextField(_bibController, 'Bib Number', initialValue: runnerData['bib_number'].toString(), isNumeric: true),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: () async {
+            if (shared == true) {
+              await DatabaseHelper.instance.updateSharedRunner({
+                'name': _nameController.text,
+                'school': _schoolController.text,
+                'grade': int.parse(_gradeController.text),
+                'bib_number': int.parse(_bibController.text),
+                'runner_id': runnerData['runner_id'],
+              });
+            }
+            else {
+              await DatabaseHelper.instance.updateRaceRunner({
+                'name': _nameController.text,
+                'school': _schoolController.text,
+                'grade': int.parse(_gradeController.text),
+                'bib_number': int.parse(_bibController.text),
+                'race_runner_id': runnerData['race_runner_id'],
+              });
+            }
+            _nameController.clear();
+            _gradeController.clear();
+            _schoolController.clear();
+            _bibController.clear();
+            _loadRunners();
+            Navigator.of(context).pop(); // Close the popup
+          },
+          child: const Text('Edit'),
+        ),
+      ],
       ),
     );
   }
@@ -279,6 +352,17 @@ class _RunnersManagementState extends State<RunnersManagement> {
               ],
             ),
             const SizedBox(height: 20),
+            if (_runners.isEmpty) 
+              const Center(
+                child: Text(
+                  'No Runners',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.normal,
+                  ),
+                ),
+              ),
+            
             Expanded(
               child: ListView.builder(
                 itemCount: _runners.length,
@@ -292,11 +376,60 @@ class _RunnersManagementState extends State<RunnersManagement> {
                     margin: const EdgeInsets.symmetric(vertical: 8.0),
                     child: ListTile(
                       leading: CircleAvatar(
+                        backgroundColor: Colors.blueGrey[300],
                         child: Text(runner['bib_number'].toString()),
                       ),
                       title: Text(runner['name']),
                       subtitle: Text(
                         'School: ${runner['school']} | Grade: ${runner['grade'].toString()}',
+                      ),
+                      trailing: PopupMenuButton<String>(
+                        onSelected: (value) async {
+                          if (value == 'Edit') {
+                            await _showEditRunnerPopup(context, runner);
+                          }
+                          else if (value == 'Delete') {
+                            final confirmed = await showDialog<bool>(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: const Text('Confirm Deletion'),
+                                content: const Text('Are you sure you want to delete this runner?'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.of(context).pop(false),
+                                    child: const Text('Cancel'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () => Navigator.of(context).pop(true),
+                                    child: const Text('Delete'),
+                                  ),
+                                ],
+                              ),
+                            );
+                            if (confirmed == true) {
+                              if (shared == true) {
+                                await DatabaseHelper.instance.deleteSharedRunner(runner['bib_number']);
+                              }
+                              else {
+                                await DatabaseHelper.instance.deleteRaceRunner(raceId, runner['bib_number']);
+                              }
+                              _loadRunners();
+                            }
+                            else {
+                              return;
+                            }
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          const PopupMenuItem<String>(
+                            value: 'Edit',
+                            child: Text('Edit'),
+                          ),
+                          const PopupMenuItem<String>(
+                            value: 'Delete',
+                            child: Text('Delete'),
+                          ),
+                        ],
                       ),
                     ),
                   );
@@ -310,23 +443,39 @@ class _RunnersManagementState extends State<RunnersManagement> {
   }
 
   Widget _buildTextField(TextEditingController controller, String hintText,
-      {bool isNumeric = false}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: TextField(
-        controller: controller,
-        keyboardType: isNumeric ? TextInputType.number : TextInputType.text,
-        decoration: InputDecoration(
-          labelText: hintText,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12.0),
+      {bool isNumeric = false, String title = '', String? initialValue}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (title.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8.0),
+            child: Text(
+              title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12.0),
-            borderSide: const BorderSide(color: Colors.blue, width: 2.0),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8.0),
+          child: TextField(
+            controller: controller..text = initialValue ?? '',
+            keyboardType: isNumeric ? TextInputType.number : TextInputType.text,
+            decoration: InputDecoration(
+              labelText: hintText,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.0),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.0),
+                borderSide: const BorderSide(color: Colors.blue, width: 2.0),
+              ),
+            ),
           ),
         ),
-      ),
+      ]
     );
   }
 }

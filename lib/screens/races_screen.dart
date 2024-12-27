@@ -153,74 +153,88 @@ class _RacesScreenState extends State<RacesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Races'),
-      ),
-      body: FutureBuilder<List<Race>>(
-        future: DatabaseHelper.instance.getAllRaces(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(child: Text('No races found.'));
-          }
-          races = snapshot.data ?? [];
+      // appBar: AppBar(
+        // title: Text('Races'),
+      // ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text(
+              'Races',
+              style: Theme.of(context).textTheme.displayLarge,
+            ),
+          ),
+          Expanded(
+            child: FutureBuilder<List<Race>>(
+              future: DatabaseHelper.instance.getAllRaces(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator());
+                } else if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return Center(child: Text('No races found.'));
+                }
+                races = snapshot.data ?? [];
 
-          return ListView.builder(
-              itemCount: races.length,
-              itemBuilder: (context, index) {
-                return Card(
-                  child: ListTile(
-                    trailing: GestureDetector(
-                      child: Icon(Icons.delete, color: Colors.grey),
-                      onTap: () {
-                        showDialog(
-                          context: context,
-                          builder: (context) {
-                            return AlertDialog(
-                              title: Text('Delete race'),
-                              content: Text('Are you sure you want to delete ${races[index].race_name}?'),
-                              actions: [
-                                TextButton(
-                                  child: Text('Cancel'),
-                                  onPressed: () => Navigator.of(context).pop(),
-                                ),
-                                TextButton(
-                                  child: Text('Delete'),
-                                  onPressed: () async {
-                                    await DatabaseHelper.instance.deleteRace(races[index].raceId);
-                                    final newRaces = await DatabaseHelper.instance.getAllRaces();
-                                    setState(() {
-                                      races = newRaces;
-                                    });
-                                    Navigator.of(context).pop();
-                                  },
-                                ),
-                              ],
+                return ListView.builder(
+                  itemCount: races.length,
+                  itemBuilder: (context, index) {
+                    return Card(
+                      child: ListTile(
+                        trailing: GestureDetector(
+                          child: Icon(Icons.delete, color: Colors.grey),
+                          onTap: () {
+                            showDialog(
+                              context: context,
+                              builder: (context) {
+                                return AlertDialog(
+                                  title: Text('Delete race'),
+                                  content: Text('Are you sure you want to delete ${races[index].race_name}?'),
+                                  actions: [
+                                    TextButton(
+                                      child: Text('Cancel'),
+                                      onPressed: () => Navigator.of(context).pop(),
+                                    ),
+                                    TextButton(
+                                      child: Text('Delete'),
+                                      onPressed: () async {
+                                        await DatabaseHelper.instance.deleteRace(races[index].raceId);
+                                        final newRaces = await DatabaseHelper.instance.getAllRaces();
+                                        setState(() {
+                                          races = newRaces;
+                                        });
+                                        Navigator.of(context).pop();
+                                      },
+                                    ),
+                                  ],
+                                );
+                              },
                             );
                           },
-                        );
-                      },
-                    ),
-                    title: Text(races[index].race_name),
-                    onTap: () {
-                      Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(
-                          builder: (context) => RaceScreen(
-                            race: races[index],
-                          ),
                         ),
-                      );
-                    },
-                  ),
+                        title: Text(races[index].race_name),
+                        onTap: () {
+                          Navigator.of(context).pushReplacement(
+                            MaterialPageRoute(
+                              builder: (context) => RaceScreen(
+                                race: races[index],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  },
                 );
               },
-            );
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
+            ),
+          ),
+        ]
+     ),
+
+     floatingActionButton: FloatingActionButton(
         onPressed: () => _showCreateRaceDialog(context),
         tooltip: 'Create new race',
         child: Icon(Icons.add),

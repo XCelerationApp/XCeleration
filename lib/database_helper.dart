@@ -84,6 +84,18 @@ class DatabaseHelper {
     return await db.insert('shared_runners', runner);
   }
 
+  // Update a shared runner
+  Future<int> updateSharedRunner(Map<String, dynamic> runner) async {
+    final db = await instance.database;
+    return await db.update(
+      'shared_runners',
+      runner,
+      where: 'bib_number = ?',
+      whereArgs: [runner['bib_number']],
+    );
+  }
+
+
   Future<List<Map<String, dynamic>>> getAllSharedRunners() async {
     final db = await instance.database;
     return await db.query('shared_runners');
