@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>This app needs access to play audio to let you know when buttons have been pressed</string>
 	<key>NSCameraUsageDescription</key>
 	<string>We need access to your camera to scan bib numbers.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

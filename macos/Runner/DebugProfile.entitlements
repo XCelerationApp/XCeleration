@@ -18,5 +18,9 @@
 	<true/>
 	<key>com.apple.security.network.server</key>
 	<true/>
+	<key>com.apple.security.assets.music.read-only</key>
+    <true/>
+    <key>com.apple.security.assets.audio.read-only</key>
+    <true/>
 </dict>
 </plist>

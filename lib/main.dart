@@ -6,11 +6,13 @@ import 'screens/bib_number_screen.dart';
 import 'package:provider/provider.dart';
 import 'models/timing_data.dart';
 import 'screens/races_screen.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 Process? _flaskProcess;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // await AudioPlayer.platformPath;
   // await startFlaskServer();
   runApp(
     ChangeNotifierProvider(

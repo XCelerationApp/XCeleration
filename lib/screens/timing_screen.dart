@@ -9,6 +9,8 @@ import 'package:race_timing_app/database_helper.dart';
 import 'dart:convert';
 import 'dart:async';
 import 'package:barcode_scan2/barcode_scan2.dart';
+import 'package:flutter/services.dart';
+import 'package:audioplayers/audioplayers.dart';
 // import 'package:race_timing_app/models/race.dart';
 
 class TimingScreen extends StatefulWidget {
@@ -33,11 +35,55 @@ class _TimingScreenState extends State<TimingScreen> {
   late int raceId;
   // List<BluetoothDevice> _availableDevices = [];
   // BluetoothDevice? _connectedDevice;
+  late AudioPlayer _audioPlayer;
+  bool _isAudioPlayerReady = false;
 
   @override
   void initState() {
     super.initState();
+    _initAudioPlayer();
     raceId = widget.raceId;
+  }
+
+ Future<void> _initAudioPlayer() async {
+    try {
+      _audioPlayer = AudioPlayer();
+      await _audioPlayer.setReleaseMode(ReleaseMode.stop);
+      // Pre-load the audio file
+      await _audioPlayer.setSource(AssetSource('sounds/click.mp3'));
+      setState(() {
+        _isAudioPlayerReady = true;
+      });
+    } catch (e) {
+      print('Error initializing audio player: $e');
+      // Try to recreate the audio player if it failed
+      if (!_isAudioPlayerReady) {
+        await Future.delayed(Duration(milliseconds: 500));
+        if (mounted) {
+          _initAudioPlayer();
+        }
+      }
+    }
+  }
+
+  Future<void> _handleLogButtonPress() async {
+    try {
+      _logTime();
+      HapticFeedback.vibrate();
+      HapticFeedback.lightImpact();
+      if (_isAudioPlayerReady) {
+        try {
+          await _audioPlayer.stop(); // Stop any currently playing sound
+          await _audioPlayer.play(AssetSource('sounds/click.mp3'));
+        } catch (e) {
+          print('Error playing sound: $e');
+          // Reinitialize audio player if it failed
+          _initAudioPlayer();
+        }
+      }
+    } catch (e) {
+      print('Error in log button press: $e');
+    }
   }
 
   void _startRace() {
@@ -219,174 +265,6 @@ class _TimingScreenState extends State<TimingScreen> {
       );
   }
 
-
-  // void _findDevices() async {
-  //   final service = app_bluetooth.BluetoothService();
-  //   try {
-  //     // Check if Bluetooth is enabled
-  //     final isOn = await service.isBluetoothOn();
-  //     print(isOn);
-  //     if (!isOn) {
-  //       _showBluetoothOffDialog();
-  //       return;
-  //     }
-
-  //     await for (final devices in service.getAvailableDevices()) {
-  //       setState(() {
-  //         _availableDevices = devices;
-  //       });
-  //     }
-  //   } catch (e) {
-  //     // Handle other exceptions (optional)
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       SnackBar(content: Text('Failed to scan for devices: $e')),
-  //     );
-  //   }
-  // }
-
-  // void _connectToDevice(BluetoothDevice device) async {
-  //   final service = app_bluetooth.BluetoothService();
-  //   try {
-  //     final connectedDevice = await service.connectToDevice(device);
-  //     setState(() {
-  //       _connectedDevice = connectedDevice;
-  //     });
-  //   } catch (e) {
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       SnackBar(content: Text('Failed to connect: $e')),
-  //     );
-  //   }
-  // }
-
-  // void _syncDataWithDevice() async {
-  //   if (_connectedDevice == null) return;
-
-  //   final service = app_bluetooth.BluetoothService();
-  //   try {
-  //     // Receive bib number data
-  //     final rawData = await service.receiveData(_connectedDevice!);
-  //     final bibData = String.fromCharCodes(rawData).split(';');
-
-  //     // Match bib numbers with times
-  //     for (int i = 0; i < bibData.length && i < _records.length; i++) {
-  //       setState(() {
-  //         _records[i]['bib_number'] = bibData[i];
-  //       });
-  //     }
-  //   } catch (e) {
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       SnackBar(content: Text('Sync failed: $e')),
-  //     );
-  //   }
-  // }
-
-  // void _disconnectDevice() async {
-  //   final bluetoothService = app_bluetooth.BluetoothService();
-  //   if (_connectedDevice == null) return;
-
-  //   final confirm = await showDialog<bool>(
-  //     context: context,
-  //     builder: (BuildContext context) {
-  //       return AlertDialog(
-  //         title: const Text('Confirm Disconnect'),
-  //         content: const Text('Are you sure you want to disconnect?'),
-  //         actions: <Widget>[
-  //           TextButton(
-  //             child: const Text('Cancel'),
-  //             onPressed: () => Navigator.of(context).pop(false),
-  //           ),
-  //           TextButton(
-  //             child: const Text('Disconnect'),
-  //             onPressed: () => Navigator.of(context).pop(true),
-  //           ),
-  //         ],
-  //       );
-  //     },
-  //   );
-
-  //   if (confirm == true) {
-  //     try {
-  //       await bluetoothService.disconnectDevice(_connectedDevice!);
-  //       setState(() {
-  //         _connectedDevice = null; // Clear the connected device
-  //       });
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         const SnackBar(content: Text('Disconnected successfully')),
-  //       );
-  //     } catch (e) {
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         SnackBar(content: Text('Failed to disconnect: $e')),
-  //       );
-  //     }
-  //   }
-  // }
-
-  // void _showBluetoothOffDialog() {
-  //   showDialog(
-  //     context: context,
-  //     builder: (context) => AlertDialog(
-  //       title: const Text('Bluetooth Off'),
-  //       content: const Text('Please turn on Bluetooth to search for devices.'),
-  //       actions: [
-  //         TextButton(
-  //           onPressed: () {
-  //             Navigator.of(context).pop();
-  //           },
-  //           child: const Text('OK'),
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
-
-
-  // void _navigateToBibNumbers() {
-  //   // Navigate to the BibNumberScreen
-  //   Navigator.push(
-  //     context,
-  //     MaterialPageRoute(
-  //       builder: (context) => const BibNumberScreen(),
-  //     ),
-  //   );
-  // }
-
-  // void _navigateToResults() {
-  //   // Check if all runners have a non-null bib number
-  //   final records = Provider.of<TimingData>(context, listen: false).records;
-
-  //   bool allRunnersHaveBibNumbers = records.every((runner) => runner['bib_number'] != null);
-
-  //   if (allRunnersHaveBibNumbers) {
-  //     // Navigate to the results page
-  //     Navigator.push(
-  //       context,
-  //       MaterialPageRoute(
-  //         builder: (context) => ResultsScreen(runners: records),
-  //       ),
-  //     );
-  //   } else {
-  //     // Show a popup error if any bib number is null
-  //     _showErrorMessage('All runners must have a bib number assigned before proceeding.');
-  //     // showDialog(
-  //     //   context: context,
-  //     //   builder: (BuildContext context) {
-  //     //     return AlertDialog(
-  //     //       title: Text('Error'),
-  //     //       content: Text('All runners must have a bib number assigned before proceeding.'),
-  //     //       actions: [
-  //     //         TextButton(
-  //     //           onPressed: () {
-  //     //             Navigator.of(context).pop(); // Close the popup
-  //     //           },
-  //     //           child: Text('OK'),
-  //     //         ),
-  //     //       ],
-  //     //     );
-  //     //   },
-  //     // );
-  //   }
-  // }
-
   void _saveResults() async {
     // Check if all runners have a non-null bib number
     final records = Provider.of<TimingData>(context, listen: false).records;
@@ -418,13 +296,6 @@ class _TimingScreenState extends State<TimingScreen> {
           ),
         ),
       );
-
-      
-      // // Navigate to the results page
-      // Navigator.pushReplacement(
-      //   context,
-      //   MaterialPageRoute(builder: (context) => ResultsScreen(raceId: raceId)), // Adjust to your actual results screen widget
-      // );
     } else {
       _showErrorMessage('All runners must have a bib number assigned before proceeding.');
     }
@@ -437,6 +308,7 @@ class _TimingScreenState extends State<TimingScreen> {
     for (var controller in Provider.of<TimingData>(context, listen: false).controllers) {
       controller.dispose();
     }
+    _audioPlayer?.dispose();
     super.dispose();
   }
 
@@ -455,32 +327,37 @@ class _TimingScreenState extends State<TimingScreen> {
           children: [
             // Race Timer Display
             if (startTime != null)
-              StreamBuilder(
-                stream: Stream.periodic(const Duration(milliseconds: 10)),
-                builder: (context, snapshot) {
-                  final currentTime = DateTime.now();
-                  final elapsed = currentTime.difference(startTime);
-                  return Container(
-                    padding: const EdgeInsets.symmetric(vertical: 20),
-                    margin: EdgeInsets.only(left: MediaQuery.of(context).size.width * 0.1), // 1/10 from left
-                    width: MediaQuery.of(context).size.width * 0.75, // 3/4 of screen width
-                    child: Text(
-                      formatDurationWithZeros(elapsed),
-                      style: TextStyle(
-                        fontSize: MediaQuery.of(context).size.width * 0.1,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'monospace',
-                        height: 1.0,
-                      ),
-                      textAlign: TextAlign.left,
-                      strutStyle: StrutStyle(
-                        fontSize: MediaQuery.of(context).size.width * 0.15,
-                        height: 1.0,
-                        forceStrutHeight: true,
-                      ),
-                    ),
-                  );
-                },
+              Row(
+                children: [
+                  // Race time display
+                  StreamBuilder(
+                    stream: Stream.periodic(const Duration(milliseconds: 10)),
+                    builder: (context, snapshot) {
+                      final currentTime = DateTime.now();
+                      final elapsed = currentTime.difference(startTime);
+                      return Container(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        margin: EdgeInsets.only(left: MediaQuery.of(context).size.width * 0.1), // 1/10 from left
+                        width: MediaQuery.of(context).size.width * 0.75, // 3/4 of screen width
+                        child: Text(
+                          formatDurationWithZeros(elapsed),
+                          style: TextStyle(
+                            fontSize: MediaQuery.of(context).size.width * 0.1,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'monospace',
+                            height: 1.0,
+                          ),
+                          textAlign: TextAlign.left,
+                          strutStyle: StrutStyle(
+                            fontSize: MediaQuery.of(context).size.width * 0.15,
+                            height: 1.0,
+                            forceStrutHeight: true,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
               ),
             // Buttons for Race Control
             Row(
@@ -495,7 +372,8 @@ class _TimingScreenState extends State<TimingScreen> {
                         return ElevatedButton(
                           onPressed: startTime == null ? _startRace : _stopRace,
                           style: ElevatedButton.styleFrom(
-                            minimumSize: Size(0, constraints.maxWidth * 0.5), // Button height scales
+                            minimumSize: Size(0, constraints.maxWidth * 0.15), // Button height scales
+                            maximumSize: Size(double.infinity, constraints.maxWidth * 0.35),
                           ),
                           child: Text(
                             startTime == null ? 'Start Race' : 'Stop Race',
@@ -506,27 +384,6 @@ class _TimingScreenState extends State<TimingScreen> {
                     ),
                   ),
                 ),
-                if ((startTime == null && records.isEmpty) || (startTime != null))
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0), // Padding around the button
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                        double fontSize = constraints.maxWidth * 0.12;
-                          return ElevatedButton(
-                            onPressed: startTime != null ? _logTime : null,
-                            style: ElevatedButton.styleFrom(
-                              minimumSize: Size(0, constraints.maxWidth * 0.5),
-                            ),
-                            child: Text(
-                              'Log Time',
-                              style: TextStyle(fontSize: fontSize),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
                 if (startTime == null && records.isNotEmpty)
                   Expanded(
                     child: Padding(
@@ -572,92 +429,6 @@ class _TimingScreenState extends State<TimingScreen> {
               ],
             ),
 
-
-
-            // const SizedBox(height: 16),
-            // ElevatedButton.icon(
-            //   onPressed: _navigateToBibNumbers,
-            //   icon: const Icon(Icons.numbers),
-            //   label: const Text('Record Bib Numbers'),
-            // ),
-
-            // if (startTime == null && records.isNotEmpty) ...[
-            //   SizedBox(height: MediaQuery.of(context).size.width * 0.05),
-            //   Padding(
-            //     padding: const EdgeInsets.only(bottom: 16.0),
-            //     child: SizedBox(
-            //       height: MediaQuery.of(context).size.width * 0.1,
-            //       child: ElevatedButton.icon(
-            //         onPressed: _navigateToResults,
-            //         icon: const Icon(Icons.bar_chart),
-            //         label: Text(
-            //           'Go to Results',
-            //           style: TextStyle(
-            //             fontSize: MediaQuery.of(context).size.width * 0.05,
-            //           ),
-            //         ),
-            //       ),
-            //     ),
-            //   ),
-            // ],
-
-            // const SizedBox(height: 8),
-            // ElevatedButton.icon(
-            //   onPressed: _findDevices,
-            //   icon: const Icon(Icons.bluetooth),
-            //   label: const Text('Connect via Bluetooth'),
-            // ),
-            // if (_connectedDevice != null) ...[
-            //   const SizedBox(height: 8),
-            //   ElevatedButton(
-            //     onPressed: _disconnectDevice, // Add disconnect button
-            //     child: const Text('Disconnect'),
-            //   ),
-            //   if (_startTime == null && _records.isNotEmpty)
-            //     const SizedBox(height: 8),
-            //     ElevatedButton(
-            //       onPressed: _syncDataWithDevice,
-            //       child: const Text('Sync Data'),
-            //     ),
-            // ],
-            // const SizedBox(height: 16),
-            // // Bluetooth Devices List
-            // if (_availableDevices.isNotEmpty)
-            //   Expanded(
-            //     child: ListView.builder(
-            //       itemCount: _availableDevices.length,
-            //       itemBuilder: (context, index) {
-            //         final device = _availableDevices[index];
-            //         return Card(
-            //           child: ListTile(
-            //             title: Text(device.platformName.isNotEmpty
-            //                 ? device.platformName
-            //                 : 'Unknown Device'),
-            //             subtitle: Text(device.remoteId.toString()),
-            //             trailing: IconButton(
-            //               icon: const Icon(Icons.link),
-            //               onPressed: () {
-            //                 _connectToDevice(device);
-            //               },
-            //             ),
-            //           ),
-            //         );
-            //       },
-            //     ),
-            //   ),
-            // if (_connectedDevice != null)
-            //   DropdownButton<BluetoothDevice>(
-            //     value: _connectedDevice,
-            //     items: _availableDevices.map((device) {
-            //       return DropdownMenuItem(
-            //         value: device,
-            //         child: Text(device.platformName),
-            //       );
-            //     }).toList(),
-            //     onChanged: (device) {
-            //       if (device != null) _connectToDevice(device);
-            //     },
-            //   ),
             // Records Section
             if (records.isNotEmpty)
               Expanded(
@@ -674,7 +445,7 @@ class _TimingScreenState extends State<TimingScreen> {
                         horizontal: MediaQuery.of(context).size.width * 0.02,
                       ),
                       child: Padding(
-                        padding: EdgeInsets.all(MediaQuery.of(context).size.width * 0.04),
+                        padding: EdgeInsets.symmetric(horizontal: MediaQuery.of(context).size.width * 0.04, vertical: MediaQuery.of(context).size.width * 0.01),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -682,36 +453,36 @@ class _TimingScreenState extends State<TimingScreen> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  'Time: ${record['finish_time']}',
+                                  '${record['place']}. Time: ${record['finish_time']}',
                                   style: TextStyle(
                                     fontSize: MediaQuery.of(context).size.width * 0.05,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                                SizedBox(
-                                  width: MediaQuery.of(context).size.width * 0.25,
-                                  child: TextField(
-                                    controller: controller,
-                                    style: TextStyle(
-                                      fontSize: MediaQuery.of(context).size.width * 0.04,
-                                    ),
-                                    keyboardType: TextInputType.number,
-                                    decoration: InputDecoration(
-                                      labelText: 'Bib #',
-                                      labelStyle: TextStyle(
-                                        fontSize: MediaQuery.of(context).size.width * 0.05,
-                                      ),
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(MediaQuery.of(context).size.width * 0.02),
-                                      ),
-                                      contentPadding: EdgeInsets.symmetric(
-                                        vertical: MediaQuery.of(context).size.width * 0.02,
-                                        horizontal: MediaQuery.of(context).size.width * 0.03,
-                                      ),
-                                    ),
-                                    onChanged: (value) => _updateBib(index, int.parse(value)),
-                                  ),
-                                ),
+                            //     SizedBox(
+                            //       width: MediaQuery.of(context).size.width * 0.25,
+                            //       child: TextField(
+                            //         controller: controller,
+                            //         style: TextStyle(
+                            //           fontSize: MediaQuery.of(context).size.width * 0.04,
+                            //         ),
+                            //         keyboardType: TextInputType.number,
+                            //         decoration: InputDecoration(
+                            //           labelText: 'Bib #',
+                            //           labelStyle: TextStyle(
+                            //             fontSize: MediaQuery.of(context).size.width * 0.05,
+                            //           ),
+                            //           border: OutlineInputBorder(
+                            //             borderRadius: BorderRadius.circular(MediaQuery.of(context).size.width * 0.02),
+                            //           ),
+                            //           contentPadding: EdgeInsets.symmetric(
+                            //             vertical: MediaQuery.of(context).size.width * 0.02,
+                            //             horizontal: MediaQuery.of(context).size.width * 0.03,
+                            //           ),
+                            //         ),
+                            //         onChanged: (value) => _updateBib(index, int.parse(value)),
+                            //       ),
+                            //     ),
                               ],
                             ),
                             SizedBox(height: MediaQuery.of(context).size.width * 0.02),
@@ -743,6 +514,28 @@ class _TimingScreenState extends State<TimingScreen> {
                   },
                 ),
               ),
+              if ((startTime == null && records.isEmpty) || (startTime != null))
+                Padding(
+                  padding: const EdgeInsets.all(8.0), // Padding around the button
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      double fontSize = constraints.maxWidth * 0.12;
+                      return ElevatedButton(
+                        onPressed: _handleLogButtonPress,
+                        style: ElevatedButton.styleFrom(
+                          fixedSize: Size(constraints.maxWidth * 0.8, constraints.maxWidth * 0.4),
+                          // minimumSize: Size(0, constraints.maxWidth * 0.5),
+                          // maximumSize: Size(double.infinity, 150),
+
+                        ),
+                        child: Text(
+                          'Log Time',
+                          style: TextStyle(fontSize: fontSize),
+                        ),
+                      );
+                    },
+                  ),
+                ),
           ],
         ),
       ),
