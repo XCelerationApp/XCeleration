@@ -308,26 +308,26 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
                     ),
                   ),
                 ),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(5.0), // Padding around the button
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        double fontSize = constraints.maxWidth * 0.12; // Scalable font size
-                        return ElevatedButton(
-                          onPressed: () => _showDeleteRunnerPopup(context),
-                          style: ElevatedButton.styleFrom(
-                            minimumSize: Size(0, constraints.maxWidth * 0.5), // Button height scales
-                            padding: EdgeInsets.symmetric(vertical: 5.0),
-                          ),
-                          child: Text('Delete Runner',
-                            style: TextStyle(fontSize: fontSize),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
+                // Expanded(
+                //   child: Padding(
+                //     padding: const EdgeInsets.all(5.0), // Padding around the button
+                //     child: LayoutBuilder(
+                //       builder: (context, constraints) {
+                //         double fontSize = constraints.maxWidth * 0.12; // Scalable font size
+                //         return ElevatedButton(
+                //           onPressed: () => _showDeleteRunnerPopup(context),
+                //           style: ElevatedButton.styleFrom(
+                //             minimumSize: Size(0, constraints.maxWidth * 0.5), // Button height scales
+                //             padding: EdgeInsets.symmetric(vertical: 5.0),
+                //           ),
+                //           child: Text('Delete Runner',
+                //             style: TextStyle(fontSize: fontSize),
+                //           ),
+                //         );
+                //       },
+                //     ),
+                //   ),
+                // ),
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.all(5.0), // Padding around the button

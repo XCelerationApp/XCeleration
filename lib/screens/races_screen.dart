@@ -44,31 +44,130 @@ class _RacesScreenState extends State<RacesScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextField(
-                  controller: nameController,
-                  autofocus: true,
-                  decoration: InputDecoration(
-                  hintText: 'Untitled Race',
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: Text(
+                        'Race Name:',
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 0.0),
+                      child: TextField(
+                        controller: nameController,
+                        autofocus: true,
+                        decoration: InputDecoration(
+                        hintText: 'Untitled Race',
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                TextField(
-                  controller: locationController,
-                  decoration: InputDecoration(
-                    hintText: 'Location',
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: Text(
+                        'Race Location:',
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 0.0),
+                      child: TextField(
+                        controller: locationController,
+                        decoration: InputDecoration(
+                          hintText: 'Location',
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                TextField(
-                  controller: dateController,
-                  decoration: InputDecoration(
-                    hintText: 'Date (YYYY-MM-DD)',
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: Text(
+                        'Race Date:',
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    Row(
+                      children: [
+                    Expanded(
+                      child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 0.0),
+                        child: TextField(
+                          controller: dateController,
+                              // readOnly: true, 
+                          decoration: InputDecoration(
+                            hintText: 'Date (YYYY-MM-DD)',
+                              ),
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                              icon: Icon(Icons.calendar_today),
+                              onPressed: () async {
+                                DateTime? pickedDate = await showDatePicker(
+                                  context: context,
+                                  initialDate: DateTime.now(),
+                                  firstDate: DateTime(2000), 
+                                  lastDate: DateTime(2101), 
+                                );
+                                if (pickedDate != null) {
+                                  dateController.text = pickedDate.toLocal().toString().split(' ')[0]; 
+                                }
+                              },
+                            ),
+                      ],
+                    ),
+                  ],
                 ),
-                TextField(
-                  controller: distanceController,
-                  decoration: InputDecoration(
-                    hintText: 'Distance',
-                  ),
-                  keyboardType: TextInputType.number,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: Text(
+                        'Race Distance:',
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 0.0),
+                            child: TextField(
+                              controller: distanceController,
+                              decoration: InputDecoration(
+                                hintText: '0.0',
+                              ),
+                              keyboardType: TextInputType.number,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -76,7 +175,7 @@ class _RacesScreenState extends State<RacesScreen> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(context); // Close dialog
+                Navigator.pop(context); 
               },
               child: Text('Cancel'),
             ),
@@ -166,71 +265,74 @@ class _RacesScreenState extends State<RacesScreen> {
             ),
           ),
           Expanded(
-            child: FutureBuilder<List<Race>>(
-              future: DatabaseHelper.instance.getAllRaces(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(child: CircularProgressIndicator());
-                } else if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return Center(child: Text('No races found.'));
-                }
-                races = snapshot.data ?? [];
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: FutureBuilder<List<Race>>(
+                future: DatabaseHelper.instance.getAllRaces(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(child: CircularProgressIndicator());
+                  } else if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}'));
+                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return Center(child: Text('No races found.'));
+                  }
+                  races = snapshot.data ?? [];
 
-                return ListView.builder(
-                  itemCount: races.length,
-                  itemBuilder: (context, index) {
-                    return Card(
-                      child: ListTile(
-                        trailing: GestureDetector(
-                          child: Icon(Icons.delete, color: Colors.grey),
+                  return ListView.builder(
+                    itemCount: races.length,
+                    itemBuilder: (context, index) {
+                      return Card(
+                        child: ListTile(
+                          trailing: GestureDetector(
+                            child: Icon(Icons.delete, color: Colors.grey),
+                            onTap: () {
+                              showDialog(
+                                context: context,
+                                builder: (context) {
+                                  return AlertDialog(
+                                    title: Text('Delete race'),
+                                    content: Text('Are you sure you want to delete ${races[index].race_name}?'),
+                                    actions: [
+                                      TextButton(
+                                        child: Text('Cancel'),
+                                        onPressed: () => Navigator.of(context).pop(),
+                                      ),
+                                      TextButton(
+                                        child: Text('Delete'),
+                                        onPressed: () async {
+                                          await DatabaseHelper.instance.deleteRace(races[index].raceId);
+                                          final newRaces = await DatabaseHelper.instance.getAllRaces();
+                                          setState(() {
+                                            races = newRaces;
+                                          });
+                                          Navigator.of(context).pop();
+                                        },
+                                      ),
+                                    ],
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                          title: Text(races[index].race_name),
                           onTap: () {
-                            showDialog(
-                              context: context,
-                              builder: (context) {
-                                return AlertDialog(
-                                  title: Text('Delete race'),
-                                  content: Text('Are you sure you want to delete ${races[index].race_name}?'),
-                                  actions: [
-                                    TextButton(
-                                      child: Text('Cancel'),
-                                      onPressed: () => Navigator.of(context).pop(),
-                                    ),
-                                    TextButton(
-                                      child: Text('Delete'),
-                                      onPressed: () async {
-                                        await DatabaseHelper.instance.deleteRace(races[index].raceId);
-                                        final newRaces = await DatabaseHelper.instance.getAllRaces();
-                                        setState(() {
-                                          races = newRaces;
-                                        });
-                                        Navigator.of(context).pop();
-                                      },
-                                    ),
-                                  ],
-                                );
-                              },
+                            Navigator.of(context).pushReplacement(
+                              MaterialPageRoute(
+                                builder: (context) => RaceScreen(
+                                  race: races[index],
+                                ),
+                              ),
                             );
                           },
                         ),
-                        title: Text(races[index].race_name),
-                        onTap: () {
-                          Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(
-                              builder: (context) => RaceScreen(
-                                race: races[index],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    );
-                  },
-                );
-              },
+                      );
+                    },
+                  );
+                },
+              ),
             ),
-          ),
+          )
         ]
      ),
 
