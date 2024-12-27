@@ -41,9 +41,11 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> {
         _location = race!.location;
         _date = race!.race_date.toString();
         _distance = race!.distance;
+        final stringDate = DateTime.parse(race!.race_date.toString()).toIso8601String().split('T').first;
+
         _nameController = TextEditingController(text: _name);
         _locationController = TextEditingController(text: _location);
-        _dateController = TextEditingController(text: _date);
+        _dateController = TextEditingController(text: stringDate);
         _distanceController = TextEditingController(text: _distance.toString());
       });
     }
@@ -210,7 +212,21 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> {
                                   setState(() => _date = date.toString());
                                 }
                               },
-                              prefixIcon: const Icon(Icons.calendar_today_outlined),
+                              prefixIcon: IconButton(
+                                icon: Icon(Icons.calendar_today),
+                                onPressed: () async {
+                                  DateTime? pickedDate = await showDatePicker(
+                                    context: context,
+                                    initialDate: DateTime.tryParse(_date) ?? DateTime.now(),
+                                    firstDate: DateTime(2000), 
+                                    lastDate: DateTime(2101), 
+                                  );
+                                  if (pickedDate != null) {
+                                    _dateController.text = pickedDate.toLocal().toString().split(' ')[0];
+                                    setState(() => _date = pickedDate.toString()); 
+                                  }
+                                },
+                              ),
                               hintText: 'YYYY-MM-DD',
                               keyboardType: TextInputType.datetime,
                             ),

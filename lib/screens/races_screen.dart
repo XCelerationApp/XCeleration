@@ -121,19 +121,19 @@ class _RacesScreenState extends State<RacesScreen> {
                           ),
                         ),
                         IconButton(
-                              icon: Icon(Icons.calendar_today),
-                              onPressed: () async {
-                                DateTime? pickedDate = await showDatePicker(
-                                  context: context,
-                                  initialDate: DateTime.now(),
-                                  firstDate: DateTime(2000), 
-                                  lastDate: DateTime(2101), 
-                                );
-                                if (pickedDate != null) {
-                                  dateController.text = pickedDate.toLocal().toString().split(' ')[0]; 
-                                }
-                              },
-                            ),
+                          icon: Icon(Icons.calendar_today),
+                          onPressed: () async {
+                            DateTime? pickedDate = await showDatePicker(
+                              context: context,
+                              initialDate: DateTime.now(),
+                              firstDate: DateTime(2000), 
+                              lastDate: DateTime(2101), 
+                            );
+                            if (pickedDate != null) {
+                              dateController.text = pickedDate.toLocal().toString().split(' ')[0]; 
+                            }
+                          },
+                        ),
                       ],
                     ),
                   ],
