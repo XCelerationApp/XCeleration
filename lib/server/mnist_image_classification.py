@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 import keras
 import tensorflow as tf
 from tensorflow.keras.models import load_model
+from tensorflow.keras.layers import Layer
 import cv2
 import os
 from flask import Flask, request, jsonify
@@ -35,7 +36,7 @@ def load_model_from_file(file_path):
   model_path = os.path.abspath(file_path)
   return load_model(model_path)
 
-model = load_model_from_file("lib/server/models/mnist_model.keras")
+model = load_model_from_file("lib/server/models/mnist_model_new.keras")
 
 app = Flask(__name__)
 @app.route('/run-get_boxes', methods=['POST'])
@@ -205,7 +206,7 @@ def resize_image(image_array):
   else:
     new_width = 28
     new_height = int(new_width / aspect_ratio)
-  resized_image = cv2.resize(image_array, (new_width, new_height))
+  resized_image = cv2.resize(image_array, (new_width, new_height), interpolation=cv2.INTER_AREA)
 
   # Calculate padding to make the image square (28x28)
   pad_width = (28 - new_width) // 2
@@ -322,8 +323,8 @@ def pre_process_image(image, debug=False):
 # Filter contours based on area and aspect ratio criteria.
 def filter_contour(contour, pre_processed_image, debug=False):
   min_contour_area = pre_processed_image.shape[0] / 14 * pre_processed_image.shape[1] / 14
-  max_contour_area = pre_processed_image.shape[0] / 3 * pre_processed_image.shape[1] / 3
-  min_contour_aspect_ratio = 0.9
+  max_contour_area = pre_processed_image.shape[0] / 2 * pre_processed_image.shape[1] / 2
+  min_contour_aspect_ratio = 0.75
   max_contour_aspect_ratio = 8.0
   contour_margin = 20
   contour_margins_max_white_threshold = 0.08 # Threshold for white pixels around the contour
