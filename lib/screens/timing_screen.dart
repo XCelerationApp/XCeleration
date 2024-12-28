@@ -313,7 +313,7 @@ class _TimingScreenState extends State<TimingScreen> {
     for (var controller in Provider.of<TimingData>(context, listen: false).controllers) {
       controller.dispose();
     }
-    _audioPlayer?.dispose();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
@@ -321,7 +321,7 @@ class _TimingScreenState extends State<TimingScreen> {
   Widget build(BuildContext context) {
     final startTime = Provider.of<TimingData>(context, listen: false).startTime;
     final records = Provider.of<TimingData>(context, listen: false).records;
-    final controllers = Provider.of<TimingData>(context, listen: false).controllers;
+    // final controllers = Provider.of<TimingData>(context, listen: false).controllers;
 
     return Scaffold(
       // appBar: AppBar(title: const Text('Race Timing')),
@@ -379,12 +379,13 @@ class _TimingScreenState extends State<TimingScreen> {
                           style: ElevatedButton.styleFrom(
                             minimumSize: Size(0, constraints.maxWidth * 0.15), // Button height scales
                             maximumSize: Size(double.infinity, constraints.maxWidth * 0.35),
+                            backgroundColor: startTime == null ? Colors.green : Colors.red,
                           ),
                           child: Padding(
                             padding: EdgeInsets.symmetric(horizontal: MediaQuery.of(context).size.width * 0.05, vertical: MediaQuery.of(context).size.width * 0.02),
                             child: Text(
                               startTime == null ? 'Start Race' : 'Stop Race',
-                              style: TextStyle(fontSize: fontSize),
+                              style: TextStyle(fontSize: fontSize, color: Colors.white),
                             ),
                           ),
                         );
@@ -438,112 +439,138 @@ class _TimingScreenState extends State<TimingScreen> {
             ),
 
             // Records Section
-            if (records.isNotEmpty || true)
-              Expanded(
-                child: ListView.builder(
-                  controller: _scrollController,
-                  itemCount: records.length,
-                  itemBuilder: (context, index) {
-                    final record = records[index];
-                    final controller = controllers[index];
-                    return Card(
-                      elevation: 4,
-                      margin: EdgeInsets.symmetric(
-                        vertical: MediaQuery.of(context).size.width * 0.02,
+            Expanded(
+              child: Column(
+                children: [
+                  if (records.isNotEmpty)
+                    Padding(
+                      padding: EdgeInsets.symmetric(
                         horizontal: MediaQuery.of(context).size.width * 0.02,
                       ),
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: MediaQuery.of(context).size.width * 0.04, vertical: MediaQuery.of(context).size.width * 0.01),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      child: Divider(
+                        thickness: 1,
+                        color: Color.fromRGBO(128, 128, 128, 0.5),
+                      ),
+                    ),
+                  Expanded(
+                    child: ListView.builder(
+                      controller: _scrollController,
+                      itemCount: records.length,
+                      itemBuilder: (context, index) {
+                        final record = records[index];
+                        // final controller = controllers[index];
+                        return Container(
+                          margin: EdgeInsets.only(
+                              top: MediaQuery.of(context).size.width * 0.01,
+                              bottom: MediaQuery.of(context).size.width * 0.02,
+                              left: MediaQuery.of(context).size.width * 0.02,
+                              right: MediaQuery.of(context).size.width * 0.02,
+                          ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  '${record['place']}. Time: ${record['finish_time']}',
-                                  style: TextStyle(
-                                    fontSize: MediaQuery.of(context).size.width * 0.05,
-                                    fontWeight: FontWeight.bold,
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                    '${record['place']}',
+                                    style: TextStyle(
+                                      fontSize: MediaQuery.of(context).size.width * 0.05,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
+                                  Text(
+                                    '${record['finish_time']}',
+                                      style: TextStyle(
+                                        fontSize: MediaQuery.of(context).size.width * 0.05,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                            //     SizedBox(
-                            //       width: MediaQuery.of(context).size.width * 0.25,
-                            //       child: TextField(
-                            //         controller: controller,
-                            //         style: TextStyle(
-                            //           fontSize: MediaQuery.of(context).size.width * 0.04,
-                            //         ),
-                            //         keyboardType: TextInputType.number,
-                            //         decoration: InputDecoration(
-                            //           labelText: 'Bib #',
-                            //           labelStyle: TextStyle(
-                            //             fontSize: MediaQuery.of(context).size.width * 0.05,
-                            //           ),
-                            //           border: OutlineInputBorder(
-                            //             borderRadius: BorderRadius.circular(MediaQuery.of(context).size.width * 0.02),
-                            //           ),
-                            //           contentPadding: EdgeInsets.symmetric(
-                            //             vertical: MediaQuery.of(context).size.width * 0.02,
-                            //             horizontal: MediaQuery.of(context).size.width * 0.03,
-                            //           ),
-                            //         ),
-                            //         onChanged: (value) => _updateBib(index, int.parse(value)),
-                            //       ),
-                            //     ),
-                              ],
-                            ),
-                            // SizedBox(height: MediaQuery.of(context).size.width * 0.02),
-                            // if (record['name'] != null)
-                            //   Text(
-                            //     'Name: ${record['name']}',
-                            //     style: TextStyle(
-                            //       fontSize: MediaQuery.of(context).size.width * 0.035
-                            //     ),
-                            //   ),
-                            // if (record['grade'] != null)
-                            //   Text(
-                            //     'Grade: ${record['grade']}',
-                            //     style: TextStyle(
-                            //       fontSize: MediaQuery.of(context).size.width * 0.035
-                            //     ),
-                            //   ),
-                            // if (record['school'] != null)
-                            //   Text(
-                            //     'School: ${record['school']}',
-                            //     style: TextStyle(
-                            //       fontSize: MediaQuery.of(context).size.width * 0.035
-                            //     ),
-                            //   ),
-                          ],
-                        ),
+                                Divider(
+                                  thickness: 1,
+                                  color: Color.fromRGBO(128, 128, 128, 0.5),
+                                ),
+                                //     SizedBox(
+                                //       width: MediaQuery.of(context).size.width * 0.25,
+                                //       child: TextField(
+                                //         controller: controller,
+                                //         style: TextStyle(
+                                //           fontSize: MediaQuery.of(context).size.width * 0.04,
+                                //         ),
+                                //         keyboardType: TextInputType.number,
+                                //         decoration: InputDecoration(
+                                //           labelText: 'Bib #',
+                                //           labelStyle: TextStyle(
+                                //             fontSize: MediaQuery.of(context).size.width * 0.05,
+                                //           ),
+                                //           border: OutlineInputBorder(
+                                //             borderRadius: BorderRadius.circular(MediaQuery.of(context).size.width * 0.02),
+                                //           ),
+                                //           contentPadding: EdgeInsets.symmetric(
+                                //             vertical: MediaQuery.of(context).size.width * 0.02,
+                                //             horizontal: MediaQuery.of(context).size.width * 0.03,
+                                //           ),
+                                //         ),
+                                //         onChanged: (value) => _updateBib(index, int.parse(value)),
+                                //       ),
+                                //     ),
+                                  ],
+                              ),
+                                // SizedBox(height: MediaQuery.of(context).size.width * 0.02),
+                                // if (record['name'] != null)
+                                //   Text(
+                                //     'Name: ${record['name']}',
+                                //     style: TextStyle(
+                                //       fontSize: MediaQuery.of(context).size.width * 0.035
+                                //     ),
+                                //   ),
+                                // if (record['grade'] != null)
+                                //   Text(
+                                //     'Grade: ${record['grade']}',
+                                //     style: TextStyle(
+                                //       fontSize: MediaQuery.of(context).size.width * 0.035
+                                //     ),
+                                //   ),
+                                // if (record['school'] != null)
+                                //   Text(
+                                //     'School: ${record['school']}',
+                                //     style: TextStyle(
+                                //       fontSize: MediaQuery.of(context).size.width * 0.035
+                                //     ),
+                                //   ),
+                              // ],
+                            );
+                        },
+                      
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (startTime != null)
+              Padding(
+                padding: const EdgeInsets.all(8.0), // Padding around the button
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    double fontSize = constraints.maxWidth * 0.12;
+                    return ElevatedButton(
+                      onPressed: _handleLogButtonPress,
+                      style: ElevatedButton.styleFrom(
+                        fixedSize: Size(constraints.maxWidth * 0.8, constraints.maxWidth * 0.4),
+                        // minimumSize: Size(0, constraints.maxWidth * 0.5),
+                        // maximumSize: Size(double.infinity, 150),
+
+                      ),
+                      child: Text(
+                        'Log Time',
+                        style: TextStyle(fontSize: fontSize),
                       ),
                     );
                   },
                 ),
               ),
-              if (startTime != null)
-                Padding(
-                  padding: const EdgeInsets.all(8.0), // Padding around the button
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      double fontSize = constraints.maxWidth * 0.12;
-                      return ElevatedButton(
-                        onPressed: _handleLogButtonPress,
-                        style: ElevatedButton.styleFrom(
-                          fixedSize: Size(constraints.maxWidth * 0.8, constraints.maxWidth * 0.4),
-                          // minimumSize: Size(0, constraints.maxWidth * 0.5),
-                          // maximumSize: Size(double.infinity, 150),
-
-                        ),
-                        child: Text(
-                          'Log Time',
-                          style: TextStyle(fontSize: fontSize),
-                        ),
-                      );
-                    },
-                  ),
-                ),
           ],
         ),
       ),

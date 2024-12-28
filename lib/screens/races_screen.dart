@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+// import 'package:geolocator/geolocator.dart';
 import '../models/race.dart';
 import '../database_helper.dart';
 // import 'race_detail_screen.dart';
@@ -84,11 +85,29 @@ class _RacesScreenState extends State<RacesScreen> {
                     ),
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 0.0),
-                      child: TextField(
-                        controller: locationController,
-                        decoration: InputDecoration(
-                          hintText: 'Location',
-                        ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: locationController,
+                              decoration: InputDecoration(
+                                hintText: 'Location',
+                              ),
+                            ),
+                          ),
+                          // IconButton(
+                          //   icon: const Icon(Icons.my_location),
+                          //   onPressed: () async {
+                          //     final position = await Geolocator.getCurrentPosition(
+                          //         desiredAccuracy: LocationAccuracy.high);
+                          //     final placemarks = await placemarkFromCoordinates(
+                          //         position.latitude, position.longitude);
+                          //     final placemark = placemarks.first;
+                          //     locationController.text =
+                          //         '${placemark.locality}, ${placemark.administrativeArea}';
+                          //   },
+                          // ),
+                        ],
                       ),
                     ),
                   ],
@@ -285,7 +304,8 @@ class _RacesScreenState extends State<RacesScreen> {
                       return Card(
                         child: ListTile(
                           trailing: GestureDetector(
-                            child: Icon(Icons.delete, color: Colors.grey),
+                            // child: Icon(Icons.delete, color: Color(0xFF606060)),
+                            child: Icon(Icons.delete),
                             onTap: () {
                               showDialog(
                                 context: context,

@@ -398,7 +398,7 @@ class ResultsScreenState extends State<ResultsScreen> {
   }
 
   List<Map<String, dynamic>> _calculateTeamResults(List<Map<String, dynamic>> allRunners) {
-    final Map<String, List<Map<String, dynamic>>> teams = {};
+    // final Map<String, List<Map<String, dynamic>>> teams = {};
     final List<List<String>> teamInfo = _getTeamInfo(allRunners);
 
     final scoringTeams = teamInfo[0];
