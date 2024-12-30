@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:race_timing_app/file_processing.dart';
 import 'package:race_timing_app/database_helper.dart';
 // import 'package:race_timing_app/models/race.dart';
+import '../constants.dart';
 
 class RunnersManagementScreen extends StatefulWidget {
   final int raceId;
@@ -329,7 +330,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
                           style: ElevatedButton.styleFrom(
                             minimumSize: Size(0, constraints.maxWidth * 0.3), // Button height scales
                             padding: EdgeInsets.symmetric(vertical: 5.0),
-                            backgroundColor: Color(0xFF4B8CC8),
+                            backgroundColor: AppColors.primaryColor,
                           ),
                           child: Text('Add Runner',
                             style: TextStyle(fontSize: fontSize, color: Colors.white),
@@ -371,7 +372,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
                             minimumSize: Size(0, constraints.maxWidth * 0.3),
                             padding: EdgeInsets.symmetric(horizontal: 5.0),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-                            backgroundColor: Color(0xFF4B8CC8),
+                            backgroundColor: AppColors.primaryColor,
                           ),
                           child: Text(
                             'Load Spreadsheet',
@@ -404,11 +405,11 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide(color: Color(0xFF4B8CC8)),
+                                  borderSide: BorderSide(color: AppColors.primaryColor), 
                                 ),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide(color: Color(0xFF606060)),
+                                  borderSide: BorderSide(color: AppColors.navBarColor),
                                 ),
                               ),
                               onChanged: (value) {
@@ -425,6 +426,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
                               onChanged: (String? newValue) {
                                 setState(() {
                                   _searchAttribute = newValue!;
+                                  _filterRunners(_searchController.text);
                                 });
                               },
                               items: <String>['Bib Number', 'Name', 'Grade', 'School']

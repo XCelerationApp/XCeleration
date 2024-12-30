@@ -29,11 +29,6 @@ Duration loadDurationFromString(String durationString) {
     List<String> parts = durationString.split(':');
     int hours = parts.length == 3 ? int.parse(parts[0]) : 0; // First part is hours
     int minutes = parts.length == 3 ? int.parse(parts[1]) : (parts.length == 2 ? int.parse(parts[0]) : 0); // Second part is minutes
-    // int seconds = parts.length >= 2 ? int.parse(parts.last) : int.parse(parts[0]); // Last part is seconds
-    print('parts: $parts');
-    print('hours: $hours');
-    print('minutes: $minutes');
-    // print('seconds: $seconds');
 
     // Handle milliseconds if present
     int milliseconds = 0;
@@ -46,8 +41,6 @@ Duration loadDurationFromString(String durationString) {
     else {
       seconds = int.parse(parts.last);
     }
-    print('milliseconds: $milliseconds');
-    print('seconds: $seconds');
 
     return Duration(
         hours: hours,

@@ -13,10 +13,12 @@ import '../main.dart';
 
 class RaceScreen extends StatefulWidget {
   final Race race;
+  final int initialTabIndex;
 
   const RaceScreen({
     super.key, 
     required this.race,
+    this.initialTabIndex = 0,
   });
 
   @override
@@ -65,6 +67,7 @@ class _RaceScreenState extends State<RaceScreen> {
           ];
         return DefaultTabController(
           length: tabs.length, 
+          initialIndex: widget.initialTabIndex,
           child: Scaffold(
             appBar: AppBar(
               leading: IconButton(
@@ -99,7 +102,7 @@ class _RaceScreenState extends State<RaceScreen> {
             body: TabBarView(
                 children: [
                     RaceInfoScreen(raceId: race.race_id),
-                    if (showResults) ResultsScreen(raceId: race.race_id) else TimingScreen(raceId: race.race_id),
+                    if (showResults) ResultsScreen(raceId: race.race_id) else TimingScreen(race: race),
                     // BibNumberScreen (),
                     RunnersManagementScreen(raceId: race.race_id, shared: false),
                 ],

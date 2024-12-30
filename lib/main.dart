@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'models/timing_data.dart';
 import 'screens/races_screen.dart';
 // import 'package:audioplayers/audioplayers.dart';
+import 'constants.dart';
 
 Process? _flaskProcess;
 
@@ -48,59 +49,52 @@ class MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    // final backgroundColor = Color(0xFF4B8CC8);
-    final backgroundColor = Color(0xFFEBEBEB);
-    final darkColor = Color(0xFF212227);
-    final mediumColor = Color(0xFF606060);
-    final lightColor = Color(0xFFEBEBEB);
-    final navBarTextColor = Color(0xFF4CAF50);
-    final navBarColor = Color(0xFF3E4E56);
     return MaterialApp(
       title: 'Race Timing App',
       theme: ThemeData(
-        primaryColor: backgroundColor,
+        primaryColor: AppColors.backgroundColor,
         colorScheme: ColorScheme.fromSwatch(
-          primarySwatch: Colors.green, // Match the desired color for the FAB
+          primarySwatch: Colors.blueGrey, // Match the desired color for the FAB
         ).copyWith(
-          secondary: backgroundColor,
-          onPrimary: Colors.white, // For icon colors
+          secondary: AppColors.backgroundColor,
+          onPrimary: AppColors.lightColor, // For icon colors
         ),
-        scaffoldBackgroundColor: backgroundColor,
+        scaffoldBackgroundColor: AppColors.backgroundColor,
         textSelectionTheme: TextSelectionThemeData(
-          cursorColor: darkColor, // Cursor color
+          cursorColor: AppColors.darkColor, // Cursor color
           selectionColor: Colors.grey[300], // Highlighted text background
-          selectionHandleColor: mediumColor, // Handles on selected text
+          selectionHandleColor: AppColors.mediumColor, // Handles on selected text
         ),
         appBarTheme: AppBarTheme(
-          backgroundColor: navBarColor,
-          foregroundColor: navBarTextColor, // Text/Icon color in AppBar
+          backgroundColor: AppColors.navBarColor,
+          foregroundColor: AppColors.navBarTextColor, // Text/Icon color in AppBar
           titleTextStyle: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         tabBarTheme: TabBarTheme(
-          labelColor: navBarTextColor,
-          unselectedLabelColor: backgroundColor,
+          labelColor: AppColors.navBarTextColor,
+          unselectedLabelColor: AppColors.backgroundColor,
           indicator: BoxDecoration(
             border: Border(
-              bottom: BorderSide(color: navBarTextColor, width: 3),
+              bottom: BorderSide(color: AppColors.navBarTextColor, width: 3),
             ),
           ),
         ),
         textTheme: TextTheme(
-          bodyMedium: TextStyle(color: darkColor),
-          bodySmall: TextStyle(color: mediumColor),
+          bodyMedium: TextStyle(color: AppColors.darkColor),
+          bodySmall: TextStyle(color: AppColors.mediumColor),
         ),
         buttonTheme: ButtonThemeData(
-          buttonColor: navBarTextColor,
+          buttonColor: AppColors.navBarTextColor,
           textTheme: ButtonTextTheme.primary,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8.0),
           ),
         ),
-        iconTheme: IconThemeData(color: mediumColor),
+        iconTheme: IconThemeData(color: AppColors.mediumColor),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            textStyle: TextStyle(color: darkColor),
-            foregroundColor: darkColor, 
+            textStyle: TextStyle(color: AppColors.darkColor),
+            foregroundColor: AppColors.darkColor, 
             
             // backgroundColor: Color.fromARGB(255, 98, 214, 102), // Default background color
         //     // padding: const EdgeInsets.symmetric(vertical: 16),

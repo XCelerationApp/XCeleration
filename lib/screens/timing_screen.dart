@@ -12,13 +12,15 @@ import 'package:barcode_scan2/barcode_scan2.dart';
 import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
 // import 'package:race_timing_app/models/race.dart';
+import 'race_screen.dart';
+import '../models/race.dart';
 
 class TimingScreen extends StatefulWidget {
-  final int raceId;
+  final Race race;
 
   const TimingScreen({
     super.key, 
-    required this.raceId,
+    required this.race,
   });
 
 
@@ -26,7 +28,7 @@ class TimingScreen extends StatefulWidget {
   State<TimingScreen> createState() => _TimingScreenState();
 }
 
-class _TimingScreenState extends State<TimingScreen> {
+class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMixin {
   // final List<Map<String, dynamic>> _records = [];
   // DateTime? startTime;
   // final List<TextEditingController> _controllers = [];
@@ -37,12 +39,16 @@ class _TimingScreenState extends State<TimingScreen> {
   // BluetoothDevice? _connectedDevice;
   late AudioPlayer _audioPlayer;
   bool _isAudioPlayerReady = false;
+  late TabController _tabController;
+  late Race race;
 
   @override
   void initState() {
     super.initState();
     _initAudioPlayer();
-    raceId = widget.raceId;
+    _tabController = TabController(length: 3, vsync: this); // Adjust length based on your tabs
+    race = widget.race;
+    raceId = race.race_id;
   }
 
  Future<void> _initAudioPlayer() async {
@@ -147,16 +153,19 @@ class _TimingScreenState extends State<TimingScreen> {
 
   void _logTime() {
     final startTime = Provider.of<TimingData>(context, listen: false).startTime;
-    if (startTime == null) return;
+    if (startTime == null) {
+      _showErrorMessage('Start time cannot be null.');
+      return;
+    }
+    final now = DateTime.now();
+    final difference = now.difference(startTime);
 
     setState(() {
-      final now = DateTime.now();
-      final difference = now.difference(startTime);
-
       Provider.of<TimingData>(context, listen: false).addRecord({
         'finish_time': formatDuration(difference),
         'bib_number': null,
-        'place': Provider.of<TimingData>(context, listen: false).records.length + 1,
+        'is_runner': true,
+        'place': _getNumberOfRunners() + 1,
       });
 
       // Scroll to bottom after adding new record
@@ -181,7 +190,7 @@ class _TimingScreenState extends State<TimingScreen> {
     });
 
     // Fetch runner details from the database
-    final runner = await DatabaseHelper.instance.getRaceRunnerByBib(raceId, bib, getShared: true);
+    final [runner, shared] = await DatabaseHelper.instance.getRaceRunnerByBib(raceId, bib, getShared: true);
 
     // Update the record with runner details if found
     if (runner != null) {
@@ -189,11 +198,13 @@ class _TimingScreenState extends State<TimingScreen> {
         records[index]['name'] = runner['name'];
         records[index]['grade'] = runner['grade'];
         records[index]['school'] = runner['school'];
-        records[index]['race_runner_id'] = runner['race_runner_id'];
+        records[index]['race_runner_id'] = runner['race_runner_id'] ?? runner['runner_id'];
         records[index]['race_id'] = raceId;
+        records[index]['runner_is_shared'] = shared;
       });
     }
     else {
+      print('Runner not found');
       setState(() {
         records[index]['name'] = null;
         records[index]['grade'] = null;
@@ -232,12 +243,15 @@ class _TimingScreenState extends State<TimingScreen> {
             records[i]['bib_number'] = bibData[i];
           });
 
-          final runner = await DatabaseHelper.instance.getRaceRunnerByBib(raceId, bibData[i], getShared: true);
+          final [runner, shared] = await DatabaseHelper.instance.getRaceRunnerByBib(raceId, bibData[i], getShared: true);
           if (runner != null) {
             setState(() {
               records[i]['name'] = runner['name'];
               records[i]['grade'] = runner['grade'];
               records[i]['school'] = runner['school'];
+              records[i]['race_runner_id'] = runner['race_runner_id'] ?? runner['runner_id'];
+              records[i]['race_id'] = raceId;
+              records[i]['runner_is_shared'] = shared;
             });
           }
         }
@@ -273,7 +287,7 @@ class _TimingScreenState extends State<TimingScreen> {
   void _saveResults() async {
     // Check if all runners have a non-null bib number
     final records = Provider.of<TimingData>(context, listen: false).records;
-
+    print(records);
     bool allRunnersHaveRequiredInfo = records.every((runner) => runner['bib_number'] != null && runner['name'] != null && runner['grade'] != null && runner['school'] != null);
 
     if (allRunnersHaveRequiredInfo) {
@@ -283,20 +297,34 @@ class _TimingScreenState extends State<TimingScreen> {
         record.remove('name');
         record.remove('grade');
         record.remove('school');
+        if (record['is_runner'] == false) {
+          records.remove(record);
+        }
       }
 
       await DatabaseHelper.instance.insertRaceResults(records);
+      print('Shared Races runners:');
+      print(await DatabaseHelper.instance.getAllSharedRunners());
+      print('Races runners:');
+      print(await DatabaseHelper.instance.getRaceRunners(race.race_id));
+      print('All Races results:');
+      print(await DatabaseHelper.instance.getAllResults());
+      print('Races results:');
+      print(await DatabaseHelper.instance.getRaceResults(race.race_id));
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Results saved successfully. Refresh page to view?'),
+          content: Text('Results saved successfully. View results?'),
           action: SnackBarAction(
-            label: 'Refresh',
+            label: 'View Results',
             onPressed: () {
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (context) => TimingScreen(raceId: raceId)),
+                MaterialPageRoute(
+                  builder: (context) => RaceScreen(race: race, initialTabIndex: 1), // Pass the race object and set results tab as initial
+                ),
               );
+              ScaffoldMessenger.of(context).hideCurrentSnackBar(); // Optional: Hide the SnackBar
             },
           ),
         ),
@@ -306,13 +334,56 @@ class _TimingScreenState extends State<TimingScreen> {
     }
   }
 
+  void _confirmRunnerNumber() async {
+    // final records = Provider.of<TimingData>(context, listen: false).records;
+    int numRunners = _getNumberOfRunners(); // Placeholder for actual length input
+    DateTime now = DateTime.now();
+    final startTime = Provider.of<TimingData>(context, listen: false).startTime;
+    if (startTime == null) {
+      _showErrorMessage('Start time cannot be null.');
+      return;
+    }
+    final difference = now.difference(startTime);
+
+    setState(() {
+      Provider.of<TimingData>(context, listen: false).records.add({
+        'time': formatDuration(difference),
+        'is_runner': false,
+        'numRunners': numRunners,
+      });
+
+      // Scroll to bottom after adding new record
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      });
+    });
+  }
+
+  int _getNumberOfRunners() {
+    final records = Provider.of<TimingData>(context, listen: false).records;
+    return records.where((record) => record['is_runner'] == true).length;
+  }
+
+  int getRunnerIndex(int recordIndex) {
+    final records = Provider.of<TimingData>(context, listen: false).records;
+    final runnerRecords = records.where((record) => record['is_runner'] == true).toList();
+    return runnerRecords.indexOf(records[recordIndex]);
+  }
+  
 
   @override
   void dispose() {
+    _tabController.dispose();
     _scrollController.dispose();
     for (var controller in Provider.of<TimingData>(context, listen: false).controllers) {
       controller.dispose();
     }
+    Provider.of<TimingData>(context, listen: false).records.clear();
+    Provider.of<TimingData>(context, listen: false).changeStartTime(null);
     _audioPlayer.dispose();
     super.dispose();
   }
@@ -321,7 +392,7 @@ class _TimingScreenState extends State<TimingScreen> {
   Widget build(BuildContext context) {
     final startTime = Provider.of<TimingData>(context, listen: false).startTime;
     final records = Provider.of<TimingData>(context, listen: false).records;
-    // final controllers = Provider.of<TimingData>(context, listen: false).controllers;
+    final controllers = Provider.of<TimingData>(context, listen: false).controllers;
 
     return Scaffold(
       // appBar: AppBar(title: const Text('Race Timing')),
@@ -339,6 +410,11 @@ class _TimingScreenState extends State<TimingScreen> {
                     stream: Stream.periodic(const Duration(milliseconds: 10)),
                     builder: (context, snapshot) {
                       final currentTime = DateTime.now();
+                      final startTime = Provider.of<TimingData>(context, listen: false).startTime;
+                      if (startTime == null) {
+                        _showErrorMessage('Start time cannot be null.');
+                        return Container();
+                      }
                       final elapsed = currentTime.difference(startTime);
                       return Container(
                         padding: const EdgeInsets.symmetric(vertical: 10),
@@ -435,6 +511,27 @@ class _TimingScreenState extends State<TimingScreen> {
                       ),
                     ),
                   ),
+                if (startTime != null && records.isNotEmpty)
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0), // Padding around the button
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                        double fontSize = constraints.maxWidth * 0.12;
+                          return ElevatedButton(
+                            onPressed: _confirmRunnerNumber,
+                            style: ElevatedButton.styleFrom(
+                              minimumSize: Size(0, constraints.maxWidth * 0.5),
+                            ),
+                            child: Text(
+                              'Confirm # of Runners',
+                              style: TextStyle(fontSize: fontSize),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
               ],
             ),
 
@@ -458,14 +555,20 @@ class _TimingScreenState extends State<TimingScreen> {
                       itemCount: records.length,
                       itemBuilder: (context, index) {
                         final record = records[index];
-                        // final controller = controllers[index];
-                        return Container(
-                          margin: EdgeInsets.only(
+                        late TextEditingController controller;
+                        if (records.isNotEmpty && record['is_runner'] == true) {
+                          final runnerIndex = getRunnerIndex(index);
+                          controller = controllers[runnerIndex];
+                        }
+                        if (records.isNotEmpty && record['is_runner'] == true) {
+                          print('Runner');
+                          return Container(
+                            margin: EdgeInsets.only(
                               top: MediaQuery.of(context).size.width * 0.01,
                               bottom: MediaQuery.of(context).size.width * 0.02,
                               left: MediaQuery.of(context).size.width * 0.02,
                               right: MediaQuery.of(context).size.width * 0.02,
-                          ),
+                            ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -492,58 +595,85 @@ class _TimingScreenState extends State<TimingScreen> {
                                   thickness: 1,
                                   color: Color.fromRGBO(128, 128, 128, 0.5),
                                 ),
-                                //     SizedBox(
-                                //       width: MediaQuery.of(context).size.width * 0.25,
-                                //       child: TextField(
-                                //         controller: controller,
-                                //         style: TextStyle(
-                                //           fontSize: MediaQuery.of(context).size.width * 0.04,
-                                //         ),
-                                //         keyboardType: TextInputType.number,
-                                //         decoration: InputDecoration(
-                                //           labelText: 'Bib #',
-                                //           labelStyle: TextStyle(
-                                //             fontSize: MediaQuery.of(context).size.width * 0.05,
-                                //           ),
-                                //           border: OutlineInputBorder(
-                                //             borderRadius: BorderRadius.circular(MediaQuery.of(context).size.width * 0.02),
-                                //           ),
-                                //           contentPadding: EdgeInsets.symmetric(
-                                //             vertical: MediaQuery.of(context).size.width * 0.02,
-                                //             horizontal: MediaQuery.of(context).size.width * 0.03,
-                                //           ),
-                                //         ),
-                                //         onChanged: (value) => _updateBib(index, int.parse(value)),
-                                //       ),
-                                //     ),
-                                  ],
-                              ),
-                                // SizedBox(height: MediaQuery.of(context).size.width * 0.02),
-                                // if (record['name'] != null)
-                                //   Text(
-                                //     'Name: ${record['name']}',
-                                //     style: TextStyle(
-                                //       fontSize: MediaQuery.of(context).size.width * 0.035
-                                //     ),
-                                //   ),
-                                // if (record['grade'] != null)
-                                //   Text(
-                                //     'Grade: ${record['grade']}',
-                                //     style: TextStyle(
-                                //       fontSize: MediaQuery.of(context).size.width * 0.035
-                                //     ),
-                                //   ),
-                                // if (record['school'] != null)
-                                //   Text(
-                                //     'School: ${record['school']}',
-                                //     style: TextStyle(
-                                //       fontSize: MediaQuery.of(context).size.width * 0.035
-                                //     ),
-                                //   ),
-                              // ],
-                            );
-                        },
-                      
+                                    // SizedBox(
+                                    //   width: MediaQuery.of(context).size.width * 0.25,
+                                    //   child: TextField(
+                                    //     controller: controller,
+                                    //     style: TextStyle(
+                                    //       fontSize: MediaQuery.of(context).size.width * 0.04,
+                                    //     ),
+                                    //     keyboardType: TextInputType.number,
+                                    //     decoration: InputDecoration(
+                                    //       labelText: 'Bib #',
+                                    //       labelStyle: TextStyle(
+                                    //         fontSize: MediaQuery.of(context).size.width * 0.05,
+                                    //       ),
+                                    //       border: OutlineInputBorder(
+                                    //         borderRadius: BorderRadius.circular(MediaQuery.of(context).size.width * 0.02),
+                                    //       ),
+                                    //       contentPadding: EdgeInsets.symmetric(
+                                    //         vertical: MediaQuery.of(context).size.width * 0.02,
+                                    //         horizontal: MediaQuery.of(context).size.width * 0.03,
+                                    //       ),
+                                    //     ),
+                                    //     onChanged: (value) => _updateBib(index, int.parse(value)),
+                                    //   ),
+                                    // ),
+                                    // SizedBox(height: MediaQuery.of(context).size.width * 0.02),
+                                    if (record['name'] != null)
+                                      Text(
+                                        'Name: ${record['name']}',
+                                        style: TextStyle(
+                                          fontSize: MediaQuery.of(context).size.width * 0.035
+                                        ),
+                                      ),
+                                    if (record['grade'] != null)
+                                      Text(
+                                        'Grade: ${record['grade']}',
+                                        style: TextStyle(
+                                          fontSize: MediaQuery.of(context).size.width * 0.035
+                                        ),
+                                      ),
+                                    if (record['school'] != null)
+                                      Text(
+                                        'School: ${record['school']}',
+                                        style: TextStyle(
+                                          fontSize: MediaQuery.of(context).size.width * 0.035
+                                        ),
+                                      ),
+                              ],
+                            ),
+                          );
+                        } else if (records.isNotEmpty) {
+                          print('record: $record');
+                          return Container(
+                            margin: EdgeInsets.only(
+                              top: MediaQuery.of(context).size.width * 0.01,
+                              bottom: MediaQuery.of(context).size.width * 0.02,
+                              left: MediaQuery.of(context).size.width * 0.02,
+                              right: MediaQuery.of(context).size.width * 0.02,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Confirmed ${record['numRunners']} runners at ${record['time']}',
+                                  style: TextStyle(
+                                    fontSize: MediaQuery.of(context).size.width * 0.05,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Divider(
+                                  thickness: 1,
+                                  color: Color.fromRGBO(128, 128, 128, 0.5),
+                                ),
+                              ],
+                            ),
+                          );
+                        } else {
+                          return Container();
+                        }
+                      },
                     ),
                   ),
                 ],

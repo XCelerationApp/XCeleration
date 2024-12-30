@@ -29,8 +29,9 @@ class ResultsScreenState extends State<ResultsScreen> {
   Future<void> _loadRunners() async {
     // Fetch runners from the database
     runners = await DatabaseHelper.instance.getRaceResults(raceId);
+
     List<Map<String, dynamic>> modifiedRunners = runners.map((runner) {
-      print('duration: ${loadDurationFromString(runner['finish_time'])}');
+      // print('duration: ${loadDurationFromString(runner['finish_time'])}');
       return {
         ...runner,
         'finishTimeAsDuration': loadDurationFromString(runner['finish_time']),

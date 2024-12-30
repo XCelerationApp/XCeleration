@@ -9,6 +9,7 @@ class DatabaseHelper {
   DatabaseHelper._init();
 
   Future<Database> get database async {
+    // deleteDatabase();
     if (_database != null) return _database!;
     _database = await _initDB('races.db');
     return _database!;
@@ -71,9 +72,9 @@ class DatabaseHelper {
         race_id INTEGER NOT NULL,
         race_runner_id INTEGER NOT NULL,
         place INTEGER,
+        runner_is_shared BOOLEAN DEFAULT FALSE,
         finish_time TEXT,
-        FOREIGN KEY (race_id) REFERENCES races(race_id),
-        FOREIGN KEY (race_runner_id) REFERENCES race_runners(race_runner_id)
+        FOREIGN KEY (race_id) REFERENCES races(race_id)
       )
     ''');
   }
@@ -195,7 +196,7 @@ class DatabaseHelper {
     );
   }
 
-  Future<Map<String, dynamic>?> getRaceRunnerByBib(int raceId, int bibNumber, {bool getShared=false}) async {
+  Future<List<dynamic>> getRaceRunnerByBib(int raceId, int bibNumber, {bool getShared=false}) async {
     final db = await instance.database;
     final results = await db.query(
       'race_runners',
@@ -204,10 +205,10 @@ class DatabaseHelper {
     );
 
     final runner = results.isNotEmpty ? results.first : null;
-    if (runner == null && getShared){
-      return getSharedRunnerByBib(bibNumber);
+    if (runner == null && getShared) {
+      return [await getSharedRunnerByBib(bibNumber), true];
     }
-    return runner;
+    return [runner, false];
   }
 
   Future<void> updateRaceRunner(Map<String, dynamic> runner) async {
@@ -230,15 +231,42 @@ class DatabaseHelper {
   }
 
   // Race Results Methods
-  Future<int> insertRaceResult(Map<String, dynamic> result) async {
+  // Future<int> insertRaceResult(Map<String, dynamic> result) async {
+  //   final db = await instance.database;
+  //   return await db.insert('race_results', result);
+  // }
+
+  Future<void> insertRaceResult(Map<String, dynamic> result) async {
+    // Check if the runner exists in shared runners or race runners
+    bool runnerExists = await _runnerExists(result['race_runner_id']);
     final db = await instance.database;
-    return await db.insert('race_results', result);
+
+    if (runnerExists) {
+      // Insert into race_results
+      await db.insert('race_results', result);
+    } else {
+      throw Exception('Runner does not exist in either database.');
+    }
+  }
+
+  Future<bool> _runnerExists(int raceRunnerId) async {
+    final db = await instance.database;
+    // Check in race runners
+    final raceRunnerCheck = await db.query('race_runners',
+        where: 'race_runner_id = ?', whereArgs: [raceRunnerId]);
+
+    // Check in shared runners
+    final sharedRunnerCheck = await db.query('shared_runners',
+        where: 'runner_id = ?', whereArgs: [raceRunnerId]);
+
+    return raceRunnerCheck.isNotEmpty || sharedRunnerCheck.isNotEmpty;
   }
 
   Future<void> insertRaceResults(List<Map<String, dynamic>> results) async {
     final db = await instance.database;
     final batch = db.batch();
     for (var result in results) {
+      print(result);
       batch.insert('race_results', result);
     }
     await batch.commit();
@@ -247,15 +275,44 @@ class DatabaseHelper {
 
   Future<List<Map<String, dynamic>>> getRaceResults(int raceId) async {
     final db = await instance.database;
-    return await db.rawQuery('''
-      SELECT rr.*, r.place, r.finish_time
-      FROM race_runners rr
-      INNER JOIN race_results r 
-        ON rr.race_runner_id = r.race_runner_id
+    final raceRunners = await db.rawQuery('''
+      SELECT 
+        rr.race_runner_id AS runner_id, 
+        rr.bib_number, 
+        rr.name, 
+        rr.school, 
+        rr.grade, 
+        r.place, 
+        r.finish_time,
+        0 AS runner_is_shared
+      FROM race_results r
+      LEFT JOIN race_runners rr ON rr.race_runner_id = r.race_runner_id
       WHERE rr.race_id = ?
-      ORDER BY r.place NULLS LAST, rr.bib_number
     ''', [raceId]);
+
+    final sharedRunners = await db.rawQuery('''
+      SELECT 
+        sr.runner_id AS runner_id, 
+        sr.bib_number, 
+        sr.name, 
+        sr.school, 
+        sr.grade, 
+        r.place, 
+        r.finish_time,
+        1 AS runner_is_shared
+      FROM race_results r
+      LEFT JOIN shared_runners sr ON sr.runner_id = r.race_runner_id
+      WHERE r.runner_is_shared = 1 AND r.race_id = ?
+    ''', [raceId]);
+
+    return [...raceRunners, ...sharedRunners];
   }
+
+  Future<List<Map<String, dynamic>>> getAllResults() async {
+    final db = await instance.database;
+    return await db.query('race_results');
+  }
+
 
 
   // Cleanup Methods
@@ -295,6 +352,7 @@ class DatabaseHelper {
 
 
   Future<void> deleteDatabase() async {
+    print('deleting database');
     String path = join(await getDatabasesPath(), 'races.db');
     await databaseFactory.deleteDatabase(path);
     _database = null;
