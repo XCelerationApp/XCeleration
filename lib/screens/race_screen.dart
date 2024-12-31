@@ -70,8 +70,9 @@ class _RaceScreenState extends State<RaceScreen> {
           initialIndex: widget.initialTabIndex,
           child: Scaffold(
             appBar: AppBar(
+              toolbarHeight: 48.0, // Set a smaller height
               leading: IconButton(
-                icon: Icon(Icons.arrow_back_ios),
+                icon: Icon(Icons.arrow_back_ios, size: 20), // Reduce icon size if needed
                 onPressed: () {
                   Navigator.pushReplacement(
                     context,
@@ -94,9 +95,13 @@ class _RaceScreenState extends State<RaceScreen> {
                   );
                 },
               ),
-              title: Text(raceName),
+              title: Text(
+                raceName,
+                style: TextStyle(fontSize: 18), // Adjust font size
+              ),
               bottom: TabBar(
                 tabs: tabs,
+                indicatorWeight: 3,
               ),
             ),
             body: TabBarView(

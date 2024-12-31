@@ -1,3 +1,4 @@
+import 'dart:math';
 // import 'package:race_timing_app/screens/results_screen.dart';
 import 'package:race_timing_app/utils/time_formatter.dart';
 import 'package:flutter/material.dart';
@@ -14,6 +15,7 @@ import 'package:audioplayers/audioplayers.dart';
 // import 'package:race_timing_app/models/race.dart';
 import 'race_screen.dart';
 import '../models/race.dart';
+import '../constants.dart';
 
 class TimingScreen extends StatefulWidget {
   final Race race;
@@ -93,7 +95,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   }
 
   void _startRace() {
-    final records = Provider.of<TimingData>(context, listen: false).records;
+    final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
     if (records.isNotEmpty) {
       showDialog(
         context: context,
@@ -110,7 +112,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
                 Navigator.of(context).pop(true);
                 setState(() {
                   records.clear();
-                  Provider.of<TimingData>(context, listen: false).changeStartTime(DateTime.now());
+                  Provider.of<TimingData>(context, listen: false).changeStartTime(DateTime.now(), raceId);
                 });
               },
               child: const Text('Yes'),
@@ -121,7 +123,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     } else {
       setState(() {
         records.clear();
-        Provider.of<TimingData>(context, listen: false).changeStartTime(DateTime.now());
+        Provider.of<TimingData>(context, listen: false).changeStartTime(DateTime.now(), raceId);
       });
     }
   }
@@ -141,7 +143,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
             onPressed: () {
               Navigator.of(context).pop(true);
               setState(() {
-                Provider.of<TimingData>(context, listen: false).changeStartTime(null);
+                Provider.of<TimingData>(context, listen: false).changeStartTime(null, raceId);
               });
             },
             child: const Text('Yes'),
@@ -152,7 +154,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   }
 
   void _logTime() {
-    final startTime = Provider.of<TimingData>(context, listen: false).startTime;
+    final startTime = Provider.of<TimingData>(context, listen: false).startTime[raceId];
     if (startTime == null) {
       _showErrorMessage('Start time cannot be null.');
       return;
@@ -165,8 +167,9 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
         'finish_time': formatDuration(difference),
         'bib_number': null,
         'is_runner': true,
+        'text_color': null,
         'place': _getNumberOfRunners() + 1,
-      });
+      }, raceId);
 
       // Scroll to bottom after adding new record
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -179,11 +182,11 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     });
 
     // Add a new controller for the new record
-    Provider.of<TimingData>(context, listen: false).addController(TextEditingController());
+    Provider.of<TimingData>(context, listen: false).addController(TextEditingController(), raceId);
   }
 
   void _updateBib(int index, int bib) async {
-    final records = Provider.of<TimingData>(context, listen: false).records;
+    final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
     // Update the bib in the record
     setState(() {
       records[index]['bib_number'] = bib;
@@ -233,7 +236,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   }
 
   void _processQRData(String qrData) async {
-    final records = Provider.of<TimingData>(context, listen: false).records;
+    final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
     try {
       final List<dynamic> bibData = json.decode(qrData);
 
@@ -286,7 +289,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
 
   void _saveResults() async {
     // Check if all runners have a non-null bib number
-    final records = Provider.of<TimingData>(context, listen: false).records;
+    final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
     print(records);
     bool allRunnersHaveRequiredInfo = records.every((runner) => runner['bib_number'] != null && runner['name'] != null && runner['grade'] != null && runner['school'] != null);
 
@@ -297,6 +300,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
         record.remove('name');
         record.remove('grade');
         record.remove('school');
+        record.remove('text_color');
         if (record['is_runner'] == false) {
           records.remove(record);
         }
@@ -334,21 +338,106 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     }
   }
 
+  void _updateTextColor(Color color) {
+    List<Map<String, dynamic>> records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
+    for (int i = records.length - 1; i >= 0; i--) {
+      if (records[i]['is_runner'] == false) {
+        break;
+      }
+      setState(() {
+        records[i]['text_color'] = color;
+      });
+    }
+  }
+
   void _confirmRunnerNumber() async {
-    // final records = Provider.of<TimingData>(context, listen: false).records;
+    // final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
     int numRunners = _getNumberOfRunners(); // Placeholder for actual length input
     DateTime now = DateTime.now();
-    final startTime = Provider.of<TimingData>(context, listen: false).startTime;
+    final startTime = Provider.of<TimingData>(context, listen: false).startTime[raceId];
+    if (startTime == null) {
+      _showErrorMessage('Start time cannot be null.');
+      return;
+    }
+    final difference = now.difference(startTime);
+    
+    final color = AppColors.navBarTextColor;
+    _updateTextColor(color);
+
+    setState(() {
+      Provider.of<TimingData>(context, listen: false).records[raceId]?.add({
+        'time': formatDuration(difference),
+        'is_runner': false,
+        'type': 'confirm_runner_number',
+        'text_color': color,
+        'numRunners': numRunners,
+      });
+
+      // Scroll to bottom after adding new record
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      });
+    });
+  }
+
+  void _tooManyRunners() async {
+    // final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
+    int numRunners = _getNumberOfRunners() - 1; // Placeholder for actual length input
+    DateTime now = DateTime.now();
+    final startTime = Provider.of<TimingData>(context, listen: false).startTime[raceId];
     if (startTime == null) {
       _showErrorMessage('Start time cannot be null.');
       return;
     }
     final difference = now.difference(startTime);
 
+    final color = AppColors.redColor;
+    _updateTextColor(color);
+
     setState(() {
-      Provider.of<TimingData>(context, listen: false).records.add({
+      Provider.of<TimingData>(context, listen: false).records[raceId]?.add({
         'time': formatDuration(difference),
         'is_runner': false,
+        'type': 'too_many_runners',
+        'text_color': color,
+        'numRunners': numRunners,
+      });
+
+      // Scroll to bottom after adding new record
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      });
+    });
+  }
+
+  void _tooFewRunners() async {
+    // final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
+    int numRunners = _getNumberOfRunners() + 1; // Placeholder for actual length input
+    DateTime now = DateTime.now();
+    final startTime = Provider.of<TimingData>(context, listen: false).startTime[raceId];
+    if (startTime == null) {
+      _showErrorMessage('Start time cannot be null.');
+      return;
+    }
+    final difference = now.difference(startTime);
+
+    final color = AppColors.redColor;
+    _updateTextColor(color);
+
+    setState(() {
+      Provider.of<TimingData>(context, listen: false).records[raceId]?.add({
+        'time': formatDuration(difference),
+        'is_runner': false,
+        'type': 'too_few_runners',
+        'text_color': color,
         'numRunners': numRunners,
       });
 
@@ -364,12 +453,22 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   }
 
   int _getNumberOfRunners() {
-    final records = Provider.of<TimingData>(context, listen: false).records;
-    return records.where((record) => record['is_runner'] == true).length;
+    final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
+    int count = 0;
+    for (var record in records) {
+      if (record['is_runner'] == true) {
+        count++;
+      } else if (record['type'] == 'too_many_runners') {
+        count--;
+      } else if (record['type'] == 'too_few_runners') {
+        count++;
+      }
+    }
+    return max(0, count);
   }
 
   int getRunnerIndex(int recordIndex) {
-    final records = Provider.of<TimingData>(context, listen: false).records;
+    final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
     final runnerRecords = records.where((record) => record['is_runner'] == true).toList();
     return runnerRecords.indexOf(records[recordIndex]);
   }
@@ -379,25 +478,25 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   void dispose() {
     _tabController.dispose();
     _scrollController.dispose();
-    for (var controller in Provider.of<TimingData>(context, listen: false).controllers) {
+    for (var controller in Provider.of<TimingData>(context, listen: false).controllers[raceId] ?? []) {
       controller.dispose();
     }
-    Provider.of<TimingData>(context, listen: false).records.clear();
-    Provider.of<TimingData>(context, listen: false).changeStartTime(null);
+    Provider.of<TimingData>(context, listen: false).clearRecords(raceId);
+    Provider.of<TimingData>(context, listen: false).changeStartTime(null, raceId);
     _audioPlayer.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final startTime = Provider.of<TimingData>(context, listen: false).startTime;
-    final records = Provider.of<TimingData>(context, listen: false).records;
-    final controllers = Provider.of<TimingData>(context, listen: false).controllers;
+    final startTime = Provider.of<TimingData>(context, listen: false).startTime[raceId];
+    final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
+    final controllers = Provider.of<TimingData>(context, listen: false).controllers[raceId] ?? [];
 
     return Scaffold(
       // appBar: AppBar(title: const Text('Race Timing')),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.only(bottom: 16.0, left: 16.0, right: 16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -410,14 +509,14 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
                     stream: Stream.periodic(const Duration(milliseconds: 10)),
                     builder: (context, snapshot) {
                       final currentTime = DateTime.now();
-                      final startTime = Provider.of<TimingData>(context, listen: false).startTime;
+                      final startTime = Provider.of<TimingData>(context, listen: false).startTime[raceId];
                       if (startTime == null) {
                         _showErrorMessage('Start time cannot be null.');
                         return Container();
                       }
                       final elapsed = currentTime.difference(startTime);
                       return Container(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        padding: const EdgeInsets.only(bottom: 10),
                         margin: EdgeInsets.only(left: MediaQuery.of(context).size.width * 0.1), // 1/10 from left
                         width: MediaQuery.of(context).size.width * 0.75, // 3/4 of screen width
                         child: Text(
@@ -511,27 +610,6 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
                       ),
                     ),
                   ),
-                if (startTime != null && records.isNotEmpty)
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0), // Padding around the button
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                        double fontSize = constraints.maxWidth * 0.12;
-                          return ElevatedButton(
-                            onPressed: _confirmRunnerNumber,
-                            style: ElevatedButton.styleFrom(
-                              minimumSize: Size(0, constraints.maxWidth * 0.5),
-                            ),
-                            child: Text(
-                              'Confirm # of Runners',
-                              style: TextStyle(fontSize: fontSize),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
               ],
             ),
 
@@ -561,13 +639,12 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
                           controller = controllers[runnerIndex];
                         }
                         if (records.isNotEmpty && record['is_runner'] == true) {
-                          print('Runner');
                           return Container(
                             margin: EdgeInsets.only(
-                              top: MediaQuery.of(context).size.width * 0.01,
+                              top: 0, // MediaQuery.of(context).size.width * 0.01,
                               bottom: MediaQuery.of(context).size.width * 0.02,
                               left: MediaQuery.of(context).size.width * 0.02,
-                              right: MediaQuery.of(context).size.width * 0.02,
+                              right: MediaQuery.of(context).size.width * 0.01,
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -580,6 +657,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
                                     style: TextStyle(
                                       fontSize: MediaQuery.of(context).size.width * 0.05,
                                       fontWeight: FontWeight.bold,
+                                      color: record['text_color'],
                                     ),
                                   ),
                                   Text(
@@ -587,6 +665,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
                                       style: TextStyle(
                                         fontSize: MediaQuery.of(context).size.width * 0.05,
                                         fontWeight: FontWeight.bold,
+                                        color: record['text_color'],
                                       ),
                                     ),
                                   ],
@@ -645,7 +724,6 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
                             ),
                           );
                         } else if (records.isNotEmpty) {
-                          print('record: $record');
                           return Container(
                             margin: EdgeInsets.only(
                               top: MediaQuery.of(context).size.width * 0.01,
@@ -657,10 +735,15 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Confirmed ${record['numRunners']} runners at ${record['time']}',
+                                  record['type'] == 'confirm_runner_number'
+                                    ? 'Confirmed ${record['numRunners']} runners at ${record['time']}'
+                                    : record['type'] == 'too_few_runners'
+                                        ? 'Too few runners at ${record['time']}. Should be ${record['numRunners']} runners'
+                                        : 'Too many runners at ${record['time']}. Should be ${record['numRunners']} runners',
                                   style: TextStyle(
                                     fontSize: MediaQuery.of(context).size.width * 0.05,
                                     fontWeight: FontWeight.bold,
+                                    color: record['text_color'],
                                   ),
                                 ),
                                 Divider(
@@ -679,16 +762,37 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
                 ],
               ),
             ),
+            if (startTime != null && records.isNotEmpty)
+              Container(
+                margin: EdgeInsets.symmetric(vertical: 8.0), // Adjust vertical margin as needed
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly, // Center the buttons
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.check, size: 40, color: AppColors.navBarTextColor),
+                      onPressed: _confirmRunnerNumber,
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.remove, size: 40, color: AppColors.redColor),
+                      onPressed: _tooManyRunners,
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.add, size: 40, color: AppColors.redColor),
+                      onPressed: _tooFewRunners,
+                    ),
+                  ],
+                ),
+              ),
             if (startTime != null)
               Padding(
-                padding: const EdgeInsets.all(8.0), // Padding around the button
+                padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0).copyWith(bottom: 8.0), // Padding around the button
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     double fontSize = constraints.maxWidth * 0.12;
                     return ElevatedButton(
                       onPressed: _handleLogButtonPress,
                       style: ElevatedButton.styleFrom(
-                        fixedSize: Size(constraints.maxWidth * 0.8, constraints.maxWidth * 0.4),
+                        fixedSize: Size(constraints.maxWidth * 0.8, constraints.maxWidth * 0.35),
                         // minimumSize: Size(0, constraints.maxWidth * 0.5),
                         // maximumSize: Size(double.infinity, 150),
 
