@@ -17,4 +17,4 @@ and it should not require extra clicking to add many quickly. Meanwhile the othe
 after the person logging times clicks the stop race button, the list of bib numbers that the first person got would be sent via bluetooth to the second persons phone and update all of the times to have the bib numbers. 
 it would not need to sync during the race, just once afterwards. I would also want to add a qr code method of data transfer if the bluetooth doesn't work'
 
-afterward all errors are resolved, allow user to save race and see results
+afterward all errors are resolved, allow user to edit race and delete runners. then allow user to save race and see results
