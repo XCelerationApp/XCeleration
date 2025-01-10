@@ -115,7 +115,7 @@ class _CameraPageState extends State<CameraPage> {
                   } catch (e) {
                     print('Error predicting digits: $e');
                     if (mounted && context.mounted) {
-                      widget.onDigitsDetected?.call(null, null, null);
+                      widget.onDigitsDetected?.call(null, [], null);
                     }
                   }
                 },

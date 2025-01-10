@@ -36,7 +36,7 @@ def load_model_from_file(file_path):
   model_path = os.path.abspath(file_path)
   return load_model(model_path)
 
-model = load_model_from_file("lib/server/models/mnist_model_new.keras")
+model = load_model_from_file("lib/server/models/mnist_model.keras")
 
 app = Flask(__name__)
 @app.route('/run-get_boxes', methods=['POST'])
@@ -66,7 +66,7 @@ def find_digits():
   result = predict_digits_from_picture(cv_image)
   print("result:", result)
   save = False
-  return format_digits_and_confidences_to_response(result[0], result[1])
+  return format_result_to_response(result)
 
 # Converts bounding box coordinates to percentages of the image height and width.
 def convert_to_percentage(coordinates, img_height, img_width):
@@ -174,7 +174,11 @@ def get_uploaded_image_from_brga_bytes(request):
   return cv_image
 
 # Format the predicted digits and their confidences into a JSON response.
-def format_digits_and_confidences_to_response(digits, confidences):
+def format_result_to_response(result):
+  if not result:
+    return jsonify({"number": None, 'confidences': []})
+  digits = result[0]
+  confidences = result[1]
   numbers_array_str = list(digits.astype(str))
   confidences_array_str = list(confidences.astype(float))
   number = ''.join(numbers_array_str)
@@ -193,36 +197,46 @@ def visualize_mnist_image(image, title='MNIST Image'):
 """# Prepare Data"""
 # Process the input data to binary format.
 def process_data(data):
-  data = (data == 255).astype(np.float32)
+  data = (data / 255).astype(np.float32)
   return data
 
 """# Digit Prediction"""
 # Resize the input image array to maintain aspect ratio and fit into 28x28.
 def resize_image(image_array):
-  aspect_ratio = image_array.shape[1] / image_array.shape[0]
-  if(aspect_ratio < 1):
-    new_height = 28
-    new_width = int(aspect_ratio * new_height)
-  else:
-    new_width = 28
-    new_height = int(new_width / aspect_ratio)
-  resized_image = cv2.resize(image_array, (new_width, new_height), interpolation=cv2.INTER_AREA)
+    # Calculate padding to make the image square
+    height, width = image_array.shape
+    if height > width:
+        pad_width = (height - width) // 2
+        pad_width_left = pad_width_right = pad_width
+        pad_height_top = pad_height_bottom = 0
+        if (height - width) % 2 != 0:
+            pad_width_right += 1
+    else:
+        pad_height = (width - height) // 2
+        pad_height_top = pad_height_bottom = pad_height
+        pad_width_left = pad_width_right = 0
+        if (width - height) % 2 != 0:
+            pad_height_bottom += 1
 
-  # Calculate padding to make the image square (28x28)
-  pad_width = (28 - new_width) // 2
-  pad_height = (28 - new_height) // 2
+    # Pad the image to make it square
+    padded_image = np.pad(
+        image_array,
+        ((pad_height_top, pad_height_bottom), (pad_width_left, pad_width_right)),
+        constant_values=0
+    )
 
-  # Ensure padding is evenly distributed
-  pad_width_left = pad_width_right = pad_width
-  pad_height_top = pad_height_bottom = pad_height
+    # Resize the padded square image to 28x28
+    resized_image = cv2.resize(padded_image, (28, 28), interpolation=cv2.INTER_AREA)
+    return resized_image
 
-  # Adjust for any off-by-one errors if 28 - new_width or 28 - new_height is odd
-  if (28 - new_width) % 2 != 0:
-      pad_width_right += 1
-  if (28 - new_height) % 2 != 0:
-      pad_height_bottom += 1
-  padded_image = np.pad(resized_image, ((pad_height_top, pad_height_bottom), (pad_width_left, pad_width_right)), constant_values=0)
-  return padded_image
+def thicken_digit_lines(digit_image):
+  kernel = np.ones((3,3), np.uint8)
+  thickened_image = cv2.erode(digit_image, kernel, iterations=1)
+  kernel = np.ones((5,5), np.uint8)
+  thickened_image = cv2.erode(digit_image, kernel, iterations=1)
+  kernel = np.ones((5,5), np.uint8)
+  thickened_image = cv2.dilate(thickened_image, kernel, iterations=3)
+  return thickened_image
 
 # Predict digits from an array of images using the trained model.
 def predict_digits_from_arrays(image_arrays):
@@ -235,13 +249,18 @@ def predict_digits_from_arrays(image_arrays):
 def predict_digits_from_images(images, debug=False):
   if not images:
     return None
-  resized_images = np.array(list(map(resize_image, images)))
-  # print("resized_images shape:", resized_images.shape)
+  thickened_images = list(map(thicken_digit_lines, images))
+  if debug:
+    for thickened_image in thickened_images:
+      plt.figure(figsize=(4, 2))
+      plt.title('Thickened Digit')
+      plt.imshow(thickened_image.copy(), cmap='gray')
+      plt.show()
+  resized_images = np.array(list(map(resize_image, thickened_images)))
   if debug:
     for resized_image in resized_images:
       visualize_mnist_image(resized_image)
-  processed_images = process_data(resized_images)
-  # print('processed_images shape:', processed_images.shape)
+  processed_images = process_data(np.round(resized_images))
   processed_image_arrays = processed_images.reshape(processed_images.shape[0], 28, 28, 1)
   digits, confidences = predict_digits_from_arrays(processed_image_arrays)
   return digits, confidences
@@ -298,7 +317,7 @@ def pre_process_image(image, debug=False):
 
   # Apply morphological operations to connect components
   kernel = np.ones((5,5), np.uint8)
-  binary_full_cleaned = cv2.morphologyEx(binary_full, cv2.MORPH_CLOSE, kernel, iterations=4)
+  binary_full_cleaned = cv2.morphologyEx(binary_full, cv2.MORPH_CLOSE, kernel, iterations=3)
   # kernel = np.ones((3,3), np.uint8)
   binary_full_cleaned = cv2.morphologyEx(binary_full_cleaned, cv2.MORPH_OPEN, kernel, iterations=1)
 
@@ -322,22 +341,20 @@ def pre_process_image(image, debug=False):
 
 # Filter contours based on area and aspect ratio criteria.
 def filter_contour(contour, pre_processed_image, debug=False):
-  min_contour_area = pre_processed_image.shape[0] / 14 * pre_processed_image.shape[1] / 14
-  max_contour_area = pre_processed_image.shape[0] / 2 * pre_processed_image.shape[1] / 2
+  min_contour_height = pre_processed_image.shape[0] / 13
+  max_contour_height = pre_processed_image.shape[0] / 3.5
   min_contour_aspect_ratio = 0.75
-  max_contour_aspect_ratio = 8.0
+  max_contour_aspect_ratio = 12.0
   contour_margin = 20
-  contour_margins_max_white_threshold = 0.08 # Threshold for white pixels around the contour
+  contour_margins_max_white_threshold = 0.1 # Threshold for white pixels around the contour
   max_black_pixel_threshold = 0.95  # Max threshold for majority black pixels
   min_black_pixel_threshold = 0.3  # Min threshold for majority white pixels
 
   x, y, w, h = cv2.boundingRect(contour)
-  area = w * h
   
-  # Check area and aspect ratio
-  if not (min_contour_area < area < max_contour_area):
+  # Check height
+  if not (min_contour_height < h < max_contour_height):
       return False
-  
   # aspect ratio check
   aspect_ratio = h / w if w > 0 else 0
   if not (min_contour_aspect_ratio < aspect_ratio < max_contour_aspect_ratio):
@@ -385,6 +402,11 @@ def select_and_sort_bounding_boxes(bounding_boxes, debug=False):
     return sorted_bounding_boxes
   if debug:
     print('selecting bounding boxes')
+  for i in range(len(bounding_boxes) - 1):
+      current_bounding_box = bounding_boxes[i]
+      next_bounding_box = bounding_boxes[i + 1]
+      if (current_bounding_box[1] + current_bounding_box[3] > next_bounding_box[1]):
+        return False
   remaining_sorted_bounding_boxes = sorted_bounding_boxes.copy()
   bounding_box_groups = []
   while remaining_sorted_bounding_boxes:
