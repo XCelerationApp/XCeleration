@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'models/timing_data.dart';
 import 'screens/races_screen.dart';
 // import 'package:audioplayers/audioplayers.dart';
+import 'constants.dart';
 
 Process? _flaskProcess;
 
@@ -51,48 +52,49 @@ class MyAppState extends State<MyApp> {
     return MaterialApp(
       title: 'Race Timing App',
       theme: ThemeData(
-        primaryColor: Color(0xFF4CAF50),
+        primaryColor: AppColors.backgroundColor,
         colorScheme: ColorScheme.fromSwatch(
-          primarySwatch: Colors.green, // Match the desired color for the FAB
+          primarySwatch: Colors.blueGrey, // Match the desired color for the FAB
         ).copyWith(
-          secondary: Color(0xFF3E4E56),
-          onPrimary: Colors.white, // For icon colors
+          secondary: AppColors.backgroundColor,
+          onPrimary: AppColors.lightColor, // For icon colors
         ),
-        scaffoldBackgroundColor: Color(0xFFF4F4F9),
+        scaffoldBackgroundColor: AppColors.backgroundColor,
         textSelectionTheme: TextSelectionThemeData(
-          cursorColor: Colors.black, // Cursor color
+          cursorColor: AppColors.darkColor, // Cursor color
           selectionColor: Colors.grey[300], // Highlighted text background
-          selectionHandleColor: Colors.grey, // Handles on selected text
+          selectionHandleColor: AppColors.mediumColor, // Handles on selected text
         ),
         appBarTheme: AppBarTheme(
-          backgroundColor: Color(0xFF3E4E56),
-          foregroundColor: Colors.white, // Text/Icon color in AppBar
+          backgroundColor: AppColors.navBarColor,
+          foregroundColor: AppColors.navBarTextColor, // Text/Icon color in AppBar
           titleTextStyle: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         tabBarTheme: TabBarTheme(
-          labelColor: Color(0xFF4CAF50),
-          unselectedLabelColor: Colors.grey,
+          labelColor: AppColors.navBarTextColor,
+          unselectedLabelColor: AppColors.backgroundColor,
           indicator: BoxDecoration(
             border: Border(
-              bottom: BorderSide(color: Color(0xFF4CAF50), width: 3),
+              bottom: BorderSide(color: AppColors.navBarTextColor, width: 3),
             ),
           ),
         ),
         textTheme: TextTheme(
-          bodyMedium: TextStyle(color: Color(0xFF212121)),
-          bodySmall: TextStyle(color: Color(0xFF757575)),
+          bodyMedium: TextStyle(color: AppColors.darkColor),
+          bodySmall: TextStyle(color: AppColors.mediumColor),
         ),
         buttonTheme: ButtonThemeData(
-          buttonColor: Color(0xFF4CAF50),
+          buttonColor: AppColors.navBarTextColor,
           textTheme: ButtonTextTheme.primary,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8.0),
           ),
         ),
+        iconTheme: IconThemeData(color: AppColors.mediumColor),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            textStyle: const TextStyle(color: Color(0xFF1B1B1B)),
-            foregroundColor: const Color(0xFF1B1B1B), 
+            textStyle: TextStyle(color: AppColors.darkColor),
+            foregroundColor: AppColors.darkColor, 
             
             // backgroundColor: Color.fromARGB(255, 98, 214, 102), // Default background color
         //     // padding: const EdgeInsets.symmetric(vertical: 16),
@@ -123,7 +125,7 @@ class HomeScreen extends StatelessWidget {
             // title: const Text('Race Timing App'),
             bottom: const TabBar(
               tabs: [
-                Tab(icon: Icon(Icons.person), text: 'Races'),
+                Tab(icon: Icon(Icons.flag), text: 'Races'),
                 Tab(icon: Icon(Icons.numbers), text: 'Record Bib Numbers'),
                 Tab(icon: Icon(Icons.person), text: 'Shared Runner Data'),
               ],

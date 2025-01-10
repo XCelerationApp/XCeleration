@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 import '../models/race.dart';
 import '../database_helper.dart';
 // import 'race_detail_screen.dart';
 // import 'race_info_screen.dart';
 import 'race_screen.dart';
+import '../constants.dart';
+import 'dart:developer' as developer;
+
 
 class RacesScreen extends StatefulWidget {
   const RacesScreen({super.key});
@@ -15,6 +20,12 @@ class RacesScreen extends StatefulWidget {
 
 class _RacesScreenState extends State<RacesScreen> {
   List<Race> races = [];
+  bool isLocationButtonVisible = true;
+  final nameController = TextEditingController(text: 'Untitled Race');
+  final locationController = TextEditingController(text: '');
+  final dateController = TextEditingController(text: '');
+  final distanceController = TextEditingController(text: '');
+  final userlocationController = TextEditingController(text: '');
   
   @override
   void initState() {
@@ -29,12 +40,26 @@ class _RacesScreenState extends State<RacesScreen> {
     });
   }
 
+  void _updateLocationButtonVisibility() {
+    setState(() {
+      isLocationButtonVisible = locationController.text.trim() != userlocationController.text.trim();
+      print('isLocationButtonVisible: $isLocationButtonVisible');
+      print('locationController.text: ${locationController.text}');
+      print('userlocationController.text: ${userlocationController.text}');
+      print('locationController.text.trim(): ${locationController.text.trim()}');
+      print('userlocationController.text.trim(): ${userlocationController.text.trim()}');
+    });
+  }
+
+
   void _showCreateRaceDialog(BuildContext context) {
-    final nameController = TextEditingController(text: 'Untitled Race');
-    final locationController = TextEditingController(text: '');
-    final dateController = TextEditingController(text: '');
-    final distanceController = TextEditingController(text: '');
-    
+    nameController.text = 'Untitled Race';
+    locationController.text = '';
+    dateController.text = '';
+    distanceController.text = '';
+    userlocationController.text = '';
+    isLocationButtonVisible = true;
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -84,13 +109,79 @@ class _RacesScreenState extends State<RacesScreen> {
                     ),
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 0.0),
-                      child: TextField(
-                        controller: locationController,
-                        decoration: InputDecoration(
-                          hintText: 'Location',
-                        ),
+                      child: Row(
+                        key: ValueKey(isLocationButtonVisible),
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: locationController,
+                              decoration: InputDecoration(
+                                hintText: 'Other Location',
+                              ),
+                              onChanged: (value) {
+                                _updateLocationButtonVisibility();
+                              },
+                            ),
+                          ),
+                          if (isLocationButtonVisible)
+                            TextButton(
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.location_on_outlined),
+                                  Text('My Location'),
+                                ],
+                              ),
+                              onPressed: () async {
+                                try {
+                                  LocationPermission permission = await Geolocator.checkPermission();
+                                  if (permission == LocationPermission.denied) {
+                                    permission = await Geolocator.requestPermission();
+                                  }
+
+                                  if (permission == LocationPermission.deniedForever) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Location permissions are permanently denied, we cannot request permissions.'),
+                                      ),
+                                    );
+                                    return;
+                                  }
+
+                                  if (permission == LocationPermission.denied) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Location permissions are denied, please enable them in settings.'),
+                                      ),
+                                    );
+                                    return;
+                                  }
+
+                                  if (!await Geolocator.isLocationServiceEnabled()) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Location services are disabled'),
+                                      ),
+                                    );
+                                    return;
+                                  }
+
+                                  final position = await Geolocator.getCurrentPosition();
+                                  final placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
+                                  final placemark = placemarks.first;
+                                  setState(() {
+                                    locationController.text = '${placemark.subThoroughfare} ${placemark.thoroughfare}, ${placemark.locality}, ${placemark.administrativeArea} ${placemark.postalCode}';
+                                    userlocationController.text = locationController.text;
+                                  });
+                                  _updateLocationButtonVisibility();
+                                } catch (e) {
+                                  print('Error getting location: $e');
+                                }
+                              },
+                            ),
+                        ],
                       ),
                     ),
+
                   ],
                 ),
                 Column(
@@ -121,19 +212,19 @@ class _RacesScreenState extends State<RacesScreen> {
                           ),
                         ),
                         IconButton(
-                              icon: Icon(Icons.calendar_today),
-                              onPressed: () async {
-                                DateTime? pickedDate = await showDatePicker(
-                                  context: context,
-                                  initialDate: DateTime.now(),
-                                  firstDate: DateTime(2000), 
-                                  lastDate: DateTime(2101), 
-                                );
-                                if (pickedDate != null) {
-                                  dateController.text = pickedDate.toLocal().toString().split(' ')[0]; 
-                                }
-                              },
-                            ),
+                          icon: Icon(Icons.calendar_today),
+                          onPressed: () async {
+                            DateTime? pickedDate = await showDatePicker(
+                              context: context,
+                              initialDate: DateTime.now(),
+                              firstDate: DateTime(2000), 
+                              lastDate: DateTime(2101), 
+                            );
+                            if (pickedDate != null) {
+                              dateController.text = pickedDate.toLocal().toString().split(' ')[0]; 
+                            }
+                          },
+                        ),
                       ],
                     ),
                   ],
@@ -285,7 +376,7 @@ class _RacesScreenState extends State<RacesScreen> {
                       return Card(
                         child: ListTile(
                           trailing: GestureDetector(
-                            child: Icon(Icons.delete, color: Colors.grey),
+                            child: Icon(Icons.delete, color: AppColors.navBarColor),
                             onTap: () {
                               showDialog(
                                 context: context,
@@ -339,6 +430,7 @@ class _RacesScreenState extends State<RacesScreen> {
      floatingActionButton: FloatingActionButton(
         onPressed: () => _showCreateRaceDialog(context),
         tooltip: 'Create new race',
+        backgroundColor: AppColors.primaryColor,
         child: Icon(Icons.add),
       ),
     );

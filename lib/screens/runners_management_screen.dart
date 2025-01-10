@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:race_timing_app/file_processing.dart';
 import 'package:race_timing_app/database_helper.dart';
 // import 'package:race_timing_app/models/race.dart';
+import '../constants.dart';
 
 class RunnersManagementScreen extends StatefulWidget {
   final int raceId;
@@ -23,9 +24,12 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
   final _gradeController = TextEditingController();
   final _schoolController = TextEditingController();
   final _bibController = TextEditingController();
-  final _deleteBibController = TextEditingController();
+  // final _deleteBibController = TextEditingController();
+  String _searchAttribute = 'Bib Number'; // Initialize with a default value
+  final _searchController = TextEditingController();
 
   List<Map<String, dynamic>> _runners = []; // To store runners fetched from the database.
+  List<Map<String, dynamic>> _filteredRunners = []; // To store filtered runners.
   // List<Map<String, dynamic>> _sharedRunners = [];
 
   late int raceId;
@@ -45,12 +49,14 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
       final sharedRunners = await DatabaseHelper.instance.getAllSharedRunners();
       setState(() {
         _runners = sharedRunners; // Update the state with the fetched runners, including shared runners
+        _filteredRunners = _runners; // Initialize _filteredRunners with the fetched runners
       });
     }
     else{
       final runners = await DatabaseHelper.instance.getRaceRunners(raceId);
       setState(() {
         _runners = runners; // Update the state with the fetched runners, including shared runners
+        _filteredRunners = _runners; // Initialize _filteredRunners with the fetched runners
       });
     }
   }
@@ -94,26 +100,26 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
     Navigator.of(context).pop(); // Close the popup
   }
 
-  Future<void> _deleteRunner() async {
-    final bib = int.tryParse(_deleteBibController.text) ?? null;
+  // Future<void> _deleteRunner() async {
+  //   final bib = int.tryParse(_deleteBibController.text) ?? null;
 
-    if (bib == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a Bib Number')),
-      );
-      return;
-    }
+  //   if (bib == null) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       const SnackBar(content: Text('Please enter a Bib Number')),
+  //     );
+  //     return;
+  //   }
 
-    if (shared == true) {
-      await DatabaseHelper.instance.deleteSharedRunner(bib);
-    }
-    else {
-      await DatabaseHelper.instance.deleteRaceRunner(raceId, bib);
-    }
-    _deleteBibController.clear();
-    _loadRunners();
-    Navigator.of(context).pop(); // Close the popup
-  }
+  //   if (shared == true) {
+  //     await DatabaseHelper.instance.deleteSharedRunner(bib);
+  //   }
+  //   else {
+  //     await DatabaseHelper.instance.deleteRaceRunner(raceId, bib);
+  //   }
+  //   _deleteBibController.clear();
+  //   _loadRunners();
+  //   Navigator.of(context).pop(); // Close the popup
+  // }
 
   Future<void> _showAddRunnerPopup(BuildContext context) async {
     showDialog(
@@ -218,30 +224,30 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
     );
   }
 
-  Future<void> _showDeleteRunnerPopup(BuildContext context) async {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Runner'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildTextField(_deleteBibController, 'Enter Bib Number', isNumeric: true),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: _deleteRunner,
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-  }
+  // Future<void> _showDeleteRunnerPopup(BuildContext context) async {
+  //   showDialog(
+  //     context: context,
+  //     builder: (context) => AlertDialog(
+  //       title: const Text('Delete Runner'),
+  //       content: Column(
+  //         mainAxisSize: MainAxisSize.min,
+  //         children: [
+  //           _buildTextField(_deleteBibController, 'Enter Bib Number', isNumeric: true),
+  //         ],
+  //       ),
+  //       actions: [
+  //         TextButton(
+  //           onPressed: () => Navigator.of(context).pop(),
+  //           child: const Text('Cancel'),
+  //         ),
+  //         ElevatedButton(
+  //           onPressed: _deleteRunner,
+  //           child: const Text('Delete'),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 
   Future<void> _loadSpreadsheet() async {
     await processSpreadsheet(raceId, shared);
@@ -277,6 +283,31 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
     }
   }
 
+  void _filterRunners(String query) {
+    if (query.isEmpty) {
+      setState(() {
+        _filteredRunners = _runners;
+      });
+      return;
+    }
+    setState(() {
+      _filteredRunners = _runners.where((runner) {
+        if (_searchAttribute == 'Bib Number') {
+          return runner['bib_number'].toString().contains(query);
+        } else if (_searchAttribute == 'Name') {
+          return runner['name'].toLowerCase().contains(query.toLowerCase());
+        } else if (_searchAttribute == 'Grade') {
+          return runner['grade'].toString().contains(query);
+        } else if (_searchAttribute == 'School') {
+          return runner['school'].toLowerCase().contains(query.toLowerCase());
+        } else {
+          return runner['name'].toLowerCase().contains(query.toLowerCase()) ||
+                 runner['bib_number'].toString().contains(query);
+        }
+      }).toList();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -297,11 +328,12 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
                         return ElevatedButton(
                           onPressed: () => _showAddRunnerPopup(context),
                           style: ElevatedButton.styleFrom(
-                            minimumSize: Size(0, constraints.maxWidth * 0.5), // Button height scales
+                            minimumSize: Size(0, constraints.maxWidth * 0.3), // Button height scales
                             padding: EdgeInsets.symmetric(vertical: 5.0),
+                            backgroundColor: AppColors.primaryColor,
                           ),
                           child: Text('Add Runner',
-                            style: TextStyle(fontSize: fontSize),
+                            style: TextStyle(fontSize: fontSize, color: Colors.white),
                           ),
                         );
                       },
@@ -330,19 +362,21 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
                 // ),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.all(5.0), // Padding around the button
+                    padding: const EdgeInsets.symmetric(horizontal: 5.0, vertical: 2.5), // Padding around the button
                     child: LayoutBuilder(
                       builder: (context, constraints) {
                         double fontSize = constraints.maxWidth * 0.10;
                         return ElevatedButton(
                           onPressed: _loadSpreadsheet,
                           style: ElevatedButton.styleFrom(
-                            minimumSize: Size(0, constraints.maxWidth * 0.5),
-                            padding: EdgeInsets.symmetric(vertical: 5.0, horizontal: 5.0),
+                            minimumSize: Size(0, constraints.maxWidth * 0.3),
+                            padding: EdgeInsets.symmetric(horizontal: 5.0),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+                            backgroundColor: AppColors.primaryColor,
                           ),
                           child: Text(
                             'Load Spreadsheet',
-                            style: TextStyle(fontSize: fontSize),
+                            style: TextStyle(fontSize: fontSize, color: Colors.white),
                           ),
                         );
                       },
@@ -352,22 +386,80 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
               ],
             ),
             const SizedBox(height: 20),
-            if (_runners.isEmpty) 
-              const Center(
+            Row(
+              children: [
+                if (_runners.isNotEmpty)
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 5.0),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _searchController,
+                              decoration: InputDecoration(
+                                hintText: 'Search',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(color: Color(0xFF606060)),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(color: AppColors.primaryColor), 
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(color: AppColors.navBarColor),
+                                ),
+                              ),
+                              onChanged: (value) {
+                                setState(() {
+                                  _filterRunners(value);
+                                });
+                              },
+                            ),
+                          ),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: DropdownButton<String>(
+                              value: _searchAttribute,
+                              onChanged: (String? newValue) {
+                                setState(() {
+                                  _searchAttribute = newValue!;
+                                  _filterRunners(_searchController.text);
+                                });
+                              },
+                              items: <String>['Bib Number', 'Name', 'Grade', 'School']
+                                  .map<DropdownMenuItem<String>>((String value) {
+                                return DropdownMenuItem<String>(
+                                  value: value,
+                                  child: Text(value),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            const SizedBox(height: 10),
+            if (_filteredRunners.isEmpty) 
+              Center(
                 child: Text(
-                  'No Runners',
+                  (_searchController.text.isEmpty) ? ((shared) ? 'No Runners' : 'No Runners for this race') : 'No Runners found',
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.normal,
                   ),
                 ),
               ),
-            
             Expanded(
               child: ListView.builder(
-                itemCount: _runners.length,
+                itemCount: _filteredRunners.length,
                 itemBuilder: (context, index) {
-                  final runner = _runners[index];
+                  final runner = _filteredRunners[index];
                   return Card(
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),

@@ -13,10 +13,12 @@ import '../main.dart';
 
 class RaceScreen extends StatefulWidget {
   final Race race;
+  final int initialTabIndex;
 
   const RaceScreen({
     super.key, 
     required this.race,
+    this.initialTabIndex = 0,
   });
 
   @override
@@ -65,10 +67,12 @@ class _RaceScreenState extends State<RaceScreen> {
           ];
         return DefaultTabController(
           length: tabs.length, 
+          initialIndex: widget.initialTabIndex,
           child: Scaffold(
             appBar: AppBar(
+              toolbarHeight: 48.0, // Set a smaller height
               leading: IconButton(
-                icon: Icon(Icons.arrow_back_ios),
+                icon: Icon(Icons.arrow_back_ios, size: 20), // Reduce icon size if needed
                 onPressed: () {
                   Navigator.pushReplacement(
                     context,
@@ -91,15 +95,19 @@ class _RaceScreenState extends State<RaceScreen> {
                   );
                 },
               ),
-              title: Text(raceName),
+              title: Text(
+                raceName,
+                style: TextStyle(fontSize: 18), // Adjust font size
+              ),
               bottom: TabBar(
                 tabs: tabs,
+                indicatorWeight: 3,
               ),
             ),
             body: TabBarView(
                 children: [
                     RaceInfoScreen(raceId: race.race_id),
-                    if (showResults) ResultsScreen(raceId: race.race_id) else TimingScreen(raceId: race.race_id),
+                    if (showResults) ResultsScreen(raceId: race.race_id) else TimingScreen(race: race),
                     // BibNumberScreen (),
                     RunnersManagementScreen(raceId: race.race_id, shared: false),
                 ],
