@@ -33,23 +33,25 @@ class ConflictResolutionDialog extends StatelessWidget {
 
     return AlertDialog(
       title: Text(allowManualEntry ? 'Enter Time' : 'Select Time'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (lastConfirmedRecord.isNotEmpty) 
-            _buildRunnerRow(lastConfirmedRecord, isConfirmed: true),
-          ...List.generate(
-            conflictingRunners.length,
-            (index) => _buildTimeSelectionRow(
-              conflictingRunners[index],
-              timeControllers[index],
-              manualEntryControllers?[index],
-              availableTimes,
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (lastConfirmedRecord.isNotEmpty) 
+              _buildRunnerRow(lastConfirmedRecord, isConfirmed: true),
+            ...List.generate(
+              conflictingRunners.length,
+              (index) => _buildTimeSelectionRow(
+                conflictingRunners[index],
+                timeControllers[index],
+                manualEntryControllers?[index],
+                availableTimes,
+              ),
             ),
-          ),
-          if (nextConfirmedRecord.isNotEmpty) 
-            _buildRunnerRow(nextConfirmedRecord, isConfirmed: true),
-        ],
+            if (nextConfirmedRecord.isNotEmpty) 
+              _buildRunnerRow(nextConfirmedRecord, isConfirmed: true),
+          ],
+        ),
       ),
       actions: [
         TextButton(
