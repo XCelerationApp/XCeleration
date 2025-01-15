@@ -11,7 +11,7 @@ class ConflictResolutionDialog extends StatelessWidget {
   final Map<String, dynamic> conflictRecord;
   final Function(List<Duration>) onResolve;
 
-  ConflictResolutionDialog({
+  const ConflictResolutionDialog({super.key, 
     required this.conflictingRunners,
     required this.lastConfirmedRecord,
     required this.nextConfirmedRecord,
@@ -111,7 +111,6 @@ class ConflictResolutionDialog extends StatelessWidget {
     TextEditingController? manualController,
     List<String> times,
   ) {
-    print('manualController: $manualController');
     final items = [
       ...times.map((time) => DropdownMenuItem<String>(
         value: time,
@@ -155,13 +154,11 @@ class ConflictResolutionDialog extends StatelessWidget {
     String? value,
   ) {
     if (value == 'manual' && manualController != null) {
-      print('using manual');
       timeController.text = manualController.text;
     }
     else {
       timeController.text = value ?? '';
       if (manualController?.text.isNotEmpty == true && (value == null || value == '')) {
-        print('using manual');
         timeController.text = manualController!.text;
       }
     }
@@ -201,7 +198,6 @@ class ConflictResolutionDialog extends StatelessWidget {
 
     for (var i = 0; i < controllers.length; i++) {
       final time = _parseTime(controllers[i].text);
-      print(time);
       if (time == null) {
         _showError(context, 'Invalid time format for ${runners[i]['name']}');
         return null;
@@ -232,7 +228,6 @@ class ConflictResolutionDialog extends StatelessWidget {
 // Helper functions
 Duration? _parseTime(String input) {
   if (input.isEmpty || input == '') return null;
-  print(input);
   
   final parts = input.split(':');
   final timeString = switch (parts.length) {
@@ -250,15 +245,12 @@ Duration? _parseTime(String input) {
   final millisString = millisecondParts.length > 1 ? millisecondParts[1].padRight(3, '0') : '0';
   
   final timeParts = timeString.split(':');
-  print('timeParts: $timeParts');
 
   final hours = int.parse(timeParts[0]);
   final minutes = int.parse(timeParts[1]);
   final seconds = int.parse(timeParts[2].split('.')[0]);
   final milliseconds = int.parse(millisString);
   
-  print('hours: $hours, minutes: $minutes, seconds: $seconds, milliseconds: $milliseconds');
-
   return Duration(
     hours: hours,
     minutes: minutes,
