@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class TimingData with ChangeNotifier {
   final Map<int, List<Map<String, dynamic>>> _records = {};
-  final Map<int, List<int>> _bibs = {};
+  final Map<int, List<String>> _bibs = {};
   final Map<int, List<TextEditingController>> _controllers = {};
   Map<int, DateTime?> _startTimes = {};
   Map<int, Duration?> _endTimes = {};
@@ -23,7 +23,7 @@ class TimingData with ChangeNotifier {
   Map<int, List<Map<String, dynamic>>> get records => _records;
   Map<int, DateTime?> get startTime => _startTimes;
   Map<int, Duration?> get endTime => _endTimes;
-  Map<int, List<int>> get bibs => _bibs;
+  Map<int, List<String>> get bibs => _bibs;
   Map<int, List<TextEditingController>> get controllers => _controllers;
   // List<Map<String, dynamic>> records; // Add this line
   // DateTime? startTime; // Add this line
@@ -66,7 +66,7 @@ class TimingData with ChangeNotifier {
     notifyListeners();
   }
 
-  void setBibs(List<int> bibs, int raceId) {
+  void setBibs(List<String> bibs, int raceId) {
     _bibs[raceId] = bibs;
     notifyListeners();
   }

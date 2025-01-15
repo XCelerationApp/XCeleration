@@ -198,7 +198,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     Provider.of<TimingData>(context, listen: false).addController(TextEditingController(), raceId);
   }
 
-  void _updateBib(int index, int bib) async {
+  void _updateBib(int index, String bib) async {
     final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
     // Update the bib in the record
     setState(() {
@@ -255,9 +255,9 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
       final List<dynamic> bibData = json.decode(qrData);
 
       if (bibData.isNotEmpty) {
-        final List<int> bibDataInts = bibData.cast<int>();
+        final List<String> bibDataStrings = bibData.cast<String>();
 
-        print('Bib data: $bibDataInts');
+        print('Bib data: $bibDataStrings');
 
         // for (int bib in bibDataInts) {
         //   final runnerData = await DatabaseHelper.instance.getRaceRunnerByBib(raceId, bib, getShared: true);
@@ -269,9 +269,9 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
         // }
 
         setState(() {
-          Provider.of<TimingData>(context, listen: false).setBibs(bibDataInts, raceId);
+          Provider.of<TimingData>(context, listen: false).setBibs(bibDataStrings, raceId);
         });
-        _syncBibData(bibDataInts, records);
+        _syncBibData(bibDataStrings, records);
       } else {
         _showErrorMessage('QR code data is empty.');
       }
@@ -280,7 +280,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     }
   }
 
-  void _syncBibData(List<int> bibData, List<Map<String, dynamic>> records) async {
+  void _syncBibData(List<String> bibData, List<Map<String, dynamic>> records) async {
     final numberOfRunnerTimes = _getNumberOfTimes();
     if (numberOfRunnerTimes != bibData.length) {
       _updateTextColor(AppColors.redColor, confirmed: false);

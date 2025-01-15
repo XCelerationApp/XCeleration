@@ -76,8 +76,8 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     }
     
     // Check if number exists in database
-    final runner = await DatabaseHelper.instance.getRaceRunnerByBib(1, int.parse(bibNumber));
-    if (runner == null) {
+    final runner = await DatabaseHelper.instance.getRaceRunnerByBib(1, bibNumber);
+    if (runner[0] == null) {
       flags.add('Not in race database');
     }
 

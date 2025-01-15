@@ -418,25 +418,40 @@ def select_and_sort_bounding_boxes(bounding_boxes, debug=False):
   return max(bounding_box_groups, key=len) if bounding_box_groups else []
 
 # Validate if the grouped bounding boxes meet the area threshold.
-def validate_grouped_bounding_boxes(bounding_box_group, area_threshold=0.4):
-    if len(bounding_box_group) <= 1:
-        return True
+def validate_grouped_bounding_boxes(sorted_bounding_box_group, area_threshold=0.5):
+  if len(sorted_bounding_box_group) <= 1:
+      return True
+  # for i in range(len(bounding_box_group) - 1):
+  #   current_bounding_box = bounding_box_group[i]
+  #   next_bounding_box = bounding_box_group[i + 1]
+  #   if (current_bounding_box[1] + current_bounding_box[3] > next_bounding_box[1]):
+  #     return False
 
-    # Calculate sum of individual contour areas
-    total_bounding_box_area = sum([bounding_box[2] * bounding_box[3] for bounding_box in bounding_box_group])
+  min_group_bounding_box_x = min(bounding_box[0] for bounding_box in sorted_bounding_box_group)
+  min_group_bounding_box_y = sorted_bounding_box_group[0][1]
+  max_group_bounding_box_x = max(bounding_box[0] + bounding_box[2] for bounding_box in sorted_bounding_box_group)
+  max_group_bounding_box_y = max(bounding_box[1] + bounding_box[3] for bounding_box in sorted_bounding_box_group)
 
-    min_bounding_box_x = min(bounding_box[0] for bounding_box in bounding_box_group)
-    min_bounding_box_y = min(bounding_box[1] for bounding_box in bounding_box_group)
-    max_bounding_box_x = max(bounding_box[0] + bounding_box[2] for bounding_box in bounding_box_group)
-    max_bounding_box_y = max(bounding_box[1] + bounding_box[3] for bounding_box in bounding_box_group)
+  group_bounding_box_width = max_group_bounding_box_x - min_group_bounding_box_x
+  group_bounding_box_height = max_group_bounding_box_y - min_group_bounding_box_y
 
-    total_group_bounding_box_area = (max_bounding_box_x - min_bounding_box_x) * (max_bounding_box_y - min_bounding_box_y)
+  total_group_bounding_box_area = group_bounding_box_width * group_bounding_box_height
 
-    # Calculate the ratio
-    area_ratio = total_bounding_box_area / total_group_bounding_box_area
-    # print('area_ratio:', area_ratio)
 
-    return area_ratio >= area_threshold
+  total_bounding_box_areas = 0
+  for bounding_box in sorted_bounding_box_group:
+    (x, y, w, h) = bounding_box
+    box_aspect_ratio = h / w
+    if box_aspect_ratio > 5:
+      total_bounding_box_areas += h * min(h / 1.5, group_bounding_box_width)
+    else:
+      total_bounding_box_areas += w * h
+
+  # Calculate the ratio
+  area_ratio = total_bounding_box_areas / total_group_bounding_box_area
+  # print('area_ratio:', area_ratio)
+
+  return area_ratio >= area_threshold
 
 # Get bounding boxes for digits in the provided image.
 def get_digit_bounding_boxes(image):

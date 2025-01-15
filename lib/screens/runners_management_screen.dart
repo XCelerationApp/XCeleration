@@ -152,7 +152,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
   }
 
   Future<void> _showEditRunnerPopup(BuildContext context, Map<String, dynamic> runnerData) async {
-    // final bibNumberText = runnerData['bib_number'].toString();
+    // final bibNumberText = runnerData['bib_number'];
     // if (bibNumberText.isEmpty) {
     //   ScaffoldMessenger.of(context).showSnackBar(
     //     const SnackBar(content: Text('Please enter a Bib Number.'),),
@@ -181,7 +181,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
             _buildTextField(_nameController, 'Full Name', initialValue: runnerData['name'], isNumeric: false),
             _buildTextField(_gradeController, 'Grade', initialValue: runnerData['grade'].toString(), isNumeric: true),
             _buildTextField(_schoolController, 'School', initialValue: runnerData['school'], isNumeric: false),
-            _buildTextField(_bibController, 'Bib Number', initialValue: runnerData['bib_number'].toString(), isNumeric: true),
+            _buildTextField(_bibController, 'Bib Number', initialValue: runnerData['bib_number'], isNumeric: true),
           ],
         ),
       ),
@@ -197,7 +197,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
                 'name': _nameController.text,
                 'school': _schoolController.text,
                 'grade': int.parse(_gradeController.text),
-                'bib_number': int.parse(_bibController.text),
+                'bib_number': _bibController.text,
                 'runner_id': runnerData['runner_id'],
               });
             }
@@ -206,7 +206,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
                 'name': _nameController.text,
                 'school': _schoolController.text,
                 'grade': int.parse(_gradeController.text),
-                'bib_number': int.parse(_bibController.text),
+                'bib_number': _bibController.text,
                 'race_runner_id': runnerData['race_runner_id'],
               });
             }
@@ -293,7 +293,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
     setState(() {
       _filteredRunners = _runners.where((runner) {
         if (_searchAttribute == 'Bib Number') {
-          return runner['bib_number'].toString().contains(query);
+          return runner['bib_number'].contains(query);
         } else if (_searchAttribute == 'Name') {
           return runner['name'].toLowerCase().contains(query.toLowerCase());
         } else if (_searchAttribute == 'Grade') {
@@ -302,7 +302,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
           return runner['school'].toLowerCase().contains(query.toLowerCase());
         } else {
           return runner['name'].toLowerCase().contains(query.toLowerCase()) ||
-                 runner['bib_number'].toString().contains(query);
+                 runner['bib_number'].contains(query);
         }
       }).toList();
     });
@@ -469,7 +469,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
                     child: ListTile(
                       leading: CircleAvatar(
                         backgroundColor: Colors.blueGrey[300],
-                        child: Text(runner['bib_number'].toString()),
+                        child: Text(runner['bib_number']),
                       ),
                       title: Text(runner['name']),
                       subtitle: Text(

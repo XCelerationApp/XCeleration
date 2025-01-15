@@ -34,7 +34,7 @@ class DatabaseHelper {
         name TEXT NOT NULL,
         school TEXT,
         grade INTEGER,
-        bib_number INTEGER NOT NULL,
+        bib_number TEXT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     ''');
@@ -56,7 +56,7 @@ class DatabaseHelper {
       CREATE TABLE race_runners (
         race_runner_id INTEGER PRIMARY KEY AUTOINCREMENT,
         race_id INTEGER NOT NULL,
-        bib_number INTEGER NOT NULL,
+        bib_number TEXT NOT NULL,
         name TEXT NOT NULL,
         school TEXT,
         grade INTEGER,
@@ -102,7 +102,7 @@ class DatabaseHelper {
     return await db.query('shared_runners');
   }
 
-  Future<Map<String, dynamic>?> getSharedRunnerByBib(int bib) async {
+  Future<Map<String, dynamic>?> getSharedRunnerByBib(String bib) async {
     final db = await instance.database;
     final results = await db.query(
       'shared_runners',
@@ -114,7 +114,7 @@ class DatabaseHelper {
 
   
   // Delete a shared runner
-  Future<int> deleteSharedRunner(int bib) async {
+  Future<int> deleteSharedRunner(String bib) async {
     final db = await instance.database;
     return await db.delete(
       'shared_runners',
@@ -196,7 +196,7 @@ class DatabaseHelper {
     );
   }
 
-  Future<List<dynamic>> getRaceRunnerByBib(int raceId, int bibNumber, {bool getShared=false}) async {
+  Future<List<dynamic>> getRaceRunnerByBib(int raceId, String bibNumber, {bool getShared=false}) async {
     final db = await instance.database;
     final results = await db.query(
       'race_runners',
@@ -221,7 +221,7 @@ class DatabaseHelper {
     );
   }
 
-  Future<void> deleteRaceRunner(int raceId, int bibNumber) async {
+  Future<void> deleteRaceRunner(int raceId, String bibNumber) async {
     final db = await instance.database;
     await db.delete(
       'race_runners',
