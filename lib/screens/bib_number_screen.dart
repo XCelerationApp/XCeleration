@@ -35,18 +35,23 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
         'bib_number': bibNumber,
         'confidences': confidences,
         'image': image,
-        'flags': [], // Initialize flags as an empty list
+        'flags': {
+          'duplicate_bib_number': false,
+          'not_in_database': false,
+          'low_confidence_score': false
+          }, // Initialize flags as an empty list
       });
     });
 
     if (bibNumber.isNotEmpty) {
       await _checkAndFlagBibNumber(index);
     }
-
-    // Automatically focus the last input box
-    Future.delayed(Duration.zero, () {
-      _focusNodes.last.requestFocus();
-    });
+    else {
+      // Automatically focus the last input box
+      Future.delayed(Duration.zero, () {
+        _focusNodes.last.requestFocus();
+      });
+    }
   }
 
   void _updateBibNumber(int index, String bibNumber) async {
@@ -58,37 +63,51 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
       await _checkAndFlagBibNumber(index);
     } else {
       setState(() {
-        _bibRecords[index]['flags'].clear();
+        _bibRecords[index]['flags'] = {
+          'duplicate_bib_number': false,
+          'not_in_database': false,
+          'low_confidence_score': false
+          };
       });
     }
   }
 
   Future<void> _checkAndFlagBibNumber(int index) async {
     final bibNumber = _bibRecords[index]['bib_number'];
-    final List<String> flags = [];
+    final Map<String, bool> flags = {
+      'duplicate_bib_number': false,
+      'not_in_database': false,
+      'low_confidence_score': false
+      };
     
     // Check confidence scores
     final confidences = _bibRecords[index]['confidences'];
     if (confidences != null && confidences.isNotEmpty) {
       if (confidences.any((confidence) => confidence < 0.7)) {
-        flags.add('Low confidence score');
+        flags['low_confidence_score'] = true;
       }
     }
     
     // Check if number exists in database
     final runner = await DatabaseHelper.instance.getRaceRunnerByBib(1, bibNumber);
     if (runner[0] == null) {
-      flags.add('Not in race database');
+      flags['not_in_database'] = true;
     }
 
     // Check for duplicate numbers
     for (int i = 0; i < _bibRecords.length; i++) {
       if (i != index && _bibRecords[i]['bib_number'] == bibNumber) {
         setState(() {
-          _bibRecords[i]['flags'].add('Duplicate bib number');
+          _bibRecords[i]['flags']['duplicate_bib_number'] = true;
         });
-        flags.add('Duplicate bib number');
-        break;
+        flags['duplicate_bib_number'] = true;
+      }
+      else {
+        if(i != index) {
+          setState(() {
+            _bibRecords[i]['flags']['duplicate_bib_number'] = false;
+          });
+        }
       }
     }
     
@@ -287,35 +306,6 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16.0),
-              child: ElevatedButton(
-                onPressed: _addBibNumber,
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(horizontal: 50, vertical: 20),
-                ),
-                child: const Text('Add Bib Number', style: TextStyle(fontSize: 20)),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16.0),
-              child: ElevatedButton.icon(
-                onPressed: _captureBibNumbersWithCamera,
-                icon: const Icon(Icons.camera_alt),
-                label: const Text('Photo', style: TextStyle(fontSize: 20)),
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(horizontal: 50, vertical: 20),
-                ),
-              ),
-            ),
-            if (_bibRecords.isNotEmpty)
-              ElevatedButton(
-                onPressed: _showQrCode,
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(horizontal: 50, vertical: 20),
-                ),
-                child: const Text('Share Bib Numbers', style: TextStyle(fontSize: 20)),
-              ),
             Expanded(
               child: ListView.builder(
                 itemCount: _bibRecords.length,
@@ -324,12 +314,18 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                   final controller = _controllers[index];
                   final focusNode = _focusNodes[index];
 
+                  final errorText = '${_bibRecords[index]['flags']['duplicate_bib_number'] ? 'Duplicate Bib Number\n' : '' }'
+                    '${_bibRecords[index]['flags']['not_in_database'] ? 'Not in Database\n' : ''}'
+                    '${_bibRecords[index]['flags']['low_confidence_score'] ? 'Low Confidence Score' : ''}';
+
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
                     child: Card(
                       elevation: 2,
                       margin: const EdgeInsets.symmetric(vertical: 6.0),
-                      color: _bibRecords[index]['flags'].isNotEmpty? Colors.red[50] : null,
+                      color: _bibRecords[index]['flags']['duplicate_bib_number'] ? Colors.red[50] :
+                             (_bibRecords[index]['flags']['not_in_database'] || _bibRecords[index]['flags']['low_confidence_score']) ? Colors.orange[50] :
+                             null,
                       child: Padding(
                         padding: const EdgeInsets.all(12.0),
                         child: Column(
@@ -345,9 +341,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                                     decoration: InputDecoration(
                                       hintText: 'Enter Bib #',
                                       border: OutlineInputBorder(),
-                                      errorText: _bibRecords[index]['flags'].isNotEmpty
-                                          ? _bibRecords[index]['flags'].join(', ')
-                                          : null,
+                                      errorText: errorText.isNotEmpty ? errorText : null,
                                     ),
                                     onChanged: (value) => _updateBibNumber(index, value),
                                   ),
@@ -365,6 +359,35 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                     ),
                   );
                 },
+              ),
+            ),
+            if (_bibRecords.isNotEmpty)
+              ElevatedButton(
+                onPressed: _showQrCode,
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+                ),
+                child: const Text('Share Bib Numbers', style: TextStyle(fontSize: 20)),
+              ),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: ElevatedButton.icon(
+                onPressed: _captureBibNumbersWithCamera,
+                icon: const Icon(Icons.camera_alt),
+                label: const Text('Photo', style: TextStyle(fontSize: 20)),
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: ElevatedButton(
+                onPressed: _addBibNumber,
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+                ),
+                child: const Text('Add Bib Number', style: TextStyle(fontSize: 20)),
               ),
             ),
             // ElevatedButton(
