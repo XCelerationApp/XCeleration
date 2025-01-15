@@ -10,10 +10,10 @@ class RunnersManagementScreen extends StatefulWidget {
   final bool shared;
 
   const RunnersManagementScreen({
-    Key? key, 
+    super.key, 
     required this.raceId,
     required this.shared,
-  }) : super(key: key);
+  });
 
   @override
   State<RunnersManagementScreen> createState() => _RunnersManagementScreenState();

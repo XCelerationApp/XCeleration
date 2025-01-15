@@ -7,7 +7,6 @@ import '../database_helper.dart';
 // import 'race_info_screen.dart';
 import 'race_screen.dart';
 import '../constants.dart';
-import 'dart:developer' as developer;
 
 
 class RacesScreen extends StatefulWidget {

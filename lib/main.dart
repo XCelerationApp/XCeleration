@@ -8,13 +8,17 @@ import 'models/timing_data.dart';
 import 'screens/races_screen.dart';
 // import 'package:audioplayers/audioplayers.dart';
 import 'constants.dart';
+import 'package:flutter/services.dart';
 
 Process? _flaskProcess;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // await AudioPlayer.platformPath;
-  // await startFlaskServer();
+  // Lock the orientation to portrait mode
+  SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
   runApp(
     ChangeNotifierProvider(
       create: (context) => TimingData(),

@@ -1,9 +1,7 @@
 add picture taking to record bib numbers with teo's model (parly done)
 make graphics look better (in progress)
 make the buttons size have a cap
-remove log time button before race is started
 remove duplicates from runner data database
-make a check button to make sure the number of times are equal to the number of bib numbers with timestamp
 fix downloaded results to be in correct format
 make it so that the app will automatically start the python flask app (basically done)
 add a feature that flags predictions based on certainty and # of predicted digits

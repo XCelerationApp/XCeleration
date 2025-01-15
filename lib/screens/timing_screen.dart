@@ -45,6 +45,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   bool _isAudioPlayerReady = false;
   late TabController _tabController;
   late Race race;
+  late bool dataSynced;
 
   @override
   void initState() {
@@ -53,6 +54,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     _tabController = TabController(length: 3, vsync: this); // Adjust length based on your tabs
     race = widget.race;
     raceId = race.race_id;
+    dataSynced = false;
   }
 
  Future<void> _initAudioPlayer() async {
@@ -153,7 +155,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
                   Provider.of<TimingData>(context, listen: false).changeStartTime(null, raceId);
                 });
                 Navigator.of(context).pop(true);
-                if (_getFirstConflict() != [null, -1]) {
+                if (_getFirstConflict()[0] != null) {
                   _showErrorMessage('Race stopped. Make sure to resolve conflicts after loading bib numbers.', title: 'Race Stopped');
                 }
               }
@@ -283,12 +285,26 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   void _syncBibData(List<String> bibData, List<Map<String, dynamic>> records) async {
     final numberOfRunnerTimes = _getNumberOfTimes();
     if (numberOfRunnerTimes != bibData.length) {
-      _updateTextColor(AppColors.redColor, confirmed: false);
       print('Number of runner times does not match bib data length');
+      final difference = bibData.length - numberOfRunnerTimes;
+      if (difference > 0) {
+        print('Too few runners');
+        _tooFewRunners(offBy: difference, useStopTime: true);
+      }
+      else {
+        print('Too many runners');
+        final bibDataLength = bibData.length;
+        if (records.sublist(bibDataLength - 1 + difference, bibDataLength - 1).any((r) => r['is_runner'] == true && r['is_confirmed'] == true)) {
+          _showErrorMessage('You cannot load bib numbers for runners if the there are more confirmed runners than loaded bib numbers.');
+          return;
+        } else{
+          _tooManyRunners(offBy: -difference, useStopTime: true);
+        }
+      }
     }
     else {
       print('Number of runner times matches bib data length');
-      _updateTextColor(AppColors.navBarTextColor, confirmed: true);
+      _confirmRunnerNumber(useStopTime: true);
     }
     for (int i = 0; i < bibData.length; i++) {
       final record = records.where((r) => r['is_runner'] == true && r['place'] == i + 1 && r['is_confirmed'] == true).firstOrNull;
@@ -320,9 +336,13 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
       }
     }
 
+    setState(() {
+      dataSynced = true;
+    });
+
     final allRunnersResolved = _checkIfAllRunnersResolved();
     if (!allRunnersResolved) {
-      _openResolveDialog();
+      await _openResolveDialog();
     }
   }
 
@@ -335,9 +355,16 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
       _deleteConfirmedRecordsBeforeIndexUntilConflict(Provider.of<TimingData>(context, listen: false).records[raceId]!.length - 1);
       return;
     } // No conflicts left
+    print(firstConflict == 'too_few_runner_times'
+                      ? 'Not enough finish times were recorded. Please select which times correctly belong to the runners and enter in missing times.'
+                      : 'More finish times were recorded than the number of runners. Please resolve the conflict by selecting which times correctly belong to the runners.');
+    print(firstConflict);
+    print(conflictIndex);
+    if (!mounted) return; // Check if the widget is still mounted
     showDialog(
         context: context,
         builder: (BuildContext context) {
+          print('Opening resolve dialog for conflict $firstConflict at index $conflictIndex');
           return AlertDialog(
             title: Text('Resolve Runners'),
             content: Column(
@@ -359,8 +386,9 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
             actions: [
               TextButton(
                 onPressed: () async {
+                  if (!mounted) return; // Check if the widget is still mounted
                   // Update the record to resolve the conflict
-                  Navigator.of(context).pop();
+                  // Navigator.of(context).pop();
                   if (firstConflict == 'too_few_runner_times') {
                     print('Resolving too few runner times conflict at index $conflictIndex');
                     await _resolveTooFewRunnerTimes(conflictIndex);
@@ -371,8 +399,10 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
                   else {
                     _showErrorMessage('Unknown conflict type: $firstConflict');
                   }
+                  if (!mounted) return; // Check if the widget is still mounted
                   // // Call this method again to check for the next conflict
-                  // _openResolveDialog();
+                  Navigator.of(context).pop();
+                  _openResolveDialog();
                 },
                 child: Text('Resolve'),
               ),
@@ -381,516 +411,6 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
         },
       );
   }
-
-  // Future<void> _resolveTooFewRunnerTimes(int conflictIndex) async {
-  //   print('Resolving too few runner times conflict at index $conflictIndex');
-  //   var records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
-  //   final bibData = Provider.of<TimingData>(context, listen: false).bibs[raceId] ?? [];
-  //   final conflictRecord = records[conflictIndex];
-    
-  //   final lastConfirmedIndexBeforeConflict = records.sublist(0, conflictIndex).lastIndexWhere((record) => record['is_confirmed'] == true);
-  //   if (lastConfirmedIndexBeforeConflict == -1 || conflictIndex == -1) return;
-    
-  //   print('lastConfirmedIndexBeforeConflict: $lastConfirmedIndexBeforeConflict');
-  //   final lastConfirmedRecordBeforeConflict = records[lastConfirmedIndexBeforeConflict];
-    
-  //   final lastConfirmedRecordBeforeConflictTime = loadDurationFromString(lastConfirmedRecordBeforeConflict['finish_time']);
-  //   final conflictRecordTime = loadDurationFromString(conflictRecord['finish_time']);
-
-  //   final nextConfirmedRecordAfterConflict = records.sublist(conflictIndex + 1, records.length).firstWhere((record) => record['is_confirmed'] == true, orElse: () => {});
-
-  //   final firstConflictingRecordIndex = records.indexOf(records.sublist(0, conflictIndex).firstWhere((record) => record['is_runner'] == true && record['is_confirmed'] == false && record['place'] == lastConfirmedRecordBeforeConflict['place'] + 1));
-  //   final noExistingConflictRecords = firstConflictingRecordIndex == -1;
-  //   print('firstConflictingRecordIndex: $firstConflictingRecordIndex');
-  //   final spaceBetweenConfirmedAndConflict = firstConflictingRecordIndex - lastConfirmedIndexBeforeConflict;
-  //   print('spaceBetweenConfirmedAndConflict: $spaceBetweenConfirmedAndConflict');
-
-    // final conflictingRecords = noExistingConflictRecords ? [] : records.sublist(lastConfirmedIndexBeforeConflict + spaceBetweenConfirmedAndConflict, conflictIndex);
-    // List<dynamic> conflictingRunners = [];
-    // for (int i = lastConfirmedRecordBeforeConflict['place'].toInt(); i < conflictRecord['numTimes'].toInt(); i++) {
-    //   await DatabaseHelper.instance.getRaceRunnerByBib(raceId, bibData[i], getShared: true).then((runner) {
-    //     print('Runner: $runner');
-    //     print('Runner[0]: ${runner[0]}');
-    //     conflictingRunners.add(runner[0]);
-    //   });
-    // }
-
-    // final List<TextEditingController> _timeControllers = List.generate(conflictingRunners.length, (_) => TextEditingController());
-    // final List<TextEditingController> _manualEntryControllers = List.generate(conflictingRunners.length, (_) => TextEditingController());
-
-    // final conflictingTimes = conflictingRecords.map((record) => record['finish_time']).toList();
-    // conflictingTimes.removeWhere((time) => time == null || time == 'TBD');
-  //   showDialog(
-  //     context: context,
-  //     builder: (context) {
-  //       return AlertDialog(
-  //         title: Text('Enter Time for Conflicting Runners'),
-  //         content: Column(
-  //           mainAxisSize: MainAxisSize.min,
-  //             children: [
-  //               if (lastConfirmedRecordBeforeConflict != null && lastConfirmedRecordBeforeConflict != {})
-  //                 Row(
-  //                   children: [
-  //                     Expanded(
-  //                       child: Text(
-  //                         '${lastConfirmedRecordBeforeConflict['name']} #${lastConfirmedRecordBeforeConflict['bib_number'].toString()} ${lastConfirmedRecordBeforeConflict['school']} - ${lastConfirmedRecordBeforeConflict['finish_time']}',
-  //                         style: TextStyle(
-  //                           fontWeight: FontWeight.w400,
-  //                           color: AppColors.navBarTextColor,
-  //                         ),
-  //                       ),
-  //                     ),
-  //                   ],
-  //                 ),
-  //               ...List.generate(conflictingRunners.length, (index) {
-  //                 return Row(
-  //                   children: [
-  //                     Expanded(
-  //                       child: Text(
-  //                         '${conflictingRunners[index]['name']} #${conflictingRunners[index]['bib_number'].toString()} ${conflictingRunners[index]['school']}',
-  //                         style: TextStyle(
-  //                           fontWeight: FontWeight.w400,
-  //                         ),
-  //                       ),
-  //                     ),
-  //                     Expanded(
-  //                       child: Row(
-  //                         children: [
-  //                           Expanded(
-  //                             child: DropdownButtonFormField<String>(
-  //                               value: _timeControllers[index].text.isNotEmpty
-  //                                   ? _timeControllers[index].text
-  //                                   : null,
-  //                               items: [
-  //                                 ...conflictingTimes.map((time) {
-  //                                   return DropdownMenuItem<String>(
-  //                                     value: time,
-  //                                     child: Text(time),
-  //                                   );
-  //                                 }),
-  //                                 DropdownMenuItem<String>(
-  //                                   value: null,
-  //                                   child: StatefulBuilder(
-  //                                     builder: (context, setState) {
-  //                                       return SizedBox(
-  //                                         width: MediaQuery.of(context).size.width * 0.25,
-  //                                         child: TextField(
-  //                                           controller: _manualEntryControllers[index],
-  //                                           decoration: InputDecoration(
-  //                                             hintText: 'Enter time',
-  //                                             border: InputBorder.none,
-  //                                           ),
-  //                                         ),
-  //                                       );
-  //                                     },
-  //                                   ),
-  //                                 )
-  //                               ],
-  //                               onChanged: (value) {
-  //                                 if (value == null || value == '') {
-  //                                   if (_manualEntryControllers[index].text.isNotEmpty) {
-  //                                     _timeControllers[index].text = _manualEntryControllers[index].text;
-  //                                   } else {
-  //                                     _timeControllers[index].text = '';
-  //                                   }
-  //                                 } else {
-  //                                   _timeControllers[index].text = value;
-  //                                 }
-  //                               },
-  //                               decoration: InputDecoration(hintText: 'Select Time'),
-  //                             ),
-  //                           ),
-  //                         ],
-  //                       ),
-  //                     ),
-  //                   ],
-  //                 );
-  //               }
-  //             ),
-  //             if (nextConfirmedRecordAfterConflict != null && nextConfirmedRecordAfterConflict != {})
-  //               Row(
-  //                 children: [
-  //                   Expanded(
-  //                     child: Text(
-  //                       '${nextConfirmedRecordAfterConflict['name']} #${nextConfirmedRecordAfterConflict['bib_number'].toString()} ${nextConfirmedRecordAfterConflict['school']} - ${nextConfirmedRecordAfterConflict['finish_time']}',
-  //                       style: TextStyle(
-  //                         fontWeight: FontWeight.w400,
-  //                         color: AppColors.navBarTextColor,
-  //                       ),
-  //                     ),
-  //                   ),
-  //                 ],
-  //               ),
-  //           ],
-  //         ),
-  //         actions: [
-  //           TextButton(
-  //             onPressed: () {
-  //               Navigator.of(context).pop();
-  //             },
-  //             child: Text('Cancel'),
-  //           ),
-  //           TextButton(
-  //             onPressed: () async {
-  //               List<Duration> formattedTimes = [];
-  //               // Logic to handle the entered times and resolve conflicts
-  //               for (int i = 0; i < conflictingRunners.length; i++) {
-  //                 final inputTime = _timeControllers[i].text;
-  //                 if (inputTime.isEmpty || inputTime == '') {
-  //                   _showErrorMessage('Please enter a time for runner ${conflictingRunners[i]['name']}');
-  //                   return;
-  //                 }
-  //                 print('Input time: $inputTime');
-  //                 String formatedTime;
-  //                 if (!inputTime.contains(':')) {
-  //                   formatedTime = '00:00:$inputTime';
-  //                 }
-  //                 else if (inputTime.allMatches(':').length == 1) {
-  //                   formatedTime = '00:$inputTime';
-  //                 }
-  //                 else if (inputTime.allMatches(':').length == 2) {
-  //                   formatedTime = inputTime;
-  //                 }
-  //                 else {
-  //                   _showErrorMessage('Invalid time format: $inputTime. Too many colons.');
-  //                   return;
-  //                 }
-  //                 if (formatedTime.allMatches('.').isEmpty) {
-  //                   formatedTime = '$formatedTime.0';
-  //                 }
-  //                 else if (formatedTime.allMatches('.').length > 1) {
-  //                   _showErrorMessage('Invalid time format: $inputTime. Too many decimal points.');
-  //                   return Future.value(false);
-  //                 }
-  //                 final newDuration = Duration(hours: int.parse(formatedTime.split(':')[0]), minutes: int.parse(formatedTime.split(':')[1]), seconds: int.parse(formatedTime.split(':')[2].split('.')[0]), milliseconds: int.parse(formatedTime.split('.')[1].padRight(3, '0')));
-                  
-  //                 print('New duration: $newDuration');
-  //                 // Check if the entered duration is valid
-  //                 if (newDuration <= lastConfirmedRecordBeforeConflictTime) {
-  //                   _showErrorMessage('New time must be greater than the last confirmed time: ${formatDuration(lastConfirmedRecordBeforeConflictTime)}.');
-  //                   return;
-  //                 }
-  //                 if (newDuration >= conflictRecordTime) {
-  //                   _showErrorMessage('New time must be before the conflict at: ${formatDuration(conflictRecordTime)}.');
-  //                   return;
-  //                 }
-
-  //                 print('New time: $newDuration');
-  //                 final newTime = formatDuration(newDuration);
-  //                 print('Formatted new time: $newTime');
-
-  //                 // Process the input time and update records accordingly
-  //                 formattedTimes.add(newDuration);
-  //               }
-
-  //               // Make sure the durations are in ascending order
-  //               if (formattedTimes.length > 1 &&
-  //                   formattedTimes.asMap().entries.any((entry) {
-  //                     int index = entry.key;
-  //                     Duration element = entry.value;
-  //                     return index < formattedTimes.length - 1 &&
-  //                         element >= formattedTimes[index + 1];
-  //                   })) {
-  //                 _showErrorMessage('Times must be in ascending order.');
-  //                 return;
-  //               }
-
-                // final lastConfirmedRunnerPlace = lastConfirmedRecordBeforeConflict['place'];
-                // for (int i = 0; i < conflictingRunners.length; i++) {
-                //   final int currentPlace = (i + lastConfirmedRunnerPlace + 1).toInt();
-                //   print('Current place: $currentPlace');
-                //   var record = records.firstWhere((element) => element['place'] == currentPlace, orElse: () => {});
-                //   print('Record: $record');
-                //   if (record == {} || record.isEmpty) {
-                //     print('Record not found for place $currentPlace, creating new record');
-                //     setState(() {
-                //       Provider.of<TimingData>(context, listen: false).insertRecord(lastConfirmedIndexBeforeConflict + spaceBetweenConfirmedAndConflict + i, {
-                //         'finish_time': formatDuration(formattedTimes[i]),
-                //         'bib_number': null,
-                //         'is_runner': true,
-                //         'is_confirmed': false,
-                //         'text_color': null,
-                //         'place': currentPlace,
-                //       }, raceId);
-                //     });
-                //     records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
-                //     record = records.firstWhere((element) => element['place'] == currentPlace, orElse: () => {});
-                //     if (record == {}) {
-                //       _showErrorMessage('Failed to add record');
-                //       return;
-                //     }
-                    
-                //     Provider.of<TimingData>(context, listen: false).insertController(record['place'] - 1, TextEditingController(), raceId);
-                //   }
-                //   final bibNumber = bibData[record['place'].toInt() - 1];   
-
-                //   setState(() {
-                //     record['finish_time'] = formatDuration(formattedTimes[i]);
-                //     record['bib_number'] = bibNumber;
-                //     record['is_runner'] = true;
-                //     record['is_confirmed'] = true;
-                //     record['conflict'] = null;
-                //     record['name'] = conflictingRunners[i]['name'];
-                //     record['grade'] = conflictingRunners[i]['grade'];
-                //     record['school'] = conflictingRunners[i]['school'];
-                //     record['race_runner_id'] = conflictingRunners[i]['race_runner_id'] ?? conflictingRunners[i]['runner_id'];
-                //     record['race_id'] = raceId;
-                //     record['runner_is_shared'] = conflictingRunners[i]['runner_is_shared'];
-                //     record['text_color'] = AppColors.navBarTextColor;
-                //   });
-                // }
-                // setState(() {
-                //   conflictRecord['numTimes'] = lastConfirmedRunnerPlace.toInt() + conflictingRunners.length;
-                //   conflictRecord['type'] = 'confirm_runner_number';
-                //   conflictRecord['conflict'] = null;
-                //   conflictRecord['is_runner'] = false;
-                //   conflictRecord['text_color'] = AppColors.navBarTextColor;
-                //   // conflictRecord['finish_time'] = formatDuration(formattedTimes.last);
-                // });
-                // print('Records: $records');
-                // Navigator.of(context).pop();
-                // ScaffoldMessenger.of(context).showSnackBar(
-                //   SnackBar(
-                //     content: Text('Successfully resolved conflict'),
-                //   ),
-                // );
-
-
-                // // // Call this method again to check for the next conflict
-                // _openResolveDialog();
-  //             },
-  //             child: Text('Resolve'),
-  //           ),
-  //         ],
-  //       );
-  //     },
-  //   );
-  // }
-
-  // Future<void> _resolveTooManyRunnerTimes(int conflictIndex) async {
-  //   print('Resolving too many runner times conflict at index $conflictIndex');
-  //   var records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
-  //   final bibData = Provider.of<TimingData>(context, listen: false).bibs[raceId] ?? [];
-  //   final conflictRecord = records[conflictIndex];
-    
-  //   final lastConfirmedIndexBeforeConflict = records.sublist(0, conflictIndex).lastIndexWhere((record) => record['is_confirmed'] == true);
-  //   if (lastConfirmedIndexBeforeConflict == -1 || conflictIndex == -1) return;
-    
-  //   print('lastConfirmedIndexBeforeConflict: $lastConfirmedIndexBeforeConflict');
-  //   final lastConfirmedRecordBeforeConflict = records[lastConfirmedIndexBeforeConflict];
-    
-  //   final nextConfirmedRecordAfterConflict = records.sublist(conflictIndex + 1, records.length).firstWhere((record) => record['is_confirmed'] == true, orElse: () => {});
-
-  //   final firstConflictingRecordIndex = records.indexOf(records.sublist(0, conflictIndex).firstWhere((record) => record['is_runner'] == true && record['is_confirmed'] == false && record['place'] == lastConfirmedRecordBeforeConflict['place'] + 1));
-  //   final noExistingConflictRecords = firstConflictingRecordIndex == -1;
-  //   print('firstConflictingRecordIndex: $firstConflictingRecordIndex');
-  //   final spaceBetweenConfirmedAndConflict = firstConflictingRecordIndex - lastConfirmedIndexBeforeConflict;
-  //   print('spaceBetweenConfirmedAndConflict: $spaceBetweenConfirmedAndConflict');
-
-  //   final conflictingRecords = noExistingConflictRecords ? [] : records.sublist(lastConfirmedIndexBeforeConflict + spaceBetweenConfirmedAndConflict, conflictIndex);
-  //   List<dynamic> conflictingRunners = [];
-  //   for (int i = lastConfirmedRecordBeforeConflict['place'].toInt(); i < conflictRecord['numTimes'].toInt(); i++) {
-  //     await DatabaseHelper.instance.getRaceRunnerByBib(raceId, bibData[i], getShared: true).then((runner) {
-  //       print('Runner: $runner');
-  //       print('Runner[0]: ${runner[0]}');
-  //       conflictingRunners.add(runner[0]);
-  //     });
-  //   }
-
-  //   final List<TextEditingController> _timeControllers = List.generate(conflictingRunners.length, (_) => TextEditingController());
-
-  //   final conflictingTimes = conflictingRecords.map((record) => record['finish_time']).toList();
-  //   showDialog(
-  //     context: context,
-  //     builder: (context) {
-  //       return AlertDialog(
-  //         title: Text('Select Time for Conflicting Runners'),
-  //         content: Column(
-  //           mainAxisSize: MainAxisSize.min,
-  //           children: [
-  //               if (lastConfirmedRecordBeforeConflict != null && lastConfirmedRecordBeforeConflict != {})
-  //                 Row(
-  //                   children: [
-  //                     Expanded(
-  //                       child: Text(
-  //                         '${lastConfirmedRecordBeforeConflict['name']} #${lastConfirmedRecordBeforeConflict['bib_number'].toString()} ${lastConfirmedRecordBeforeConflict['school']} - ${lastConfirmedRecordBeforeConflict['finish_time']}',
-  //                         style: TextStyle(
-  //                           fontWeight: FontWeight.w400,
-  //                           color: AppColors.navBarTextColor,
-  //                         ),
-  //                       ),
-  //                     ),
-  //                   ],
-  //                 ),
-  //               ...List.generate(conflictingRunners.length, (index) {
-  //                 return Row(
-  //                   children: [
-  //                     Expanded(
-  //                       child: Text(
-  //                         '${conflictingRunners[index]['name']} #${conflictingRunners[index]['bib_number'].toString()} ${conflictingRunners[index]['school']}',
-  //                         style: TextStyle(
-  //                           fontWeight: FontWeight.w400,
-  //                         ),
-  //                       ),
-  //                     ),
-  //                     Expanded(
-  //                       child: DropdownButtonFormField<String>(
-  //                         value: _timeControllers[index].text.isNotEmpty
-  //                             ? _timeControllers[index].text
-  //                             : null,
-  //                         items: conflictingTimes.map((time) {
-  //                           return DropdownMenuItem<String>(
-  //                             value: time,
-  //                             child: Text(time),
-  //                           );
-  //                         }).toList(),
-  //                         onChanged: (value) {
-  //                           if (value == null) {
-  //                             _timeControllers[index].text = '';
-  //                           } else {
-  //                             _timeControllers[index].text = value;
-  //                           }
-  //                         },
-  //                         decoration: InputDecoration(hintText: 'Select Time'),
-  //                       ),
-  //                     ),
-  //                   ],
-  //                 );
-  //               }),
-  //             if (nextConfirmedRecordAfterConflict != null && nextConfirmedRecordAfterConflict != {})
-  //               Row(
-  //                 children: [
-  //                   Expanded(
-  //                     child: Text(
-  //                       '${nextConfirmedRecordAfterConflict['name']} #${nextConfirmedRecordAfterConflict['bib_number'].toString()} ${nextConfirmedRecordAfterConflict['school']} - ${nextConfirmedRecordAfterConflict['finish_time']}',
-  //                       style: TextStyle(
-  //                         fontWeight: FontWeight.w400,
-  //                         color: AppColors.navBarTextColor,
-  //                       ),
-  //                     ),
-  //                   ),
-  //                 ],
-  //               ),
-  //           ],
-  //         ),
-  //         actions: [
-  //           TextButton(
-  //             onPressed: () {
-  //               Navigator.of(context).pop();
-  //             },
-  //             child: Text('Cancel'),
-  //           ),
-  //           TextButton(
-  //             onPressed: () async {
-  //               List<Duration> formattedTimes = [];
-  //               // Logic to handle the entered times and resolve conflicts
-  //               for (int i = 0; i < conflictingRunners.length; i++) {
-  //                 final inputTime = _timeControllers[i].text;
-  //                 if (inputTime.isEmpty || inputTime == '') {
-  //                   _showErrorMessage('Please enter a time for runner ${conflictingRunners[i]['name']}');
-  //                   return;
-  //                 }
-  //                 print('Input time: $inputTime');
-  //                 String formatedTime;
-                  // if (!inputTime.contains(':')) {
-                  //   formatedTime = '00:00:$inputTime';
-                  // }
-                  // else if (inputTime.allMatches(':').length == 1) {
-                  //   formatedTime = '00:$inputTime';
-                  // }
-                  // else if (inputTime.allMatches(':').length == 2) {
-                  //   formatedTime = inputTime;
-                  // }
-                  // else {
-                  //   _showErrorMessage('Invalid time format: $inputTime. Too many colons.');
-                  //   return;
-                  // }
-                  // if (formatedTime.allMatches('.').isEmpty) {
-                  //   formatedTime = '$formatedTime.0';
-                  // }
-                  // else if (formatedTime.allMatches('.').length > 1) {
-                  //   _showErrorMessage('Invalid time format: $inputTime. Too many decimal points.');
-                  //   return Future.value(false);
-                  // }
-                  // final newDuration = Duration(hours: int.parse(formatedTime.split(':')[0]), minutes: int.parse(formatedTime.split(':')[1]), seconds: int.parse(formatedTime.split(':')[2].split('.')[0]), milliseconds: int.parse(formatedTime.split('.')[1].padRight(3, '0')));
-  //                 formattedTimes.add(newDuration);
-  //               }
-
-  //               if (formattedTimes.length > 1 &&
-  //                   formattedTimes.asMap().entries.any((entry) {
-  //                     int index = entry.key;
-  //                     Duration element = entry.value;
-  //                     return index < formattedTimes.length - 1 &&
-  //                         element >= formattedTimes[index + 1];
-  //                   })) {
-  //                 _showErrorMessage('Times must be in ascending order.');
-  //                 return;
-  //               }
-                // final unchosenTimes = List.from(conflictingTimes);
-                // unchosenTimes.removeWhere((time) => formattedTimes.contains(loadDurationFromString(time)));
-
-                // print('Unchosen times: $unchosenTimes');
-                // if (unchosenTimes.length != 1) {
-                //   _showErrorMessage('Please select a time for each runner.');
-                //   return;
-                // }
-                // setState(() {
-                //   records.removeWhere((record) => record['finish_time'] == unchosenTimes[0]);
-                //   conflictingRunners.removeWhere((runner) => runner['finish_time'] == unchosenTimes[0]);
-                //   //remove controller of the unchosen runner
-                // });
-                // records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
-
-                // final lastConfirmedRunnerPlace = lastConfirmedRecordBeforeConflict['place'];
-                // for (int i = 0; i < conflictingRunners.length; i++) {
-                //   final int currentPlace = (i + lastConfirmedRunnerPlace + 1).toInt();
-                //   print('Current place: $currentPlace');
-                //   var record = records[lastConfirmedIndexBeforeConflict + spaceBetweenConfirmedAndConflict + i];
-                //   final bibNumber = bibData[currentPlace - 1];    
-
-                //   setState(() {
-                //     record['finish_time'] = formatDuration(formattedTimes[i]);
-                //     record['bib_number'] = bibNumber;
-                //     record['is_runner'] = true;
-                //     record['place'] = currentPlace;
-                //     record['is_confirmed'] = true;
-                //     record['conflict'] = null;
-                //     record['name'] = conflictingRunners[i]['name'];
-                //     record['grade'] = conflictingRunners[i]['grade'];
-                //     record['school'] = conflictingRunners[i]['school'];
-                //     record['race_runner_id'] = conflictingRunners[i]['race_runner_id'] ?? conflictingRunners[i]['runner_id'];
-                //     record['race_id'] = raceId;
-                //     record['runner_is_shared'] = conflictingRunners[i]['runner_is_shared'];
-                //     record['text_color'] = AppColors.navBarTextColor;
-                //   });
-                // }
-  //               setState(() {
-  //                 conflictRecord['numTimes'] = lastConfirmedRunnerPlace.toInt() + conflictingRunners.length;
-  //                 conflictRecord['type'] = 'confirm_runner_number';
-  //                 conflictRecord['conflict'] = null;
-  //                 conflictRecord['is_runner'] = false;
-  //                 conflictRecord['text_color'] = AppColors.navBarTextColor;
-  //                 // conflictRecord['finish_time'] = formatDuration(formattedTimes.last);
-  //               });
-  //               print('Records: $records');
-  //               Navigator.of(context).pop();
-  //               ScaffoldMessenger.of(context).showSnackBar(
-  //                 SnackBar(
-  //                   content: Text('Successfully resolved conflict'),
-  //                 ),
-  //               );
-
-
-  //               // // Call this method again to check for the next conflict
-  //               _openResolveDialog();
-  //             },
-  //             child: Text('Resolve'),
-  //           ),
-  //         ],
-  //       );
-  //     },
-  //   );
-  // }
 
   Future<void> _resolveTooFewRunnerTimes(int conflictIndex) async {
     var records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
@@ -928,7 +448,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     final List<String> conflictingTimes = conflictingRecords.map((record) => record['finish_time']).cast<String>().toList();
     conflictingTimes.removeWhere((time) => time == '' || time == 'TBD');
 
-    showDialog(
+    await showDialog(
       context: context,
       builder: (context) => ConflictResolutionDialog(
         conflictingRunners: conflictingRunners,
@@ -937,7 +457,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
         availableTimes: conflictingTimes,
         allowManualEntry: true,
         conflictRecord: conflictRecord,
-        onResolve: (formattedTimes) => _handleTooFewTimesResolution(
+        onResolve: (formattedTimes) async => await _handleTooFewTimesResolution(
           formattedTimes,
           conflictingRunners,
           lastConfirmedRecord,
@@ -990,7 +510,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     print('Conflicting runners: $conflictingRunners');
     print('Conflicting times: $conflictingTimes');
 
-    showDialog(
+    await showDialog(
       context: context,
       builder: (context) => ConflictResolutionDialog(
         conflictingRunners: conflictingRunners,
@@ -999,7 +519,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
         availableTimes: conflictingTimes,
         allowManualEntry: false,
         conflictRecord: conflictRecord,
-        onResolve: (formattedTimes) => _handleTooManyTimesResolution(
+        onResolve: (formattedTimes) async => await _handleTooManyTimesResolution(
           formattedTimes,
           conflictingRunners,
           conflictingTimes,
@@ -1014,14 +534,14 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   }
 
   // Helper functions
-  void _handleTooFewTimesResolution(
+  Future<void> _handleTooFewTimesResolution(
     List<Duration> times,
     List<dynamic> runners,
     dynamic lastConfirmedRecord,
     Map<String, dynamic> conflictRecord,
     int lastConfirmedIndex,
     List<dynamic> bibData,
-  ) {
+  ) async {
     final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
     final lastConfirmedRunnerPlace = lastConfirmedRecord.isEmpty ? 0 : lastConfirmedRecord['place'];
     for (int i = 0; i < runners.length; i++) {
@@ -1052,12 +572,12 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
         lastConfirmedRunnerPlace + runners.length,
       );
     });
-
+    Navigator.of(context).pop();
     _showSuccessMessage();
-    _openResolveDialog();
+    await _openResolveDialog();
   }
 
-  void _handleTooManyTimesResolution(
+  Future<void> _handleTooManyTimesResolution(
     List<Duration> times,
     List<dynamic> runners,
     List<String> availableTimes,
@@ -1066,24 +586,30 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     int lastConfirmedIndex,
     List<dynamic> bibData,
     int spaceBetweenConfirmedAndConflict,
-  ) {
+  ) async {
     var records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
     final unusedTimes = availableTimes
         .where((time) => !times.contains(loadDurationFromString(time)))
         .toList();
 
-    if (unusedTimes.length != 1) {
+    if (unusedTimes.isEmpty) {
       _showErrorMessage('Please select a time for each runner.');
       return;
     }
     print('Unused times: $unusedTimes');
-    final unusedRecord = records.firstWhere((record) => record['finish_time'] == unusedTimes[0]);
-    print('Unused record: $unusedRecord');
+    final unusedRecords = records.where((record) => unusedTimes.contains(record['finish_time']));
+    print('Unused records: $unusedRecords');
 
     setState(() {
-      Provider.of<TimingData>(context, listen: false).records[raceId]?.removeWhere((record) => record['finish_time'] == unusedTimes[0]);
-      runners.removeWhere((runner) => runner['finish_time'] == unusedTimes[0]);
-      //remove controller of the unchosen runner
+      for (var record in unusedRecords.toList().reversed.toList()) {
+        if (record['place'] != null) {
+          Provider.of<TimingData>(context, listen: false).controllers[raceId]?[record['place'] - 1].dispose();
+          Provider.of<TimingData>(context, listen: false).controllers[raceId]?.removeAt(record['place'] - 1);
+        }
+      }
+      
+      Provider.of<TimingData>(context, listen: false).records[raceId]?.removeWhere((record) => unusedTimes.contains(record['finish_time']));
+      runners.removeWhere((runner) => unusedTimes.contains(runner['finish_time']));
     });
     records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
 
@@ -1118,8 +644,9 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
       );
     });
 
+    Navigator.of(context).pop();
     _showSuccessMessage();
-    _openResolveDialog();
+    await _openResolveDialog();
   }
 
 
@@ -1265,8 +792,11 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     return records.every((runner) => runner['bib_number'] != null && runner['is_confirmed'] == true);
   }
 
-  void _updateTextColor(Color? color, {bool confirmed = false, String? conflict = null}) {
+  void _updateTextColor(Color? color, {bool confirmed = false, String? conflict, endIndex}) {
     List<Map<String, dynamic>> records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
+    if (endIndex != null && endIndex < records.length && records.isNotEmpty) {
+      records = records.sublist(0, endIndex);
+    }
     for (int i = records.length - 1; i >= 0; i--) {
       if (records[i]['is_runner'] == false) {
         break;
@@ -1277,21 +807,34 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
           records[i]['is_confirmed'] = true;
           records[i]['conflict'] = conflict;
         }
+        else {
+          records[i]['is_confirmed'] = false;
+          records[i]['conflict'] = null;
+        }
       });
     }
   }
 
-  void _confirmRunnerNumber() async {
+  void _confirmRunnerNumber({bool useStopTime = false}) async {
     // final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
     int numTimes = _getNumberOfTimes(); // Placeholder for actual length input
-    DateTime now = DateTime.now();
-    final startTime = Provider.of<TimingData>(context, listen: false).startTime[raceId];
-    final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
-    if (startTime == null) {
-      _showErrorMessage('Start time cannot be null.');
-      return;
+    
+    Duration difference;
+    if (useStopTime == true) {
+      difference = Provider.of<TimingData>(context, listen: false).endTime[raceId]!;
     }
-    final difference = now.difference(startTime);
+    else {
+      DateTime now = DateTime.now();
+      final startTime = Provider.of<TimingData>(context, listen: false).startTime[raceId];
+      if (startTime == null) {
+        print('Start time cannot be null. 4');
+        _showErrorMessage('Start time cannot be null.');
+        return;
+      }
+      difference = now.difference(startTime);
+    }
+
+    final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
     
     final color = AppColors.navBarTextColor;
     _updateTextColor(color, confirmed: true);
@@ -1318,34 +861,60 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     });
   }
 
-  void _tooManyRunners() async {
-    // final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
-    int numTimes = _getNumberOfTimes() - 1; // Placeholder for actual length input
-    DateTime now = DateTime.now();
-    final startTime = Provider.of<TimingData>(context, listen: false).startTime[raceId];
-    if (startTime == null) {
-      _showErrorMessage('Start time cannot be null.');
-      return;
+  void _tooManyRunners({int offBy = 1, bool useStopTime = false}) async {
+    if (offBy < 1) {
+      offBy = 1;
     }
+    // final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
+    final numTimes = _getNumberOfTimes().toInt();
+    int correcttedNumTimes = numTimes - offBy; // Placeholder for actual length input
+
     final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
     final previousRunner = records.last;
     if (previousRunner['is_runner'] == false) {
-      _showErrorMessage('You must have a finish time before pressing this button.');
+      _showErrorMessage('You must have a unconfirmed runner time before pressing this button.');
       return;
     }
-    if (records.length < 2 || records[records.length - 2]['is_runner'] == false) {
-      bool confirmed = await _showConfirmationMessage('This will delete the last finish time, are you sure you want to continue?');
+
+    final lastConfirmedRecord = records.lastWhere((r) => r['is_runner'] == true && r['is_confirmed'] == true, orElse: () => {});
+    final recordPlace = lastConfirmedRecord.isEmpty || lastConfirmedRecord['place'] == null ? 0 : lastConfirmedRecord['place'];
+
+    if ((numTimes - offBy) == recordPlace) {
+      bool confirmed = await _showConfirmationMessage('This will delete the last $offBy finish times, are you sure you want to continue?');
       if (confirmed == false) {
         return;
       }
       setState(() {
-        Provider.of<TimingData>(context, listen: false).records[raceId]?.removeLast();
+        Provider.of<TimingData>(context, listen: false).records[raceId]?.removeRange(Provider.of<TimingData>(context, listen: false).records[raceId]!.length - offBy, Provider.of<TimingData>(context, listen: false).records[raceId]!.length);
       });
       return;
     }
-    previousRunner['place'] = '';
+    else if (numTimes - offBy < recordPlace) {
+      _showErrorMessage('You cannot remove a runner that is confirmed.');
+      return;
+    }
+    for (int i = 1; i <= offBy; i++) {
+      final lastOffByRunner = records[records.length - i];
+      if (lastOffByRunner['is_runner'] == true) {
+        lastOffByRunner['previous_place'] = lastOffByRunner['place'];
+        lastOffByRunner['place'] = '';
+      }
+    }
 
-    final difference = now.difference(startTime);
+    Duration difference;
+    if (useStopTime == true) {
+      difference = Provider.of<TimingData>(context, listen: false).endTime[raceId]!;
+    }
+    else {
+      DateTime now = DateTime.now();
+      final startTime = Provider.of<TimingData>(context, listen: false).startTime[raceId];
+      if (startTime == null) {
+        print('Start time cannot be null. 4');
+        _showErrorMessage('Start time cannot be null.');
+        return;
+      }
+      difference = now.difference(startTime);
+    }
 
     final color = AppColors.redColor;
     _updateTextColor(color, conflict: 'too_many_runner_times');
@@ -1356,7 +925,8 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
         'is_runner': false,
         'type': 'too_many_runner_times',
         'text_color': color,
-        'numTimes': numTimes,
+        'numTimes': correcttedNumTimes,
+        'offBy': offBy,
       });
 
       // Scroll to bottom after adding new record
@@ -1370,39 +940,49 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     });
   }
 
-  void _tooFewRunners() async {
-    // final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
-    int numTimes = _getNumberOfTimes() + 1; // Placeholder for actual length input
-    DateTime now = DateTime.now();
-    final startTime = Provider.of<TimingData>(context, listen: false).startTime[raceId];
-    if (startTime == null) {
-      _showErrorMessage('Start time cannot be null.');
-      return;
+  void _tooFewRunners({int offBy = 1, bool useStopTime = false}) async {
+    final int numTimes = _getNumberOfTimes(); // Placeholder for actual length input
+    int correcttedNumTimes = numTimes + offBy; // Placeholder for actual length input
+    
+    Duration difference;
+    if (useStopTime == true) {
+      difference = Provider.of<TimingData>(context, listen: false).endTime[raceId]!;
     }
-    final difference = now.difference(startTime);
+    else {
+      DateTime now = DateTime.now();
+      final startTime = Provider.of<TimingData>(context, listen: false).startTime[raceId];
+      if (startTime == null) {
+        print('Start time cannot be null. 6');
+        _showErrorMessage('Start time cannot be null.');
+        return;
+      }
+      difference = now.difference(startTime);
+    }
 
     final color = AppColors.redColor;
     _updateTextColor(color, conflict: 'too_few_runner_times');
 
     setState(() {
-      Provider.of<TimingData>(context, listen: false).records[raceId]?.add({
-        'finish_time': 'TBD',
-        'bib_number': null,
-        'is_runner': true,
-        'is_confirmed': false,
-        'conflict': 'too_few_runner_times',
-        'text_color': color,
-        'place': numTimes,
-      });
-      
-      Provider.of<TimingData>(context, listen: false).addController(TextEditingController(), raceId);
+      for (int i = 1; i <= offBy; i++) {
+        Provider.of<TimingData>(context, listen: false).records[raceId]?.add({
+          'finish_time': 'TBD',
+          'bib_number': null,
+          'is_runner': true,
+          'is_confirmed': false,
+          'conflict': 'too_few_runner_times',
+          'text_color': color,
+          'place': numTimes + i,
+        });
+        Provider.of<TimingData>(context, listen: false).addController(TextEditingController(), raceId);
+      }
 
       Provider.of<TimingData>(context, listen: false).records[raceId]?.add({
         'finish_time': formatDuration(difference),
         'is_runner': false,
         'type': 'too_few_runner_times',
         'text_color': color,
-        'numTimes': numTimes,
+        'numTimes': correcttedNumTimes,
+        'offBy': offBy,
       });
 
       // Scroll to bottom after adding new record
@@ -1431,6 +1011,75 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     }
     return max(0, count);
   }
+
+  
+
+  void _undoLastConflict() {
+    print('undo last conflict');
+    final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
+
+    final lastConflict = records.reversed.firstWhere((r) => r['is_runner'] == false && r['type'] != null, orElse: () => {});
+
+    if (lastConflict.isEmpty || lastConflict['type'] == null) {
+      return;
+    }
+    
+    final conflictType = lastConflict['type'];
+    if (conflictType == 'too_many_runner_times') {
+      print('undo too many');
+      undoTooManyRunners(lastConflict, records);
+    }
+    else if (conflictType == 'too_few_runner_times') {
+      print('undo too few');
+      undoTooFewRunners(lastConflict, records);
+    }
+  }
+
+  void undoTooManyRunners(Map lastConflict, records) {
+    if (lastConflict.isEmpty) {
+      return;
+    }
+    final lastConflictIndex = records.indexOf(lastConflict);
+    final runnersBeforeConflict = records.sublist(0, lastConflictIndex).where((r) => r['is_runner'] == true).toList();
+    final offBy = lastConflict['offBy'];
+
+    _updateTextColor(null, confirmed: false, endIndex: lastConflictIndex);
+    for (int i = 0; i < offBy; i++) {
+      final record = runnersBeforeConflict[runnersBeforeConflict.length - 1 - i];
+      setState(() {
+        record['place'] = record['previous_place'];
+      });
+    }
+    setState(() {
+      records.remove(lastConflict);
+    });
+  }
+
+  void undoTooFewRunners(Map lastConflict, records) {
+    if (lastConflict.isEmpty) {
+      return;
+    }
+    final lastConflictIndex = records.indexOf(lastConflict);
+    final runnersBeforeConflict = records.sublist(0, lastConflictIndex).where((r) => r['is_runner'] == true).toList();
+    final offBy = lastConflict['offBy'];
+    print('off by: $offBy');
+    final controllers = Provider.of<TimingData>(context, listen: false).controllers[raceId] ?? [];
+
+    _updateTextColor(null, confirmed: false, endIndex: lastConflictIndex);
+    for (int i = 0; i < offBy; i++) {
+      final record = runnersBeforeConflict[runnersBeforeConflict.length - 1 - i];
+      print('remove record: $record');
+      setState(() {
+        controllers.removeAt(runnersBeforeConflict.length - 1 - i);
+        records.remove(record);
+      });
+    }
+    setState(() {
+      records.remove(lastConflict);
+    });
+  }
+  
+
 
   void _deleteConfirmedRecords() {
     final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
@@ -1513,6 +1162,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   @override
   Widget build(BuildContext context) {
     final startTime = Provider.of<TimingData>(context, listen: false).startTime[raceId];
+    final endTime = Provider.of<TimingData>(context, listen: false).endTime[raceId];
     final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
     final controllers = Provider.of<TimingData>(context, listen: false).controllers[raceId] ?? [];
 
@@ -1520,11 +1170,11 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
       // appBar: AppBar(title: const Text('Race Timing')),
       body: Padding(
         padding: const EdgeInsets.only(bottom: 16.0, left: 16.0, right: 16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Race Timer Display
-            if (startTime != null)
+        // child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Race Timer Display
               Row(
                 children: [
                   // Race time display
@@ -1533,19 +1183,27 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
                     builder: (context, snapshot) {
                       final currentTime = DateTime.now();
                       final startTime = Provider.of<TimingData>(context, listen: false).startTime[raceId];
+                      Duration elapsed;
                       if (startTime == null) {
-                        _showErrorMessage('Start time cannot be null.');
-                        return Container();
+                        if (endTime != null) {
+                          elapsed = endTime;
+                        }
+                        else {
+                          elapsed = Duration.zero;
+                        }
                       }
-                      final elapsed = currentTime.difference(startTime);
+                      else {
+                         elapsed = currentTime.difference(startTime);
+                      }
                       return Container(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        margin: EdgeInsets.only(left: MediaQuery.of(context).size.width * 0.1), // 1/10 from left
-                        width: MediaQuery.of(context).size.width * 0.75, // 3/4 of screen width
+                        alignment: Alignment.centerLeft,
+                        padding: const EdgeInsets.only(top: 10, bottom: 10),
+                        // margin: EdgeInsets.only(left: MediaQuery.of(context).size.width * 0.1), // 1/10 from left
+                        width: MediaQuery.of(context).size.width * 0.9, // 3/4 of screen width
                         child: Text(
                           formatDurationWithZeros(elapsed),
                           style: TextStyle(
-                            fontSize: MediaQuery.of(context).size.width * 0.1,
+                            fontSize: MediaQuery.of(context).size.width * 0.135,
                             fontWeight: FontWeight.bold,
                             fontFamily: 'monospace',
                             height: 1.0,
@@ -1562,310 +1220,330 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
                   ),
                 ],
               ),
-            // Buttons for Race Control
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0), // Padding around the button
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                      double fontSize = constraints.maxWidth * 0.11; // Scalable font size
-                        return ElevatedButton(
-                          onPressed: startTime == null ? _startRace : _stopRace,
-                          style: ElevatedButton.styleFrom(
-                            minimumSize: Size(0, constraints.maxWidth * 0.15), // Button height scales
-                            maximumSize: Size(double.infinity, constraints.maxWidth * 0.35),
-                            backgroundColor: startTime == null ? Colors.green : Colors.red,
-                          ),
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(horizontal: MediaQuery.of(context).size.width * 0.05, vertical: MediaQuery.of(context).size.width * 0.02),
-                            child: Text(
-                              startTime == null ? 'Start Race' : 'Stop Race',
-                              style: TextStyle(fontSize: fontSize, color: Colors.white),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-                if (startTime == null && records.isNotEmpty)
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0), // Padding around the button
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                        double fontSize = constraints.maxWidth * 0.11;
-                          return ElevatedButton(
-                            onPressed: _scanQRCode,
-                            style: ElevatedButton.styleFrom(
-                              minimumSize: Size(0, constraints.maxWidth * 0.5),
-                            ),
-                            child: Text(
-                              'Load Bib #s',
-                              style: TextStyle(fontSize: fontSize),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                if (startTime == null && records.isNotEmpty && records[0]['bib_number'] != null)
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0), // Padding around the button
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                        double fontSize = constraints.maxWidth * 0.12;
-                          return ElevatedButton(
-                            onPressed: _saveResults,
-                            style: ElevatedButton.styleFrom(
-                              minimumSize: Size(0, constraints.maxWidth * 0.5),
-                            ),
-                            child: Text(
-                              'Save Results',
-                              style: TextStyle(fontSize: fontSize),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-
-            // Records Section
-            Expanded(
-              child: Column(
+              // Buttons for Race Control
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  if (records.isNotEmpty)
-                    Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: MediaQuery.of(context).size.width * 0.02,
+                  SizedBox(
+                    width: 70,
+                    height: 70,
+                    child: ElevatedButton(
+                      onPressed: startTime == null ? _startRace : _stopRace,
+                      style: ElevatedButton.styleFrom(
+                        shape: const CircleBorder(),
+                        backgroundColor: startTime == null ? Colors.green : Colors.red,
+                        padding: EdgeInsets.zero,
+                      
                       ),
-                      child: Divider(
-                        thickness: 1,
-                        color: Color.fromRGBO(128, 128, 128, 0.5),
+                      child: Text(
+                        startTime == null ? 'Start' : 'Stop',
+                        style: TextStyle(
+                          color: Colors.white,
+                          overflow: TextOverflow.ellipsis,
+                          fontSize: 24,
+                        ),
+                        maxLines: 1,
                       ),
                     ),
-                  Expanded(
-                    child: ListView.builder(
-                      controller: _scrollController,
-                      itemCount: records.length,
-                      itemBuilder: (context, index) {
-                        final record = records[index];
-                        late TextEditingController controller;
-                        if (records.isNotEmpty && record['is_runner'] == true) {
-                          final runnerIndex = getRunnerIndex(index);
-                          controller = controllers[runnerIndex];
-                        }
-                        if (records.isNotEmpty && record['is_runner'] == true) {
-                          return Container(
-                            margin: EdgeInsets.only(
-                              top: 0, // MediaQuery.of(context).size.width * 0.01,
-                              bottom: MediaQuery.of(context).size.width * 0.02,
-                              left: MediaQuery.of(context).size.width * 0.02,
-                              right: MediaQuery.of(context).size.width * 0.01,
+                  ),
+                  if (startTime == null && records.isNotEmpty)
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0), // Padding around the button
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                          double fontSize = constraints.maxWidth * 0.11;
+                            return ElevatedButton(
+                              onPressed: _scanQRCode,
+                              style: ElevatedButton.styleFrom(
+                                minimumSize: Size(0, constraints.maxWidth * 0.5),
+                              ),
+                              child: Text(
+                                'Load Bib #s',
+                                style: TextStyle(fontSize: fontSize),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  if (startTime == null && records.isNotEmpty && records[0]['bib_number'] != null && _getFirstConflict()[0] == null)
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0), // Padding around the button
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                          double fontSize = constraints.maxWidth * 0.12;
+                            return ElevatedButton(
+                              onPressed: _saveResults,
+                              style: ElevatedButton.styleFrom(
+                                minimumSize: Size(0, constraints.maxWidth * 0.5),
+                              ),
+                              child: Text(
+                                'Save Results',
+                                style: TextStyle(fontSize: fontSize),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  if (startTime == null && records.isNotEmpty && dataSynced == true && _getFirstConflict()[0] != null)
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0), // Padding around the button
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                          double fontSize = constraints.maxWidth * 0.12;
+                            return ElevatedButton(
+                              onPressed: _openResolveDialog,
+                              style: ElevatedButton.styleFrom(
+                                minimumSize: Size(0, constraints.maxWidth * 0.5),
+                              ),
+                              child: Text(
+                                'Resolve Conflicts',
+                                style: TextStyle(fontSize: fontSize),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                    if (startTime != null)
+                      SizedBox(
+                        width: 70,
+                        height: 70,
+                        child: ElevatedButton(
+                          onPressed: _handleLogButtonPress,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            shape: const CircleBorder(),
+                            padding: EdgeInsets.zero,
+                          ),
+                          child: Text(
+                            'Log',
+                            style: TextStyle(
+                              color: AppColors.darkColor,
+                              fontSize: 24,
                             ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                GestureDetector(
-                                  onLongPress: () async {
-                                    if (index == records.length - 1) {
-                                      final confirmed = await _confirmDeleteLastRecord(index);
-                                      if (confirmed ) {
-                                        setState(() {
-                                          Provider.of<TimingData>(context, listen: false).controllers[raceId]?.removeAt(_getNumberOfTimes() - 1);
-                                          Provider.of<TimingData>(context, listen: false).records[raceId]?.removeAt(index);
-                                          _scrollController.animateTo(
-                                            max(_scrollController.position.maxScrollExtent - 100, 0),
-                                            duration: const Duration(milliseconds: 300),
-                                            curve: Curves.easeOut,
-                                          );
-                                        });
+                            maxLines: 1,
+                          ),
+                        ),
+                      ),
+                ],
+              ),
+
+              // Records Section
+              Expanded(
+                child: Column(
+                  children: [
+                    if (records.isNotEmpty)
+                      Padding(
+                        padding: EdgeInsets.only(
+                          top: 15,
+                          left: MediaQuery.of(context).size.width * 0.02,
+                          right: MediaQuery.of(context).size.width * 0.02,
+                        ),
+                        child: Divider(
+                          thickness: 1,
+                          color: Color.fromRGBO(128, 128, 128, 0.5),
+                        ),
+                      ),
+                    Expanded(
+                      child: ListView.builder(
+                        controller: _scrollController,
+                        itemCount: records.length,
+                        itemBuilder: (context, index) {
+                          final record = records[index];
+                          late TextEditingController controller;
+                          if (records.isNotEmpty && record['is_runner'] == true) {
+                            final runnerIndex = getRunnerIndex(index);
+                            controller = controllers[runnerIndex];
+                          }
+                          if (records.isNotEmpty && record['is_runner'] == true) {
+                            return Container(
+                              margin: EdgeInsets.only(
+                                top: 0, // MediaQuery.of(context).size.width * 0.01,
+                                bottom: MediaQuery.of(context).size.width * 0.02,
+                                left: MediaQuery.of(context).size.width * 0.02,
+                                right: MediaQuery.of(context).size.width * 0.01,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
+                                    onLongPress: () async {
+                                      if (index == records.length - 1) {
+                                        final confirmed = await _confirmDeleteLastRecord(index);
+                                        if (confirmed ) {
+                                          setState(() {
+                                            Provider.of<TimingData>(context, listen: false).controllers[raceId]?.removeAt(_getNumberOfTimes() - 1);
+                                            Provider.of<TimingData>(context, listen: false).records[raceId]?.removeAt(index);
+                                            _scrollController.animateTo(
+                                              max(_scrollController.position.maxScrollExtent, 0),
+                                              duration: const Duration(milliseconds: 300),
+                                              curve: Curves.easeOut,
+                                            );
+                                          });
+                                        }
                                       }
-                                    }
-                                  },
-                                  child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
+                                    },
+                                    child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            '${record['place']}',
+                                            style: TextStyle(
+                                              fontSize: MediaQuery.of(context).size.width * 0.05,
+                                              fontWeight: FontWeight.bold,
+                                            color: record['text_color'] != null ? AppColors.navBarTextColor : null,
+                                          ),
+                                        ),
                                         Text(
-                                          '${record['place']}',
+                                          [
+                                            if (record['name'] != null) record['name'],
+                                            if (record['grade'] != null) ' ${record['grade']}',
+                                            if (record['school'] != null) ' ${record['school']}    ',
+                                            if (record['finish_time'] != null) '${record['finish_time']}'
+                                          ].join(),
                                           style: TextStyle(
                                             fontSize: MediaQuery.of(context).size.width * 0.05,
                                             fontWeight: FontWeight.bold,
-                                          color: record['text_color'] != null ? AppColors.navBarTextColor : null,
+                                            color: record['conflict'] == null ? record['text_color'] : AppColors.redColor,
+                                          ),
                                         ),
-                                      ),
-                                      Text(
-                                        [
-                                          if (record['name'] != null) record['name'],
-                                          if (record['grade'] != null) ' ${record['grade']}',
-                                          if (record['school'] != null) ' ${record['school']}    ',
-                                          if (record['finish_time'] != null) '${record['finish_time']}'
-                                        ].join(),
-                                        style: TextStyle(
-                                          fontSize: MediaQuery.of(context).size.width * 0.05,
-                                          fontWeight: FontWeight.bold,
-                                          color: record['conflict'] == null ? record['text_color'] : AppColors.redColor,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Divider(
-                                  thickness: 1,
-                                  color: Color.fromRGBO(128, 128, 128, 0.5),
-                                ),
-                                    // SizedBox(
-                                    //   width: MediaQuery.of(context).size.width * 0.25,
-                                    //   child: TextField(
-                                    //     controller: controller,
-                                    //     style: TextStyle(
-                                    //       fontSize: MediaQuery.of(context).size.width * 0.04,
-                                    //     ),
-                                    //     keyboardType: TextInputType.number,
-                                    //     decoration: InputDecoration(
-                                    //       labelText: 'Bib #',
-                                    //       labelStyle: TextStyle(
-                                    //         fontSize: MediaQuery.of(context).size.width * 0.05,
-                                    //       ),
-                                    //       border: OutlineInputBorder(
-                                    //         borderRadius: BorderRadius.circular(MediaQuery.of(context).size.width * 0.02),
-                                    //       ),
-                                    //       contentPadding: EdgeInsets.symmetric(
-                                    //         vertical: MediaQuery.of(context).size.width * 0.02,
-                                    //         horizontal: MediaQuery.of(context).size.width * 0.03,
-                                    //       ),
-                                    //     ),
-                                    //     onChanged: (value) => _updateBib(index, int.parse(value)),
-                                    //   ),
-                                    // ),
-                                    // SizedBox(height: MediaQuery.of(context).size.width * 0.02),
-                                    // if (record['name'] != null)
-                                    //   Text(
-                                    //     'Name: ${record['name']}',
-                                    //     style: TextStyle(
-                                    //       fontSize: MediaQuery.of(context).size.width * 0.035
-                                    //     ),
-                                    //   ),
-                                    // if (record['grade'] != null)
-                                    //   Text(
-                                    //     'Grade: ${record['grade']}',
-                                    //     style: TextStyle(
-                                    //       fontSize: MediaQuery.of(context).size.width * 0.035
-                                    //     ),
-                                    //   ),
-                                    // if (record['school'] != null)
-                                    //   Text(
-                                    //     'School: ${record['school']}',
-                                    //     style: TextStyle(
-                                    //       fontSize: MediaQuery.of(context).size.width * 0.035
-                                    //     ),
-                                    //   ),
-                              ],
-                            ),
-                          );
-                        } else if (records.isNotEmpty && record['type'] == 'confirm_runner_number') {
-                          return Container(
-                            margin: EdgeInsets.only(
-                              top: MediaQuery.of(context).size.width * 0.01,
-                              bottom: MediaQuery.of(context).size.width * 0.02,
-                              left: MediaQuery.of(context).size.width * 0.02,
-                              right: MediaQuery.of(context).size.width * 0.02,
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                GestureDetector(
-                                  onLongPress: () {
-                                    if (index == records.length - 1) {
-                                      setState(() {
-                                        records.removeAt(index);
-                                        _updateTextColor(null);
-                                      });
-                                    }
-                                  },
-                                  child: Text(
-                                    record['type'] == 'confirm_runner_number'
-                                      ? 'Confirmed: ${record['finish_time']}'
-                                      : record['type'] == 'too_few_runner_times'
-                                          ? '${record['numTimes']} - Ajusted finish count'
-                                          : 'Ajust finish count to ${record['numTimes']}',
-                                    // record['type'] == 'confirm_runner_number'
-                                    //   ? 'Confirmed ${record['numTimes']} times'
-                                    //   : '${record['numTimes']} - Ajusted number of times',
-                                    style: TextStyle(
-                                      fontSize: MediaQuery.of(context).size.width * 0.05,
-                                      fontWeight: FontWeight.bold,
-                                      color: record['text_color'],
+                                      ],
                                     ),
                                   ),
-                                ),
-                                Divider(
-                                  thickness: 1,
-                                  color: Color.fromRGBO(128, 128, 128, 0.5),
-                                ),
-                              ],
-                            ),
-                          );
-                        } else {
-                          return Container();
-                        }
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (startTime != null && records.isNotEmpty)
-              Container(
-                margin: EdgeInsets.symmetric(vertical: 8.0), // Adjust vertical margin as needed
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly, // Center the buttons
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.check, size: 40, color: AppColors.navBarTextColor),
-                      onPressed: _confirmRunnerNumber,
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.remove, size: 40, color: AppColors.redColor),
-                      onPressed: _tooManyRunners,
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.add, size: 40, color: AppColors.redColor),
-                      onPressed: _tooFewRunners,
+                                  Divider(
+                                    thickness: 1,
+                                    color: Color.fromRGBO(128, 128, 128, 0.5),
+                                  ),
+                                      // SizedBox(
+                                      //   width: MediaQuery.of(context).size.width * 0.25,
+                                      //   child: TextField(
+                                      //     controller: controller,
+                                      //     style: TextStyle(
+                                      //       fontSize: MediaQuery.of(context).size.width * 0.04,
+                                      //     ),
+                                      //     keyboardType: TextInputType.number,
+                                      //     decoration: InputDecoration(
+                                      //       labelText: 'Bib #',
+                                      //       labelStyle: TextStyle(
+                                      //         fontSize: MediaQuery.of(context).size.width * 0.05,
+                                      //       ),
+                                      //       border: OutlineInputBorder(
+                                      //         borderRadius: BorderRadius.circular(MediaQuery.of(context).size.width * 0.02),
+                                      //       ),
+                                      //       contentPadding: EdgeInsets.symmetric(
+                                      //         vertical: MediaQuery.of(context).size.width * 0.02,
+                                      //         horizontal: MediaQuery.of(context).size.width * 0.03,
+                                      //       ),
+                                      //     ),
+                                      //     onChanged: (value) => _updateBib(index, int.parse(value)),
+                                      //   ),
+                                      // ),
+                                      // SizedBox(height: MediaQuery.of(context).size.width * 0.02),
+                                      // if (record['name'] != null)
+                                      //   Text(
+                                      //     'Name: ${record['name']}',
+                                      //     style: TextStyle(
+                                      //       fontSize: MediaQuery.of(context).size.width * 0.035
+                                      //     ),
+                                      //   ),
+                                      // if (record['grade'] != null)
+                                      //   Text(
+                                      //     'Grade: ${record['grade']}',
+                                      //     style: TextStyle(
+                                      //       fontSize: MediaQuery.of(context).size.width * 0.035
+                                      //     ),
+                                      //   ),
+                                      // if (record['school'] != null)
+                                      //   Text(
+                                      //     'School: ${record['school']}',
+                                      //     style: TextStyle(
+                                      //       fontSize: MediaQuery.of(context).size.width * 0.035
+                                      //     ),
+                                      //   ),
+                                ],
+                              ),
+                            );
+                          } else if (records.isNotEmpty && record['type'] == 'confirm_runner_number') {
+                            return Container(
+                              margin: EdgeInsets.only(
+                                top: MediaQuery.of(context).size.width * 0.01,
+                                bottom: MediaQuery.of(context).size.width * 0.02,
+                                left: MediaQuery.of(context).size.width * 0.02,
+                                right: MediaQuery.of(context).size.width * 0.02,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
+                                    onLongPress: () {
+                                      if (index == records.length - 1) {
+                                        setState(() {
+                                          records.removeAt(index);
+                                          _updateTextColor(null);
+                                        });
+                                      }
+                                    },
+                                    child: Text(
+                                      'Confirmed: ${record['finish_time']}',
+                                      style: TextStyle(
+                                        fontSize: MediaQuery.of(context).size.width * 0.05,
+                                        fontWeight: FontWeight.bold,
+                                        color: record['text_color'],
+                                      ),
+                                    ),
+                                  ),
+                                  Divider(
+                                    thickness: 1,
+                                    color: Color.fromRGBO(128, 128, 128, 0.5),
+                                  ),
+                                ],
+                              ),
+                            );
+                          } else {
+                            return Container();
+                          }
+                        },
+                      ),
                     ),
                   ],
                 ),
               ),
-            if (startTime != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0).copyWith(bottom: 8.0), // Padding around the button
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    double fontSize = constraints.maxWidth * 0.12;
-                    return ElevatedButton(
-                      onPressed: _handleLogButtonPress,
-                      style: ElevatedButton.styleFrom(
-                        fixedSize: Size(constraints.maxWidth * 0.8, constraints.maxWidth * 0.35),
-                        // minimumSize: Size(0, constraints.maxWidth * 0.5),
-                        // maximumSize: Size(double.infinity, 150),
-
+              if (startTime != null && records.isNotEmpty)
+                Container(
+                  margin: EdgeInsets.symmetric(vertical: 8.0), // Adjust vertical margin as needed
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly, // Center the buttons
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.check, size: 40, color: AppColors.navBarTextColor),
+                        onPressed: _confirmRunnerNumber,
                       ),
-                      child: Text(
-                        'Log Time',
-                        style: TextStyle(fontSize: fontSize),
+                      IconButton(
+                        icon: const Icon(Icons.remove, size: 40, color: AppColors.redColor),
+                        onPressed: _tooManyRunners,
                       ),
-                    );
-                  },
+                      IconButton(
+                        icon: const Icon(Icons.add, size: 40, color: AppColors.redColor),
+                        onPressed: _tooFewRunners,
+                      ),
+                      if (records.isNotEmpty && !records.last['is_runner'] && records.last['type'] != null && records.last['type'] != 'confirm_runner_number')
+                        IconButton(
+                          icon: const Icon(Icons.undo, size: 40, color: AppColors.redColor),
+                          onPressed: _undoLastConflict,
+                        ),
+                    ],
+                  ),
                 ),
-              ),
-          ],
-        ),
+            ],
+          ),
+        // ),
       ),
     );
   }

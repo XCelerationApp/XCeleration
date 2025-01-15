@@ -287,35 +287,6 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16.0),
-              child: ElevatedButton(
-                onPressed: _addBibNumber,
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(horizontal: 50, vertical: 20),
-                ),
-                child: const Text('Add Bib Number', style: TextStyle(fontSize: 20)),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16.0),
-              child: ElevatedButton.icon(
-                onPressed: _captureBibNumbersWithCamera,
-                icon: const Icon(Icons.camera_alt),
-                label: const Text('Photo', style: TextStyle(fontSize: 20)),
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(horizontal: 50, vertical: 20),
-                ),
-              ),
-            ),
-            if (_bibRecords.isNotEmpty)
-              ElevatedButton(
-                onPressed: _showQrCode,
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(horizontal: 50, vertical: 20),
-                ),
-                child: const Text('Share Bib Numbers', style: TextStyle(fontSize: 20)),
-              ),
             Expanded(
               child: ListView.builder(
                 itemCount: _bibRecords.length,
@@ -365,6 +336,35 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                     ),
                   );
                 },
+              ),
+            ),
+            if (_bibRecords.isNotEmpty)
+              ElevatedButton(
+                onPressed: _showQrCode,
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+                ),
+                child: const Text('Share Bib Numbers', style: TextStyle(fontSize: 20)),
+              ),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: ElevatedButton.icon(
+                onPressed: _captureBibNumbersWithCamera,
+                icon: const Icon(Icons.camera_alt),
+                label: const Text('Photo', style: TextStyle(fontSize: 20)),
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: ElevatedButton(
+                onPressed: _addBibNumber,
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+                ),
+                child: const Text('Add Bib Number', style: TextStyle(fontSize: 20)),
               ),
             ),
             // ElevatedButton(
