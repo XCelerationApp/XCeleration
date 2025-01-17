@@ -4,8 +4,8 @@ class TimingData with ChangeNotifier {
   final Map<int, List<Map<String, dynamic>>> _records = {};
   final Map<int, List<String>> _bibs = {};
   final Map<int, List<TextEditingController>> _controllers = {};
-  Map<int, DateTime?> _startTimes = {};
-  Map<int, Duration?> _endTimes = {};
+  final Map<int, DateTime?> _startTimes = {};
+  final Map<int, Duration?> _endTimes = {};
 
   //  List<TextEditingController> controllers = [];
 
