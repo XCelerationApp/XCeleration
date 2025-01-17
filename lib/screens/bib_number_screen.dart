@@ -148,7 +148,32 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
       ),
     );
   }
-
+  void _confirmDeleteBibNumber(int index) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Confirm Deletion'),
+          content: Text('Are you sure you want to delete this bib number?'),
+          actions: [
+            TextButton(
+              child: Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+            ),
+            TextButton(
+              child: Text('Delete'),
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+                _deleteBibNumber(index); // Proceed with deletion
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   Future<void> _deleteBibNumber(int index) async {
     final bibNumber = _bibRecords[index]['bib_number'];
@@ -422,7 +447,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                                 const SizedBox(width: 8),
                                 IconButton(
                                   icon: const Icon(Icons.delete),
-                                  onPressed: () => _deleteBibNumber(index),
+                                  onPressed: () => _confirmDeleteBibNumber(index),
                                 ),
                               ],
                             ),
