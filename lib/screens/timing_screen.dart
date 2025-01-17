@@ -243,7 +243,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     } catch (e) {
       if (e is MissingPluginException) {
         _showErrorMessage('The QR code scanner is not available on this device.');
-        _processQRData(json.encode([1, 2, 3, 4, 6, 5]));
+        _processQRData(json.encode(['1', '2', '3', '4', '6', '5']));
       }
       else {
         _showErrorMessage('Failed to scan QR code: $e');
@@ -260,6 +260,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
         final List<String> bibDataStrings = bibData.cast<String>();
 
         print('Bib data: $bibDataStrings');
+        print('bib data type: ${bibDataStrings.runtimeType}');
 
         // for (int bib in bibDataInts) {
         //   final runnerData = await DatabaseHelper.instance.getRaceRunnerByBib(raceId, bib, getShared: true);
@@ -273,6 +274,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
         setState(() {
           Provider.of<TimingData>(context, listen: false).setBibs(bibDataStrings, raceId);
         });
+
         _syncBibData(bibDataStrings, records);
       } else {
         _showErrorMessage('QR code data is empty.');
@@ -294,7 +296,8 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
       else {
         print('Too many runners');
         final bibDataLength = bibData.length;
-        if (records.sublist(bibDataLength - 1 + difference, bibDataLength - 1).any((r) => r['is_runner'] == true && r['is_confirmed'] == true)) {
+        final numConfirmedRunners = records.where((r) => r['is_runner'] == true && r['is_confirmed'] == true).length;
+        if (numConfirmedRunners > bibDataLength) {
           _showErrorMessage('You cannot load bib numbers for runners if the there are more confirmed runners than loaded bib numbers.');
           return;
         } else{
