@@ -65,9 +65,9 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
     final name = _nameController.text;
     final grade = int.tryParse(_gradeController.text);
     final school = _schoolController.text;
-    final bib = int.tryParse(_bibController.text);
+    final bib = _bibController.text;
 
-    if (name.isEmpty || grade == null || school.isEmpty || bib == null) {
+    if (name.isEmpty || grade == null || school.isEmpty || bib.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill in all fields')),
       );
@@ -80,7 +80,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
         'school': school,
         'grade': grade,
         'bib_number': bib,
-        'race_id': raceId,
+        // 'race_id': raceId,
       });
     }
     else{

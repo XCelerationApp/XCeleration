@@ -91,8 +91,8 @@ class DatabaseHelper {
     return await db.update(
       'shared_runners',
       runner,
-      where: 'bib_number = ?',
-      whereArgs: [runner['bib_number']],
+      where: 'runner_id = ?',
+      whereArgs: [runner['runner_id']],
     );
   }
 

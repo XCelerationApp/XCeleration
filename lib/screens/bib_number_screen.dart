@@ -35,6 +35,8 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
         'bib_number': bibNumber,
         'confidences': confidences,
         'image': image,
+        'name': '',
+        'school': '',
         'flags': {
           'duplicate_bib_number': false,
           'not_in_database': false,
@@ -44,7 +46,27 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     });
 
     if (bibNumber.isNotEmpty) {
-      await _checkAndFlagBibNumber(index);
+      if (confidences != null && confidences.isNotEmpty) {
+        if (confidences.any((confidence) => confidence < 0.9)) {
+          setState(() {
+            _bibRecords[index]['flags']['low_confidence_score'] = true;
+          });
+        }
+      }
+
+      final runner = await DatabaseHelper.instance.getRaceRunnerByBib(1, bibNumber, getShared: true);
+      if (runner[0] == null) {
+        setState(() {
+          _bibRecords[index]['flags']['not_in_database'] = true;
+        });
+      }
+      else {
+        setState(() {
+          _bibRecords[index]['name'] = runner[0]['name'];
+          _bibRecords[index]['school'] = runner[0]['school'];
+        });
+      }
+      _flagBibNumberDuplicates(bibNumber);
     }
     else {
       // Automatically focus the last input box
@@ -54,13 +76,53 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     }
   }
 
+  void _flagBibNumberDuplicates(String bibNumber, {bool removeFlags = false}) {
+    List duplicates = [];
+    for (int i = 0; i < _bibRecords.length; i++) {
+      if (_bibRecords[i]['bib_number'] == bibNumber) {
+        duplicates.add(i);
+      }
+    }
+    if (removeFlags) {
+      if (duplicates.length == 1) {
+        setState(() {
+          _bibRecords[duplicates[0]]['flags']['duplicate_bib_number'] = false;
+        });
+      }
+    }
+    else {
+      for (int i = 0; i < duplicates.length; i++) {
+        if (duplicates.length >= 2) {
+          setState(() {
+            _bibRecords[duplicates[i]]['flags']['duplicate_bib_number'] = true;
+          });
+        }
+      }
+    }
+  }
+    
   void _updateBibNumber(int index, String bibNumber) async {
+    final oldBibNumber = _bibRecords[index]['bib_number'];
     setState(() {
       _bibRecords[index]['bib_number'] = bibNumber;
     });
-    
+    _flagBibNumberDuplicates(oldBibNumber, removeFlags: true);
     if (bibNumber.isNotEmpty) {
-      await _checkAndFlagBibNumber(index);
+      _bibRecords[index]['flags']['duplicate_bib_number'] = false;
+      _flagBibNumberDuplicates(bibNumber);
+      final runner = await DatabaseHelper.instance.getRaceRunnerByBib(1, bibNumber, getShared: true);
+      if (runner[0] == null) {
+        setState(() {
+          _bibRecords[index]['flags']['not_in_database'] = true;
+        });
+      }
+      else {
+        setState(() {
+          _bibRecords[index]['name'] = runner[0]['name'];
+          _bibRecords[index]['school'] = runner[0]['school'];
+          _bibRecords[index]['flags']['not_in_database'] = false;
+        });
+      }
     } else {
       setState(() {
         _bibRecords[index]['flags'] = {
@@ -70,50 +132,6 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
           };
       });
     }
-  }
-
-  Future<void> _checkAndFlagBibNumber(int index) async {
-    final bibNumber = _bibRecords[index]['bib_number'];
-    final Map<String, bool> flags = {
-      'duplicate_bib_number': false,
-      'not_in_database': false,
-      'low_confidence_score': false
-      };
-    
-    // Check confidence scores
-    final confidences = _bibRecords[index]['confidences'];
-    if (confidences != null && confidences.isNotEmpty) {
-      if (confidences.any((confidence) => confidence < 0.7)) {
-        flags['low_confidence_score'] = true;
-      }
-    }
-    
-    // Check if number exists in database
-    final runner = await DatabaseHelper.instance.getRaceRunnerByBib(1, bibNumber);
-    if (runner[0] == null) {
-      flags['not_in_database'] = true;
-    }
-
-    // Check for duplicate numbers
-    for (int i = 0; i < _bibRecords.length; i++) {
-      if (i != index && _bibRecords[i]['bib_number'] == bibNumber) {
-        setState(() {
-          _bibRecords[i]['flags']['duplicate_bib_number'] = true;
-        });
-        flags['duplicate_bib_number'] = true;
-      }
-      else {
-        if(i != index) {
-          setState(() {
-            _bibRecords[i]['flags']['duplicate_bib_number'] = false;
-          });
-        }
-      }
-    }
-    
-    setState(() {
-      _bibRecords[index]['flags'] = flags;
-    });
   }
 
   void _captureBibNumbersWithCamera() async {
@@ -133,21 +151,57 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
 
 
   Future<void> _deleteBibNumber(int index) async {
+    final bibNumber = _bibRecords[index]['bib_number'];
     setState(() {
       _controllers.removeAt(index);
       _focusNodes.removeAt(index);
       _bibRecords.removeAt(index);
     }); 
+    _flagBibNumberDuplicates(bibNumber, removeFlags: true);
   }
 
 
-  Future<void> _showQrCode() async {
+  void _confirmAndShowQrCode() {
+    int errorCount = _bibRecords.where((record) => 
+      record['flags']['not_in_database'] || record['flags']['low_confidence_score'] || record['flags']['duplicate_bib_number']
+    ).length;
+    if (errorCount > 0) {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('Confirm Share'),
+            content: Text('There ${errorCount == 1 ? 'is 1 bib with an error' : 'are $errorCount bibs witherrors'}. Are you sure you want to share?'),
+            actions: [
+              TextButton(
+                child: Text('Cancel'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+              TextButton(
+                child: Text('Share'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _showQrCode();
+                },
+              ),
+            ],
+          );
+        },
+      );
+    }
+    else {
+      _showQrCode();
+    }
+  }
+  void _showQrCode() {
     final data = _generateQrData(); // Ensure this returns a String
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Share Bib Numbers'),
+          title: Text('Share Bib Numbers'),
           content: SizedBox(
             width: 200,
             height: 200,
@@ -341,7 +395,26 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                                     decoration: InputDecoration(
                                       hintText: 'Enter Bib #',
                                       border: OutlineInputBorder(),
-                                      errorText: errorText.isNotEmpty ? errorText : null,
+                                      helper: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          if(_bibRecords[index]['flags']['not_in_database'] == false && _bibRecords[index]['bib_number'].isNotEmpty) ...[
+                                            Text('${_bibRecords[index]['name']}, ${_bibRecords[index]['school']}'),
+                                          ],
+                                          if (errorText.isNotEmpty) ...[
+                                            if (_bibRecords[index]['flags']['not_in_database'] == false) ...[
+                                              const SizedBox(height: 4),
+                                              Container(
+                                                width: double.infinity,
+                                                height: 1,
+                                                color: Colors.grey,
+                                              ),
+                                              const SizedBox(height: 4),
+                                            ],
+                                            Text(errorText),
+                                          ],
+                                        ],
+                                      ),
                                     ),
                                     onChanged: (value) => _updateBibNumber(index, value),
                                   ),
@@ -363,7 +436,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
             ),
             if (_bibRecords.isNotEmpty)
               ElevatedButton(
-                onPressed: _showQrCode,
+                onPressed: _confirmAndShowQrCode,
                 style: ElevatedButton.styleFrom(
                   padding: EdgeInsets.symmetric(horizontal: 50, vertical: 20),
                 ),
