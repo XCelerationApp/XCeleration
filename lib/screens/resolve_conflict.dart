@@ -2,54 +2,69 @@ import 'package:flutter/material.dart';
 import '../constants.dart';
 import '../utils/time_formatter.dart';
 
-class ConflictResolutionDialog extends StatelessWidget {
+class ConflictResolutionDialog extends StatefulWidget {
   final List<dynamic> conflictingRunners;
+  final List<String> availableTimes;
   final dynamic lastConfirmedRecord;
   final dynamic nextConfirmedRecord;
-  final List<String> availableTimes;
   final bool allowManualEntry;
   final Map<String, dynamic> conflictRecord;
   final Function(List<Duration>) onResolve;
 
-  const ConflictResolutionDialog({super.key, 
+  final List<String> selectedTimes;
+  
+  late final List<TextEditingController> timeControllers;
+  late final List<TextEditingController>? manualEntryControllers;
+
+  ConflictResolutionDialog({
+    Key? key,
+    required this.conflictRecord,
+    required this.onResolve,
+    required this.selectedTimes,
     required this.conflictingRunners,
     required this.lastConfirmedRecord,
     required this.nextConfirmedRecord,
     required this.availableTimes,
+
     this.allowManualEntry = false,
-    required this.conflictRecord,
-    required this.onResolve,
-  });
+  }) : super(key: key) {
+    // Initialize the controllers here
+    timeControllers = List.generate(
+        conflictingRunners.length, 
+        (_) => TextEditingController()
+    );
+    manualEntryControllers = allowManualEntry ? 
+        List.generate(conflictingRunners.length, (_) => TextEditingController()) : 
+        null;
+  }
 
   @override
-  Widget build(BuildContext context) {
-    final timeControllers = List.generate(
-      conflictingRunners.length, 
-      (_) => TextEditingController()
-    );
-    final manualEntryControllers = allowManualEntry ? 
-      List.generate(conflictingRunners.length, (_) => TextEditingController()) : 
-      null;
+  _ConflictResolutionDialogState createState() => _ConflictResolutionDialogState();
 
+}
+
+class _ConflictResolutionDialogState extends State<ConflictResolutionDialog> {
+  @override
+  Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(allowManualEntry ? 'Enter Time' : 'Select Time'),
+      title: Text(widget.allowManualEntry ? 'Enter Time' : 'Select Time'),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (lastConfirmedRecord.isNotEmpty) 
-              _buildRunnerRow(lastConfirmedRecord, isConfirmed: true),
+            if (widget.lastConfirmedRecord.isNotEmpty) 
+              _buildRunnerRow(widget.lastConfirmedRecord, isConfirmed: true),
             ...List.generate(
-              conflictingRunners.length,
+              widget.conflictingRunners.length,
               (index) => _buildTimeSelectionRow(
-                conflictingRunners[index],
-                timeControllers[index],
-                manualEntryControllers?[index],
-                availableTimes,
+                widget.conflictingRunners[index],
+                widget.timeControllers[index],
+                widget.manualEntryControllers?[index],
+                widget.availableTimes,
               ),
             ),
-            if (nextConfirmedRecord.isNotEmpty) 
-              _buildRunnerRow(nextConfirmedRecord, isConfirmed: true),
+            if (widget.nextConfirmedRecord.isNotEmpty) 
+              _buildRunnerRow(widget.nextConfirmedRecord, isConfirmed: true),
           ],
         ),
       ),
@@ -61,10 +76,10 @@ class ConflictResolutionDialog extends StatelessWidget {
         TextButton(
           onPressed: () => _handleResolve(
             context, 
-            timeControllers, 
-            conflictingRunners,
-            lastConfirmedRecord,
-            conflictRecord
+            widget.timeControllers, 
+            widget.conflictingRunners,
+            widget.lastConfirmedRecord,
+            widget.conflictRecord
           ),
           child: Text('Resolve'),
         ),
@@ -113,17 +128,21 @@ class ConflictResolutionDialog extends StatelessWidget {
     TextEditingController? manualController,
     List<String> times,
   ) {
-    final items = [
-      ...times.map((time) => DropdownMenuItem<String>(
-        value: time,
-        child: Text(time),
-      )),
-      if (manualController != null)
-        DropdownMenuItem<String>(
-          value: 'manual',
-          child: StatefulBuilder(
-            builder: (context, setState) {
-              return SizedBox(
+    // return StatefulBuilder(
+    //   builder: (context, setState) {
+        // print('current time: ${timeController.text}');
+        final availableOptions = times.where((time) => time == timeController.text || !widget.selectedTimes.contains(time)).toList();
+        // print('creating time selector');
+        // print('selected times: ${widget.selectedTimes}');
+        final items = [
+          ...availableOptions.map((time) => DropdownMenuItem<String>(
+            value: time,
+            child: Text(time),
+          )),
+          if (manualController != null)
+            DropdownMenuItem<String>(
+              value: 'manual',
+              child: SizedBox(
                 width: MediaQuery.of(context).size.width * 0.25,
                 child: TextField(
                   controller: manualController,
@@ -131,23 +150,35 @@ class ConflictResolutionDialog extends StatelessWidget {
                     hintText: 'Enter time',
                     border: InputBorder.none,
                   ),
-                )
-              );
-            }
-          ),
-        ),
-    ];
+                ),
+              ),
+            ),
+        ];
 
-    return DropdownButtonFormField<String>(
-      value: timeController.text.isNotEmpty ? timeController.text : null,
-      items: items,
-      onChanged: (value) => _handleTimeSelection(
-        timeController,
-        manualController,
-        value,
-      ),
-      decoration: InputDecoration(hintText: 'Select Time'),
-    );
+        return DropdownButtonFormField<String>(
+          value: timeController.text.isNotEmpty ? timeController.text : null,
+          items: items,
+          onChanged: (value) {
+            final previousValue = timeController.text;
+            _handleTimeSelection(
+              timeController,
+              manualController,
+              value,
+            );
+            if (value != null && value != 'manual') {
+              setState(() {
+                widget.selectedTimes.add(value);
+                if (previousValue != value && previousValue.isNotEmpty) {
+                  widget.selectedTimes.remove(previousValue);
+                }
+              });
+              print('Selected times: ${widget.selectedTimes}');
+            }
+          },
+          decoration: InputDecoration(hintText: 'Select Time'),
+        );
+    //   },
+    // );
   }
 
   void _handleTimeSelection(
@@ -155,15 +186,17 @@ class ConflictResolutionDialog extends StatelessWidget {
     TextEditingController? manualController,
     String? value,
   ) {
-    if (value == 'manual' && manualController != null) {
-      timeController.text = manualController.text;
-    }
-    else {
-      timeController.text = value ?? '';
-      if (manualController?.text.isNotEmpty == true && (value == null || value == '')) {
-        timeController.text = manualController!.text;
+    setState(() {
+      if (value == 'manual' && manualController != null) {
+        timeController.text = manualController.text;
       }
-    }
+      else {
+        timeController.text = value ?? '';
+        if (manualController?.text.isNotEmpty == true && (value == null || value == '')) {
+          timeController.text = manualController!.text;
+        }
+      }
+    });
 
   }
 
@@ -183,7 +216,7 @@ class ConflictResolutionDialog extends StatelessWidget {
     );
     
     if (times != null) {
-      onResolve(times);
+      widget.onResolve(times);
       Navigator.pop(context);
     }
   }

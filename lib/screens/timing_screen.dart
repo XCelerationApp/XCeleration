@@ -243,7 +243,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     } catch (e) {
       if (e is MissingPluginException) {
         _showErrorMessage('The QR code scanner is not available on this device.');
-        _processQRData(json.encode(['1', '2', '3', '4', '6', '5']));
+        _processQRData(json.encode(['1', '2', '3', '4', '6', '5', '7', '8', '9', '10']));
       }
       else {
         _showErrorMessage('Failed to scan QR code: $e');
@@ -460,6 +460,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
         availableTimes: conflictingTimes,
         allowManualEntry: true,
         conflictRecord: conflictRecord,
+        selectedTimes: [],
         onResolve: (formattedTimes) async => await _handleTooFewTimesResolution(
           formattedTimes,
           conflictingRunners,
@@ -522,6 +523,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
         availableTimes: conflictingTimes,
         allowManualEntry: false,
         conflictRecord: conflictRecord,
+        selectedTimes: [],
         onResolve: (formattedTimes) async => await _handleTooManyTimesResolution(
           formattedTimes,
           conflictingRunners,
@@ -606,8 +608,10 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     setState(() {
       for (var record in unusedRecords.toList().reversed.toList()) {
         if (record['place'] != null) {
-          Provider.of<TimingData>(context, listen: false).controllers[raceId]?[record['place'] - 1].dispose();
-          Provider.of<TimingData>(context, listen: false).controllers[raceId]?.removeAt(record['place'] - 1);
+          print('Place: ${record['place']}');
+          final index = record['place'] != '' ? record['place'] - 1 : record['previous_place'] - 1;
+          Provider.of<TimingData>(context, listen: false).controllers[raceId]?[index].dispose();
+          Provider.of<TimingData>(context, listen: false).controllers[raceId]?.removeAt(index);
         }
       }
       
@@ -1102,9 +1106,9 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
       return;
     }
     final trimmedRecords = records.sublist(0, recordIndex + 1);
-    print(trimmedRecords.length);
+    // print(trimmedRecords.length);
     for (int i = trimmedRecords.length - 1; i >= 0; i--) {
-      print(i);
+      // print(i);
       if (trimmedRecords[i]['is_runner'] == false && trimmedRecords[i]['type'] != 'confirm_runner_number') {
         break;
       }
