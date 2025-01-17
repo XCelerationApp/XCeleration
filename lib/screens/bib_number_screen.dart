@@ -171,7 +171,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
         builder: (BuildContext context) {
           return AlertDialog(
             title: Text('Confirm Share'),
-            content: Text('There ${errorCount == 1 ? 'is 1 bib with an error' : 'are $errorCount bibs witherrors'}. Are you sure you want to share?'),
+            content: Text('There ${errorCount == 1 ? 'is 1 bib with an error' : 'are $errorCount bibs with errors'}. Are you sure you want to share?'),
             actions: [
               TextButton(
                 child: Text('Cancel'),
