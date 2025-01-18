@@ -218,13 +218,15 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     try {
       final Map<String, dynamic> timingData = json.decode(qrData);
 
-      if (timingData.isNotEmpty && timingData.containsKey('records') && timingData.containsKey('startTime') && timingData.containsKey('endTime') && timingData['records'].isNotEmpty && timingData['startTime'] != null && timingData['endTime'] != null) {
+      if (timingData.isNotEmpty && timingData.containsKey('records') && timingData.containsKey('endTime') && timingData['records'].isNotEmpty && timingData['endTime'] != null) {
         timingData['endTime'] = loadDurationFromString(timingData['endTime']);
         timingData['bibs'] = _bibRecords.map((bib) => bib['bib_number']).toList();
         
-        Navigator.push(
+        Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => EditAndResolveScreen(race: race, timingData: timingData)),
+          MaterialPageRoute(
+            builder: (context) => EditAndResolveScreen(race: race, timingData: timingData),
+          ),
         );
       } else {
         _showErrorMessage('QR code data is invalid.');
@@ -334,7 +336,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                 style: ElevatedButton.styleFrom(
                   padding: EdgeInsets.symmetric(horizontal: 50, vertical: 20),
                 ),
-                child: const Text('Share Bib Numbers', style: TextStyle(fontSize: 20)),
+                child: const Text('Load Runner Times', style: TextStyle(fontSize: 20)),
               ),
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 20),

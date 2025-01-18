@@ -10,6 +10,7 @@ import 'race_info_screen.dart';
 import 'results_screen.dart';
 import '../main.dart';
 // import 'races_screen.dart';
+import 'edit_and_resolve_screen.dart';
 
 class RaceScreen extends StatefulWidget {
   final Race race;
@@ -64,6 +65,7 @@ class _RaceScreenState extends State<RaceScreen> {
           ] : [
             Tab(icon: Icon(Icons.info_outline), text: 'Race Info'),
             Tab(icon: Icon(Icons.timer), text: 'Time Race'),
+            Tab(icon: Icon(Icons.checklist), text: 'Resolve Conflicts'),
             Tab(icon: Icon(Icons.numbers), text: 'Record Bib Numbers'),
             Tab(icon: Icon(Icons.person), text: 'Runner Data'),
           ];
@@ -110,6 +112,7 @@ class _RaceScreenState extends State<RaceScreen> {
                 children: [
                     RaceInfoScreen(raceId: race.race_id),
                     if (showResults) ResultsScreen(raceId: race.race_id) else TimingScreen(race: race),
+                    if (!showResults) EditAndResolveScreen(race: race, timingData: {'records': [], 'endTime': null, 'bibs': []}),
                     BibNumberScreen (race: race),
                     RunnersManagementScreen(raceId: race.race_id, shared: false),
                 ],

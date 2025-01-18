@@ -36,7 +36,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   // final List<Map<String, dynamic>> _records = [];
   // DateTime? startTime;
   // final List<TextEditingController> _controllers = [];
-  final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
+  // final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
   final ScrollController _scrollController = ScrollController();
   late int raceId;
   // List<BluetoothDevice> _availableDevices = [];

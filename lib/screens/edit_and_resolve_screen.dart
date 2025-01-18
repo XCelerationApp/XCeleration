@@ -25,7 +25,7 @@ class EditAndResolveScreen extends StatefulWidget {
 
 class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
   late List<TextEditingController> _controllers;
-  late ScrollController _scrollController;
+  final ScrollController _scrollController = ScrollController();
   late int raceId;
   late Race race;
   late Map<String, dynamic> timingData;
@@ -37,6 +37,11 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
     race = widget.race;
     raceId = race.race_id;
     timingData = widget.timingData;
+    // timingData['bibs'] = timingData['bibs'].cast<String>();
+    // timingData['records'] = timingData['records'].cast<Map<String, dynamic>>();
+    _controllers = List.generate(_getNumberOfTimes(), (index) => TextEditingController());
+    _syncBibData(timingData['bibs'].cast<String>() ?? [], timingData['records'].cast<Map<String, dynamic>>() ?? []);
+    
   }
 
   void _saveResults() async {
@@ -231,7 +236,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
     final lastConfirmedRecord = lastConfirmedIndex == -1 ? {} : records[lastConfirmedIndex];
     print('Last confirmed record: $lastConfirmedRecord');
     final nextConfirmedRecord = records.sublist(conflictIndex + 1)
-        .firstWhere((record) => record['is_confirmed'] == true, orElse: () => {});
+        .firstWhere((record) => record['is_confirmed'] == true, orElse: () => {}.cast<String, dynamic>());
 
     final firstConflictingRecordIndex = records.sublist(0, conflictIndex).indexWhere((record) => record['is_confirmed'] == false);
     if (firstConflictingRecordIndex == -1) return;
@@ -288,7 +293,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
     
     final lastConfirmedRecord = lastConfirmedIndex == -1 ? {} : records[lastConfirmedIndex];
     final nextConfirmedRecord = records.sublist(conflictIndex + 1)
-        .firstWhere((record) => record['is_confirmed'] == true, orElse: () => {});
+        .firstWhere((record) => record['is_confirmed'] == true, orElse: () => {}.cast<String, dynamic>());
 
     print('Last confirmed index: $lastConfirmedIndex');
     print('Conflict index: $conflictIndex');
@@ -356,7 +361,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
     for (int i = 0; i < runners.length; i++) {
       final int currentPlace = (i + lastConfirmedRunnerPlace + 1).toInt();
       print('Current place: $currentPlace');
-      var record = records.firstWhere((element) => element['place'] == currentPlace, orElse: () => {});
+      var record = records.firstWhere((element) => element['place'] == currentPlace, orElse: () => {}.cast<String, dynamic>());
       final bibNumber = bibData[record['place'].toInt() - 1];   
 
       setState(() {
@@ -638,7 +643,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
       return;
     }
 
-    final lastConfirmedRecord = records.lastWhere((r) => r['is_runner'] == true && r['is_confirmed'] == true, orElse: () => {});
+    final lastConfirmedRecord = records.lastWhere((r) => r['is_runner'] == true && r['is_confirmed'] == true, orElse: () => {}.cast<String, dynamic>());
     final recordPlace = lastConfirmedRecord.isEmpty || lastConfirmedRecord['place'] == null ? 0 : lastConfirmedRecord['place'];
 
     if ((numTimes - offBy) == recordPlace) {
@@ -778,7 +783,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
     print('undo last conflict');
     final records = timingData['records'] ?? [];
 
-    final lastConflict = records.reversed.firstWhere((r) => r['is_runner'] == false && r['type'] != null, orElse: () => {});
+    final lastConflict = records.reversed.firstWhere((r) => r['is_runner'] == false && r['type'] != null, orElse: () => {}.cast<String, dynamic>());
 
     if (lastConflict.isEmpty || lastConflict['type'] == null) {
       return;
