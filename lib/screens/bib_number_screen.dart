@@ -2,13 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 // import 'camera_screen.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:race_timing_app/utils/time_formatter.dart';
 import 'dart:convert';
 import 'test_camera.dart';
 import '../database_helper.dart';
+import 'package:barcode_scan2/barcode_scan2.dart';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import '../models/timing_data.dart';
+import 'edit_and_resolve_screen.dart';
+import '../models/race.dart';
 // import 'package:camera/camera.dart';
 
 class BibNumberScreen extends StatefulWidget {
-  const BibNumberScreen({super.key});
+  final Race race;
+  const BibNumberScreen({super.key, required this.race});
 
   @override
   State<BibNumberScreen> createState() => _BibNumberScreenState();
@@ -21,6 +29,18 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
   final List<Map<String, dynamic>> _bibRecords = [];
   // final ImagePicker _imagePicker = ImagePicker();
   // late CameraController _cameraController;
+  // final app_bluetooth.BluetoothService _bluetoothService = app_bluetooth.BluetoothService();
+  // BluetoothDevice? _connectedDevice;
+  // List<BluetoothDevice> _availableDevices = [];
+  late int raceId;
+  late Race race;
+
+  @override
+  void initState() {
+    super.initState();
+    race = widget.race;
+    raceId = race.race_id;
+  }
 
   void _addBibNumber([String bibNumber = '', List<double>? confidences = const [], XFile? image]) async {
     final index = _bibRecords.length;
@@ -145,72 +165,73 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
       _focusNodes.removeAt(index);
       _bibRecords.removeAt(index);
     }); 
+    _flagBibNumberDuplicates(bibNumber, removeFlags: true);
   }
 
+  void _showSuccessMessage() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Successfully resolved conflict')),
+    );
+  }
 
-  void _confirmAndShowQrCode() {
-    int errorCount = _bibRecords.where((record) => 
-      record['flags']['not_in_database'] || record['flags']['low_confidence_score'] || record['flags']['duplicate_bib_number']
-    ).length;
-    if (errorCount > 0) {
-      showDialog(
+  void _showErrorMessage(String message, {String? title}) {
+    // ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    showDialog(
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
-            title: Text('Confirm Share'),
-            content: Text('There ${errorCount == 1 ? 'is 1 bib with an error' : 'are $errorCount bibs with errors'}. Are you sure you want to share?'),
+            title: Text(title ?? 'Error'),
+            content: Text(message),
             actions: [
               TextButton(
-                child: Text('Cancel'),
                 onPressed: () {
-                  Navigator.of(context).pop();
+                  Navigator.of(context).pop(); // Close the popup
                 },
-              ),
-              TextButton(
-                child: Text('Share'),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  _showQrCode();
-                },
+                child: Text('OK'),
               ),
             ],
           );
         },
       );
-    }
-    else {
-      _showQrCode();
-    }
-  }
-  void _showQrCode() {
-    final data = _generateQrData(); // Ensure this returns a String
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Share Bib Numbers'),
-          content: SizedBox(
-            width: 200,
-            height: 200,
-            child: QrImageView(
-              data: data,
-              version: QrVersions.auto,
-              errorCorrectionLevel: QrErrorCorrectLevel.M, // Adjust as needed
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
-            ),
-          ],
-        );
-      },
-    );
   }
 
-  String _generateQrData() {
-    return jsonEncode(_bibRecords.map((record) => record['bib_number']).toList());
+  void _scanQRCode() async {
+    try {
+      final result = await BarcodeScanner.scan();
+      if (result.type == ResultType.Barcode) {
+        print('Scanned barcode: ${result.rawContent}');
+        _processQRData(result.rawContent);
+      }
+    } catch (e) {
+      if (e is MissingPluginException) {
+        _showErrorMessage('The QR code scanner is not available on this device.');
+        _processQRData(json.encode(['1', '2', '3', '4', '6', '5', '7', '8', '9', '10']));
+      }
+      else {
+        _showErrorMessage('Failed to scan QR code: $e');
+      }
+    }
+  }
+
+  void _processQRData(String qrData) async {
+    // final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
+    try {
+      final Map<String, dynamic> timingData = json.decode(qrData);
+
+      if (timingData.isNotEmpty && timingData.containsKey('records') && timingData.containsKey('startTime') && timingData.containsKey('endTime') && timingData['records'].isNotEmpty && timingData['startTime'] != null && timingData['endTime'] != null) {
+        timingData['endTime'] = loadDurationFromString(timingData['endTime']);
+        timingData['bibs'] = _bibRecords.map((bib) => bib['bib_number']).toList();
+        
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => EditAndResolveScreen(race: race, timingData: timingData)),
+        );
+      } else {
+        _showErrorMessage('QR code data is invalid.');
+      }
+    } catch (e) {
+      _showErrorMessage('Failed to process QR code data: $e');
+    }
   }
 
 
@@ -309,7 +330,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
             ),
             if (_bibRecords.isNotEmpty)
               ElevatedButton(
-                onPressed: _confirmAndShowQrCode,
+                onPressed: _scanQRCode,
                 style: ElevatedButton.styleFrom(
                   padding: EdgeInsets.symmetric(horizontal: 50, vertical: 20),
                 ),

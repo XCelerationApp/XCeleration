@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:race_timing_app/utils/time_formatter.dart';
 
 class TimingData with ChangeNotifier {
   final Map<int, List<Map<String, dynamic>>> _records = {};
@@ -74,6 +75,16 @@ class TimingData with ChangeNotifier {
   void changeEndTime(Duration? time, int raceId) {
     _endTimes[raceId] = time;
     notifyListeners();
+  }
+
+  Map<String, dynamic> toMapForQR(int raceId) {
+    return {
+      'records': _records[raceId],
+      // 'controllers': _controllers,
+      'startTime': _startTimes[raceId],
+      'endTime': formatDuration(_endTimes[raceId]!),
+      // 'bibs': _bibs,
+    };
   }
 
   void clearRecords(int raceId) {

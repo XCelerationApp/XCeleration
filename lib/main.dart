@@ -121,7 +121,7 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 3, // Number of tabs
+      length: 2, // Number of tabs
       child: Scaffold(
         appBar: PreferredSize(
           preferredSize: Size.fromHeight(80.0),
@@ -130,7 +130,7 @@ class HomeScreen extends StatelessWidget {
             bottom: const TabBar(
               tabs: [
                 Tab(icon: Icon(Icons.flag), text: 'Races'),
-                Tab(icon: Icon(Icons.numbers), text: 'Record Bib Numbers'),
+                // Tab(icon: Icon(Icons.numbers), text: 'Record Bib Numbers'),
                 Tab(icon: Icon(Icons.person), text: 'Shared Runner Data'),
               ],
             ),
@@ -139,7 +139,6 @@ class HomeScreen extends StatelessWidget {
         body: const TabBarView(
           children: [
             RacesScreen(),
-            BibNumberScreen(),
             RunnersManagementScreen(raceId: 0, shared: true),
           ],
         ),

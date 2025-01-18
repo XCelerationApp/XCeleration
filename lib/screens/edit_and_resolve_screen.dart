@@ -1,357 +1,91 @@
-import 'dart:math';
-// import 'package:race_timing_app/screens/results_screen.dart';
-// import 'package:flutter_blue_plus/flutter_blue_plus.dart';
-import 'package:race_timing_app/utils/time_formatter.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../models/timing_data.dart';
-// import 'package:race_timing_app/bluetooth_service.dart' as app_bluetooth;
+import 'package:race_timing_app/models/race.dart';
+import 'package:race_timing_app/models/timing_data.dart';
+import 'package:race_timing_app/utils/time_formatter.dart';
+import 'dart:math';
 import 'package:race_timing_app/database_helper.dart';
-// import 'package:flutter_blue_plus/flutter_blue_plus.dart';
-import 'dart:convert';
 import 'dart:async';
-import 'package:flutter/services.dart';
-import 'package:audioplayers/audioplayers.dart';
-// import 'package:race_timing_app/models/race.dart';
 import 'race_screen.dart';
-import '../models/race.dart';
 import '../constants.dart';
 import 'resolve_conflict.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 
-class TimingScreen extends StatefulWidget {
+class EditAndResolveScreen extends StatefulWidget {
   final Race race;
+  final Map<String, dynamic> timingData;
 
-  const TimingScreen({
+  const EditAndResolveScreen({
     super.key, 
     required this.race,
+    required this.timingData,
   });
 
-
   @override
-  State<TimingScreen> createState() => _TimingScreenState();
+  _EditAndResolveScreenState createState() => _EditAndResolveScreenState();
 }
 
-class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMixin {
-  // final List<Map<String, dynamic>> _records = [];
-  // DateTime? startTime;
-  // final List<TextEditingController> _controllers = [];
-  final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
-  final ScrollController _scrollController = ScrollController();
+class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
+  late List<TextEditingController> _controllers;
+  late ScrollController _scrollController;
   late int raceId;
-  // List<BluetoothDevice> _availableDevices = [];
-  // BluetoothDevice? _connectedDevice;
-  late AudioPlayer _audioPlayer;
-  bool _isAudioPlayerReady = false;
-  late TabController _tabController;
   late Race race;
-  late bool dataSynced;
+  late Map<String, dynamic> timingData;
+  bool dataSynced = false;
 
   @override
   void initState() {
     super.initState();
-    _initAudioPlayer();
-    _tabController = TabController(length: 3, vsync: this); // Adjust length based on your tabs
     race = widget.race;
     raceId = race.race_id;
-    dataSynced = false;
+    timingData = widget.timingData;
   }
 
- Future<void> _initAudioPlayer() async {
-    try {
-      _audioPlayer = AudioPlayer();
-      await _audioPlayer.setReleaseMode(ReleaseMode.stop);
-      // Pre-load the audio file
-      await _audioPlayer.setSource(AssetSource('sounds/click.mp3'));
-      setState(() {
-        _isAudioPlayerReady = true;
-      });
-    } catch (e) {
-      print('Error initializing audio player: $e');
-      // Try to recreate the audio player if it failed
-      if (!_isAudioPlayerReady) {
-        await Future.delayed(Duration(milliseconds: 500));
-        if (mounted) {
-          _initAudioPlayer();
-        }
-      }
+  void _saveResults() async {
+    if (!_checkIfAllRunnersResolved()) {
+      _showErrorMessage('All runners must be resolved before proceeding.');
+      return;
     }
-  }
+    // Check if all runners have a non-null bib number
+    final records = timingData['records'] ?? [];
+    bool allRunnersHaveRequiredInfo = records.every((runner) => runner['bib_number'] != null && runner['name'] != null && runner['grade'] != null && runner['school'] != null);
 
-  Future<void> _handleLogButtonPress() async {
-    try {
-      _logTime();
-      HapticFeedback.vibrate();
-      HapticFeedback.lightImpact();
-      if (_isAudioPlayerReady) {
-        try {
-          await _audioPlayer.stop(); // Stop any currently playing sound
-          await _audioPlayer.play(AssetSource('sounds/click.mp3'));
-        } catch (e) {
-          print('Error playing sound: $e');
-          // Reinitialize audio player if it failed
-          _initAudioPlayer();
+    if (allRunnersHaveRequiredInfo) {
+      // Remove the non necessary keys from the records before saving since they are not in the database
+      for (var record in records) {
+        if (record['is_runner'] == false) {
+          records.remove(record);
+          continue;
         }
+        record.remove('bib_number');
+        record.remove('name');
+        record.remove('grade');
+        record.remove('school');
+        record.remove('text_color');
+        record.remove('is_confirmed');
+        record.remove('is_runner');
+        record.remove('conflict');
       }
-    } catch (e) {
-      print('Error in log button press: $e');
-    }
-  }
 
-  void _startRace() {
-    final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
-    if (records.isNotEmpty) {
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Start a New Race'),
-          content: const Text('Are you sure you want to start a new race? Doing so will clear the existing times.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('No'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(true);
-                setState(() {
-                  records.clear();
-                  Provider.of<TimingData>(context, listen: false).changeStartTime(DateTime.now(), raceId);
-                  Provider.of<TimingData>(context, listen: false).changeEndTime(null, raceId);
-                });
-              },
-              child: const Text('Yes'),
-            ),
-          ],
+      await DatabaseHelper.instance.insertRaceResults(records);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Results saved successfully. View results?'),
+          action: SnackBarAction(
+            label: 'View Results',
+            onPressed: () {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => RaceScreen(race: race, initialTabIndex: 1), // Pass the race object and set results tab as initial
+                ),
+              );
+              ScaffoldMessenger.of(context).hideCurrentSnackBar(); // Optional: Hide the SnackBar
+            },
+          ),
         ),
       );
     } else {
-      setState(() {
-        records.clear();
-        Provider.of<TimingData>(context, listen: false).changeStartTime(DateTime.now(), raceId);
-      });
+      _showErrorMessage('All runners must have a bib number assigned before proceeding.');
     }
-  }
-
-  void _stopRace() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Stop the Race'),
-        content: const Text('Are you sure you want to stop the race?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('No'),
-          ),
-          TextButton(
-            onPressed: () {
-              final startTime = Provider.of<TimingData>(context, listen: false).startTime[raceId];
-              if (startTime != null) {
-                final now = DateTime.now();
-                final difference = now.difference(startTime);
-                setState(() {
-                  Provider.of<TimingData>(context, listen: false).changeEndTime(difference, raceId);
-                  Provider.of<TimingData>(context, listen: false).changeStartTime(null, raceId);
-                });
-                Navigator.of(context).pop(true);
-                if (_getFirstConflict()[0] != null) {
-                  _showErrorMessage('Race stopped. Make sure to resolve conflicts after loading bib numbers.', title: 'Race Stopped');
-                }
-              }
-            },
-            child: const Text('Yes'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _logTime() {
-    final startTime = Provider.of<TimingData>(context, listen: false).startTime[raceId];
-    if (startTime == null) {
-      _showErrorMessage('Start time cannot be null.');
-      return;
-    }
-    final now = DateTime.now();
-    final difference = now.difference(startTime);
-
-    setState(() {
-      Provider.of<TimingData>(context, listen: false).addRecord({
-        'finish_time': formatDuration(difference),
-        'bib_number': null,
-        'is_runner': true,
-        'is_confirmed': false,
-        'text_color': null,
-        'place': _getNumberOfTimes() + 1,
-      }, raceId);
-
-      // Scroll to bottom after adding new record
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      });
-    });
-
-    // Add a new controller for the new record
-    Provider.of<TimingData>(context, listen: false).addController(TextEditingController(), raceId);
-  }
-
-  void _updateBib(int index, String bib) async {
-    final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
-    // Update the bib in the record
-    setState(() {
-      records[index]['bib_number'] = bib;
-    });
-
-    // Fetch runner details from the database
-    final [runner, shared] = await DatabaseHelper.instance.getRaceRunnerByBib(raceId, bib, getShared: true);
-
-    // Update the record with runner details if found
-    if (runner != null) {
-      setState(() {
-        records[index]['name'] = runner['name'];
-        records[index]['grade'] = runner['grade'];
-        records[index]['school'] = runner['school'];
-        records[index]['race_runner_id'] = runner['race_runner_id'] ?? runner['runner_id'];
-        records[index]['race_id'] = raceId;
-        records[index]['runner_is_shared'] = shared;
-      });
-    }
-    else {
-      print('Runner not found');
-      setState(() {
-        records[index]['name'] = null;
-        records[index]['grade'] = null;
-        records[index]['school'] = null;
-        records[index]['race_runner_id'] = null;
-        records[index]['race_id'] = null;
-      });
-    }
-  }
-
-  // void _scanQRCode() async {
-  //   try {
-  //     final result = await BarcodeScanner.scan();
-  //     if (result.type == ResultType.Barcode) {
-  //       print('Scanned barcode: ${result.rawContent}');
-  //       _processQRData(result.rawContent);
-  //     }
-  //   } catch (e) {
-  //     if (e is MissingPluginException) {
-  //       _showErrorMessage('The QR code scanner is not available on this device.');
-  //       _processQRData(json.encode(['1', '2', '3', '4', '6', '5', '7', '8', '9', '10']));
-  //     }
-  //     else {
-  //       _showErrorMessage('Failed to scan QR code: $e');
-  //     }
-  //   }
-  // }
-
-  // void _processQRData(String qrData) async {
-  //   final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
-  //   try {
-  //     final List<dynamic> bibData = json.decode(qrData);
-
-  //     if (bibData.isNotEmpty) {
-  //       final List<String> bibDataStrings = bibData.cast<String>();
-
-  //       print('Bib data: $bibDataStrings');
-  //       print('bib data type: ${bibDataStrings.runtimeType}');
-
-  //       // for (int bib in bibDataInts) {
-  //       //   final runnerData = await DatabaseHelper.instance.getRaceRunnerByBib(raceId, bib, getShared: true);
-  //       //   // runnerData['bib_number'] = bib;
-  //       //   setState(() {
-  //       //     Provider.of<TimingData>(context, listen: false).addRunnerData(bibDataInts, raceId);
-  //       //   });
-  //       //   print('Bib: $bib');
-  //       // }
-
-  //       setState(() {
-  //         Provider.of<TimingData>(context, listen: false).setBibs(bibDataStrings, raceId);
-  //       });
-
-  //       _syncBibData(bibDataStrings, records);
-  //     } else {
-  //       _showErrorMessage('QR code data is empty.');
-  //     }
-  //   } catch (e) {
-  //     _showErrorMessage('Failed to process QR code data: $e');
-  //   }
-  // }
-
-  // void _confirmAndShowQrCode() {
-  //   int errorCount = _bibRecords.where((record) => 
-  //     record['flags']['not_in_database'] || record['flags']['low_confidence_score'] || record['flags']['duplicate_bib_number']
-  //   ).length;
-  //   if (errorCount > 0) {
-  //     showDialog(
-  //       context: context,
-  //       builder: (BuildContext context) {
-  //         return AlertDialog(
-  //           title: Text('Confirm Share'),
-  //           content: Text('There ${errorCount == 1 ? 'is 1 bib with an error' : 'are $errorCount bibs with errors'}. Are you sure you want to share?'),
-  //           actions: [
-  //             TextButton(
-  //               child: Text('Cancel'),
-  //               onPressed: () {
-  //                 Navigator.of(context).pop();
-  //               },
-  //             ),
-  //             TextButton(
-  //               child: Text('Share'),
-  //               onPressed: () {
-  //                 Navigator.of(context).pop();
-  //                 _showQrCode();
-  //               },
-  //             ),
-  //           ],
-  //         );
-  //       },
-  //     );
-  //   }
-  //   else {
-  //     _showQrCode();
-  //   }
-  // }
-
-  void _shareTimes() {
-    _showQrCode();
-  }
-
-  void _showQrCode() {
-    final data = _generateQrData(); // Ensure this returns a String
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Share Bib Numbers'),
-          content: SizedBox(
-            width: 200,
-            height: 200,
-            child: QrImageView(
-              data: data,
-              version: QrVersions.auto,
-              errorCorrectionLevel: QrErrorCorrectLevel.M, // Adjust as needed
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  String _generateQrData() {
-    return jsonEncode(Provider.of<TimingData>(context, listen: false).toMapForQR(raceId));
   }
 
   void _syncBibData(List<String> bibData, List<Map<String, dynamic>> records) async {
@@ -421,11 +155,11 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
 
   Future<void> _openResolveDialog() async {
     print('Opening resolve dialog');
-    // final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
+    // final records = timingData['records'] ?? [];
     final [firstConflict, conflictIndex] = _getFirstConflict();
     if (firstConflict == null){
       print('No conflicts left');
-      _deleteConfirmedRecordsBeforeIndexUntilConflict(Provider.of<TimingData>(context, listen: false).records[raceId]!.length - 1);
+      _deleteConfirmedRecordsBeforeIndexUntilConflict(timingData['records']!.length - 1);
       return;
     } // No conflicts left
     print(firstConflict == 'too_few_runner_times'
@@ -486,8 +220,8 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   }
 
   Future<void> _resolveTooFewRunnerTimes(int conflictIndex) async {
-    var records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
-    final bibData = Provider.of<TimingData>(context, listen: false).bibs[raceId] ?? [];
+    var records = timingData['records'] ?? [];
+    final bibData = timingData['bibs'] ?? [];
     final conflictRecord = records[conflictIndex];
     
     final lastConfirmedIndex = records.sublist(0, conflictIndex)
@@ -544,8 +278,8 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   }
 
   Future<void> _resolveTooManyRunnerTimes(int conflictIndex) async {
-    var records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
-    final bibData = Provider.of<TimingData>(context, listen: false).bibs[raceId] ?? [];
+    var records = timingData['records'] ?? [];
+    final bibData = timingData['bibs'] ?? [];
     final conflictRecord = records[conflictIndex];
     
     final lastConfirmedIndex = records.sublist(0, conflictIndex)
@@ -617,7 +351,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     int lastConfirmedIndex,
     List<dynamic> bibData,
   ) async {
-    final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
+    final records = timingData['records'] ?? [];
     final lastConfirmedRunnerPlace = lastConfirmedRecord.isEmpty ? 0 : lastConfirmedRecord['place'];
     for (int i = 0; i < runners.length; i++) {
       final int currentPlace = (i + lastConfirmedRunnerPlace + 1).toInt();
@@ -662,7 +396,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     List<dynamic> bibData,
     int spaceBetweenConfirmedAndConflict,
   ) async {
-    var records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
+    var records = timingData['records'] ?? [];
     final unusedTimes = availableTimes
         .where((time) => !times.contains(loadDurationFromString(time)))
         .toList();
@@ -680,15 +414,15 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
         if (record['place'] != null) {
           print('Place: ${record['place']}');
           final index = record['place'] != '' ? record['place'] - 1 : record['previous_place'] - 1;
-          Provider.of<TimingData>(context, listen: false).controllers[raceId]?[index].dispose();
-          Provider.of<TimingData>(context, listen: false).controllers[raceId]?.removeAt(index);
+          _controllers[index].dispose();
+          _controllers.removeAt(index);
         }
       }
       
-      Provider.of<TimingData>(context, listen: false).records[raceId]?.removeWhere((record) => unusedTimes.contains(record['finish_time']));
+      timingData['records']?.removeWhere((record) => unusedTimes.contains(record['finish_time']));
       runners.removeWhere((runner) => unusedTimes.contains(runner['finish_time']));
     });
-    records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
+    records = timingData['records'] ?? [];
 
     final lastConfirmedRunnerPlace = lastConfirmedRecord.isEmpty ? 0 : lastConfirmedRecord['place'];
     final lastConfirmedIndex = lastConfirmedRecord.isEmpty ? -1 : records.indexOf(lastConfirmedRecord); 
@@ -754,7 +488,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   }
 
   List<dynamic> _getFirstConflict() {
-    final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
+    final records = timingData['records'] ?? [];
     for (var record in records) {
       if (record['is_runner'] == false && record['type'] != null && record['type'] != 'confirm_runner_number') {
         return [record['type'], records.indexOf(record)];
@@ -815,62 +549,13 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     return confirmed;
   }
 
-  void _saveResults() async {
-    if (!_checkIfAllRunnersResolved()) {
-      _showErrorMessage('All runners must be resolved before proceeding.');
-      return;
-    }
-    // Check if all runners have a non-null bib number
-    final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
-    bool allRunnersHaveRequiredInfo = records.every((runner) => runner['bib_number'] != null && runner['name'] != null && runner['grade'] != null && runner['school'] != null);
-
-    if (allRunnersHaveRequiredInfo) {
-      // Remove the 'bib_number' key from the records before saving since it is not in database
-      for (var record in records) {
-        if (record['is_runner'] == false) {
-          records.remove(record);
-          continue;
-        }
-        record.remove('bib_number');
-        record.remove('name');
-        record.remove('grade');
-        record.remove('school');
-        record.remove('text_color');
-        record.remove('is_confirmed');
-        record.remove('is_runner');
-        record.remove('conflict');
-      }
-
-      await DatabaseHelper.instance.insertRaceResults(records);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Results saved successfully. View results?'),
-          action: SnackBarAction(
-            label: 'View Results',
-            onPressed: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => RaceScreen(race: race, initialTabIndex: 1), // Pass the race object and set results tab as initial
-                ),
-              );
-              ScaffoldMessenger.of(context).hideCurrentSnackBar(); // Optional: Hide the SnackBar
-            },
-          ),
-        ),
-      );
-    } else {
-      _showErrorMessage('All runners must have a bib number assigned before proceeding.');
-    }
-  }
-
   bool _checkIfAllRunnersResolved() {
-    List<Map<String, dynamic>> records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
+    List<Map<String, dynamic>> records = timingData['records'] ?? [];
     return records.every((runner) => runner['bib_number'] != null && runner['is_confirmed'] == true);
   }
 
   void _updateTextColor(Color? color, {bool confirmed = false, String? conflict, endIndex}) {
-    List<Map<String, dynamic>> records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
+    List<Map<String, dynamic>> records = timingData['records'] ?? [];
     if (endIndex != null && endIndex < records.length && records.isNotEmpty) {
       records = records.sublist(0, endIndex);
     }
@@ -893,16 +578,16 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   }
 
   void _confirmRunnerNumber({bool useStopTime = false}) async {
-    // final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
+    // final records = timingData['records'] ?? [];
     int numTimes = _getNumberOfTimes(); // Placeholder for actual length input
     
     Duration difference;
     if (useStopTime == true) {
-      difference = Provider.of<TimingData>(context, listen: false).endTime[raceId]!;
+      difference = timingData['endTime']!;
     }
     else {
       DateTime now = DateTime.now();
-      final startTime = Provider.of<TimingData>(context, listen: false).startTime[raceId];
+      final startTime = timingData['startTime'];
       if (startTime == null) {
         print('Start time cannot be null. 4');
         _showErrorMessage('Start time cannot be null.');
@@ -911,7 +596,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
       difference = now.difference(startTime);
     }
 
-    final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
+    final records = timingData['records'] ?? [];
     
     final color = AppColors.navBarTextColor;
     _updateTextColor(color, confirmed: true);
@@ -919,7 +604,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     _deleteConfirmedRecordsBeforeIndexUntilConflict(records.length - 1);
 
     setState(() {
-      Provider.of<TimingData>(context, listen: false).records[raceId]?.add({
+      timingData['records']?.add({
         'finish_time': formatDuration(difference),
         'is_runner': false,
         'type': 'confirm_runner_number',
@@ -942,11 +627,11 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     if (offBy < 1) {
       offBy = 1;
     }
-    // final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
+    // final records = timingData['records'] ?? [];
     final numTimes = _getNumberOfTimes().toInt();
     int correcttedNumTimes = numTimes - offBy; // Placeholder for actual length input
 
-    final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
+    final records = timingData['records'] ?? [];
     final previousRunner = records.last;
     if (previousRunner['is_runner'] == false) {
       _showErrorMessage('You must have a unconfirmed runner time before pressing this button.');
@@ -962,7 +647,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
         return;
       }
       setState(() {
-        Provider.of<TimingData>(context, listen: false).records[raceId]?.removeRange(Provider.of<TimingData>(context, listen: false).records[raceId]!.length - offBy, Provider.of<TimingData>(context, listen: false).records[raceId]!.length);
+        timingData['records']?.removeRange(timingData['records']!.length - offBy, timingData['records']!.length);
       });
       return;
     }
@@ -980,11 +665,11 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
 
     Duration difference;
     if (useStopTime == true) {
-      difference = Provider.of<TimingData>(context, listen: false).endTime[raceId]!;
+      difference = timingData['endTime']!;
     }
     else {
       DateTime now = DateTime.now();
-      final startTime = Provider.of<TimingData>(context, listen: false).startTime[raceId];
+      final startTime = timingData['startTime'];
       if (startTime == null) {
         print('Start time cannot be null. 4');
         _showErrorMessage('Start time cannot be null.');
@@ -997,7 +682,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     _updateTextColor(color, conflict: 'too_many_runner_times');
 
     setState(() {
-      Provider.of<TimingData>(context, listen: false).records[raceId]?.add({
+      timingData['records']?.add({
         'finish_time': formatDuration(difference),
         'is_runner': false,
         'type': 'too_many_runner_times',
@@ -1023,11 +708,11 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     
     Duration difference;
     if (useStopTime == true) {
-      difference = Provider.of<TimingData>(context, listen: false).endTime[raceId]!;
+      difference = timingData['endTime']!;
     }
     else {
       DateTime now = DateTime.now();
-      final startTime = Provider.of<TimingData>(context, listen: false).startTime[raceId];
+      final startTime = timingData['startTime'];
       if (startTime == null) {
         print('Start time cannot be null. 6');
         _showErrorMessage('Start time cannot be null.');
@@ -1041,7 +726,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
 
     setState(() {
       for (int i = 1; i <= offBy; i++) {
-        Provider.of<TimingData>(context, listen: false).records[raceId]?.add({
+        timingData['records']?.add({
           'finish_time': 'TBD',
           'bib_number': null,
           'is_runner': true,
@@ -1050,10 +735,10 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
           'text_color': color,
           'place': numTimes + i,
         });
-        Provider.of<TimingData>(context, listen: false).addController(TextEditingController(), raceId);
+        _controllers.add(TextEditingController());
       }
 
-      Provider.of<TimingData>(context, listen: false).records[raceId]?.add({
+      timingData['records']?.add({
         'finish_time': formatDuration(difference),
         'is_runner': false,
         'type': 'too_few_runner_times',
@@ -1074,7 +759,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   }
 
   int _getNumberOfTimes() {
-    final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
+    final records = timingData['records'] ?? [];
     int count = 0;
     for (var record in records) {
       if (record['is_runner'] == true) {
@@ -1089,11 +774,9 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     return max(0, count);
   }
 
-  
-
   void _undoLastConflict() {
     print('undo last conflict');
-    final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
+    final records = timingData['records'] ?? [];
 
     final lastConflict = records.reversed.firstWhere((r) => r['is_runner'] == false && r['type'] != null, orElse: () => {});
 
@@ -1140,7 +823,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     final runnersBeforeConflict = records.sublist(0, lastConflictIndex).where((r) => r['is_runner'] == true).toList();
     final offBy = lastConflict['offBy'];
     print('off by: $offBy');
-    final controllers = Provider.of<TimingData>(context, listen: false).controllers[raceId] ?? [];
+    final controllers = _controllers;
 
     _updateTextColor(null, confirmed: false, endIndex: lastConflictIndex);
     for (int i = 0; i < offBy; i++) {
@@ -1155,12 +838,21 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
       records.remove(lastConflict);
     });
   }
-  
 
+  void _deleteConfirmedRecords() {
+    final records = timingData['records'] ?? [];
+    for (int i = records.length - 1; i >= 0; i--) {
+      if (records[i]['is_runner'] == false && records[i]['type'] == 'confirm_runner_number') {
+        setState(() {
+          records.removeAt(i);
+        });
+      }
+    }
+  }
 
   void _deleteConfirmedRecordsBeforeIndexUntilConflict(int recordIndex) {
     print(recordIndex);
-    final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
+    final records = timingData['records'] ?? [];
     if (recordIndex < 0 || recordIndex >= records.length) {
       return;
     }
@@ -1180,13 +872,13 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   }
 
   int getRunnerIndex(int recordIndex) {
-    final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
+    final records = timingData['records'] ?? [];
     final runnerRecords = records.where((record) => record['is_runner'] == true).toList();
     return runnerRecords.indexOf(records[recordIndex]);
   }
 
   Future<bool> _confirmDeleteLastRecord(int recordIndex) async {
-    final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
+    final records = timingData['records'] ?? [];
     final record = records[recordIndex];
     if (record['is_runner'] == true && record['is_confirmed'] == false && record['conflict'] == null) {
       final confirmed = await showDialog<bool>(
@@ -1210,27 +902,13 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     }
     return false;
   }
-  
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    _scrollController.dispose();
-    for (var controller in Provider.of<TimingData>(context, listen: false).controllers[raceId] ?? []) {
-      controller.dispose();
-    }
-    Provider.of<TimingData>(context, listen: false).clearRecords(raceId);
-    Provider.of<TimingData>(context, listen: false).changeStartTime(null, raceId);
-    _audioPlayer.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
-    final startTime = Provider.of<TimingData>(context, listen: false).startTime[raceId];
-    final endTime = Provider.of<TimingData>(context, listen: false).endTime[raceId];
-    final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
-    final controllers = Provider.of<TimingData>(context, listen: false).controllers[raceId] ?? [];
+    final startTime = timingData['startTime'];
+    final endTime = timingData['endTime'];
+    final records = timingData['records'] ?? [];
+    // final controllers = _controllers ?? [];
 
     return Scaffold(
       // appBar: AppBar(title: const Text('Race Timing')),
@@ -1248,7 +926,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
                     stream: Stream.periodic(const Duration(milliseconds: 10)),
                     builder: (context, snapshot) {
                       final currentTime = DateTime.now();
-                      final startTime = Provider.of<TimingData>(context, listen: false).startTime[raceId];
+                      final startTime = timingData['startTime'];
                       Duration elapsed;
                       if (startTime == null) {
                         if (endTime != null) {
@@ -1290,49 +968,6 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  SizedBox(
-                    width: 70,
-                    height: 70,
-                    child: ElevatedButton(
-                      onPressed: startTime == null ? _startRace : _stopRace,
-                      style: ElevatedButton.styleFrom(
-                        shape: const CircleBorder(),
-                        backgroundColor: startTime == null ? Colors.green : Colors.red,
-                        padding: EdgeInsets.zero,
-                      
-                      ),
-                      child: Text(
-                        startTime == null ? 'Start' : 'Stop',
-                        style: TextStyle(
-                          color: Colors.white,
-                          overflow: TextOverflow.ellipsis,
-                          fontSize: 24,
-                        ),
-                        maxLines: 1,
-                      ),
-                    ),
-                  ),
-                  if (startTime == null && records.isNotEmpty)
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0), // Padding around the button
-                        child: LayoutBuilder(
-                          builder: (context, constraints) {
-                          double fontSize = constraints.maxWidth * 0.11;
-                            return ElevatedButton(
-                              onPressed: _shareTimes,
-                              style: ElevatedButton.styleFrom(
-                                minimumSize: Size(0, constraints.maxWidth * 0.5),
-                              ),
-                              child: Text(
-                                'Share Times',
-                                style: TextStyle(fontSize: fontSize),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
                   if (startTime == null && records.isNotEmpty && records[0]['bib_number'] != null && _getFirstConflict()[0] == null)
                     Expanded(
                       child: Padding(
@@ -1375,27 +1010,6 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
                         ),
                       ),
                     ),
-                    if (startTime != null)
-                      SizedBox(
-                        width: 70,
-                        height: 70,
-                        child: ElevatedButton(
-                          onPressed: _handleLogButtonPress,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
-                            shape: const CircleBorder(),
-                            padding: EdgeInsets.zero,
-                          ),
-                          child: Text(
-                            'Log',
-                            style: TextStyle(
-                              color: AppColors.darkColor,
-                              fontSize: 24,
-                            ),
-                            maxLines: 1,
-                          ),
-                        ),
-                      ),
                 ],
               ),
 
@@ -1424,7 +1038,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
                           late TextEditingController controller;
                           if (records.isNotEmpty && record['is_runner'] == true) {
                             final runnerIndex = getRunnerIndex(index);
-                            controller = controllers[runnerIndex];
+                            controller = _controllers[runnerIndex];
                           }
                           if (records.isNotEmpty && record['is_runner'] == true) {
                             return Container(
@@ -1440,20 +1054,20 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
                                   GestureDetector(
                                     behavior: HitTestBehavior.opaque,
                                     onLongPress: () async {
-                                      if (index == records.length - 1) {
-                                        final confirmed = await _confirmDeleteLastRecord(index);
-                                        if (confirmed ) {
-                                          setState(() {
-                                            Provider.of<TimingData>(context, listen: false).controllers[raceId]?.removeAt(_getNumberOfTimes() - 1);
-                                            Provider.of<TimingData>(context, listen: false).records[raceId]?.removeAt(index);
-                                            _scrollController.animateTo(
-                                              max(_scrollController.position.maxScrollExtent, 0),
-                                              duration: const Duration(milliseconds: 300),
-                                              curve: Curves.easeOut,
-                                            );
-                                          });
-                                        }
+                                      // if (index == records.length - 1) {
+                                      final confirmed = await _confirmDeleteLastRecord(index);
+                                      if (confirmed ) {
+                                        setState(() {
+                                          _controllers.removeAt(_getNumberOfTimes() - 1);
+                                          timingData['records']?.removeAt(index);
+                                          _scrollController.animateTo(
+                                            max(_scrollController.position.maxScrollExtent, 0),
+                                            duration: const Duration(milliseconds: 300),
+                                            curve: Curves.easeOut,
+                                          );
+                                        });
                                       }
+                                      // }
                                     },
                                     child: Row(
                                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
