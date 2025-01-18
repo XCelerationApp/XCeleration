@@ -134,6 +134,7 @@ class _ConflictResolutionDialogState extends State<ConflictResolutionDialog> {
         final availableOptions = times.where((time) => time == timeController.text || !widget.selectedTimes.contains(time)).toList();
         // print('creating time selector');
         // print('selected times: ${widget.selectedTimes}');
+        // print('available options: $availableOptions');
         final items = [
           ...availableOptions.map((time) => DropdownMenuItem<String>(
             value: time,
@@ -141,7 +142,7 @@ class _ConflictResolutionDialogState extends State<ConflictResolutionDialog> {
           )),
           if (manualController != null)
             DropdownMenuItem<String>(
-              value: 'manual',
+              value: manualController.text.isNotEmpty ? manualController.text : 'manual',
               child: SizedBox(
                 width: MediaQuery.of(context).size.width * 0.25,
                 child: TextField(
@@ -233,8 +234,9 @@ class _ConflictResolutionDialogState extends State<ConflictResolutionDialog> {
 
     for (var i = 0; i < controllers.length; i++) {
       final time = _parseTime(controllers[i].text);
+
       if (time == null) {
-        _showError(context, 'Invalid time format for ${runners[i]['name']}');
+        _showError(context, 'Enter a valid time for ${runners[i]['name']}');
         return null;
       }
       
@@ -262,7 +264,7 @@ class _ConflictResolutionDialogState extends State<ConflictResolutionDialog> {
 
 // Helper functions
 Duration? _parseTime(String input) {
-  if (input.isEmpty || input == '') return null;
+  if (input.isEmpty || input == '' || input == 'manual') return null;
   
   final parts = input.split(':');
   final timeString = switch (parts.length) {
