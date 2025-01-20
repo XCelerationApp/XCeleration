@@ -339,17 +339,17 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                 ),
                 child: const Text('Load Runner Times', style: TextStyle(fontSize: 20)),
               ),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              child: ElevatedButton.icon(
-                onPressed: _captureBibNumbersWithCamera,
-                icon: const Icon(Icons.camera_alt),
-                label: const Text('Photo', style: TextStyle(fontSize: 20)),
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(horizontal: 50, vertical: 20),
-                ),
-              ),
-            ),
+            // Padding(
+            //   padding: const EdgeInsets.symmetric(vertical: 20),
+            //   child: ElevatedButton.icon(
+            //     onPressed: _captureBibNumbersWithCamera,
+            //     icon: const Icon(Icons.camera_alt),
+            //     label: const Text('Photo', style: TextStyle(fontSize: 20)),
+            //     style: ElevatedButton.styleFrom(
+            //       padding: EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+            //     ),
+            //   ),
+            // ),
             Padding(
               padding: const EdgeInsets.only(bottom: 16.0),
               child: ElevatedButton(

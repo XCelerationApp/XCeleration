@@ -211,6 +211,41 @@ class DatabaseHelper {
     return [runner, false];
   }
 
+  Future<List<Map<String, dynamic>>> getRaceRunnersByBibs(int raceId, List<String> bibNumbers) async {
+    // final db = await instance.database;
+    // final results = await db.query(
+    //   'race_runners',
+    //   where: 'race_id = ? AND bib_number IN (${List.generate(bibNumbers.length, (index) => '?').join(', ')})',
+    //   whereArgs: [raceId, ...bibNumbers],
+    // );
+
+    // final missingBibs = bibNumbers.toSet().difference(results.map((e) => e['bib_number']).toSet()).toList();
+    // if (missingBibs.isNotEmpty) {
+    //   final sharedResults = await db.query(
+    //     'shared_runners',
+    //     where: 'bib_number IN (${List.generate(missingBibs.length, (index) => '?').join(', ')})',
+    //     whereArgs: missingBibs,
+    //   );
+    //   results.addAll(sharedResults.map((e) => {
+    //     ...e,
+    //     'runner_is_shared': 1,
+    //   }));
+    // }
+
+    // return results;
+    List<Map<String, dynamic>> results = [];
+    for (int i = 0; i < bibNumbers.length; i++) {
+      final runner = await getRaceRunnerByBib(raceId, bibNumbers[i], getShared: true);
+      // print(runner);
+      if (runner[0] == null) {
+        break;
+      }
+      results.add(runner[0]);
+    }
+    return results;
+  }
+
+
   Future<void> updateRaceRunner(Map<String, dynamic> runner) async {
     final db = await instance.database;
     await db.update(

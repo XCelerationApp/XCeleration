@@ -31,7 +31,7 @@ class RaceScreen extends StatefulWidget {
 class _RaceScreenState extends State<RaceScreen> {
   late Race race;
   String raceName = '';
-  Map<String, dynamic> timingData = {'records': [], 'endTime': null, 'bibs': []};
+  late Map<String, dynamic> timingData;
 
 
   @override
@@ -40,6 +40,7 @@ class _RaceScreenState extends State<RaceScreen> {
     race = widget.race;
     raceName = widget.race.race_name;
     timingData = widget.timingData;
+    print('timingData: $timingData');
     _fetchRaceData();
   }
 

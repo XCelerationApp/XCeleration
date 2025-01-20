@@ -8,6 +8,7 @@ import 'dart:async';
 import 'race_screen.dart';
 import '../constants.dart';
 import 'resolve_conflict.dart';
+import '../database_helper.dart';
 
 class EditAndResolveScreen extends StatefulWidget {
   final Race race;
@@ -30,6 +31,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
   late Race race;
   late Map<String, dynamic> timingData;
   bool dataSynced = false;
+  late List<Map<String, dynamic>> runners = [];
 
   @override
   void initState() {
@@ -37,11 +39,20 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
     race = widget.race;
     raceId = race.race_id;
     timingData = widget.timingData;
+    _fetchRunners();
+    // runners = await DatabaseHelper.instance.getRaceRunnersByBibs(raceId, timingData['bibs'].cast<String>() ?? []);
     // timingData['bibs'] = timingData['bibs'].cast<String>();
     // timingData['records'] = timingData['records'].cast<Map<String, dynamic>>();
     _controllers = List.generate(_getNumberOfTimes(), (index) => TextEditingController());
     _syncBibData(timingData['bibs'].cast<String>() ?? [], timingData['records'].cast<Map<String, dynamic>>() ?? []);
     
+  }
+
+  Future<void> _fetchRunners() async {
+    final fetchedRunners = await DatabaseHelper.instance.getRaceRunnersByBibs(raceId, timingData['bibs'].cast<String>() ?? []);
+    setState(() {
+      runners = fetchedRunners.cast<Map<String, dynamic>>();
+    });
   }
 
   void _saveResults() async {
@@ -555,12 +566,12 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
   }
 
   bool _checkIfAllRunnersResolved() {
-    List<Map<String, dynamic>> records = timingData['records'] ?? [];
+    List<Map<String, dynamic>> records = timingData['records'].cast<Map<String, dynamic>>() ?? [];
     return records.every((runner) => runner['bib_number'] != null && runner['is_confirmed'] == true);
   }
 
   void _updateTextColor(Color? color, {bool confirmed = false, String? conflict, endIndex}) {
-    List<Map<String, dynamic>> records = timingData['records'] ?? [];
+    List<Map<String, dynamic>> records = timingData['records'].cast<Map<String, dynamic>>() ?? [];
     if (endIndex != null && endIndex < records.length && records.isNotEmpty) {
       records = records.sublist(0, endIndex);
     }
@@ -912,7 +923,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
   Widget build(BuildContext context) {
     final startTime = timingData['startTime'];
     final endTime = timingData['endTime'];
-    final records = timingData['records'] ?? [];
+    final time_records = timingData['records'] ?? [];
     // final controllers = _controllers ?? [];
 
     return Scaffold(
@@ -973,7 +984,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  if (startTime == null && records.isNotEmpty && records[0]['bib_number'] != null && _getFirstConflict()[0] == null)
+                  if (startTime == null && time_records.isNotEmpty && time_records[0]['bib_number'] != null && _getFirstConflict()[0] == null)
                     Expanded(
                       child: Padding(
                         padding: const EdgeInsets.all(8.0), // Padding around the button
@@ -994,7 +1005,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
                         ),
                       ),
                     ),
-                  if (startTime == null && records.isNotEmpty && dataSynced == true && _getFirstConflict()[0] != null)
+                  if (startTime == null && time_records.isNotEmpty && dataSynced == true && _getFirstConflict()[0] != null)
                     Expanded(
                       child: Padding(
                         padding: const EdgeInsets.all(8.0), // Padding around the button
@@ -1022,7 +1033,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
               Expanded(
                 child: Column(
                   children: [
-                    if (records.isNotEmpty)
+                    if (time_records.isNotEmpty)
                       Padding(
                         padding: EdgeInsets.only(
                           top: 15,
@@ -1037,15 +1048,17 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
                     Expanded(
                       child: ListView.builder(
                         controller: _scrollController,
-                        itemCount: records.length,
+                        itemCount: time_records.length,
                         itemBuilder: (context, index) {
-                          final record = records[index];
+                          final runner = (runners.isNotEmpty && index < runners.length) ? runners[index] : {};
+                          final time_record = time_records[index];
+
                           late TextEditingController controller;
-                          if (records.isNotEmpty && record['is_runner'] == true) {
+                          if (time_records.isNotEmpty && time_record['is_runner'] == true) {
                             final runnerIndex = getRunnerIndex(index);
                             controller = _controllers[runnerIndex];
                           }
-                          if (records.isNotEmpty && record['is_runner'] == true) {
+                          if (time_records.isNotEmpty && time_record['is_runner'] == true) {
                             return Container(
                               margin: EdgeInsets.only(
                                 top: 0, // MediaQuery.of(context).size.width * 0.01,
@@ -1078,26 +1091,34 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
                                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
                                           Text(
-                                            '${record['place']}',
+                                            '${time_record['place']}',
                                             style: TextStyle(
                                               fontSize: MediaQuery.of(context).size.width * 0.05,
                                               fontWeight: FontWeight.bold,
-                                            color: record['text_color'] != null ? AppColors.navBarTextColor : null,
+                                            color: time_record['text_color'] != null ? AppColors.navBarTextColor : null,
                                           ),
                                         ),
                                         Text(
                                           [
-                                            if (record['name'] != null) record['name'],
-                                            if (record['grade'] != null) ' ${record['grade']}',
-                                            if (record['school'] != null) ' ${record['school']}    ',
-                                            if (record['finish_time'] != null) '${record['finish_time']}'
+                                            if (runner['name'] != null) runner['name'],
+                                            if (runner['grade'] != null) ' ${runner['grade']}',
+                                            if (runner['school'] != null) ' ${runner['school']}    ',
                                           ].join(),
                                           style: TextStyle(
                                             fontSize: MediaQuery.of(context).size.width * 0.05,
                                             fontWeight: FontWeight.bold,
-                                            color: record['conflict'] == null ? record['text_color'] : AppColors.redColor,
+                                            color: AppColors.navBarTextColor,
                                           ),
                                         ),
+                                        if (time_record['finish_time'] != null)
+                                          Text(
+                                            '${time_record['finish_time']}',
+                                            style: TextStyle(
+                                              fontSize: MediaQuery.of(context).size.width * 0.05,
+                                              fontWeight: FontWeight.bold,
+                                              color: time_record['conflict'] == null ? time_record['text_color'] : AppColors.redColor,
+                                            ),
+                                          ),
                                       ],
                                     ),
                                   ),
@@ -1154,7 +1175,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
                                 ],
                               ),
                             );
-                          } else if (records.isNotEmpty && record['type'] == 'confirm_runner_number') {
+                          } else if (time_records.isNotEmpty && time_record['type'] == 'confirm_runner_number') {
                             return Container(
                               margin: EdgeInsets.only(
                                 top: MediaQuery.of(context).size.width * 0.01,
@@ -1168,19 +1189,19 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
                                   GestureDetector(
                                     behavior: HitTestBehavior.opaque,
                                     onLongPress: () {
-                                      if (index == records.length - 1) {
+                                      if (index == time_records.length - 1) {
                                         setState(() {
-                                          records.removeAt(index);
+                                          time_records.removeAt(index);
                                           _updateTextColor(null);
                                         });
                                       }
                                     },
                                     child: Text(
-                                      'Confirmed: ${record['finish_time']}',
+                                      'Confirmed: ${time_record['finish_time']}',
                                       style: TextStyle(
                                         fontSize: MediaQuery.of(context).size.width * 0.05,
                                         fontWeight: FontWeight.bold,
-                                        color: record['text_color'],
+                                        color: time_record['text_color'],
                                       ),
                                     ),
                                   ),
@@ -1200,7 +1221,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
                   ],
                 ),
               ),
-              if (startTime != null && records.isNotEmpty)
+              if (startTime != null && time_records.isNotEmpty)
                 Container(
                   margin: EdgeInsets.symmetric(vertical: 8.0), // Adjust vertical margin as needed
                   child: Row(
@@ -1218,7 +1239,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
                         icon: const Icon(Icons.add, size: 40, color: AppColors.redColor),
                         onPressed: _tooFewRunners,
                       ),
-                      if (records.isNotEmpty && !records.last['is_runner'] && records.last['type'] != null && records.last['type'] != 'confirm_runner_number')
+                      if (time_records.isNotEmpty && !time_records.last['is_runner'] && time_records.last['type'] != null && time_records.last['type'] != 'confirm_runner_number')
                         IconButton(
                           icon: const Icon(Icons.undo, size: 40, color: AppColors.redColor),
                           onPressed: _undoLastConflict,

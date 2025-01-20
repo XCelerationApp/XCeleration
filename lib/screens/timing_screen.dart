@@ -1383,15 +1383,21 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
                         padding: const EdgeInsets.all(8.0), // Padding around the button
                         child: LayoutBuilder(
                           builder: (context, constraints) {
-                          double fontSize = constraints.maxWidth * 0.11;
+                          // double fontSize = constraints.maxWidth * 0.11;
+                          // print('font size: $fontSize');
                             return ElevatedButton(
                               onPressed: _shareTimes,
                               style: ElevatedButton.styleFrom(
-                                minimumSize: Size(0, 75),
+                                minimumSize: Size(0, 78),
+                                padding: EdgeInsets.zero,
                               ),
                               child: Text(
                                 'Share Times',
-                                style: TextStyle(fontSize: fontSize),
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  color: AppColors.darkColor,
+                                ),
+                                maxLines: 1,
                               ),
                             );
                           },

@@ -37,7 +37,7 @@ Future<void> processSpreadsheet(int raceId, bool shared) async {
                 'name': name,
                 'school': school,
                 'grade': grade,
-                'bib_number': bibNumberInt,
+                'bib_number': bibNumber,
               });
             } else {
               await DatabaseHelper.instance.insertRaceRunner({
@@ -82,7 +82,7 @@ Future<void> processSpreadsheet(int raceId, bool shared) async {
                   'name': name,
                   'school': school,
                   'grade': grade,
-                  'bib_number': bibNumberInt,
+                  'bib_number': bibNumber,
                 });
               } else {
                 await DatabaseHelper.instance.insertRaceRunner({
