@@ -1210,7 +1210,34 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     }
     return false;
   }
-  
+
+  _clearRaceTimes() {
+    showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Clear Race Times'),
+        content: const Text('Are you sure you want to clear all race times?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Clear'),
+          ),
+        ],
+      ),
+    ).then((confirmed) {
+      if (confirmed ?? false) {
+        setState(() {
+          Provider.of<TimingData>(context, listen: false).clearRecords(raceId);
+          Provider.of<TimingData>(context, listen: false).controllers[raceId]?.clear();
+
+        });
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -1290,25 +1317,63 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                  // SizedBox(
+                  //   width: 70,
+                  //   height: 70,
+                  //   child: ElevatedButton(
+                  //     onPressed: startTime == null ? _startRace : _stopRace,
+                  //     style: ElevatedButton.styleFrom(
+                  //       shape: const CircleBorder(),
+                  //       backgroundColor: startTime == null ? Colors.green : Colors.red,
+                  //       padding: EdgeInsets.zero,
+                  //       elevation: 4,
+                  //     ),
+                  //     child: Text(
+                  //       startTime == null ? 'Start' : 'Stop',
+                  //       style: TextStyle(
+                  //         color: Colors.white,
+                  //         overflow: TextOverflow.ellipsis,
+                  //         fontSize: 24,
+                  //       ),
+                  //       maxLines: 1,
+                  //     ),
+                  //   ),
+                  // ),
                   SizedBox(
                     width: 70,
                     height: 70,
-                    child: ElevatedButton(
-                      onPressed: startTime == null ? _startRace : _stopRace,
-                      style: ElevatedButton.styleFrom(
-                        shape: const CircleBorder(),
-                        backgroundColor: startTime == null ? Colors.green : Colors.red,
-                        padding: EdgeInsets.zero,
-                      
-                      ),
-                      child: Text(
-                        startTime == null ? 'Start' : 'Stop',
-                        style: TextStyle(
-                          color: Colors.white,
-                          overflow: TextOverflow.ellipsis,
-                          fontSize: 24,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: startTime == null ? Colors.green : Colors.red, // Button color
+                        border: Border.all(
+                          // color: const Color.fromARGB(255, 60, 60, 60), // Inner darker border
+                          color: AppColors.backgroundColor,
+                          width: 2,
                         ),
-                        maxLines: 1,
+                        boxShadow: [
+                          BoxShadow(
+                            color: startTime == null ? Colors.green : Colors.red, // Outer lighter border
+                            spreadRadius: 2, // Width of the outer border
+                          ),
+                        ],
+                      ),
+                      child: ElevatedButton(
+                        onPressed: startTime == null ? _startRace : _stopRace,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shape: CircleBorder(),
+                          padding: EdgeInsets.zero,
+                          elevation: 0,
+                        ),
+                        child: Text(
+                          startTime == null ? 'Start' : 'Stop',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                          ),
+                          maxLines: 1,
+                        ),
                       ),
                     ),
                   ),
@@ -1322,7 +1387,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
                             return ElevatedButton(
                               onPressed: _shareTimes,
                               style: ElevatedButton.styleFrom(
-                                minimumSize: Size(0, constraints.maxWidth * 0.5),
+                                minimumSize: Size(0, 75),
                               ),
                               child: Text(
                                 'Share Times',
@@ -1333,69 +1398,93 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
                         ),
                       ),
                     ),
-                  if (startTime == null && records.isNotEmpty && records[0]['bib_number'] != null && _getFirstConflict()[0] == null)
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0), // Padding around the button
-                        child: LayoutBuilder(
-                          builder: (context, constraints) {
-                          double fontSize = constraints.maxWidth * 0.12;
-                            return ElevatedButton(
-                              onPressed: _saveResults,
-                              style: ElevatedButton.styleFrom(
-                                minimumSize: Size(0, constraints.maxWidth * 0.5),
-                              ),
-                              child: Text(
-                                'Save Results',
-                                style: TextStyle(fontSize: fontSize),
-                              ),
-                            );
-                          },
+                  // if (startTime == null && records.isNotEmpty && records[0]['bib_number'] != null && _getFirstConflict()[0] == null)
+                  //   Expanded(
+                  //     child: Padding(
+                  //       padding: const EdgeInsets.all(8.0), // Padding around the button
+                  //       child: LayoutBuilder(
+                  //         builder: (context, constraints) {
+                  //         double fontSize = constraints.maxWidth * 0.12;
+                  //           return ElevatedButton(
+                  //             onPressed: _saveResults,
+                  //             style: ElevatedButton.styleFrom(
+                  //               minimumSize: Size(0, constraints.maxWidth * 0.5),
+                  //             ),
+                  //             child: Text(
+                  //               'Save Results',
+                  //               style: TextStyle(fontSize: fontSize),
+                  //             ),
+                  //           );
+                  //         },
+                  //       ),
+                  //     ),
+                  //   ),
+                  // if (startTime == null && records.isNotEmpty && dataSynced == true && _getFirstConflict()[0] != null)
+                  //   Expanded(
+                  //     child: Padding(
+                  //       padding: const EdgeInsets.all(8.0), // Padding around the button
+                  //       child: LayoutBuilder(
+                  //         builder: (context, constraints) {
+                  //         double fontSize = constraints.maxWidth * 0.12;
+                  //           return ElevatedButton(
+                  //             onPressed: _openResolveDialog,
+                  //             style: ElevatedButton.styleFrom(
+                  //               minimumSize: Size(0, constraints.maxWidth * 0.5),
+                  //             ),
+                  //             child: Text(
+                  //               'Resolve Conflicts',
+                  //               style: TextStyle(fontSize: fontSize),
+                  //             ),
+                  //           );
+                  //         },
+                  //       ),
+                  //     ),
+                  //   ),
+                    // if (startTime != null)
+                    SizedBox(
+                      width: 70,
+                      height: 70,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: const Color.fromARGB(255, 143, 143, 143), // Button color
+                          border: Border.all(
+                            // color: const Color.fromARGB(255, 60, 60, 60), // Inner darker border
+                            color: AppColors.backgroundColor,
+                            width: 2,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color.fromARGB(255, 143, 143, 143), // Outer lighter border
+                              spreadRadius: 2, // Width of the outer border
+                            ),
+                          ],
                         ),
-                      ),
-                    ),
-                  if (startTime == null && records.isNotEmpty && dataSynced == true && _getFirstConflict()[0] != null)
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0), // Padding around the button
-                        child: LayoutBuilder(
-                          builder: (context, constraints) {
-                          double fontSize = constraints.maxWidth * 0.12;
-                            return ElevatedButton(
-                              onPressed: _openResolveDialog,
-                              style: ElevatedButton.styleFrom(
-                                minimumSize: Size(0, constraints.maxWidth * 0.5),
-                              ),
-                              child: Text(
-                                'Resolve Conflicts',
-                                style: TextStyle(fontSize: fontSize),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                    if (startTime != null)
-                      SizedBox(
-                        width: 70,
-                        height: 70,
                         child: ElevatedButton(
-                          onPressed: _handleLogButtonPress,
+                          onPressed: (records.isNotEmpty && startTime == null) ? _clearRaceTimes : (startTime != null ? _handleLogButtonPress : null),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
-                            shape: const CircleBorder(),
+                            // backgroundColor: const Color.fromARGB(255, 143, 143, 143),
+                            backgroundColor: Colors.transparent,
+                            shape: CircleBorder(
+                              // side: BorderSide(
+                              //   color: Color.fromARGB(255, 80, 80, 80), // Light gray border
+                              //   width: 2, // Thin border
+                              // ),
+                            ),
                             padding: EdgeInsets.zero,
+                            elevation: 0,
                           ),
                           child: Text(
-                            'Log',
+                            (records.isEmpty || startTime != null) ? 'Log' : 'Clear',
                             style: TextStyle(
-                              color: AppColors.darkColor,
-                              fontSize: 24,
+                              color: Colors.white,
+                              fontSize: (records.isNotEmpty && startTime == null) ? 20 : 24,
                             ),
                             maxLines: 1,
                           ),
                         ),
                       ),
+                    ),
                 ],
               ),
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 // import 'camera_screen.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:race_timing_app/screens/race_screen.dart';
 import 'package:race_timing_app/utils/time_formatter.dart';
 import 'dart:convert';
 import 'test_camera.dart';
@@ -225,7 +226,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => EditAndResolveScreen(race: race, timingData: timingData),
+            builder: (context) => RaceScreen(race: race, initialTabIndex: 2, timingData: timingData),
           ),
         );
       } else {

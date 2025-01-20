@@ -15,11 +15,13 @@ import 'edit_and_resolve_screen.dart';
 class RaceScreen extends StatefulWidget {
   final Race race;
   final int initialTabIndex;
+  final Map<String, dynamic> timingData;
 
   const RaceScreen({
     super.key, 
     required this.race,
     this.initialTabIndex = 0,
+    this.timingData = const {'records': [], 'endTime': null, 'bibs': []},
   });
 
   @override
@@ -29,12 +31,15 @@ class RaceScreen extends StatefulWidget {
 class _RaceScreenState extends State<RaceScreen> {
   late Race race;
   String raceName = '';
+  Map<String, dynamic> timingData = {'records': [], 'endTime': null, 'bibs': []};
 
 
   @override
   void initState() {
     super.initState();
     race = widget.race;
+    raceName = widget.race.race_name;
+    timingData = widget.timingData;
     _fetchRaceData();
   }
 
@@ -112,7 +117,7 @@ class _RaceScreenState extends State<RaceScreen> {
                 children: [
                     RaceInfoScreen(raceId: race.race_id),
                     if (showResults) ResultsScreen(raceId: race.race_id) else TimingScreen(race: race),
-                    if (!showResults) EditAndResolveScreen(race: race, timingData: {'records': [], 'endTime': null, 'bibs': []}),
+                    if (!showResults) EditAndResolveScreen(race: race, timingData: timingData),
                     BibNumberScreen (race: race),
                     RunnersManagementScreen(raceId: race.race_id, shared: false),
                 ],
