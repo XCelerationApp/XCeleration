@@ -254,7 +254,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
     _loadRunners(); // Reload runners after processing spreadsheet
   }
 
-  Future<void> confirmDeleteAllRunners(BuildContext context) async {
+  Future<void> _confirmDeleteAllRunners(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -383,6 +383,30 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
                     ),
                   ),
                 ),
+                // Expanded(
+                //   child: Padding(
+                //     padding: const EdgeInsets.symmetric(horizontal: 5.0, vertical: 2.5), // Padding around the button
+                //     child: LayoutBuilder(
+                //       builder: (context, constraints) {
+                //         double fontSize = constraints.maxWidth * 0.10;
+                //         return ElevatedButton(
+                //           onPressed: () => _confirmDeleteAllRunners(context),
+                //           style: ElevatedButton.styleFrom(
+                //             minimumSize: Size(0, constraints.maxWidth * 0.3),
+                //             padding: EdgeInsets.symmetric(horizontal: 5.0),
+                //             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+                //             backgroundColor: Colors.red,
+                //           ),
+                //           child: Text(
+                //             'Delete All Runners',
+                //             style: TextStyle(fontSize: fontSize, color: Colors.white),
+                //           ),
+                //         );
+                //       },
+                //     ),
+                //   ),
+                // ),
+
               ],
             ),
             const SizedBox(height: 20),
@@ -437,6 +461,13 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
                                 );
                               }).toList(),
                             ),
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.delete),
+                            tooltip: 'Delete All Runners',
+                            onPressed: () {
+                              _confirmDeleteAllRunners(context);
+                            },
                           ),
                         ],
                       ),

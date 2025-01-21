@@ -36,6 +36,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
   // List<BluetoothDevice> _availableDevices = [];
   late int raceId;
   late Race race;
+  bool _isRaceFinished = false;
 
   @override
   void initState() {
@@ -167,7 +168,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
       _focusNodes.removeAt(index);
       _bibRecords.removeAt(index);
     }); 
-    _flagBibNumberDuplicates(bibNumber, removeFlags: true);
+    // _flagBibNumberDuplicates(bibNumber, removeFlags: true);
   }
 
   void _showSuccessMessage() {
@@ -381,6 +382,19 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
   //   );
   // }
 
+  void _raceFinished() {
+    setState(() {
+      _isRaceFinished = true;
+    });
+    // Implement race finished logic here
+  }
+
+  void _restartRace() {
+    setState(() {
+      _isRaceFinished = false;
+    });
+  }
+
 
   @override
   void dispose() {
@@ -522,14 +536,38 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                 },
               ),
             ),
-            if (_bibRecords.isNotEmpty && _focusNodes.indexWhere((element) => FocusScope.of(context).hasFocus && element.hasFocus) == -1)
-              ElevatedButton(
-                onPressed: _scanQRCode,
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(horizontal: 50, vertical: 20),
-                ),
-                child: const Text('Load Runner Times', style: TextStyle(fontSize: 20)),
-              ),
+            // if (_bibRecords.isNotEmpty && _focusNodes.indexWhere((element) => FocusScope.of(context).hasFocus && element.hasFocus) == -1 && _isRaceFinished == true)
+            //   Padding(
+            //         padding: const EdgeInsets.only(bottom: 16.0, top: 16.0),
+            //         child: Container(
+            //           decoration: BoxDecoration(
+            //             shape: BoxShape.rectangle,
+            //             color: AppColors.navBarColor, // Button color
+            //             border: Border.all(
+            //               // color: const Color.fromARGB(255, 60, 60, 60), // Inner darker border
+            //               color: Colors.white,
+            //               width: 2,
+            //             ),
+            //             boxShadow: [
+            //               BoxShadow(
+            //                 color: AppColors.navBarColor, // Outer lighter border
+            //                 spreadRadius: 2, // Width of the outer border
+            //               ),
+            //             ],
+            //             borderRadius: BorderRadius.circular(40),
+            //           ),
+            //           child: ElevatedButton(
+            //             onPressed: _scanQRCode,
+            //             style: ElevatedButton.styleFrom(
+            //               padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            //               fixedSize: const Size(250, 50),
+            //               elevation: 0,
+            //               backgroundColor: Colors.transparent,
+            //             ),
+            //             child: const Text('Load Runner Times', style: TextStyle(fontSize: 20, color: Colors.white)),
+            //           ),
+            //         ),
+            //       ),
             // Padding(
             //   padding: const EdgeInsets.symmetric(vertical: 20),
             //   child: ElevatedButton.icon(
@@ -579,72 +617,114 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
             //           ),
             //         ),
             //       ),
-            if (_focusNodes.indexWhere((element) => FocusScope.of(context).hasFocus && element.hasFocus) == -1) 
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 16.0, top: 16.0),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.rectangle,
-                        color: AppColors.navBarColor, // Button color
-                        border: Border.all(
-                          // color: const Color.fromARGB(255, 60, 60, 60), // Inner darker border
-                          color: Colors.white,
-                          width: 2,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.navBarColor, // Outer lighter border
-                            spreadRadius: 2, // Width of the outer border
+                  if (_focusNodes.indexWhere((element) => FocusScope.of(context).hasFocus && element.hasFocus) == -1 && _isRaceFinished == false) ...[
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16.0, top: 16.0),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.rectangle,
+                          color: AppColors.navBarColor, // Button color
+                          border: Border.all(
+                            // color: const Color.fromARGB(255, 60, 60, 60), // Inner darker border
+                            color: Colors.white,
+                            width: 2,
                           ),
-                        ],
-                        borderRadius: BorderRadius.circular(40),
-                      ),
-                      child: ElevatedButton(
-                        onPressed: _addBibNumber,
-                        style: ElevatedButton.styleFrom(
-                          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                          fixedSize: const Size(200, 50),
-                          elevation: 0,
-                          backgroundColor: Colors.transparent,
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.navBarColor, // Outer lighter border
+                              spreadRadius: 2, // Width of the outer border
+                            ),
+                          ],
+                          borderRadius: BorderRadius.circular(40),
                         ),
-                        child: const Text('Add Bib Number', style: TextStyle(fontSize: 20, color: Colors.white)),
+                        child: ElevatedButton(
+                          onPressed: _addBibNumber,
+                          style: ElevatedButton.styleFrom(
+                            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                            fixedSize: const Size(175, 50),
+                            elevation: 0,
+                            backgroundColor: Colors.transparent,
+                          ),
+                          child: const Text('Add Bib Number', style: TextStyle(fontSize: 20, color: Colors.white)),
+                        ),
                       ),
                     ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 16.0, top: 16.0),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.rectangle,
-                        color: AppColors.primaryColor, // Button color
-                        border: Border.all(
-                          // color: const Color.fromARGB(255, 60, 60, 60), // Inner darker border
-                          color: Colors.white,
-                          width: 2,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primaryColor, // Outer lighter border
-                            spreadRadius: 2, // Width of the outer border
+                  ],
+                  if (_bibRecords.isNotEmpty && _focusNodes.indexWhere((element) => FocusScope.of(context).hasFocus && element.hasFocus) == -1 && _isRaceFinished == true) ...[
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16.0, top: 16.0),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.rectangle,
+                          color: AppColors.navBarColor, // Button color
+                          border: Border.all(
+                            // color: const Color.fromARGB(255, 60, 60, 60), // Inner darker border
+                            color: Colors.white,
+                            width: 2,
                           ),
-                        ],
-                        borderRadius: BorderRadius.circular(40),
-                      ),
-                      child: ElevatedButton(
-                        onPressed: _raceFinished,
-                        style: ElevatedButton.styleFrom(
-                          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                          fixedSize: const Size(100, 50),
-                          elevation: 0,
-                          backgroundColor: Colors.transparent,
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.navBarColor, // Outer lighter border
+                              spreadRadius: 2, // Width of the outer border
+                            ),
+                          ],
+                          borderRadius: BorderRadius.circular(40),
                         ),
-                        child: const Text('Finished', style: TextStyle(fontSize: 20, color: Colors.white)),
+                        child: ElevatedButton(
+                          onPressed: _scanQRCode,
+                          style: ElevatedButton.styleFrom(
+                            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                            fixedSize: const Size(175, 50),
+                            elevation: 0,
+                            backgroundColor: Colors.transparent,
+                          ),
+                          child: const Text('Load Runner Times', style: TextStyle(fontSize: 16, color: Colors.white)),
+                        ),
                       ),
                     ),
-                  ),
+                  ],
+                  if (_focusNodes.indexWhere((element) => FocusScope.of(context).hasFocus && element.hasFocus) == -1) ...[
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16.0, top: 16.0),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.rectangle,
+                          color: AppColors.primaryColor, // Button color
+                          border: Border.all(
+                            // color: const Color.fromARGB(255, 60, 60, 60), // Inner darker border
+                            color: Colors.white,
+                            width: 2,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primaryColor, // Outer lighter border
+                              spreadRadius: 2, // Width of the outer border
+                            ),
+                          ],
+                          borderRadius: BorderRadius.circular(40),
+                        ),
+                        child: ElevatedButton(
+                          onPressed: _isRaceFinished == true ? _restartRace : _raceFinished,
+                          style: ElevatedButton.styleFrom(
+                            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                            fixedSize: const Size(110, 50),
+                            elevation: 0,
+                            backgroundColor: Colors.transparent,
+                          ),
+                          child: Text(
+                            _isRaceFinished == true ? 'Continue' : 'Finished', 
+                            style: const TextStyle(
+                              fontSize: 20,
+                              color: Colors.white
+                            )
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             // ElevatedButton(

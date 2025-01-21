@@ -70,8 +70,9 @@ class _RaceScreenState extends State<RaceScreen> {
             Tab(icon: Icon(Icons.person), text: 'Runner Data'),
           ] : [
             Tab(icon: Icon(Icons.info_outline), text: 'Race Info'),
-            Tab(icon: Icon(Icons.timer), text: 'Time Race'),
-            Tab(icon: Icon(Icons.checklist), text: 'Resolve Conflicts'),
+            // Tab(icon: Icon(Icons.timer), text: 'Time Race'),
+            if (timingData['records'] != null && timingData['records']!.isNotEmpty && timingData['bibs'] != null && timingData['bibs']!.isNotEmpty)
+              Tab(icon: Icon(Icons.checklist), text: 'Resolve Conflicts'),
             Tab(icon: Icon(Icons.numbers), text: 'Record Bib Numbers'),
             Tab(icon: Icon(Icons.person), text: 'Runner Data'),
           ];
@@ -117,8 +118,8 @@ class _RaceScreenState extends State<RaceScreen> {
             body: TabBarView(
                 children: [
                     RaceInfoScreen(raceId: race.race_id),
-                    if (showResults) ResultsScreen(raceId: race.race_id) else TimingScreen(race: race),
-                    if (!showResults) EditAndResolveScreen(race: race, timingData: timingData),
+                    if (showResults) ResultsScreen(raceId: race.race_id), //else TimingScreen(race: race),
+                    if (!showResults && (timingData['records'] != null && timingData['records']!.isNotEmpty && timingData['bibs'] != null && timingData['bibs']!.isNotEmpty)) EditAndResolveScreen(race: race, timingData: timingData),
                     BibNumberScreen (race: race),
                     RunnersManagementScreen(raceId: race.race_id, shared: false),
                 ],
