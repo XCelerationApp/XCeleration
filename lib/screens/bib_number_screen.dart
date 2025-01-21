@@ -251,7 +251,11 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return GestureDetector(
+    onTap: () {
+      FocusScope.of(context).unfocus(); // Dismiss the keyboard
+    },
+    child: Scaffold(
       // appBar: AppBar(title: const Text('Record Bib Numbers')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -288,7 +292,8 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                                   child: TextField(
                                     focusNode: focusNode,
                                     controller: controller,
-                                    keyboardType: TextInputType.number,
+                                    keyboardType: TextInputType.numberWithOptions(signed: true, decimal: false),
+                                    textInputAction: TextInputAction.done,
                                     decoration: InputDecoration(
                                       hintText: 'Enter Bib #',
                                       border: OutlineInputBorder(),
@@ -313,6 +318,9 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                                         ],
                                       ),
                                     ),
+                                    onSubmitted: (value) {
+                                      _addBibNumber();
+                                    },
                                     onChanged: (value) => _updateBibNumber(index, value),
                                   ),
                                 ),
@@ -331,7 +339,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                 },
               ),
             ),
-            if (_bibRecords.isNotEmpty)
+            if (_bibRecords.isNotEmpty && _focusNodes.indexWhere((element) => FocusScope.of(context).hasFocus && element.hasFocus) == -1)
               ElevatedButton(
                 onPressed: _scanQRCode,
                 style: ElevatedButton.styleFrom(
@@ -350,19 +358,109 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
             //     ),
             //   ),
             // ),
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16.0),
-              child: ElevatedButton(
-                onPressed: _addBibNumber,
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+            // SizedBox(
+            //         width: 70,
+            //         height: 70,
+            //         child: Container(
+            //           decoration: BoxDecoration(
+            //             shape: BoxShape.circle,
+            //             color: startTime == null ? Colors.green : Colors.red, // Button color
+            //             border: Border.all(
+            //               // color: const Color.fromARGB(255, 60, 60, 60), // Inner darker border
+            //               color: AppColors.backgroundColor,
+            //               width: 2,
+            //             ),
+            //             boxShadow: [
+            //               BoxShadow(
+            //                 color: startTime == null ? Colors.green : Colors.red, // Outer lighter border
+            //                 spreadRadius: 2, // Width of the outer border
+            //               ),
+            //             ],
+            //           ),
+            //           child: ElevatedButton(
+            //             onPressed: startTime == null ? _startRace : _stopRace,
+            //             style: ElevatedButton.styleFrom(
+            //               backgroundColor: Colors.transparent,
+            //               shape: CircleBorder(),
+            //               padding: EdgeInsets.zero,
+            //               elevation: 0,
+            //             ),
+            //             child: Text(
+            //               startTime == null ? 'Start' : 'Stop',
+            //               style: TextStyle(
+            //                 color: Colors.white,
+            //                 fontSize: 20,
+            //               ),
+            //               maxLines: 1,
+            //             ),
+            //           ),
+            //         ),
+            //       ),
+            if (_focusNodes.indexWhere((element) => FocusScope.of(context).hasFocus && element.hasFocus) == -1) 
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16.0, top: 16.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.rectangle,
+                    color: Colors.grey, // Button color
+                    border: Border.all(
+                      // color: const Color.fromARGB(255, 60, 60, 60), // Inner darker border
+                      color: Colors.white,
+                      width: 2,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey, // Outer lighter border
+                        spreadRadius: 2, // Width of the outer border
+                      ),
+                    ],
+                    borderRadius: BorderRadius.circular(40),
+                  ),
+                  child: ElevatedButton(
+                    onPressed: _addBibNumber,
+                    style: ElevatedButton.styleFrom(
+                      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                      fixedSize: const Size(300, 75),
+                      elevation: 0,
+                      backgroundColor: Colors.transparent,
+                    ),
+                    child: const Text('Add Bib Number', style: TextStyle(fontSize: 30, color: Colors.white)),
+                  ),
                 ),
-                child: const Text('Add Bib Number', style: TextStyle(fontSize: 20)),
               ),
-            ),
+            // ElevatedButton(
+            //   onPressed: _findDevices,
+            //   child: const Text('Find Devices'),
+            // ),
+            // if (_connectedDevice == null)
+            //   DropdownButton<BluetoothDevice>(
+            //     hint: const Text('Select Device'),
+            //     items: _availableDevices.map((device) {
+            //       return DropdownMenuItem(
+            //         value: device,
+            //         child: Text(device.platformName),
+            //       );
+            //     }).toList(),
+            //     onChanged: (device) {
+            //       if (device != null) _connectToDevice(device);
+            //     },
+            //   ),
+            // if (_connectedDevice != null)
+            //   ElevatedButton(
+            //     onPressed: _sendBibNumbers,
+            //     child: const Text('Send Bib Numbers'),
+            //   ),
+            // if (_connectedDevice != null) ...[
+            //     const SizedBox(height: 8),
+            //     ElevatedButton(
+            //       onPressed: _disconnectDevice, // Add disconnect button
+            //       child: const Text('Disconnect'),
+            //     ),
+            // ],
           ],
         ),
       ),
+    ),
     );
   }
 }
