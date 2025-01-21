@@ -6,7 +6,7 @@ fix downloaded results to be in correct format
 make it so that the app will automatically start the python flask app (basically done)
 add a feature that flags predictions based on certainty and # of predicted digits
 then have the app ask a human to quickly check over the flagged images, comparing the image to the predicted digits and inputting in the correct numbers
-update timing screen to look more the clock app
+update timing screen to look more the clock app (basically done)
 make it so people can click volume button or press a key to log time instead of clicking
 implement liams version of the UI
 explaination 'I would have one phone click some button that is a start race with collaborator or something and it would connect via bluetooth to another persons phone. 
