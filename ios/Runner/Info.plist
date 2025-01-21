@@ -55,10 +55,27 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- BLE -->
 	<key>NSBluetoothPeripheralUsageDescription</key>
 	<string>App requires Bluetooth to communicate with other devices.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Location access is required for Bluetooth scanning.</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+    <string>This app needs Bluetooth to function</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Need BLE permission for peer-to-peer data sharing</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>Need BLE permission for peer-to-peer data sharing</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Need local network permission for peer-to-peer data sharing</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_wirelessconn._tcp</string>
+	</array>
+	<key>UIRequiresPersistentWiFi</key>
+	<true/>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>App needs Bluetooth permission for discovering and connecting to nearby devices</string>
 
 </dict>
 </plist>
