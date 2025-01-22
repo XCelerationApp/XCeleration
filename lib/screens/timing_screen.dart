@@ -1,50 +1,28 @@
 import 'dart:math';
-// import 'package:race_timing_app/screens/results_screen.dart';
-// import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:race_timing_app/utils/time_formatter.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/timing_data.dart';
-// import 'package:race_timing_app/bluetooth_service.dart' as app_bluetooth;
-import 'package:race_timing_app/database_helper.dart';
-// import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'dart:convert';
 import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
-// import 'package:race_timing_app/models/race.dart';
-import 'race_screen.dart';
-import '../models/race.dart';
 import '../constants.dart';
-import 'resolve_conflict.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 class TimingScreen extends StatefulWidget {
-  // final Race race;
-
-  const TimingScreen({
-    super.key, 
-    // required this.race,
-  });
-
+  const TimingScreen({super.key});
 
   @override
   State<TimingScreen> createState() => _TimingScreenState();
 }
 
 class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMixin {
-  // final List<Map<String, dynamic>> _records = [];
-  // DateTime? startTime;
-  // final List<TextEditingController> _controllers = [];
-  // final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
   final ScrollController _scrollController = ScrollController();
   final int raceId = 0;
-  // List<BluetoothDevice> _availableDevices = [];
-  // BluetoothDevice? _connectedDevice;
   late AudioPlayer _audioPlayer;
   bool _isAudioPlayerReady = false;
   late TabController _tabController;
-  // late Race race;
   late bool dataSynced;
 
   @override
@@ -179,7 +157,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     setState(() {
       Provider.of<TimingData>(context, listen: false).addRecord({
         'finish_time': formatDuration(difference),
-        'bib_number': null,
+        // 'bib_number': null,
         'is_runner': true,
         'is_confirmed': false,
         'text_color': null,
@@ -199,125 +177,6 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     // Add a new controller for the new record
     Provider.of<TimingData>(context, listen: false).addController(TextEditingController(), raceId);
   }
-
-  void _updateBib(int index, String bib) async {
-    final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
-    // Update the bib in the record
-    setState(() {
-      records[index]['bib_number'] = bib;
-    });
-
-    // Fetch runner details from the database
-    final [runner, shared] = await DatabaseHelper.instance.getRaceRunnerByBib(raceId, bib, getShared: true);
-
-    // Update the record with runner details if found
-    if (runner != null) {
-      setState(() {
-        records[index]['name'] = runner['name'];
-        records[index]['grade'] = runner['grade'];
-        records[index]['school'] = runner['school'];
-        records[index]['race_runner_id'] = runner['race_runner_id'] ?? runner['runner_id'];
-        records[index]['race_id'] = raceId;
-        records[index]['runner_is_shared'] = shared;
-      });
-    }
-    else {
-      print('Runner not found');
-      setState(() {
-        records[index]['name'] = null;
-        records[index]['grade'] = null;
-        records[index]['school'] = null;
-        records[index]['race_runner_id'] = null;
-        records[index]['race_id'] = null;
-      });
-    }
-  }
-
-  // void _scanQRCode() async {
-  //   try {
-  //     final result = await BarcodeScanner.scan();
-  //     if (result.type == ResultType.Barcode) {
-  //       print('Scanned barcode: ${result.rawContent}');
-  //       _processQRData(result.rawContent);
-  //     }
-  //   } catch (e) {
-  //     if (e is MissingPluginException) {
-  //       _showErrorMessage('The QR code scanner is not available on this device.');
-  //       _processQRData(json.encode(['1', '2', '3', '4', '6', '5', '7', '8', '9', '10']));
-  //     }
-  //     else {
-  //       _showErrorMessage('Failed to scan QR code: $e');
-  //     }
-  //   }
-  // }
-
-  // void _processQRData(String qrData) async {
-  //   final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
-  //   try {
-  //     final List<dynamic> bibData = json.decode(qrData);
-
-  //     if (bibData.isNotEmpty) {
-  //       final List<String> bibDataStrings = bibData.cast<String>();
-
-  //       print('Bib data: $bibDataStrings');
-  //       print('bib data type: ${bibDataStrings.runtimeType}');
-
-  //       // for (int bib in bibDataInts) {
-  //       //   final runnerData = await DatabaseHelper.instance.getRaceRunnerByBib(raceId, bib, getShared: true);
-  //       //   // runnerData['bib_number'] = bib;
-  //       //   setState(() {
-  //       //     Provider.of<TimingData>(context, listen: false).addRunnerData(bibDataInts, raceId);
-  //       //   });
-  //       //   print('Bib: $bib');
-  //       // }
-
-  //       setState(() {
-  //         Provider.of<TimingData>(context, listen: false).setBibs(bibDataStrings, raceId);
-  //       });
-
-  //       _syncBibData(bibDataStrings, records);
-  //     } else {
-  //       _showErrorMessage('QR code data is empty.');
-  //     }
-  //   } catch (e) {
-  //     _showErrorMessage('Failed to process QR code data: $e');
-  //   }
-  // }
-
-  // void _confirmAndShowQrCode() {
-  //   int errorCount = _bibRecords.where((record) => 
-  //     record['flags']['not_in_database'] || record['flags']['low_confidence_score'] || record['flags']['duplicate_bib_number']
-  //   ).length;
-  //   if (errorCount > 0) {
-  //     showDialog(
-  //       context: context,
-  //       builder: (BuildContext context) {
-  //         return AlertDialog(
-  //           title: Text('Confirm Share'),
-  //           content: Text('There ${errorCount == 1 ? 'is 1 bib with an error' : 'are $errorCount bibs with errors'}. Are you sure you want to share?'),
-  //           actions: [
-  //             TextButton(
-  //               child: Text('Cancel'),
-  //               onPressed: () {
-  //                 Navigator.of(context).pop();
-  //               },
-  //             ),
-  //             TextButton(
-  //               child: Text('Share'),
-  //               onPressed: () {
-  //                 Navigator.of(context).pop();
-  //                 _showQrCode();
-  //               },
-  //             ),
-  //           ],
-  //         );
-  //       },
-  //     );
-  //   }
-  //   else {
-  //     _showQrCode();
-  //   }
-  // }
 
   void _shareTimes() {
     _showQrCode();
@@ -352,405 +211,6 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
 
   String _generateQrData() {
     return jsonEncode(Provider.of<TimingData>(context, listen: false).toMapForQR(raceId));
-  }
-
-  // void _syncBibData(List<String> bibData, List<Map<String, dynamic>> records) async {
-  //   final numberOfRunnerTimes = _getNumberOfTimes();
-  //   if (numberOfRunnerTimes != bibData.length) {
-  //     print('Number of runner times does not match bib data length');
-  //     final difference = bibData.length - numberOfRunnerTimes;
-  //     if (difference > 0) {
-  //       print('Too few runners');
-  //       _tooFewRunners(offBy: difference, useStopTime: true);
-  //     }
-  //     else {
-  //       print('Too many runners');
-  //       final bibDataLength = bibData.length;
-  //       final numConfirmedRunners = records.where((r) => r['is_runner'] == true && r['is_confirmed'] == true).length;
-  //       if (numConfirmedRunners > bibDataLength) {
-  //         _showErrorMessage('You cannot load bib numbers for runners if the there are more confirmed runners than loaded bib numbers.');
-  //         return;
-  //       } else{
-  //         _tooManyRunners(offBy: -difference, useStopTime: true);
-  //       }
-  //     }
-  //   }
-  //   else {
-  //     print('Number of runner times matches bib data length');
-  //     _confirmRunnerNumber(useStopTime: true);
-  //   }
-  //   for (int i = 0; i < bibData.length; i++) {
-  //     final record = records.where((r) => r['is_runner'] == true && r['place'] == i + 1 && r['is_confirmed'] == true).firstOrNull;
-  //     if (record == null) {
-  //       print('Record not found for place ${i + 1}');
-  //       continue;
-  //     }
-  //     final index = records.indexOf(record);
-  //     // final match = (record != null);
-
-  //     // if (match) {
-  //     //   final index = records.indexOf(record);
-  //     //   setState(() {
-  //     //     records[index]['bib_number'] = bibData[i];
-  //     //   });
-  //     // }
-
-  //     final [runner, shared] = await DatabaseHelper.instance.getRaceRunnerByBib(raceId, bibData[i], getShared: true);
-  //     if (runner != null) {
-  //       setState(() {
-  //         records[index]['name'] = runner['name'];
-  //         records[index]['grade'] = runner['grade'];
-  //         records[index]['school'] = runner['school'];
-  //         records[index]['race_runner_id'] = runner['race_runner_id'] ?? runner['runner_id'];
-  //         records[index]['race_id'] = raceId;
-  //         records[index]['runner_is_shared'] = shared;
-  //         records[index]['bib_number'] = bibData[i];
-  //       });
-  //     }
-  //   }
-
-  //   setState(() {
-  //     dataSynced = true;
-  //   });
-
-  //   final allRunnersResolved = _checkIfAllRunnersResolved();
-  //   if (!allRunnersResolved) {
-  //     await _openResolveDialog();
-  //   }
-  // }
-
-  // Future<void> _openResolveDialog() async {
-  //   print('Opening resolve dialog');
-  //   // final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
-  //   final [firstConflict, conflictIndex] = _getFirstConflict();
-  //   if (firstConflict == null){
-  //     print('No conflicts left');
-  //     _deleteConfirmedRecordsBeforeIndexUntilConflict(Provider.of<TimingData>(context, listen: false).records[raceId]!.length - 1);
-  //     return;
-  //   } // No conflicts left
-  //   print(firstConflict == 'too_few_runner_times'
-  //                     ? 'Not enough finish times were recorded. Please select which times correctly belong to the runners and enter in missing times.'
-  //                     : 'More finish times were recorded than the number of runners. Please resolve the conflict by selecting which times correctly belong to the runners.');
-  //   print(firstConflict);
-  //   print(conflictIndex);
-  //   if (!mounted) return; // Check if the widget is still mounted
-  //   showDialog(
-  //       context: context,
-  //       builder: (BuildContext context) {
-  //         print('Opening resolve dialog for conflict $firstConflict at index $conflictIndex');
-  //         return AlertDialog(
-  //           title: Text('Resolve Runners'),
-  //           content: Column(
-  //             crossAxisAlignment: CrossAxisAlignment.start,
-  //             children: [
-  //               Text(
-  //                 'Conflict:',
-  //                 style: Theme.of(context).textTheme.headlineSmall,
-  //               ),
-  //               SizedBox(height: 10),
-  //               Text(
-  //                 firstConflict == 'too_few_runner_times'
-  //                     ? 'Not enough finish times were recorded. Please select which times correctly belong to the runners and enter in missing times.'
-  //                     : 'More finish times were recorded than the number of runners. Please resolve the conflict by selecting which times correctly belong to the runners.',
-  //                 style: Theme.of(context).textTheme.bodyMedium,
-  //               ),
-  //             ],
-  //           ),
-  //           actions: [
-  //             TextButton(
-  //               onPressed: () async {
-  //                 if (!mounted) return; // Check if the widget is still mounted
-  //                 // Update the record to resolve the conflict
-  //                 // Navigator.of(context).pop();
-  //                 if (firstConflict == 'too_few_runner_times') {
-  //                   print('Resolving too few runner times conflict at index $conflictIndex');
-  //                   await _resolveTooFewRunnerTimes(conflictIndex);
-  //                 }
-  //                 else if (firstConflict == 'too_many_runner_times') {
-  //                   await _resolveTooManyRunnerTimes(conflictIndex);
-  //                 }
-  //                 else {
-  //                   _showErrorMessage('Unknown conflict type: $firstConflict');
-  //                 }
-  //                 if (!mounted) return; // Check if the widget is still mounted
-  //                 // // Call this method again to check for the next conflict
-  //                 Navigator.of(context).pop();
-  //                 _openResolveDialog();
-  //               },
-  //               child: Text('Resolve'),
-  //             ),
-  //           ],
-  //         );
-  //       },
-  //     );
-  // }
-
-  // Future<void> _resolveTooFewRunnerTimes(int conflictIndex) async {
-  //   var records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
-  //   final bibData = Provider.of<TimingData>(context, listen: false).bibs[raceId] ?? [];
-  //   final conflictRecord = records[conflictIndex];
-    
-  //   final lastConfirmedIndex = records.sublist(0, conflictIndex)
-  //       .lastIndexWhere((record) => record['is_confirmed'] == true);
-  //   if (conflictIndex == -1) return;
-    
-  //   final lastConfirmedRecord = lastConfirmedIndex == -1 ? {} : records[lastConfirmedIndex];
-  //   print('Last confirmed record: $lastConfirmedRecord');
-  //   final nextConfirmedRecord = records.sublist(conflictIndex + 1)
-  //       .firstWhere((record) => record['is_confirmed'] == true, orElse: () => {});
-
-  //   final firstConflictingRecordIndex = records.sublist(0, conflictIndex).indexWhere((record) => record['is_confirmed'] == false);
-  //   if (firstConflictingRecordIndex == -1) return;
-
-  //   final startingIndex = lastConfirmedRecord.isEmpty ? 0 : lastConfirmedRecord['place'];
-  //   print('Starting index: $startingIndex');
-
-  //   List<dynamic> conflictingRunners = [];
-  //   for (int i = startingIndex; i < conflictRecord['numTimes']; i++) {
-  //     final runner = await DatabaseHelper.instance
-  //         .getRaceRunnerByBib(raceId, bibData[i], getShared: true);
-  //     if (runner.isNotEmpty) conflictingRunners.add(runner[0]);
-  //   }
-  //   print('First conflicting record index: $firstConflictingRecordIndex');
-  //   print('Last confirmed index: $lastConfirmedIndex');
-  //   final spaceBetweenConfirmedAndConflict = firstConflictingRecordIndex == -1 ? 1 : firstConflictingRecordIndex - lastConfirmedIndex;
-  //   print('Space between confirmed and conflict: $spaceBetweenConfirmedAndConflict');
-
-  //   final conflictingRecords = records.sublist(lastConfirmedIndex + spaceBetweenConfirmedAndConflict, conflictIndex);
-
-  //   final List<String> conflictingTimes = conflictingRecords.map((record) => record['finish_time']).cast<String>().toList();
-  //   conflictingTimes.removeWhere((time) => time == '' || time == 'TBD');
-
-  //   await showDialog(
-  //     context: context,
-  //     builder: (context) => ConflictResolutionDialog(
-  //       conflictingRunners: conflictingRunners,
-  //       lastConfirmedRecord: lastConfirmedRecord,
-  //       nextConfirmedRecord: nextConfirmedRecord,
-  //       availableTimes: conflictingTimes,
-  //       allowManualEntry: true,
-  //       conflictRecord: conflictRecord,
-  //       selectedTimes: [],
-  //       onResolve: (formattedTimes) async => await _handleTooFewTimesResolution(
-  //         formattedTimes,
-  //         conflictingRunners,
-  //         lastConfirmedRecord,
-  //         conflictRecord,
-  //         lastConfirmedIndex,
-  //         bibData,
-  //       ),
-  //     ),
-  //   );
-  // }
-
-  // Future<void> _resolveTooManyRunnerTimes(int conflictIndex) async {
-  //   var records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
-  //   final bibData = Provider.of<TimingData>(context, listen: false).bibs[raceId] ?? [];
-  //   final conflictRecord = records[conflictIndex];
-    
-  //   final lastConfirmedIndex = records.sublist(0, conflictIndex)
-  //       .lastIndexWhere((record) => record['is_confirmed'] == true);
-  //   if (conflictIndex == -1) return;
-    
-  //   final lastConfirmedRecord = lastConfirmedIndex == -1 ? {} : records[lastConfirmedIndex];
-  //   final nextConfirmedRecord = records.sublist(conflictIndex + 1)
-  //       .firstWhere((record) => record['is_confirmed'] == true, orElse: () => {});
-
-  //   print('Last confirmed index: $lastConfirmedIndex');
-  //   print('Conflict index: $conflictIndex');
-
-  //   final conflictingRecords = _getConflictingRecords(records, conflictIndex);
-  //   print('Conflicting records: $conflictingRecords');
-
-  //   final firstConflictingRecordIndex = records.indexOf(conflictingRecords.first);
-  //   if (firstConflictingRecordIndex == -1) return;
-
-  //   final spaceBetweenConfirmedAndConflict = lastConfirmedIndex == -1 ? 1 : firstConflictingRecordIndex - lastConfirmedIndex;
-  //   print('Space between confirmed and conflict: $spaceBetweenConfirmedAndConflict');
-
-  //   final List<String> conflictingTimes = conflictingRecords
-  //       .map((record) => record['finish_time'])
-  //       .where((time) => time != null && time != 'TBD')
-  //       .cast<String>()
-  //       .toList();
-
-  //   List<dynamic> conflictingRunners = [];
-  //   for (int i = lastConfirmedRecord.isEmpty ? 0 : lastConfirmedRecord['place']; i < conflictRecord['numTimes']; i++) {
-  //     final runner = await DatabaseHelper.instance
-  //         .getRaceRunnerByBib(raceId, bibData[i], getShared: true);
-  //     if (runner.isNotEmpty) conflictingRunners.add(runner[0]);
-  //   }
-
-  //   print('Conflicting runners: $conflictingRunners');
-  //   print('Conflicting times: $conflictingTimes');
-
-  //   await showDialog(
-  //     context: context,
-  //     builder: (context) => ConflictResolutionDialog(
-  //       conflictingRunners: conflictingRunners,
-  //       lastConfirmedRecord: lastConfirmedRecord,
-  //       nextConfirmedRecord: nextConfirmedRecord,
-  //       availableTimes: conflictingTimes,
-  //       allowManualEntry: false,
-  //       conflictRecord: conflictRecord,
-  //       selectedTimes: [],
-  //       onResolve: (formattedTimes) async => await _handleTooManyTimesResolution(
-  //         formattedTimes,
-  //         conflictingRunners,
-  //         conflictingTimes,
-  //         lastConfirmedRecord,
-  //         conflictRecord,
-  //         lastConfirmedIndex,
-  //         bibData,
-  //         spaceBetweenConfirmedAndConflict
-  //       ),
-  //     ),
-  //   );
-  // }
-
-  // // Helper functions
-  // Future<void> _handleTooFewTimesResolution(
-  //   List<Duration> times,
-  //   List<dynamic> runners,
-  //   dynamic lastConfirmedRecord,
-  //   Map<String, dynamic> conflictRecord,
-  //   int lastConfirmedIndex,
-  //   List<dynamic> bibData,
-  // ) async {
-  //   final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
-  //   final lastConfirmedRunnerPlace = lastConfirmedRecord.isEmpty ? 0 : lastConfirmedRecord['place'];
-  //   for (int i = 0; i < runners.length; i++) {
-  //     final int currentPlace = (i + lastConfirmedRunnerPlace + 1).toInt();
-  //     print('Current place: $currentPlace');
-  //     var record = records.firstWhere((element) => element['place'] == currentPlace, orElse: () => {});
-  //     final bibNumber = bibData[record['place'].toInt() - 1];   
-
-  //     setState(() {
-  //       record['finish_time'] = formatDuration(times[i]);
-  //       record['bib_number'] = bibNumber;
-  //       record['is_runner'] = true;
-  //       record['is_confirmed'] = true;
-  //       record['conflict'] = null;
-  //       record['name'] = runners[i]['name'];
-  //       record['grade'] = runners[i]['grade'];
-  //       record['school'] = runners[i]['school'];
-  //       record['race_runner_id'] = runners[i]['race_runner_id'] ?? runners[i]['runner_id'];
-  //       record['race_id'] = raceId;
-  //       record['runner_is_shared'] = runners[i]['runner_is_shared'];
-  //       record['text_color'] = AppColors.navBarTextColor;
-  //     });
-  //   }
-
-  //   setState(() {
-  //     _updateConflictRecord(
-  //       conflictRecord,
-  //       lastConfirmedRunnerPlace + runners.length,
-  //     );
-  //   });
-  //   Navigator.of(context).pop();
-  //   _showSuccessMessage();
-  //   await _openResolveDialog();
-  // }
-
-  // Future<void> _handleTooManyTimesResolution(
-  //   List<Duration> times,
-  //   List<dynamic> runners,
-  //   List<String> availableTimes,
-  //   dynamic lastConfirmedRecord,
-  //   Map<String, dynamic> conflictRecord,
-  //   int lastConfirmedIndex,
-  //   List<dynamic> bibData,
-  //   int spaceBetweenConfirmedAndConflict,
-  // ) async {
-  //   var records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
-  //   final unusedTimes = availableTimes
-  //       .where((time) => !times.contains(loadDurationFromString(time)))
-  //       .toList();
-
-  //   if (unusedTimes.isEmpty) {
-  //     _showErrorMessage('Please select a time for each runner.');
-  //     return;
-  //   }
-  //   print('Unused times: $unusedTimes');
-  //   final unusedRecords = records.where((record) => unusedTimes.contains(record['finish_time']));
-  //   print('Unused records: $unusedRecords');
-
-  //   setState(() {
-  //     for (var record in unusedRecords.toList().reversed.toList()) {
-  //       if (record['place'] != null) {
-  //         print('Place: ${record['place']}');
-  //         final index = record['place'] != '' ? record['place'] - 1 : record['previous_place'] - 1;
-  //         Provider.of<TimingData>(context, listen: false).controllers[raceId]?[index].dispose();
-  //         Provider.of<TimingData>(context, listen: false).controllers[raceId]?.removeAt(index);
-  //       }
-  //     }
-      
-  //     Provider.of<TimingData>(context, listen: false).records[raceId]?.removeWhere((record) => unusedTimes.contains(record['finish_time']));
-  //     runners.removeWhere((runner) => unusedTimes.contains(runner['finish_time']));
-  //   });
-  //   records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
-
-  //   final lastConfirmedRunnerPlace = lastConfirmedRecord.isEmpty ? 0 : lastConfirmedRecord['place'];
-  //   final lastConfirmedIndex = lastConfirmedRecord.isEmpty ? -1 : records.indexOf(lastConfirmedRecord); 
-  //   for (int i = 0; i < runners.length; i++) {
-  //     final int currentPlace = (i + lastConfirmedRunnerPlace + 1).toInt();
-  //     var record = records[lastConfirmedIndex + spaceBetweenConfirmedAndConflict + i];
-  //     final bibNumber = bibData[currentPlace - 1];    
-
-  //     setState(() {
-  //       record['finish_time'] = formatDuration(times[i]);
-  //       record['bib_number'] = bibNumber;
-  //       record['is_runner'] = true;
-  //       record['place'] = currentPlace;
-  //       record['is_confirmed'] = true;
-  //       record['conflict'] = null;
-  //       record['name'] = runners[i]['name'];
-  //       record['grade'] = runners[i]['grade'];
-  //       record['school'] = runners[i]['school'];
-  //       record['race_runner_id'] = runners[i]['race_runner_id'] ?? runners[i]['runner_id'];
-  //       record['race_id'] = raceId;
-  //       record['runner_is_shared'] = runners[i]['runner_is_shared'];
-  //       record['text_color'] = AppColors.navBarTextColor;
-  //     });
-  //   }
-
-  //   setState(() {
-  //     _updateConflictRecord(
-  //       conflictRecord,
-  //       (lastConfirmedRecord.isEmpty ? 0 : lastConfirmedRecord['place']) + runners.length,
-  //     );
-  //   });
-
-  //   Navigator.of(context).pop();
-  //   _showSuccessMessage();
-  //   await _openResolveDialog();
-  // }
-
-
-  void _updateConflictRecord(Map<String, dynamic> record, int numTimes) {
-    record['numTimes'] = numTimes;
-    record['type'] = 'confirm_runner_number';
-    record['conflict'] = null;
-    record['is_runner'] = false;
-    record['text_color'] = AppColors.navBarTextColor;
-  }
-
-  List<dynamic> _getConflictingRecords(
-    List<dynamic> records,
-    int conflictIndex,
-  ) {
-    final firstConflictIndex = records.sublist(0, conflictIndex).indexWhere(
-        (record) => record['is_runner'] == true && record['is_confirmed'] == false,
-      );
-    
-    return firstConflictIndex == -1 ? [] : 
-      records.sublist(firstConflictIndex, conflictIndex);
-  }
-
-  void _showSuccessMessage() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Successfully resolved conflict')),
-    );
   }
 
   List<dynamic> _getFirstConflict() {
@@ -813,60 +273,6 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
         },
       );
     return confirmed;
-  }
-
-  // void _saveResults() async {
-  //   if (!_checkIfAllRunnersResolved()) {
-  //     _showErrorMessage('All runners must be resolved before proceeding.');
-  //     return;
-  //   }
-  //   // Check if all runners have a non-null bib number
-  //   final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
-  //   bool allRunnersHaveRequiredInfo = records.every((runner) => runner['bib_number'] != null && runner['name'] != null && runner['grade'] != null && runner['school'] != null);
-
-  //   if (allRunnersHaveRequiredInfo) {
-  //     // Remove the 'bib_number' key from the records before saving since it is not in database
-  //     for (var record in records) {
-  //       if (record['is_runner'] == false) {
-  //         records.remove(record);
-  //         continue;
-  //       }
-  //       record.remove('bib_number');
-  //       record.remove('name');
-  //       record.remove('grade');
-  //       record.remove('school');
-  //       record.remove('text_color');
-  //       record.remove('is_confirmed');
-  //       record.remove('is_runner');
-  //       record.remove('conflict');
-  //     }
-
-  //     await DatabaseHelper.instance.insertRaceResults(records);
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       SnackBar(
-  //         content: Text('Results saved successfully. View results?'),
-  //         action: SnackBarAction(
-  //           label: 'View Results',
-  //           onPressed: () {
-  //             Navigator.pushReplacement(
-  //               context,
-  //               MaterialPageRoute(
-  //                 builder: (context) => RaceScreen(race: race, initialTabIndex: 1), // Pass the race object and set results tab as initial
-  //               ),
-  //             );
-  //             ScaffoldMessenger.of(context).hideCurrentSnackBar(); // Optional: Hide the SnackBar
-  //           },
-  //         ),
-  //       ),
-  //     );
-  //   } else {
-  //     _showErrorMessage('All runners must have a bib number assigned before proceeding.');
-  //   }
-  // }
-
-  bool _checkIfAllRunnersResolved() {
-    List<Map<String, dynamic>> records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
-    return records.every((runner) => runner['bib_number'] != null && runner['is_confirmed'] == true);
   }
 
   void _updateTextColor(Color? color, {bool confirmed = false, String? conflict, endIndex}) {
@@ -1257,7 +663,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     final startTime = Provider.of<TimingData>(context, listen: false).startTime[raceId];
     final endTime = Provider.of<TimingData>(context, listen: false).endTime[raceId];
     final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
-    final controllers = Provider.of<TimingData>(context, listen: false).controllers[raceId] ?? [];
+    // final controllers = Provider.of<TimingData>(context, listen: false).controllers[raceId] ?? [];
 
     return Scaffold(
       // appBar: AppBar(title: const Text('Race Timing')),
@@ -1317,28 +723,6 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // SizedBox(
-                  //   width: 70,
-                  //   height: 70,
-                  //   child: ElevatedButton(
-                  //     onPressed: startTime == null ? _startRace : _stopRace,
-                  //     style: ElevatedButton.styleFrom(
-                  //       shape: const CircleBorder(),
-                  //       backgroundColor: startTime == null ? Colors.green : Colors.red,
-                  //       padding: EdgeInsets.zero,
-                  //       elevation: 4,
-                  //     ),
-                  //     child: Text(
-                  //       startTime == null ? 'Start' : 'Stop',
-                  //       style: TextStyle(
-                  //         color: Colors.white,
-                  //         overflow: TextOverflow.ellipsis,
-                  //         fontSize: 24,
-                  //       ),
-                  //       maxLines: 1,
-                  //     ),
-                  //   ),
-                  // ),
                   SizedBox(
                     width: 70,
                     height: 70,
@@ -1404,49 +788,6 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
                         ),
                       ),
                     ),
-                  // if (startTime == null && records.isNotEmpty && records[0]['bib_number'] != null && _getFirstConflict()[0] == null)
-                  //   Expanded(
-                  //     child: Padding(
-                  //       padding: const EdgeInsets.all(8.0), // Padding around the button
-                  //       child: LayoutBuilder(
-                  //         builder: (context, constraints) {
-                  //         double fontSize = constraints.maxWidth * 0.12;
-                  //           return ElevatedButton(
-                  //             onPressed: _saveResults,
-                  //             style: ElevatedButton.styleFrom(
-                  //               minimumSize: Size(0, constraints.maxWidth * 0.5),
-                  //             ),
-                  //             child: Text(
-                  //               'Save Results',
-                  //               style: TextStyle(fontSize: fontSize),
-                  //             ),
-                  //           );
-                  //         },
-                  //       ),
-                  //     ),
-                  //   ),
-                  // if (startTime == null && records.isNotEmpty && dataSynced == true && _getFirstConflict()[0] != null)
-                  //   Expanded(
-                  //     child: Padding(
-                  //       padding: const EdgeInsets.all(8.0), // Padding around the button
-                  //       child: LayoutBuilder(
-                  //         builder: (context, constraints) {
-                  //         double fontSize = constraints.maxWidth * 0.12;
-                  //           return ElevatedButton(
-                  //             onPressed: _openResolveDialog,
-                  //             style: ElevatedButton.styleFrom(
-                  //               minimumSize: Size(0, constraints.maxWidth * 0.5),
-                  //             ),
-                  //             child: Text(
-                  //               'Resolve Conflicts',
-                  //               style: TextStyle(fontSize: fontSize),
-                  //             ),
-                  //           );
-                  //         },
-                  //       ),
-                  //     ),
-                  //   ),
-                    // if (startTime != null)
                     SizedBox(
                       width: 70,
                       height: 70,
@@ -1516,11 +857,6 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
                         itemCount: records.length,
                         itemBuilder: (context, index) {
                           final record = records[index];
-                          late TextEditingController controller;
-                          if (records.isNotEmpty && record['is_runner'] == true) {
-                            final runnerIndex = getRunnerIndex(index);
-                            controller = controllers[runnerIndex];
-                          }
                           if (records.isNotEmpty && record['is_runner'] == true) {
                             return Container(
                               margin: EdgeInsets.only(
@@ -1561,19 +897,19 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
                                             color: record['text_color'] != null ? AppColors.navBarTextColor : null,
                                           ),
                                         ),
-                                        Text(
-                                          [
-                                            if (record['name'] != null) record['name'],
-                                            if (record['grade'] != null) ' ${record['grade']}',
-                                            if (record['school'] != null) ' ${record['school']}    ',
-                                            if (record['finish_time'] != null) '${record['finish_time']}'
-                                          ].join(),
-                                          style: TextStyle(
-                                            fontSize: MediaQuery.of(context).size.width * 0.05,
-                                            fontWeight: FontWeight.bold,
-                                            color: record['conflict'] == null ? record['text_color'] : AppColors.redColor,
-                                          ),
-                                        ),
+                                        // Text(
+                                        //   [
+                                        //     if (record['name'] != null) record['name'],
+                                        //     if (record['grade'] != null) ' ${record['grade']}',
+                                        //     if (record['school'] != null) ' ${record['school']}    ',
+                                        //     if (record['finish_time'] != null) '${record['finish_time']}'
+                                        //   ].join(),
+                                        //   style: TextStyle(
+                                        //     fontSize: MediaQuery.of(context).size.width * 0.05,
+                                        //     fontWeight: FontWeight.bold,
+                                        //     color: record['conflict'] == null ? record['text_color'] : AppColors.redColor,
+                                        //   ),
+                                        // ),
                                       ],
                                     ),
                                   ),
