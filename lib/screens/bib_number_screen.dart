@@ -167,8 +167,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
       _controllers.removeAt(index);
       _focusNodes.removeAt(index);
       _bibRecords.removeAt(index);
-    }); 
-    // _flagBibNumberDuplicates(bibNumber, removeFlags: true);
+    });
   }
 
   void _showSuccessMessage() {

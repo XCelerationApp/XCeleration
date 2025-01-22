@@ -139,6 +139,7 @@ class _DevicesListScreenState extends State<DevicesListScreen> {
                             child: GestureDetector(
                           onTap: () => _onTabItemListener(device),
                           child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(device.deviceName),
                               Text(
@@ -147,7 +148,6 @@ class _DevicesListScreenState extends State<DevicesListScreen> {
                                     color: getStateColor(device.state)),
                               ),
                             ],
-                            crossAxisAlignment: CrossAxisAlignment.start,
                           ),
                         )),
                         // Request connect
@@ -265,6 +265,14 @@ class _DevicesListScreenState extends State<DevicesListScreen> {
   }
 
   _onButtonClicked(Device device) {
+    if (widget.deviceType == DeviceType.browser && connectedDevices.isNotEmpty && device.state == SessionState.notConnected) {
+      showToast(
+        "Already connected to a device",
+        context: context,
+        position: StyledToastPosition.bottom
+      );
+      return;
+    }
     switch (device.state) {
       case SessionState.notConnected:
         nearbyService.invitePeer(
@@ -294,8 +302,8 @@ class _DevicesListScreenState extends State<DevicesListScreen> {
     }
     await nearbyService.init(
         serviceType: 'wirelessconn',
-        deviceName: devInfo,
-        strategy: Strategy.P2P_CLUSTER,
+        deviceName: widget.deviceType == DeviceType.browser ? 'browser-$devInfo' : 'advertiser-$devInfo',
+        strategy: Strategy.P2P_POINT_TO_POINT,
         callback: (isRunning) async {
           if (isRunning) {
             if (widget.deviceType == DeviceType.browser) {
@@ -304,10 +312,10 @@ class _DevicesListScreenState extends State<DevicesListScreen> {
               await nearbyService.startBrowsingForPeers();
             } else {
               await nearbyService.stopAdvertisingPeer();
-              await nearbyService.stopBrowsingForPeers();
+              // await nearbyService.stopBrowsingForPeers();
               await Future.delayed(Duration(microseconds: 200));
               await nearbyService.startAdvertisingPeer();
-              await nearbyService.startBrowsingForPeers();
+              // await nearbyService.startBrowsingForPeers();
             }
           }
         });
