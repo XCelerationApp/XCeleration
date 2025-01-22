@@ -8,7 +8,6 @@ Functionality:
 - fix downloaded results to be in correct format
 
 UI:
-- stop flicker when bib number is not focused
 - make popups for sharing race times
 - turn popups into sheets
 - make buttons that havent been redesigned look better

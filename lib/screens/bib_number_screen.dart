@@ -62,6 +62,9 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
           'low_confidence_score': false
           }, // Initialize flags as an empty list
       });
+      // WidgetsBinding.instance.addPostFrameCallback((_) {
+      _focusNodes[index - 1].requestFocus();
+      // });
     });
 
     if (bibNumber.isNotEmpty) {
@@ -74,12 +77,14 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
       }
       flagBibNumber(index, bibNumber);  
     }
-    else {
-      // Automatically focus the last input box
-      Future.delayed(Duration.zero, () {
-        _focusNodes.last.requestFocus();
-      });
-    }
+    // else {
+    //   // Automatically focus the last input box
+    //   Future.delayed(Duration(milliseconds: 1000), () {
+    //      WidgetsBinding.instance.addPostFrameCallback((_) {
+    //       _focusNodes.last.requestFocus();
+    //     });
+    //   });
+    // }
   }
 
   void flagBibNumber(int index, String bibNumber) async {
@@ -479,6 +484,11 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                                     ),
                                     onSubmitted: (value) async { 
                                       await _addBibNumber();
+                                      // Future.delayed(Duration(milliseconds: 500), () {
+                                      //   WidgetsBinding.instance.addPostFrameCallback((_) {
+                                        _focusNodes.last.requestFocus(); // Focus the last input box
+                                      //   });
+                                      // });
                                     },
                                     onChanged: (value) => _updateBibNumber(index, value),
                                   ),
