@@ -210,6 +210,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   }
 
   String _generateQrData() {
+    print(Provider.of<TimingData>(context, listen: false).toMapForQR(raceId));
     return jsonEncode(Provider.of<TimingData>(context, listen: false).toMapForQR(raceId));
   }
 

@@ -1,20 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-// import 'camera_screen.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import 'package:race_timing_app/screens/race_screen.dart';
 import 'package:race_timing_app/utils/time_formatter.dart';
 import 'dart:convert';
-import 'test_camera.dart';
+// import 'test_camera.dart';
 import '../database_helper.dart';
 import 'package:barcode_scan2/barcode_scan2.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
-import '../models/timing_data.dart';
-import 'edit_and_resolve_screen.dart';
 import '../models/race.dart';
 import '../constants.dart';
-// import 'package:camera/camera.dart';
 
 class BibNumberScreen extends StatefulWidget {
   final Race race;
@@ -63,7 +57,9 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
           }, // Initialize flags as an empty list
       });
       // WidgetsBinding.instance.addPostFrameCallback((_) {
-      _focusNodes[index - 1].requestFocus();
+      if (index > 0) {
+        _focusNodes[index - 1].requestFocus();
+      }
       // });
     });
 
@@ -126,20 +122,21 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     }
   }
 
-  void _captureBibNumbersWithCamera() async {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => CameraPage(
-          onDigitsDetected: (digits, confidences, image) {
-            if (digits != null) {
-              _addBibNumber(digits, confidences, image);
-            }
-          },
-        ),
-      ),
-    );
-  }
+  // void _captureBibNumbersWithCamera() async {
+  //   Navigator.push(
+  //     context,
+  //     MaterialPageRoute(
+  //       builder: (context) => CameraPage(
+  //         onDigitsDetected: (digits, confidences, image) {
+  //           if (digits != null) {
+  //             _addBibNumber(digits, confidences, image);
+  //           }
+  //         },
+  //       ),
+  //     ),
+  //   );
+  // }
+
   void _confirmDeleteBibNumber(int index) {
     showDialog(
       context: context,
@@ -175,11 +172,11 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     });
   }
 
-  void _showSuccessMessage() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Successfully resolved conflict')),
-    );
-  }
+  // void _showSuccessMessage() {
+  //   ScaffoldMessenger.of(context).showSnackBar(
+  //     SnackBar(content: Text('Successfully resolved conflict')),
+  //   );
+  // }
 
   void _showErrorMessage(String message, {String? title}) {
     // ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
@@ -241,7 +238,26 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     } catch (e) {
       if (e is MissingPluginException) {
         _showErrorMessage('The QR code scanner is not available on this device.');
-        await _processQRData(json.encode(['1', '2', '3', '4', '6', '5', '7', '8', '9', '10']));
+        await _processQRData(jsonEncode(
+
+          {'records': [{'finish_time': '1.02', 'is_runner': true, 'is_confirmed': false, 'text_color': null, 'place': 1}, {'finish_time': '2.13', 'is_runner': true, 'is_confirmed': false, 'text_color': null, 'place': 2}, {'finish_time': '6.75', 'is_runner': true, 'is_confirmed': false, 'text_color': null, 'place': 3}, {'finish_time': '21.21', 'is_runner': true, 'is_confirmed': false, 'text_color': null, 'place': 4}], 'startTime': null, 'endTime': '41.78'},
+
+          // {
+          //   'records': [{
+          //     'finish_time': '5:00',
+          //     'bib_number': null,
+          //     'is_runner': true,
+          //     'is_confirmed': false,
+          //     'conflict': null,
+          //     'text_color': null,
+          //     'place': 1
+          //   }],
+          //   // 'controllers': _controllers,
+          //   'startTime': null,
+          //   'endTime': '5:00',
+          //   // 'bibs': _bibs,
+          // }
+        ));
       }
       else {
         _showErrorMessage('Failed to scan QR code: $e');
@@ -261,7 +277,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => RaceScreen(race: race, initialTabIndex: 2, timingData: timingData),
+            builder: (context) => RaceScreen(race: race, initialTabIndex: 1, timingData: timingData),
           ),
         );
       } else {
