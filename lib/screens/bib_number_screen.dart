@@ -10,7 +10,7 @@ import '../database_helper.dart';
 import 'package:barcode_scan2/barcode_scan2.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import '../models/timing_data.dart';
+// import '../models/timing_data.dart';
 import 'edit_and_resolve_screen.dart';
 import '../models/race.dart';
 import '../constants.dart';
@@ -23,7 +23,7 @@ class BibNumberScreen extends StatefulWidget {
   @override
   State<BibNumberScreen> createState() => _BibNumberScreenState();
 }
-
+enum ConnectionStatus { connected, searching, finished, error, receiving }
 
 class _BibNumberScreenState extends State<BibNumberScreen> {
   final List<TextEditingController> _controllers = [];
@@ -37,6 +37,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
   late int raceId;
   late Race race;
   bool _isRaceFinished = false;
+  late ConnectionStatus _connectionStatus;
 
   @override
   void initState() {
@@ -176,25 +177,81 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     );
   }
 
-  void _showErrorMessage(String message, {String? title}) {
-    // ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
-    showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: Text(title ?? 'Error'),
-            content: Text(message),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop(); // Close the popup
-                },
-                child: Text('OK'),
-              ),
-            ],
-          );
-        },
-      );
+  void _showErrorMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: TextStyle(color: Colors.red[900], fontSize: 16)),
+        backgroundColor: Colors.white,
+        duration: Duration(seconds: 2),
+      ),
+    );
+    // showDialog(
+    //     context: context,
+    //     builder: (BuildContext context) {
+    //       return AlertDialog(
+    //         title: Text(title ?? 'Error'),
+    //         content: Text(message),
+    //         actions: [
+    //           TextButton(
+    //             onPressed: () {
+    //               Navigator.of(context).pop(); // Close the popup
+    //             },
+    //             child: Text('OK'),
+    //           ),
+    //         ],
+    //       );
+    //     },
+    //   );
+  }
+
+  void _showDeviceConnectionPopup() {
+    _connectionStatus = ConnectionStatus.searching;
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return Container(
+          height: 150,
+          color: Colors.white,
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                if ( _connectionStatus != ConnectionStatus.error) ...[
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 5),
+                ],
+                Text(
+                  _connectionStatus == ConnectionStatus.searching ? 'Searching for device...' :
+                  _connectionStatus == ConnectionStatus.connected ? 'Connected to device' :
+                  _connectionStatus == ConnectionStatus.receiving ? 'Receiving data...' :
+                  _connectionStatus == ConnectionStatus.finished ? 'Done!' :
+                  'Error'
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [ 
+                    ElevatedButton(
+                      child: const Text('Use QR Codes Instead'),
+                      onPressed: () => {
+                        Navigator.pop(context), _scanQRCode()
+                      }
+                    ),
+                    const SizedBox(width: 10),
+                    ElevatedButton(
+                      child: const Text('Cancel'),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  
+                  ]
+                )
+              ],
+            ),
+          )
+        );
+      }
+    );
   }
 
   Future<void> _scanQRCode() async {
@@ -260,126 +317,13 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
           ),
         );
       } else {
-        _showErrorMessage('QR code data is invalid.');
+        _showErrorMessage('Error: QR code data is invalid');
       }
     } catch (e) {
-      _showErrorMessage('Failed to process QR code data: $e');
+      _showErrorMessage('Error: Failed to process QR code data');
     }
   }
 
-  // void _findDevices() async {
-  //   try {
-  //     // Check if Bluetooth is enabled
-  //     final isOn = await _bluetoothService.isBluetoothOn();
-  //     if (!isOn) {
-  //       _showBluetoothOffDialog();
-  //       return;
-  //     }
-
-  //     // Proceed to find devices if Bluetooth is on
-  //     await for (final devices in _bluetoothService.getAvailableDevices()) {
-  //       setState(() {
-  //         _availableDevices = devices;
-  //       });
-  //     }
-  //   } catch (e) {
-  //     // Handle other exceptions (optional)
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       SnackBar(content: Text('Failed to scan for devices: $e')),
-  //     );
-  //   }
-  // }
-
-  // void _disconnectDevice() async {
-  //   final bluetoothService = app_bluetooth.BluetoothService();
-  //   if (_connectedDevice == null) return;
-
-  //   final confirm = await showDialog<bool>(
-  //     context: context,
-  //     builder: (BuildContext context) {
-  //       return AlertDialog(
-  //         title: const Text('Confirm Disconnect'),
-  //         content: const Text('Are you sure you want to disconnect?'),
-  //         actions: <Widget>[
-  //           TextButton(
-  //             child: const Text('Cancel'),
-  //             onPressed: () => Navigator.of(context).pop(false),
-  //           ),
-  //           TextButton(
-  //             child: const Text('Disconnect'),
-  //             onPressed: () => Navigator.of(context).pop(true),
-  //           ),
-  //         ],
-  //       );
-  //     },
-  //   );
-
-  //   if (confirm == true) {
-  //     try {
-  //       await bluetoothService.disconnectDevice(_connectedDevice!);
-  //       setState(() {
-  //         _connectedDevice = null; // Clear the connected device
-  //       });
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         const SnackBar(content: Text('Disconnected successfully')),
-  //       );
-  //     } catch (e) {
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         SnackBar(content: Text('Failed to disconnect: $e')),
-  //       );
-  //     }
-  //   }
-  // }
-
-  // void _connectToDevice(BluetoothDevice device) async {
-  //   try {
-  //     final connectedDevice = await _bluetoothService.connectToDevice(device);
-  //     setState(() {
-  //       _connectedDevice = connectedDevice;
-  //     });
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       const SnackBar(content: Text('Connected successfully')),
-  //     );
-  //   } catch (e) {
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       SnackBar(content: Text('Failed to connect: $e')),
-  //     );
-  //   }
-  // }
-
-  // void _sendBibNumbers() async {
-  //   if (_connectedDevice == null) return;
-
-  //   try {
-  //     final data = _bibRecords.join(';').codeUnits; // Serialize the bib numbers
-  //     await _bluetoothService.sendData(_connectedDevice!, data);
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       const SnackBar(content: Text('Bib numbers sent successfully')),
-  //     );
-  //   } catch (e) {
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       SnackBar(content: Text('Failed to send bib numbers: $e')),
-  //     );
-  //   }
-  // }
-
-  // void _showBluetoothOffDialog() {
-  //   showDialog(
-  //     context: context,
-  //     builder: (context) => AlertDialog(
-  //       title: const Text('Bluetooth Off'),
-  //       content: const Text('Please turn on Bluetooth to search for devices.'),
-  //       actions: [
-  //         TextButton(
-  //           onPressed: () {
-  //             Navigator.of(context).pop();
-  //           },
-  //           child: const Text('OK'),
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
 
   void _raceFinished() {
     setState(() {
@@ -619,75 +563,40 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  if (_focusNodes.indexWhere((element) => FocusScope.of(context).hasFocus && element.hasFocus) == -1 && _isRaceFinished == false) ...[
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16.0, top: 16.0),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.rectangle,
-                          color: AppColors.navBarColor, // Button color
-                          border: Border.all(
-                            // color: const Color.fromARGB(255, 60, 60, 60), // Inner darker border
-                            color: Colors.white,
-                            width: 2,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.navBarColor, // Outer lighter border
-                              spreadRadius: 2, // Width of the outer border
-                            ),
-                          ],
-                          borderRadius: BorderRadius.circular(40),
-                        ),
-                        child: ElevatedButton(
-                          onPressed: _addBibNumber,
-                          style: ElevatedButton.styleFrom(
-                            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                            fixedSize: const Size(175, 50),
-                            elevation: 0,
-                            backgroundColor: Colors.transparent,
-                          ),
-                          child: const Text('Add Bib Number', style: TextStyle(fontSize: 20, color: Colors.white)),
-                        ),
-                      ),
-                    ),
-                  ],
-                  if (_bibRecords.isNotEmpty && _focusNodes.indexWhere((element) => FocusScope.of(context).hasFocus && element.hasFocus) == -1 && _isRaceFinished == true) ...[
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16.0, top: 16.0),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.rectangle,
-                          color: AppColors.navBarColor, // Button color
-                          border: Border.all(
-                            // color: const Color.fromARGB(255, 60, 60, 60), // Inner darker border
-                            color: Colors.white,
-                            width: 2,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.navBarColor, // Outer lighter border
-                              spreadRadius: 2, // Width of the outer border
-                            ),
-                          ],
-                          borderRadius: BorderRadius.circular(40),
-                        ),
-                        child: ElevatedButton(
-                          onPressed: _scanQRCode,
-                          style: ElevatedButton.styleFrom(
-                            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                            fixedSize: const Size(175, 50),
-                            elevation: 0,
-                            backgroundColor: Colors.transparent,
-                          ),
-                          child: const Text('Load Runner Times', style: TextStyle(fontSize: 16, color: Colors.white)),
-                        ),
-                      ),
-                    ),
-                  ],
                   if (_focusNodes.indexWhere((element) => FocusScope.of(context).hasFocus && element.hasFocus) == -1) ...[
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 16.0, top: 16.0),
+                      padding: const EdgeInsets.only(bottom: 16.0, top: 16.0, left: 0.0, right: 5.0),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.rectangle,
+                          color: AppColors.navBarColor, // Button color
+                          border: Border.all(
+                            // color: const Color.fromARGB(255, 60, 60, 60), // Inner darker border
+                            color: Colors.white,
+                            width: 2,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.navBarColor, // Outer lighter border
+                              spreadRadius: 2, // Width of the outer border
+                            ),
+                          ],
+                          borderRadius: BorderRadius.circular(40),
+                        ),
+                        child: ElevatedButton(
+                          onPressed: _isRaceFinished ? _showDeviceConnectionPopup : _addBibNumber,
+                          style: ElevatedButton.styleFrom(
+                            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                            fixedSize: const Size(175, 50),
+                            elevation: 0,
+                            backgroundColor: Colors.transparent,
+                          ),
+                          child: Text(_isRaceFinished ? 'Load Race Times' : 'Add Bib Number', style: TextStyle(fontSize: 18, color: Colors.white))
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16.0, top: 16.0, left: 5.0, right: 0.0),
                       child: Container(
                         decoration: BoxDecoration(
                           shape: BoxShape.rectangle,
@@ -706,20 +615,14 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                           borderRadius: BorderRadius.circular(40),
                         ),
                         child: ElevatedButton(
-                          onPressed: _isRaceFinished == true ? _restartRace : _raceFinished,
+                          onPressed: _isRaceFinished ? _restartRace : _raceFinished,
                           style: ElevatedButton.styleFrom(
                             padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                            fixedSize: const Size(110, 50),
+                            fixedSize: const Size(100, 50),
                             elevation: 0,
                             backgroundColor: Colors.transparent,
                           ),
-                          child: Text(
-                            _isRaceFinished == true ? 'Continue' : 'Finished', 
-                            style: const TextStyle(
-                              fontSize: 20,
-                              color: Colors.white
-                            )
-                          ),
+                          child: Text(_isRaceFinished ? 'Continue': 'Finished', style: const TextStyle(fontSize: 18.0, color: Colors.white))
                         ),
                       ),
                     ),
