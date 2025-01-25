@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:race_timing_app/models/race.dart';
-import 'package:race_timing_app/models/timing_data.dart';
+// import 'package:race_timing_app/models/timing_data.dart';
 import 'package:race_timing_app/utils/time_formatter.dart';
 import 'dart:math';
 import 'package:race_timing_app/database_helper.dart';
@@ -8,7 +8,7 @@ import 'dart:async';
 import 'race_screen.dart';
 import '../constants.dart';
 import 'resolve_conflict.dart';
-import '../database_helper.dart';
+// import '../database_helper.dart';
 
 class EditAndResolveScreen extends StatefulWidget {
   final Race race;
@@ -32,21 +32,53 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
   late Map<String, dynamic> timingData;
   bool dataSynced = false;
   late List<Map<String, dynamic>> runners = [];
+  Map<int, TextEditingController> _finishTimeControllers = {};
 
-  @override
+    @override
   void initState() {
     super.initState();
     race = widget.race;
     raceId = race.race_id;
     timingData = widget.timingData;
     _fetchRunners();
+    for (var time_record in timingData['records']) {
+      print(time_record);
+      print(time_record['place']);
+      print(time_record['finish_time']);
+      _finishTimeControllers[time_record['place']] = TextEditingController(text: time_record['finish_time']);
+    }
     // runners = await DatabaseHelper.instance.getRaceRunnersByBibs(raceId, timingData['bibs'].cast<String>() ?? []);
     // timingData['bibs'] = timingData['bibs'].cast<String>();
     // timingData['records'] = timingData['records'].cast<Map<String, dynamic>>();
     _controllers = List.generate(_getNumberOfTimes(), (index) => TextEditingController());
-    _syncBibData(timingData['bibs'].cast<String>() ?? [], timingData['records'].cast<Map<String, dynamic>>() ?? []);
-    
   }
+
+  @override
+  void didChangeDependencies() async {
+    super.didChangeDependencies();
+    await _syncBibData(timingData['bibs'].cast<String>() ?? [], timingData['records'].cast<Map<String, dynamic>>() ?? []);
+
+  }
+
+  // @override
+  // void initState() {
+  //   super.initState();
+  //   race = widget.race;
+  //   raceId = race.race_id;
+  //   timingData = widget.timingData;
+  //   _fetchRunners();
+  //   for (var time_record in timingData['records']) {
+  //     print(time_record);
+  //     print(time_record['place']);
+  //     print(time_record['finish_time']);
+  //     _finishTimeControllers[time_record['place']] = TextEditingController(text: time_record['finish_time']);
+  //   }
+  //   // runners = await DatabaseHelper.instance.getRaceRunnersByBibs(raceId, timingData['bibs'].cast<String>() ?? []);
+  //   // timingData['bibs'] = timingData['bibs'].cast<String>();
+  //   // timingData['records'] = timingData['records'].cast<Map<String, dynamic>>();
+  //   _controllers = List.generate(_getNumberOfTimes(), (index) => TextEditingController());
+  //   _syncBibData(timingData['bibs'].cast<String>() ?? [], timingData['records'].cast<Map<String, dynamic>>() ?? []);
+  // }
 
   Future<void> _fetchRunners() async {
     final fetchedRunners = await DatabaseHelper.instance.getRaceRunnersByBibs(raceId, timingData['bibs'].cast<String>() ?? []);
@@ -104,14 +136,14 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
     }
   }
 
-  void _syncBibData(List<String> bibData, List<Map<String, dynamic>> records) async {
+  Future<void> _syncBibData(List<String> bibData, List<Map<String, dynamic>> records) async {
     final numberOfRunnerTimes = _getNumberOfTimes();
     if (numberOfRunnerTimes != bibData.length) {
       print('Number of runner times does not match bib data length');
       final difference = bibData.length - numberOfRunnerTimes;
       if (difference > 0) {
         print('Too few runners');
-        _tooFewRunners(offBy: difference, useStopTime: true);
+        await _tooFewRunners(offBy: difference, useStopTime: true);
       }
       else {
         print('Too many runners');
@@ -121,13 +153,13 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
           _showErrorMessage('You cannot load bib numbers for runners if the there are more confirmed runners than loaded bib numbers.');
           return;
         } else{
-          _tooManyRunners(offBy: -difference, useStopTime: true);
+          await _tooManyRunners(offBy: -difference, useStopTime: true);
         }
       }
     }
     else {
       print('Number of runner times matches bib data length');
-      _confirmRunnerNumber(useStopTime: true);
+      await _confirmRunnerNumber(useStopTime: true);
     }
     for (int i = 0; i < bibData.length; i++) {
       final record = records.where((r) => r['is_runner'] == true && r['place'] == i + 1 && r['is_confirmed'] == true).firstOrNull;
@@ -239,6 +271,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
     var records = timingData['records'] ?? [];
     final bibData = timingData['bibs'] ?? [];
     final conflictRecord = records[conflictIndex];
+    print('Conflict record: $conflictRecord!!!!!!');
     
     final lastConfirmedIndex = records.sublist(0, conflictIndex)
         .lastIndexWhere((record) => record['is_confirmed'] == true);
@@ -397,7 +430,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
         lastConfirmedRunnerPlace + runners.length,
       );
     });
-    Navigator.of(context).pop();
+    // Navigator.of(context).pop();
     _showSuccessMessage();
     await _openResolveDialog();
   }
@@ -471,7 +504,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
       );
     });
 
-    Navigator.of(context).pop();
+    // Navigator.of(context).pop();
     _showSuccessMessage();
     await _openResolveDialog();
   }
@@ -480,7 +513,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
   void _updateConflictRecord(Map<String, dynamic> record, int numTimes) {
     record['numTimes'] = numTimes;
     record['type'] = 'confirm_runner_number';
-    record['conflict'] = null;
+    // record['conflict'] = null;
     record['is_runner'] = false;
     record['text_color'] = AppColors.navBarTextColor;
   }
@@ -593,7 +626,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
     }
   }
 
-  void _confirmRunnerNumber({bool useStopTime = false}) async {
+  Future<void> _confirmRunnerNumber({bool useStopTime = false}) async {
     // final records = timingData['records'] ?? [];
     int numTimes = _getNumberOfTimes(); // Placeholder for actual length input
     
@@ -639,7 +672,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
     });
   }
 
-  void _tooManyRunners({int offBy = 1, bool useStopTime = false}) async {
+  Future<void> _tooManyRunners({int offBy = 1, bool useStopTime = false}) async {
     if (offBy < 1) {
       offBy = 1;
     }
@@ -718,9 +751,9 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
     });
   }
 
-  void _tooFewRunners({int offBy = 1, bool useStopTime = false}) async {
-    final int numTimes = _getNumberOfTimes(); // Placeholder for actual length input
-    int correcttedNumTimes = numTimes + offBy; // Placeholder for actual length input
+  Future<void> _tooFewRunners({int offBy = 1, bool useStopTime = false}) async {
+    final int numTimes = _getNumberOfTimes();
+    int correcttedNumTimes = numTimes + offBy;
     
     Duration difference;
     if (useStopTime == true) {
@@ -742,6 +775,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
 
     setState(() {
       for (int i = 1; i <= offBy; i++) {
+        print('Adding record $i!!!!!');
         timingData['records']?.add({
           'finish_time': 'TBD',
           'bib_number': null,
@@ -855,16 +889,16 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
     });
   }
 
-  void _deleteConfirmedRecords() {
-    final records = timingData['records'] ?? [];
-    for (int i = records.length - 1; i >= 0; i--) {
-      if (records[i]['is_runner'] == false && records[i]['type'] == 'confirm_runner_number') {
-        setState(() {
-          records.removeAt(i);
-        });
-      }
-    }
-  }
+  // void _deleteConfirmedRecords() {
+  //   final records = timingData['records'] ?? [];
+  //   for (int i = records.length - 1; i >= 0; i--) {
+  //     if (records[i]['is_runner'] == false && records[i]['type'] == 'confirm_runner_number') {
+  //       setState(() {
+  //         records.removeAt(i);
+  //       });
+  //     }
+  //   }
+  // }
 
   void _deleteConfirmedRecordsBeforeIndexUntilConflict(int recordIndex) {
     print(recordIndex);
@@ -917,6 +951,15 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
       return confirmed ?? false;
     }
     return false;
+  }
+
+  @override
+  void dispose() {
+    // Dispose all controllers
+    for (var controller in _finishTimeControllers.values) {
+      controller.dispose();
+    }
+    super.dispose();
   }
 
   @override
@@ -1052,12 +1095,19 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
                         itemBuilder: (context, index) {
                           final runner = (runners.isNotEmpty && index < runners.length) ? runners[index] : {};
                           final time_record = time_records[index];
-
-                          late TextEditingController controller;
-                          if (time_records.isNotEmpty && time_record['is_runner'] == true) {
-                            final runnerIndex = getRunnerIndex(index);
-                            controller = _controllers[runnerIndex];
+                          print(index);
+                          print(time_record);
+                          final timeController = _finishTimeControllers[time_record['place']];
+                          if (timeController == null) {
+                            _finishTimeControllers[time_record['place']] = TextEditingController(text: time_record['finish_time']);
                           }
+                          timeController?.text = time_record['finish_time'];
+
+                          // late TextEditingController controller;
+                          // if (time_records.isNotEmpty && time_record['is_runner'] == true) {
+                          //   final runnerIndex = getRunnerIndex(index);
+                          //   controller = _controllers[runnerIndex];
+                          // }
                           if (time_records.isNotEmpty && time_record['is_runner'] == true) {
                             return Container(
                               margin: EdgeInsets.only(
@@ -1088,14 +1138,14 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
                                       // }
                                     },
                                     child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(
-                                            '${time_record['place']}',
-                                            style: TextStyle(
-                                              fontSize: MediaQuery.of(context).size.width * 0.05,
-                                              fontWeight: FontWeight.bold,
-                                            color: time_record['text_color'] != null ? AppColors.navBarTextColor : null,
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          '${time_record['place']}',
+                                          style: TextStyle(
+                                            fontSize: MediaQuery.of(context).size.width * 0.05,
+                                            fontWeight: FontWeight.bold,
+                                          color: time_record['text_color'] != null ? AppColors.navBarTextColor : null,
                                           ),
                                         ),
                                         Text(
@@ -1110,13 +1160,31 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
                                             color: AppColors.navBarTextColor,
                                           ),
                                         ),
-                                        if (time_record['finish_time'] != null)
-                                          Text(
-                                            '${time_record['finish_time']}',
-                                            style: TextStyle(
-                                              fontSize: MediaQuery.of(context).size.width * 0.05,
-                                              fontWeight: FontWeight.bold,
-                                              color: time_record['conflict'] == null ? time_record['text_color'] : AppColors.redColor,
+                                        if (time_record['finish_time'] != null) 
+                                          // Use a TextField for editing the finish time
+                                          SizedBox(
+                                            width: 100, // Set a width for the TextField
+                                            child: TextField(
+                                              controller: _finishTimeControllers[time_record['place']],
+                                              decoration: InputDecoration(
+                                                hintText: 'Finish Time',
+                                                border: OutlineInputBorder(),
+                                                hintStyle: TextStyle(
+                                                  color: time_record['text_color'],
+                                                ),
+                                              ),
+                                              style: TextStyle(
+                                                color: time_record['text_color'],
+                                              ),
+                                              enabled: time_record['finish_time'] != 'tbd',
+                                              onSubmitted: (newValue) {
+                                                // Update the time_record with the new value
+                                                setState(() {
+                                                  if (newValue.isNotEmpty) {
+                                                    time_record['finish_time'] = newValue; // Update your data structure
+                                                  }
+                                                });
+                                              },
                                             ),
                                           ),
                                       ],
