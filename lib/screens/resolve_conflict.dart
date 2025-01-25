@@ -230,7 +230,8 @@ class _ConflictResolutionDialogState extends State<ConflictResolutionDialog> {
     Map<String, dynamic> conflictRecord,
   ) {
     final List<Duration> formattedTimes = [];
-    final lastConfirmedTime = lastConfirmed.isEmpty ? Duration.zero : loadDurationFromString(lastConfirmed['finish_time']);
+    Duration? lastConfirmedTime = lastConfirmed.isEmpty ? Duration.zero : loadDurationFromString(lastConfirmed['finish_time']);
+    lastConfirmedTime ??= Duration.zero;
 
     for (var i = 0; i < controllers.length; i++) {
       final time = _parseTime(controllers[i].text);
@@ -245,7 +246,7 @@ class _ConflictResolutionDialogState extends State<ConflictResolutionDialog> {
         return null;
       }
 
-      if (time >= loadDurationFromString(conflictRecord['finish_time'])) {
+      if (time >= (loadDurationFromString(conflictRecord['finish_time']) ?? Duration.zero)) {
         _showError(context, 'Time must be before ${conflictRecord['finish_time']}');
         return null;
       }

@@ -39,7 +39,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     raceId = race.race_id;
   }
 
-  Future<void> _addBibNumber([String bibNumber = '', List<double>? confidences = const [], XFile? image]) async {
+  Future<void> _addBibNumber([String bibNumber = '', List<double>? confidences = const [], bool focus = false, XFile? image]) async {
     final index = _bibRecords.length;
     setState(() {
       _controllers.add(TextEditingController(text: bibNumber));
@@ -59,6 +59,9 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
       // WidgetsBinding.instance.addPostFrameCallback((_) {
       if (index > 0) {
         _focusNodes[index - 1].requestFocus();
+      }
+      if (focus) {
+        _focusNodes[index].requestFocus();
       }
       // });
     });
@@ -499,7 +502,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                                       // ),
                                     ),
                                     onSubmitted: (value) async { 
-                                      await _addBibNumber();
+                                      await _addBibNumber('', [], true);
                                       // Future.delayed(Duration(milliseconds: 500), () {
                                       //   WidgetsBinding.instance.addPostFrameCallback((_) {
                                         _focusNodes.last.requestFocus(); // Focus the last input box
@@ -666,7 +669,9 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                           borderRadius: BorderRadius.circular(40),
                         ),
                         child: ElevatedButton(
-                          onPressed: _addBibNumber,
+                          onPressed: () {
+                            _addBibNumber('', [], true);
+                          },
                           style: ElevatedButton.styleFrom(
                             padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                             fixedSize: const Size(175, 50),

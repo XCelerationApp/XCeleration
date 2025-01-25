@@ -25,7 +25,8 @@ String formatDurationWithZeros(Duration duration) {
   return '$hoursString:$minutesString:$secondsString';
 }
 
-Duration loadDurationFromString(String durationString) {
+Duration? loadDurationFromString(String durationString) {
+  try {
     List<String> parts = durationString.split(':');
     int hours = parts.length == 3 ? int.parse(parts[0]) : 0; // First part is hours
     int minutes = parts.length == 3 ? int.parse(parts[1]) : (parts.length == 2 ? int.parse(parts[0]) : 0); // Second part is minutes
@@ -48,4 +49,8 @@ Duration loadDurationFromString(String durationString) {
         seconds: seconds,
         milliseconds: milliseconds
     );
+  } catch (e) {
+    print('Error parsing duration string: $e');
+    return null;
+  }
 }

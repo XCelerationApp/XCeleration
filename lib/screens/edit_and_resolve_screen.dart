@@ -889,6 +889,30 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
     });
   }
 
+  bool _timeIsValid(String newValue, int index, List<dynamic> time_records) {
+    Duration? parsedTime = loadDurationFromString(newValue);
+    if (parsedTime == null || parsedTime < Duration.zero) {
+      _showErrorMessage('Invalid time entered. Should be in HH:mm:ss.ms format');
+      return false;
+    }
+
+    if (index < 0 || index >= time_records.length) {
+      return false;
+    }
+
+    if (index > 0 && loadDurationFromString(time_records[index - 1]['finish_time'])! > parsedTime) {
+      _showErrorMessage('Time must be greater than the previous time');
+      return false;
+    }
+
+    if (index < time_records.length - 1 && loadDurationFromString(time_records[index + 1]['finish_time'])! < parsedTime) {
+      _showErrorMessage('Time must be less than the next time');
+      return false;
+    }
+
+    return true;
+  }
+
   // void _deleteConfirmedRecords() {
   //   final records = timingData['records'] ?? [];
   //   for (int i = records.length - 1; i >= 0; i--) {
@@ -1028,16 +1052,18 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   if (startTime == null && time_records.isNotEmpty && time_records[0]['bib_number'] != null && _getFirstConflict()[0] == null)
-                    Expanded(
+                    SizedBox(
+                      width: 330,
+                      height: 100,
                       child: Padding(
                         padding: const EdgeInsets.all(8.0), // Padding around the button
                         child: LayoutBuilder(
                           builder: (context, constraints) {
                           double fontSize = constraints.maxWidth * 0.12;
+                          // print('button width: ${constraints.maxWidth *}');
                             return ElevatedButton(
                               onPressed: _saveResults,
                               style: ElevatedButton.styleFrom(
-                                minimumSize: Size(0, constraints.maxWidth * 0.5),
                               ),
                               child: Text(
                                 'Save Results',
@@ -1049,7 +1075,9 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
                       ),
                     ),
                   if (startTime == null && time_records.isNotEmpty && dataSynced == true && _getFirstConflict()[0] != null)
-                    Expanded(
+                    SizedBox(
+                      width: 330,
+                      height: 100,
                       child: Padding(
                         padding: const EdgeInsets.all(8.0), // Padding around the button
                         child: LayoutBuilder(
@@ -1058,7 +1086,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
                             return ElevatedButton(
                               onPressed: _openResolveDialog,
                               style: ElevatedButton.styleFrom(
-                                minimumSize: Size(0, constraints.maxWidth * 0.5),
+                                // minimumSize: Size(0, constraints.maxWidth * 0.5),
                               ),
                               child: Text(
                                 'Resolve Conflicts',
@@ -1095,10 +1123,9 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
                         itemBuilder: (context, index) {
                           final runner = (runners.isNotEmpty && index < runners.length) ? runners[index] : {};
                           final time_record = time_records[index];
-                          print(index);
-                          print(time_record);
+                          
                           final timeController = _finishTimeControllers[time_record['place']];
-                          if (timeController == null) {
+                          if (timeController == null && time_record['is_runner'] == true) {
                             _finishTimeControllers[time_record['place']] = TextEditingController(text: time_record['finish_time']);
                           }
                           timeController?.text = time_record['finish_time'];
@@ -1168,20 +1195,44 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
                                               controller: _finishTimeControllers[time_record['place']],
                                               decoration: InputDecoration(
                                                 hintText: 'Finish Time',
-                                                border: OutlineInputBorder(),
+                                                border: OutlineInputBorder(
+                                                  borderSide: BorderSide(
+                                                    color: time_record['conflict'] != null ? time_record['text_color'] : Colors.transparent,
+                                                  ),
+                                                ),
                                                 hintStyle: TextStyle(
                                                   color: time_record['text_color'],
+                                                ),
+                                                focusedBorder: OutlineInputBorder(
+                                                  borderSide: BorderSide(
+                                                    color: Colors.blueAccent,
+                                                  ),
+                                                ),
+                                                enabledBorder: OutlineInputBorder(
+                                                  borderSide: BorderSide(
+                                                    color: time_record['text_color'],
+                                                  ),
+                                                ),
+                                                disabledBorder: OutlineInputBorder(
+                                                  borderSide: BorderSide(
+                                                    color: Colors.transparent,
+                                                  ),
                                                 ),
                                               ),
                                               style: TextStyle(
                                                 color: time_record['text_color'],
                                               ),
-                                              enabled: time_record['finish_time'] != 'tbd',
+                                              enabled: time_record['finish_time'] != 'tbd' && time_record['finish_time'] != 'TBD' && _getFirstConflict()[0] == null,
+                                              textAlign: TextAlign.center,
+                                              keyboardType: TextInputType.number,
                                               onSubmitted: (newValue) {
                                                 // Update the time_record with the new value
                                                 setState(() {
-                                                  if (newValue.isNotEmpty) {
+                                                  if (newValue.isNotEmpty  && _timeIsValid(newValue, index, time_records)) {
                                                     time_record['finish_time'] = newValue; // Update your data structure
+                                                  }
+                                                  else {
+                                                    _finishTimeControllers[time_record['place']]?.text = time_record['finish_time'];
                                                   }
                                                 });
                                               },
