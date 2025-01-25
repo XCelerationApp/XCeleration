@@ -1,6 +1,4 @@
-// import 'dart:io';
 import 'package:flutter/material.dart';
-import 'timing_screen.dart';
 import 'runners_management_screen.dart';
 import 'bib_number_screen.dart';
 // import 'package:provider/provider.dart';
@@ -116,13 +114,14 @@ class _RaceScreenState extends State<RaceScreen> {
               ),
             ),
             body: TabBarView(
-                children: [
-                    RaceInfoScreen(raceId: race.race_id),
-                    if (showResults) ResultsScreen(raceId: race.race_id), //else TimingScreen(race: race),
-                    if (!showResults && (timingData['records'] != null && timingData['records']!.isNotEmpty && timingData['bibs'] != null && timingData['bibs']!.isNotEmpty)) EditAndResolveScreen(race: race, timingData: timingData),
-                    BibNumberScreen (race: race),
-                    RunnersManagementScreen(raceId: race.race_id, shared: false),
-                ],
+              physics: NeverScrollableScrollPhysics(),
+              children: [
+                  RaceInfoScreen(raceId: race.race_id),
+                  if (showResults) ResultsScreen(raceId: race.race_id), //else TimingScreen(race: race),
+                  if (!showResults && (timingData['records'] != null && timingData['records']!.isNotEmpty && timingData['bibs'] != null && timingData['bibs']!.isNotEmpty)) EditAndResolveScreen(race: race, timingData: timingData),
+                  BibNumberScreen (race: race),
+                  RunnersManagementScreen(raceId: race.race_id, shared: false),
+              ],
             ),
           ),
         );

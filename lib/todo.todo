@@ -6,7 +6,6 @@ Functionality:
 - change race title to X vs Y (vs Z) and update in database
 - remove duplicates from runner data database (override most likely)
 - fix downloaded results to be in correct format
-- keep bib records when user leaves bib number screen
 
 UI:
 - make popups for sharing race times

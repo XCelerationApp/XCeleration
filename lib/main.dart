@@ -5,6 +5,7 @@ import 'screens/runners_management_screen.dart';
 import 'screens/timing_screen.dart';
 import 'package:provider/provider.dart';
 import 'models/timing_data.dart';
+import 'models/bib_data.dart';
 import 'screens/races_screen.dart';
 // import 'package:audioplayers/audioplayers.dart';
 import 'constants.dart';
@@ -20,8 +21,15 @@ void main() async {
     DeviceOrientation.portraitDown,
   ]);
   runApp(
-    ChangeNotifierProvider(
-      create: (context) => TimingData(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (context) => TimingData(),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => BibRecordsProvider(),
+        ),
+      ],
       child: const MyApp(),
     ),
   );
@@ -137,6 +145,7 @@ class HomeScreen extends StatelessWidget {
           ),
         ),
         body: const TabBarView(
+          physics: NeverScrollableScrollPhysics(),
           children: [
             RacesScreen(),
             TimingScreen(),
