@@ -305,17 +305,11 @@ bool _isAscendingOrder(List<Duration> times) {
 }
 
 void _showError(BuildContext context, String message) {
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: Text('Error'),
-      content: Text(message),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text('OK'),
-        ),
-      ],
-    ),
-  );
-}
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: TextStyle(color: Colors.red[900], fontSize: 16)),
+        backgroundColor: Colors.white,
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
