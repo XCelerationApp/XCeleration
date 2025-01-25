@@ -16,12 +16,10 @@ enum DeviceType { advertiser, browser }
 class DeviceConnectionService {
   late NearbyService nearbyService;
 
-  late StreamSubscription deviceSearchSubscription;
+  late StreamSubscription deviceMonitorSubscription;
   late StreamSubscription receivedDataSubscription;
-  Completer<Device>? _findDeviceCompleter;
-  Completer<String>? _receiveMessageCompleter;
-
-  bool isInit = false;
+  Completer<Device?>? _findDeviceCompleter;
+  Completer<String?>? _receiveMessageCompleter;
 
   Future<void> init(String serviceType, String deviceName, DeviceType deviceType) async {
     nearbyService = NearbyService();
@@ -44,30 +42,75 @@ class DeviceConnectionService {
         });
   }
 
-  Future<Device?> findDevice(String deviceName) async {
-    _findDeviceCompleter = Completer<Device>();
+  Future<Device?> monitorDeviceConnectionStatus(String deviceName, {
+    Future<void> Function(Device device)? foundDeviceCallback,
+    Future<void> Function(Device device)? connectingToDeviceCallback,
+    Duration timeout = const Duration(seconds: 60),
+  }) async {
+    // Store the callbacks
 
-    deviceSearchSubscription = nearbyService.stateChangedSubscription(callback: (devicesList) {
+    // Start monitoring
+    // Initialize the completer
+    _findDeviceCompleter = Completer<Device?>();
+
+    // Subscribe to state changes
+    deviceMonitorSubscription = nearbyService.stateChangedSubscription(callback: (devicesList) async {
       for (var device in devicesList) {
         if (device.deviceName == deviceName) {
-          deviceSearchSubscription.cancel(); // Cancel the subscription
-          _findDeviceCompleter!.complete(device); // Complete the completer with the found device
-          return; // Exit the loop
+          print("Found device");
+          if (foundDeviceCallback != null) {
+            foundDeviceCallback(device);
+          }
+          if (device.state == SessionState.connecting) {
+            if (connectingToDeviceCallback != null) {
+              connectingToDeviceCallback(device);
+            }
+          }
+          else if (device.state == SessionState.connected) {
+            await deviceMonitorSubscription.cancel(); // Cancel subscription
+            _findDeviceCompleter!.complete(device); // Complete with the found device
+            return; // Exit the loop
+          }   
         }
       }
     });
-    if (_findDeviceCompleter?.isCompleted == true && _findDeviceCompleter!.future is Device) {
-      print("Found device");
-      return _findDeviceCompleter!.future;
-    } else {
-      print("Device not found");
-      return null;
+
+    // Add a timeout to prevent indefinite waiting
+    try {
+      return await _findDeviceCompleter!.future.timeout(timeout, onTimeout: () {
+        print("Device monitoring timed out");
+        return null; // Return null if timeout occurs
+      });
+    } catch (e) {
+      print("Error during device monitoring: $e");
+      return null; // Handle any exceptions
     }
   }
 
+  Future<Device?> connectToDevice(String deviceName, {
+    Future<void> Function(Device device)? foundDeviceCallback,
+    Future<void> Function(Device device)? connectingToDeviceCallback,
+    Duration timeout = const Duration(seconds: 60),
+  }) async {
+    Future<void> combinedFoundDeviceCallback(Device device) async {
+      if (connectingToDeviceCallback != null) {
+        connectingToDeviceCallback(device);
+      }
+      await inviteDevice(device);
+    }
+
+    return await monitorDeviceConnectionStatus(deviceName, foundDeviceCallback: combinedFoundDeviceCallback, connectingToDeviceCallback: connectingToDeviceCallback, timeout: timeout);
+  }
+
   Future<void> inviteDevice(Device device) async {
-    await nearbyService.invitePeer(deviceID: device.deviceId, deviceName: device.deviceName);
-    print("Invited to connect");
+    if (device.state == SessionState.notConnected) {
+      print("Device found. Sending invite...");
+      await nearbyService.invitePeer(deviceID: device.deviceId, deviceName: device.deviceName);
+    } else if (device.state == SessionState.connected) {
+      print("Device is already connected: ${device.deviceName}");
+    } else {
+      print("Device is in an unexpected state: ${device.state}");
+    }
   }
 
   Future<void> disconnectDevice(Device device) async {
@@ -88,33 +131,42 @@ class DeviceConnectionService {
     await nearbyService.sendMessage(device.deviceId, message);
   }
 
-  Future<String?> receiveMessageFromDevice(Device device) async {
+  Future<String?> receiveMessageFromDevice(Device device, {Duration timeout = const Duration(seconds: 60)}) async {
     if (device.state != SessionState.connected) {
       print("Device not connected - Cannot receive message");
       return null;
     }
-    receivedDataSubscription = nearbyService.dataReceivedSubscription(callback: (data) {
-      receivedDataSubscription.cancel();
+    _receiveMessageCompleter = Completer<String?>();
+
+    receivedDataSubscription = nearbyService.dataReceivedSubscription(callback: (data) async {
+      await receivedDataSubscription.cancel();
       _receiveMessageCompleter!.complete(jsonEncode(data));
       print("dataReceivedSubscription: ${jsonEncode(data)}");
       return;
-      // showToast(jsonEncode(data),
-      //     context: context,
-      //     axis: Axis.horizontal,
-      //     alignment: Alignment.center,
-      //     position: StyledToastPosition.bottom);
     });
-    return _receiveMessageCompleter!.future;
+    try {
+    return await _receiveMessageCompleter!.future.timeout(timeout, onTimeout: () {
+      print("Message receiving timed out");
+      return null; // Return null if timeout occurs
+    });
+  } catch (e) {
+    print("Error during message receiving: $e");
+    return null; // Handle any exceptions
+  }
   }
 
   void dispose() {
     nearbyService.stopBrowsingForPeers();
     nearbyService.stopAdvertisingPeer();
-    deviceSearchSubscription.cancel();
+    deviceMonitorSubscription.cancel();
     receivedDataSubscription.cancel();
-    _findDeviceCompleter?.completeError('Device search cancelled');
+    if (_findDeviceCompleter != null && !_findDeviceCompleter!.isCompleted) {
+      _findDeviceCompleter!.completeError('Device search cancelled');
+    }
     _findDeviceCompleter = null;
-    _receiveMessageCompleter?.completeError('Message receiving cancelled');
+    if (_receiveMessageCompleter != null && !_receiveMessageCompleter!.isCompleted) {
+      _receiveMessageCompleter!.completeError('Message receiving cancelled');
+    }
     _receiveMessageCompleter = null;
   }
 }
@@ -232,37 +284,20 @@ class _DevicesListScreenState extends State<DevicesListScreen> {
     deviceConnectionService = DeviceConnectionService();
     final deviceType = widget.deviceType;
     await deviceConnectionService.init('wirelessconn', deviceType == DeviceType.browser ? 'browser' : 'advertiser', deviceType);
-    Device? device = await deviceConnectionService.findDevice(deviceType == DeviceType.browser ? 'advertiser' : 'browser');
-    if (device != null) {
-      if (deviceType == DeviceType.browser) {
-        await deviceConnectionService.inviteDevice(device);
-        while (device?.state != SessionState.connected) {
-          await Future.delayed(const Duration(seconds: 1));
-          device = await deviceConnectionService.findDevice('advertiser');
-          if (device?.state == SessionState.connecting) {
-            print("Connecting to device");
-          }
-        }
-        if (device != null) {
-          await deviceConnectionService.sendMessageToDevice(device, 'Hello from browser');
-        }
+    if (deviceType == DeviceType.browser) {
+      Device? device = await deviceConnectionService.connectToDevice(deviceType == DeviceType.browser ? 'advertiser' : 'browser');
+      if (device != null) {
+        await deviceConnectionService.sendMessageToDevice(device, 'Hello from browser');
       }
-      else {
-        while (device?.state != SessionState.connected) {
-          await Future.delayed(const Duration(seconds: 1));
-          device = await deviceConnectionService.findDevice('browser');
-          if (device?.state == SessionState.connecting) {
-            print("Connecting to device");
-          }
-        }
-        if (device != null) {
-          final String? message = await deviceConnectionService.receiveMessageFromDevice(device);
+    }
+    else {
+      Device? device = await deviceConnectionService.monitorDeviceConnectionStatus(deviceType == DeviceType.browser ? 'advertiser' : 'browser');
+      if (device != null) {
+        final String? message = await deviceConnectionService.receiveMessageFromDevice(device);
           if (message != null) {
             print("Advertiser received message from browser: $message");
           }
-        }
       }
-    }
-      
+    }  
   }
 }
