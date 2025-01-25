@@ -953,19 +953,14 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
                                             color: record['text_color'] != null ? AppColors.navBarTextColor : null,
                                           ),
                                         ),
-                                        // Text(
-                                        //   [
-                                        //     if (record['name'] != null) record['name'],
-                                        //     if (record['grade'] != null) ' ${record['grade']}',
-                                        //     if (record['school'] != null) ' ${record['school']}    ',
-                                        //     if (record['finish_time'] != null) '${record['finish_time']}'
-                                        //   ].join(),
-                                        //   style: TextStyle(
-                                        //     fontSize: MediaQuery.of(context).size.width * 0.05,
-                                        //     fontWeight: FontWeight.bold,
-                                        //     color: record['conflict'] == null ? record['text_color'] : AppColors.redColor,
-                                        //   ),
-                                        // ),
+                                        Text(
+                                          '${record['finish_time']}',
+                                          style: TextStyle(
+                                            fontSize: MediaQuery.of(context).size.width * 0.05,
+                                            fontWeight: FontWeight.bold,
+                                            color: record['conflict'] == null ? record['text_color'] : AppColors.redColor,
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   ),
@@ -973,52 +968,6 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
                                     thickness: 1,
                                     color: Color.fromRGBO(128, 128, 128, 0.5),
                                   ),
-                                      // SizedBox(
-                                      //   width: MediaQuery.of(context).size.width * 0.25,
-                                      //   child: TextField(
-                                      //     controller: controller,
-                                      //     style: TextStyle(
-                                      //       fontSize: MediaQuery.of(context).size.width * 0.04,
-                                      //     ),
-                                      //     keyboardType: TextInputType.number,
-                                      //     decoration: InputDecoration(
-                                      //       labelText: 'Bib #',
-                                      //       labelStyle: TextStyle(
-                                      //         fontSize: MediaQuery.of(context).size.width * 0.05,
-                                      //       ),
-                                      //       border: OutlineInputBorder(
-                                      //         borderRadius: BorderRadius.circular(MediaQuery.of(context).size.width * 0.02),
-                                      //       ),
-                                      //       contentPadding: EdgeInsets.symmetric(
-                                      //         vertical: MediaQuery.of(context).size.width * 0.02,
-                                      //         horizontal: MediaQuery.of(context).size.width * 0.03,
-                                      //       ),
-                                      //     ),
-                                      //     onChanged: (value) => _updateBib(index, int.parse(value)),
-                                      //   ),
-                                      // ),
-                                      // SizedBox(height: MediaQuery.of(context).size.width * 0.02),
-                                      // if (record['name'] != null)
-                                      //   Text(
-                                      //     'Name: ${record['name']}',
-                                      //     style: TextStyle(
-                                      //       fontSize: MediaQuery.of(context).size.width * 0.035
-                                      //     ),
-                                      //   ),
-                                      // if (record['grade'] != null)
-                                      //   Text(
-                                      //     'Grade: ${record['grade']}',
-                                      //     style: TextStyle(
-                                      //       fontSize: MediaQuery.of(context).size.width * 0.035
-                                      //     ),
-                                      //   ),
-                                      // if (record['school'] != null)
-                                      //   Text(
-                                      //     'School: ${record['school']}',
-                                      //     style: TextStyle(
-                                      //       fontSize: MediaQuery.of(context).size.width * 0.035
-                                      //     ),
-                                      //   ),
                                 ],
                               ),
                             );
@@ -1078,17 +1027,41 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
                         icon: const Icon(Icons.check, size: 40, color: AppColors.navBarTextColor),
                         onPressed: _confirmRunnerNumber,
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.remove, size: 40, color: AppColors.redColor),
-                        onPressed: _tooManyRunners,
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: PopupMenuButton<void>(
+                          itemBuilder: (BuildContext context) => <PopupMenuEntry<void>>[
+                            PopupMenuItem<void>(
+                              child: Text('Missing runner time'),
+                              onTap: _tooFewRunners,
+                            ),
+                            PopupMenuItem<void>(
+                              child: Text('Extra runner time'),
+                              onTap: _tooManyRunners,
+                            ),
+                          ],
+                          child: ElevatedButton(
+                            onPressed: null,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              elevation: 0,
+                            ),
+                            child: Text('Adjust # of times'),
+                          ),
+                        ),
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.add, size: 40, color: AppColors.redColor),
-                        onPressed: _tooFewRunners,
-                      ),
+                      
+                      // IconButton(
+                      //   icon: const Icon(Icons.remove, size: 40, color: AppColors.redColor),
+                      //   onPressed: _tooManyRunners,
+                      // ),
+                      // IconButton(
+                      //   icon: const Icon(Icons.add, size: 40, color: AppColors.redColor),
+                      //   onPressed: _tooFewRunners,
+                      // ),
                       if (records.isNotEmpty && !records.last['is_runner'] && records.last['type'] != null && records.last['type'] != 'confirm_runner_number')
                         IconButton(
-                          icon: const Icon(Icons.undo, size: 40, color: AppColors.redColor),
+                          icon: const Icon(Icons.undo, size: 40, color: AppColors.mediumColor),
                           onPressed: _undoLastConflict,
                         ),
                     ],
