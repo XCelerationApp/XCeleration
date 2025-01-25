@@ -3,16 +3,12 @@ import 'package:image_picker/image_picker.dart';
 import 'package:race_timing_app/screens/race_screen.dart';
 import 'package:race_timing_app/utils/time_formatter.dart';
 import 'dart:convert';
-// import 'test_camera.dart';
 import '../database_helper.dart';
 import 'package:barcode_scan2/barcode_scan2.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-// import '../models/timing_data.dart';
-import 'edit_and_resolve_screen.dart';
 import '../models/race.dart';
 import '../constants.dart';
-import 'package:provider/provider.dart';
 import '../models/bib_data.dart';
 
 class BibNumberScreen extends StatefulWidget {
@@ -179,11 +175,11 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     });
   }
 
-  void _showSuccessMessage() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Successfully resolved conflict')),
-    );
-  }
+  // void _showSuccessMessage() {
+  //   ScaffoldMessenger.of(context).showSnackBar(
+  //     SnackBar(content: Text('Successfully resolved conflict')),
+  //   );
+  // }
 
   void _showErrorMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(

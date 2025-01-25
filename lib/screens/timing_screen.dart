@@ -1032,21 +1032,20 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
                         child: PopupMenuButton<void>(
                           itemBuilder: (BuildContext context) => <PopupMenuEntry<void>>[
                             PopupMenuItem<void>(
-                              child: Text('Missing runner time'),
                               onTap: _tooFewRunners,
+                              child: Text('Missing runner time (Add a time)'),
                             ),
                             PopupMenuItem<void>(
-                              child: Text('Extra runner time'),
                               onTap: _tooManyRunners,
+                              child: Text('Extra runner time (Remove a time)'),
                             ),
                           ],
-                          child: ElevatedButton(
-                            onPressed: null,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.transparent,
-                              elevation: 0,
+                          child: Text(
+                            'Adjust # of times',
+                            style: TextStyle(
+                              fontSize: 20,
+                              color: AppColors.darkColor,
                             ),
-                            child: Text('Adjust # of times'),
                           ),
                         ),
                       ),
