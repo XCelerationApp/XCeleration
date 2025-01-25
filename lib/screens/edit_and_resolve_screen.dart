@@ -143,7 +143,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
       final difference = bibData.length - numberOfRunnerTimes;
       if (difference > 0) {
         print('Too few runners');
-        await _tooFewRunners(offBy: difference, useStopTime: true);
+        await _missingRunnerTime(offBy: difference, useStopTime: true);
       }
       else {
         print('Too many runners');
@@ -153,7 +153,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
           _showErrorMessage('You cannot load bib numbers for runners if the there are more confirmed runners than loaded bib numbers.');
           return;
         } else{
-          await _tooManyRunners(offBy: -difference, useStopTime: true);
+          await _extraRunnerTime(offBy: -difference, useStopTime: true);
         }
       }
     }
@@ -177,7 +177,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
       //   });
       // }
 
-      final [runner, shared] = await DatabaseHelper.instance.getRaceRunnerByBib(raceId, bibData[i], getShared: true);
+      final [runner, isTeamRunner] = await DatabaseHelper.instance.getRaceRunnerByBib(raceId, bibData[i], getShared: true);
       if (runner != null) {
         setState(() {
           records[index]['name'] = runner['name'];
@@ -185,7 +185,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
           records[index]['school'] = runner['school'];
           records[index]['race_runner_id'] = runner['race_runner_id'] ?? runner['runner_id'];
           records[index]['race_id'] = raceId;
-          records[index]['runner_is_shared'] = shared;
+          records[index]['is_team_runner'] = isTeamRunner;
           records[index]['bib_number'] = bibData[i];
         });
       }
@@ -210,7 +210,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
       _deleteConfirmedRecordsBeforeIndexUntilConflict(timingData['records']!.length - 1);
       return;
     } // No conflicts left
-    print(firstConflict == 'too_few_runner_times'
+    print(firstConflict == 'missing_runner_time'
                       ? 'Not enough finish times were recorded. Please select which times correctly belong to the runners and enter in missing times.'
                       : 'More finish times were recorded than the number of runners. Please resolve the conflict by selecting which times correctly belong to the runners.');
     print(firstConflict);
@@ -231,7 +231,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
                 ),
                 SizedBox(height: 10),
                 Text(
-                  firstConflict == 'too_few_runner_times'
+                  firstConflict == 'missing_runner_time'
                       ? 'Not enough finish times were recorded. Please select which times correctly belong to the runners and enter in missing times.'
                       : 'More finish times were recorded than the number of runners. Please resolve the conflict by selecting which times correctly belong to the runners.',
                   style: Theme.of(context).textTheme.bodyMedium,
@@ -244,11 +244,11 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
                   if (!mounted) return; // Check if the widget is still mounted
                   // Update the record to resolve the conflict
                   // Navigator.of(context).pop();
-                  if (firstConflict == 'too_few_runner_times') {
+                  if (firstConflict == 'missing_runner_time') {
                     print('Resolving too few runner times conflict at index $conflictIndex');
                     await _resolveTooFewRunnerTimes(conflictIndex);
                   }
-                  else if (firstConflict == 'too_many_runner_times') {
+                  else if (firstConflict == 'extra_runner_time') {
                     await _resolveTooManyRunnerTimes(conflictIndex);
                   }
                   else {
@@ -419,7 +419,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
         record['school'] = runners[i]['school'];
         record['race_runner_id'] = runners[i]['race_runner_id'] ?? runners[i]['runner_id'];
         record['race_id'] = raceId;
-        record['runner_is_shared'] = runners[i]['runner_is_shared'];
+        record['is_team_runner'] = runners[i]['is_team_runner'];
         record['text_color'] = AppColors.navBarTextColor;
       });
     }
@@ -492,7 +492,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
         record['school'] = runners[i]['school'];
         record['race_runner_id'] = runners[i]['race_runner_id'] ?? runners[i]['runner_id'];
         record['race_id'] = raceId;
-        record['runner_is_shared'] = runners[i]['runner_is_shared'];
+        record['is_team_runner'] = runners[i]['is_team_runner'];
         record['text_color'] = AppColors.navBarTextColor;
       });
     }
@@ -672,7 +672,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
     });
   }
 
-  Future<void> _tooManyRunners({int offBy = 1, bool useStopTime = false}) async {
+  Future<void> _extraRunnerTime({int offBy = 1, bool useStopTime = false}) async {
     if (offBy < 1) {
       offBy = 1;
     }
@@ -728,13 +728,13 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
     }
 
     final color = AppColors.redColor;
-    _updateTextColor(color, conflict: 'too_many_runner_times');
+    _updateTextColor(color, conflict: 'extra_runner_time');
 
     setState(() {
       timingData['records']?.add({
         'finish_time': formatDuration(difference),
         'is_runner': false,
-        'type': 'too_many_runner_times',
+        'type': 'extra_runner_time',
         'text_color': color,
         'numTimes': correcttedNumTimes,
         'offBy': offBy,
@@ -751,7 +751,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
     });
   }
 
-  Future<void> _tooFewRunners({int offBy = 1, bool useStopTime = false}) async {
+  Future<void> _missingRunnerTime({int offBy = 1, bool useStopTime = false}) async {
     final int numTimes = _getNumberOfTimes();
     int correcttedNumTimes = numTimes + offBy;
     
@@ -771,7 +771,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
     }
 
     final color = AppColors.redColor;
-    _updateTextColor(color, conflict: 'too_few_runner_times');
+    _updateTextColor(color, conflict: 'missing_runner_time');
 
     setState(() {
       for (int i = 1; i <= offBy; i++) {
@@ -781,7 +781,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
           'bib_number': null,
           'is_runner': true,
           'is_confirmed': false,
-          'conflict': 'too_few_runner_times',
+          'conflict': 'missing_runner_time',
           'text_color': color,
           'place': numTimes + i,
         });
@@ -791,7 +791,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
       timingData['records']?.add({
         'finish_time': formatDuration(difference),
         'is_runner': false,
-        'type': 'too_few_runner_times',
+        'type': 'missing_runner_time',
         'text_color': color,
         'numTimes': correcttedNumTimes,
         'offBy': offBy,
@@ -814,10 +814,10 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
     for (var record in records) {
       if (record['is_runner'] == true) {
         count++;
-      } else if (record['type'] == 'too_many_runner_times') {
+      } else if (record['type'] == 'extra_runner_time') {
         count--;
       } 
-      // else if (record['type'] == 'too_few_runner_times') {
+      // else if (record['type'] == 'missing_runner_time') {
       //   count++;
       // }
     }
@@ -835,11 +835,11 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
     }
     
     final conflictType = lastConflict['type'];
-    if (conflictType == 'too_many_runner_times') {
+    if (conflictType == 'extra_runner_time') {
       print('undo too many');
       undoTooManyRunners(lastConflict, records);
     }
-    else if (conflictType == 'too_few_runner_times') {
+    else if (conflictType == 'missing_runner_time') {
       print('undo too few');
       undoTooFewRunners(lastConflict, records);
     }
@@ -1352,11 +1352,11 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
                       ),
                       IconButton(
                         icon: const Icon(Icons.remove, size: 40, color: AppColors.redColor),
-                        onPressed: _tooManyRunners,
+                        onPressed: _extraRunnerTime,
                       ),
                       IconButton(
                         icon: const Icon(Icons.add, size: 40, color: AppColors.redColor),
-                        onPressed: _tooFewRunners,
+                        onPressed: _missingRunnerTime,
                       ),
                       if (time_records.isNotEmpty && !time_records.last['is_runner'] && time_records.last['type'] != null && time_records.last['type'] != 'confirm_runner_number')
                         IconButton(

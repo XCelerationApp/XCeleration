@@ -400,7 +400,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     });
   }
 
-  void _tooManyRunners({int offBy = 1, bool useStopTime = false}) async {
+  void _extraRunnerTime({int offBy = 1, bool useStopTime = false}) async {
     if (offBy < 1) {
       offBy = 1;
     }
@@ -456,13 +456,13 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     }
 
     final color = AppColors.redColor;
-    _updateTextColor(color, conflict: 'too_many_runner_times');
+    _updateTextColor(color, conflict: 'extra_runner_time');
 
     setState(() {
       Provider.of<TimingData>(context, listen: false).records[raceId]?.add({
         'finish_time': formatDuration(difference),
         'is_runner': false,
-        'type': 'too_many_runner_times',
+        'type': 'extra_runner_time',
         'text_color': color,
         'numTimes': correcttedNumTimes,
         'offBy': offBy,
@@ -479,7 +479,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     });
   }
 
-  void _tooFewRunners({int offBy = 1, bool useStopTime = false}) async {
+  void _missingRunnerTime({int offBy = 1, bool useStopTime = false}) async {
     final int numTimes = _getNumberOfTimes(); // Placeholder for actual length input
     int correcttedNumTimes = numTimes + offBy; // Placeholder for actual length input
     
@@ -499,7 +499,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     }
 
     final color = AppColors.redColor;
-    _updateTextColor(color, conflict: 'too_few_runner_times');
+    _updateTextColor(color, conflict: 'missing_runner_time');
 
     setState(() {
       for (int i = 1; i <= offBy; i++) {
@@ -508,7 +508,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
           'bib_number': null,
           'is_runner': true,
           'is_confirmed': false,
-          'conflict': 'too_few_runner_times',
+          'conflict': 'missing_runner_time',
           'text_color': color,
           'place': numTimes + i,
         });
@@ -518,7 +518,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
       Provider.of<TimingData>(context, listen: false).records[raceId]?.add({
         'finish_time': formatDuration(difference),
         'is_runner': false,
-        'type': 'too_few_runner_times',
+        'type': 'missing_runner_time',
         'text_color': color,
         'numTimes': correcttedNumTimes,
         'offBy': offBy,
@@ -541,10 +541,10 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     for (var record in records) {
       if (record['is_runner'] == true) {
         count++;
-      } else if (record['type'] == 'too_many_runner_times') {
+      } else if (record['type'] == 'extra_runner_time') {
         count--;
       } 
-      // else if (record['type'] == 'too_few_runner_times') {
+      // else if (record['type'] == 'missing_runner_time') {
       //   count++;
       // }
     }
@@ -564,11 +564,11 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     }
     
     final conflictType = lastConflict['type'];
-    if (conflictType == 'too_many_runner_times') {
+    if (conflictType == 'extra_runner_time') {
       print('undo too many');
       undoTooManyRunners(lastConflict, records);
     }
-    else if (conflictType == 'too_few_runner_times') {
+    else if (conflictType == 'missing_runner_time') {
       print('undo too few');
       undoTooFewRunners(lastConflict, records);
     }
@@ -1032,11 +1032,11 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
                         child: PopupMenuButton<void>(
                           itemBuilder: (BuildContext context) => <PopupMenuEntry<void>>[
                             PopupMenuItem<void>(
-                              onTap: _tooFewRunners,
+                              onTap: _missingRunnerTime,
                               child: Text('Missing runner time (Add a time)'),
                             ),
                             PopupMenuItem<void>(
-                              onTap: _tooManyRunners,
+                              onTap: _extraRunnerTime,
                               child: Text('Extra runner time (Remove a time)'),
                             ),
                           ],
@@ -1052,11 +1052,11 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
                       
                       // IconButton(
                       //   icon: const Icon(Icons.remove, size: 40, color: AppColors.redColor),
-                      //   onPressed: _tooManyRunners,
+                      //   onPressed: _extraRunnerTime,
                       // ),
                       // IconButton(
                       //   icon: const Icon(Icons.add, size: 40, color: AppColors.redColor),
-                      //   onPressed: _tooFewRunners,
+                      //   onPressed: _missingRunnerTime,
                       // ),
                       if (records.isNotEmpty && !records.last['is_runner'] && records.last['type'] != null && records.last['type'] != 'confirm_runner_number')
                         IconButton(

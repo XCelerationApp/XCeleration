@@ -120,7 +120,7 @@ class _RaceScreenState extends State<RaceScreen> {
                   if (showResults) ResultsScreen(raceId: race.race_id), //else TimingScreen(race: race),
                   if (!showResults && (timingData['records'] != null && timingData['records']!.isNotEmpty && timingData['bibs'] != null && timingData['bibs']!.isNotEmpty)) EditAndResolveScreen(race: race, timingData: timingData),
                   BibNumberScreen (race: race),
-                  RunnersManagementScreen(raceId: race.race_id, shared: false),
+                  RunnersManagementScreen(raceId: race.race_id, isTeam: false),
               ],
             ),
           ),

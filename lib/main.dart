@@ -149,7 +149,7 @@ class HomeScreen extends StatelessWidget {
           children: [
             RacesScreen(),
             TimingScreen(),
-            RunnersManagementScreen(raceId: 0, shared: true),
+            RunnersManagementScreen(raceId: 0, isTeam: true),
           ],
         ),
       ),

@@ -7,12 +7,12 @@ import '../constants.dart';
 
 class RunnersManagementScreen extends StatefulWidget {
   final int raceId;
-  final bool shared;
+  final bool isTeam;
 
   const RunnersManagementScreen({
     super.key, 
     required this.raceId,
-    required this.shared,
+    required this.isTeam,
   });
 
   @override
@@ -30,32 +30,32 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
 
   List<Map<String, dynamic>> _runners = []; // To store runners fetched from the database.
   List<Map<String, dynamic>> _filteredRunners = []; // To store filtered runners.
-  // List<Map<String, dynamic>> _sharedRunners = [];
+  // List<Map<String, dynamic>> _teamRunners = [];
 
   late int raceId;
-  late bool shared;
+  late bool isTeam;
 
   @override
   void initState() {
     super.initState();
     raceId = widget.raceId;
-    shared = widget.shared;
+    isTeam = widget.isTeam;
     _loadRunners(); // Load runners when the widget is initialized.
   }
 
   Future<void> _loadRunners() async {
     // Fetch runners from the database
-    if (shared == true) {
-      final sharedRunners = await DatabaseHelper.instance.getAllSharedRunners();
+    if (isTeam == true) {
+      final teamRunners = await DatabaseHelper.instance.getAllTeamRunners();
       setState(() {
-        _runners = sharedRunners; // Update the state with the fetched runners, including shared runners
+        _runners = teamRunners; // Update the state with the fetched runners, including team runners
         _filteredRunners = _runners; // Initialize _filteredRunners with the fetched runners
       });
     }
     else{
       final runners = await DatabaseHelper.instance.getRaceRunners(raceId);
       setState(() {
-        _runners = runners; // Update the state with the fetched runners, including shared runners
+        _runners = runners; // Update the state with the fetched runners
         _filteredRunners = _runners; // Initialize _filteredRunners with the fetched runners
       });
     }
@@ -74,8 +74,8 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
       return;
     }
 
-    if (shared == true) {
-      await DatabaseHelper.instance.insertSharedRunner({
+    if (isTeam == true) {
+      await DatabaseHelper.instance.insertTeamRunner({
         'name': name,
         'school': school,
         'grade': grade,
@@ -110,8 +110,8 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
   //     return;
   //   }
 
-  //   if (shared == true) {
-  //     await DatabaseHelper.instance.deleteSharedRunner(bib);
+  //   if (isTeam == true) {
+  //     await DatabaseHelper.instance.deleteTeamRunner(bib);
   //   }
   //   else {
   //     await DatabaseHelper.instance.deleteRaceRunner(raceId, bib);
@@ -192,8 +192,8 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
         ),
         ElevatedButton(
           onPressed: () async {
-            if (shared == true) {
-              await DatabaseHelper.instance.updateSharedRunner({
+            if (isTeam == true) {
+              await DatabaseHelper.instance.updateTeamRunner({
                 'name': _nameController.text,
                 'school': _schoolController.text,
                 'grade': int.parse(_gradeController.text),
@@ -250,7 +250,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
   // }
 
   Future<void> _loadSpreadsheet() async {
-    await processSpreadsheet(raceId, shared);
+    await processSpreadsheet(raceId, isTeam);
     _loadRunners(); // Reload runners after processing spreadsheet
   }
 
@@ -273,8 +273,8 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
       ),
     );
     if (confirmed == true) {
-      if (shared == true) {
-        await DatabaseHelper.instance.clearSharedRunners();
+      if (isTeam == true) {
+        await DatabaseHelper.instance.clearTeamRunners();
       }
       else {
         await DatabaseHelper.instance.deleteAllRaceRunners(raceId);
@@ -479,7 +479,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
             if (_filteredRunners.isEmpty) 
               Center(
                 child: Text(
-                  (_searchController.text.isEmpty) ? ((shared) ? 'No Runners' : 'No Runners for this race') : 'No Runners found',
+                  (_searchController.text.isEmpty) ? ((isTeam) ? 'No Runners' : 'No Runners for this race') : 'No Runners found',
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.normal,
@@ -530,8 +530,8 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
                               ),
                             );
                             if (confirmed == true) {
-                              if (shared == true) {
-                                await DatabaseHelper.instance.deleteSharedRunner(runner['bib_number']);
+                              if (isTeam == true) {
+                                await DatabaseHelper.instance.deleteTeamRunner(runner['bib_number']);
                               }
                               else {
                                 await DatabaseHelper.instance.deleteRaceRunner(raceId, runner['bib_number']);
