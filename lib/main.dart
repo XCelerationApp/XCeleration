@@ -139,7 +139,7 @@ class HomeScreen extends StatelessWidget {
               tabs: [
                 Tab(icon: Icon(Icons.flag), text: 'Races'),
                 Tab(icon: Icon(Icons.timer), text: 'Time Race'),
-                Tab(icon: Icon(Icons.person), text: 'Shared Runner Data'),
+                Tab(icon: Icon(Icons.person), text: 'Team Runners'),
               ],
             ),
           ),

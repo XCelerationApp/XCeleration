@@ -11,3 +11,4 @@ UI:
 - make popups for sharing race times
 - turn popups into sheets
 - make buttons that havent been redesigned look better
+- in bib number screen make it so that add button is in the scrolling container not hiding itself when a records is selected

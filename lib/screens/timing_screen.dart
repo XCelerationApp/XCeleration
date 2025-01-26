@@ -3,7 +3,6 @@ import 'package:race_timing_app/utils/time_formatter.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/timing_data.dart';
-import 'dart:convert';
 import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -22,7 +21,6 @@ class TimingScreen extends StatefulWidget {
 
 class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMixin {
   final ScrollController _scrollController = ScrollController();
-  final int raceId = 0;
   late AudioPlayer _audioPlayer;
   bool _isAudioPlayerReady = false;
   late TabController _tabController;
@@ -35,7 +33,6 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     _initAudioPlayer();
     _tabController = TabController(length: 3, vsync: this); // Adjust length based on your tabs
     // race = widget.race;
-    // raceId = race.race_id;
     dataSynced = false;
   }
 
@@ -81,7 +78,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   }
 
   void _startRace() {
-    final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
+    final records = Provider.of<TimingData>(context, listen: false).records;
     if (records.isNotEmpty) {
       showDialog(
         context: context,
@@ -98,8 +95,8 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
                 Navigator.of(context).pop(true);
                 setState(() {
                   records.clear();
-                  Provider.of<TimingData>(context, listen: false).changeStartTime(DateTime.now(), raceId);
-                  Provider.of<TimingData>(context, listen: false).changeEndTime(null, raceId);
+                  Provider.of<TimingData>(context, listen: false).changeStartTime(DateTime.now());
+                  Provider.of<TimingData>(context, listen: false).changeEndTime(null);
                 });
               },
               child: const Text('Yes'),
@@ -110,7 +107,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     } else {
       setState(() {
         records.clear();
-        Provider.of<TimingData>(context, listen: false).changeStartTime(DateTime.now(), raceId);
+        Provider.of<TimingData>(context, listen: false).changeStartTime(DateTime.now());
       });
     }
   }
@@ -128,13 +125,13 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
           ),
           TextButton(
             onPressed: () {
-              final startTime = Provider.of<TimingData>(context, listen: false).startTime[raceId];
+              final startTime = Provider.of<TimingData>(context, listen: false).startTime;
               if (startTime != null) {
                 final now = DateTime.now();
                 final difference = now.difference(startTime);
                 setState(() {
-                  Provider.of<TimingData>(context, listen: false).changeEndTime(difference, raceId);
-                  Provider.of<TimingData>(context, listen: false).changeStartTime(null, raceId);
+                  Provider.of<TimingData>(context, listen: false).changeEndTime(difference);
+                  Provider.of<TimingData>(context, listen: false).changeStartTime(null);
                 });
                 Navigator.of(context).pop(true);
                 if (_getFirstConflict()[0] != null) {
@@ -150,7 +147,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   }
 
   void _logTime() {
-    final startTime = Provider.of<TimingData>(context, listen: false).startTime[raceId];
+    final startTime = Provider.of<TimingData>(context, listen: false).startTime;
     if (startTime == null) {
       _showErrorMessage('Start time cannot be null.');
       return;
@@ -166,7 +163,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
         'is_confirmed': false,
         'text_color': null,
         'place': _getNumberOfTimes() + 1,
-      }, raceId);
+      });
 
       // Scroll to bottom after adding new record
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -179,7 +176,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     });
 
     // Add a new controller for the new record
-    Provider.of<TimingData>(context, listen: false).addController(TextEditingController(), raceId);
+    Provider.of<TimingData>(context, listen: false).addController(TextEditingController());
   }
 
 
@@ -234,10 +231,6 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   }
 
   void _shareTimes() {
-    _showQrCode();
-  }
-
-  void _showQrCode() {
     final data = _generateQrData(); // Ensure this returns a String
     showDialog(
       context: context,
@@ -265,12 +258,12 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   }
 
   String _generateQrData() {
-    print(Provider.of<TimingData>(context, listen: false).toMapForQR(raceId));
-    return jsonEncode(Provider.of<TimingData>(context, listen: false).toMapForQR(raceId));
+    print(Provider.of<TimingData>(context, listen: false).QREncode());
+    return Provider.of<TimingData>(context, listen: false).QREncode();
   }
 
   List<dynamic> _getFirstConflict() {
-    final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
+    final records = Provider.of<TimingData>(context, listen: false).records;
     for (var record in records) {
       if (record['is_runner'] == false && record['type'] != null && record['type'] != 'confirm_runner_number') {
         return [record['type'], records.indexOf(record)];
@@ -332,7 +325,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   }
 
   void _updateTextColor(Color? color, {bool confirmed = false, String? conflict, endIndex}) {
-    List<Map<String, dynamic>> records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
+    List<Map<String, dynamic>> records = Provider.of<TimingData>(context, listen: false).records;
     if (endIndex != null && endIndex < records.length && records.isNotEmpty) {
       records = records.sublist(0, endIndex);
     }
@@ -355,16 +348,16 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   }
 
   void _confirmRunnerNumber({bool useStopTime = false}) async {
-    // final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
+    // final records = Provider.of<TimingData>(context, listen: false).records;
     int numTimes = _getNumberOfTimes(); // Placeholder for actual length input
     
     Duration difference;
     if (useStopTime == true) {
-      difference = Provider.of<TimingData>(context, listen: false).endTime[raceId]!;
+      difference = Provider.of<TimingData>(context, listen: false).endTime!;
     }
     else {
       DateTime now = DateTime.now();
-      final startTime = Provider.of<TimingData>(context, listen: false).startTime[raceId];
+      final startTime = Provider.of<TimingData>(context, listen: false).startTime;
       if (startTime == null) {
         print('Start time cannot be null. 4');
         _showErrorMessage('Start time cannot be null.');
@@ -373,7 +366,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
       difference = now.difference(startTime);
     }
 
-    final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
+    final records = Provider.of<TimingData>(context, listen: false).records;
     
     final color = AppColors.navBarTextColor;
     _updateTextColor(color, confirmed: true);
@@ -381,7 +374,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     _deleteConfirmedRecordsBeforeIndexUntilConflict(records.length - 1);
 
     setState(() {
-      Provider.of<TimingData>(context, listen: false).records[raceId]?.add({
+      Provider.of<TimingData>(context, listen: false).records.add({
         'finish_time': formatDuration(difference),
         'is_runner': false,
         'type': 'confirm_runner_number',
@@ -404,11 +397,11 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     if (offBy < 1) {
       offBy = 1;
     }
-    // final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
+    // final records = Provider.of<TimingData>(context, listen: false).records;
     final numTimes = _getNumberOfTimes().toInt();
     int correcttedNumTimes = numTimes - offBy; // Placeholder for actual length input
 
-    final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
+    final records = Provider.of<TimingData>(context, listen: false).records;
     final previousRunner = records.last;
     if (previousRunner['is_runner'] == false) {
       _showErrorMessage('You must have a unconfirmed runner time before pressing this button.');
@@ -424,7 +417,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
         return;
       }
       setState(() {
-        Provider.of<TimingData>(context, listen: false).records[raceId]?.removeRange(Provider.of<TimingData>(context, listen: false).records[raceId]!.length - offBy, Provider.of<TimingData>(context, listen: false).records[raceId]!.length);
+        Provider.of<TimingData>(context, listen: false).records.removeRange(Provider.of<TimingData>(context, listen: false).records.length - offBy, Provider.of<TimingData>(context, listen: false).records.length);
       });
       return;
     }
@@ -442,11 +435,11 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
 
     Duration difference;
     if (useStopTime == true) {
-      difference = Provider.of<TimingData>(context, listen: false).endTime[raceId]!;
+      difference = Provider.of<TimingData>(context, listen: false).endTime!;
     }
     else {
       DateTime now = DateTime.now();
-      final startTime = Provider.of<TimingData>(context, listen: false).startTime[raceId];
+      final startTime = Provider.of<TimingData>(context, listen: false).startTime;
       if (startTime == null) {
         print('Start time cannot be null. 4');
         _showErrorMessage('Start time cannot be null.');
@@ -459,7 +452,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     _updateTextColor(color, conflict: 'extra_runner_time');
 
     setState(() {
-      Provider.of<TimingData>(context, listen: false).records[raceId]?.add({
+      Provider.of<TimingData>(context, listen: false).records.add({
         'finish_time': formatDuration(difference),
         'is_runner': false,
         'type': 'extra_runner_time',
@@ -485,11 +478,11 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     
     Duration difference;
     if (useStopTime == true) {
-      difference = Provider.of<TimingData>(context, listen: false).endTime[raceId]!;
+      difference = Provider.of<TimingData>(context, listen: false).endTime!;
     }
     else {
       DateTime now = DateTime.now();
-      final startTime = Provider.of<TimingData>(context, listen: false).startTime[raceId];
+      final startTime = Provider.of<TimingData>(context, listen: false).startTime;
       if (startTime == null) {
         print('Start time cannot be null. 6');
         _showErrorMessage('Start time cannot be null.');
@@ -503,7 +496,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
 
     setState(() {
       for (int i = 1; i <= offBy; i++) {
-        Provider.of<TimingData>(context, listen: false).records[raceId]?.add({
+        Provider.of<TimingData>(context, listen: false).records.add({
           'finish_time': 'TBD',
           'bib_number': null,
           'is_runner': true,
@@ -512,10 +505,10 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
           'text_color': color,
           'place': numTimes + i,
         });
-        Provider.of<TimingData>(context, listen: false).addController(TextEditingController(), raceId);
+        Provider.of<TimingData>(context, listen: false).addController(TextEditingController());
       }
 
-      Provider.of<TimingData>(context, listen: false).records[raceId]?.add({
+      Provider.of<TimingData>(context, listen: false).records.add({
         'finish_time': formatDuration(difference),
         'is_runner': false,
         'type': 'missing_runner_time',
@@ -536,7 +529,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   }
 
   int _getNumberOfTimes() {
-    final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
+    final records = Provider.of<TimingData>(context, listen: false).records;
     int count = 0;
     for (var record in records) {
       if (record['is_runner'] == true) {
@@ -555,7 +548,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
 
   void _undoLastConflict() {
     print('undo last conflict');
-    final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
+    final records = Provider.of<TimingData>(context, listen: false).records;
 
     final lastConflict = records.reversed.firstWhere((r) => r['is_runner'] == false && r['type'] != null, orElse: () => {});
 
@@ -602,7 +595,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     final runnersBeforeConflict = records.sublist(0, lastConflictIndex).where((r) => r['is_runner'] == true).toList();
     final offBy = lastConflict['offBy'];
     print('off by: $offBy');
-    final controllers = Provider.of<TimingData>(context, listen: false).controllers[raceId] ?? [];
+    final controllers = Provider.of<TimingData>(context, listen: false).controllers;
 
     _updateTextColor(null, confirmed: false, endIndex: lastConflictIndex);
     for (int i = 0; i < offBy; i++) {
@@ -622,7 +615,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
 
   void _deleteConfirmedRecordsBeforeIndexUntilConflict(int recordIndex) {
     print(recordIndex);
-    final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
+    final records = Provider.of<TimingData>(context, listen: false).records;
     if (recordIndex < 0 || recordIndex >= records.length) {
       return;
     }
@@ -642,13 +635,13 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   }
 
   int getRunnerIndex(int recordIndex) {
-    final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
+    final records = Provider.of<TimingData>(context, listen: false).records;
     final runnerRecords = records.where((record) => record['is_runner'] == true).toList();
     return runnerRecords.indexOf(records[recordIndex]);
   }
 
   Future<bool> _confirmDeleteLastRecord(int recordIndex) async {
-    final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
+    final records = Provider.of<TimingData>(context, listen: false).records;
     final record = records[recordIndex];
     if (record['is_runner'] == true && record['is_confirmed'] == false && record['conflict'] == null) {
       final confirmed = await showDialog<bool>(
@@ -693,8 +686,8 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     ).then((confirmed) {
       if (confirmed ?? false) {
         setState(() {
-          Provider.of<TimingData>(context, listen: false).clearRecords(raceId);
-          Provider.of<TimingData>(context, listen: false).controllers[raceId]?.clear();
+          Provider.of<TimingData>(context, listen: false).clearRecords();
+          Provider.of<TimingData>(context, listen: false).controllers.clear();
 
         });
       }
@@ -705,21 +698,21 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   void dispose() {
     _tabController.dispose();
     _scrollController.dispose();
-    for (var controller in Provider.of<TimingData>(context, listen: false).controllers[raceId] ?? []) {
+    for (var controller in Provider.of<TimingData>(context, listen: false).controllers) {
       controller.dispose();
     }
-    Provider.of<TimingData>(context, listen: false).clearRecords(raceId);
-    Provider.of<TimingData>(context, listen: false).changeStartTime(null, raceId);
+    Provider.of<TimingData>(context, listen: false).clearRecords();
+    Provider.of<TimingData>(context, listen: false).changeStartTime(null);
     _audioPlayer.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final startTime = Provider.of<TimingData>(context, listen: false).startTime[raceId];
-    final endTime = Provider.of<TimingData>(context, listen: false).endTime[raceId];
-    final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
-    // final controllers = Provider.of<TimingData>(context, listen: false).controllers[raceId] ?? [];
+    final startTime = Provider.of<TimingData>(context, listen: false).startTime;
+    final endTime = Provider.of<TimingData>(context, listen: false).endTime;
+    final records = Provider.of<TimingData>(context, listen: false).records;
+    // final controllers = Provider.of<TimingData>(context, listen: false).controllers ?? [];
 
     return Scaffold(
       // appBar: AppBar(title: const Text('Race Timing')),
@@ -737,7 +730,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
                     stream: Stream.periodic(const Duration(milliseconds: 10)),
                     builder: (context, snapshot) {
                       final currentTime = DateTime.now();
-                      final startTime = Provider.of<TimingData>(context, listen: false).startTime[raceId];
+                      final startTime = Provider.of<TimingData>(context, listen: false).startTime;
                       Duration elapsed;
                       if (startTime == null) {
                         if (endTime != null) {
@@ -931,8 +924,8 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
                                         final confirmed = await _confirmDeleteLastRecord(index);
                                         if (confirmed ) {
                                           setState(() {
-                                            Provider.of<TimingData>(context, listen: false).controllers[raceId]?.removeAt(_getNumberOfTimes() - 1);
-                                            Provider.of<TimingData>(context, listen: false).records[raceId]?.removeAt(index);
+                                            Provider.of<TimingData>(context, listen: false).controllers.removeAt(_getNumberOfTimes() - 1);
+                                            Provider.of<TimingData>(context, listen: false).records.removeAt(index);
                                             _scrollController.animateTo(
                                               max(_scrollController.position.maxScrollExtent, 0),
                                               duration: const Duration(milliseconds: 300),

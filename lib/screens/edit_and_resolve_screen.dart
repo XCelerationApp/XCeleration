@@ -45,7 +45,9 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
       print(time_record);
       print(time_record['place']);
       print(time_record['finish_time']);
-      _finishTimeControllers[time_record['place']] = TextEditingController(text: time_record['finish_time']);
+      if (time_record['is_runner'] == true && time_record['is_confirmed'] == true) {
+        _finishTimeControllers[time_record['place']] = TextEditingController(text: time_record['finish_time']);
+      }
     }
     // runners = await DatabaseHelper.instance.getRaceRunnersByBibs(raceId, timingData['bibs'].cast<String>() ?? []);
     // timingData['bibs'] = timingData['bibs'].cast<String>();
@@ -177,7 +179,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
       //   });
       // }
 
-      final [runner, isTeamRunner] = await DatabaseHelper.instance.getRaceRunnerByBib(raceId, bibData[i], getShared: true);
+      final [runner, isTeamRunner] = await DatabaseHelper.instance.getRaceRunnerByBib(raceId, bibData[i], getTeamRunner: true);
       if (runner != null) {
         setState(() {
           records[index]['name'] = runner['name'];
@@ -218,6 +220,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
     if (!mounted) return; // Check if the widget is still mounted
     showDialog(
         context: context,
+        barrierDismissible: false,
         builder: (BuildContext context) {
           print('Opening resolve dialog for conflict $firstConflict at index $conflictIndex');
           return AlertDialog(
@@ -291,7 +294,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
     List<dynamic> conflictingRunners = [];
     for (int i = startingIndex; i < conflictRecord['numTimes']; i++) {
       final runner = await DatabaseHelper.instance
-          .getRaceRunnerByBib(raceId, bibData[i], getShared: true);
+          .getRaceRunnerByBib(raceId, bibData[i], getTeamRunner: true);
       if (runner.isNotEmpty) conflictingRunners.add(runner[0]);
     }
     print('First conflicting record index: $firstConflictingRecordIndex');
@@ -306,6 +309,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
 
     await showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (context) => ConflictResolutionDialog(
         conflictingRunners: conflictingRunners,
         lastConfirmedRecord: lastConfirmedRecord,
@@ -360,7 +364,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
     List<dynamic> conflictingRunners = [];
     for (int i = lastConfirmedRecord.isEmpty ? 0 : lastConfirmedRecord['place']; i < conflictRecord['numTimes']; i++) {
       final runner = await DatabaseHelper.instance
-          .getRaceRunnerByBib(raceId, bibData[i], getShared: true);
+          .getRaceRunnerByBib(raceId, bibData[i], getTeamRunner: true);
       if (runner.isNotEmpty) conflictingRunners.add(runner[0]);
     }
 
@@ -369,6 +373,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
 
     await showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (context) => ConflictResolutionDialog(
         conflictingRunners: conflictingRunners,
         lastConfirmedRecord: lastConfirmedRecord,
@@ -1124,11 +1129,11 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
                           final runner = (runners.isNotEmpty && index < runners.length) ? runners[index] : {};
                           final time_record = time_records[index];
                           
-                          final timeController = _finishTimeControllers[time_record['place']];
+                          final timeController = _finishTimeControllers[index];
                           if (timeController == null && time_record['is_runner'] == true) {
-                            _finishTimeControllers[time_record['place']] = TextEditingController(text: time_record['finish_time']);
+                            _finishTimeControllers[index] = TextEditingController(text: time_record['finish_time']);
+                            timeController?.text = time_record['finish_time'];
                           }
-                          timeController?.text = time_record['finish_time'];
 
                           // late TextEditingController controller;
                           // if (time_records.isNotEmpty && time_record['is_runner'] == true) {
@@ -1192,7 +1197,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
                                           SizedBox(
                                             width: 100, // Set a width for the TextField
                                             child: TextField(
-                                              controller: _finishTimeControllers[time_record['place']],
+                                              controller: _finishTimeControllers[index],
                                               decoration: InputDecoration(
                                                 hintText: 'Finish Time',
                                                 border: OutlineInputBorder(
@@ -1232,7 +1237,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
                                                     time_record['finish_time'] = newValue; // Update your data structure
                                                   }
                                                   else {
-                                                    _finishTimeControllers[time_record['place']]?.text = time_record['finish_time'];
+                                                    _finishTimeControllers[index]?.text = time_record['finish_time'];
                                                   }
                                                 });
                                               },
@@ -1331,8 +1336,6 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
                                 ],
                               ),
                             );
-                          } else {
-                            return Container();
                           }
                         },
                       ),

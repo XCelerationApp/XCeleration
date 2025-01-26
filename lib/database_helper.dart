@@ -196,7 +196,7 @@ class DatabaseHelper {
     );
   }
 
-  Future<List<dynamic>> getRaceRunnerByBib(int raceId, String bibNumber, {bool getShared=false}) async {
+  Future<List<dynamic>> getRaceRunnerByBib(int raceId, String bibNumber, {bool getTeamRunner=false}) async {
     final db = await instance.database;
     final results = await db.query(
       'race_runners',
@@ -205,7 +205,7 @@ class DatabaseHelper {
     );
 
     final runner = results.isNotEmpty ? results.first : null;
-    if (runner == null && getShared) {
+    if (runner == null && getTeamRunner) {
       return [await getTeamRunnerByBib(bibNumber), true];
     }
     return [runner, false];
@@ -214,7 +214,7 @@ class DatabaseHelper {
   Future<List<Map<String, dynamic>>> getRaceRunnersByBibs(int raceId, List<String> bibNumbers) async {
     List<Map<String, dynamic>> results = [];
     for (int i = 0; i < bibNumbers.length; i++) {
-      final runner = await getRaceRunnerByBib(raceId, bibNumbers[i], getShared: true);
+      final runner = await getRaceRunnerByBib(raceId, bibNumbers[i], getTeamRunner: true);
       // print(runner);
       if (runner[0] == null) {
         break;
