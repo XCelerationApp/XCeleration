@@ -6,9 +6,14 @@ Functionality:
 - change race title to X vs Y (vs Z) and update in database
 - remove duplicates from runner data database (override most likely)
 - fix downloaded results to be in correct format
+- show how many bib numbers are there during the race
+- throw specific error messages for spreadsheet loading
+- fix race length (either delete or add mile/km)
 
 UI:
 - make popups for sharing race times
 - turn popups into sheets
 - make buttons that havent been redesigned look better
 - in bib number screen make it so that add button is in the scrolling container not hiding itself when a records is selected
+- include an example spreadsheet
+- race length keypad needs to have decimal points

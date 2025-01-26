@@ -1229,7 +1229,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
                                               ),
                                               enabled: time_record['finish_time'] != 'tbd' && time_record['finish_time'] != 'TBD' && _getFirstConflict()[0] == null,
                                               textAlign: TextAlign.center,
-                                              keyboardType: TextInputType.number,
+                                              keyboardType: TextInputType.numberWithOptions(signed: true, decimal: false),
                                               onSubmitted: (newValue) {
                                                 // Update the time_record with the new value
                                                 setState(() {

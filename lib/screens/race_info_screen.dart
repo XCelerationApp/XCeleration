@@ -239,7 +239,7 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> {
                                   setState(() => _distance = doubleDistance);
                                 }
                               },
-                              keyboardType: TextInputType.number,
+                              keyboardType: TextInputType.numberWithOptions(signed: true, decimal: true),
                               prefixIcon: const Icon(Icons.straighten),
                             ),
                           ],

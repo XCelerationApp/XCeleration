@@ -251,7 +251,7 @@ class _RacesScreenState extends State<RacesScreen> {
                               decoration: InputDecoration(
                                 hintText: '0.0',
                               ),
-                              keyboardType: TextInputType.number,
+                              keyboardType: TextInputType.numberWithOptions(signed: true, decimal: true),
                             ),
                           ),
                         ),
