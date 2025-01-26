@@ -579,7 +579,9 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                       child: ElevatedButton(
                         onPressed: () => {
                           if (_isRaceFinished) {
-                            () => showDeviceConnectionPopup(context, deviceType: DeviceType.bibNumberDevice, backUpShareFunction: _scanQRCode)
+                            () async => {
+                              showDeviceConnectionPopup(context, deviceType: DeviceType.bibNumberDevice, backUpShareFunction: _scanQRCode, onDatatransferComplete: (String result) => _processQRData(result)),
+                              }
                           } else {
                             _addBibNumber('', [], true)
                           }

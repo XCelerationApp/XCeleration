@@ -8,7 +8,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'device_connection_service.dart';
 import 'package:flutter_nearby_connections/flutter_nearby_connections.dart';
 
-void showDeviceConnectionPopup(BuildContext context, { required DeviceType deviceType, required Function() backUpShareFunction, Function()? onDatatransferComplete }) {
+Future<void> showDeviceConnectionPopup(BuildContext context, { required DeviceType deviceType, required Function() backUpShareFunction, Function(String result)? onDatatransferComplete }) async {
   showModalBottomSheet(
     context: context,
     builder: (BuildContext context) {
@@ -23,7 +23,7 @@ enum ConnectionStatus { connected, found, connecting, searching, finished, error
 class DeviceConnectionPopupContent extends StatefulWidget {
   final DeviceType deviceType;
   final Function() backUpShareFunction;
-  final Function()? onDataTransferComplete;
+  final Function(String result)? onDataTransferComplete;
   const DeviceConnectionPopupContent({
     super.key,
     required this.deviceType,
@@ -37,7 +37,7 @@ class DeviceConnectionPopupContent extends StatefulWidget {
 class _DeviceConnectionPopupState extends State<DeviceConnectionPopupContent> {
   late ConnectionStatus _connectionStatus;
   late Function() _backUpShareFunction;
-  late Function()? _onDataTransferComplete;
+  late Function(String result)? _onDataTransferComplete;
   late AudioPlayer _audioPlayer;
   bool _isAudioPlayerReady = false;
   late DeviceType _deviceType;
@@ -93,7 +93,7 @@ class _DeviceConnectionPopupState extends State<DeviceConnectionPopupContent> {
         }
         print("received message from Race Timer Device: $message");
         if (_onDataTransferComplete != null) {
-          await _onDataTransferComplete!();    
+          await _onDataTransferComplete!(message);    
         }   
         setState(() {
           _connectionStatus = ConnectionStatus.finished;
@@ -125,7 +125,7 @@ class _DeviceConnectionPopupState extends State<DeviceConnectionPopupContent> {
         }
         await _deviceConnectionService.sendMessageToDevice(device, 'Hello from Race Timer Device');
         if (_onDataTransferComplete != null) {
-          await _onDataTransferComplete!();    
+          await _onDataTransferComplete!('');    
         }      
         setState(() {
           _connectionStatus = ConnectionStatus.finished;

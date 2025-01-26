@@ -139,6 +139,7 @@ class DeviceConnectionService {
       await receivedDataSubscription?.cancel();
       _receiveMessageCompleter!.complete(jsonEncode(data));
       print("dataReceivedSubscription: ${jsonEncode(data)}");
+      // print(data.message);
       return;
     });
     try {
