@@ -6,11 +6,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_nearby_connections/flutter_nearby_connections.dart';
 
-void main() {
-  runApp(MyApp());
-}
-
-enum DeviceType { advertiser, browser }
+enum DeviceType { bibNumberDevice, raceTimerDevice }
 
 
 class DeviceConnectionService {
@@ -29,7 +25,7 @@ class DeviceConnectionService {
         strategy: Strategy.P2P_POINT_TO_POINT,
         callback: (isRunning) async {
           if (isRunning) {
-            if (deviceType == DeviceType.browser) {
+            if (deviceType == DeviceType.bibNumberDevice) {
               await nearbyService.stopBrowsingForPeers();
               await Future.delayed(Duration(microseconds: 200));
               await nearbyService.startBrowsingForPeers();
@@ -178,10 +174,10 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       return MaterialPageRoute(builder: (_) => Home());
     case 'browser':
       return MaterialPageRoute(
-          builder: (_) => DevicesListScreen(deviceType: DeviceType.browser));
+          builder: (_) => DevicesListScreen(deviceType: DeviceType.bibNumberDevice));
     case 'advertiser':
       return MaterialPageRoute(
-          builder: (_) => DevicesListScreen(deviceType: DeviceType.advertiser));
+          builder: (_) => DevicesListScreen(deviceType: DeviceType.raceTimerDevice));
     default:
       return MaterialPageRoute(
           builder: (_) => Scaffold(
@@ -283,15 +279,15 @@ class _DevicesListScreenState extends State<DevicesListScreen> {
   void init() async {
     deviceConnectionService = DeviceConnectionService();
     final deviceType = widget.deviceType;
-    await deviceConnectionService.init('wirelessconn', deviceType == DeviceType.browser ? 'browser' : 'advertiser', deviceType);
-    if (deviceType == DeviceType.browser) {
-      Device? device = await deviceConnectionService.connectToDevice(deviceType == DeviceType.browser ? 'advertiser' : 'browser');
+    await deviceConnectionService.init('wirelessconn', deviceType == DeviceType.bibNumberDevice ? 'browser' : 'advertiser', deviceType);
+    if (deviceType == DeviceType.bibNumberDevice) {
+      Device? device = await deviceConnectionService.connectToDevice(deviceType == DeviceType.bibNumberDevice ? 'advertiser' : 'browser');
       if (device != null) {
         await deviceConnectionService.sendMessageToDevice(device, 'Hello from browser');
       }
     }
     else {
-      Device? device = await deviceConnectionService.monitorDeviceConnectionStatus(deviceType == DeviceType.browser ? 'advertiser' : 'browser');
+      Device? device = await deviceConnectionService.monitorDeviceConnectionStatus(deviceType == DeviceType.bibNumberDevice ? 'advertiser' : 'browser');
       if (device != null) {
         final String? message = await deviceConnectionService.receiveMessageFromDevice(device);
           if (message != null) {

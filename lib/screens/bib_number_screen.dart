@@ -10,6 +10,8 @@ import 'package:provider/provider.dart';
 import '../models/race.dart';
 import '../constants.dart';
 import '../models/bib_data.dart';
+import '../device_connection_popup.dart';
+import '../device_connection_service.dart';
 
 class BibNumberScreen extends StatefulWidget {
   final Race race;
@@ -27,7 +29,6 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
   late int raceId;
   late Race race;
   bool _isRaceFinished = false;
-  late ConnectionStatus _connectionStatus;
 
   @override
   void initState() {
@@ -188,56 +189,6 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
         backgroundColor: Colors.white,
         duration: Duration(seconds: 2),
       ),
-    );
-  }
-
-  void _showDeviceConnectionPopup() {
-    _connectionStatus = ConnectionStatus.searching;
-    showModalBottomSheet(
-      context: context,
-      builder: (BuildContext context) {
-        return Container(
-          height: 150,
-          color: Colors.white,
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                if ( _connectionStatus != ConnectionStatus.error) ...[
-                  const CircularProgressIndicator(),
-                  const SizedBox(height: 5),
-                ],
-                Text(
-                  _connectionStatus == ConnectionStatus.searching ? 'Searching for device...' :
-                  _connectionStatus == ConnectionStatus.connected ? 'Connected to device' :
-                  _connectionStatus == ConnectionStatus.receiving ? 'Receiving data...' :
-                  _connectionStatus == ConnectionStatus.finished ? 'Done!' :
-                  'Error'
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [ 
-                    ElevatedButton(
-                      child: const Text('Use QR Codes Instead'),
-                      onPressed: () => {
-                        Navigator.pop(context), _scanQRCode()
-                      }
-                    ),
-                    const SizedBox(width: 10),
-                    ElevatedButton(
-                      child: const Text('Cancel'),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  
-                  ]
-                )
-              ],
-            ),
-          )
-        );
-      }
     );
   }
 
@@ -505,7 +456,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                         borderRadius: BorderRadius.circular(40),
                       ),
                       child: ElevatedButton(
-                        onPressed: _isRaceFinished ? _showDeviceConnectionPopup : _addBibNumber,
+                        onPressed: _isRaceFinished ? () => showDeviceConnectionPopup(context, deviceType: DeviceType.bibNumberDevice, backUpShareFunction: _scanQRCode) : _addBibNumber,
                         style: ElevatedButton.styleFrom(
                           padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                           fixedSize: const Size(175, 50),

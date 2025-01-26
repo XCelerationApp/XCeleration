@@ -9,9 +9,10 @@ import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../constants.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import '../device_connection_popup.dart';
+import '../device_connection_service.dart';
 
 
-enum ConnectionStatus { connected, searching, finished, error, sending }
 
 class TimingScreen extends StatefulWidget {
   const TimingScreen({super.key});
@@ -27,7 +28,6 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   bool _isAudioPlayerReady = false;
   late TabController _tabController;
   late bool dataSynced;
-  late ConnectionStatus _connectionStatus;
 
   @override
   void initState() {
@@ -180,57 +180,6 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
 
     // Add a new controller for the new record
     Provider.of<TimingData>(context, listen: false).addController(TextEditingController(), raceId);
-  }
-
-
-  void _showDeviceConnectionPopup() {
-    _connectionStatus = ConnectionStatus.searching;
-    showModalBottomSheet(
-      context: context,
-      builder: (BuildContext context) {
-        return Container(
-          height: 150,
-          color: Colors.white,
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                if (_connectionStatus != ConnectionStatus.error) ...[
-                  const CircularProgressIndicator(),
-                  const SizedBox(height: 5),
-                ],
-                Text(
-                  _connectionStatus == ConnectionStatus.searching ? 'Searching for device...' :
-                  _connectionStatus == ConnectionStatus.connected ? 'Connected to device' :
-                  _connectionStatus == ConnectionStatus.sending ? 'Sending data...' :
-                  _connectionStatus == ConnectionStatus.finished ? 'Done!' :
-                  'Error'
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [ 
-                    ElevatedButton(
-                      child: const Text('Use QR Codes Instead'),
-                      onPressed: () => {
-                        Navigator.pop(context), _shareTimes()
-                      }
-                    ),
-                    const SizedBox(width: 10),
-                    ElevatedButton(
-                      child: const Text('Cancel'),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  
-                  ]
-                )
-              ],
-            ),
-          )
-        );
-      }
-    );
   }
 
   void _shareTimes() {
@@ -826,7 +775,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
                           // double fontSize = constraints.maxWidth * 0.11;
                           // print('font size: $fontSize');
                             return ElevatedButton(
-                              onPressed: _showDeviceConnectionPopup,
+                              onPressed: () => showDeviceConnectionPopup(context, deviceType: DeviceType.raceTimerDevice, backUpShareFunction: _shareTimes),
                               style: ElevatedButton.styleFrom(
                                 minimumSize: Size(0, 78),
                                 padding: EdgeInsets.zero,
