@@ -13,12 +13,13 @@ class DeviceConnectionService {
   late NearbyService nearbyService;
 
   late StreamSubscription deviceMonitorSubscription;
-  late StreamSubscription receivedDataSubscription;
+  late StreamSubscription? receivedDataSubscription;
   Completer<Device?>? _findDeviceCompleter;
   Completer<String?>? _receiveMessageCompleter;
 
   Future<void> init(String serviceType, String deviceName, DeviceType deviceType) async {
     nearbyService = NearbyService();
+    receivedDataSubscription = null;
     await nearbyService.init(
         serviceType: serviceType, //'wirelessconn'
         deviceName: deviceName,
@@ -135,7 +136,7 @@ class DeviceConnectionService {
     _receiveMessageCompleter = Completer<String?>();
 
     receivedDataSubscription = nearbyService.dataReceivedSubscription(callback: (data) async {
-      await receivedDataSubscription.cancel();
+      await receivedDataSubscription?.cancel();
       _receiveMessageCompleter!.complete(jsonEncode(data));
       print("dataReceivedSubscription: ${jsonEncode(data)}");
       return;
@@ -155,7 +156,7 @@ class DeviceConnectionService {
     nearbyService.stopBrowsingForPeers();
     nearbyService.stopAdvertisingPeer();
     deviceMonitorSubscription.cancel();
-    receivedDataSubscription.cancel();
+    receivedDataSubscription?.cancel();
     if (_findDeviceCompleter != null && !_findDeviceCompleter!.isCompleted) {
       _findDeviceCompleter!.completeError('Device search cancelled');
     }

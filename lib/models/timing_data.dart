@@ -69,7 +69,6 @@ class TimingData with ChangeNotifier {
   }
 
   String QREncode() {
-    print({'records': _records, 'startTime': _startTime, 'endTime': _endTime});
     List<String> condensedRecords = [];
     for (var record in _records) {
       if (record['is_runner'] == true) {
