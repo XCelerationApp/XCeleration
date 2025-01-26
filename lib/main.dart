@@ -139,7 +139,7 @@ class HomeScreen extends StatelessWidget {
               tabs: [
                 Tab(icon: Icon(Icons.flag), text: 'Races'),
                 Tab(icon: Icon(Icons.timer), text: 'Time Race'),
-                Tab(icon: Icon(Icons.person), text: 'Shared Runner Data'),
+                Tab(icon: Icon(Icons.person), text: 'Team Runners'),
               ],
             ),
           ),
@@ -149,7 +149,7 @@ class HomeScreen extends StatelessWidget {
           children: [
             RacesScreen(),
             TimingScreen(),
-            RunnersManagementScreen(raceId: 0, shared: true),
+            RunnersManagementScreen(raceId: 0, isTeam: true),
           ],
         ),
       ),

@@ -86,7 +86,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
 
   void flagBibNumber(int index, String bibNumber) async {
     final bibRecords = Provider.of<BibRecordsProvider>(context, listen: false).bibRecords;
-    final runner = await DatabaseHelper.instance.getRaceRunnerByBib(1, bibNumber, getShared: true);
+    final runner = await DatabaseHelper.instance.getRaceRunnerByBib(1, bibNumber, getTeamRunner: true);
       if (runner[0] == null) {
         setState(() {
           bibRecords[index]['flags']['not_in_database'] = true;
@@ -233,11 +233,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     } catch (e) {
       if (e is MissingPluginException) {
         _showErrorMessage('The QR code scanner is not available on this device.');
-        await _processQRData(jsonEncode(
-
-          {'records': [{'finish_time': '1.02', 'is_runner': true, 'is_confirmed': false, 'text_color': null, 'place': 1}, {'finish_time': '2.13', 'is_runner': true, 'is_confirmed': false, 'text_color': null, 'place': 2}, {'finish_time': '6.75', 'is_runner': true, 'is_confirmed': false, 'text_color': null, 'place': 3}, {'finish_time': '21.21', 'is_runner': true, 'is_confirmed': false, 'text_color': null, 'place': 4}], 'startTime': null, 'endTime': '41.78'},
-
-        ));
+        await _processQRData(jsonEncode([["0.75","1.40","2.83","confirm_runner_number null 3.73","4.65","6.95","extra_runner_time 1 14.85","17.75","confirm_runner_number null 18.70"],"21.61"]));
       }
       else {
         _showErrorMessage('Failed to scan QR code: $e');
@@ -245,14 +241,138 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     }
   }
 
+  dynamic _updateTextColor(Color? color, {bool confirmed = false, String? conflict, records}) {
+    for (int i = records.length - 1; i >= 0; i--) {
+      if (records[i]['is_runner'] == false) {
+        break;
+      }
+      setState(() {
+        records[i]['text_color'] = color;
+        if (confirmed == true) {
+          records[i]['is_confirmed'] = true;
+          records[i]['conflict'] = conflict;
+        }
+        else {
+          records[i]['is_confirmed'] = false;
+          records[i]['conflict'] = null;
+        }
+      });
+    }
+    return records;
+  }
+
+  Future<dynamic> _extraRunnerTime(offBy, records, numTimes, finishTime) async {
+    if (offBy < 1) {
+      offBy = 1;
+    }
+    int correcttedNumTimes = numTimes - offBy; // Placeholder for actual length input
+
+    for (int i = 1; i <= offBy; i++) {
+      final lastOffByRunner = records[records.length - i];
+      if (lastOffByRunner['is_runner'] == true) {
+        lastOffByRunner['previous_place'] = lastOffByRunner['place'];
+        lastOffByRunner['place'] = '';
+      }
+    }
+
+    final color = AppColors.redColor;
+    records = _updateTextColor(color, conflict: 'extra_runner_time', confirmed: false, records: records);
+
+    records.add({
+      'finish_time': finishTime,
+      'is_runner': false,
+      'type': 'extra_runner_time',
+      'text_color': color,
+      'numTimes': correcttedNumTimes,
+      'offBy': offBy,
+    });
+    return records;
+  }
+
+  Future<dynamic> _missingRunnerTime(offBy, records, numTimes, finishTime) async {
+    int correcttedNumTimes = numTimes + offBy; // Placeholder for actual length input
+    
+    final color = AppColors.redColor;
+    records = _updateTextColor(color, conflict: 'missing_runner_time', confirmed: false, records: records);
+
+      for (int i = 1; i <= offBy; i++) {
+        records.add({
+          'finish_time': 'TBD',
+          'bib_number': null,
+          'is_runner': true,
+          'is_confirmed': false,
+          'conflict': 'missing_runner_time',
+          'text_color': color,
+          'place': numTimes + i,
+        });
+      }
+
+      records.add({
+        'finish_time': finishTime,
+        'is_runner': false,
+        'type': 'missing_runner_time',
+        'text_color': color,
+        'numTimes': correcttedNumTimes,
+        'offBy': offBy,
+      });
+    return records;
+  }
+
+  Future<Map<String, dynamic>> _decodeQRData(String qrData) async {
+    final decodedData = json.decode(qrData);
+    final startTime = null;
+    final endTime = loadDurationFromString(decodedData[1]);
+    final condensedRecords = decodedData[0];
+    List<Map<String, dynamic>> records = [];
+    int place = 1;
+    for (var recordString in condensedRecords) {
+      if (loadDurationFromString(recordString) != null) {
+        records.add({'finish_time': recordString, 'is_runner': true, 'is_confirmed': false, 'text_color': null, 'place': place});
+        place++;
+      }
+      else {
+        final [type, offBy, finish_time] = recordString.split(' ');
+        if (type == 'confirm_runner_number'){
+          records = _updateTextColor(AppColors.navBarTextColor, confirmed: true, records: records);
+          records.add({
+            'finish_time': finish_time,
+            'is_runner': false,
+            'type': 'confirm_runner_number',
+            'text_color': AppColors.navBarTextColor,
+            'numTimes': place - 1,
+          });
+        }
+        else if (type == 'missing_runner_time'){
+          records = await _missingRunnerTime(int.tryParse(offBy), records, place - 1, finish_time);
+          place += int.tryParse(offBy)!;
+        }
+        else if (type == 'extra_runner_time'){
+          records = await _extraRunnerTime(int.tryParse(offBy), records, place - 1, finish_time);
+          place -= int.tryParse(offBy)!;
+        }
+        else {
+          print("Unknown type: $type, string: $recordString");
+        }
+      }
+    }
+    return {'endTime': endTime, 'records': records, 'startTime': startTime};
+  }
+
   Future<void> _processQRData(String qrData) async {
     final bibRecords = Provider.of<BibRecordsProvider>(context, listen: false).bibRecords;
     // final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
     try {
-      final Map<String, dynamic> timingData = json.decode(qrData);
+      final Map<String, dynamic> timingData = await _decodeQRData(qrData);
+      print('decoded timingData: $timingData');
+      for (var record in timingData['records']){
+        print(record['place']);
+      }
+      for (var record in timingData['records']){
+        print(record);
+      }
 
       if (timingData.isNotEmpty && timingData.containsKey('records') && timingData.containsKey('endTime') && timingData['records'].isNotEmpty && timingData['endTime'] != null) {
-        timingData['endTime'] = loadDurationFromString(timingData['endTime']);
+        // timingData['endTime'] = loadDurationFromString(timingData['endTime']);
         timingData['bibs'] = bibRecords.map((bib) => bib['bib_number']).toList();
         
         Navigator.pushReplacement(
@@ -265,7 +385,8 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
         _showErrorMessage('Error: QR code data is invalid');
       }
     } catch (e) {
-      _showErrorMessage('Error: Failed to process QR code data');
+      _showErrorMessage('Error: Failed to process QR code data $e');
+      rethrow;
     }
   }
 
@@ -456,7 +577,13 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                         borderRadius: BorderRadius.circular(40),
                       ),
                       child: ElevatedButton(
-                        onPressed: _isRaceFinished ? () => showDeviceConnectionPopup(context, deviceType: DeviceType.bibNumberDevice, backUpShareFunction: _scanQRCode) : _addBibNumber,
+                        onPressed: () => {
+                          if (_isRaceFinished) {
+                            () => showDeviceConnectionPopup(context, deviceType: DeviceType.bibNumberDevice, backUpShareFunction: _scanQRCode)
+                          } else {
+                            _addBibNumber('', [], true)
+                          }
+                        },
                         style: ElevatedButton.styleFrom(
                           padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                           fixedSize: const Size(175, 50),

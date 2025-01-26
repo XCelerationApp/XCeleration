@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+// import 'package:race_timing_app/utils/time_formatter.dart';
+import 'dart:convert';
+
 import 'package:race_timing_app/utils/time_formatter.dart';
 
 class TimingData with ChangeNotifier {
-  final Map<int, List<Map<String, dynamic>>> _records = {};
-  final Map<int, List<String>> _bibs = {};
-  final Map<int, List<TextEditingController>> _controllers = {};
-  final Map<int, DateTime?> _startTimes = {};
-  final Map<int, Duration?> _endTimes = {};
+  List<Map<String, dynamic>> _records = [];
+  // List<String> _bibs = [];
+  List<TextEditingController> _controllers = [];
+  DateTime? _startTime;
+  Duration? _endTime;
 
   //  List<TextEditingController> controllers = [];
 
@@ -21,78 +24,71 @@ class TimingData with ChangeNotifier {
   //   _startTime = value;
   // }
 
-  Map<int, List<Map<String, dynamic>>> get records => _records;
-  Map<int, DateTime?> get startTime => _startTimes;
-  Map<int, Duration?> get endTime => _endTimes;
-  Map<int, List<String>> get bibs => _bibs;
-  Map<int, List<TextEditingController>> get controllers => _controllers;
+  List<Map<String, dynamic>> get records => _records;
+  DateTime? get startTime => _startTime;
+  Duration? get endTime => _endTime;
+  // List<String> get bibs => _bibs;
+  List<TextEditingController> get controllers => _controllers;
   // List<Map<String, dynamic>> records; // Add this line
   // DateTime? startTime; // Add this line
   // List<TextEditingController> controllers; // Add this line
 
-  void addRecord(Map<String, dynamic> record, int raceId) {
-    if (_records[raceId] == null) {
-      _records[raceId] = [];
-    }
-    _records[raceId]?.add(record);
+  void addRecord(Map<String, dynamic> record) {
+    _records.add(record);
     notifyListeners();
   }
   
-  void addController(TextEditingController controller, int raceId) {
-    if (_controllers[raceId] == null) {
-      _controllers[raceId] = [];
+  void addController(TextEditingController controller) {
+    _controllers.add(controller);
+    notifyListeners();
+  }
+
+  void insertRecord(int index, Map<String, dynamic> record) {
+    _records.insert(index, record);
+    notifyListeners();
+  }
+
+  void insertController(int index, TextEditingController controller) {
+    _controllers.insert(index, controller);
+    notifyListeners();
+  }
+
+  void changeStartTime(DateTime? time) {
+    _startTime = time;
+    notifyListeners();
+  }
+
+  // void setBibs(List<String> bibs) {
+  //   _bibs = bibs;
+  //   notifyListeners();
+  // }
+
+  void changeEndTime(Duration? time) {
+    _endTime = time;
+    notifyListeners();
+  }
+
+  String QREncode() {
+    print({'records': _records, 'startTime': _startTime, 'endTime': _endTime});
+    List<String> condensedRecords = [];
+    for (var record in _records) {
+      if (record['is_runner'] == true) {
+        final time = record['finish_time'];
+        condensedRecords.add('$time');
+      } else {
+        final offBy = record['type'] == 'confirm_runner_number' ? 'null' : record['offBy'].toString();
+        condensedRecords.add('${record['type']} $offBy ${record['finish_time']}');
+      }
     }
-    _controllers[raceId]?.add(controller);
-    notifyListeners();
+    return jsonEncode([condensedRecords, formatDuration(_endTime!)]);
   }
 
-  void insertRecord(int index, Map<String, dynamic> record, int raceId) {
-    if (_records[raceId] == null) {
-      _records[raceId] = [];
-    }
-    _records[raceId]?.insert(index, record);
-    notifyListeners();
-  }
-
-  void insertController(int index, TextEditingController controller, int raceId) {
-    if (_controllers[raceId] == null) {
-      _controllers[raceId] = [];
-    }
-    _controllers[raceId]?.insert(index, controller);
-    notifyListeners();
-  }
-
-  void changeStartTime(DateTime? time, int raceId) {
-    _startTimes[raceId] = time;
-    notifyListeners();
-  }
-
-  void setBibs(List<String> bibs, int raceId) {
-    _bibs[raceId] = bibs;
-    notifyListeners();
-  }
-
-  void changeEndTime(Duration? time, int raceId) {
-    _endTimes[raceId] = time;
-    notifyListeners();
-  }
-
-  Map<String, dynamic> toMapForQR(int raceId) {
-    return {
-      'records': _records[raceId],
-      // 'controllers': _controllers,
-      'startTime': _startTimes[raceId],
-      'endTime': formatDuration(_endTimes[raceId]!),
-      // 'bibs': _bibs,
-    };
-  }
-
-  void clearRecords(int raceId) {
-    _records[raceId]?.clear();
-    _controllers[raceId]?.clear();
-    _startTimes[raceId] = null;
-    _endTimes[raceId] = null;
-    _bibs[raceId]?.clear();
+  void clearRecords() {
+    _records.clear();
+    _controllers.clear();
+    _startTime = null;
+    _endTime = null;
+    // _bibs.clear();
     notifyListeners();
   }
 }
