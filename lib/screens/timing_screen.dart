@@ -768,7 +768,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
                           // double fontSize = constraints.maxWidth * 0.11;
                           // print('font size: $fontSize');
                             return ElevatedButton(
-                              onPressed: () => showDeviceConnectionPopup(context, deviceType: DeviceType.raceTimerDevice, backUpShareFunction: _shareTimes),
+                              onPressed: () => showDeviceConnectionPopup(context, deviceType: DeviceType.raceTimerDevice, backUpShareFunction: _shareTimes, dataToTransfer: 'This is some data to transfer'),
                               style: ElevatedButton.styleFrom(
                                 minimumSize: Size(0, 78),
                                 padding: EdgeInsets.zero,

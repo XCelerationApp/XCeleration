@@ -8,11 +8,11 @@ import 'package:audioplayers/audioplayers.dart';
 import 'device_connection_service.dart';
 import 'package:flutter_nearby_connections/flutter_nearby_connections.dart';
 
-Future<void> showDeviceConnectionPopup(BuildContext context, { required DeviceType deviceType, required Function() backUpShareFunction, Function(String result)? onDatatransferComplete }) async {
+Future<void> showDeviceConnectionPopup(BuildContext context, { required DeviceType deviceType, required Function() backUpShareFunction, Function(String data)? onDatatransferComplete, String? dataToTransfer }) async {
   showModalBottomSheet(
     context: context,
     builder: (BuildContext context) {
-      return DeviceConnectionPopupContent(deviceType: deviceType, backUpShareFunction: backUpShareFunction, onDataTransferComplete: onDatatransferComplete,);
+      return DeviceConnectionPopupContent(deviceType: deviceType, backUpShareFunction: backUpShareFunction, onDataTransferComplete: onDatatransferComplete, dataToTransfer: dataToTransfer);
     }
   );
 }
@@ -24,11 +24,13 @@ class DeviceConnectionPopupContent extends StatefulWidget {
   final DeviceType deviceType;
   final Function() backUpShareFunction;
   final Function(String result)? onDataTransferComplete;
+  final String? dataToTransfer;
   const DeviceConnectionPopupContent({
     super.key,
     required this.deviceType,
     required this.backUpShareFunction,
     this.onDataTransferComplete,
+    this.dataToTransfer,
   });
   @override
   State<DeviceConnectionPopupContent> createState() => _DeviceConnectionPopupState();
@@ -41,6 +43,7 @@ class _DeviceConnectionPopupState extends State<DeviceConnectionPopupContent> {
   late AudioPlayer _audioPlayer;
   bool _isAudioPlayerReady = false;
   late DeviceType _deviceType;
+  late String? _dataToTransfer;
 
   late DeviceConnectionService _deviceConnectionService;
 
@@ -51,6 +54,7 @@ class _DeviceConnectionPopupState extends State<DeviceConnectionPopupContent> {
     _deviceType = widget.deviceType;
     _backUpShareFunction = widget.backUpShareFunction;
     _onDataTransferComplete = widget.onDataTransferComplete;
+    _dataToTransfer = widget.dataToTransfer;
     _deviceConnectionService = DeviceConnectionService();
     _connectionStatus = ConnectionStatus.searching;
     _connectAndTransferData();
@@ -83,7 +87,7 @@ class _DeviceConnectionPopupState extends State<DeviceConnectionPopupContent> {
           closeWidget();
           return;
         }
-        final String? message = await _deviceConnectionService.receiveMessageFromDevice(device);
+        String? message = await _deviceConnectionService.receiveMessageFromDevice(device);
         if (message == null) {
           setState(() {
             _connectionStatus = ConnectionStatus.timeout;
@@ -91,9 +95,29 @@ class _DeviceConnectionPopupState extends State<DeviceConnectionPopupContent> {
           closeWidget();
           return;
         }
-        print("received message from Race Timer Device: $message");
+        if (message != 'Start') {
+          setState(() {
+            _connectionStatus = ConnectionStatus.error;
+          });
+          closeWidget();
+          return;
+        }
+        message = '';
+        String data = '';
+        while (message != 'Stop') {
+          if (message == null) {
+            setState(() {
+              _connectionStatus = ConnectionStatus.timeout;
+            });
+            closeWidget();
+            return;
+          }
+          data += message;
+          message = await _deviceConnectionService.receiveMessageFromDevice(device);
+        }
+        print("received data from Race Timer Device: $data");
         if (_onDataTransferComplete != null) {
-          await _onDataTransferComplete!(message);    
+          await _onDataTransferComplete!(data);    
         }   
         setState(() {
           _connectionStatus = ConnectionStatus.finished;
@@ -111,6 +135,13 @@ class _DeviceConnectionPopupState extends State<DeviceConnectionPopupContent> {
         closeWidget();
       }
       else {
+        if (_dataToTransfer == null) {
+          setState(() {
+            _connectionStatus = ConnectionStatus.error;
+          });
+          closeWidget();
+          return;
+        }
         Device? device = await _deviceConnectionService.monitorDeviceConnectionStatus(
           _getOppositeDeviceTypeString(),
           foundDeviceCallback: foundDeviceCallback,
@@ -123,10 +154,10 @@ class _DeviceConnectionPopupState extends State<DeviceConnectionPopupContent> {
           closeWidget();
           return;
         }
-        await _deviceConnectionService.sendMessageToDevice(device, 'Hello from Race Timer Device');
-        if (_onDataTransferComplete != null) {
-          await _onDataTransferComplete!('');    
-        }      
+        await _deviceConnectionService.sendMessageToDevice(device, 'Start');
+        await _deviceConnectionService.sendMessageToDevice(device, _dataToTransfer!);
+        await _deviceConnectionService.sendMessageToDevice(device, 'Stop');
+
         setState(() {
           _connectionStatus = ConnectionStatus.finished;
         });

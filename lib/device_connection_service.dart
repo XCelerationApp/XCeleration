@@ -16,6 +16,7 @@ class DeviceConnectionService {
   late StreamSubscription? receivedDataSubscription;
   Completer<Device?>? _findDeviceCompleter;
   Completer<String?>? _receiveMessageCompleter;
+  Device? _connectedDevice;
 
   Future<void> init(String serviceType, String deviceName, DeviceType deviceType) async {
     nearbyService = NearbyService();
@@ -64,6 +65,7 @@ class DeviceConnectionService {
             }
           }
           else if (device.state == SessionState.connected) {
+            _connectedDevice = device;
             await deviceMonitorSubscription.cancel(); // Cancel subscription
             _findDeviceCompleter!.complete(device); // Complete with the found device
             return; // Exit the loop
@@ -116,6 +118,7 @@ class DeviceConnectionService {
       return;
     }
     await nearbyService.disconnectPeer(deviceID: device.deviceId);
+    _connectedDevice = null;
     print("Disconnected from device");
   }
 
@@ -137,8 +140,8 @@ class DeviceConnectionService {
 
     receivedDataSubscription = nearbyService.dataReceivedSubscription(callback: (data) async {
       await receivedDataSubscription?.cancel();
-      _receiveMessageCompleter!.complete(jsonEncode(data));
-      print("dataReceivedSubscription: ${jsonEncode(data)}");
+      _receiveMessageCompleter!.complete(jsonEncode(data.message));
+      print("dataReceivedSubscription: ${jsonEncode(data.message)}");
       // print(data.message);
       return;
     });
@@ -166,6 +169,9 @@ class DeviceConnectionService {
       _receiveMessageCompleter!.completeError('Message receiving cancelled');
     }
     _receiveMessageCompleter = null;
+    if (_connectedDevice != null) {
+      disconnectDevice(_connectedDevice!);
+    }
   }
 }
 
