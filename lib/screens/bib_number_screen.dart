@@ -12,6 +12,7 @@ import '../constants.dart';
 import '../models/bib_data.dart';
 import '../device_connection_popup.dart';
 import '../device_connection_service.dart';
+import 'package:race_timing_app/runner_time_functions.dart';
 
 class BibNumberScreen extends StatefulWidget {
   final Race race;
@@ -241,83 +242,6 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     }
   }
 
-  dynamic _updateTextColor(Color? color, {bool confirmed = false, String? conflict, records}) {
-    for (int i = records.length - 1; i >= 0; i--) {
-      if (records[i]['is_runner'] == false) {
-        break;
-      }
-      setState(() {
-        records[i]['text_color'] = color;
-        if (confirmed == true) {
-          records[i]['is_confirmed'] = true;
-          records[i]['conflict'] = conflict;
-        }
-        else {
-          records[i]['is_confirmed'] = false;
-          records[i]['conflict'] = null;
-        }
-      });
-    }
-    return records;
-  }
-
-  Future<dynamic> _extraRunnerTime(offBy, records, numTimes, finishTime) async {
-    if (offBy < 1) {
-      offBy = 1;
-    }
-    int correcttedNumTimes = numTimes - offBy; // Placeholder for actual length input
-
-    for (int i = 1; i <= offBy; i++) {
-      final lastOffByRunner = records[records.length - i];
-      if (lastOffByRunner['is_runner'] == true) {
-        lastOffByRunner['previous_place'] = lastOffByRunner['place'];
-        lastOffByRunner['place'] = '';
-      }
-    }
-
-    final color = AppColors.redColor;
-    records = _updateTextColor(color, conflict: 'extra_runner_time', confirmed: false, records: records);
-
-    records.add({
-      'finish_time': finishTime,
-      'is_runner': false,
-      'type': 'extra_runner_time',
-      'text_color': color,
-      'numTimes': correcttedNumTimes,
-      'offBy': offBy,
-    });
-    return records;
-  }
-
-  Future<dynamic> _missingRunnerTime(offBy, records, numTimes, finishTime) async {
-    int correcttedNumTimes = numTimes + offBy; // Placeholder for actual length input
-    
-    final color = AppColors.redColor;
-    records = _updateTextColor(color, conflict: 'missing_runner_time', confirmed: false, records: records);
-
-      for (int i = 1; i <= offBy; i++) {
-        records.add({
-          'finish_time': 'TBD',
-          'bib_number': null,
-          'is_runner': true,
-          'is_confirmed': false,
-          'conflict': 'missing_runner_time',
-          'text_color': color,
-          'place': numTimes + i,
-        });
-      }
-
-      records.add({
-        'finish_time': finishTime,
-        'is_runner': false,
-        'type': 'missing_runner_time',
-        'text_color': color,
-        'numTimes': correcttedNumTimes,
-        'offBy': offBy,
-      });
-    return records;
-  }
-
   Future<Map<String, dynamic>> _decodeQRData(String qrData) async {
     final decodedData = json.decode(qrData);
     final startTime = null;
@@ -333,7 +257,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
       else {
         final [type, offBy, finish_time] = recordString.split(' ');
         if (type == 'confirm_runner_number'){
-          records = _updateTextColor(AppColors.navBarTextColor, confirmed: true, records: records);
+          records = updateTextColor(AppColors.navBarTextColor, records, confirmed: true);
           records.add({
             'finish_time': finish_time,
             'is_runner': false,
@@ -343,11 +267,11 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
           });
         }
         else if (type == 'missing_runner_time'){
-          records = await _missingRunnerTime(int.tryParse(offBy), records, place - 1, finish_time);
+          records = await missingRunnerTime(int.tryParse(offBy), records, place - 1, finish_time);
           place += int.tryParse(offBy)!;
         }
         else if (type == 'extra_runner_time'){
-          records = await _extraRunnerTime(int.tryParse(offBy), records, place - 1, finish_time);
+          records = await extraRunnerTime(int.tryParse(offBy), records, place - 1, finish_time);
           place -= int.tryParse(offBy)!;
         }
         else {

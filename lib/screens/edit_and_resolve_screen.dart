@@ -9,6 +9,7 @@ import 'race_screen.dart';
 import '../constants.dart';
 import 'resolve_conflict.dart';
 // import '../database_helper.dart';
+import '../runner_time_functions.dart';
 
 class EditAndResolveScreen extends StatefulWidget {
   final Race race;
@@ -145,7 +146,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
       final difference = bibData.length - numberOfRunnerTimes;
       if (difference > 0) {
         print('Too few runners');
-        await _missingRunnerTime(offBy: difference, useStopTime: true);
+        _missingRunnerTime(offBy: difference, useStopTime: true);
       }
       else {
         print('Too many runners');
@@ -155,7 +156,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
           _showErrorMessage('You cannot load bib numbers for runners if the there are more confirmed runners than loaded bib numbers.');
           return;
         } else{
-          await _extraRunnerTime(offBy: -difference, useStopTime: true);
+          _extraRunnerTime(offBy: -difference, useStopTime: true);
         }
       }
     }
@@ -608,28 +609,28 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
     return records.every((runner) => runner['bib_number'] != null && runner['is_confirmed'] == true);
   }
 
-  void _updateTextColor(Color? color, {bool confirmed = false, String? conflict, endIndex}) {
-    List<Map<String, dynamic>> records = timingData['records'].cast<Map<String, dynamic>>() ?? [];
-    if (endIndex != null && endIndex < records.length && records.isNotEmpty) {
-      records = records.sublist(0, endIndex);
-    }
-    for (int i = records.length - 1; i >= 0; i--) {
-      if (records[i]['is_runner'] == false) {
-        break;
-      }
-      setState(() {
-        records[i]['text_color'] = color;
-        if (confirmed == true) {
-          records[i]['is_confirmed'] = true;
-          records[i]['conflict'] = conflict;
-        }
-        else {
-          records[i]['is_confirmed'] = false;
-          records[i]['conflict'] = null;
-        }
-      });
-    }
-  }
+  // void _updateTextColor(Color? color, {bool confirmed = false, String? conflict, endIndex}) {
+  //   List<Map<String, dynamic>> records = timingData['records'].cast<Map<String, dynamic>>() ?? [];
+  //   if (endIndex != null && endIndex < records.length && records.isNotEmpty) {
+  //     records = records.sublist(0, endIndex);
+  //   }
+  //   for (int i = records.length - 1; i >= 0; i--) {
+  //     if (records[i]['is_runner'] == false) {
+  //       break;
+  //     }
+  //     setState(() {
+  //       records[i]['text_color'] = color;
+  //       if (confirmed == true) {
+  //         records[i]['is_confirmed'] = true;
+  //         records[i]['conflict'] = conflict;
+  //       }
+  //       else {
+  //         records[i]['is_confirmed'] = false;
+  //         records[i]['conflict'] = null;
+  //       }
+  //     });
+  //   }
+  // }
 
   Future<void> _confirmRunnerNumber({bool useStopTime = false}) async {
     // final records = timingData['records'] ?? [];
@@ -653,7 +654,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
     final records = timingData['records'] ?? [];
     
     final color = AppColors.navBarTextColor;
-    _updateTextColor(color, confirmed: true);
+    timingData['records'] = updateTextColor(color, records, confirmed: true);
 
     _deleteConfirmedRecordsBeforeIndexUntilConflict(records.length - 1);
 
@@ -676,23 +677,18 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
       });
     });
   }
-
-  Future<void> _extraRunnerTime({int offBy = 1, bool useStopTime = false}) async {
-    if (offBy < 1) {
-      offBy = 1;
-    }
-    // final records = timingData['records'] ?? [];
+  
+  void _extraRunnerTime({int offBy = 1, bool useStopTime = false}) async {
     final numTimes = _getNumberOfTimes().toInt();
-    int correcttedNumTimes = numTimes - offBy; // Placeholder for actual length input
 
-    final records = timingData['records'] ?? [];
+    final records = timingData['records'];
     final previousRunner = records.last;
     if (previousRunner['is_runner'] == false) {
       _showErrorMessage('You must have a unconfirmed runner time before pressing this button.');
       return;
     }
 
-    final lastConfirmedRecord = records.lastWhere((r) => r['is_runner'] == true && r['is_confirmed'] == true, orElse: () => {}.cast<String, dynamic>());
+    final lastConfirmedRecord = records.lastWhere((r) => r['is_runner'] == true && r['is_confirmed'] == true, orElse: () => {});
     final recordPlace = lastConfirmedRecord.isEmpty || lastConfirmedRecord['place'] == null ? 0 : lastConfirmedRecord['place'];
 
     if ((numTimes - offBy) == recordPlace) {
@@ -701,7 +697,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
         return;
       }
       setState(() {
-        timingData['records']?.removeRange(timingData['records']!.length - offBy, timingData['records']!.length);
+        timingData['records'].removeRange(timingData['records'].length - offBy, timingData['records'].length);
       });
       return;
     }
@@ -709,41 +705,9 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
       _showErrorMessage('You cannot remove a runner that is confirmed.');
       return;
     }
-    for (int i = 1; i <= offBy; i++) {
-      final lastOffByRunner = records[records.length - i];
-      if (lastOffByRunner['is_runner'] == true) {
-        lastOffByRunner['previous_place'] = lastOffByRunner['place'];
-        lastOffByRunner['place'] = '';
-      }
-    }
-
-    Duration difference;
-    if (useStopTime == true) {
-      difference = timingData['endTime']!;
-    }
-    else {
-      DateTime now = DateTime.now();
-      final startTime = timingData['startTime'];
-      if (startTime == null) {
-        print('Start time cannot be null. 4');
-        _showErrorMessage('Start time cannot be null.');
-        return;
-      }
-      difference = now.difference(startTime);
-    }
-
-    final color = AppColors.redColor;
-    _updateTextColor(color, conflict: 'extra_runner_time');
 
     setState(() {
-      timingData['records']?.add({
-        'finish_time': formatDuration(difference),
-        'is_runner': false,
-        'type': 'extra_runner_time',
-        'text_color': color,
-        'numTimes': correcttedNumTimes,
-        'offBy': offBy,
-      });
+      timingData['records'] = extraRunnerTime(offBy, records, numTimes, timingData['endTime']);
 
       // Scroll to bottom after adding new record
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -756,51 +720,12 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
     });
   }
 
-  Future<void> _missingRunnerTime({int offBy = 1, bool useStopTime = false}) async {
+  void _missingRunnerTime({int offBy = 1, bool useStopTime = false}) {
     final int numTimes = _getNumberOfTimes();
-    int correcttedNumTimes = numTimes + offBy;
     
-    Duration difference;
-    if (useStopTime == true) {
-      difference = timingData['endTime']!;
-    }
-    else {
-      DateTime now = DateTime.now();
-      final startTime = timingData['startTime'];
-      if (startTime == null) {
-        print('Start time cannot be null. 6');
-        _showErrorMessage('Start time cannot be null.');
-        return;
-      }
-      difference = now.difference(startTime);
-    }
-
-    final color = AppColors.redColor;
-    _updateTextColor(color, conflict: 'missing_runner_time');
 
     setState(() {
-      for (int i = 1; i <= offBy; i++) {
-        print('Adding record $i!!!!!');
-        timingData['records']?.add({
-          'finish_time': 'TBD',
-          'bib_number': null,
-          'is_runner': true,
-          'is_confirmed': false,
-          'conflict': 'missing_runner_time',
-          'text_color': color,
-          'place': numTimes + i,
-        });
-        _controllers.add(TextEditingController());
-      }
-
-      timingData['records']?.add({
-        'finish_time': formatDuration(difference),
-        'is_runner': false,
-        'type': 'missing_runner_time',
-        'text_color': color,
-        'numTimes': correcttedNumTimes,
-        'offBy': offBy,
-      });
+      timingData['records'] = missingRunnerTime(offBy, timingData['records'], numTimes, timingData['endTime']);
 
       // Scroll to bottom after adding new record
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -812,6 +737,142 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
       });
     });
   }
+
+  // Future<void> _extraRunnerTime({int offBy = 1, bool useStopTime = false}) async {
+  //   if (offBy < 1) {
+  //     offBy = 1;
+  //   }
+  //   // final records = timingData['records'] ?? [];
+  //   final numTimes = _getNumberOfTimes().toInt();
+  //   int correcttedNumTimes = numTimes - offBy; // Placeholder for actual length input
+
+  //   final records = timingData['records'] ?? [];
+  //   final previousRunner = records.last;
+  //   if (previousRunner['is_runner'] == false) {
+  //     _showErrorMessage('You must have a unconfirmed runner time before pressing this button.');
+  //     return;
+  //   }
+
+  //   final lastConfirmedRecord = records.lastWhere((r) => r['is_runner'] == true && r['is_confirmed'] == true, orElse: () => {}.cast<String, dynamic>());
+  //   final recordPlace = lastConfirmedRecord.isEmpty || lastConfirmedRecord['place'] == null ? 0 : lastConfirmedRecord['place'];
+
+  //   if ((numTimes - offBy) == recordPlace) {
+  //     bool confirmed = await _showConfirmationMessage('This will delete the last $offBy finish times, are you sure you want to continue?');
+  //     if (confirmed == false) {
+  //       return;
+  //     }
+  //     setState(() {
+  //       timingData['records']?.removeRange(timingData['records']!.length - offBy, timingData['records']!.length);
+  //     });
+  //     return;
+  //   }
+  //   else if (numTimes - offBy < recordPlace) {
+  //     _showErrorMessage('You cannot remove a runner that is confirmed.');
+  //     return;
+  //   }
+  //   for (int i = 1; i <= offBy; i++) {
+  //     final lastOffByRunner = records[records.length - i];
+  //     if (lastOffByRunner['is_runner'] == true) {
+  //       lastOffByRunner['previous_place'] = lastOffByRunner['place'];
+  //       lastOffByRunner['place'] = '';
+  //     }
+  //   }
+
+  //   Duration difference;
+  //   if (useStopTime == true) {
+  //     difference = timingData['endTime']!;
+  //   }
+  //   else {
+  //     DateTime now = DateTime.now();
+  //     final startTime = timingData['startTime'];
+  //     if (startTime == null) {
+  //       print('Start time cannot be null. 4');
+  //       _showErrorMessage('Start time cannot be null.');
+  //       return;
+  //     }
+  //     difference = now.difference(startTime);
+  //   }
+
+  //   final color = AppColors.redColor;
+  //   _updateTextColor(color, conflict: 'extra_runner_time');
+
+  //   setState(() {
+  //     timingData['records']?.add({
+  //       'finish_time': formatDuration(difference),
+  //       'is_runner': false,
+  //       'type': 'extra_runner_time',
+  //       'text_color': color,
+  //       'numTimes': correcttedNumTimes,
+  //       'offBy': offBy,
+  //     });
+
+  //     // Scroll to bottom after adding new record
+  //     WidgetsBinding.instance.addPostFrameCallback((_) {
+  //       _scrollController.animateTo(
+  //         _scrollController.position.maxScrollExtent,
+  //         duration: const Duration(milliseconds: 300),
+  //         curve: Curves.easeOut,
+  //       );
+  //     });
+  //   });
+  // }
+
+  // Future<void> _missingRunnerTime({int offBy = 1, bool useStopTime = false}) async {
+  //   final int numTimes = _getNumberOfTimes();
+  //   int correcttedNumTimes = numTimes + offBy;
+    
+  //   Duration difference;
+  //   if (useStopTime == true) {
+  //     difference = timingData['endTime']!;
+  //   }
+  //   else {
+  //     DateTime now = DateTime.now();
+  //     final startTime = timingData['startTime'];
+  //     if (startTime == null) {
+  //       print('Start time cannot be null. 6');
+  //       _showErrorMessage('Start time cannot be null.');
+  //       return;
+  //     }
+  //     difference = now.difference(startTime);
+  //   }
+
+  //   final color = AppColors.redColor;
+  //   _updateTextColor(color, conflict: 'missing_runner_time');
+
+  //   setState(() {
+  //     for (int i = 1; i <= offBy; i++) {
+  //       print('Adding record $i!!!!!');
+  //       timingData['records']?.add({
+  //         'finish_time': 'TBD',
+  //         'bib_number': null,
+  //         'is_runner': true,
+  //         'is_confirmed': false,
+  //         'conflict': 'missing_runner_time',
+  //         'text_color': color,
+  //         'place': numTimes + i,
+  //       });
+  //       _controllers.add(TextEditingController());
+  //     }
+
+  //     timingData['records']?.add({
+  //       'finish_time': formatDuration(difference),
+  //       'is_runner': false,
+  //       'type': 'missing_runner_time',
+  //       'text_color': color,
+  //       'numTimes': correcttedNumTimes,
+  //       'offBy': offBy,
+  //     });
+
+  //     // Scroll to bottom after adding new record
+  //     WidgetsBinding.instance.addPostFrameCallback((_) {
+  //       _scrollController.animateTo(
+  //         _scrollController.position.maxScrollExtent,
+  //         duration: const Duration(milliseconds: 300),
+  //         curve: Curves.easeOut,
+  //       );
+  //     });
+  //   });
+  // }
 
   int _getNumberOfTimes() {
     final records = timingData['records'] ?? [];
@@ -858,7 +919,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
     final runnersBeforeConflict = records.sublist(0, lastConflictIndex).where((r) => r['is_runner'] == true).toList();
     final offBy = lastConflict['offBy'];
 
-    _updateTextColor(null, confirmed: false, endIndex: lastConflictIndex);
+    updateTextColor(null, records, confirmed: false, endIndex: lastConflictIndex);
     for (int i = 0; i < offBy; i++) {
       final record = runnersBeforeConflict[runnersBeforeConflict.length - 1 - i];
       setState(() {
@@ -880,7 +941,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
     print('off by: $offBy');
     final controllers = _controllers;
 
-    _updateTextColor(null, confirmed: false, endIndex: lastConflictIndex);
+    records = updateTextColor(null, records, confirmed: false, endIndex: lastConflictIndex);
     for (int i = 0; i < offBy; i++) {
       final record = runnersBeforeConflict[runnersBeforeConflict.length - 1 - i];
       print('remove record: $record');
@@ -1250,52 +1311,6 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
                                     thickness: 1,
                                     color: Color.fromRGBO(128, 128, 128, 0.5),
                                   ),
-                                      // SizedBox(
-                                      //   width: MediaQuery.of(context).size.width * 0.25,
-                                      //   child: TextField(
-                                      //     controller: controller,
-                                      //     style: TextStyle(
-                                      //       fontSize: MediaQuery.of(context).size.width * 0.04,
-                                      //     ),
-                                      //     keyboardType: TextInputType.number,
-                                      //     decoration: InputDecoration(
-                                      //       labelText: 'Bib #',
-                                      //       labelStyle: TextStyle(
-                                      //         fontSize: MediaQuery.of(context).size.width * 0.05,
-                                      //       ),
-                                      //       border: OutlineInputBorder(
-                                      //         borderRadius: BorderRadius.circular(MediaQuery.of(context).size.width * 0.02),
-                                      //       ),
-                                      //       contentPadding: EdgeInsets.symmetric(
-                                      //         vertical: MediaQuery.of(context).size.width * 0.02,
-                                      //         horizontal: MediaQuery.of(context).size.width * 0.03,
-                                      //       ),
-                                      //     ),
-                                      //     onChanged: (value) => _updateBib(index, int.parse(value)),
-                                      //   ),
-                                      // ),
-                                      // SizedBox(height: MediaQuery.of(context).size.width * 0.02),
-                                      // if (record['name'] != null)
-                                      //   Text(
-                                      //     'Name: ${record['name']}',
-                                      //     style: TextStyle(
-                                      //       fontSize: MediaQuery.of(context).size.width * 0.035
-                                      //     ),
-                                      //   ),
-                                      // if (record['grade'] != null)
-                                      //   Text(
-                                      //     'Grade: ${record['grade']}',
-                                      //     style: TextStyle(
-                                      //       fontSize: MediaQuery.of(context).size.width * 0.035
-                                      //     ),
-                                      //   ),
-                                      // if (record['school'] != null)
-                                      //   Text(
-                                      //     'School: ${record['school']}',
-                                      //     style: TextStyle(
-                                      //       fontSize: MediaQuery.of(context).size.width * 0.035
-                                      //     ),
-                                      //   ),
                                 ],
                               ),
                             );
@@ -1316,7 +1331,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
                                       if (index == time_records.length - 1) {
                                         setState(() {
                                           time_records.removeAt(index);
-                                          _updateTextColor(null);
+                                          timingData['records'] = updateTextColor(null, time_records);
                                         });
                                       }
                                     },

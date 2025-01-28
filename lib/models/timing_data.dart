@@ -25,6 +25,10 @@ class TimingData with ChangeNotifier {
   // }
 
   List<Map<String, dynamic>> get records => _records;
+  set records(List<Map<String, dynamic>> value) {
+    _records = value;
+    notifyListeners();
+  }
   DateTime? get startTime => _startTime;
   Duration? get endTime => _endTime;
   // List<String> get bibs => _bibs;

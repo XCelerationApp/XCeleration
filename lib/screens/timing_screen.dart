@@ -10,7 +10,7 @@ import '../constants.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../device_connection_popup.dart';
 import '../device_connection_service.dart';
-
+import '../runner_time_functions.dart';
 
 
 class TimingScreen extends StatefulWidget {
@@ -343,12 +343,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   }
 
   void _extraRunnerTime({int offBy = 1, bool useStopTime = false}) async {
-    if (offBy < 1) {
-      offBy = 1;
-    }
-    // final records = Provider.of<TimingData>(context, listen: false).records;
     final numTimes = _getNumberOfTimes().toInt();
-    int correcttedNumTimes = numTimes - offBy; // Placeholder for actual length input
 
     final records = Provider.of<TimingData>(context, listen: false).records;
     final previousRunner = records.last;
@@ -374,13 +369,6 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
       _showErrorMessage('You cannot remove a runner that is confirmed.');
       return;
     }
-    for (int i = 1; i <= offBy; i++) {
-      final lastOffByRunner = records[records.length - i];
-      if (lastOffByRunner['is_runner'] == true) {
-        lastOffByRunner['previous_place'] = lastOffByRunner['place'];
-        lastOffByRunner['place'] = '';
-      }
-    }
 
     Duration difference;
     if (useStopTime == true) {
@@ -397,18 +385,8 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
       difference = now.difference(startTime);
     }
 
-    final color = AppColors.redColor;
-    _updateTextColor(color, conflict: 'extra_runner_time');
-
     setState(() {
-      Provider.of<TimingData>(context, listen: false).records.add({
-        'finish_time': formatDuration(difference),
-        'is_runner': false,
-        'type': 'extra_runner_time',
-        'text_color': color,
-        'numTimes': correcttedNumTimes,
-        'offBy': offBy,
-      });
+      Provider.of<TimingData>(context, listen: false).records = extraRunnerTime(offBy, records, numTimes, formatDuration(difference));
 
       // Scroll to bottom after adding new record
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -421,9 +399,8 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     });
   }
 
-  void _missingRunnerTime({int offBy = 1, bool useStopTime = false}) async {
+  void _missingRunnerTime({int offBy = 1, bool useStopTime = false}) {
     final int numTimes = _getNumberOfTimes(); // Placeholder for actual length input
-    int correcttedNumTimes = numTimes + offBy; // Placeholder for actual length input
     
     Duration difference;
     if (useStopTime == true) {
@@ -440,31 +417,8 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
       difference = now.difference(startTime);
     }
 
-    final color = AppColors.redColor;
-    _updateTextColor(color, conflict: 'missing_runner_time');
-
     setState(() {
-      for (int i = 1; i <= offBy; i++) {
-        Provider.of<TimingData>(context, listen: false).records.add({
-          'finish_time': 'TBD',
-          'bib_number': null,
-          'is_runner': true,
-          'is_confirmed': false,
-          'conflict': 'missing_runner_time',
-          'text_color': color,
-          'place': numTimes + i,
-        });
-        Provider.of<TimingData>(context, listen: false).addController(TextEditingController());
-      }
-
-      Provider.of<TimingData>(context, listen: false).records.add({
-        'finish_time': formatDuration(difference),
-        'is_runner': false,
-        'type': 'missing_runner_time',
-        'text_color': color,
-        'numTimes': correcttedNumTimes,
-        'offBy': offBy,
-      });
+      Provider.of<TimingData>(context, listen: false).records = missingRunnerTime(offBy, Provider.of<TimingData>(context, listen: false).records, numTimes, formatDuration(difference));
 
       // Scroll to bottom after adding new record
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -486,14 +440,10 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
       } else if (record['type'] == 'extra_runner_time') {
         count--;
       } 
-      // else if (record['type'] == 'missing_runner_time') {
-      //   count++;
-      // }
     }
     return max(0, count);
   }
 
-  
 
   void _undoLastConflict() {
     print('undo last conflict');
