@@ -297,8 +297,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   }
 
   void _confirmRunnerNumber({bool useStopTime = false}) async {
-    // final records = Provider.of<TimingData>(context, listen: false).records;
-    int numTimes = _getNumberOfTimes(); // Placeholder for actual length input
+    int numTimes = _getNumberOfTimes();
     
     Duration difference;
     if (useStopTime == true) {
@@ -315,21 +314,8 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
       difference = now.difference(startTime);
     }
 
-    final records = Provider.of<TimingData>(context, listen: false).records;
-    
-    final color = AppColors.navBarTextColor;
-    _updateTextColor(color, confirmed: true);
-
-    _deleteConfirmedRecordsBeforeIndexUntilConflict(records.length - 1);
-
     setState(() {
-      Provider.of<TimingData>(context, listen: false).records.add({
-        'finish_time': formatDuration(difference),
-        'is_runner': false,
-        'type': 'confirm_runner_number',
-        'text_color': color,
-        'numTimes': numTimes,
-      });
+      Provider.of<TimingData>(context, listen: false).records = confirmRunnerNumber(Provider.of<TimingData>(context, listen: false).records, numTimes, formatDuration(difference));
 
       // Scroll to bottom after adding new record
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -512,26 +498,26 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   
 
 
-  void _deleteConfirmedRecordsBeforeIndexUntilConflict(int recordIndex) {
-    print(recordIndex);
-    final records = Provider.of<TimingData>(context, listen: false).records;
-    if (recordIndex < 0 || recordIndex >= records.length) {
-      return;
-    }
-    final trimmedRecords = records.sublist(0, recordIndex + 1);
-    // print(trimmedRecords.length);
-    for (int i = trimmedRecords.length - 1; i >= 0; i--) {
-      // print(i);
-      if (trimmedRecords[i]['is_runner'] == false && trimmedRecords[i]['type'] != 'confirm_runner_number') {
-        break;
-      }
-      if (trimmedRecords[i]['is_runner'] == false && trimmedRecords[i]['type'] == 'confirm_runner_number') {
-        setState(() {
-          records.removeAt(i);
-        });
-      }
-    }
-  }
+  // void _deleteConfirmedRecordsBeforeIndexUntilConflict(int recordIndex) {
+  //   print(recordIndex);
+  //   final records = Provider.of<TimingData>(context, listen: false).records;
+  //   if (recordIndex < 0 || recordIndex >= records.length) {
+  //     return;
+  //   }
+  //   final trimmedRecords = records.sublist(0, recordIndex + 1);
+  //   // print(trimmedRecords.length);
+  //   for (int i = trimmedRecords.length - 1; i >= 0; i--) {
+  //     // print(i);
+  //     if (trimmedRecords[i]['is_runner'] == false && trimmedRecords[i]['type'] != 'confirm_runner_number') {
+  //       break;
+  //     }
+  //     if (trimmedRecords[i]['is_runner'] == false && trimmedRecords[i]['type'] == 'confirm_runner_number') {
+  //       setState(() {
+  //         records.removeAt(i);
+  //       });
+  //     }
+  //   }
+  // }
 
   int getRunnerIndex(int recordIndex) {
     final records = Provider.of<TimingData>(context, listen: false).records;

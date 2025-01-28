@@ -171,17 +171,9 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
 
   Future<void> _deleteBibNumber(int index) async {
     setState(() {
-      // _controllers.removeAt(index);
-      // _focusNodes.removeAt(index);
       Provider.of<BibRecordsProvider>(context, listen: false).removeBibRecord(index);
     });
   }
-
-  // void _showSuccessMessage() {
-  //   ScaffoldMessenger.of(context).showSnackBar(
-  //     SnackBar(content: Text('Successfully resolved conflict')),
-  //   );
-  // }
 
   void _showErrorMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -248,30 +240,23 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     final endTime = loadDurationFromString(decodedData[1]);
     final condensedRecords = decodedData[0];
     List<Map<String, dynamic>> records = [];
-    int place = 1;
+    int place = 0;
     for (var recordString in condensedRecords) {
       if (loadDurationFromString(recordString) != null) {
-        records.add({'finish_time': recordString, 'is_runner': true, 'is_confirmed': false, 'text_color': null, 'place': place});
         place++;
+        records.add({'finish_time': recordString, 'is_runner': true, 'is_confirmed': false, 'text_color': null, 'place': place});
       }
       else {
         final [type, offBy, finish_time] = recordString.split(' ');
         if (type == 'confirm_runner_number'){
-          records = updateTextColor(AppColors.navBarTextColor, records, confirmed: true);
-          records.add({
-            'finish_time': finish_time,
-            'is_runner': false,
-            'type': 'confirm_runner_number',
-            'text_color': AppColors.navBarTextColor,
-            'numTimes': place - 1,
-          });
+          records = confirmRunnerNumber(records, place - 1, finish_time);
         }
         else if (type == 'missing_runner_time'){
-          records = await missingRunnerTime(int.tryParse(offBy), records, place - 1, finish_time);
+          records = await missingRunnerTime(int.tryParse(offBy), records, place, finish_time);
           place += int.tryParse(offBy)!;
         }
         else if (type == 'extra_runner_time'){
-          records = await extraRunnerTime(int.tryParse(offBy), records, place - 1, finish_time);
+          records = await extraRunnerTime(int.tryParse(offBy), records, place, finish_time);
           place -= int.tryParse(offBy)!;
         }
         else {

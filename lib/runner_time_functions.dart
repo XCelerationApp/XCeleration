@@ -22,6 +22,40 @@ dynamic updateTextColor(Color? color, records, {bool confirmed = false, String? 
   return records;
 }
 
+dynamic confirmRunnerNumber(records, numTimes, finishTime) {
+  final color = AppColors.navBarTextColor;
+  records = updateTextColor(color, records,confirmed: true);
+
+  records = deleteConfirmedRecordsBeforeIndexUntilConflict(records, records.length - 1);
+
+  records.add({
+      'finish_time': finishTime,
+      'is_runner': false,
+      'type': 'confirm_runner_number',
+      'text_color': color,
+      'numTimes': numTimes,
+    });
+  
+  return records;
+}
+
+dynamic deleteConfirmedRecordsBeforeIndexUntilConflict(records, int recordIndex) {
+  print(recordIndex);
+  if (recordIndex < 0 || recordIndex >= records.length) {
+    return;
+  }
+  final trimmedRecords = records.sublist(0, recordIndex + 1);
+  for (int i = trimmedRecords.length - 1; i >= 0; i--) {
+    if (trimmedRecords[i]['is_runner'] == false && trimmedRecords[i]['type'] != 'confirm_runner_number') {
+      break;
+    }
+    if (trimmedRecords[i]['is_runner'] == false && trimmedRecords[i]['type'] == 'confirm_runner_number') {
+      records.removeAt(i);
+    }
+  }
+  return records;
+}
+
 dynamic extraRunnerTime(offBy, records, numTimes, finishTime) {
   if (offBy < 1) {
     offBy = 1;

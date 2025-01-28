@@ -609,28 +609,6 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
     return records.every((runner) => runner['bib_number'] != null && runner['is_confirmed'] == true);
   }
 
-  // void _updateTextColor(Color? color, {bool confirmed = false, String? conflict, endIndex}) {
-  //   List<Map<String, dynamic>> records = timingData['records'].cast<Map<String, dynamic>>() ?? [];
-  //   if (endIndex != null && endIndex < records.length && records.isNotEmpty) {
-  //     records = records.sublist(0, endIndex);
-  //   }
-  //   for (int i = records.length - 1; i >= 0; i--) {
-  //     if (records[i]['is_runner'] == false) {
-  //       break;
-  //     }
-  //     setState(() {
-  //       records[i]['text_color'] = color;
-  //       if (confirmed == true) {
-  //         records[i]['is_confirmed'] = true;
-  //         records[i]['conflict'] = conflict;
-  //       }
-  //       else {
-  //         records[i]['is_confirmed'] = false;
-  //         records[i]['conflict'] = null;
-  //       }
-  //     });
-  //   }
-  // }
 
   Future<void> _confirmRunnerNumber({bool useStopTime = false}) async {
     // final records = timingData['records'] ?? [];
@@ -653,19 +631,8 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
 
     final records = timingData['records'] ?? [];
     
-    final color = AppColors.navBarTextColor;
-    timingData['records'] = updateTextColor(color, records, confirmed: true);
-
-    _deleteConfirmedRecordsBeforeIndexUntilConflict(records.length - 1);
-
     setState(() {
-      timingData['records']?.add({
-        'finish_time': formatDuration(difference),
-        'is_runner': false,
-        'type': 'confirm_runner_number',
-        'text_color': color,
-        'numTimes': numTimes,
-      });
+      timingData['records'] = confirmRunnerNumber(records, numTimes, formatDuration(difference));
 
       // Scroll to bottom after adding new record
       WidgetsBinding.instance.addPostFrameCallback((_) {
