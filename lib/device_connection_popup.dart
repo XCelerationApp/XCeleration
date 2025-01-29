@@ -61,12 +61,12 @@ class _DeviceConnectionPopupState extends State<DeviceConnectionPopupContent> {
   }
 
   Future<void> _connectAndTransferData() async {
-    Future<void> foundDeviceCallback (device) async {
+    Future<void> foundDeviceCallback (Device device) async {
       setState(() {
         _connectionStatus = ConnectionStatus.found;
       });
     }
-    Future<void> connectingToDeviceCallback (device) async {
+    Future<void> connectingToDeviceCallback (Device device) async {
       setState(() {
         _connectionStatus = ConnectionStatus.connecting;
       });
@@ -266,7 +266,7 @@ class _DeviceConnectionPopupState extends State<DeviceConnectionPopupContent> {
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            if (_connectionStatus != ConnectionStatus.error || _connectionStatus != ConnectionStatus.finished || _connectionStatus != ConnectionStatus.timeout) ...[
+            if (_connectionStatus != ConnectionStatus.error && _connectionStatus != ConnectionStatus.finished && _connectionStatus != ConnectionStatus.timeout) ...[
               const CircularProgressIndicator(),
               const SizedBox(height: 5),
             ],
