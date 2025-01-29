@@ -167,7 +167,7 @@ class _DeviceConnectionPopupState extends State<DeviceConnectionPopupContent> {
         print("Connected to device: ${device.deviceName}");
         await _deviceConnectionService.sendMessageToDevice(device, 'Start');
         String? start_message = await _deviceConnectionService.receiveMessageFromDevice(device);
-        if (start_message == 'received start') {
+        if (start_message != 'received start') {
           setState(() {
             _connectionStatus = ConnectionStatus.error;
           });
@@ -180,7 +180,7 @@ class _DeviceConnectionPopupState extends State<DeviceConnectionPopupContent> {
         });
         await _deviceConnectionService.sendMessageToDevice(device, _dataToTransfer!);
         String? data_message = await _deviceConnectionService.receiveMessageFromDevice(device);
-        if (data_message == 'received data') {
+        if (data_message != 'received data') {
           setState(() {
             _connectionStatus = ConnectionStatus.error;
           });
@@ -189,7 +189,7 @@ class _DeviceConnectionPopupState extends State<DeviceConnectionPopupContent> {
         }
         await _deviceConnectionService.sendMessageToDevice(device, 'Stop');
         String? stop_message = await _deviceConnectionService.receiveMessageFromDevice(device);
-        if (stop_message == 'received start') {
+        if (stop_message != 'received stop') {
           setState(() {
             _connectionStatus = ConnectionStatus.error;
           });

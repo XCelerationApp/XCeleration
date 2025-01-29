@@ -140,8 +140,8 @@ class DeviceConnectionService {
 
     receivedDataSubscription = nearbyService.dataReceivedSubscription(callback: (data) async {
       await receivedDataSubscription?.cancel();
-      _receiveMessageCompleter!.complete(jsonEncode(data.message));
-      print("dataReceivedSubscription: ${jsonEncode(data.message)}");
+      _receiveMessageCompleter!.complete(jsonEncode(data["message"]));
+      print("dataReceivedSubscription: ${jsonEncode(data["message"])}");
       // print(data.message);
       return;
     });
