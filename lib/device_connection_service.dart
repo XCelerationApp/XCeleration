@@ -108,7 +108,7 @@ class DeviceConnectionService {
     } else if (device.state == SessionState.connected) {
       print("Device is already connected: ${device.deviceName}");
     } else {
-      print("Device is in an unexpected state: ${device.state}");
+      print("Device is connecting, not sending invite: ${device.state}");
     }
   }
 

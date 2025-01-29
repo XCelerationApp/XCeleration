@@ -9,7 +9,6 @@ import 'device_connection_service.dart';
 import 'package:flutter_nearby_connections/flutter_nearby_connections.dart';
 
 Future<void> showDeviceConnectionPopup(BuildContext context, { required DeviceType deviceType, required Function() backUpShareFunction, Function(String data)? onDatatransferComplete, String? dataToTransfer }) async {
-  print('calling function');
   showModalBottomSheet(
     context: context,
     builder: (BuildContext context) {
@@ -88,6 +87,9 @@ class _DeviceConnectionPopupState extends State<DeviceConnectionPopupContent> {
           closeWidget();
           return;
         }
+        setState(() {
+          _connectionStatus = ConnectionStatus.connected;
+        });
         String? message = await _deviceConnectionService.receiveMessageFromDevice(device);
         if (message == null) {
           setState(() {
@@ -103,6 +105,7 @@ class _DeviceConnectionPopupState extends State<DeviceConnectionPopupContent> {
           closeWidget();
           return;
         }
+        await _deviceConnectionService.sendMessageToDevice(device, 'received start');
         setState(() {
           _connectionStatus = ConnectionStatus.receiving;
         });
@@ -118,7 +121,9 @@ class _DeviceConnectionPopupState extends State<DeviceConnectionPopupContent> {
           }
           data += message;
           message = await _deviceConnectionService.receiveMessageFromDevice(device);
+          await _deviceConnectionService.sendMessageToDevice(device, 'received data');
         }
+        await _deviceConnectionService.sendMessageToDevice(device, 'received stop');
         print("received data from Race Timer Device: $data");
         if (_onDataTransferComplete != null) {
           await _onDataTransferComplete!(data);    
@@ -159,11 +164,36 @@ class _DeviceConnectionPopupState extends State<DeviceConnectionPopupContent> {
           return;
         }
         await _deviceConnectionService.sendMessageToDevice(device, 'Start');
+        String? start_message = await _deviceConnectionService.receiveMessageFromDevice(device);
+        if (start_message == 'received start') {
+          setState(() {
+            _connectionStatus = ConnectionStatus.error;
+          });
+          closeWidget();
+          return;
+        }
+
         setState(() {
           _connectionStatus = ConnectionStatus.sending;
         });
         await _deviceConnectionService.sendMessageToDevice(device, _dataToTransfer!);
+        String? data_message = await _deviceConnectionService.receiveMessageFromDevice(device);
+        if (data_message == 'received data') {
+          setState(() {
+            _connectionStatus = ConnectionStatus.error;
+          });
+          closeWidget();
+          return;
+        }
         await _deviceConnectionService.sendMessageToDevice(device, 'Stop');
+        String? stop_message = await _deviceConnectionService.receiveMessageFromDevice(device);
+        if (stop_message == 'received start') {
+          setState(() {
+            _connectionStatus = ConnectionStatus.error;
+          });
+          closeWidget();
+          return;
+        }
 
         setState(() {
           _connectionStatus = ConnectionStatus.finished;
@@ -242,7 +272,7 @@ class _DeviceConnectionPopupState extends State<DeviceConnectionPopupContent> {
               _connectionStatus == ConnectionStatus.searching ? 'Searching for device...' :
               _connectionStatus == ConnectionStatus.found ? 'Found device, trying to connect...' :
               _connectionStatus == ConnectionStatus.connecting ? 'Connecting to device...' :
-              _connectionStatus == ConnectionStatus.connected ? 'Connected to device' :
+              _connectionStatus == ConnectionStatus.connected ? 'Connected to device...' :
               _connectionStatus == ConnectionStatus.sending ? 'Sending data...' :
               _connectionStatus == ConnectionStatus.receiving ? 'Receiving data...' :
               _connectionStatus == ConnectionStatus.finished ? 'Done!' :
