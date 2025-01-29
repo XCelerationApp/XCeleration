@@ -87,6 +87,7 @@ class _DeviceConnectionPopupState extends State<DeviceConnectionPopupContent> {
           closeWidget();
           return;
         }
+        print("Connected to device: ${device.deviceName}");
         setState(() {
           _connectionStatus = ConnectionStatus.connected;
         });
@@ -163,6 +164,7 @@ class _DeviceConnectionPopupState extends State<DeviceConnectionPopupContent> {
           closeWidget();
           return;
         }
+        print("Connected to device: ${device.deviceName}");
         await _deviceConnectionService.sendMessageToDevice(device, 'Start');
         String? start_message = await _deviceConnectionService.receiveMessageFromDevice(device);
         if (start_message == 'received start') {
