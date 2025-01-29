@@ -10,6 +10,8 @@ import '../constants.dart';
 import 'resolve_conflict.dart';
 // import '../database_helper.dart';
 import '../runner_time_functions.dart';
+import 'package:race_timing_app/utils/timing_utils.dart';
+import 'package:race_timing_app/utils/dialog_utils.dart';
 
 class EditAndResolveScreen extends StatefulWidget {
   final Race race;
@@ -92,7 +94,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
 
   void _saveResults() async {
     if (!_checkIfAllRunnersResolved()) {
-      _showErrorMessage('All runners must be resolved before proceeding.');
+      DialogUtils.showErrorDialog(context, message: 'All runners must be resolved before proceeding.');
       return;
     }
     // Check if all runners have a non-null bib number
@@ -135,7 +137,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
         ),
       );
     } else {
-      _showErrorMessage('All runners must have a bib number assigned before proceeding.');
+      DialogUtils.showErrorDialog(context, message: 'All runners must have a bib number assigned before proceeding.');
     }
   }
 
@@ -153,7 +155,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
         final bibDataLength = bibData.length;
         final numConfirmedRunners = records.where((r) => r['is_runner'] == true && r['is_confirmed'] == true).length;
         if (numConfirmedRunners > bibDataLength) {
-          _showErrorMessage('You cannot load bib numbers for runners if the there are more confirmed runners than loaded bib numbers.');
+          DialogUtils.showErrorDialog(context, message: 'You cannot load bib numbers for runners if the there are more confirmed runners than loaded bib numbers.');
           return;
         } else{
           _extraRunnerTime(offBy: -difference, useStopTime: true);
@@ -256,7 +258,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
                     await _resolveTooManyRunnerTimes(conflictIndex);
                   }
                   else {
-                    _showErrorMessage('Unknown conflict type: $firstConflict');
+                    DialogUtils.showErrorDialog(context, message: 'Unknown conflict type: $firstConflict');
                   }
                   if (!mounted) return; // Check if the widget is still mounted
                   // // Call this method again to check for the next conflict
@@ -457,7 +459,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
         .toList();
 
     if (unusedTimes.isEmpty) {
-      _showErrorMessage('Please select a time for each runner.');
+      DialogUtils.showErrorDialog(context, message: 'Please select a time for each runner.');
       return;
     }
     print('Unused times: $unusedTimes');
@@ -552,58 +554,6 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
     return [null, -1];
   }
 
-
-  void _showErrorMessage(String message, {String? title}) {
-    // ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
-    showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: Text(title ?? 'Error'),
-            content: Text(message),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop(); // Close the popup
-                },
-                child: Text('OK'),
-              ),
-            ],
-          );
-        },
-      );
-  }
-
-  Future<bool> _showConfirmationMessage(String message) async {
-    bool confirmed = false;
-    await showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: Text('Confirmation'),
-            content: Text(message),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  confirmed = false;
-                  Navigator.of(context).pop(); // Close the popup
-                },
-                child: Text('No'),
-              ),
-              TextButton(
-                onPressed: () {
-                  confirmed = true;
-                  Navigator.of(context).pop(); // Close the popup
-                },
-                child: Text('Yes'),
-              ),
-            ],
-          );
-        },
-      );
-    return confirmed;
-  }
-
   bool _checkIfAllRunnersResolved() {
     List<Map<String, dynamic>> records = timingData['records'].cast<Map<String, dynamic>>() ?? [];
     return records.every((runner) => runner['bib_number'] != null && runner['is_confirmed'] == true);
@@ -614,34 +564,14 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
     // final records = timingData['records'] ?? [];
     int numTimes = _getNumberOfTimes(); // Placeholder for actual length input
     
-    Duration difference;
-    if (useStopTime == true) {
-      difference = timingData['endTime']!;
-    }
-    else {
-      DateTime now = DateTime.now();
-      final startTime = timingData['startTime'];
-      if (startTime == null) {
-        print('Start time cannot be null. 4');
-        _showErrorMessage('Start time cannot be null.');
-        return;
-      }
-      difference = now.difference(startTime);
-    }
+    Duration difference = getCurrentDuration(timingData['startTime'], timingData['endTime']);
 
     final records = timingData['records'] ?? [];
     
     setState(() {
       timingData['records'] = confirmRunnerNumber(records, numTimes, formatDuration(difference));
 
-      // Scroll to bottom after adding new record
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      });
+      scrollToBottom(_scrollController);
     });
   }
   
@@ -651,7 +581,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
     final records = timingData['records'];
     final previousRunner = records.last;
     if (previousRunner['is_runner'] == false) {
-      _showErrorMessage('You must have a unconfirmed runner time before pressing this button.');
+      DialogUtils.showErrorDialog(context, message: 'You must have a unconfirmed runner time before pressing this button.');
       return;
     }
 
@@ -659,7 +589,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
     final recordPlace = lastConfirmedRecord.isEmpty || lastConfirmedRecord['place'] == null ? 0 : lastConfirmedRecord['place'];
 
     if ((numTimes - offBy) == recordPlace) {
-      bool confirmed = await _showConfirmationMessage('This will delete the last $offBy finish times, are you sure you want to continue?');
+      bool confirmed = await DialogUtils.showConfirmationDialog(context, content: 'This will delete the last $offBy finish times, are you sure you want to continue?', title: 'Confirm Deletion');
       if (confirmed == false) {
         return;
       }
@@ -669,21 +599,14 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
       return;
     }
     else if (numTimes - offBy < recordPlace) {
-      _showErrorMessage('You cannot remove a runner that is confirmed.');
+      DialogUtils.showErrorDialog(context, message: 'You cannot remove a runner that is confirmed.');
       return;
     }
 
     setState(() {
       timingData['records'] = extraRunnerTime(offBy, records, numTimes, timingData['endTime']);
 
-      // Scroll to bottom after adding new record
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      });
+      scrollToBottom(_scrollController);
     });
   }
 
@@ -694,152 +617,9 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
     setState(() {
       timingData['records'] = missingRunnerTime(offBy, timingData['records'], numTimes, timingData['endTime']);
 
-      // Scroll to bottom after adding new record
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      });
+      scrollToBottom(_scrollController);
     });
   }
-
-  // Future<void> _extraRunnerTime({int offBy = 1, bool useStopTime = false}) async {
-  //   if (offBy < 1) {
-  //     offBy = 1;
-  //   }
-  //   // final records = timingData['records'] ?? [];
-  //   final numTimes = _getNumberOfTimes().toInt();
-  //   int correcttedNumTimes = numTimes - offBy; // Placeholder for actual length input
-
-  //   final records = timingData['records'] ?? [];
-  //   final previousRunner = records.last;
-  //   if (previousRunner['is_runner'] == false) {
-  //     _showErrorMessage('You must have a unconfirmed runner time before pressing this button.');
-  //     return;
-  //   }
-
-  //   final lastConfirmedRecord = records.lastWhere((r) => r['is_runner'] == true && r['is_confirmed'] == true, orElse: () => {}.cast<String, dynamic>());
-  //   final recordPlace = lastConfirmedRecord.isEmpty || lastConfirmedRecord['place'] == null ? 0 : lastConfirmedRecord['place'];
-
-  //   if ((numTimes - offBy) == recordPlace) {
-  //     bool confirmed = await _showConfirmationMessage('This will delete the last $offBy finish times, are you sure you want to continue?');
-  //     if (confirmed == false) {
-  //       return;
-  //     }
-  //     setState(() {
-  //       timingData['records']?.removeRange(timingData['records']!.length - offBy, timingData['records']!.length);
-  //     });
-  //     return;
-  //   }
-  //   else if (numTimes - offBy < recordPlace) {
-  //     _showErrorMessage('You cannot remove a runner that is confirmed.');
-  //     return;
-  //   }
-  //   for (int i = 1; i <= offBy; i++) {
-  //     final lastOffByRunner = records[records.length - i];
-  //     if (lastOffByRunner['is_runner'] == true) {
-  //       lastOffByRunner['previous_place'] = lastOffByRunner['place'];
-  //       lastOffByRunner['place'] = '';
-  //     }
-  //   }
-
-  //   Duration difference;
-  //   if (useStopTime == true) {
-  //     difference = timingData['endTime']!;
-  //   }
-  //   else {
-  //     DateTime now = DateTime.now();
-  //     final startTime = timingData['startTime'];
-  //     if (startTime == null) {
-  //       print('Start time cannot be null. 4');
-  //       _showErrorMessage('Start time cannot be null.');
-  //       return;
-  //     }
-  //     difference = now.difference(startTime);
-  //   }
-
-  //   final color = AppColors.redColor;
-  //   _updateTextColor(color, conflict: 'extra_runner_time');
-
-  //   setState(() {
-  //     timingData['records']?.add({
-  //       'finish_time': formatDuration(difference),
-  //       'is_runner': false,
-  //       'type': 'extra_runner_time',
-  //       'text_color': color,
-  //       'numTimes': correcttedNumTimes,
-  //       'offBy': offBy,
-  //     });
-
-  //     // Scroll to bottom after adding new record
-  //     WidgetsBinding.instance.addPostFrameCallback((_) {
-  //       _scrollController.animateTo(
-  //         _scrollController.position.maxScrollExtent,
-  //         duration: const Duration(milliseconds: 300),
-  //         curve: Curves.easeOut,
-  //       );
-  //     });
-  //   });
-  // }
-
-  // Future<void> _missingRunnerTime({int offBy = 1, bool useStopTime = false}) async {
-  //   final int numTimes = _getNumberOfTimes();
-  //   int correcttedNumTimes = numTimes + offBy;
-    
-  //   Duration difference;
-  //   if (useStopTime == true) {
-  //     difference = timingData['endTime']!;
-  //   }
-  //   else {
-  //     DateTime now = DateTime.now();
-  //     final startTime = timingData['startTime'];
-  //     if (startTime == null) {
-  //       print('Start time cannot be null. 6');
-  //       _showErrorMessage('Start time cannot be null.');
-  //       return;
-  //     }
-  //     difference = now.difference(startTime);
-  //   }
-
-  //   final color = AppColors.redColor;
-  //   _updateTextColor(color, conflict: 'missing_runner_time');
-
-  //   setState(() {
-  //     for (int i = 1; i <= offBy; i++) {
-  //       print('Adding record $i!!!!!');
-  //       timingData['records']?.add({
-  //         'finish_time': 'TBD',
-  //         'bib_number': null,
-  //         'is_runner': true,
-  //         'is_confirmed': false,
-  //         'conflict': 'missing_runner_time',
-  //         'text_color': color,
-  //         'place': numTimes + i,
-  //       });
-  //       _controllers.add(TextEditingController());
-  //     }
-
-  //     timingData['records']?.add({
-  //       'finish_time': formatDuration(difference),
-  //       'is_runner': false,
-  //       'type': 'missing_runner_time',
-  //       'text_color': color,
-  //       'numTimes': correcttedNumTimes,
-  //       'offBy': offBy,
-  //     });
-
-  //     // Scroll to bottom after adding new record
-  //     WidgetsBinding.instance.addPostFrameCallback((_) {
-  //       _scrollController.animateTo(
-  //         _scrollController.position.maxScrollExtent,
-  //         duration: const Duration(milliseconds: 300),
-  //         curve: Curves.easeOut,
-  //       );
-  //     });
-  //   });
-  // }
 
   int _getNumberOfTimes() {
     final records = timingData['records'] ?? [];
@@ -850,9 +630,6 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
       } else if (record['type'] == 'extra_runner_time') {
         count--;
       } 
-      // else if (record['type'] == 'missing_runner_time') {
-      //   count++;
-      // }
     }
     return max(0, count);
   }
@@ -925,7 +702,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
   bool _timeIsValid(String newValue, int index, List<dynamic> time_records) {
     Duration? parsedTime = loadDurationFromString(newValue);
     if (parsedTime == null || parsedTime < Duration.zero) {
-      _showErrorMessage('Invalid time entered. Should be in HH:mm:ss.ms format');
+      DialogUtils.showErrorDialog(context, message: 'Invalid time entered. Should be in HH:mm:ss.ms format');
       return false;
     }
 
@@ -934,12 +711,12 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
     }
 
     if (index > 0 && loadDurationFromString(time_records[index - 1]['finish_time'])! > parsedTime) {
-      _showErrorMessage('Time must be greater than the previous time');
+      DialogUtils.showErrorDialog(context, message: 'Time must be greater than the previous time');
       return false;
     }
 
     if (index < time_records.length - 1 && loadDurationFromString(time_records[index + 1]['finish_time'])! < parsedTime) {
-      _showErrorMessage('Time must be less than the next time');
+      DialogUtils.showErrorDialog(context, message: 'Time must be less than the next time');
       return false;
     }
 

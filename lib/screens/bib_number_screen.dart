@@ -13,6 +13,7 @@ import '../models/bib_data.dart';
 import '../device_connection_popup.dart';
 import '../device_connection_service.dart';
 import 'package:race_timing_app/runner_time_functions.dart';
+import 'package:race_timing_app/utils/dialog_utils.dart';
 
 class BibNumberScreen extends StatefulWidget {
   final Race race;
@@ -55,14 +56,12 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
           'low_confidence_score': false
           }, // Initialize flags as an empty list
       });
-      // WidgetsBinding.instance.addPostFrameCallback((_) {
       if (index > 0) {
         Provider.of<BibRecordsProvider>(context, listen: false).focusNodes[index - 1].requestFocus();
       }
       if (focus) {
         Provider.of<BibRecordsProvider>(context, listen: false).focusNodes[index].requestFocus();
       }
-      // });
     });
 
     if (bibNumber.isNotEmpty) {
@@ -75,14 +74,6 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
       }
       flagBibNumber(index, bibNumber);  
     }
-    // else {
-    //   // Automatically focus the last input box
-    //   Future.delayed(Duration(milliseconds: 1000), () {
-    //      WidgetsBinding.instance.addPostFrameCallback((_) {
-    //       _focusNodes.last.requestFocus();
-    //     });
-    //   });
-    // }
   }
 
   void flagBibNumber(int index, String bibNumber) async {
@@ -175,16 +166,6 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     });
   }
 
-  void _showErrorMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message, style: TextStyle(color: Colors.red[900], fontSize: 16)),
-        backgroundColor: Colors.white,
-        duration: Duration(seconds: 2),
-      ),
-    );
-  }
-
   Future<void> _scanQRCode() async {
     final bibRecords = Provider.of<BibRecordsProvider>(context, listen: false).bibRecords;
 
@@ -225,11 +206,11 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
       }
     } catch (e) {
       if (e is MissingPluginException) {
-        _showErrorMessage('The QR code scanner is not available on this device.');
+        DialogUtils.showErrorDialog(context, message: 'The QR code scanner is not available on this device.');
         await _loadRaceTimesThroughString(jsonEncode([["0.75","1.40","2.83","confirm_runner_number null 3.73","4.65","6.95","extra_runner_time 1 14.85","17.75","confirm_runner_number null 18.70"],"21.61"]));
       }
       else {
-        _showErrorMessage('Failed to scan QR code: $e');
+        DialogUtils.showErrorDialog(context, message: 'Failed to scan QR code: $e');
       }
     }
   }
@@ -291,10 +272,10 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
           ),
         );
       } else {
-        _showErrorMessage('Error: QR code data is invalid');
+        DialogUtils.showErrorDialog(context, message: 'Error: QR code data is invalid');
       }
     } catch (e) {
-      _showErrorMessage('Error: Failed to process QR code data $e');
+      DialogUtils.showErrorDialog(context, message: 'Error: Failed to process QR code data $e');
       rethrow;
     }
   }
@@ -401,11 +382,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                                     ),
                                     onSubmitted: (value) async { 
                                       await _addBibNumber('', [], true);
-                                      // Future.delayed(Duration(milliseconds: 500), () {
-                                      //   WidgetsBinding.instance.addPostFrameCallback((_) {
-                                        focusNodes.last.requestFocus(); // Focus the last input box
-                                      //   });
-                                      // });
+                                      focusNodes.last.requestFocus(); // Focus the last input box
                                     },
                                     onChanged: (value) => _updateBibNumber(index, value),
                                   ),
