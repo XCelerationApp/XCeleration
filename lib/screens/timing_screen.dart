@@ -180,7 +180,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   }
 
   void _shareTimes() {
-    final data = _generateQrData(); // Ensure this returns a String
+    final data = Provider.of<TimingData>(context, listen: false).encode(); // Ensure this returns a String
     showDialog(
       context: context,
       builder: (context) {
@@ -206,10 +206,6 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     );
   }
 
-  String _generateQrData() {
-    print(Provider.of<TimingData>(context, listen: false).QREncode());
-    return Provider.of<TimingData>(context, listen: false).QREncode();
-  }
 
   List<dynamic> _getFirstConflict() {
     final records = Provider.of<TimingData>(context, listen: false).records;
@@ -704,7 +700,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
                           // double fontSize = constraints.maxWidth * 0.11;
                           // print('font size: $fontSize');
                             return ElevatedButton(
-                              onPressed: () => showDeviceConnectionPopup(context, deviceType: DeviceType.raceTimerDevice, backUpShareFunction: _shareTimes, dataToTransfer: 'This is some data to transfer'),
+                              onPressed: () => showDeviceConnectionPopup(context, deviceType: DeviceType.raceTimerDevice, backUpShareFunction: _shareTimes, dataToTransfer: Provider.of<TimingData>(context, listen: false).encode()),
                               style: ElevatedButton.styleFrom(
                                 minimumSize: Size(0, 78),
                                 padding: EdgeInsets.zero,

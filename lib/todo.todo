@@ -9,6 +9,8 @@ Functionality:
 - show how many bib numbers are there during the race
 - throw specific error messages for spreadsheet loading
 - fix race length (either delete or add mile/km)
+- make sure all possible errors are caught and handled
+- clean up code
 
 UI:
 - make popups for sharing race times

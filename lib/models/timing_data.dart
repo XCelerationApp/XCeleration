@@ -72,7 +72,7 @@ class TimingData with ChangeNotifier {
     notifyListeners();
   }
 
-  String QREncode() {
+  String encode() {
     List<String> condensedRecords = [];
     for (var record in _records) {
       if (record['is_runner'] == true) {

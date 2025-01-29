@@ -221,12 +221,12 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
       final result = await BarcodeScanner.scan();
       if (result.type == ResultType.Barcode) {
         print('Scanned barcode: ${result.rawContent}');
-        await _processQRData(result.rawContent);
+        await _loadRaceTimesThroughString(result.rawContent);
       }
     } catch (e) {
       if (e is MissingPluginException) {
         _showErrorMessage('The QR code scanner is not available on this device.');
-        await _processQRData(jsonEncode([["0.75","1.40","2.83","confirm_runner_number null 3.73","4.65","6.95","extra_runner_time 1 14.85","17.75","confirm_runner_number null 18.70"],"21.61"]));
+        await _loadRaceTimesThroughString(jsonEncode([["0.75","1.40","2.83","confirm_runner_number null 3.73","4.65","6.95","extra_runner_time 1 14.85","17.75","confirm_runner_number null 18.70"],"21.61"]));
       }
       else {
         _showErrorMessage('Failed to scan QR code: $e');
@@ -234,7 +234,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     }
   }
 
-  Future<Map<String, dynamic>> _decodeQRData(String qrData) async {
+  Future<Map<String, dynamic>> _decodeRaceTimesString(String qrData) async {
     final decodedData = json.decode(qrData);
     final startTime = null;
     final endTime = loadDurationFromString(decodedData[1]);
@@ -267,11 +267,11 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     return {'endTime': endTime, 'records': records, 'startTime': startTime};
   }
 
-  Future<void> _processQRData(String qrData) async {
+  Future<void> _loadRaceTimesThroughString(String qrData) async {
     final bibRecords = Provider.of<BibRecordsProvider>(context, listen: false).bibRecords;
     // final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
     try {
-      final Map<String, dynamic> timingData = await _decodeQRData(qrData);
+      final Map<String, dynamic> timingData = await _decodeRaceTimesString(qrData);
       print('decoded timingData: $timingData');
       for (var record in timingData['records']){
         print(record['place']);
@@ -488,9 +488,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                       child: ElevatedButton(
                         onPressed: () => {
                           if (_isRaceFinished) {
-                            () async => {
-                              showDeviceConnectionPopup(context, deviceType: DeviceType.bibNumberDevice, backUpShareFunction: _scanQRCode, onDatatransferComplete: (String result) => _processQRData(result)),
-                              }
+                            showDeviceConnectionPopup(context, deviceType: DeviceType.bibNumberDevice, backUpShareFunction: _scanQRCode, onDatatransferComplete: (String result) => _loadRaceTimesThroughString(result)),
                           } else {
                             _addBibNumber('', [], true)
                           }

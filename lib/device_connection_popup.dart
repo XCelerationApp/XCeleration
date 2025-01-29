@@ -9,6 +9,7 @@ import 'device_connection_service.dart';
 import 'package:flutter_nearby_connections/flutter_nearby_connections.dart';
 
 Future<void> showDeviceConnectionPopup(BuildContext context, { required DeviceType deviceType, required Function() backUpShareFunction, Function(String data)? onDatatransferComplete, String? dataToTransfer }) async {
+  print('calling function');
   showModalBottomSheet(
     context: context,
     builder: (BuildContext context) {
@@ -102,6 +103,9 @@ class _DeviceConnectionPopupState extends State<DeviceConnectionPopupContent> {
           closeWidget();
           return;
         }
+        setState(() {
+          _connectionStatus = ConnectionStatus.receiving;
+        });
         message = '';
         String data = '';
         while (message != 'Stop') {
@@ -155,6 +159,9 @@ class _DeviceConnectionPopupState extends State<DeviceConnectionPopupContent> {
           return;
         }
         await _deviceConnectionService.sendMessageToDevice(device, 'Start');
+        setState(() {
+          _connectionStatus = ConnectionStatus.sending;
+        });
         await _deviceConnectionService.sendMessageToDevice(device, _dataToTransfer!);
         await _deviceConnectionService.sendMessageToDevice(device, 'Stop');
 
