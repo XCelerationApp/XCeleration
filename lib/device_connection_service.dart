@@ -57,11 +57,11 @@ class DeviceConnectionService {
         if (device.deviceName == deviceName) {
           print("Found device");
           if (foundDeviceCallback != null) {
-            foundDeviceCallback(device);
+            await foundDeviceCallback(device);
           }
           if (device.state == SessionState.connecting) {
             if (connectingToDeviceCallback != null) {
-              connectingToDeviceCallback(device);
+              await connectingToDeviceCallback(device);
             }
           }
           else if (device.state == SessionState.connected) {
