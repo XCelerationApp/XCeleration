@@ -112,7 +112,8 @@ class _DeviceConnectionPopupState extends State<DeviceConnectionPopupContent> {
         });
         message = '';
         String data = '';
-        while (message != 'Stop') {
+        bool receiving = true;
+        while (receiving) {
           if (message == null) {
             setState(() {
               _connectionStatus = ConnectionStatus.timeout;
@@ -122,6 +123,10 @@ class _DeviceConnectionPopupState extends State<DeviceConnectionPopupContent> {
           }
           data += message;
           message = await _deviceConnectionService.receiveMessageFromDevice(device);
+          if (message == 'Stop') {
+            receiving = false;
+            break;
+          }
           await _deviceConnectionService.sendMessageToDevice(device, 'received data');
         }
         await _deviceConnectionService.sendMessageToDevice(device, 'received stop');

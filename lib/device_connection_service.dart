@@ -140,6 +140,7 @@ class DeviceConnectionService {
 
     receivedDataSubscription = nearbyService.dataReceivedSubscription(callback: (data) async {
       if (data['senderDeviceId'] != device.deviceId) {
+        print('wrong device');
         return;
       }
       await receivedDataSubscription?.cancel();
