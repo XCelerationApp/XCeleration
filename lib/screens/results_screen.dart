@@ -5,7 +5,6 @@ import 'package:race_timing_app/utils/time_formatter.dart';
 import 'package:race_timing_app/utils/csv_utils.dart';
 
 class ResultsScreen extends StatefulWidget {
-  // final List<Map<String, dynamic>> runners;
   final int raceId;
 
   const ResultsScreen({super.key, required this.raceId});
@@ -31,7 +30,6 @@ class ResultsScreenState extends State<ResultsScreen> {
     runners = await DatabaseHelper.instance.getRaceResults(raceId);
 
     List<Map<String, dynamic>> modifiedRunners = runners.map((runner) {
-      // print('duration: ${loadDurationFromString(runner['finish_time'])}');
       return {
         ...runner,
         'finishTimeAsDuration': loadDurationFromString(runner['finish_time']),
@@ -64,10 +62,6 @@ class ResultsScreenState extends State<ResultsScreen> {
                 Wrap(
                   alignment: WrapAlignment.spaceBetween,
                   children: [
-                    // const Text(
-                    //   'Team Results',
-                    //   style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                    // ),
                     Row(
                       children: [
                         const Text('Head-to-Head View'),
@@ -399,28 +393,12 @@ class ResultsScreenState extends State<ResultsScreen> {
   }
 
   List<Map<String, dynamic>> _calculateTeamResults(List<Map<String, dynamic>> allRunners) {
-    // final Map<String, List<Map<String, dynamic>>> teams = {};
     final List<List<String>> teamInfo = _getTeamInfo(allRunners);
 
     final scoringTeams = teamInfo[0];
     final nonScoringTeams = teamInfo[1];
 
     final scoringRunners = _getRunnersForTeams(allRunners, scoringTeams);
-    // final nonScoringRunners = _getRunnersForTeams(allRunners, nonScoringTeams);
-
-    // // Group runners by school
-    // for (final runner in allRunners) {
-    //   final school = runner['school'];
-    //   if (school == null) {
-    //     continue;
-    //   }
-    //   if (!teams.containsKey(school)) {
-    //     teams[school] = [];
-    //   }
-    //   teams[school]!.add(runner);
-    // }
-
-    
 
     // Calculate scores for each team
     final teamScores = <Map<String, dynamic>>[];
@@ -457,7 +435,6 @@ class ResultsScreenState extends State<ResultsScreen> {
     }
 
     for (var school in nonScoringTeams) {
-      // final scorers = runners.map((runner) => '${allRunners.indexOf(runner) + 1}').join('+');
       nonScoringTeamScores.add({
         'place': null,
         'school': school,

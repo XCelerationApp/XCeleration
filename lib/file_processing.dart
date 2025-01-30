@@ -28,8 +28,6 @@ Future<void> processSpreadsheet(int raceId, bool isTeam) async {
           String school = row[2]?.toString() ?? '';
           String bibNumber = row[3]?.toString().replaceAll('"', '') ?? ''; // Remove quotation marks if present
           int bibNumberInt = int.tryParse(bibNumber) ?? -1;
-          // print("bibNumberInt:");
-          // print(bibNumberInt);
 
           if (name.isNotEmpty && grade > 0 && school.isNotEmpty && bibNumber.isNotEmpty && bibNumberInt >= 0) {
             if (isTeam == true) {
@@ -71,8 +69,6 @@ Future<void> processSpreadsheet(int raceId, bool isTeam) async {
             String school = row[2]?.toString() ?? '';
             String bibNumber = row[3]?.toString().replaceAll('"', '') ?? ''; // Remove quotation marks if present
             int bibNumberInt = int.tryParse(bibNumber) ?? -1;
-            // print("bibNumberInt:");
-            // print(bibNumberInt);
 
             // Validate the parsed data
             if (name.isNotEmpty && grade > 0 && school.isNotEmpty && bibNumberInt >= 0 && bibNumber.isNotEmpty) {

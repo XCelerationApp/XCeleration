@@ -68,7 +68,6 @@ class _RaceScreenState extends State<RaceScreen> {
             Tab(icon: Icon(Icons.person), text: 'Runner Data'),
           ] : [
             Tab(icon: Icon(Icons.info_outline), text: 'Race Info'),
-            // Tab(icon: Icon(Icons.timer), text: 'Time Race'),
             if (timingData['records'] != null && timingData['records']!.isNotEmpty && timingData['bibs'] != null && timingData['bibs']!.isNotEmpty)
               Tab(icon: Icon(Icons.checklist), text: 'Resolve Conflicts'),
             Tab(icon: Icon(Icons.numbers), text: 'Record Bib Numbers'),

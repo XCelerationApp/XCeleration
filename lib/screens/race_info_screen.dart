@@ -150,11 +150,6 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> {
                      _distance != race!.distance;
 
     return Scaffold(
-      // appBar: AppBar(
-        // title: Text(_name.isNotEmpty ? _name : 'Loading...'),
-      //   elevation: 0,
-      //   backgroundColor: Colors.blueAccent,
-      // ),
       body: Column(
         children: [
           Expanded(
@@ -272,7 +267,6 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> {
                   );
                 },
                 style: ElevatedButton.styleFrom(
-                  // backgroundColor: Colors.blueAccent,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),

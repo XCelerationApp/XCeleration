@@ -24,13 +24,11 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
   final _gradeController = TextEditingController();
   final _schoolController = TextEditingController();
   final _bibController = TextEditingController();
-  // final _deleteBibController = TextEditingController();
   String _searchAttribute = 'Bib Number'; // Initialize with a default value
   final _searchController = TextEditingController();
 
   List<Map<String, dynamic>> _runners = []; // To store runners fetched from the database.
   List<Map<String, dynamic>> _filteredRunners = []; // To store filtered runners.
-  // List<Map<String, dynamic>> _teamRunners = [];
 
   late int raceId;
   late bool isTeam;
@@ -80,7 +78,6 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
         'school': school,
         'grade': grade,
         'bib_number': bib,
-        // 'race_id': raceId,
       });
     }
     else{
@@ -99,27 +96,6 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
     _loadRunners();
     Navigator.of(context).pop(); // Close the popup
   }
-
-  // Future<void> _deleteRunner() async {
-  //   final bib = int.tryParse(_deleteBibController.text) ?? null;
-
-  //   if (bib == null) {
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       const SnackBar(content: Text('Please enter a Bib Number')),
-  //     );
-  //     return;
-  //   }
-
-  //   if (isTeam == true) {
-  //     await DatabaseHelper.instance.deleteTeamRunner(bib);
-  //   }
-  //   else {
-  //     await DatabaseHelper.instance.deleteRaceRunner(raceId, bib);
-  //   }
-  //   _deleteBibController.clear();
-  //   _loadRunners();
-  //   Navigator.of(context).pop(); // Close the popup
-  // }
 
   Future<void> _showAddRunnerPopup(BuildContext context) async {
     showDialog(
@@ -152,24 +128,6 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
   }
 
   Future<void> _showEditRunnerPopup(BuildContext context, Map<String, dynamic> runnerData) async {
-    // final bibNumberText = runnerData['bib_number'];
-    // if (bibNumberText.isEmpty) {
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //     const SnackBar(content: Text('Please enter a Bib Number.'),),
-    //   );
-    //   return;
-    // }
-    // final bibNumber = int.tryParse(bibNumberText);
-    // if (bibNumber == null) {
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //     const SnackBar(content: Text('Please enter a valid Bib Number.'),),
-    //   );
-    //   return;
-    // }
-    // final runner = _runners.firstWhere(
-    //   (runner) => runner['bib_number'] == bibNumber,
-    // );
-
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -223,31 +181,6 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
       ),
     );
   }
-
-  // Future<void> _showDeleteRunnerPopup(BuildContext context) async {
-  //   showDialog(
-  //     context: context,
-  //     builder: (context) => AlertDialog(
-  //       title: const Text('Delete Runner'),
-  //       content: Column(
-  //         mainAxisSize: MainAxisSize.min,
-  //         children: [
-  //           _buildTextField(_deleteBibController, 'Enter Bib Number', isNumeric: true),
-  //         ],
-  //       ),
-  //       actions: [
-  //         TextButton(
-  //           onPressed: () => Navigator.of(context).pop(),
-  //           child: const Text('Cancel'),
-  //         ),
-  //         ElevatedButton(
-  //           onPressed: _deleteRunner,
-  //           child: const Text('Delete'),
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
 
   Future<void> _loadSpreadsheet() async {
     await processSpreadsheet(raceId, isTeam);
@@ -340,26 +273,6 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
                     ),
                   ),
                 ),
-                // Expanded(
-                //   child: Padding(
-                //     padding: const EdgeInsets.all(5.0), // Padding around the button
-                //     child: LayoutBuilder(
-                //       builder: (context, constraints) {
-                //         double fontSize = constraints.maxWidth * 0.12; // Scalable font size
-                //         return ElevatedButton(
-                //           onPressed: () => _showDeleteRunnerPopup(context),
-                //           style: ElevatedButton.styleFrom(
-                //             minimumSize: Size(0, constraints.maxWidth * 0.5), // Button height scales
-                //             padding: EdgeInsets.symmetric(vertical: 5.0),
-                //           ),
-                //           child: Text('Delete Runner',
-                //             style: TextStyle(fontSize: fontSize),
-                //           ),
-                //         );
-                //       },
-                //     ),
-                //   ),
-                // ),
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 5.0, vertical: 2.5), // Padding around the button
@@ -383,30 +296,6 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
                     ),
                   ),
                 ),
-                // Expanded(
-                //   child: Padding(
-                //     padding: const EdgeInsets.symmetric(horizontal: 5.0, vertical: 2.5), // Padding around the button
-                //     child: LayoutBuilder(
-                //       builder: (context, constraints) {
-                //         double fontSize = constraints.maxWidth * 0.10;
-                //         return ElevatedButton(
-                //           onPressed: () => _confirmDeleteAllRunners(context),
-                //           style: ElevatedButton.styleFrom(
-                //             minimumSize: Size(0, constraints.maxWidth * 0.3),
-                //             padding: EdgeInsets.symmetric(horizontal: 5.0),
-                //             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-                //             backgroundColor: Colors.red,
-                //           ),
-                //           child: Text(
-                //             'Delete All Runners',
-                //             style: TextStyle(fontSize: fontSize, color: Colors.white),
-                //           ),
-                //         );
-                //       },
-                //     ),
-                //   ),
-                // ),
-
               ],
             ),
             const SizedBox(height: 20),

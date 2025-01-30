@@ -107,13 +107,6 @@ class MyAppState extends State<MyApp> {
           style: ElevatedButton.styleFrom(
             textStyle: TextStyle(color: AppColors.darkColor),
             foregroundColor: AppColors.darkColor, 
-            
-            // backgroundColor: Color.fromARGB(255, 98, 214, 102), // Default background color
-        //     // padding: const EdgeInsets.symmetric(vertical: 16),
-        //     shape: RoundedRectangleBorder(
-        //       borderRadius: BorderRadius.circular(12),
-        //     ),
-        //     elevation: 2, // Default elevation
           ),
         ),
       ),

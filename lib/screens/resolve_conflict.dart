@@ -128,32 +128,26 @@ class _ConflictResolutionDialogState extends State<ConflictResolutionDialog> {
     TextEditingController? manualController,
     List<String> times,
   ) {
-    // return StatefulBuilder(
-    //   builder: (context, setState) {
-        // print('current time: ${timeController.text}');
-        final availableOptions = times.where((time) => time == timeController.text || !widget.selectedTimes.contains(time)).toList();
-        // print('creating time selector');
-        // print('selected times: ${widget.selectedTimes}');
-        // print('available options: $availableOptions');
-        final items = [
-          ...availableOptions.map((time) => DropdownMenuItem<String>(
-            value: time,
-            child: Text(time),
-          )),
-          if (manualController != null)
-            DropdownMenuItem<String>(
-              value: manualController.text.isNotEmpty ? manualController.text : 'manual',
-              child: SizedBox(
-                width: MediaQuery.of(context).size.width * 0.25,
-                child: TextField(
-                  controller: manualController,
-                  decoration: InputDecoration(
-                    hintText: 'Enter time',
-                    border: InputBorder.none,
-                  ),
+      final availableOptions = times.where((time) => time == timeController.text || !widget.selectedTimes.contains(time)).toList();
+      final items = [
+        ...availableOptions.map((time) => DropdownMenuItem<String>(
+          value: time,
+          child: Text(time),
+        )),
+        if (manualController != null)
+          DropdownMenuItem<String>(
+            value: manualController.text.isNotEmpty ? manualController.text : 'manual',
+            child: SizedBox(
+              width: MediaQuery.of(context).size.width * 0.25,
+              child: TextField(
+                controller: manualController,
+                decoration: InputDecoration(
+                  hintText: 'Enter time',
+                  border: InputBorder.none,
                 ),
               ),
             ),
+          ),
         ];
 
         return DropdownButtonFormField<String>(
@@ -178,8 +172,6 @@ class _ConflictResolutionDialogState extends State<ConflictResolutionDialog> {
           },
           decoration: InputDecoration(hintText: 'Select Time'),
         );
-    //   },
-    // );
   }
 
   void _handleTimeSelection(

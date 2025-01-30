@@ -161,7 +161,6 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     setState(() {
       Provider.of<TimingData>(context, listen: false).addRecord({
         'finish_time': formatDuration(difference),
-        // 'bib_number': null,
         'is_runner': true,
         'is_confirmed': false,
         'text_color': null,
@@ -170,9 +169,6 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
 
       scrollToBottom(_scrollController);
     });
-
-    // Add a new controller for the new record
-    Provider.of<TimingData>(context, listen: false).addController(TextEditingController());
   }
 
   void _shareTimes() {
@@ -455,7 +451,6 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
       // appBar: AppBar(title: const Text('Race Timing')),
       body: Padding(
         padding: const EdgeInsets.only(bottom: 16.0, left: 16.0, right: 16.0),
-        // child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -564,7 +559,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
                           if (records.isNotEmpty && record['is_runner'] == true) {
                             return Container(
                               margin: EdgeInsets.only(
-                                top: 0, // MediaQuery.of(context).size.width * 0.01,
+                                top: 0,
                                 bottom: MediaQuery.of(context).size.width * 0.02,
                                 left: MediaQuery.of(context).size.width * 0.02,
                                 right: MediaQuery.of(context).size.width * 0.01,
@@ -696,15 +691,6 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
                           ),
                         ),
                       ),
-                      
-                      // IconButton(
-                      //   icon: const Icon(Icons.remove, size: 40, color: AppColors.redColor),
-                      //   onPressed: _extraRunnerTime,
-                      // ),
-                      // IconButton(
-                      //   icon: const Icon(Icons.add, size: 40, color: AppColors.redColor),
-                      //   onPressed: _missingRunnerTime,
-                      // ),
                       if (records.isNotEmpty && !records.last['is_runner'] && records.last['type'] != null && records.last['type'] != 'confirm_runner_number')
                         IconButton(
                           icon: const Icon(Icons.undo, size: 40, color: AppColors.mediumColor),
@@ -715,7 +701,6 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
                 ),
             ],
           ),
-        // ),
       ),
     );
   }

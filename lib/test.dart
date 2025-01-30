@@ -315,10 +315,8 @@ class _DevicesListScreenState extends State<DevicesListScreen> {
               await nearbyService.startBrowsingForPeers();
             } else {
               await nearbyService.stopAdvertisingPeer();
-              // await nearbyService.stopBrowsingForPeers();
               await Future.delayed(Duration(microseconds: 200));
               await nearbyService.startAdvertisingPeer();
-              // await nearbyService.startBrowsingForPeers();
             }
           }
         });

@@ -215,7 +215,6 @@ class DatabaseHelper {
     List<Map<String, dynamic>> results = [];
     for (int i = 0; i < bibNumbers.length; i++) {
       final runner = await getRaceRunnerByBib(raceId, bibNumbers[i], getTeamRunner: true);
-      // print(runner);
       if (runner[0] == null) {
         break;
       }
@@ -243,12 +242,6 @@ class DatabaseHelper {
       whereArgs: [raceId, bibNumber],
     );
   }
-
-  // Race Results Methods
-  // Future<int> insertRaceResult(Map<String, dynamic> result) async {
-  //   final db = await instance.database;
-  //   return await db.insert('race_results', result);
-  // }
 
   Future<void> insertRaceResult(Map<String, dynamic> result) async {
     // Check if the runner exists in team runners or race runners

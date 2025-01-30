@@ -203,7 +203,6 @@ class _RacesScreenState extends State<RacesScreen> {
                             padding: const EdgeInsets.symmetric(vertical: 0.0),
                         child: TextField(
                           controller: dateController,
-                              // readOnly: true, 
                           decoration: InputDecoration(
                             hintText: 'Date (YYYY-MM-DD)',
                               ),

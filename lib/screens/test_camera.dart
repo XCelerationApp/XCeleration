@@ -119,14 +119,6 @@ class _CameraPageState extends State<CameraPage> {
                     }
                   }
                 },
-                  // multiple: (MultipleCaptureRequest request) async {
-                  //   print('Multiple capture request received');
-                    // await photoState.takePhoto();
-                    // print('Photo taken successfully');
-                    // final file = request.fileBySensor.values.first;
-                    // print('Multiple capture file path: ${file?.path}');
-                    // return file;
-                  // },
               );
               break;
             case (MediaCaptureStatus.failure, true, false):
@@ -174,25 +166,13 @@ class _CameraPageState extends State<CameraPage> {
           );
         },
       ),
-      // floatingActionButton: FloatingActionButton(
-      //   onPressed: _captureImage, // Call the capture function
-      //   child: Icon(Icons.camera), // Button icon
-      // ),
     );
   }
 
   Future _analyzeImage(camerawesome.AnalysisImage img) async {
     try {
-      // final stopwatch = Stopwatch()..start(); // Start timing
       final Uint8List imageBytes = await _getImageBytesFromInputImage(img);
-      // stopwatch.stop(); // Stop timing
-      // print('Image bytes took: ${stopwatch.elapsedMilliseconds} ms'); // Log the duration
-      // print('type: ${imageBytes.runtimeType}');
-      // Get the green square coordinates
-      // final stopwatch2 = Stopwatch()..start(); // Start timing
       final greenSquares = await _getGreenSquareCoordinates(imageBytes, img.width, img.height);
-      // stopwatch2.stop(); // Stop timing
-      // print('Green squares took: ${stopwatch2.elapsedMilliseconds} ms'); // Log the duration
 
       if (mounted) {
         setState(() {
@@ -210,7 +190,6 @@ Future<void> saveImage(Uint8List imageBytes) async {
     img.Image image = img.decodeImage(Uint8List.fromList(imageBytes))!;
     List<int> pngBytes = img.encodePng(image); // Convert to PNG
     File('output_image.png').writeAsBytesSync(pngBytes); // Save locally
-    // print('Image saved successfully as output_image.png');
   } catch (e) {
     print('Error while saving image: $e');
   }
@@ -230,9 +209,6 @@ Future<Uint8List> _getImageBytesFromInputImage(camerawesome.AnalysisImage analys
     bgra8888: (Bgra8888Image image) {
       return image.planes[0].bytes;
     },
-    // unknown: () {
-    //   throw Exception("Unknown image format");
-    // },
   );
 
   if (bytes == null) {

@@ -52,9 +52,6 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
         _finishTimeControllers[time_record['place']] = TextEditingController(text: time_record['finish_time']);
       }
     }
-    // runners = await DatabaseHelper.instance.getRaceRunnersByBibs(raceId, timingData['bibs'].cast<String>() ?? []);
-    // timingData['bibs'] = timingData['bibs'].cast<String>();
-    // timingData['records'] = timingData['records'].cast<Map<String, dynamic>>();
     _controllers = List.generate(_getNumberOfTimes(), (index) => TextEditingController());
   }
 
@@ -64,26 +61,6 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
     await _syncBibData(timingData['bibs'].cast<String>() ?? [], timingData['records'].cast<Map<String, dynamic>>() ?? []);
 
   }
-
-  // @override
-  // void initState() {
-  //   super.initState();
-  //   race = widget.race;
-  //   raceId = race.race_id;
-  //   timingData = widget.timingData;
-  //   _fetchRunners();
-  //   for (var time_record in timingData['records']) {
-  //     print(time_record);
-  //     print(time_record['place']);
-  //     print(time_record['finish_time']);
-  //     _finishTimeControllers[time_record['place']] = TextEditingController(text: time_record['finish_time']);
-  //   }
-  //   // runners = await DatabaseHelper.instance.getRaceRunnersByBibs(raceId, timingData['bibs'].cast<String>() ?? []);
-  //   // timingData['bibs'] = timingData['bibs'].cast<String>();
-  //   // timingData['records'] = timingData['records'].cast<Map<String, dynamic>>();
-  //   _controllers = List.generate(_getNumberOfTimes(), (index) => TextEditingController());
-  //   _syncBibData(timingData['bibs'].cast<String>() ?? [], timingData['records'].cast<Map<String, dynamic>>() ?? []);
-  // }
 
   Future<void> _fetchRunners() async {
     final fetchedRunners = await DatabaseHelper.instance.getRaceRunnersByBibs(raceId, timingData['bibs'].cast<String>() ?? []);
@@ -173,14 +150,6 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
         continue;
       }
       final index = records.indexOf(record);
-      // final match = (record != null);
-
-      // if (match) {
-      //   final index = records.indexOf(record);
-      //   setState(() {
-      //     records[index]['bib_number'] = bibData[i];
-      //   });
-      // }
 
       final [runner, isTeamRunner] = await DatabaseHelper.instance.getRaceRunnerByBib(raceId, bibData[i], getTeamRunner: true);
       if (runner != null) {
@@ -208,7 +177,6 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
 
   Future<void> _openResolveDialog() async {
     print('Opening resolve dialog');
-    // final records = timingData['records'] ?? [];
     final [firstConflict, conflictIndex] = _getFirstConflict();
     if (firstConflict == null){
       print('No conflicts left');
@@ -249,7 +217,6 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
                 onPressed: () async {
                   if (!mounted) return; // Check if the widget is still mounted
                   // Update the record to resolve the conflict
-                  // Navigator.of(context).pop();
                   if (firstConflict == 'missing_runner_time') {
                     print('Resolving too few runner times conflict at index $conflictIndex');
                     await _resolveTooFewRunnerTimes(conflictIndex);
@@ -438,7 +405,6 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
         lastConfirmedRunnerPlace + runners.length,
       );
     });
-    // Navigator.of(context).pop();
     _showSuccessMessage();
     await _openResolveDialog();
   }
@@ -512,7 +478,6 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
       );
     });
 
-    // Navigator.of(context).pop();
     _showSuccessMessage();
     await _openResolveDialog();
   }
@@ -521,7 +486,6 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
   void _updateConflictRecord(Map<String, dynamic> record, int numTimes) {
     record['numTimes'] = numTimes;
     record['type'] = 'confirm_runner_number';
-    // record['conflict'] = null;
     record['is_runner'] = false;
     record['text_color'] = AppColors.navBarTextColor;
   }
@@ -561,7 +525,6 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
 
 
   Future<void> _confirmRunnerNumber({bool useStopTime = false}) async {
-    // final records = timingData['records'] ?? [];
     int numTimes = _getNumberOfTimes(); // Placeholder for actual length input
     
     Duration difference = getCurrentDuration(timingData['startTime'], timingData['endTime']);
@@ -723,17 +686,6 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
     return true;
   }
 
-  // void _deleteConfirmedRecords() {
-  //   final records = timingData['records'] ?? [];
-  //   for (int i = records.length - 1; i >= 0; i--) {
-  //     if (records[i]['is_runner'] == false && records[i]['type'] == 'confirm_runner_number') {
-  //       setState(() {
-  //         records.removeAt(i);
-  //       });
-  //     }
-  //   }
-  // }
-
   void _deleteConfirmedRecordsBeforeIndexUntilConflict(int recordIndex) {
     print(recordIndex);
     final records = timingData['records'] ?? [];
@@ -741,9 +693,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
       return;
     }
     final trimmedRecords = records.sublist(0, recordIndex + 1);
-    // print(trimmedRecords.length);
     for (int i = trimmedRecords.length - 1; i >= 0; i--) {
-      // print(i);
       if (trimmedRecords[i]['is_runner'] == false && trimmedRecords[i]['type'] != 'confirm_runner_number') {
         break;
       }
@@ -801,13 +751,11 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
     final startTime = timingData['startTime'];
     final endTime = timingData['endTime'];
     final time_records = timingData['records'] ?? [];
-    // final controllers = _controllers ?? [];
 
     return Scaffold(
       // appBar: AppBar(title: const Text('Race Timing')),
       body: Padding(
         padding: const EdgeInsets.only(bottom: 16.0, left: 16.0, right: 16.0),
-        // child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -835,8 +783,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
                       return Container(
                         alignment: Alignment.centerLeft,
                         padding: const EdgeInsets.only(top: 10, bottom: 10),
-                        // margin: EdgeInsets.only(left: MediaQuery.of(context).size.width * 0.1), // 1/10 from left
-                        width: MediaQuery.of(context).size.width * 0.9, // 3/4 of screen width
+                        width: MediaQuery.of(context).size.width * 0.9,
                         child: Text(
                           formatDurationWithZeros(elapsed),
                           style: TextStyle(
@@ -866,11 +813,10 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
                       width: 330,
                       height: 100,
                       child: Padding(
-                        padding: const EdgeInsets.all(8.0), // Padding around the button
+                        padding: const EdgeInsets.all(8.0),
                         child: LayoutBuilder(
                           builder: (context, constraints) {
                           double fontSize = constraints.maxWidth * 0.12;
-                          // print('button width: ${constraints.maxWidth *}');
                             return ElevatedButton(
                               onPressed: _saveResults,
                               style: ElevatedButton.styleFrom(
@@ -889,14 +835,13 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
                       width: 330,
                       height: 100,
                       child: Padding(
-                        padding: const EdgeInsets.all(8.0), // Padding around the button
+                        padding: const EdgeInsets.all(8.0),
                         child: LayoutBuilder(
                           builder: (context, constraints) {
                           double fontSize = constraints.maxWidth * 0.12;
                             return ElevatedButton(
                               onPressed: _openResolveDialog,
                               style: ElevatedButton.styleFrom(
-                                // minimumSize: Size(0, constraints.maxWidth * 0.5),
                               ),
                               child: Text(
                                 'Resolve Conflicts',
@@ -940,15 +885,10 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
                             timeController?.text = time_record['finish_time'];
                           }
 
-                          // late TextEditingController controller;
-                          // if (time_records.isNotEmpty && time_record['is_runner'] == true) {
-                          //   final runnerIndex = getRunnerIndex(index);
-                          //   controller = _controllers[runnerIndex];
-                          // }
                           if (time_records.isNotEmpty && time_record['is_runner'] == true) {
                             return Container(
                               margin: EdgeInsets.only(
-                                top: 0, // MediaQuery.of(context).size.width * 0.01,
+                                top: 0,
                                 bottom: MediaQuery.of(context).size.width * 0.02,
                                 left: MediaQuery.of(context).size.width * 0.02,
                                 right: MediaQuery.of(context).size.width * 0.01,
@@ -959,7 +899,6 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
                                   GestureDetector(
                                     behavior: HitTestBehavior.opaque,
                                     onLongPress: () async {
-                                      // if (index == records.length - 1) {
                                       final confirmed = await _confirmDeleteLastRecord(index);
                                       if (confirmed ) {
                                         setState(() {
@@ -972,7 +911,6 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
                                           );
                                         });
                                       }
-                                      // }
                                     },
                                     child: Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1000,7 +938,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
                                         if (time_record['finish_time'] != null) 
                                           // Use a TextField for editing the finish time
                                           SizedBox(
-                                            width: 100, // Set a width for the TextField
+                                            width: 100, 
                                             child: TextField(
                                               controller: _finishTimeControllers[index],
                                               decoration: InputDecoration(
@@ -1130,7 +1068,6 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
                 ),
             ],
           ),
-        // ),
       ),
     );
   }

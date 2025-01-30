@@ -14,6 +14,7 @@ import '../device_connection_popup.dart';
 import '../device_connection_service.dart';
 import 'package:race_timing_app/runner_time_functions.dart';
 import 'package:race_timing_app/utils/dialog_utils.dart';
+import 'package:race_timing_app/utils/button_utils.dart';
 
 class BibNumberScreen extends StatefulWidget {
   final Race race;
@@ -25,9 +26,6 @@ class BibNumberScreen extends StatefulWidget {
 enum ConnectionStatus { connected, searching, finished, error, receiving }
 
 class _BibNumberScreenState extends State<BibNumberScreen> {
-  // final List<TextEditingController> _controllers = [];
-  // final List<FocusNode> _focusNodes = [];
-  // final List<Map<String, dynamic>> bibRecords = [];
   late int raceId;
   late Race race;
   bool _isRaceFinished = false;
@@ -42,8 +40,6 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
   Future<void> _addBibNumber([String bibNumber = '', List<double>? confidences = const [], bool focus = false, XFile? image]) async {
     final index = Provider.of<BibRecordsProvider>(context, listen: false).bibRecords.length;
     setState(() {
-      // _controllers.add(TextEditingController(text: bibNumber));
-      // _focusNodes.add(FocusNode());
       Provider.of<BibRecordsProvider>(context, listen: false).addBibRecord({
         'bib_number': bibNumber,
         'confidences': confidences,
@@ -144,14 +140,14 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
             TextButton(
               child: Text('Cancel'),
               onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
+                Navigator.of(context).pop();
               },
             ),
             TextButton(
               child: Text('Delete'),
               onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
-                _deleteBibNumber(index); // Proceed with deletion
+                Navigator.of(context).pop();
+                _deleteBibNumber(index);
               },
             ),
           ],
@@ -250,7 +246,6 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
 
   Future<void> _loadRaceTimesThroughString(String qrData) async {
     final bibRecords = Provider.of<BibRecordsProvider>(context, listen: false).bibRecords;
-    // final records = Provider.of<TimingData>(context, listen: false).records[raceId] ?? [];
     try {
       final Map<String, dynamic> timingData = await _decodeRaceTimesString(qrData);
       print('decoded timingData: $timingData');
@@ -262,7 +257,6 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
       }
 
       if (timingData.isNotEmpty && timingData.containsKey('records') && timingData.containsKey('endTime') && timingData['records'].isNotEmpty && timingData['endTime'] != null) {
-        // timingData['endTime'] = loadDurationFromString(timingData['endTime']);
         timingData['bibs'] = bibRecords.map((bib) => bib['bib_number']).toList();
         
         Navigator.pushReplacement(
@@ -284,7 +278,6 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     setState(() {
       _isRaceFinished = true;
     });
-    // Implement race finished logic here
   }
 
   void _restartRace() {
@@ -296,13 +289,6 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
 
   @override
   void dispose() {
-    // for (var controller in _controllers) {
-    //   controller.dispose();
-    // }
-    // for (var focusNode in _focusNodes) {
-    //   focusNode.dispose();
-    // }
-    // Provider.of<BibRecordsProvider>(context, listen: false).clearBibRecords();
     super.dispose();
   }
 
@@ -322,18 +308,19 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
         child: Column(
           children: [
             Expanded(
-              child: ListView.builder(
-                itemCount: bibRecords.length,
+               child: ListView.builder(
+                itemCount: bibRecords.length + 1,
                 itemBuilder: (context, index) {
-                  // final record = bibRecords[index];
-                  final controller = controllers[index];
-                  final focusNode = focusNodes[index];
+                  final controller = (index < bibRecords.length) ? controllers[index] : null;
+                  final focusNode = (index < bibRecords.length) ? focusNodes[index] : null;
 
-                  final errorText = '${bibRecords[index]['flags']['duplicate_bib_number'] ? 'Duplicate Bib Number\n' : '' }'
+                  final errorText = (index < bibRecords.length) ? '${bibRecords[index]['flags']['duplicate_bib_number'] ? 'Duplicate Bib Number\n' : '' }'
                     '${bibRecords[index]['flags']['not_in_database'] ? 'Not in Database\n' : ''}'
-                    '${bibRecords[index]['flags']['low_confidence_score'] ? 'Low Confidence Score' : ''}';
+                    '${bibRecords[index]['flags']['low_confidence_score'] ? 'Low Confidence Score' : ''}' : '';
 
-                  return Padding(
+                  return
+                    (index < bibRecords.length)
+                    ? Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
                     child: Card(
                       elevation: 2,
@@ -359,26 +346,6 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                                       hintText: 'Enter Bib',
                                       border: OutlineInputBorder(),
                                       hintStyle: const TextStyle(fontSize: 15),
-                                      // helper: Column(
-                                      //   crossAxisAlignment: CrossAxisAlignment.start,
-                                      //   children: [
-                                      //     if(bibRecords[index]['flags']['not_in_database'] == false && bibRecords[index]['bib_number'].isNotEmpty) ...[
-                                      //       Text('${bibRecords[index]['name']}, ${bibRecords[index]['school']}'),
-                                      //     ],
-                                      //     if (errorText.isNotEmpty) ...[
-                                      //       if (bibRecords[index]['flags']['not_in_database'] == false) ...[
-                                      //         const SizedBox(height: 4),
-                                      //         Container(
-                                      //           width: double.infinity,
-                                      //           height: 1,
-                                      //           color: Colors.grey,
-                                      //         ),
-                                      //         const SizedBox(height: 4),
-                                      //       ],
-                                      //       Text(errorText),
-                                      //     ],
-                                      //   ],
-                                      // ),
                                     ),
                                     onSubmitted: (value) async { 
                                       await _addBibNumber('', [], true);
@@ -396,18 +363,6 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                                       if(bibRecords[index]['flags']['not_in_database'] == false && bibRecords[index]['bib_number'].isNotEmpty) ...[
                                         Text('${bibRecords[index]['name']}, ${bibRecords[index]['school']}'),
                                       ],
-                                      // if (errorText.isNotEmpty) ...[
-                                      //   if (bibRecords[index]['flags']['not_in_database'] == false) ...[
-                                      //     const SizedBox(height: 4),
-                                      //     Container(
-                                      //       width: double.infinity,
-                                      //       height: 1,
-                                      //       color: Colors.grey,
-                                      //     ),
-                                      //     const SizedBox(height: 4),
-                                      //   ],
-                                      //   Text(errorText),
-                                      // ],
                                     ],
                                   ),
                                 ),
@@ -435,34 +390,18 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                         ),
                       ),
                     ),
-                  );
-                },
-              ),
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                if (focusNodes.indexWhere((element) => FocusScope.of(context).hasFocus && element.hasFocus) == -1) ...[
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 16.0, top: 16.0, left: 0.0, right: 5.0),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.rectangle,
-                        color: AppColors.navBarColor, // Button color
-                        border: Border.all(
-                          // color: const Color.fromARGB(255, 60, 60, 60), // Inner darker border
-                          color: Colors.white,
-                          width: 2,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.navBarColor, // Outer lighter border
-                            spreadRadius: 2, // Width of the outer border
-                          ),
-                        ],
-                        borderRadius: BorderRadius.circular(40),
-                      ),
-                      child: ElevatedButton(
+                  )
+                  :
+                  Row(
+                    children: [
+                      Padding(
+                      padding: const EdgeInsets.only(bottom: 16.0, top: 16.0, left: 5.0, right: 5.0),
+                      child: RoundedRectangleButton(
+                        text: _isRaceFinished ? 'Load Race Times' : 'Add Bib Number',
+                        color: AppColors.navBarColor,
+                        width: 175,
+                        height: 50,
+                        fontSize: 18,
                         onPressed: () => {
                           if (_isRaceFinished) {
                             showDeviceConnectionPopup(context, deviceType: DeviceType.bibNumberDevice, backUpShareFunction: _scanQRCode, onDatatransferComplete: (String result) => _loadRaceTimesThroughString(result)),
@@ -470,49 +409,23 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                             _addBibNumber('', [], true)
                           }
                         },
-                        style: ElevatedButton.styleFrom(
-                          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                          fixedSize: const Size(175, 50),
-                          elevation: 0,
-                          backgroundColor: Colors.transparent,
-                        ),
-                        child: Text(_isRaceFinished ? 'Load Race Times' : 'Add Bib Number', style: TextStyle(fontSize: 18, color: Colors.white))
                       ),
                     ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 16.0, top: 16.0, left: 5.0, right: 0.0),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.rectangle,
-                        color: AppColors.primaryColor, // Button color
-                        border: Border.all(
-                          // color: const Color.fromARGB(255, 60, 60, 60), // Inner darker border
-                          color: Colors.white,
-                          width: 2,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primaryColor, // Outer lighter border
-                            spreadRadius: 2, // Width of the outer border
-                          ),
-                        ],
-                        borderRadius: BorderRadius.circular(40),
-                      ),
-                      child: ElevatedButton(
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16.0, top: 16.0, left: 5.0, right: 0.0),
+                      child: RoundedRectangleButton(
+                        text: _isRaceFinished ? 'Continue' : 'Finished',
+                        color: AppColors.primaryColor,
+                        width: 100,
+                        height: 50,
+                        fontSize: 18,
                         onPressed: _isRaceFinished ? _restartRace : _raceFinished,
-                        style: ElevatedButton.styleFrom(
-                          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                          fixedSize: const Size(100, 50),
-                          elevation: 0,
-                          backgroundColor: Colors.transparent,
-                        ),
-                        child: Text(_isRaceFinished ? 'Continue': 'Finished', style: const TextStyle(fontSize: 18.0, color: Colors.white))
                       ),
-                    ),
-                  ),
-                ],    
-              ],
+                    )
+                  ]
+                  );
+                },
+              ),
             ),
           ],
         ),
