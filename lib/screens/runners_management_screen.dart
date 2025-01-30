@@ -4,6 +4,7 @@ import 'package:race_timing_app/file_processing.dart';
 import 'package:race_timing_app/database_helper.dart';
 // import 'package:race_timing_app/models/race.dart';
 import '../constants.dart';
+import '../utils/dialog_utils.dart';
 
 class RunnersManagementScreen extends StatefulWidget {
   final int raceId;
@@ -188,32 +189,15 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
   }
 
   Future<void> _confirmDeleteAllRunners(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirm Deletion'),
-        content: const Text('Are you sure you want to delete all runners?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed == true) {
-      if (isTeam == true) {
-        await DatabaseHelper.instance.clearTeamRunners();
-      }
-      else {
-        await DatabaseHelper.instance.deleteAllRaceRunners(raceId);
-      }
-      _loadRunners();
+    final confirmed = await DialogUtils.showConfirmationDialog(context, title: 'Confirm Deletion', content: 'Are you sure you want to delete all runners?');
+    if (!confirmed) return;
+    if (isTeam == true) {
+      await DatabaseHelper.instance.clearTeamRunners();
     }
+    else {
+      await DatabaseHelper.instance.deleteAllRaceRunners(raceId);
+    }
+    _loadRunners();
   }
 
   void _filterRunners(String query) {
@@ -401,35 +385,15 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
                             await _showEditRunnerPopup(context, runner);
                           }
                           else if (value == 'Delete') {
-                            final confirmed = await showDialog<bool>(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                title: const Text('Confirm Deletion'),
-                                content: const Text('Are you sure you want to delete this runner?'),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.of(context).pop(false),
-                                    child: const Text('Cancel'),
-                                  ),
-                                  TextButton(
-                                    onPressed: () => Navigator.of(context).pop(true),
-                                    child: const Text('Delete'),
-                                  ),
-                                ],
-                              ),
-                            );
-                            if (confirmed == true) {
-                              if (isTeam == true) {
-                                await DatabaseHelper.instance.deleteTeamRunner(runner['bib_number']);
-                              }
-                              else {
-                                await DatabaseHelper.instance.deleteRaceRunner(raceId, runner['bib_number']);
-                              }
-                              _loadRunners();
+                            final confirmed = await DialogUtils.showConfirmationDialog(context, title: 'Confirm Deletion', content: 'Are you sure you want to delete this runner?');
+                            if (!confirmed) return;
+                            if (isTeam == true) {
+                              await DatabaseHelper.instance.deleteTeamRunner(runner['bib_number']);
                             }
                             else {
-                              return;
+                              await DatabaseHelper.instance.deleteRaceRunner(raceId, runner['bib_number']);
                             }
+                            _loadRunners();
                           }
                         },
                         itemBuilder: (context) => [

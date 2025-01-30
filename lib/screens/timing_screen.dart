@@ -80,33 +80,20 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     }
   }
 
-  void _startRace() {
+  Future<void> _startRace() async {
     final records = Provider.of<TimingData>(context, listen: false).records;
     if (records.isNotEmpty) {
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Start a New Race'),
-          content: const Text('Are you sure you want to start a new race? Doing so will clear the existing times.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('No'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(true);
-                setState(() {
-                  records.clear();
-                  Provider.of<TimingData>(context, listen: false).changeStartTime(DateTime.now());
-                  Provider.of<TimingData>(context, listen: false).changeEndTime(null);
-                });
-              },
-              child: const Text('Yes'),
-            ),
-          ],
-        ),
+      final confirmed = await DialogUtils.showConfirmationDialog(
+        context,
+        title: 'Start a New Race',
+        content: 'Are you sure you want to start a new race? Doing so will clear the existing times.',
       );
+      if (confirmed != true) return;
+      setState(() {
+        records.clear();
+        Provider.of<TimingData>(context, listen: false).changeStartTime(DateTime.now());
+        Provider.of<TimingData>(context, listen: false).changeEndTime(null);
+      });
     } else {
       setState(() {
         records.clear();
@@ -115,38 +102,21 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     }
   }
 
-  void _stopRace() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Stop the Race'),
-        content: const Text('Are you sure you want to stop the race?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('No'),
-          ),
-          TextButton(
-            onPressed: () {
-              final startTime = Provider.of<TimingData>(context, listen: false).startTime;
-              if (startTime != null) {
-                final now = DateTime.now();
-                final difference = now.difference(startTime);
-                setState(() {
-                  Provider.of<TimingData>(context, listen: false).changeEndTime(difference);
-                  Provider.of<TimingData>(context, listen: false).changeStartTime(null);
-                });
-                Navigator.of(context).pop(true);
-                if (_getFirstConflict()[0] != null) {
-                  DialogUtils.showErrorDialog(context, message:'Race stopped. Make sure to resolve conflicts after loading bib numbers.', title: 'Race Stopped');
-                }
-              }
-            },
-            child: const Text('Yes'),
-          ),
-        ],
-      ),
-    );
+  void _stopRace() async{
+    final confirmed = await DialogUtils.showConfirmationDialog(context, content:'Race stopped. Make sure to resolve conflicts after loading bib numbers.', title: 'Stop the Race');
+    if (confirmed != true) return;
+    final startTime = Provider.of<TimingData>(context, listen: false).startTime;
+    if (startTime != null) {
+      final now = DateTime.now();
+      final difference = now.difference(startTime);
+      setState(() {
+        Provider.of<TimingData>(context, listen: false).changeEndTime(difference);
+        Provider.of<TimingData>(context, listen: false).changeStartTime(null);
+      });
+      if (_getFirstConflict()[0] != null) {
+        DialogUtils.showErrorDialog(context, message:'Race stopped. Make sure to resolve conflicts after loading bib numbers.', title: 'Race Stopped');
+      }
+    }
   }
 
   void _logTime() {
@@ -382,52 +352,17 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     final records = Provider.of<TimingData>(context, listen: false).records;
     final record = records[recordIndex];
     if (record['type'] == 'runner_time' && record['is_confirmed'] == false && record['conflict'] == null) {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Confirm Deletion'),
-          content: const Text('Are you sure you want to delete this runner?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Delete'),
-            ),
-          ],
-        ),
-      );
-      return confirmed ?? false;
+      final confirmed = await DialogUtils.showConfirmationDialog(context, title: 'Confirm Deletion', content: 'Are you sure you want to delete this runner?');
+      return confirmed;
     }
     return false;
   }
 
-  _clearRaceTimes() {
-    showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Clear Race Times'),
-        content: const Text('Are you sure you want to clear all race times?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Clear'),
-          ),
-        ],
-      ),
-    ).then((confirmed) {
-      if (confirmed ?? false) {
-        setState(() {
-          Provider.of<TimingData>(context, listen: false).clearRecords();
-
-        });
-      }
+  _clearRaceTimes() async {
+    final confirmed = await DialogUtils.showConfirmationDialog(context, title: 'Clear Race Times', content: 'Are you sure you want to clear all race times?');
+    if (!confirmed) return;
+    setState(() {
+      Provider.of<TimingData>(context, listen: false).clearRecords();
     });
   }
 

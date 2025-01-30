@@ -7,6 +7,7 @@ import '../database_helper.dart';
 // import 'race_info_screen.dart';
 import 'race_screen.dart';
 import '../constants.dart';
+import '../utils/dialog_utils.dart';
 
 
 class RacesScreen extends StatefulWidget {
@@ -375,33 +376,14 @@ class _RacesScreenState extends State<RacesScreen> {
                         child: ListTile(
                           trailing: GestureDetector(
                             child: Icon(Icons.delete, color: AppColors.navBarColor),
-                            onTap: () {
-                              showDialog(
-                                context: context,
-                                builder: (context) {
-                                  return AlertDialog(
-                                    title: Text('Delete race'),
-                                    content: Text('Are you sure you want to delete ${races[index].race_name}?'),
-                                    actions: [
-                                      TextButton(
-                                        child: Text('Cancel'),
-                                        onPressed: () => Navigator.of(context).pop(),
-                                      ),
-                                      TextButton(
-                                        child: Text('Delete'),
-                                        onPressed: () async {
-                                          await DatabaseHelper.instance.deleteRace(races[index].raceId);
-                                          final newRaces = await DatabaseHelper.instance.getAllRaces();
-                                          setState(() {
-                                            races = newRaces;
-                                          });
-                                          Navigator.of(context).pop();
-                                        },
-                                      ),
-                                    ],
-                                  );
-                                },
-                              );
+                            onTap: () async {
+                              final confirmed = await DialogUtils.showConfirmationDialog(context, content:'Are you sure you want to delete ${races[index].race_name}?', title: 'Delete race');
+                              if (!confirmed) return;
+                              await DatabaseHelper.instance.deleteRace(races[index].raceId);
+                              final newRaces = await DatabaseHelper.instance.getAllRaces();
+                              setState(() {
+                                races = newRaces;
+                              });
                             },
                           ),
                           title: Text(races[index].race_name),
