@@ -1034,6 +1034,9 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
                               ),
                             );
                           }
+                          else {
+                            return Container();
+                          }
                         },
                       ),
                     ),
