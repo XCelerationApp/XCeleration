@@ -161,7 +161,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     setState(() {
       Provider.of<TimingData>(context, listen: false).addRecord({
         'finish_time': formatDuration(difference),
-        'is_runner': true,
+        'type': 'runner_time',
         'is_confirmed': false,
         'text_color': null,
         'place': _getNumberOfTimes() + 1,
@@ -202,7 +202,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   List<dynamic> _getFirstConflict() {
     final records = Provider.of<TimingData>(context, listen: false).records;
     for (var record in records) {
-      if (record['is_runner'] == false && record['type'] != null && record['type'] != 'confirm_runner_number') {
+      if (record['type'] != 'runner_time' && record['type'] != 'confirm_runner_number') {
         return [record['type'], records.indexOf(record)];
       }
     }
@@ -210,12 +210,12 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   }
 
   void _updateTextColor(Color? color, {bool confirmed = false, String? conflict, endIndex}) {
-    List<Map<String, dynamic>> records = Provider.of<TimingData>(context, listen: false).records;
+    List<dynamic> records = Provider.of<TimingData>(context, listen: false).records;
     if (endIndex != null && endIndex < records.length && records.isNotEmpty) {
       records = records.sublist(0, endIndex);
     }
     for (int i = records.length - 1; i >= 0; i--) {
-      if (records[i]['is_runner'] == false) {
+      if (records[i]['type'] != 'runner_time') {
         break;
       }
       setState(() {
@@ -249,12 +249,12 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
 
     final records = Provider.of<TimingData>(context, listen: false).records;
     final previousRunner = records.last;
-    if (previousRunner['is_runner'] == false) {
+    if (previousRunner['type'] != 'runner_time') {
       DialogUtils.showErrorDialog(context, message:'You must have a unconfirmed runner time before pressing this button.');
       return;
     }
 
-    final lastConfirmedRecord = records.lastWhere((r) => r['is_runner'] == true && r['is_confirmed'] == true, orElse: () => {});
+    final lastConfirmedRecord = records.lastWhere((r) => r['type'] == 'runner_time' && r['is_confirmed'] == true, orElse: () => {});
     final recordPlace = lastConfirmedRecord.isEmpty || lastConfirmedRecord['place'] == null ? 0 : lastConfirmedRecord['place'];
 
     if ((numTimes - offBy) == recordPlace) {
@@ -298,7 +298,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     final records = Provider.of<TimingData>(context, listen: false).records;
     int count = 0;
     for (var record in records) {
-      if (record['is_runner'] == true) {
+      if (record['type'] == 'runner_time') {
         count++;
       } else if (record['type'] == 'extra_runner_time') {
         count--;
@@ -312,7 +312,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     print('undo last conflict');
     final records = Provider.of<TimingData>(context, listen: false).records;
 
-    final lastConflict = records.reversed.firstWhere((r) => r['is_runner'] == false && r['type'] != null, orElse: () => {});
+    final lastConflict = records.reversed.firstWhere((r) => r['type'] != 'runner_time' && r['type'] != null, orElse: () => {});
 
     if (lastConflict.isEmpty || lastConflict['type'] == null) {
       return;
@@ -334,7 +334,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
       return;
     }
     final lastConflictIndex = records.indexOf(lastConflict);
-    final runnersBeforeConflict = records.sublist(0, lastConflictIndex).where((r) => r['is_runner'] == true).toList();
+    final runnersBeforeConflict = records.sublist(0, lastConflictIndex).where((r) => r['type'] == 'runner_time').toList();
     final offBy = lastConflict['offBy'];
 
     _updateTextColor(null, confirmed: false, endIndex: lastConflictIndex);
@@ -354,7 +354,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
       return;
     }
     final lastConflictIndex = records.indexOf(lastConflict);
-    final runnersBeforeConflict = records.sublist(0, lastConflictIndex).where((r) => r['is_runner'] == true).toList();
+    final runnersBeforeConflict = records.sublist(0, lastConflictIndex).where((r) => r['type'] == 'runner_time').toList();
     final offBy = lastConflict['offBy'];
     print('off by: $offBy');
 
@@ -374,14 +374,14 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
 
   int getRunnerIndex(int recordIndex) {
     final records = Provider.of<TimingData>(context, listen: false).records;
-    final runnerRecords = records.where((record) => record['is_runner'] == true).toList();
+    final runnerRecords = records.where((record) => record['type'] == 'runner_time').toList();
     return runnerRecords.indexOf(records[recordIndex]);
   }
 
   Future<bool> _confirmDeleteLastRecord(int recordIndex) async {
     final records = Provider.of<TimingData>(context, listen: false).records;
     final record = records[recordIndex];
-    if (record['is_runner'] == true && record['is_confirmed'] == false && record['conflict'] == null) {
+    if (record['type'] == 'runner_time' && record['is_confirmed'] == false && record['conflict'] == null) {
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
@@ -556,7 +556,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
                         itemCount: records.length,
                         itemBuilder: (context, index) {
                           final record = records[index];
-                          if (records.isNotEmpty && record['is_runner'] == true) {
+                          if (records.isNotEmpty && record['type'] == 'runner_time') {
                             return Container(
                               margin: EdgeInsets.only(
                                 top: 0,
@@ -691,7 +691,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
                           ),
                         ),
                       ),
-                      if (records.isNotEmpty && !records.last['is_runner'] && records.last['type'] != null && records.last['type'] != 'confirm_runner_number')
+                      if (records.isNotEmpty && records.last['type'] != 'runner_time' && records.last['type'] != null && records.last['type'] != 'confirm_runner_number')
                         IconButton(
                           icon: const Icon(Icons.undo, size: 40, color: AppColors.mediumColor),
                           onPressed: _undoLastConflict,
