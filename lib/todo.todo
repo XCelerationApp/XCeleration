@@ -1,7 +1,6 @@
 Functionality:
 - wireless connection (almost done)
 - database
-- allow edits to conflict screen and bib number screen
 - share/save results
 - change race title to X vs Y (vs Z) and update in database
 - remove duplicates from runner data database (override most likely)
@@ -13,9 +12,7 @@ Functionality:
 - clean up code
 
 UI:
-- make popups for sharing race times
 - turn popups into sheets
 - make buttons that havent been redesigned look better
-- in bib number screen make it so that add button is in the scrolling container not hiding itself when a records is selected
 - include an example spreadsheet
-- race length keypad needs to have decimal points
+- go over the UI with others
