@@ -73,6 +73,9 @@ class _DeviceConnectionPopupState extends State<DeviceConnectionPopupContent> {
 
   Future<void> _connectAndTransferData() async {
     Future<void> notConnectedDeviceCallback (Device device) async {
+      if (_connectionStatus == ConnectionStatus.finished) {
+        return;
+      }
       _protocol?.dispose();
       _protocol = null;
       setState(() {
@@ -83,6 +86,9 @@ class _DeviceConnectionPopupState extends State<DeviceConnectionPopupContent> {
       }
     }
     Future<void> connectingToDeviceCallback (Device device) async {
+      if (_connectionStatus == ConnectionStatus.finished) {
+        return;
+      }
       _protocol?.dispose();
       _protocol = null;
       setState(() {
@@ -101,7 +107,6 @@ class _DeviceConnectionPopupState extends State<DeviceConnectionPopupContent> {
             _connectionStatus = ConnectionStatus.receiving;
           });
           final String receivedData = await _protocol!.receiveData();
-          _onDataTransferComplete?.call(receivedData);
           setState(() {
             _connectionStatus = ConnectionStatus.finished;
           });
@@ -115,6 +120,7 @@ class _DeviceConnectionPopupState extends State<DeviceConnectionPopupContent> {
               _initAudioPlayer();
             }
           }
+          _onDataTransferComplete?.call(receivedData);
           closeWidget();
         }
         else if (_deviceType == DeviceType.raceTimerDevice) {
