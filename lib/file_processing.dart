@@ -3,10 +3,10 @@ import 'package:csv/csv.dart';
 import 'package:excel/excel.dart';
 // import 'dart:convert';
 import 'dart:io';
-import 'package:race_timing_app/database_helper.dart';
+// import 'package:race_timing_app/database_helper.dart';
 
 
-Future<void> processSpreadsheet(int raceId, bool isTeam) async {
+Future<List<Map<String, dynamic>>> processSpreadsheet(int raceId, bool isTeam) async {
   FilePickerResult? result = await FilePicker.platform.pickFiles(
     type: FileType.custom,
     allowedExtensions: ['csv', 'xlsx'],
@@ -15,6 +15,7 @@ Future<void> processSpreadsheet(int raceId, bool isTeam) async {
   if (result != null) {
     final file = File(result.files.first.path!);
     final extension = result.files.first.extension;
+    final List<Map<String, dynamic>> runnerData = [];
 
     if (extension == 'csv') {
       // Process CSV file
@@ -31,14 +32,27 @@ Future<void> processSpreadsheet(int raceId, bool isTeam) async {
 
           if (name.isNotEmpty && grade > 0 && school.isNotEmpty && bibNumber.isNotEmpty && bibNumberInt >= 0) {
             if (isTeam == true) {
-              await DatabaseHelper.instance.insertTeamRunner({
+              // await DatabaseHelper.instance.insertTeamRunner({
+              //   'name': name,
+              //   'school': school,
+              //   'grade': grade,
+              //   'bib_number': bibNumber,
+              // });
+              runnerData.add({
                 'name': name,
                 'school': school,
                 'grade': grade,
                 'bib_number': bibNumber,
               });
             } else {
-              await DatabaseHelper.instance.insertRaceRunner({
+              // await DatabaseHelper.instance.insertRaceRunner({
+              //   'name': name,
+              //   'school': school,
+              //   'grade': grade,
+              //   'bib_number': bibNumberInt,
+              //   'race_id': raceId,
+              // });
+              runnerData.add({
                 'name': name,
                 'school': school,
                 'grade': grade,
@@ -74,19 +88,31 @@ Future<void> processSpreadsheet(int raceId, bool isTeam) async {
             if (name.isNotEmpty && grade > 0 && school.isNotEmpty && bibNumberInt >= 0 && bibNumber.isNotEmpty) {
               // Insert into the database
               if (isTeam == true) {
-                await DatabaseHelper.instance.insertTeamRunner({
+                // await DatabaseHelper.instance.insertTeamRunner({
+                //   'name': name,
+                //   'school': school,
+                //   'grade': grade,
+                //   'bib_number': bibNumber,
+                // });
+                runnerData.add({
                   'name': name,
                   'school': school,
                   'grade': grade,
                   'bib_number': bibNumber,
                 });
               } else {
-                await DatabaseHelper.instance.insertRaceRunner({
+                // await DatabaseHelper.instance.insertRaceRunner({
+                //   'name': name,
+                //   'school': school,
+                //   'grade': grade,
+                //   'bib_number': bibNumberInt,
+                //   'race_id': raceId,
+                // });
+                runnerData.add({
                   'name': name,
                   'school': school,
                   'grade': grade,
                   'bib_number': bibNumberInt,
-                  'race_id': raceId,
                 });
               } 
             } else {
@@ -101,7 +127,9 @@ Future<void> processSpreadsheet(int raceId, bool isTeam) async {
     } else {
       print('Unsupported file format: $extension');
     }
+    return runnerData;
   } else {
     print('No file selected.');
+    return [];
   }
 }

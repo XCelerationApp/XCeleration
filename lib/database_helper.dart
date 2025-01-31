@@ -34,7 +34,7 @@ class DatabaseHelper {
         name TEXT NOT NULL,
         school TEXT,
         grade INTEGER,
-        bib_number TEXT NOT NULL,
+        bib_number TEXT NOT NULL UNIQUE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     ''');
