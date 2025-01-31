@@ -39,7 +39,7 @@ class TimingData with ChangeNotifier {
   String encode() {
     List<String> condensedRecords = [];
     for (var record in _records) {
-      if (record['is_runner'] == true) {
+      if (record['type'] == 'runner_time') {
         final time = record['finish_time'];
         condensedRecords.add('$time');
       } else {

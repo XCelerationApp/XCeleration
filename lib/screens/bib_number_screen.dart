@@ -254,6 +254,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
 
   void _handleMainAction() {
     if (_isRaceFinished) {
+      print('Race is finished');
       showDeviceConnectionPopup(
         context,
         deviceType: DeviceType.bibNumberDevice,
@@ -281,7 +282,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     for (var recordString in condensedRecords) {
       if (loadDurationFromString(recordString) != null) {
         place++;
-        records.add({'finish_time': recordString, 'is_runner': true, 'is_confirmed': false, 'text_color': null, 'place': place});
+        records.add({'finish_time': recordString, 'type': 'runner_time', 'is_confirmed': false, 'text_color': null, 'place': place});
       }
       else {
         final [type, offBy, finish_time] = recordString.split(' ');
@@ -307,6 +308,10 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
   Future<void> _processRaceData(String data) async {
     try {
       final timingData = await _decodeRaceTimesString(data);
+      print(timingData);
+      for (var record in timingData['records']) {
+        print(record);
+      }
       if (_isValidTimingData(timingData)) {
         _navigateToRaceScreen(timingData);
       } else {

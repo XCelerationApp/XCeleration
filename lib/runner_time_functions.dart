@@ -22,7 +22,7 @@ dynamic updateTextColor(Color? color, records, {bool confirmed = false, String? 
   return records;
 }
 
-dynamic confirmRunnerNumber(records, numTimes, finishTime) {
+dynamic confirmRunnerNumber(records, numTimes, String finishTime) {
   final color = AppColors.navBarTextColor;
   records = updateTextColor(AppColors.navBarTextColor, records,confirmed: true);
 
@@ -54,7 +54,7 @@ dynamic deleteConfirmedRecordsBeforeIndexUntilConflict(records, int recordIndex)
   return records;
 }
 
-dynamic extraRunnerTime(offBy, records, numTimes, finishTime) {
+dynamic extraRunnerTime(offBy, records, numTimes, String finishTime) {
   if (offBy < 1) {
     offBy = 1;
   }
@@ -81,7 +81,7 @@ dynamic extraRunnerTime(offBy, records, numTimes, finishTime) {
   return records;
 }
 
-dynamic missingRunnerTime(offBy, records, numTimes, finishTime) {
+dynamic missingRunnerTime(offBy, records, numTimes, String finishTime) {
   int correcttedNumTimes = numTimes + offBy; // Placeholder for actual length input
   
   final color = AppColors.redColor;
@@ -91,6 +91,7 @@ dynamic missingRunnerTime(offBy, records, numTimes, finishTime) {
       records.add({
         'finish_time': 'TBD',
         'bib_number': null,
+        'type': 'runner_time',
         'is_confirmed': false,
         'conflict': 'missing_runner_time',
         'text_color': color,
