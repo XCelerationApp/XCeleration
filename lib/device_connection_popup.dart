@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
-// import 'package:provider/provider.dart';
-// import 'dart:convert';
 import 'dart:async';
-// import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
-// import '../constants.dart';
 import 'device_connection_service.dart';
 import 'package:flutter_nearby_connections/flutter_nearby_connections.dart';
+import 'data_protocol.dart';
 
 Future<void> showDeviceConnectionPopup(BuildContext context, { required DeviceType deviceType, required Function() backUpShareFunction, Function(String data)? onDatatransferComplete, String? dataToTransfer }) async {
   showModalBottomSheet(
@@ -44,6 +41,7 @@ class _DeviceConnectionPopupState extends State<DeviceConnectionPopupContent> {
   bool _isAudioPlayerReady = false;
   late DeviceType _deviceType;
   late String? _dataToTransfer;
+  late Protocol? _protocol;
 
   late DeviceConnectionService _deviceConnectionService;
 
@@ -57,159 +55,104 @@ class _DeviceConnectionPopupState extends State<DeviceConnectionPopupContent> {
     _dataToTransfer = widget.dataToTransfer;
     _deviceConnectionService = DeviceConnectionService();
     _connectionStatus = ConnectionStatus.searching;
+    _init();
+  }
+
+  Future<void> _init() async {
+    try {
+      await _deviceConnectionService.init('wirelessconn', _getDeviceTypeString(), _deviceType);
+    } catch (e) {
+      print('Error initializing device connection service: $e');
+      setState(() {
+        _connectionStatus = ConnectionStatus.error;
+      });
+      return;
+    }
     _connectAndTransferData();
   }
 
   Future<void> _connectAndTransferData() async {
-    Future<void> foundDeviceCallback (Device device) async {
+    Future<void> notConnectedDeviceCallback (Device device) async {
+      _protocol?.dispose();
+      _protocol = null;
       setState(() {
         _connectionStatus = ConnectionStatus.found;
       });
+      if (_deviceType == DeviceType.bibNumberDevice) {
+        await _deviceConnectionService.inviteDevice(device);
+      }
     }
     Future<void> connectingToDeviceCallback (Device device) async {
+      _protocol?.dispose();
+      _protocol = null;
       setState(() {
         _connectionStatus = ConnectionStatus.connecting;
       });
     }
-
-    try {
-      await _deviceConnectionService.init('wirelessconn', _getDeviceTypeString(), _deviceType);
-      if (_deviceType == DeviceType.bibNumberDevice) {
-        Device? device = await _deviceConnectionService.connectToDevice(
-          _getOppositeDeviceTypeString(),
-          foundDeviceCallback: foundDeviceCallback,
-          connectingToDeviceCallback: connectingToDeviceCallback,
-        );
-        if (device == null) {
+    Future<void> connectedToDeviceCallback (Device device) async {
+      setState(() {
+        _connectionStatus = ConnectionStatus.connected;
+      });
+      try {
+        _protocol = Protocol(deviceConnectionService: _deviceConnectionService, device: device);
+        _deviceConnectionService.monitorMessageReceives(device, messageReceivedCallback: _protocol!.handleMessage);
+        if (_deviceType == DeviceType.bibNumberDevice) {
           setState(() {
-            _connectionStatus = ConnectionStatus.timeout;
+            _connectionStatus = ConnectionStatus.receiving;
           });
-          closeWidget();
-          return;
-        }
-        print("Connected to device: ${device.deviceName}");
-        setState(() {
-          _connectionStatus = ConnectionStatus.connected;
-        });
-        String? message = await _deviceConnectionService.receiveMessageFromDevice(device);
-        if (message == null) {
+          final String receivedData = await _protocol!.receiveData();
+          _onDataTransferComplete?.call(receivedData);
           setState(() {
-            _connectionStatus = ConnectionStatus.timeout;
+            _connectionStatus = ConnectionStatus.finished;
           });
+          if (_isAudioPlayerReady) {
+            try {
+              await _audioPlayer.stop(); // Stop any currently playing sound
+              await _audioPlayer.play(AssetSource('sounds/completed_ding.mp3'));
+            } catch (e) {
+              print('Error playing sound: $e');
+              // Reinitialize audio player if it failed
+              _initAudioPlayer();
+            }
+          }
           closeWidget();
-          return;
         }
-        if (message != 'Start') {
-          setState(() {
-            _connectionStatus = ConnectionStatus.error;
-          });
-          closeWidget();
-          return;
-        }
-        await _deviceConnectionService.sendMessageToDevice(device, 'received start');
-        setState(() {
-          _connectionStatus = ConnectionStatus.receiving;
-        });
-        message = '';
-        String data = '';
-        bool receiving = true;
-        while (receiving) {
-          if (message == null) {
+        else if (_deviceType == DeviceType.raceTimerDevice) {
+          if (_dataToTransfer == null) {
             setState(() {
-              _connectionStatus = ConnectionStatus.timeout;
+              _connectionStatus = ConnectionStatus.error;
             });
-            closeWidget();
+            print('No data to transfer');
             return;
           }
-          data += message;
-          message = await _deviceConnectionService.receiveMessageFromDevice(device);
-          if (message == 'Stop') {
-            receiving = false;
-            break;
-          }
-          await _deviceConnectionService.sendMessageToDevice(device, 'received data');
+          setState(() {
+            _connectionStatus = ConnectionStatus.sending;
+          });
+          await _protocol!.sendData(_dataToTransfer!);
+          setState(() {
+            _connectionStatus = ConnectionStatus.finished;
+          });
+          closeWidget();
         }
-        await _deviceConnectionService.sendMessageToDevice(device, 'received stop');
-        print("received data from Race Timer Device: $data");
-        if (_onDataTransferComplete != null) {
-          await _onDataTransferComplete!(data);    
-        }   
-        setState(() {
-          _connectionStatus = ConnectionStatus.finished;
-        });
-        if (_isAudioPlayerReady) {
-          try {
-            await _audioPlayer.stop(); // Stop any currently playing sound
-            await _audioPlayer.play(AssetSource('sounds/completed_ding.mp3'));
-          } catch (e) {
-            print('Error playing sound: $e');
-            // Reinitialize audio player if it failed
-            _initAudioPlayer();
-          }
+      } catch (e) {
+        if (e is ProtocolTerminatedException) {
+          print('Protocol terminated during data transfer: $e');
+          return;
         }
-        closeWidget();
+        print('Error transferring data: $e');
+        rethrow;
       }
-      else {
-        if (_dataToTransfer == null) {
-          setState(() {
-            _connectionStatus = ConnectionStatus.error;
-          });
-          closeWidget();
-          return;
-        }
-        Device? device = await _deviceConnectionService.monitorDeviceConnectionStatus(
-          _getOppositeDeviceTypeString(),
-          foundDeviceCallback: foundDeviceCallback,
-          connectingToDeviceCallback: connectingToDeviceCallback,
-        );
-        if (device == null) {
-          setState(() {
-            _connectionStatus = ConnectionStatus.timeout;
-          });
-          closeWidget();
-          return;
-        }
-        print("Connected to device: ${device.deviceName}");
-        await _deviceConnectionService.sendMessageToDevice(device, 'Start');
-        String? start_message = await _deviceConnectionService.receiveMessageFromDevice(device);
-        if (start_message != 'received start') {
-          setState(() {
-            _connectionStatus = ConnectionStatus.error;
-          });
-          closeWidget();
-          return;
-        }
-
-        setState(() {
-          _connectionStatus = ConnectionStatus.sending;
-        });
-        await _deviceConnectionService.sendMessageToDevice(device, _dataToTransfer!);
-        String? data_message = await _deviceConnectionService.receiveMessageFromDevice(device);
-        if (data_message != 'received data') {
-          setState(() {
-            _connectionStatus = ConnectionStatus.error;
-          });
-          closeWidget();
-          return;
-        }
-        await _deviceConnectionService.sendMessageToDevice(device, 'Stop');
-        String? stop_message = await _deviceConnectionService.receiveMessageFromDevice(device);
-        if (stop_message != 'received stop') {
-          setState(() {
-            _connectionStatus = ConnectionStatus.error;
-          });
-          closeWidget();
-          return;
-        }
-
-        setState(() {
-          _connectionStatus = ConnectionStatus.finished;
-        });
-        closeWidget();
-      }
+    }
+    try {
+      await _deviceConnectionService.monitorDeviceConnectionStatus(
+        _getOppositeDeviceTypeString(),
+        notConnectedCallback: notConnectedDeviceCallback,
+        connectingToDeviceCallback: connectingToDeviceCallback,
+        connectedToDeviceCallback: connectedToDeviceCallback,
+      );
     } catch (e) {
       setState(() {
-        print('Error with device connection service: $e');
+        print('Error connecting and transferring data: $e');
         _connectionStatus = ConnectionStatus.error;
       });
       closeWidget();
@@ -258,6 +201,8 @@ class _DeviceConnectionPopupState extends State<DeviceConnectionPopupContent> {
   void dispose() {
     _audioPlayer.dispose();
     _deviceConnectionService.dispose();
+    _protocol?.dispose();
+    _protocol = null;
     super.dispose();
   }
 
