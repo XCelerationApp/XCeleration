@@ -6,7 +6,7 @@ dynamic updateTextColor(Color? color, records, {bool confirmed = false, String? 
     records = records.sublist(0, endIndex);
   }
   for (int i = records.length - 1; i >= 0; i--) {
-    if (records[i]['is_runner'] == false) {
+    if (records[i]['type'] != 'runner_time') {
       break;
     }
     records[i]['text_color'] = color;
@@ -22,20 +22,18 @@ dynamic updateTextColor(Color? color, records, {bool confirmed = false, String? 
   return records;
 }
 
-dynamic confirmRunnerNumber(records, numTimes, finishTime) {
+dynamic confirmRunnerNumber(records, numTimes, String finishTime) {
   final color = AppColors.navBarTextColor;
-  records = updateTextColor(color, records,confirmed: true);
+  records = updateTextColor(AppColors.navBarTextColor, records,confirmed: true);
 
   records = deleteConfirmedRecordsBeforeIndexUntilConflict(records, records.length - 1);
 
   records.add({
       'finish_time': finishTime,
-      'is_runner': false,
       'type': 'confirm_runner_number',
       'text_color': color,
       'numTimes': numTimes,
     });
-  
   return records;
 }
 
@@ -46,17 +44,17 @@ dynamic deleteConfirmedRecordsBeforeIndexUntilConflict(records, int recordIndex)
   }
   final trimmedRecords = records.sublist(0, recordIndex + 1);
   for (int i = trimmedRecords.length - 1; i >= 0; i--) {
-    if (trimmedRecords[i]['is_runner'] == false && trimmedRecords[i]['type'] != 'confirm_runner_number') {
+    if (trimmedRecords[i]['type'] != 'runner_time' && trimmedRecords[i]['type'] != 'confirm_runner_number') {
       break;
     }
-    if (trimmedRecords[i]['is_runner'] == false && trimmedRecords[i]['type'] == 'confirm_runner_number') {
+    if (trimmedRecords[i]['type'] != 'runner_time' && trimmedRecords[i]['type'] == 'confirm_runner_number') {
       records.removeAt(i);
     }
   }
   return records;
 }
 
-dynamic extraRunnerTime(offBy, records, numTimes, finishTime) {
+dynamic extraRunnerTime(offBy, records, numTimes, String finishTime) {
   if (offBy < 1) {
     offBy = 1;
   }
@@ -64,7 +62,7 @@ dynamic extraRunnerTime(offBy, records, numTimes, finishTime) {
 
   for (int i = 1; i <= offBy; i++) {
     final lastOffByRunner = records[records.length - i];
-    if (lastOffByRunner['is_runner'] == true) {
+    if (lastOffByRunner['type'] == 'runner_time') {
       lastOffByRunner['previous_place'] = lastOffByRunner['place'];
       lastOffByRunner['place'] = '';
     }
@@ -75,7 +73,6 @@ dynamic extraRunnerTime(offBy, records, numTimes, finishTime) {
 
   records.add({
     'finish_time': finishTime,
-    'is_runner': false,
     'type': 'extra_runner_time',
     'text_color': color,
     'numTimes': correcttedNumTimes,
@@ -84,7 +81,7 @@ dynamic extraRunnerTime(offBy, records, numTimes, finishTime) {
   return records;
 }
 
-dynamic missingRunnerTime(offBy, records, numTimes, finishTime) {
+dynamic missingRunnerTime(offBy, records, numTimes, String finishTime) {
   int correcttedNumTimes = numTimes + offBy; // Placeholder for actual length input
   
   final color = AppColors.redColor;
@@ -94,7 +91,7 @@ dynamic missingRunnerTime(offBy, records, numTimes, finishTime) {
       records.add({
         'finish_time': 'TBD',
         'bib_number': null,
-        'is_runner': true,
+        'type': 'runner_time',
         'is_confirmed': false,
         'conflict': 'missing_runner_time',
         'text_color': color,
@@ -104,7 +101,6 @@ dynamic missingRunnerTime(offBy, records, numTimes, finishTime) {
 
     records.add({
       'finish_time': finishTime,
-      'is_runner': false,
       'type': 'missing_runner_time',
       'text_color': color,
       'numTimes': correcttedNumTimes,

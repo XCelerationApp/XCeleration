@@ -35,11 +35,11 @@ class DialogUtils {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        // duration: Duration(seconds: 3),
-        action: SnackBarAction(
-          label: 'OK',
-          onPressed: () => ScaffoldMessenger.of(context).hideCurrentSnackBar(),
-        ),
+        duration: Duration(seconds: 3),
+        // action: SnackBarAction(
+        //   label: 'OK',
+        //   onPressed: () => ScaffoldMessenger.of(context).hideCurrentSnackBar(),
+        // ),
       ),
     );
   }
