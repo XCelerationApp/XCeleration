@@ -55,20 +55,41 @@ class _DeviceConnectionPopupState extends State<DeviceConnectionPopupContent> {
     _dataToTransfer = widget.dataToTransfer;
     _deviceConnectionService = DeviceConnectionService();
     _connectionStatus = ConnectionStatus.searching;
+    _protocol = null;
     _init();
   }
 
   Future<void> _init() async {
     try {
-      await _deviceConnectionService.init('wirelessconn', _getDeviceTypeString(), _deviceType);
+      final bool isServiceAvailable = await _deviceConnectionService.checkIfNearbyConnectionsWorks();
+      if (!isServiceAvailable) {
+        print('Device connection service is not available on this platform');
+        setState(() {
+          _connectionStatus = ConnectionStatus.error;
+        });
+        closeWidget();
+        return;
+      }
+
+      try {
+        await _deviceConnectionService.init('wirelessconn', _getDeviceTypeString(), _deviceType);
+      } catch (e) {
+        print('Error initializing device connection service: $e');
+        rethrow;
+      }
+      try {
+        _connectAndTransferData();
+      } catch (e) {
+        print('Error connecting and transferring data: $e');
+        rethrow;
+      }
     } catch (e) {
-      print('Error initializing device connection service: $e');
+      print('Error in device connection popup: $e');
       setState(() {
         _connectionStatus = ConnectionStatus.error;
       });
-      return;
+      closeWidget();
     }
-    _connectAndTransferData();
   }
 
   Future<void> _connectAndTransferData() async {

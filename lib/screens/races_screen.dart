@@ -117,7 +117,7 @@ class _RacesScreenState extends State<RacesScreen> {
                             child: TextField(
                               controller: locationController,
                               decoration: InputDecoration(
-                                hintText: (Platform.isIOS || Platform.isAndroid) ? 'Race Location' : 'Other Location',
+                                hintText: (Platform.isIOS || Platform.isAndroid) ? 'Other Location' : 'Race Location',
                               ),
                               onChanged: (value) {
                                 _updateLocationButtonVisibility();
