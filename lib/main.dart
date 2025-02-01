@@ -10,7 +10,7 @@ import 'models/bib_data.dart';
 import 'screens/races_screen.dart';
 // import 'models/race.dart';
 // import 'package:audioplayers/audioplayers.dart';
-import 'constants.dart';
+import 'utils/app_colors.dart';
 import 'package:flutter/services.dart';
 
 Process? _flaskProcess;
@@ -129,6 +129,7 @@ class WelcomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.primaryColor,
       body: Center(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
@@ -138,13 +139,13 @@ class WelcomeScreen extends StatelessWidget {
             children: [
               Text(
                 'Welcome to Race Timing App',
-                style: TextStyle(fontSize: 35, fontWeight: FontWeight.w700),
+                style: TextStyle(fontSize: 35, fontWeight: FontWeight.w700, color: AppColors.backgroundColor),
                 textAlign: TextAlign.center,
               ),
               SizedBox(height: 20),
               Text(
                 'Please select your role',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w300),
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w300, color: AppColors.backgroundColor),
                 textAlign: TextAlign.center,
               ),
               SizedBox(height: 30),
@@ -159,7 +160,7 @@ class WelcomeScreen extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.all(20.0),
                   ),
-                  child: Text('Coach', style: TextStyle(fontSize: 30)),
+                  child: Text('Coach', style: TextStyle(fontSize: 30, color: AppColors.selectedRoleTextColor)),
                 ),
               ),
               SizedBox(height: 15),
@@ -174,7 +175,7 @@ class WelcomeScreen extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.all(20.0),
                   ),
-                  child: Text('Timer', style: TextStyle(fontSize: 30)),
+                  child: Text('Timer', style: TextStyle(fontSize: 30, color: AppColors.selectedRoleTextColor)),
                 ),
               ),
               SizedBox(height: 15),
@@ -191,7 +192,7 @@ class WelcomeScreen extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.all(20.0),
                   ),
-                  child: Text('Record Bib #s', style: TextStyle(fontSize: 30)),
+                  child: Text('Record Bib #s', style: TextStyle(fontSize: 30, color: AppColors.selectedRoleTextColor)),
                 ),
               ),
             ],

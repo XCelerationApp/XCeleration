@@ -6,7 +6,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../models/timing_data.dart';
 import '../utils/time_formatter.dart';
-import '../constants.dart';
+import '../utils/app_colors.dart';
 import '../device_connection_popup.dart';
 import '../runner_time_functions.dart';
 import '../utils/timing_utils.dart';

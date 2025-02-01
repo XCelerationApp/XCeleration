@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import '../constants.dart';
+import 'app_colors.dart';
 
-Widget createSheetHandle() {
+Widget createSheetHandle({double height = 10.0, double width = 50.0}) {
   return Container(
+    alignment: Alignment.topCenter,
+    // width: 50.0,
     decoration: BoxDecoration(
       border: Border(
         top: BorderSide(
@@ -20,9 +22,9 @@ Widget createSheetHandle() {
     child: ClipRRect(
       borderRadius: BorderRadius.circular(10.0),
       child: Container(
-        height: 10.0,
-        width: 50,
-        color: AppColors.navBarColor,
+        height: height,
+        width: width,
+        color: AppColors.primaryColor,
       ),
     ),
   );

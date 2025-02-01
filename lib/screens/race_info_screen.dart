@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:race_timing_app/database_helper.dart';
 import 'package:race_timing_app/models/race.dart';
+import 'package:race_timing_app/utils/sheet_utils.dart';
+import 'package:race_timing_app/utils/app_colors.dart'; // Import AppColors
 
 class RaceInfoScreen extends StatefulWidget {
   final int raceId;
@@ -134,13 +136,8 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> {
   @override
   Widget build(BuildContext context) {
     if (race == null) {
-      return Scaffold(
-        // appBar: AppBar(
-          // title: Text('Loading...'),
-        // ),
-        body: Center(
-          child: CircularProgressIndicator(), // Show loading indicator
-        ),
+      return Center(
+        child: CircularProgressIndicator(), // Show loading indicator
       );
     }
 
@@ -149,144 +146,129 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> {
                      _date != race!.race_date.toString() || 
                      _distance != race!.distance;
 
-    return Scaffold(
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              child: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
+    return Column(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Text(
+                        //   'Race Information',
+                        //   style: TextStyle(
+                        //     fontSize: 24,
+                        //     fontWeight: FontWeight.bold,
+                        //     color: Colors.grey[800],
+                        //   ),
+                        // ),
+                        // const SizedBox(height: 24),
+                        createSheetHandle(height: 15.0, width: 75.0),
+                        _buildTextField(
+                          label: 'Race Name',
+                          controller: _nameController,
+                          onChanged: (value) => setState(() => _name = value),
+                          prefixIcon: const Icon(Icons.emoji_events_outlined),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Race Information',
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.grey[800],
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-                            _buildTextField(
-                              label: 'Race Name',
-                              controller: _nameController,
-                              onChanged: (value) => setState(() => _name = value),
-                              prefixIcon: const Icon(Icons.emoji_events_outlined),
-                            ),
-                            _buildTextField(
-                              label: 'Location',
-                              controller: _locationController,
-                              onChanged: (value) => setState(() => _location = value),
-                              prefixIcon: const Icon(Icons.location_on_outlined),
-                            ),
-                            _buildTextField(
-                              label: 'Date',
-                              controller: _dateController,
-                              onChanged: (value) {
-                                setState(() => _date = value);
-                                final date = DateTime.tryParse(value);
-                                if (date != null) {
-                                  setState(() => _date = date.toString());
-                                }
-                              },
-                              prefixIcon: IconButton(
-                                icon: Icon(Icons.calendar_today),
-                                onPressed: () async {
-                                  DateTime? pickedDate = await showDatePicker(
-                                    context: context,
-                                    initialDate: DateTime.tryParse(_date) ?? DateTime.now(),
-                                    firstDate: DateTime(2000), 
-                                    lastDate: DateTime(2101), 
-                                  );
-                                  if (pickedDate != null) {
-                                    _dateController.text = pickedDate.toLocal().toString().split(' ')[0];
-                                    setState(() => _date = pickedDate.toString()); 
-                                  }
-                                },
-                              ),
-                              hintText: 'YYYY-MM-DD',
-                              keyboardType: TextInputType.datetime,
-                            ),
-                            _buildTextField(
-                              label: 'Distance',
-                              controller: _distanceController,
-                              onChanged: (value) {
-                                final doubleDistance = double.tryParse(value);
-                                if (doubleDistance != null) {
-                                  final distancePart = _distance.split(' ')[0];
-                                  setState(() => _distance.replaceAll(distancePart, doubleDistance.toString()));
-                                }
-                              },
-                              keyboardType: TextInputType.numberWithOptions(signed: true, decimal: true),
-                              prefixIcon: const Icon(Icons.straighten),
-                            ),
-                          ],
+                        _buildTextField(
+                          label: 'Location',
+                          controller: _locationController,
+                          onChanged: (value) => setState(() => _location = value),
+                          prefixIcon: const Icon(Icons.location_on_outlined),
                         ),
-                      ),
-                    ],
-                  ),
+                        _buildTextField(
+                          label: 'Date',
+                          controller: _dateController,
+                          onChanged: (value) {
+                            setState(() => _date = value);
+                            final date = DateTime.tryParse(value);
+                            if (date != null) {
+                              setState(() => _date = date.toString());
+                            }
+                          },
+                          prefixIcon: IconButton(
+                            icon: Icon(Icons.calendar_today),
+                            onPressed: () async {
+                              DateTime? pickedDate = await showDatePicker(
+                                context: context,
+                                initialDate: DateTime.tryParse(_date) ?? DateTime.now(),
+                                firstDate: DateTime(2000), 
+                                lastDate: DateTime(2101), 
+                              );
+                              if (pickedDate != null) {
+                                _dateController.text = pickedDate.toLocal().toString().split(' ')[0];
+                                setState(() => _date = pickedDate.toString()); 
+                              }
+                            },
+                          ),
+                          hintText: 'YYYY-MM-DD',
+                          keyboardType: TextInputType.datetime,
+                        ),
+                        _buildTextField(
+                          label: 'Distance',
+                          controller: _distanceController,
+                          onChanged: (value) {
+                            final doubleDistance = double.tryParse(value);
+                            if (doubleDistance != null) {
+                              final distancePart = _distance.split(' ')[0];
+                              setState(() => _distance.replaceAll(distancePart, doubleDistance.toString()));
+                            }
+                          },
+                          keyboardType: TextInputType.numberWithOptions(signed: true, decimal: true),
+                          prefixIcon: const Icon(Icons.straighten),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
-          if (hasChanges) ...[
-            const SizedBox(height: 10),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () async {
-                  await DatabaseHelper.instance.updateRace({
-                    'race_id': race?.race_id,
-                    'race_name': _name,
-                    'location': _location,
-                    'race_date': _date,
-                    'distance': _distance,
-                  });
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Changes saved successfully'),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+        ),
+        if (hasChanges) ...[
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () async {
+                await DatabaseHelper.instance.updateRace({
+                  'race_id': race?.race_id,
+                  'race_name': _name,
+                  'location': _location,
+                  'race_date': _date,
+                  'distance': _distance,
+                });
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Changes saved successfully'),
+                    behavior: SnackBarBehavior.floating,
                   ),
-                  elevation: 2,
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Text(
-                  'Save Changes',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
+                elevation: 2,
+              ),
+              child: const Text(
+                'Save Changes',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
-            const SizedBox(height: 15),
-          ],
+          ),
+          const SizedBox(height: 15),
         ],
-      ),
+      ],
     );
   }
 }

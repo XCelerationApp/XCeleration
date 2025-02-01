@@ -4,7 +4,7 @@ import 'package:race_timing_app/utils/time_formatter.dart';
 import 'dart:math';
 import 'package:race_timing_app/database_helper.dart';
 import 'race_screen.dart';
-import '../constants.dart';
+import '../utils/app_colors.dart';
 import 'resolve_conflict.dart';
 import '../runner_time_functions.dart';
 import '../utils/timing_utils.dart';

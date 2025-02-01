@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../constants.dart';
+import 'utils/app_colors.dart';
 
 dynamic updateTextColor(Color? color, records, {bool confirmed = false, String? conflict, endIndex}) {
   if (endIndex != null && endIndex < records.length && records.isNotEmpty) {

@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 import 'dart:convert';
 // import '../models/race.dart';
 import '../models/bib_data.dart';
-import '../constants.dart';
+import '../utils/app_colors.dart';
 import '../utils/dialog_utils.dart';
 import '../utils/button_utils.dart';
 import '../utils/time_formatter.dart';

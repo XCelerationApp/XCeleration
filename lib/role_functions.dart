@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:race_timing_app/screens/races_screen.dart';
 import 'package:race_timing_app/screens/timing_screen.dart';
 import 'package:race_timing_app/screens/bib_number_screen.dart';
-import 'package:race_timing_app/constants.dart';
+import 'package:race_timing_app/utils/app_colors.dart';
+import 'utils/sheet_utils.dart';
 
 class RoleOption {
   final String value;
@@ -44,10 +45,12 @@ final List<RoleOption> roleOptions = [
   ),
 ];
 
-Widget _buildRoleTitle(RoleOption role) {
+Widget _buildRoleTitle(RoleOption role, String currentRole) {
   return Row(
     children: [
-      Icon(role.icon, size: 55, color: Colors.grey[800]),
+      Icon(role.icon, size: 55, color: role.value == currentRole
+                  ? AppColors.selectedRoleTextColor
+                  : AppColors.unselectedRoleTextColor),
       SizedBox(width: 8),
       Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -57,12 +60,19 @@ Widget _buildRoleTitle(RoleOption role) {
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w700,
-              color: Colors.grey[800],
+              color: role.value == currentRole
+                  ? AppColors.selectedRoleTextColor
+                  : AppColors.unselectedRoleTextColor,
             ),
           ),
           Text(
             role.description,
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w400),
+            style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w400,
+                color: role.value == currentRole
+                    ? AppColors.selectedRoleTextColor
+                    : AppColors.unselectedRoleTextColor),
           ),
         ],
       ),
@@ -93,7 +103,16 @@ Widget _buildRoleListTile(BuildContext context, RoleOption role, String currentR
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
-      title: _buildRoleTitle(role),
+      title: _buildRoleTitle(role, currentRole),
+      activeColor: AppColors.selectedRoleTextColor,
+      // fillColor: WidgetStateProperty.resolveWith<Color>(
+      //   (Set<WidgetState> states) {
+      //     if (states.contains(WidgetState.selected)) {
+      //       return AppColors.selectedRoleTextColor;
+      //     }
+      //     return Colors.white; // unselected color
+      //   },
+      // ),
     ),
   );
 }
@@ -106,11 +125,12 @@ void changeRole(BuildContext context, String currentRole) {
     ),
     context: context,
     builder: (context) => Container(
-      height: 375,
+      height: 400,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
+            createSheetHandle(),
             Padding(
               padding: const EdgeInsets.only(bottom: 16.0),
               child: Text(

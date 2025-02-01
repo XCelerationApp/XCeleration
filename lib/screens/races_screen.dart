@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:race_timing_app/screens/race_info_screen.dart';
 import '../models/race.dart';
 import '../database_helper.dart';
 // import 'race_detail_screen.dart';
 // import 'race_info_screen.dart';
-import 'race_screen.dart';
-import '../constants.dart';
+// import 'race_screen.dart';
+import '../utils/app_colors.dart';
 import '../utils/dialog_utils.dart';
 import 'dart:io';
 import '../role_functions.dart';
@@ -394,16 +395,36 @@ class _RacesScreenState extends State<RacesScreen> {
         'race_date': dateController.text,
         'distance': distranceString,
     });
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => RaceScreen(race:  Race(
+    // final race = Race(
+    //   raceId: id,
+    //   raceName: raceName,
+    //   location: locationController.text,
+    //   raceDate: date,
+    //   distance: distranceString,
+    // );
+    // Navigator.pushReplacement(
+    //   context,
+    //   MaterialPageRoute(
+    //     builder: (context) => RaceInfoScreen(raceId: id),
+    //   ),
+    // );
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      backgroundColor: AppColors.backgroundColor,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.92,
+        decoration: BoxDecoration(
+          color: AppColors.backgroundColor,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+        child: RaceInfoScreen(
           raceId: id,
-          raceName: raceName,
-          location: locationController.text,
-          raceDate: date,
-          distance: distranceString,
-        )),
+        ),
       ),
     );
   }
@@ -452,8 +473,19 @@ class _RacesScreenState extends State<RacesScreen> {
                             showModalBottomSheet(
                               context: context,
                               isScrollControlled: true,
-                              builder: (context) => RaceScreen(
-                                race: races[index],
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              backgroundColor: AppColors.backgroundColor,
+                              builder: (context) => Container(
+                                height: MediaQuery.of(context).size.height * 0.92,
+                                decoration: BoxDecoration(
+                                  color: AppColors.backgroundColor,
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: RaceInfoScreen(
+                                  raceId: races[index].raceId,
+                                ),
                               ),
                             );
                           },

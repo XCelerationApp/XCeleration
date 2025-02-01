@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../constants.dart';
+import '../utils/app_colors.dart';
 import '../utils/time_formatter.dart';
 
 class ConflictResolutionDialog extends StatefulWidget {
