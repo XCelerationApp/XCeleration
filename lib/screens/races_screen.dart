@@ -8,6 +8,7 @@ import '../database_helper.dart';
 import 'race_screen.dart';
 import '../constants.dart';
 import '../utils/dialog_utils.dart';
+import 'dart:io';
 
 
 class RacesScreen extends StatefulWidget {
@@ -116,14 +117,14 @@ class _RacesScreenState extends State<RacesScreen> {
                             child: TextField(
                               controller: locationController,
                               decoration: InputDecoration(
-                                hintText: 'Other Location',
+                                hintText: (Platform.isIOS || Platform.isAndroid) ? 'Race Location' : 'Other Location',
                               ),
                               onChanged: (value) {
                                 _updateLocationButtonVisibility();
                               },
                             ),
                           ),
-                          if (isLocationButtonVisible)
+                          if (isLocationButtonVisible && (Platform.isIOS || Platform.isAndroid))
                             TextButton(
                               child: Row(
                                 children: [
