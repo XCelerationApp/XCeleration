@@ -27,6 +27,8 @@ class _RacesScreenState extends State<RacesScreen> {
   final dateController = TextEditingController(text: '');
   final distanceController = TextEditingController(text: '');
   final userlocationController = TextEditingController(text: '');
+  final List<TextEditingController> _teamControllers = [TextEditingController(), TextEditingController()];
+  String unit = 'miles';
   
   @override
   void initState() {
@@ -52,7 +54,16 @@ class _RacesScreenState extends State<RacesScreen> {
     });
   }
 
+  // Method to add a new TextEditingController
+  void _addTeamField() {
+    setState(() {
+      print('_addTeamField');
+      _teamControllers.add(TextEditingController());
+    });
+  }
 
+
+  // Method to show the create race dialog
   void _showCreateRaceDialog(BuildContext context) {
     nameController.text = 'Untitled Race';
     locationController.text = '';
@@ -60,13 +71,18 @@ class _RacesScreenState extends State<RacesScreen> {
     distanceController.text = '';
     userlocationController.text = '';
     isLocationButtonVisible = true;
+    _teamControllers.clear();
+    _teamControllers.add(TextEditingController());
+    _teamControllers.add(TextEditingController());
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text('Create New Race'),
-          content: SingleChildScrollView(
+          content: StatefulBuilder(
+  builder: (BuildContext context, StateSetter setState) {
+    return SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -76,22 +92,30 @@ class _RacesScreenState extends State<RacesScreen> {
                     Padding(
                       padding: const EdgeInsets.only(top: 8.0),
                       child: Text(
-                        'Race Name:',
+                        'Competing Teams:',
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 0.0),
+                    ..._teamControllers.map((controller) => Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8.0),
                       child: TextField(
-                        controller: nameController,
-                        autofocus: true,
+                        controller: controller,
                         decoration: InputDecoration(
-                        hintText: 'Untitled Race',
+                          labelText: 'Team Name',
+                          border: OutlineInputBorder(),
                         ),
                       ),
+                    )),
+                    ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          _addTeamField();
+                        });
+                      },
+                      child: const Text('Add Another Team'),
                     ),
                   ],
                 ),
@@ -140,29 +164,17 @@ class _RacesScreenState extends State<RacesScreen> {
                                   }
 
                                   if (permission == LocationPermission.deniedForever) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text('Location permissions are permanently denied, we cannot request permissions.'),
-                                      ),
-                                    );
+                                    DialogUtils.showErrorDialog(context, message: ('Location permissions are permanently denied, we cannot request permissions.'));
                                     return;
                                   }
 
                                   if (permission == LocationPermission.denied) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text('Location permissions are denied, please enable them in settings.'),
-                                      ),
-                                    );
+                                    DialogUtils.showErrorDialog(context, message: ('Location permissions are denied, please enable them in settings.'));
                                     return;
                                   }
 
                                   if (!await Geolocator.isLocationServiceEnabled()) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text('Location services are disabled'),
-                                      ),
-                                    );
+                                    DialogUtils.showErrorDialog(context, message: ('Location services are disabled'));
                                     return;
                                   }
 
@@ -256,13 +268,41 @@ class _RacesScreenState extends State<RacesScreen> {
                             ),
                           ),
                         ),
+                        Spacer(),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8.0),
+                          child: Row(
+                            children: [
+                              Text('Unit: '),
+                              DropdownButton<String>(
+                                value: unit,
+                                onChanged: (String? newValue) {
+                                  setState(() {
+                                    unit = newValue!;
+                                  });
+                                },
+                                items: <String>['miles', 'kilometers']
+                                  .map<DropdownMenuItem<String>>((String value) {
+                                    return DropdownMenuItem<String>(
+                                      value: value,
+                                      child: Text(value),
+                                    );
+                                  })
+                                  .toList(),
+                              ),
+                            ],
+                          ),
+                        ),
+                        
+
                       ],
                     ),
                   ],
                 ),
               ],
             ),
-          ),
+          );
+  }),
           actions: [
             TextButton(
               onPressed: () {
@@ -272,15 +312,20 @@ class _RacesScreenState extends State<RacesScreen> {
             ),
             TextButton(
               onPressed: () async {
-                if (nameController.text.isEmpty ||
-                    locationController.text.isEmpty ||
+                for (var controller in _teamControllers) {
+                  if (controller.text.isEmpty) {
+                    DialogUtils.showErrorDialog(context, message: ('Please fill in all the fields'));
+                    return;
+                  }
+                }
+                if (_teamControllers.length < 2) {
+                  DialogUtils.showErrorDialog(context, message: ('Please enter at least 2 teams'));
+                  return;
+                }
+                if (locationController.text.isEmpty ||
                     dateController.text.isEmpty ||
                     distanceController.text.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Please fill in all the fields'),
-                    ),
-                  );
+                  DialogUtils.showErrorDialog(context, message: ('Please fill in all the fields'));
                   return;
                 }
                 DateTime date;
@@ -288,46 +333,39 @@ class _RacesScreenState extends State<RacesScreen> {
                 try {
                   date = DateTime.parse(dateController.text);
                   if (date.year < 1900) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Date must be in the future'),
-                      ),
-                    );
+                    DialogUtils.showErrorDialog(context, message: ('Date must be in the future'));
                     return;
                   }
                   distance = double.parse(distanceController.text);
                   if (distance < 0) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Distance must be positive'),
-                      ),
-                    );
+                    DialogUtils.showErrorDialog(context, message: ('Distance must be positive'));
                     return;
                   }
                 } on FormatException {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Invalid date or distance'),
-                    ),
-                  );
+                  DialogUtils.showErrorDialog(context, message: ('Invalid date or distance'));
                   return;
                 }
 
+                final String raceName = _teamControllers.map((controller) => controller.text).toList().join(' vs ');
+
+                final String distanceType = unit;
+
+                final distranceString = '${distance.toString().replaceAll(' ', '')} $distanceType';
                 final id = await DatabaseHelper.instance.insertRace({
-                    'race_name': nameController.text,
+                    'race_name': raceName,
                     'location': locationController.text,
                     'race_date': dateController.text,
-                    'distance': distance,
+                    'distance': distranceString,
                 });
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
                     builder: (context) => RaceScreen(race:  Race(
                       raceId: id,
-                      raceName: nameController.text,
+                      raceName: raceName,
                       location: locationController.text,
                       raceDate: date,
-                      distance: distance,
+                      distance: distranceString,
                     )),
                   ),
                 );

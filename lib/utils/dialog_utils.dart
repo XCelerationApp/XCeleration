@@ -32,15 +32,40 @@ class DialogUtils {
     required String message,
     String? title,
   }) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        duration: Duration(seconds: 3),
-        // action: SnackBarAction(
-        //   label: 'OK',
-        //   onPressed: () => ScaffoldMessenger.of(context).hideCurrentSnackBar(),
-        // ),
+    final overlay = Overlay.of(context);
+  final overlayEntry = OverlayEntry(
+    builder: (context) => Positioned(
+      top: MediaQuery.of(context).viewInsets.top + 20, // Position it at the top
+      left: MediaQuery.of(context).size.width * 0.1,
+      right: MediaQuery.of(context).size.width * 0.1,
+      child: Material(
+        elevation: 6.0,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+          color: Colors.red,
+          child: Text(
+            message,
+            style: const TextStyle(color: Colors.white),
+          ),
+        ),
       ),
-    );
+    ),
+  );
+    overlay.insert(overlayEntry);
+  
+    Future.delayed(const Duration(seconds: 3), () {
+      overlayEntry.remove();
+    });
   }
+    // ScaffoldMessenger.of(context).showSnackBar(
+    //   SnackBar(
+    //     content: Text(message),
+    //     duration: Duration(seconds: 3),
+    //     // action: SnackBarAction(
+    //     //   label: 'OK',
+    //     //   onPressed: () => ScaffoldMessenger.of(context).hideCurrentSnackBar(),
+    //     // ),
+    //   ),
+    // );
+  // }
 }
