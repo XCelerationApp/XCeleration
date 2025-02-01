@@ -9,9 +9,51 @@ Functionality:
 - fix race length (either delete or add mile/km)
 - make sure all possible errors are caught and handled
 - clean up code
+- have titles for catagories for spreadsheet
 
 UI:
 - turn popups into sheets
 - make buttons that havent been redesigned look better
 - include an example spreadsheet
 - go over the UI with others
+- make it more obvious that there are more text fields to fill in
+- differenciate between race screen and main screen
+
+Runners Management screen:
+- have school be a dropdown for add runner
+- don't overwrite runner if runner with the same bib number is the same as the one being added
+
+Races screen:
+- Make teams have titles (team 1, team 2, etc.)
+- maybe add a color for each team when creating a race
+- add date for each race (short, maybe just day month year)
+- move the delete race button to a different place (maybe swipe to delete)
+
+Race screen:
+- abreviate date to month (3 letters), day, year
+
+Timing screen:
+- change the color of the top divider
+- add notes to each time? (maybe)
+
+Record Bib Numbers screen:
+- make a custom keyboard for the bib numbers
+- make focusing less jumpy
+- change 'not in database' to 'runner not found'
+- make a popup that asked if you want to continue with problem bib numbers when finished
+- when finished confirm delete all blank bib numbers if not confirmed do not let user proceed
+- if there are no bib numbers do not let user click finished
+
+Conflicts screen:
+- make a screen dedicated to conflicts
+- show end of race time if conflicts are at the end of the race
+- rename old screen to merge results
+
+Merge results screen:
+- put save results button on bottom of the screen (keep it over the results but smaller)
+
+Results screen:
+- have titles over each category
+- create a pdf of the results
+- create a google sheet with the results
+- could change it just have a download button

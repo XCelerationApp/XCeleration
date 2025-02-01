@@ -3,7 +3,7 @@ import 'package:barcode_scan2/barcode_scan2.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'dart:convert';
-import '../models/race.dart';
+// import '../models/race.dart';
 import '../models/bib_data.dart';
 import '../constants.dart';
 import '../utils/dialog_utils.dart';
@@ -13,24 +13,25 @@ import '../device_connection_popup.dart';
 import '../device_connection_service.dart';
 import '../database_helper.dart';
 import '../runner_time_functions.dart';
-import 'race_screen.dart';
+// import 'race_screen.dart';
+import 'package:race_timing_app/role_functions.dart';
 
 class BibNumberScreen extends StatefulWidget {
-  final Race race;
-  const BibNumberScreen({super.key, required this.race});
+  // final Race? race;
+  const BibNumberScreen({super.key});
 
   @override
   State<BibNumberScreen> createState() => _BibNumberScreenState();
 }
 
 class _BibNumberScreenState extends State<BibNumberScreen> {
-  late final Race race;
+  // late Race race;
   bool _isRaceFinished = false;
 
   @override
   void initState() {
     super.initState();
-    race = widget.race;
+    // race = widget.race!;
   }
 
   // Simplified bib number management
@@ -313,7 +314,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
         print(record);
       }
       if (_isValidTimingData(timingData)) {
-        _navigateToRaceScreen(timingData);
+        // _navigateToRaceScreen(timingData);
       } else {
         DialogUtils.showErrorDialog(context, message: 'Error: Invalid QR code data');
       }
@@ -331,21 +332,21 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
            data['endTime'] != null;
   }
 
-  void _navigateToRaceScreen(Map<String, dynamic> timingData) {
-    final provider = Provider.of<BibRecordsProvider>(context, listen: false);
-    timingData['bibs'] = provider.bibRecords.map((bib) => bib.bibNumber).toList();
+  // void _navigateToRaceScreen(Map<String, dynamic> timingData) {
+  //   final provider = Provider.of<BibRecordsProvider>(context, listen: false);
+  //   timingData['bibs'] = provider.bibRecords.map((bib) => bib.bibNumber).toList();
     
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => RaceScreen(
-          race: race,
-          initialTabIndex: 1,
-          timingData: timingData,
-        ),
-      ),
-    );
-  }
+  //   Navigator.pushReplacement(
+  //     context,
+  //     MaterialPageRoute(
+  //       builder: (context) => RaceScreen(
+  //         race: race,
+  //         initialTabIndex: 1,
+  //         timingData: timingData,
+  //       ),
+  //     ),
+  //   );
+  // }
 
   Future<void> _handleScannerError() async {
     DialogUtils.showErrorDialog(
@@ -390,6 +391,8 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
           padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
+              buildRoleBar(context, 'bib recorder', 'Record Bib #s'),
+              const SizedBox(height: 16),
               Expanded(
                 child: Consumer<BibRecordsProvider>(
                   builder: (context, provider, _) {

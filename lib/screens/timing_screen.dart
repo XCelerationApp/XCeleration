@@ -13,6 +13,7 @@ import '../utils/timing_utils.dart';
 import '../utils/dialog_utils.dart';
 import '../utils/button_utils.dart';
 import '../device_connection_service.dart';
+import 'package:race_timing_app/role_functions.dart';
 
 class TimingScreen extends StatefulWidget {
   const TimingScreen({super.key});
@@ -81,7 +82,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   }
 
   Future<void> _stopRace() async{
-    final confirmed = await DialogUtils.showConfirmationDialog(context, content:'Race stopped. Make sure to resolve conflicts after loading bib numbers.', title: 'Stop the Race');
+    final confirmed = await DialogUtils.showConfirmationDialog(context, content:'Are you sure you want to stop the race?', title: 'Stop the Race');
     if (confirmed != true) return;
     _finalizeRace();
   }
@@ -411,11 +412,19 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     final endTime = _timingData.endTime;
 
     return Scaffold(
+      // appBar: AppBar(
+      //   title: const Text('Race Timing'),
+      //   actions: [
+      //     changeRoleButton(context, 'timer'),
+      //   ],
+      // ),
       body: Padding(
         padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            buildRoleBar(context, 'timer', 'Race Timing'),
+            const SizedBox(height: 16),
             _buildTimerDisplay(startTime, endTime),
             _buildControlButtons(startTime),
             if (_records.isNotEmpty) const Divider(height: 30),

@@ -9,7 +9,7 @@ import 'race_screen.dart';
 import '../constants.dart';
 import '../utils/dialog_utils.dart';
 import 'dart:io';
-
+import '../role_functions.dart';
 
 class RacesScreen extends StatefulWidget {
   const RacesScreen({super.key});
@@ -382,17 +382,22 @@ class _RacesScreenState extends State<RacesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       // appBar: AppBar(
-        // title: Text('Races'),
+      //   title: Text('Coach'),
+      //   actions: [
+      //     changeRoleButton(context, 'coach'),
+      //   ],
       // ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text(
-              'Races',
-              style: Theme.of(context).textTheme.displayLarge,
-            ),
-          ),
+          buildRoleBar(context, 'coach', 'Races'),
+          const SizedBox(height: 16),
+          // Padding(
+          //   padding: const EdgeInsets.all(16.0),
+          //   child: Text(
+          //     'Races',
+          //     style: Theme.of(context).textTheme.displayLarge,
+          //   ),
+          // ),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -427,11 +432,11 @@ class _RacesScreenState extends State<RacesScreen> {
                           ),
                           title: Text(races[index].race_name),
                           onTap: () {
-                            Navigator.of(context).pushReplacement(
-                              MaterialPageRoute(
-                                builder: (context) => RaceScreen(
-                                  race: races[index],
-                                ),
+                            showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true,
+                              builder: (context) => RaceScreen(
+                                race: races[index],
                               ),
                             );
                           },

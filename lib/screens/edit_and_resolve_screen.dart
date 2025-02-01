@@ -767,7 +767,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildTimerDisplay(startTime, endTime),
+            // _buildTimerDisplay(startTime, endTime),
             _buildControlButtons(startTime, timeRecords),
             _buildRecordsList(timeRecords),
             if (startTime != null && timeRecords.isNotEmpty)

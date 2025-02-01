@@ -1,12 +1,14 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 // import 'screens/timing_screen.dart';
-import 'screens/runners_management_screen.dart';
+// import 'screens/runners_management_screen.dart';
 import 'screens/timing_screen.dart';
 import 'package:provider/provider.dart';
 import 'models/timing_data.dart';
+import 'screens/bib_number_screen.dart';
 import 'models/bib_data.dart';
 import 'screens/races_screen.dart';
+// import 'models/race.dart';
 // import 'package:audioplayers/audioplayers.dart';
 import 'constants.dart';
 import 'package:flutter/services.dart';
@@ -111,41 +113,121 @@ class MyAppState extends State<MyApp> {
         ),
       ),
 
-      home: const HomeScreen(),
+      home: const WelcomeScreen(),
+      // home: const HomeScreen(),
     );
   }
 }
 
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+class WelcomeScreen extends StatelessWidget {
+  const WelcomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 3, // Number of tabs
-      child: Scaffold(
-        appBar: PreferredSize(
-          preferredSize: Size.fromHeight(80.0),
-          child: AppBar(
-            // title: const Text('Race Timing App'),
-            bottom: const TabBar(
-              tabs: [
-                Tab(icon: Icon(Icons.flag), text: 'Races'),
-                Tab(icon: Icon(Icons.timer), text: 'Time Race'),
-                Tab(icon: Icon(Icons.person), text: 'Team Runners'),
-              ],
-            ),
+    return Scaffold(
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Welcome to Race Timing App',
+                style: TextStyle(fontSize: 35, fontWeight: FontWeight.w700),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 20),
+              Text(
+                'Please select your role',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w300),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 30),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (context) => const RacesScreen()),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.all(20.0),
+                  ),
+                  child: Text('Coach', style: TextStyle(fontSize: 30)),
+                ),
+              ),
+              SizedBox(height: 15),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (context) => const TimingScreen()),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.all(20.0),
+                  ),
+                  child: Text('Timer', style: TextStyle(fontSize: 30)),
+                ),
+              ),
+              SizedBox(height: 15),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      PageRouteBuilder(
+                        pageBuilder: (context, animation, secondaryAnimation) => BibNumberScreen(),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.all(20.0),
+                  ),
+                  child: Text('Record Bib #s', style: TextStyle(fontSize: 30)),
+                ),
+              ),
+            ],
           ),
-        ),
-        body: const TabBarView(
-          physics: NeverScrollableScrollPhysics(),
-          children: [
-            RacesScreen(),
-            TimingScreen(),
-            RunnersManagementScreen(raceId: 0, isTeam: true),
-          ],
         ),
       ),
     );
   }
 }
+
+// class HomeScreen extends StatelessWidget {
+//   const HomeScreen({super.key});
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return DefaultTabController(
+//       length: 3, // Number of tabs
+//       child: Scaffold(
+//         appBar: PreferredSize(
+//           preferredSize: Size.fromHeight(80.0),
+//           child: AppBar(
+//             // title: const Text('Race Timing App'),
+//             bottom: const TabBar(
+//               tabs: [
+//                 Tab(icon: Icon(Icons.flag), text: 'Races'),
+//                 Tab(icon: Icon(Icons.timer), text: 'Time Race'),
+//                 Tab(icon: Icon(Icons.person), text: 'Team Runners'),
+//               ],
+//             ),
+//           ),
+//         ),
+//         body: const TabBarView(
+//           physics: NeverScrollableScrollPhysics(),
+//           children: [
+//             RacesScreen(),
+//             TimingScreen(),
+//             RunnersManagementScreen(raceId: 0, isTeam: true),
+//           ],
+//         ),
+//       ),
+//     );
+//   }
+// }

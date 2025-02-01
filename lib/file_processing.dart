@@ -56,7 +56,7 @@ Future<List<Map<String, dynamic>>> processSpreadsheet(int raceId, bool isTeam) a
                 'name': name,
                 'school': school,
                 'grade': grade,
-                'bib_number': bibNumberInt,
+                'bib_number': bibNumber,
                 'race_id': raceId,
               });
             } 
@@ -112,7 +112,7 @@ Future<List<Map<String, dynamic>>> processSpreadsheet(int raceId, bool isTeam) a
                   'name': name,
                   'school': school,
                   'grade': grade,
-                  'bib_number': bibNumberInt,
+                  'bib_number': bibNumber,
                 });
               } 
             } else {
