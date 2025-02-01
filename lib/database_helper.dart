@@ -46,7 +46,7 @@ class DatabaseHelper {
         race_name TEXT NOT NULL,
         race_date DATE,
         location TEXT,
-        distance DECIMAL(5,2),
+        distance TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     ''');
@@ -161,7 +161,7 @@ class DatabaseHelper {
         raceName: maps[i]['race_name'],
         raceDate: raceDate,
         location: maps[i]['location'],
-        distance: double.tryParse(maps[i]['distance'].toString()) ?? 0.0,
+        distance: maps[i]['distance'],
       );
     });
   }

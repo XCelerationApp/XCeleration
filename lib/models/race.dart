@@ -1,14 +1,11 @@
 
 toRace(Map<String, dynamic> race) {
-    double distanceValue = race['distance'] is double 
-      ? race['distance'] 
-      : double.parse(race['distance'].toString());
     return Race(
         raceId: race['race_id'],
         raceName: race['race_name'],
         raceDate: DateTime.parse(race['race_date']),
         location: race['location'],
-        distance: distanceValue,
+        distance: race['distance'],
     );
 }
 
@@ -17,7 +14,7 @@ class Race {
   final String raceName;
   final DateTime raceDate;
   final String location;
-  final double distance;
+  final String distance;
 
   Race({
     required this.raceId,
@@ -31,6 +28,6 @@ class Race {
   String get race_name => raceName;
   String get race_location => location;
   DateTime get race_date => raceDate;
-  double get race_distance => distance;
+  String get race_distance => distance;
   int get race_id => raceId;
 }

@@ -17,7 +17,7 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> {
   late String _name = '';
   late String _location = '';
   late String _date = '';
-  late double _distance = 0.0;
+  late String _distance = '';
   late TextEditingController _nameController;
   late TextEditingController _locationController;
   late TextEditingController _dateController;
@@ -231,7 +231,8 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> {
                               onChanged: (value) {
                                 final doubleDistance = double.tryParse(value);
                                 if (doubleDistance != null) {
-                                  setState(() => _distance = doubleDistance);
+                                  final distancePart = _distance.split(' ')[0];
+                                  setState(() => _distance.replaceAll(distancePart, doubleDistance.toString()));
                                 }
                               },
                               keyboardType: TextInputType.numberWithOptions(signed: true, decimal: true),
