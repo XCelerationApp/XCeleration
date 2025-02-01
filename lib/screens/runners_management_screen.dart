@@ -570,6 +570,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
       }
     }
     await _loadRunners();
+    if (overwriteRunners.isEmpty) return;
     final overwriteRunnersBibs = overwriteRunners.map((runner) => runner['bib_number']).toList();
     final overwriteExistingRunners = await DialogUtils.showConfirmationDialog(
       context,
