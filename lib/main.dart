@@ -89,9 +89,13 @@ class MyAppState extends State<MyApp> {
           unselectedLabelColor: AppColors.backgroundColor,
           indicator: BoxDecoration(
             border: Border(
-              bottom: BorderSide(color: AppColors.navBarTextColor, width: 3),
+              bottom: BorderSide(color: AppColors.navBarTextColor, width: 0),
             ),
+            // color: AppColors.navBarColor,
           ),
+          // indicatorSize: TabBarIndicatorSize.tab,
+          // indicatorPadding: EdgeInsets.zero,
+          // indicatorColor: AppColors.navBarColor,
         ),
         textTheme: TextTheme(
           bodyMedium: TextStyle(color: AppColors.darkColor),

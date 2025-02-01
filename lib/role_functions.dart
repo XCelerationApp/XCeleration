@@ -4,62 +4,133 @@ import 'package:race_timing_app/screens/timing_screen.dart';
 import 'package:race_timing_app/screens/bib_number_screen.dart';
 import 'package:race_timing_app/constants.dart';
 
-void changeRole(BuildContext context, currentRole) {
-  showModalBottomSheet(
-    context: context,
-    builder: (context) => Container(
-      height: 150,
-      child: Column(
+class RoleOption {
+  final String value;
+  final String title;
+  final String description;
+  final IconData icon;
+  final Widget screen;
+
+  const RoleOption({
+    required this.value,
+    required this.title,
+    required this.description,
+    required this.icon,
+    required this.screen,
+  });
+}
+
+final List<RoleOption> roleOptions = [
+  RoleOption(
+    value: 'coach',
+    title: 'Coach',
+    description: 'Manage races',
+    icon: Icons.person_outlined,
+    screen: const RacesScreen(),
+  ),
+  RoleOption(
+    value: 'timer',
+    title: 'Timer',
+    description: 'Time a race',
+    icon: Icons.timer,
+    screen: const TimingScreen(),
+  ),
+  RoleOption(
+    value: 'bib recorder',
+    title: 'Bib Recorder',
+    description: 'Record bib numbers',
+    icon: Icons.numbers,
+    screen: const BibNumberScreen(),
+  ),
+];
+
+Widget _buildRoleTitle(RoleOption role) {
+  return Row(
+    children: [
+      Icon(role.icon, size: 55, color: Colors.grey[800]),
+      SizedBox(width: 8),
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ListTile(
-            leading: Icon(Icons.person),
-            title: Text('Coach'),
-            onTap: () {
-              Navigator.pop(context);
-              if (currentRole == 'coach') return;
-              Navigator.push(context, 
-                PageRouteBuilder(
-                  pageBuilder: (context, animation, secondaryAnimation) => const RacesScreen(),
-                )
-              );
-            },
-            trailing: currentRole == 'coach' ? Icon(Icons.check) : null,
+          Text(
+            role.title,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: Colors.grey[800],
+            ),
           ),
-          ListTile(
-            leading: Icon(Icons.timer),
-            title: Text('Timer'),
-            onTap: () {
-              Navigator.pop(context);
-              if (currentRole == 'timer') return;
-              Navigator.push(context, 
-                PageRouteBuilder(
-                  pageBuilder: (context, animation, secondaryAnimation) => const TimingScreen(),
-                )
-              );
-            },
-            trailing: currentRole == 'timer' ? Icon(Icons.check) : null,
-          ),
-          ListTile(
-            leading: Icon(Icons.numbers),
-            title: Text('Record Bib #s'),
-            onTap: () {
-              Navigator.pop(context);
-              if (currentRole == 'bib recorder') return;
-              Navigator.push(context, 
-              PageRouteBuilder(
-                pageBuilder: (context, animation, secondaryAnimation) => const BibNumberScreen(),
-              )
-              );
-            },
-            trailing: currentRole == 'record bib #s' ? Icon(Icons.check) : null,
+          Text(
+            role.description,
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w400),
           ),
         ],
+      ),
+    ],
+  );
+}
+
+Widget _buildRoleListTile(BuildContext context, RoleOption role, String currentRole) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 8.0),
+    child: RadioListTile<String>(
+      value: role.value,
+      groupValue: currentRole,
+      onChanged: (value) {
+        Navigator.pop(context);
+        if (value == currentRole) return;
+        Navigator.push(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) => role.screen,
+          ),
+        );
+      },
+      controlAffinity: ListTileControlAffinity.trailing,
+      tileColor: currentRole == role.value
+          ? AppColors.selectedRoleColor
+          : AppColors.unselectedRoleColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      title: _buildRoleTitle(role),
+    ),
+  );
+}
+
+void changeRole(BuildContext context, String currentRole) {
+  showModalBottomSheet(
+    isScrollControlled: true,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+    ),
+    context: context,
+    builder: (context) => Container(
+      height: 375,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: Text(
+                'Change Role',
+                style: TextStyle(
+                  fontSize: 40,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.darkColor,
+                ),
+              ),
+            ),
+            ...roleOptions.map((role) => _buildRoleListTile(context, role, currentRole)),
+          ],
+        ),
       ),
     ),
   );
 }
 
-Widget buildRoleBar(BuildContext context, currentRole, title) {
+Widget buildRoleBar(BuildContext context, String currentRole, String title) {
   return Container(
     padding: EdgeInsets.all(10),
     decoration: BoxDecoration(

@@ -10,6 +10,7 @@ import '../constants.dart';
 import '../utils/dialog_utils.dart';
 import 'dart:io';
 import '../role_functions.dart';
+import '../utils/sheet_utils.dart';
 
 class RacesScreen extends StatefulWidget {
   const RacesScreen({super.key});
@@ -63,8 +64,19 @@ class _RacesScreenState extends State<RacesScreen> {
   }
 
 
-  // Method to show the create race dialog
-  void _showCreateRaceDialog(BuildContext context) {
+  // // Method to show the create race dialog
+  // void _showCreateRaceDialog(BuildContext context) {
+  //   nameController.text = 'Untitled Race';
+  //   locationController.text = '';
+  //   dateController.text = '';
+  //   distanceController.text = '';
+  //   userlocationController.text = '';
+  //   isLocationButtonVisible = true;
+  //   _teamControllers.clear();
+  //   _teamControllers.add(TextEditingController());
+  //   _teamControllers.add(TextEditingController());
+
+  void _showCreateRaceSheet(BuildContext context) {
     nameController.text = 'Untitled Race';
     locationController.text = '';
     dateController.text = '';
@@ -75,329 +87,334 @@ class _RacesScreenState extends State<RacesScreen> {
     _teamControllers.add(TextEditingController());
     _teamControllers.add(TextEditingController());
 
-    showDialog(
+    showModalBottomSheet(
+      backgroundColor: AppColors.backgroundColor,
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Create New Race'),
-          content: StatefulBuilder(
-  builder: (BuildContext context, StateSetter setState) {
-    return SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+      isScrollControlled: true,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+                left: 16,
+                right: 16,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
+                    createSheetHandle(),
                     Padding(
-                      padding: const EdgeInsets.only(top: 8.0),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
                       child: Text(
-                        'Competing Teams:',
+                        'Create a New Race',
                         style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
-                    ..._teamControllers.map((controller) => Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8.0),
-                      child: TextField(
-                        controller: controller,
-                        decoration: InputDecoration(
-                          labelText: 'Team Name',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                    )),
-                    ElevatedButton(
-                      onPressed: () {
-                        setState(() {
-                          _addTeamField();
-                        });
-                      },
-                      child: const Text('Add Another Team'),
-                    ),
-                  ],
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8.0),
-                      child: Text(
-                        'Race Location:',
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 0.0),
-                      child: Row(
-                        key: ValueKey(isLocationButtonVisible),
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: locationController,
-                              decoration: InputDecoration(
-                                hintText: (Platform.isIOS || Platform.isAndroid) ? 'Other Location' : 'Race Location',
-                              ),
-                              onChanged: (value) {
-                                _updateLocationButtonVisibility();
-                              },
-                            ),
-                          ),
-                          if (isLocationButtonVisible && (Platform.isIOS || Platform.isAndroid))
-                            TextButton(
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.location_on_outlined),
-                                  Text('My Location'),
-                                ],
-                              ),
-                              onPressed: () async {
-                                try {
-                                  LocationPermission permission = await Geolocator.checkPermission();
-                                  if (permission == LocationPermission.denied) {
-                                    permission = await Geolocator.requestPermission();
-                                  }
-
-                                  if (permission == LocationPermission.deniedForever) {
-                                    DialogUtils.showErrorDialog(context, message: ('Location permissions are permanently denied, we cannot request permissions.'));
-                                    return;
-                                  }
-
-                                  if (permission == LocationPermission.denied) {
-                                    DialogUtils.showErrorDialog(context, message: ('Location permissions are denied, please enable them in settings.'));
-                                    return;
-                                  }
-
-                                  if (!await Geolocator.isLocationServiceEnabled()) {
-                                    DialogUtils.showErrorDialog(context, message: ('Location services are disabled'));
-                                    return;
-                                  }
-
-                                  final position = await Geolocator.getCurrentPosition();
-                                  final placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
-                                  final placemark = placemarks.first;
-                                  setState(() {
-                                    locationController.text = '${placemark.subThoroughfare} ${placemark.thoroughfare}, ${placemark.locality}, ${placemark.administrativeArea} ${placemark.postalCode}';
-                                    userlocationController.text = locationController.text;
-                                  });
-                                  _updateLocationButtonVisibility();
-                                } catch (e) {
-                                  print('Error getting location: $e');
-                                }
-                              },
-                            ),
-                        ],
-                      ),
-                    ),
-
-                  ],
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8.0),
-                      child: Text(
-                        'Race Date:',
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    Row(
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                    Expanded(
-                      child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 0.0),
-                        child: TextField(
-                          controller: dateController,
-                          decoration: InputDecoration(
-                            hintText: 'Date (YYYY-MM-DD)',
-                              ),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8.0),
+                          child: Text(
+                            'Competing Teams:',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
-                        IconButton(
-                          icon: Icon(Icons.calendar_today),
-                          onPressed: () async {
-                            DateTime? pickedDate = await showDatePicker(
-                              context: context,
-                              initialDate: DateTime.now(),
-                              firstDate: DateTime(2000), 
-                              lastDate: DateTime(2101), 
-                            );
-                            if (pickedDate != null) {
-                              dateController.text = pickedDate.toLocal().toString().split(' ')[0]; 
-                            }
+                        ..._teamControllers.map((controller) => Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8.0),
+                          child: TextField(
+                            controller: controller,
+                            decoration: InputDecoration(
+                              labelText: 'Team Name',
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                        )),
+                        ElevatedButton(
+                          onPressed: () {
+                            setState(() {
+                              _addTeamField();
+                            });
                           },
+                          child: const Text('Add Another Team'),
                         ),
                       ],
                     ),
-                  ],
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8.0),
-                      child: Text(
-                        'Race Distance:',
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    Row(
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 0.0),
-                            child: TextField(
-                              controller: distanceController,
-                              decoration: InputDecoration(
-                                hintText: '0.0',
-                              ),
-                              keyboardType: TextInputType.numberWithOptions(signed: true, decimal: true),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 16),
+                          child: Text(
+                            'Race Location:',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
-                        Spacer(),
                         Padding(
-                          padding: const EdgeInsets.only(top: 8.0),
+                          padding: const EdgeInsets.symmetric(vertical: 8.0),
+                          child: Row(
+                            key: ValueKey(isLocationButtonVisible),
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: locationController,
+                                  decoration: InputDecoration(
+                                    hintText: (Platform.isIOS || Platform.isAndroid) ? 'Other Location' : 'Race Location',
+                                  ),
+                                  onChanged: (value) {
+                                    _updateLocationButtonVisibility();
+                                  },
+                                ),
+                              ),
+                              if (isLocationButtonVisible && (Platform.isIOS || Platform.isAndroid))
+                                TextButton(
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.location_on_outlined),
+                                      Text('My Location'),
+                                    ],
+                                  ),
+                                  onPressed: () async {
+                                    try {
+                                      LocationPermission permission = await Geolocator.checkPermission();
+                                      if (permission == LocationPermission.denied) {
+                                        permission = await Geolocator.requestPermission();
+                                      }
+
+                                      if (permission == LocationPermission.deniedForever) {
+                                        DialogUtils.showErrorDialog(context, message: ('Location permissions are permanently denied, we cannot request permissions.'));
+                                        return;
+                                      }
+
+                                      if (permission == LocationPermission.denied) {
+                                        DialogUtils.showErrorDialog(context, message: ('Location permissions are denied, please enable them in settings.'));
+                                        return;
+                                      }
+
+                                      if (!await Geolocator.isLocationServiceEnabled()) {
+                                        DialogUtils.showErrorDialog(context, message: ('Location services are disabled'));
+                                        return;
+                                      }
+
+                                      final position = await Geolocator.getCurrentPosition();
+                                      final placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
+                                      final placemark = placemarks.first;
+                                      setState(() {
+                                        locationController.text = '${placemark.subThoroughfare} ${placemark.thoroughfare}, ${placemark.locality}, ${placemark.administrativeArea} ${placemark.postalCode}';
+                                        userlocationController.text = locationController.text;
+                                      });
+                                      _updateLocationButtonVisibility();
+                                    } catch (e) {
+                                      print('Error getting location: $e');
+                                    }
+                                  },
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(top: 16),
+                          child: Text(
+                            'Race Date:',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8.0),
                           child: Row(
                             children: [
-                              Text('Unit: '),
-                              DropdownButton<String>(
-                                value: unit,
-                                onChanged: (String? newValue) {
-                                  setState(() {
-                                    unit = newValue!;
-                                  });
+                              Expanded(
+                                child: TextField(
+                                  controller: dateController,
+                                  decoration: InputDecoration(
+                                    hintText: 'Date (YYYY-MM-DD)',
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.calendar_today),
+                                onPressed: () async {
+                                  DateTime? pickedDate = await showDatePicker(
+                                    context: context,
+                                    initialDate: DateTime.now(),
+                                    firstDate: DateTime(2000),
+                                    lastDate: DateTime(2101),
+                                  );
+                                  if (pickedDate != null) {
+                                    dateController.text = pickedDate.toLocal().toString().split(' ')[0];
+                                  }
                                 },
-                                items: <String>['miles', 'kilometers']
-                                  .map<DropdownMenuItem<String>>((String value) {
-                                    return DropdownMenuItem<String>(
-                                      value: value,
-                                      child: Text(value),
-                                    );
-                                  })
-                                  .toList(),
                               ),
                             ],
                           ),
                         ),
-                        
-
+                      ],
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(top: 16),
+                          child: Text(
+                            'Race Distance:',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8.0),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: distanceController,
+                                  decoration: InputDecoration(
+                                    hintText: '0.0',
+                                  ),
+                                  keyboardType: TextInputType.numberWithOptions(signed: true, decimal: true),
+                                ),
+                              ),
+                              Spacer(),
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8.0),
+                                child: Row(
+                                  children: [
+                                    const Text('Unit: '),
+                                    DropdownButton<String>(
+                                      value: unit,
+                                      onChanged: (String? newValue) {
+                                        setState(() {
+                                          unit = newValue!;
+                                        });
+                                      },
+                                      items: <String>['miles', 'kilometers']
+                                        .map<DropdownMenuItem<String>>((String value) {
+                                          return DropdownMenuItem<String>(
+                                            value: value,
+                                            child: Text(value),
+                                          );
+                                        })
+                                        .toList(),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Expanded(
+                            child: ElevatedButton(
+                              onPressed: _createRace,
+                              style: ElevatedButton.styleFrom(
+                                minimumSize: Size(350, 75),
+                                backgroundColor: AppColors.primaryColor,
+                              ),
+                              child: const Text('Create', style: TextStyle(color: AppColors.backgroundColor, fontSize: 30)),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ],
                 ),
-              ],
-            ),
-          );
-  }),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context); 
-              },
-              child: Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () async {
-                for (var controller in _teamControllers) {
-                  if (controller.text.isEmpty) {
-                    DialogUtils.showErrorDialog(context, message: ('Please fill in all the fields'));
-                    return;
-                  }
-                }
-                if (_teamControllers.length < 2) {
-                  DialogUtils.showErrorDialog(context, message: ('Please enter at least 2 teams'));
-                  return;
-                }
-                if (locationController.text.isEmpty ||
-                    dateController.text.isEmpty ||
-                    distanceController.text.isEmpty) {
-                  DialogUtils.showErrorDialog(context, message: ('Please fill in all the fields'));
-                  return;
-                }
-                DateTime date;
-                double distance;
-                try {
-                  date = DateTime.parse(dateController.text);
-                  if (date.year < 1900) {
-                    DialogUtils.showErrorDialog(context, message: ('Date must be in the future'));
-                    return;
-                  }
-                  distance = double.parse(distanceController.text);
-                  if (distance < 0) {
-                    DialogUtils.showErrorDialog(context, message: ('Distance must be positive'));
-                    return;
-                  }
-                } on FormatException {
-                  DialogUtils.showErrorDialog(context, message: ('Invalid date or distance'));
-                  return;
-                }
-
-                final String raceName = _teamControllers.map((controller) => controller.text).toList().join(' vs ');
-
-                final String distanceType = unit;
-
-                final distranceString = '${distance.toString().replaceAll(' ', '')} $distanceType';
-                final id = await DatabaseHelper.instance.insertRace({
-                    'race_name': raceName,
-                    'location': locationController.text,
-                    'race_date': dateController.text,
-                    'distance': distranceString,
-                });
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => RaceScreen(race:  Race(
-                      raceId: id,
-                      raceName: raceName,
-                      location: locationController.text,
-                      raceDate: date,
-                      distance: distranceString,
-                    )),
-                  ),
-                );
-              },
-              child: Text('Create'),
-            ),
-          ],
+              ),
+            );
+          },
         );
       },
     );
   }
 
+  void _createRace() async {
+    for (var controller in _teamControllers) {
+      if (controller.text.isEmpty) {
+        DialogUtils.showErrorDialog(context, message: ('Please fill in all the fields'));
+        return;
+      }
+    }
+    if (_teamControllers.length < 2) {
+      DialogUtils.showErrorDialog(context, message: ('Please enter at least 2 teams'));
+      return;
+    }
+    if (locationController.text.isEmpty ||
+        dateController.text.isEmpty ||
+        distanceController.text.isEmpty) {
+      DialogUtils.showErrorDialog(context, message: ('Please fill in all the fields'));
+      return;
+    }
+    DateTime date;
+    double distance;
+    try {
+      date = DateTime.parse(dateController.text);
+      if (date.year < 1900) {
+        DialogUtils.showErrorDialog(context, message: ('Date must be in the future'));
+        return;
+      }
+      distance = double.parse(distanceController.text);
+      if (distance < 0) {
+        DialogUtils.showErrorDialog(context, message: ('Distance must be positive'));
+        return;
+      }
+    } on FormatException {
+      DialogUtils.showErrorDialog(context, message: ('Invalid date or distance'));
+      return;
+    }
+
+    final String raceName = _teamControllers.map((controller) => controller.text).toList().join(' vs ');
+
+    final String distanceType = unit;
+
+    final distranceString = '${distance.toString().replaceAll(' ', '')} $distanceType';
+    final id = await DatabaseHelper.instance.insertRace({
+        'race_name': raceName,
+        'location': locationController.text,
+        'race_date': dateController.text,
+        'distance': distranceString,
+    });
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => RaceScreen(race:  Race(
+          raceId: id,
+          raceName: raceName,
+          location: locationController.text,
+          raceDate: date,
+          distance: distranceString,
+        )),
+      ),
+    );
+  }
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // appBar: AppBar(
-      //   title: Text('Coach'),
-      //   actions: [
-      //     changeRoleButton(context, 'coach'),
-      //   ],
-      // ),
       body: Column(
         children: [
           buildRoleBar(context, 'coach', 'Races'),
           const SizedBox(height: 16),
-          // Padding(
-          //   padding: const EdgeInsets.all(16.0),
-          //   child: Text(
-          //     'Races',
-          //     style: Theme.of(context).textTheme.displayLarge,
-          //   ),
-          // ),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -452,7 +469,7 @@ class _RacesScreenState extends State<RacesScreen> {
      ),
 
      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showCreateRaceDialog(context),
+        onPressed: () => _showCreateRaceSheet(context),
         tooltip: 'Create new race',
         backgroundColor: AppColors.primaryColor,
         child: Icon(Icons.add),
