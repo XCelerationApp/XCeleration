@@ -47,7 +47,7 @@ class _RaceScreenState extends State<RaceScreen> {
     // Fetch race data from the database
     final raceData = await DatabaseHelper.instance.getRaceById(race.race_id);
     setState(() {
-      raceName = raceData?['race_name'] ?? 'Default Race Name'; // Update the race name
+      raceName = raceData?.raceName ?? 'Default Race Name'; // Update the race name
     });
   }
 

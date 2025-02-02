@@ -525,7 +525,6 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   }
 
   Widget _buildRecordsList() {
-    print('building records list');
     return ListView.builder(
       controller: _scrollController,
       itemCount: _records.length,
@@ -627,9 +626,10 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           IconButton(
-            icon: const Icon(Icons.check, size: 40, color: AppColors.navBarTextColor),
+            icon: const Icon(Icons.check, size: 40, color: Colors.green),
             onPressed: _confirmRunnerNumber,
           ),
+          Text('|', style: TextStyle(fontSize: 25),),
           _buildAdjustTimesButton(),
           if (_hasUndoableConflict())
             IconButton(
@@ -648,11 +648,11 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
         itemBuilder: (BuildContext context) => <PopupMenuEntry<void>>[
           PopupMenuItem<void>(
             onTap: () => _missingRunnerTime(),
-            child: const Text('Missing runner time (Add a time)'),
+            child: const Text('+ (Add finish time)', style: TextStyle(fontSize: 17),),
           ),
           PopupMenuItem<void>(
             onTap: () => _extraRunnerTime(),
-            child: const Text('Extra runner time (Remove a time)'),
+            child: const Text('- (Remove finish time)', style: TextStyle(fontSize: 17),),
           ),
         ],
         child: const Text(

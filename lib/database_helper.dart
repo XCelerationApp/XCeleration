@@ -1,6 +1,8 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'dart:convert';
 import '../models/race.dart';
+import 'package:flutter/material.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
@@ -45,6 +47,8 @@ class DatabaseHelper {
         race_id INTEGER PRIMARY KEY AUTOINCREMENT,
         race_name TEXT NOT NULL,
         race_date DATE,
+        team_colors TEXT,
+        teams TEXT,
         location TEXT,
         distance TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -155,6 +159,14 @@ class DatabaseHelper {
         print('Error parsing date: ${maps[i]['race_date']}');
         raceDate = DateTime.now(); // or handle it in a way that makes sense for your app
       }
+      final List<dynamic> teamColorsDynamic = jsonDecode(maps[i]['team_colors']);
+      final List<dynamic> teamsDynamic = jsonDecode(maps[i]['teams']);
+      final List<String> teamColorStrings = teamColorsDynamic.map((e) => e.toString()).toList();
+      final List<String> teams = teamsDynamic.map((e) => e.toString()).toList();
+      final List<Color> teamColors = teamColorStrings.map((colorString) {
+        final colorValue = int.parse(colorString);
+        return Color(colorValue);
+      }).toList();
 
       return Race(
         raceId: maps[i]['race_id'],
@@ -162,18 +174,46 @@ class DatabaseHelper {
         raceDate: raceDate,
         location: maps[i]['location'],
         distance: maps[i]['distance'],
+        teamColors: teamColors,
+        teams: teams,
       );
     });
   }
 
-  Future<Map<String, dynamic>?> getRaceById(int id) async {
+  Future<Race?> getRaceById(int id) async {
     final db = await instance.database;
     final results = await db.query(
       'races',
       where: 'race_id = ?',
       whereArgs: [id],
     );
-    return results.isNotEmpty ? results.first : null;
+    final Map<String, dynamic>? race = results.isNotEmpty ? results.first : null;
+    if (race == null) return null;
+    DateTime raceDate;
+    try {
+      raceDate = DateTime.parse(race['race_date'].trim());
+    } catch (e) {
+      print('Error parsing date: ${race['race_date']}');
+      raceDate = DateTime.now(); // or handle it in a way that makes sense for your app
+    }
+    final List<dynamic> teamColorsDynamic = jsonDecode(race['team_colors']);
+    final List<dynamic> teamsDynamic = jsonDecode(race['teams']);
+    final List<String> teamColorStrings = teamColorsDynamic.map((e) => e.toString()).toList();
+    final List<String> teams = teamsDynamic.map((e) => e.toString()).toList();
+    final List<Color> teamColors = teamColorStrings.map((colorString) {
+      final colorValue = int.parse(colorString);
+      return Color(colorValue);
+    }).toList();
+
+    return Race(
+      raceId: race['race_id'],
+      raceName: race['race_name'],
+      raceDate: raceDate,
+      location: race['location'],
+      distance: race['distance'],
+      teamColors: teamColors,
+      teams: teams,
+    );
   }
 
   // Race Runners Methods

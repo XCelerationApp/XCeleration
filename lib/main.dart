@@ -138,7 +138,7 @@ class WelcomeScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                'Welcome to Race Timing App',
+                'Welcome to XCelerate!',
                 style: TextStyle(fontSize: 35, fontWeight: FontWeight.w700, color: AppColors.backgroundColor),
                 textAlign: TextAlign.center,
               ),

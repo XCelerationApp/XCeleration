@@ -82,7 +82,7 @@ Widget _buildRoleTitle(RoleOption role, String currentRole) {
 
 Widget _buildRoleListTile(BuildContext context, RoleOption role, String currentRole) {
   return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 8.0),
+    padding: const EdgeInsets.only(top: 8.0),
     child: RadioListTile<String>(
       value: role.value,
       groupValue: currentRole,
@@ -152,7 +152,7 @@ void changeRole(BuildContext context, String currentRole) {
 
 Widget buildRoleBar(BuildContext context, String currentRole, String title) {
   return Container(
-    padding: EdgeInsets.all(10),
+    padding: EdgeInsets.only(top: 50, bottom: 10, left: 10, right: 10),
     decoration: BoxDecoration(
       border: Border(
         bottom: BorderSide(
@@ -162,33 +162,31 @@ Widget buildRoleBar(BuildContext context, String currentRole, String title) {
       ),
     ),
     child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Center(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 10),
-            child: Text(
-              title,
-              style: TextStyle(
-                fontSize: 30,
-                fontWeight: FontWeight.w600,
-                color: AppColors.navBarColor,
-              ),
+        Padding(
+          padding: EdgeInsets.only(right: 10),
+          child: Text(
+            title,
+            style: TextStyle(
+              fontSize: 30,
+              fontWeight: FontWeight.w600,
+              color: AppColors.navBarColor,
             ),
           ),
         ),
-        Spacer(),
         ElevatedButton(
           onPressed: () => changeRole(context, currentRole),
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.navBarColor,
+            backgroundColor: AppColors.unselectedRoleColor,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(15),
             ),
             padding: EdgeInsets.symmetric(horizontal: 15, vertical: 20),
           ),
           child: Text(
-            currentRole[0].toUpperCase() + currentRole.substring(1),
-            style: TextStyle(color: AppColors.backgroundColor),
+            'Role: ${currentRole[0].toUpperCase()}${currentRole.substring(1)}',
+            style: TextStyle(color: AppColors.navBarTextColor),
           ),
         ),
       ],

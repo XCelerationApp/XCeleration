@@ -196,7 +196,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
   Widget _buildErrorText(BibRecord record) {
     final errors = <String>[];
     if (record.flags['duplicate_bib_number']!) errors.add('Duplicate Bib Number');
-    if (record.flags['not_in_database']!) errors.add('Not in Database');
+    if (record.flags['not_in_database']!) errors.add('Runner not found');
     if (record.flags['low_confidence_score']!) errors.add('Low Confidence Score');
 
     return Column(

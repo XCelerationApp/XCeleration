@@ -35,9 +35,9 @@ class DialogUtils {
     final overlay = Overlay.of(context);
   final overlayEntry = OverlayEntry(
     builder: (context) => Positioned(
-      top: MediaQuery.of(context).viewInsets.top + 20, // Position it at the top
-      left: MediaQuery.of(context).size.width * 0.1,
-      right: MediaQuery.of(context).size.width * 0.1,
+      top: MediaQuery.of(context).viewInsets.top + 50, // Position it at the top
+      left: MediaQuery.of(context).size.width * 0.05,
+      right: MediaQuery.of(context).size.width * 0.05,
       child: Material(
         elevation: 6.0,
         child: Container(
@@ -45,7 +45,7 @@ class DialogUtils {
           color: Colors.red,
           child: Text(
             message,
-            style: const TextStyle(color: Colors.white),
+            style: const TextStyle(color: Colors.white, fontSize: 20),
           ),
         ),
       ),

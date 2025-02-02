@@ -23,8 +23,8 @@ dynamic updateTextColor(Color? color, records, {bool confirmed = false, String? 
 }
 
 dynamic confirmRunnerNumber(records, numTimes, String finishTime) {
-  final color = AppColors.navBarTextColor;
-  records = updateTextColor(AppColors.navBarTextColor, records,confirmed: true);
+  final color = Colors.green;
+  records = updateTextColor(color, records,confirmed: true);
 
   records = deleteConfirmedRecordsBeforeIndexUntilConflict(records, records.length - 1);
 

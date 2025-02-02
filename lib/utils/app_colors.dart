@@ -8,7 +8,8 @@ class AppColors {
   static const Color lightColor = Color(0xFFEBEBEB);
   // static const Color navBarTextColor = Color(0xFF4CAF50);
   static const Color navBarTextColor = Color(0xFFE2572B);
-  static const Color navBarColor = Color(0xFF3E4E56);
+  // static const Color navBarColor = Color(0xFF3E4E56);
+  static const Color navBarColor = Color(0xFFE2572B);
   // static const Color primaryColor = Color(0xFF4CAF50);
   static const Color primaryColor = Color(0xFFE2572B);
   static const Color redColor = Color(0xFFA81F15);

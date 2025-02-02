@@ -29,3 +29,33 @@ Widget createSheetHandle({double height = 10.0, double width = 50.0}) {
     ),
   );
 }
+
+Widget createBackArrowBar(BuildContext context) {
+  return Container(
+    alignment: Alignment.topLeft,
+    // width: 50.0,
+    decoration: BoxDecoration(
+      border: Border(
+        top: BorderSide(
+          width: 5.0,
+          color: AppColors.backgroundColor,
+          style: BorderStyle.solid,
+        ),
+        bottom: BorderSide(
+          width: 5.0,
+          color: AppColors.backgroundColor,
+          style: BorderStyle.solid,
+        ),
+      ),
+    ),
+    child: IconButton(
+      icon: Icon(Icons.arrow_back),
+      style: ButtonStyle(
+        iconColor: WidgetStateProperty.all(AppColors.primaryColor),
+      ),
+      onPressed: () {
+        Navigator.pop(context);
+      },
+    ),
+  );
+}

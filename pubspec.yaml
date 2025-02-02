@@ -49,6 +49,7 @@ dependencies:
   barcode_scan2: ^4.1.0
   permission_handler: ^11.3.1
   http: ^1.2.2
+  flutter_colorpicker: ^1.1.0
   camerawesome: ^2.1.0
   # url_launcher: ^6.0.0
   path_provider: ^2.0.0
