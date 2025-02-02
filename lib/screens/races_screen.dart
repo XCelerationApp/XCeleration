@@ -14,6 +14,7 @@ import 'dart:io';
 import '../role_functions.dart';
 // import '../utils/sheet_utils.dart';
 import 'dart:convert';
+import 'package:intl/intl.dart';
 
 class RacesScreen extends StatefulWidget {
   const RacesScreen({super.key});
@@ -82,14 +83,17 @@ class _RacesScreenState extends State<RacesScreen> {
       builder: (context) {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
-                left: 16,
-                right: 16,
-              ),
-              child: SingleChildScrollView(
-                child: _buildCreateRaceSheetContent(setState),
+            return SizedBox(
+              height: MediaQuery.of(context).size.height * 0.92,
+              child: Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom,
+                  left: 16,
+                  right: 16,
+                ),
+                child: SingleChildScrollView(
+                  child: _buildCreateRaceSheetContent(setState),
+                ),
               ),
             );
           },
@@ -498,28 +502,38 @@ class _RacesScreenState extends State<RacesScreen> {
     });
     Navigator.pop(context);
 
-    // showModalBottomSheet(
-    //   context: context,
-    //   isScrollControlled: true,
-    //   enableDrag: true,
-    //   showDragHandle: true,
-    //   useSafeArea: true,
-    //   shape: RoundedRectangleBorder(
-    //     borderRadius: BorderRadius.vertical(
-    //       top: Radius.circular(16),
-    //     ),
-    //   ),
-    //   backgroundColor: AppColors.backgroundColor,
-    //   builder: (context) => DraggableScrollableSheet(
-    //     initialChildSize: 0.92,
-    //     minChildSize: 0.5,
-    //     maxChildSize: 0.92,
-    //     expand: false,
-    //     builder: (context, scrollController) => RaceInfoScreen(
-    //       raceId: id,
-    //     ),
-    //   ),
-    // );
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      enableDrag: true,
+      showDragHandle: true,
+      useSafeArea: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(16),
+        ),
+      ),
+      backgroundColor: AppColors.backgroundColor,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.92,
+        minChildSize: 0.5,
+        maxChildSize: 0.92,
+        expand: false,
+        builder: (context, scrollController) => RaceInfoScreen(
+          raceId: id,
+        ),
+      ),
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    return DateFormat('MMM dd yyyy').format(date);
+  }
+
+  Future<bool> _isRaceStarted(Race race) async {
+    final raceId = race.race_id;
+    final results = await DatabaseHelper.instance.getRaceResults(raceId);
+    return results.isNotEmpty;
   }
   
   @override
@@ -539,10 +553,10 @@ class _RacesScreenState extends State<RacesScreen> {
             // const SizedBox(height: 16),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
                 child: FutureBuilder<List<Race>>(
                   future: DatabaseHelper.instance.getAllRaces(),
-                  builder: (context, snapshot) {
+                  builder: (context, snapshot){
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return Center(child: CircularProgressIndicator());
                     } else if (snapshot.hasError) {
@@ -552,37 +566,51 @@ class _RacesScreenState extends State<RacesScreen> {
                     }
                     races = snapshot.data ?? [];
 
-                    return ListView.builder(
-                      itemCount: races.length,
-                      itemBuilder: (context, index) {
-                        return Card(
-                          child: ListTile(
-                            title: Text(races[index].race_name),
-                            onTap: () {
-                              showModalBottomSheet(
-                                context: context,
-                                isScrollControlled: true,
-                                enableDrag: true,
-                                showDragHandle: true,
-                                useSafeArea: true,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.vertical(
-                                    top: Radius.circular(16),
-                                  ),
-                                ),
-                                backgroundColor: AppColors.backgroundColor,
-                                builder: (context) => DraggableScrollableSheet(
-                                  initialChildSize: 0.92,
-                                  minChildSize: 0.5,
-                                  maxChildSize: 0.92,
-                                  expand: false,
-                                  builder: (context, scrollController) => RaceInfoScreen(
-                                    raceId: races[index].raceId,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
+                    return FutureBuilder<List<bool>>(
+                      future: Future.wait(races.map((race) => _isRaceStarted(race)).toList()),
+                      builder: (context, finishedSnapshot) {
+                        if (finishedSnapshot.connectionState == ConnectionState.waiting) {
+                          return Center(child: CircularProgressIndicator());
+                        }
+
+                        final finishedRaces = finishedSnapshot.data ?? List.filled(races.length, false);
+
+                        return ListView.builder(
+                          itemCount: races.length,
+                          itemBuilder: (context, index) {
+                            return Card(
+                              color: finishedRaces[index] ? Colors.green[100] : Colors.amber,
+                              child: ListTile(
+                                title: Text(races[index].race_name, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+                                subtitle: finishedRaces[index] ? Text(_formatDate(races[index].race_date), style: TextStyle(fontSize: 14, fontWeight: FontWeight.w400))
+                                  : Text('${_formatDate(races[index].race_date)} - Race not completed', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w400, color: Colors.red)),
+                                onTap: () {
+                                  showModalBottomSheet(
+                                    context: context,
+                                    isScrollControlled: true,
+                                    enableDrag: true,
+                                    showDragHandle: true,
+                                    useSafeArea: true,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.vertical(
+                                        top: Radius.circular(16),
+                                      ),
+                                    ),
+                                    backgroundColor: AppColors.backgroundColor,
+                                    builder: (context) => DraggableScrollableSheet(
+                                      initialChildSize: 0.92,
+                                      minChildSize: 0.5,
+                                      maxChildSize: 0.92,
+                                      expand: false,
+                                      builder: (context, scrollController) => RaceInfoScreen(
+                                        raceId: races[index].raceId,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            );
+                          },
                         );
                       },
                     );

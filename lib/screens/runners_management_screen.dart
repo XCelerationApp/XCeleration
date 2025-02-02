@@ -124,29 +124,63 @@ class RunnerListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final team = teamData.firstWhereOrNull((team) => team.name == runner.school);
-    print(team);
-    print(teamData.map((team) => team.name).toList());
-    print(teamData.map((team) => team.color).toList());
-    final bibColor = team != null ? team.color : Colors.blueGrey[300];
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      elevation: 4,
-      margin: const EdgeInsets.symmetric(vertical: 8.0),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: bibColor,
-          child: Text(runner.bibNumber),
+    final bibColor = team != null ? team.color : AppColors.mediumColor;
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          child: Container(
+            decoration: BoxDecoration(
+              color: bibColor.withOpacity(0.1),
+            ),
+            child: Row(
+              children: [
+                // CircleAvatar(
+                //   backgroundColor: bibColor,
+                SizedBox(width: 8),
+                  Text(
+                    runner.bibNumber,
+                    style: TextStyle(
+                      // color: bibColor.computeLuminance() > 0.5 ? AppColors.unselectedRoleTextColor : Colors.white,
+                      color: bibColor,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                // ),
+                const SizedBox(width: 16),
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    runner.name,
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    runner.grade.toString(),
+                    style: const TextStyle(fontSize: 14, color: Colors.grey),
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    runner.school,
+                    style: const TextStyle(fontSize: 14, color: Colors.grey),
+                  ),
+                ),
+                PopupMenuButton<String>(
+                  onSelected: onActionSelected,
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(value: 'Edit', child: Text('Edit')),
+                    const PopupMenuItem(value: 'Delete', child: Text('Delete')),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ),
-        title: Text(runner.name),
-        subtitle: Text('School: ${runner.school} | Grade: ${runner.grade}'),
-        trailing: PopupMenuButton<String>(
-          onSelected: onActionSelected,
-          itemBuilder: (context) => [
-            const PopupMenuItem(value: 'Edit', child: Text('Edit')),
-            const PopupMenuItem(value: 'Delete', child: Text('Delete')),
-          ],
-        ),
-      ),
+        const Divider(height: 1, thickness: 1, color: Colors.grey),
+      ],
     );
   }
 }
@@ -334,6 +368,18 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
     }
   }
 
+  Widget _buildListTitles() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        Text('Bib Number', style: TextStyle(fontWeight: FontWeight.bold)),
+        Text('Name', style: TextStyle(fontWeight: FontWeight.bold)),
+        Text('Grade', style: TextStyle(fontWeight: FontWeight.bold)),
+        Text('School', style: TextStyle(fontWeight: FontWeight.bold)),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Material(
@@ -346,6 +392,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
             const SizedBox(height: 20),
             if (_runners.isNotEmpty) _buildSearchSection(),
             const SizedBox(height: 10),
+            _buildListTitles(),
             Expanded(
               child: _buildRunnersList(),
             ),
@@ -424,17 +471,50 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
       );
     }
 
+    // Group runners by school
+    final groupedRunners = <String, List<Runner>>{};
+    for (var runner in _filteredRunners) {
+      if (!groupedRunners.containsKey(runner.school)) {
+        groupedRunners[runner.school] = [];
+      }
+      groupedRunners[runner.school]!.add(runner);
+    }
+
+    // Sort schools alphabetically
+    final sortedSchools = groupedRunners.keys.toList()..sort();
+
     return ListView.builder(
-      // physics: NeverScrollableScrollPhysics(),
-      itemCount: _filteredRunners.length,
-      itemBuilder: (context, index) => RunnerListItem(
-        runner: _filteredRunners[index],
-        teamData: _teams,
-        onActionSelected: (action) => _handleRunnerAction(
-          action,
-          _filteredRunners[index],
-        ),
-      ),
+      itemCount: sortedSchools.length,
+      itemBuilder: (context, index) {
+        final school = sortedSchools[index];
+        final schoolRunners = groupedRunners[school]!;
+        final team = _teams.firstWhereOrNull((team) => team.name == school);
+        final schoolColor = team != null ? team.color : Colors.blueGrey[300];
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Divider(height: 1, thickness: 1, color: Colors.grey),
+            Container(
+              color: schoolColor?.withOpacity(0.1) ?? Colors.grey.withOpacity(0.1),
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              child: Text(
+                school,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: schoolColor,
+                ),
+              ),
+            ),
+            ...schoolRunners.map((runner) => RunnerListItem(
+              runner: runner,
+              teamData: _teams,
+              onActionSelected: (action) => _handleRunnerAction(action, runner),
+            )).toList(),
+          ],
+        );
+      },
     );
   }
 
