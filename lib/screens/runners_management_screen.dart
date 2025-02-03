@@ -80,12 +80,12 @@ class RunnerTextField extends StatelessWidget {
   final String? initialValue;
 
   const RunnerTextField({
-    Key? key,
+    super.key,
     required this.controller,
     required this.label,
     this.isNumeric = false,
     this.initialValue,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -117,11 +117,11 @@ class RunnerListItem extends StatefulWidget {
   final List<Team> teamData;
 
   const RunnerListItem({
-    Key? key,
+    super.key,
     required this.runner,
     required this.onActionSelected,
     required this.teamData,
-  }) : super(key: key);
+  });
 
   @override
   State<RunnerListItem> createState() => _RunnerListItemState();
@@ -230,13 +230,13 @@ class SearchBar extends StatelessWidget {
   final VoidCallback onDeleteAll;
 
   const SearchBar({
-    Key? key,
+    super.key,
     required this.controller,
     required this.searchAttribute,
     required this.onSearchChanged,
     required this.onAttributeChanged,
     required this.onDeleteAll,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -289,10 +289,10 @@ class RunnersManagementScreen extends StatefulWidget {
   final bool isTeam;
 
   const RunnersManagementScreen({
-    Key? key,
+    super.key,
     required this.raceId,
     required this.isTeam,
-  }) : super(key: key);
+  });
 
   @override
   State<RunnersManagementScreen> createState() => _RunnersManagementScreenState();
@@ -305,7 +305,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
   
   List<Runner> _runners = [];
   List<Runner> _filteredRunners = [];
-  List<Team> _teams = [];
+  final List<Team> _teams = [];
 
   @override
   void initState() {
@@ -584,7 +584,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
               runner: runner,
               teamData: _teams,
               onActionSelected: (action) => _handleRunnerAction(action, runner),
-            )).toList(),
+            )),
           ],
         );
       },

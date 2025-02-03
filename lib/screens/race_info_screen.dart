@@ -156,23 +156,6 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
     });
   }
 
-  Widget _buildBackArrow() {
-    return Container(
-      alignment: Alignment.centerLeft,
-      padding: const EdgeInsets.only(left: 8),
-      height: 24, // Match drag handle height
-      child: IconButton(
-        icon: const Icon(Icons.arrow_back),
-        padding: EdgeInsets.zero,
-        constraints: const BoxConstraints(),
-        style: ButtonStyle(
-          iconColor: MaterialStateProperty.all(AppColors.primaryColor),
-        ),
-        onPressed: _goBackToRaceInfo,
-      ),
-    );
-  }
-
   Widget _buildContent() {
     final screenHeight = MediaQuery.of(context).size.height;
     return SizedBox(
@@ -285,7 +268,7 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
                             style: ButtonStyle(
-                              iconColor: MaterialStateProperty.all(AppColors.primaryColor),
+                              iconColor: WidgetStateProperty.all(AppColors.primaryColor),
                             ),
                             onPressed: _goBackToRaceInfo,
                           ),

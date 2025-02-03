@@ -30,6 +30,8 @@ Route<dynamic> generateRoute(RouteSettings settings) {
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -40,6 +42,8 @@ class MyApp extends StatelessWidget {
 }
 
 class Home extends StatelessWidget {
+  const Home({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -84,7 +88,7 @@ class Home extends StatelessWidget {
 enum DeviceType { advertiser, browser }
 
 class DevicesListScreen extends StatefulWidget {
-  const DevicesListScreen({required this.deviceType});
+  const DevicesListScreen({super.key, required this.deviceType});
 
   final DeviceType deviceType;
 
@@ -303,8 +307,8 @@ class _DevicesListScreenState extends State<DevicesListScreen> {
     await nearbyService.init(
         serviceType: 'wirelessconn',
         deviceName: widget.deviceType == DeviceType.browser
-            ? 'browser-${devInfo}'
-            : 'advertiser-${devInfo}',
+            ? 'browser-$devInfo'
+            : 'advertiser-$devInfo',
         strategy: Strategy.P2P_POINT_TO_POINT,
         callback: (isRunning) async {
           if (isRunning) {
@@ -322,7 +326,7 @@ class _DevicesListScreenState extends State<DevicesListScreen> {
         });
     subscription =
         nearbyService.stateChangedSubscription(callback: (devicesList) {
-      devicesList.forEach((element) {
+      for (var element in devicesList) {
         print(
             " deviceId: ${element.deviceId} | deviceName: ${element.deviceName} | state: ${element.state}");
 
@@ -333,7 +337,7 @@ class _DevicesListScreenState extends State<DevicesListScreen> {
             nearbyService.startBrowsingForPeers();
           }
         }
-      });
+      }
 
       setState(() {
         devices.clear();

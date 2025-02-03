@@ -688,23 +688,23 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
     });
   }
 
-  bool _timeIsValid(String newValue, int index, List<dynamic> time_records) {
+  bool _timeIsValid(String newValue, int index, List<dynamic> timeRecords) {
     Duration? parsedTime = loadDurationFromString(newValue);
     if (parsedTime == null || parsedTime < Duration.zero) {
       DialogUtils.showErrorDialog(context, message: 'Invalid time entered. Should be in HH:mm:ss.ms format');
       return false;
     }
 
-    if (index < 0 || index >= time_records.length) {
+    if (index < 0 || index >= timeRecords.length) {
       return false;
     }
 
-    if (index > 0 && loadDurationFromString(time_records[index - 1]['finish_time'])! > parsedTime) {
+    if (index > 0 && loadDurationFromString(timeRecords[index - 1]['finish_time'])! > parsedTime) {
       DialogUtils.showErrorDialog(context, message: 'Time must be greater than the previous time');
       return false;
     }
 
-    if (index < time_records.length - 1 && loadDurationFromString(time_records[index + 1]['finish_time'])! < parsedTime) {
+    if (index < timeRecords.length - 1 && loadDurationFromString(timeRecords[index + 1]['finish_time'])! < parsedTime) {
       DialogUtils.showErrorDialog(context, message: 'Time must be less than the next time');
       return false;
     }
@@ -758,7 +758,6 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
   @override
   Widget build(BuildContext context) {
     final startTime = _timingData['startTime'];
-    final endTime = _timingData['endTime'];
     final timeRecords = _timingData['records'] ?? [];
 
     return Scaffold(
@@ -774,47 +773,6 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
               _buildActionButtons(timeRecords),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildTimerDisplay(DateTime? startTime, Duration? endTime) {
-    return StreamBuilder(
-      stream: Stream.periodic(const Duration(milliseconds: 10)),
-      builder: (context, _) {
-        final elapsed = _calculateElapsedTime(startTime, endTime);
-        return Container(
-          alignment: Alignment.centerLeft,
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          width: MediaQuery.of(context).size.width * 0.9,
-          child: _buildTimerText(context, elapsed),
-        );
-      },
-    );
-  }
-
-  Duration _calculateElapsedTime(DateTime? startTime, Duration? endTime) {
-    if (startTime == null) {
-      return endTime ?? Duration.zero;
-    }
-    return DateTime.now().difference(startTime);
-  }
-
-  Widget _buildTimerText(BuildContext context, Duration elapsed) {
-    final fontSize = MediaQuery.of(context).size.width * 0.135;
-    return Text(
-      formatDurationWithZeros(elapsed),
-      style: TextStyle(
-        fontSize: fontSize,
-        fontWeight: FontWeight.bold,
-        fontFamily: 'monospace',
-        height: 1.0,
-      ),
-      textAlign: TextAlign.left,
-      strutStyle: StrutStyle(
-        fontSize: fontSize * 1.11,
-        height: 1.0,
-        forceStrutHeight: true,
       ),
     );
   }

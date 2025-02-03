@@ -23,9 +23,9 @@ class BibRecord {
 }
 
 class BibRecordsProvider with ChangeNotifier {
-  List<BibRecord> _bibRecords = [];
-  List<TextEditingController> _controllers = [];
-  List<FocusNode> _focusNodes = [];
+  final List<BibRecord> _bibRecords = [];
+  final List<TextEditingController> _controllers = [];
+  final List<FocusNode> _focusNodes = [];
 
   List<BibRecord> get bibRecords => _bibRecords;
   List<TextEditingController> get controllers => _controllers;

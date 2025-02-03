@@ -12,8 +12,8 @@ class CircularButton extends StatelessWidget {
     required this.text,
     required this.color,
     this.fontSize = 20,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -72,8 +72,8 @@ class RoundedRectangleButton extends StatelessWidget {
     required this.width,
     required this.height,
     this.fontSize = 20,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

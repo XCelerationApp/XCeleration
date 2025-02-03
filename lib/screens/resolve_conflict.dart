@@ -17,7 +17,7 @@ class ConflictResolutionDialog extends StatefulWidget {
   late final List<TextEditingController>? manualEntryControllers;
 
   ConflictResolutionDialog({
-    Key? key,
+    super.key,
     required this.conflictRecord,
     required this.onResolve,
     required this.selectedTimes,
@@ -27,7 +27,7 @@ class ConflictResolutionDialog extends StatefulWidget {
     required this.availableTimes,
 
     this.allowManualEntry = false,
-  }) : super(key: key) {
+  }) {
     // Initialize the controllers here
     timeControllers = List.generate(
         conflictingRunners.length, 
