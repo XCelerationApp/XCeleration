@@ -4,8 +4,8 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import '../utils/app_colors.dart';
 import '../utils/dialog_utils.dart';
 import '../utils/sheet_utils.dart';
-import 'package:race_timing_app/database_helper.dart';
-import 'package:race_timing_app/file_processing.dart';
+import '../database_helper.dart';
+import '../file_processing.dart';
 
 // Models
 class Team {

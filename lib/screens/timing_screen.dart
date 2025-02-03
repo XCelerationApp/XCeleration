@@ -13,7 +13,7 @@ import '../utils/timing_utils.dart';
 import '../utils/dialog_utils.dart';
 import '../utils/button_utils.dart';
 import '../device_connection_service.dart';
-import 'package:race_timing_app/role_functions.dart';
+import '../role_functions.dart';
 
 class TimingScreen extends StatefulWidget {
   const TimingScreen({super.key});

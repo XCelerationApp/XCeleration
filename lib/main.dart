@@ -64,7 +64,7 @@ class MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Race Timing App',
+      title: 'XCelerate',
       theme: ThemeData(
         primaryColor: AppColors.backgroundColor,
         colorScheme: ColorScheme.fromSwatch(

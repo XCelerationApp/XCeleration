@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:race_timing_app/models/race.dart';
-import 'package:race_timing_app/utils/time_formatter.dart';
+import '../models/race.dart';
+import '../utils/time_formatter.dart';
 import 'dart:math';
-import 'package:race_timing_app/database_helper.dart';
+import '../database_helper.dart';
 import 'race_screen.dart';
 import '../utils/app_colors.dart';
 import 'resolve_conflict.dart';

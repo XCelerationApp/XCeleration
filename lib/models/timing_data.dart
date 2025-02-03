@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 
-import 'package:race_timing_app/utils/time_formatter.dart';
+import '../utils/time_formatter.dart';
 
 class TimingData with ChangeNotifier {
   List<Map<String, dynamic>> _records = [];

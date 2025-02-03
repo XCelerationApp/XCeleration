@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:race_timing_app/screens/races_screen.dart';
-import 'package:race_timing_app/screens/timing_screen.dart';
-import 'package:race_timing_app/screens/bib_number_screen.dart';
-import 'package:race_timing_app/utils/app_colors.dart';
+import '../screens/races_screen.dart';
+import '../screens/timing_screen.dart';
+import '../screens/bib_number_screen.dart';
+import '../utils/app_colors.dart';
 import 'utils/sheet_utils.dart';
 
 class RoleOption {

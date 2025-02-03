@@ -1,8 +1,9 @@
 import 'dart:math';
 import 'package:collection/collection.dart';
-import 'package:race_timing_app/database_helper.dart';import 'package:flutter/material.dart';
-import 'package:race_timing_app/utils/time_formatter.dart';
-import 'package:race_timing_app/utils/csv_utils.dart';
+import '../database_helper.dart';
+import 'package:flutter/material.dart';
+import '../utils/time_formatter.dart';
+import '../utils/csv_utils.dart';
 
 class ResultsScreen extends StatefulWidget {
   final int raceId;

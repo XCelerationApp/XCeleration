@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:race_timing_app/database_helper.dart';
-import 'package:race_timing_app/models/race.dart';
-import 'package:race_timing_app/screens/runners_management_screen.dart';
-import 'package:race_timing_app/utils/sheet_utils.dart';
-import 'package:race_timing_app/utils/app_colors.dart'; // Import AppColors
+import '../database_helper.dart';
+import '../models/race.dart';
+import 'runners_management_screen.dart';
+import '../utils/sheet_utils.dart';
+import '../utils/app_colors.dart'; // Import AppColors
 
 class RaceInfoScreen extends StatefulWidget {
   final int raceId;

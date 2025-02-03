@@ -14,7 +14,7 @@ import '../device_connection_service.dart';
 import '../database_helper.dart';
 import '../runner_time_functions.dart';
 // import 'race_screen.dart';
-import 'package:race_timing_app/role_functions.dart';
+import '../role_functions.dart';
 
 class BibNumberScreen extends StatefulWidget {
   // final Race? race;
