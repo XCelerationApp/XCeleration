@@ -23,7 +23,6 @@ UI:
 Runners Management screen:
 - have school be a dropdown for add runner
 - have better sorting
-- swipe to delete/edit runner
 - don't overwrite runner if runner with the same bib number is the same as the one being added
 
 Races screen:
