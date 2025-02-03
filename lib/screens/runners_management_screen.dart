@@ -128,52 +128,57 @@ class RunnerListItem extends StatelessWidget {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          padding: const EdgeInsets.symmetric(horizontal: 0.0, vertical: 8.0),
           child: Container(
             decoration: BoxDecoration(
               color: bibColor.withOpacity(0.1),
             ),
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
             child: Row(
               children: [
-                // CircleAvatar(
-                //   backgroundColor: bibColor,
-                SizedBox(width: 8),
-                  Text(
-                    runner.bibNumber,
-                    style: TextStyle(
-                      // color: bibColor.computeLuminance() > 0.5 ? AppColors.unselectedRoleTextColor : Colors.white,
-                      color: bibColor,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
+                Expanded(
+                  flex: 5,
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 16.0),
+                    child: Text(
+                      runner.name,
+                      style: const TextStyle(fontSize: 16),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                // ),
-                const SizedBox(width: 16),
+                ),
                 Expanded(
                   flex: 2,
-                  child: Text(
-                    runner.name,
-                    style: const TextStyle(fontSize: 16),
+                  child: Center(
+                    child: Text(
+                      runner.school,
+                      style: const TextStyle(fontSize: 16, color: Colors.black),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ),
                 Expanded(
-                  child: Text(
-                    runner.grade.toString(),
-                    style: const TextStyle(fontSize: 14, color: Colors.grey),
+                  flex: 2,
+                  child: Center(
+                    child: Text(
+                      runner.grade.toString(),
+                      style: const TextStyle(fontSize: 16, color: Colors.black),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ),
                 Expanded(
-                  child: Text(
-                    runner.school,
-                    style: const TextStyle(fontSize: 14, color: Colors.grey),
+                  flex: 2,
+                  child: Center(
+                    child: Text(
+                      runner.bibNumber,
+                      style: TextStyle(
+                        color: bibColor,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
-                ),
-                PopupMenuButton<String>(
-                  onSelected: onActionSelected,
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(value: 'Edit', child: Text('Edit')),
-                    const PopupMenuItem(value: 'Delete', child: Text('Delete')),
-                  ],
                 ),
               ],
             ),
@@ -369,23 +374,59 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
   }
 
   Widget _buildListTitles() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        Text('Bib Number', style: TextStyle(fontWeight: FontWeight.bold)),
-        Text('Name', style: TextStyle(fontWeight: FontWeight.bold)),
-        Text('Grade', style: TextStyle(fontWeight: FontWeight.bold)),
-        Text('School', style: TextStyle(fontWeight: FontWeight.bold)),
-      ],
+    final double fontSize = 15;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 5,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 16.0),
+              child: Text(
+                'Name',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize)
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Center(
+              child: Text(
+                'School',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize)
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Center(
+              child: Text(
+                'Gr.',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize)
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Center(
+              child: Text(
+                'Bib',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize)
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
+      color: AppColors.backgroundColor,
+      // child: Padding(
+        // padding: const EdgeInsets.all(8.0),
         child: Column(
           children: [
             _buildActionButtons(),
@@ -398,7 +439,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
             ),
           ],
         ),
-      ),
+      // ),
     );
   }
 

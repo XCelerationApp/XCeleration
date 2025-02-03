@@ -9,12 +9,12 @@ Widget createSheetHandle({double height = 10.0, double width = 50.0}) {
       border: Border(
         top: BorderSide(
           width: 5.0,
-          color: AppColors.backgroundColor,
+          color: Colors.transparent,
           style: BorderStyle.solid,
         ),
         bottom: BorderSide(
           width: 5.0,
-          color: AppColors.backgroundColor,
+          color: Colors.transparent,
           style: BorderStyle.solid,
         ),
       ),
@@ -38,12 +38,12 @@ Widget createBackArrowBar(BuildContext context) {
       border: Border(
         top: BorderSide(
           width: 5.0,
-          color: AppColors.backgroundColor,
+          color: Colors.transparent,
           style: BorderStyle.solid,
         ),
         bottom: BorderSide(
           width: 5.0,
-          color: AppColors.backgroundColor,
+          color: Colors.transparent,
           style: BorderStyle.solid,
         ),
       ),

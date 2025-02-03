@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:race_timing_app/database_helper.dart';
 import 'package:race_timing_app/models/race.dart';
 import 'package:race_timing_app/screens/runners_management_screen.dart';
-// import 'package:race_timing_app/utils/sheet_utils.dart';
+import 'package:race_timing_app/utils/sheet_utils.dart';
 import 'package:race_timing_app/utils/app_colors.dart'; // Import AppColors
 
 class RaceInfoScreen extends StatefulWidget {
@@ -180,9 +180,12 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
       height: screenHeight * 0.92,
       child: Stack(
         children: [
+          SizedBox(height: 10),
+          createSheetHandle(height: 10, width: 60),
           SingleChildScrollView(
             child: Column(
               children: [
+                SizedBox(height: 30),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -269,16 +272,16 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
               )),
               child: SizedBox.expand(
                 child: Material(
-                  color: Colors.white,
+                  color: AppColors.backgroundColor,
                   child: Stack(
                     children: [
                       Positioned(
                         top: 0,
                         left: 8,
                         child: SizedBox(
-                          height: 24,
+                          height: 40,
                           child: IconButton(
-                            icon: const Icon(Icons.arrow_back),
+                            icon: const Icon(Icons.arrow_back, color: AppColors.primaryColor, size: 40),
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
                             style: ButtonStyle(
@@ -289,7 +292,7 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
                         ),
                       ),
                       Padding(
-                        padding: const EdgeInsets.only(top: 24),
+                        padding: const EdgeInsets.only(top: 40),
                         child: RunnersManagementScreen(isTeam: false, raceId: raceId),
                       ),
                     ],
@@ -317,15 +320,23 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
 
     return Column(
       children: [
+        // if (!_showRunners) ...[
+        //   SizedBox(height: 10),
+        //   createSheetHandle(height: 10, width: 60),
+        // ],
+        // if (_showRunners) ...[
+        //   SizedBox(height: 30),
+        //   // createSheetHandle(height: 10, width: 60),
+        // ],
         Expanded(
-          child: SingleChildScrollView(
+          // child: SingleChildScrollView(
             child: SafeArea(
               child: Padding(
                 padding: const EdgeInsets.only(left: 24.0, right: 24.0, bottom: 24.0, top: 10.0),
                 child: _buildContent(),
               ),
             ),
-          ),
+          // ),
         ),
         if (hasChanges) ...[
           const SizedBox(height: 10),

@@ -48,7 +48,7 @@ final List<RoleOption> roleOptions = [
 Widget _buildRoleTitle(RoleOption role, String currentRole) {
   return Row(
     children: [
-      Icon(role.icon, size: 55, color: role.value == currentRole
+      Icon(role.icon, size: 45, color: role.value == currentRole
                   ? AppColors.selectedRoleTextColor
                   : AppColors.unselectedRoleTextColor),
       SizedBox(width: 8),
@@ -58,7 +58,7 @@ Widget _buildRoleTitle(RoleOption role, String currentRole) {
           Text(
             role.title,
             style: TextStyle(
-              fontSize: 20,
+              fontSize: 15,
               fontWeight: FontWeight.w700,
               color: role.value == currentRole
                   ? AppColors.selectedRoleTextColor
@@ -68,7 +68,7 @@ Widget _buildRoleTitle(RoleOption role, String currentRole) {
           Text(
             role.description,
             style: TextStyle(
-                fontSize: 12,
+                fontSize: 10,
                 fontWeight: FontWeight.w400,
                 color: role.value == currentRole
                     ? AppColors.selectedRoleTextColor
@@ -124,10 +124,13 @@ void changeRole(BuildContext context, String currentRole) {
       borderRadius: BorderRadius.circular(12),
     ),
     context: context,
-    builder: (context) => Container(
-      height: 400,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
+    builder: (context) => Column(
+      // constraints: BoxConstraints(
+      //   maxHeight: MediaQuery.of(context).size.height * 0.8,
+      // ),
+      mainAxisSize: MainAxisSize.min,
+      children: [Padding(
+        padding: const EdgeInsets.only(top: 16.0, left: 16.0, right: 16.0, bottom: 30.0),
         child: Column(
           children: [
             createSheetHandle(),
@@ -136,7 +139,7 @@ void changeRole(BuildContext context, String currentRole) {
               child: Text(
                 'Change Role',
                 style: TextStyle(
-                  fontSize: 40,
+                  fontSize: 30,
                   fontWeight: FontWeight.w500,
                   color: AppColors.darkColor,
                 ),
@@ -146,6 +149,7 @@ void changeRole(BuildContext context, String currentRole) {
           ],
         ),
       ),
+      ]
     ),
   );
 }

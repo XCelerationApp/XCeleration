@@ -18,6 +18,7 @@ UI:
 - go over the UI with others
 - make it more obvious that there are more text fields to fill in
 - differenciate between race screen and main screen
+- see if we can create a app initializer with a good image
 
 Runners Management screen:
 - have school be a dropdown for add runner

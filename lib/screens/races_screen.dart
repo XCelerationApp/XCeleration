@@ -12,7 +12,7 @@ import '../utils/app_colors.dart';
 import '../utils/dialog_utils.dart';
 import 'dart:io';
 import '../role_functions.dart';
-// import '../utils/sheet_utils.dart';
+import '../utils/sheet_utils.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';
 
@@ -71,51 +71,57 @@ class _RacesScreenState extends State<RacesScreen> {
 
   void _showCreateRaceSheet(BuildContext context) {
     _resetControllers();
+
     showModalBottomSheet(
       backgroundColor: AppColors.backgroundColor,
       context: context,
       isScrollControlled: true,
-      showDragHandle: true,
       enableDrag: true,
+      useSafeArea: true,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(16),
+        ),
       ),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setState) {
-            return SizedBox(
+      builder: (context) => StatefulBuilder(
+        builder: (BuildContext context, StateSetter setState) {
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+            ),
+            child: SizedBox(
               height: MediaQuery.of(context).size.height * 0.92,
-              child: Padding(
-                padding: EdgeInsets.only(
-                  bottom: MediaQuery.of(context).viewInsets.bottom,
-                  left: 16,
-                  right: 16,
-                ),
-                child: SingleChildScrollView(
-                  child: _buildCreateRaceSheetContent(setState),
-                ),
-              ),
-            );
-          },
-        );
-      },
+              child: _buildCreateRaceSheetContent(setState),
+            ),
+          );
+        },
+      ),
     );
   }
 
   Widget _buildCreateRaceSheetContent(StateSetter setState) {
     return Column(
-      mainAxisSize: MainAxisSize.min,
       children: [
-        // const SizedBox(height: 10),
-        // createSheetHandle(height: 10, width: 60),
-        _buildRaceNameField(),
-        _buildCreateRaceSheetTitle(),
-        _buildCompetingTeamsField(setState),
-        _buildRaceLocationField(),
-        _buildRaceDateField(),
-        _buildRaceDistanceField(),
-        _buildCreateButton(),
-        SizedBox(height: 16),
+        const SizedBox(height: 10),
+        createSheetHandle(height: 10, width: 60),
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildCreateRaceSheetTitle(),
+                _buildRaceNameField(),
+                _buildCompetingTeamsField(setState),
+                _buildRaceLocationField(),
+                _buildRaceDateField(),
+                _buildRaceDistanceField(),
+                _buildCreateButton(),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -136,15 +142,30 @@ class _RacesScreenState extends State<RacesScreen> {
   }
 
   Widget _buildRaceNameField() {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
-      child: TextField(
-        controller: nameController,
-        decoration: const InputDecoration(
-          labelText: 'Race Name',
-          border: OutlineInputBorder(),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 8.0),
+          child: Text(
+            'Race Name:',
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ),
-      ),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8.0),
+          child: TextField(
+            controller: nameController,
+            decoration: const InputDecoration(
+              // labelText: 'Race Name',
+              // border: OutlineInputBorder(),
+            ),
+          ),
+        )
+      ],
     );
   }
 
@@ -503,23 +524,19 @@ class _RacesScreenState extends State<RacesScreen> {
     Navigator.pop(context);
 
     showModalBottomSheet(
+      backgroundColor: AppColors.backgroundColor,
       context: context,
       isScrollControlled: true,
       enableDrag: true,
-      showDragHandle: true,
       useSafeArea: true,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(16),
         ),
       ),
-      backgroundColor: AppColors.backgroundColor,
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.92,
-        minChildSize: 0.5,
-        maxChildSize: 0.92,
-        expand: false,
-        builder: (context, scrollController) => RaceInfoScreen(
+      builder: (context) => SizedBox(
+        height: MediaQuery.of(context).size.height * 0.9,
+        child: RaceInfoScreen(
           raceId: id,
         ),
       ),
@@ -586,23 +603,19 @@ class _RacesScreenState extends State<RacesScreen> {
                                   : Text('${_formatDate(races[index].race_date)} - Race not completed', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w400, color: Colors.red)),
                                 onTap: () {
                                   showModalBottomSheet(
+                                    backgroundColor: AppColors.backgroundColor,
                                     context: context,
                                     isScrollControlled: true,
                                     enableDrag: true,
-                                    showDragHandle: true,
                                     useSafeArea: true,
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.vertical(
                                         top: Radius.circular(16),
                                       ),
                                     ),
-                                    backgroundColor: AppColors.backgroundColor,
-                                    builder: (context) => DraggableScrollableSheet(
-                                      initialChildSize: 0.92,
-                                      minChildSize: 0.5,
-                                      maxChildSize: 0.92,
-                                      expand: false,
-                                      builder: (context, scrollController) => RaceInfoScreen(
+                                    builder: (context) => SizedBox(
+                                      height: MediaQuery.of(context).size.height * 0.92,
+                                      child: RaceInfoScreen(
                                         raceId: races[index].raceId,
                                       ),
                                     ),

@@ -68,20 +68,20 @@ class MyAppState extends State<MyApp> {
       theme: ThemeData(
         primaryColor: AppColors.backgroundColor,
         colorScheme: ColorScheme.fromSwatch(
-          primarySwatch: Colors.blueGrey, // Match the desired color for the FAB
+          primarySwatch: Colors.blueGrey,
         ).copyWith(
           secondary: AppColors.backgroundColor,
-          onPrimary: AppColors.lightColor, // For icon colors
+          onPrimary: AppColors.lightColor,
         ),
         scaffoldBackgroundColor: AppColors.backgroundColor,
         textSelectionTheme: TextSelectionThemeData(
-          cursorColor: AppColors.darkColor, // Cursor color
-          selectionColor: Colors.grey[300], // Highlighted text background
-          selectionHandleColor: AppColors.mediumColor, // Handles on selected text
+          cursorColor: AppColors.darkColor,
+          selectionColor: Colors.grey[300],
+          selectionHandleColor: AppColors.mediumColor,
         ),
         appBarTheme: AppBarTheme(
           backgroundColor: AppColors.navBarColor,
-          foregroundColor: AppColors.navBarTextColor, // Text/Icon color in AppBar
+          foregroundColor: AppColors.navBarTextColor,
           titleTextStyle: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         tabBarTheme: TabBarTheme(
@@ -91,11 +91,7 @@ class MyAppState extends State<MyApp> {
             border: Border(
               bottom: BorderSide(color: AppColors.navBarTextColor, width: 0),
             ),
-            // color: AppColors.navBarColor,
           ),
-          // indicatorSize: TabBarIndicatorSize.tab,
-          // indicatorPadding: EdgeInsets.zero,
-          // indicatorColor: AppColors.navBarColor,
         ),
         textTheme: TextTheme(
           bodyMedium: TextStyle(color: AppColors.darkColor),
@@ -116,9 +112,107 @@ class MyAppState extends State<MyApp> {
           ),
         ),
       ),
+      home: const InitializationScreen(),
+    );
+  }
+}
 
-      home: const WelcomeScreen(),
-      // home: const HomeScreen(),
+class InitializationScreen extends StatefulWidget {
+  const InitializationScreen({super.key});
+
+  @override
+  InitializationScreenState createState() => InitializationScreenState();
+}
+
+class InitializationScreenState extends State<InitializationScreen> {
+  bool _isLoading = true;
+  String _statusMessage = 'Default utill we get an image';
+  bool _hasError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeApp();
+  }
+
+  Future<void> _initializeApp() async {
+    try {
+      // Add a small delay to ensure everything is ready
+      await Future.delayed(const Duration(seconds: 2));
+      
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) => FadeTransition(
+              opacity: animation,
+              child: const WelcomeScreen(),
+            ),
+            transitionDuration: const Duration(milliseconds: 500),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _hasError = true;
+          _isLoading = false;
+          _statusMessage = 'Error initializing app: $e';
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.primaryColor,
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'XCelerate',
+                style: TextStyle(
+                  fontSize: 40,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.backgroundColor,
+                ),
+              ),
+              const SizedBox(height: 32),
+              if (_isLoading) ...[
+                CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.backgroundColor),
+                ),
+                const SizedBox(height: 16),
+              ],
+              Text(
+                _statusMessage,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: AppColors.backgroundColor,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              if (_hasError) ...[
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _isLoading = true;
+                      _hasError = false;
+                      _statusMessage = 'Initializing...';
+                    });
+                    _initializeApp();
+                  },
+                  child: const Text('Retry'),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
