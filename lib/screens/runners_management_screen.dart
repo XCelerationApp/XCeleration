@@ -1,7 +1,9 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import '../utils/app_colors.dart';
 import '../utils/dialog_utils.dart';
+import '../utils/sheet_utils.dart';
 import 'package:race_timing_app/database_helper.dart';
 import 'package:race_timing_app/file_processing.dart';
 
@@ -109,7 +111,7 @@ class RunnerTextField extends StatelessWidget {
   }
 }
 
-class RunnerListItem extends StatelessWidget {
+class RunnerListItem extends StatefulWidget {
   final Runner runner;
   final Function(String) onActionSelected;
   final List<Team> teamData;
@@ -122,70 +124,100 @@ class RunnerListItem extends StatelessWidget {
   }) : super(key: key);
 
   @override
+  State<RunnerListItem> createState() => _RunnerListItemState();
+}
+
+class _RunnerListItemState extends State<RunnerListItem> {
+  @override
   Widget build(BuildContext context) {
-    final team = teamData.firstWhereOrNull((team) => team.name == runner.school);
+    final team = widget.teamData.firstWhereOrNull((team) => team.name == widget.runner.school);
     final bibColor = team != null ? team.color : AppColors.mediumColor;
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 0.0, vertical: 8.0),
-          child: Container(
-            decoration: BoxDecoration(
-              color: bibColor.withOpacity(0.1),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: Row(
-              children: [
-                Expanded(
-                  flex: 5,
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 16.0),
-                    child: Text(
-                      runner.name,
-                      style: const TextStyle(fontSize: 16),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ),
-                Expanded(
-                  flex: 2,
-                  child: Center(
-                    child: Text(
-                      runner.school,
-                      style: const TextStyle(fontSize: 16, color: Colors.black),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ),
-                Expanded(
-                  flex: 2,
-                  child: Center(
-                    child: Text(
-                      runner.grade.toString(),
-                      style: const TextStyle(fontSize: 16, color: Colors.black),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ),
-                Expanded(
-                  flex: 2,
-                  child: Center(
-                    child: Text(
-                      runner.bibNumber,
-                      style: TextStyle(
-                        color: bibColor,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
+    
+    return Slidable(
+      key: Key(widget.runner.bibNumber),
+      endActionPane: ActionPane(
+        motion: const ScrollMotion(),
+        children: [
+          SlidableAction(
+            onPressed: (_) => widget.onActionSelected('Edit'),
+            backgroundColor: Colors.blue,
+            foregroundColor: Colors.white,
+            icon: Icons.edit,
+            // label: 'Edit',
+          ),
+          SlidableAction(
+            onPressed: (_) => widget.onActionSelected('Delete'),
+            backgroundColor: Colors.red,
+            foregroundColor: Colors.white,
+            icon: Icons.delete,
+            // label: 'Delete',
+          ),
+        ],
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: bibColor.withOpacity(0.1),
+        ),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 0.0, vertical: 8.0),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 5,
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 16.0),
+                        child: Text(
+                          widget.runner.name,
+                          style: const TextStyle(fontSize: 16),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ),
-                  ),
+                    Expanded(
+                      flex: 2,
+                      child: Center(
+                        child: Text(
+                          widget.runner.school,
+                          style: const TextStyle(fontSize: 16, color: Colors.black),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Center(
+                        child: Text(
+                          widget.runner.grade.toString(),
+                          style: const TextStyle(fontSize: 16, color: Colors.black),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Center(
+                        child: Text(
+                          widget.runner.bibNumber,
+                          style: TextStyle(
+                            color: bibColor,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
+            const Divider(height: 1, thickness: 1, color: Colors.grey),
+          ],
         ),
-        const Divider(height: 1, thickness: 1, color: Colors.grey),
-      ],
+      ),
     );
   }
 }
@@ -347,7 +379,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
   Future<void> _handleRunnerAction(String action, Runner runner) async {
     switch (action) {
       case 'Edit':
-        await _showRunnerDialog(
+        await _showRunnerSheet(
           context: context,
           title: 'Edit Runner',
           runner: runner,
@@ -451,7 +483,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
       children: [
         _buildActionButton(
           'Add Runner',
-          onPressed: () => _showRunnerDialog(context: context, title: 'Add Runner'),
+          onPressed: () => _showRunnerSheet(context: context, title: 'Add Runner'),
         ),
         _buildActionButton(
           'Load Spreadsheet',
@@ -560,7 +592,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
   }
 
   // Dialog and Action Methods
-  Future<void> _showRunnerDialog({
+  Future<void> _showRunnerSheet({
     required BuildContext context,
     required String title,
     Runner? runner,
@@ -572,32 +604,127 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
       _formControllers.bib.text = runner.bibNumber;
     }
 
-    return showDialog(
+    return showModalBottomSheet(
+      backgroundColor: AppColors.backgroundColor,
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              RunnerTextField(controller: _formControllers.name, label: 'Full Name'),
-              RunnerTextField(controller: _formControllers.grade, label: 'Grade', isNumeric: true),
-              RunnerTextField(controller: _formControllers.school, label: 'School'),
-              RunnerTextField(controller: _formControllers.bib, label: 'Bib Number', isNumeric: true),
-            ],
+      isScrollControlled: true,
+      enableDrag: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(16),
+        ),
+      ),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            createSheetHandle(height: 10, width: 60),
+            const SizedBox(height: 8),
+            SingleChildScrollView(
+              child: Column(
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 30,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.primaryColor,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  _buildRunnerForm(runner),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text(
+                          'Cancel',
+                          style: TextStyle(
+                            color: AppColors.primaryColor,
+                            fontSize: 24,
+                          ),
+                        ),
+                      ),
+                      ElevatedButton(
+                        onPressed: () => _handleRunnerSubmission(runner),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryColor,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                          fixedSize: const Size(175, 50),
+                        ),
+                        child: Text(runner == null ? 'Create' : 'Save', style: const TextStyle(fontSize: 24)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRunnerForm(Runner? runner) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildFormField(
+          label: 'Full Name:',
+          controller: _formControllers.name,
+        ),
+        _buildFormField(
+          label: 'Grade:',
+          controller: _formControllers.grade,
+          keyboardType: TextInputType.number,
+        ),
+        _buildFormField(
+          label: 'School:',
+          controller: _formControllers.school,
+        ),
+        _buildFormField(
+          label: 'Bib Number:',
+          controller: _formControllers.bib,
+          keyboardType: TextInputType.number,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFormField({
+    required String label,
+    required TextEditingController controller,
+    TextInputType? keyboardType,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 4.0),
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4.0),
+          child: TextField(
+            controller: controller,
+            keyboardType: keyboardType,
+            decoration: const InputDecoration(
+              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            ),
           ),
-          ElevatedButton(
-            onPressed: () => _handleRunnerSubmission(runner),
-            child: Text(runner == null ? 'Add' : 'Edit'),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -741,4 +868,11 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
     }
     await _loadRunners();
   }
+}
+
+class ActionIcon {
+  final IconData icon;
+  final Color backgroundColor;
+
+  ActionIcon(this.icon, this.backgroundColor);
 }

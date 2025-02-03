@@ -105,51 +105,52 @@ Widget _buildRoleListTile(BuildContext context, RoleOption role, String currentR
       ),
       title: _buildRoleTitle(role, currentRole),
       activeColor: AppColors.selectedRoleTextColor,
-      // fillColor: WidgetStateProperty.resolveWith<Color>(
-      //   (Set<WidgetState> states) {
-      //     if (states.contains(WidgetState.selected)) {
-      //       return AppColors.selectedRoleTextColor;
-      //     }
-      //     return Colors.white; // unselected color
-      //   },
-      // ),
     ),
   );
 }
 
 void changeRole(BuildContext context, String currentRole) {
   showModalBottomSheet(
-    isScrollControlled: true,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(12),
-    ),
+    backgroundColor: AppColors.backgroundColor,
     context: context,
-    builder: (context) => Column(
-      // constraints: BoxConstraints(
-      //   maxHeight: MediaQuery.of(context).size.height * 0.8,
-      // ),
-      mainAxisSize: MainAxisSize.min,
-      children: [Padding(
-        padding: const EdgeInsets.only(top: 16.0, left: 16.0, right: 16.0, bottom: 30.0),
-        child: Column(
-          children: [
-            createSheetHandle(),
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16.0),
-              child: Text(
-                'Change Role',
-                style: TextStyle(
-                  fontSize: 30,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.darkColor,
-                ),
-              ),
-            ),
-            ...roleOptions.map((role) => _buildRoleListTile(context, role, currentRole)),
-          ],
-        ),
+    isScrollControlled: true,
+    enableDrag: true,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(
+        top: Radius.circular(16),
       ),
-      ]
+    ),
+    builder: (context) => Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 10),
+          createSheetHandle(height: 10, width: 60),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: Text(
+                    'Change Role',
+                    style: TextStyle(
+                      fontSize: 30,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.darkColor,
+                    ),
+                  ),
+                ),
+                ...roleOptions.map((role) => _buildRoleListTile(context, role, currentRole)),
+                const SizedBox(height: 30),
+              ],
+            ),
+          ),
+        ],
+      ),
     ),
   );
 }

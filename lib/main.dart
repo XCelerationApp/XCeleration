@@ -126,7 +126,7 @@ class InitializationScreen extends StatefulWidget {
 
 class InitializationScreenState extends State<InitializationScreen> {
   bool _isLoading = true;
-  String _statusMessage = 'Default utill we get an image';
+  String _statusMessage = 'Default until we get an image';
   bool _hasError = false;
 
   @override
