@@ -68,7 +68,7 @@ class MyAppState extends State<MyApp> {
       theme: ThemeData(
         primaryColor: AppColors.backgroundColor,
         colorScheme: ColorScheme.fromSwatch(
-          primarySwatch: Colors.blueGrey,
+          primarySwatch: Colors.deepOrange,
         ).copyWith(
           secondary: AppColors.backgroundColor,
           onPrimary: AppColors.lightColor,
@@ -124,22 +124,68 @@ class InitializationScreen extends StatefulWidget {
   InitializationScreenState createState() => InitializationScreenState();
 }
 
-class InitializationScreenState extends State<InitializationScreen> {
-  bool _isLoading = true;
-  String _statusMessage = 'Default until we get an image';
-  bool _hasError = false;
+class InitializationScreenState extends State<InitializationScreen> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _opacityAnimation;
+  bool _showText = false;
 
   @override
   void initState() {
     super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 3000),
+      vsync: this,
+    );
+
+    _scaleAnimation = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.0, end: 1.0)
+            .chain(CurveTween(curve: Curves.easeOut)),
+        weight: 33.0,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.0, end: 1.5)
+            .chain(CurveTween(curve: Curves.easeOut)),
+        weight: 67.0,
+      ),
+    ]).animate(_controller);
+
+    _opacityAnimation = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.0, end: 1.0),
+        weight: 80.0,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.0, end: 0.0),
+        weight: 20.0,
+      ),
+    ]).animate(_controller);
+
     _initializeApp();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   Future<void> _initializeApp() async {
     try {
-      // Add a small delay to ensure everything is ready
-      await Future.delayed(const Duration(seconds: 2));
+      // Start the animation
+      _controller.forward();
       
+      // After 1 second, show the text
+      await Future.delayed(const Duration(milliseconds: 1000));
+      if (mounted) {
+        setState(() {
+          _showText = true;
+        });
+      }
+
+      // After animation completes, navigate to welcome screen
+      await Future.delayed(const Duration(milliseconds: 2000));
       if (mounted) {
         Navigator.of(context).pushReplacement(
           PageRouteBuilder(
@@ -153,11 +199,7 @@ class InitializationScreenState extends State<InitializationScreen> {
       }
     } catch (e) {
       if (mounted) {
-        setState(() {
-          _hasError = true;
-          _isLoading = false;
-          _statusMessage = 'Error initializing app: $e';
-        });
+        // Handle error case if needed
       }
     }
   }
@@ -167,50 +209,37 @@ class InitializationScreenState extends State<InitializationScreen> {
     return Scaffold(
       backgroundColor: AppColors.primaryColor,
       body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'XCelerate',
-                style: TextStyle(
-                  fontSize: 40,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.backgroundColor,
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            return Opacity(
+              opacity: _opacityAnimation.value,
+              child: Transform.scale(
+                scale: _scaleAnimation.value,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Image.asset(
+                      'assets/icon/icon.png',
+                      width: 100,
+                      height: 100,
+                    ),
+                    if (_showText) ...[
+                      const SizedBox(height: 20),
+                      Text(
+                        'XCelerate',
+                        style: TextStyle(
+                          fontSize: 40,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.backgroundColor,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
-              const SizedBox(height: 32),
-              if (_isLoading) ...[
-                CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.backgroundColor),
-                ),
-                const SizedBox(height: 16),
-              ],
-              Text(
-                _statusMessage,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: AppColors.backgroundColor,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              if (_hasError) ...[
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      _isLoading = true;
-                      _hasError = false;
-                      _statusMessage = 'Initializing...';
-                    });
-                    _initializeApp();
-                  },
-                  child: const Text('Retry'),
-                ),
-              ],
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
