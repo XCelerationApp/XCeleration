@@ -568,6 +568,7 @@ class _RacesScreenState extends State<RacesScreen> {
         padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
         child: Column(
           children: [
+            SizedBox(height: 30),
             ElevatedButton(
               onPressed: () => showDeviceConnectionPopup(
                 context,
