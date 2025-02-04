@@ -228,10 +228,13 @@ class InitializationScreenState extends State<InitializationScreen> with SingleT
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    if (_showText) ...[
+                      const SizedBox(height: 60),
+                    ],
                     Image.asset(
                       'assets/icon/icon.png',
-                      width: 200,
-                      height: 200,
+                      width: MediaQuery.of(context).size.height / 3,
+                      height: MediaQuery.of(context).size.height / 3,
                     ),
                     if (_showText) ...[
                       const SizedBox(height: 20),

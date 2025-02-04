@@ -77,18 +77,17 @@ dev_dependencies:
   flutter_lints: ^5.0.0
 
 flutter_native_splash:
-  color: "#FF5722" # This matches your deep orange primary color
+  color: "#FF5722"
   image: assets/icon/icon.png
+  
   android_12:
     image: assets/icon/icon.png
-    color: "#FF5722"
+    icon_background_color: "#FF5722"
+    
+  android: true
   ios: true
   web: false
-
-# For information on the generic Dart part of this file, see the
-# following page: https://dart.dev/tools/pub/pubspec
-
-# The following section is specific to Flutter packages.
+  
 flutter:
 
   # The following line ensures that the Material Icons font is
