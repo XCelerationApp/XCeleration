@@ -5,9 +5,7 @@
 	<key>NSMicrophoneUsageDescription</key>
 	<string>This app needs access to play audio to let you know when buttons have been pressed</string>
 	<key>NSCameraUsageDescription</key>
-	<string>We need access to your camera to scan bib numbers.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>We need access to your photo library to pick images.</string>
+	<string>This app needs access to your camera to scan QR codes.</string>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
 	<key>UIFileSharingEnabled</key>
@@ -55,17 +53,8 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
-	<!-- BLE -->
-	<key>NSBluetoothPeripheralUsageDescription</key>
-	<string>App requires Bluetooth to communicate with other devices.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Location access is required for Bluetooth scanning.</string>
-	<key>NSBluetoothAlwaysUsageDescription</key>
-    <string>This app needs Bluetooth to function</string>
-	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>Need BLE permission for peer-to-peer data sharing</string>
-	<key>NSBluetoothPeripheralUsageDescription</key>
-	<string>Need BLE permission for peer-to-peer data sharing</string>
+	<string>Location access is required to save race locations.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Need local network permission for peer-to-peer data sharing</string>
 	<key>NSBonjourServices</key>
@@ -74,8 +63,5 @@
 	</array>
 	<key>UIRequiresPersistentWiFi</key>
 	<true/>
-	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>App needs Bluetooth permission for discovering and connecting to nearby devices</string>
-
 </dict>
 </plist>

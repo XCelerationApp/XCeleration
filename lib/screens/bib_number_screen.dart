@@ -258,9 +258,13 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
       print('Race is finished');
       showDeviceConnectionPopup(
         context,
-        deviceType: DeviceType.bibNumberDevice,
-        backUpShareFunction: _handleQRScan,
-        onDatatransferComplete: _processRaceData,
+        deviceType: DeviceType.advertiserDevice,
+        deviceName: DeviceName.bibRecorder,
+        otherDevices: createOtherDeviceList(
+          DeviceName.bibRecorder,
+          DeviceType.advertiserDevice,
+          data: '_bibRecords.encode()',
+        ),
       );
     } else {
       _handleBibNumber('', focus: true);

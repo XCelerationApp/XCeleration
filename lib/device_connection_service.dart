@@ -1,10 +1,9 @@
 import 'dart:async';
 import 'package:flutter_nearby_connections/flutter_nearby_connections.dart';
 import 'data_package.dart';
-// import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 
-enum DeviceType { bibNumberDevice, raceTimerDevice }
+enum DeviceType { browserDevice, advertiserDevice }
 
 
 class DeviceConnectionService {
@@ -12,17 +11,26 @@ class DeviceConnectionService {
 
   StreamSubscription? deviceMonitorSubscription;
   StreamSubscription? receivedDataSubscription;
-  Device? _connectedDevice;
+  List<Device> _connectedDevices = [];
 
   Future<bool> checkIfNearbyConnectionsWorks() async {
-    if (Platform.isAndroid) {
-      return true;
-    }
-    else if (Platform.isIOS) {
-      // if (!await Permission.nearbyWifiDevices.request().isGranted) {
-      //   throw UnavailibleDeviceConnectionServiceException('Nearby connections permission not granted');
-      // }
-      return true;
+    if (Platform.isAndroid || Platform.isIOS) {
+      try {
+        // Try to initialize NearbyService - this will fail if permissions are denied
+        final testService = NearbyService();
+        await testService.init(
+          serviceType: 'test',
+          deviceName: 'test',
+          strategy: Strategy.P2P_STAR,
+          callback: (isRunning) {},
+        );
+        testService.stopBrowsingForPeers();
+        testService.stopAdvertisingPeer();
+        return true;
+      } catch (e) {
+        print('Failed to initialize NearbyService: $e');
+        return false;
+      }
     }
     else {
       return false;
@@ -35,10 +43,10 @@ class DeviceConnectionService {
     await nearbyService!.init(
       serviceType: serviceType, //'wirelessconn'
       deviceName: deviceName,
-      strategy: Strategy.P2P_POINT_TO_POINT,
+      strategy: Strategy.P2P_STAR,
       callback: (isRunning) async {
         if (isRunning) {
-          if (deviceType == DeviceType.bibNumberDevice) {
+          if (deviceType == DeviceType.browserDevice) {
             await nearbyService!.stopBrowsingForPeers();
             await Future.delayed(Duration(microseconds: 200));
             await nearbyService!.startBrowsingForPeers();
@@ -52,10 +60,12 @@ class DeviceConnectionService {
     );
   }
 
-  Future<void> monitorDeviceConnectionStatus(String deviceName, {
-    Future<void> Function(Device device)? notConnectedCallback,
-    Future<void> Function(Device device)? connectingToDeviceCallback,
-    Future<void> Function(Device device)? connectedToDeviceCallback,
+  Future<void> monitorDevicesConnectionStatus({
+    required List<String> deviceNames, 
+    Future<void> Function(Device device)? deviceLostCallback,
+    Future<void> Function(Device device)? deviceFoundCallback,
+    Future<void> Function(Device device)? deviceConnectingCallback,
+    Future<void> Function(Device device)? deviceConnectedCallback,
     Duration timeout = const Duration(seconds: 60),
   }) async {
     // Start monitoring
@@ -63,25 +73,22 @@ class DeviceConnectionService {
     // Subscribe to state changes
     deviceMonitorSubscription = nearbyService!.stateChangedSubscription(callback: (devicesList) async {
       for (var device in devicesList) {
-        if (device.deviceName != deviceName) {
+        if (!deviceNames.contains(device.deviceName)) {
           return;
         }
-        print("Found device");
         if (device.state == SessionState.notConnected) {
-          if (notConnectedCallback != null) {
-            await notConnectedCallback(device);
+          if (_connectedDevices.contains(device)) {
+            _connectedDevices.remove(device);
+            await deviceLostCallback?.call(device);
           }
         }
+        await deviceFoundCallback?.call(device);
         if (device.state == SessionState.connecting) {
-          if (connectingToDeviceCallback != null) {
-            await connectingToDeviceCallback(device);
-          }
+          await deviceConnectingCallback?.call(device);
         }
         else if (device.state == SessionState.connected) {
-          _connectedDevice = device;
-          if (connectedToDeviceCallback != null) {
-            await connectedToDeviceCallback(device);
-          }
+          _connectedDevices.add(device);
+          await deviceConnectedCallback?.call(device);
         }   
       }
     });
@@ -108,7 +115,6 @@ class DeviceConnectionService {
       return;
     }
     await nearbyService!.disconnectPeer(deviceID: device.deviceId);
-    _connectedDevice = null;
     print("Disconnected from device");
   }
 
@@ -121,20 +127,20 @@ class DeviceConnectionService {
     await nearbyService!.sendMessage(device.deviceId, package.toString());
   }
 
-  Future<void> monitorMessageReceives(Device device, {Future<void> Function(Package)? messageReceivedCallback, Duration timeout = const Duration(seconds: 60)}) async {
+  Future<void> monitorMessageReceives(Device device, {Future<void> Function(Package, String)? messageReceivedCallback, Duration timeout = const Duration(seconds: 60)}) async {
     if (device.state != SessionState.connected) {
       print("Device not connected - Cannot receive message");
       return;
     }
 
     receivedDataSubscription = nearbyService!.dataReceivedSubscription(callback: (data) async {
-      if (data['senderDeviceId'] != device.deviceId) {
+      if (data['deviceId'] != device.deviceId) {
         print('wrong device');
         return;
       }
       print("received message: ${data["message"]}");
       if (messageReceivedCallback != null) {
-        await messageReceivedCallback(Package.fromString(data["message"]));
+        await messageReceivedCallback(Package.fromString(data["message"]), data['senderDeviceId']);
       }
     });
     await Future.delayed(timeout);
@@ -147,8 +153,9 @@ class DeviceConnectionService {
     nearbyService?.stopAdvertisingPeer();
     deviceMonitorSubscription?.cancel();
     receivedDataSubscription?.cancel();
-    if (_connectedDevice != null) {
-      disconnectDevice(_connectedDevice!);
+    for (var device in _connectedDevices) {
+      disconnectDevice(device);
     }
+    _connectedDevices.clear();
   }
 }

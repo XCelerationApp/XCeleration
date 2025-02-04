@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import '../models/timing_data.dart';
 import '../utils/time_formatter.dart';
 import '../utils/app_colors.dart';
@@ -152,29 +151,6 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     });
   }
 
-  void _shareTimes() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Share Race Times'),
-        content: SizedBox(
-          width: 200,
-          height: 200,
-          child: QrImageView(
-            data: _timingData.encode(),
-            version: QrVersions.auto,
-            errorCorrectionLevel: QrErrorCorrectLevel.M,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
 
   List<dynamic> _getFirstConflict() {
     for (var record in _records) {
@@ -490,9 +466,14 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
             return ElevatedButton(
               onPressed: () => showDeviceConnectionPopup(
                 context,
-                deviceType: DeviceType.raceTimerDevice,
-                backUpShareFunction: _shareTimes,
-                dataToTransfer: _timingData.encode(),
+                deviceType: DeviceType.advertiserDevice,
+                deviceName: DeviceName.raceTimer,
+                otherDevices: createOtherDeviceList(
+                  DeviceName.raceTimer,
+                  DeviceType.advertiserDevice,
+                  data: _timingData.encode(),
+                ),
+                
               ),
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size(0, 78),

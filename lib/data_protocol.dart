@@ -25,12 +25,12 @@ class Protocol {
   static const int maxSendAttempts = 3;
   static const int retryTimeoutSeconds = 5;
   static const int chunkSize = 1000;
-  static const int maxConcurrentTransmissions = 5; // Control concurrent sends
+  static const int maxConcurrentTransmissions = 5;
   
   final DeviceConnectionService deviceConnectionService;
-  final Device device;
+  final Map<String, Device> connectedDevices = {};  // Map of device IDs to devices
   
-  final Map<int, Package> _receivedPackages = {};
+  final Map<String, Map<int, Package>> _receivedPackages = {};  // Map of device ID to their packages
   final Map<int, _TransmissionState> _pendingTransmissions = {};
   final StreamController<void> _terminationController = StreamController<void>();
   
@@ -39,29 +39,35 @@ class Protocol {
   bool _isTerminated = false;
   late final int _finishSequenceNumber;
   
-  // Semaphore for controlling concurrent transmissions
   final _transmissionSemaphore = StreamController<void>();
   int _currentTransmissions = 0;
 
   Protocol({
     required this.deviceConnectionService,
-    required this.device,
   }) {
-    // Initialize semaphore
     for (var i = 0; i < maxConcurrentTransmissions; i++) {
       _transmissionSemaphore.add(null);
     }
   }
 
+  void addDevice(Device device) {
+    connectedDevices[device.deviceId] = device;
+    _receivedPackages[device.deviceId] = {};
+  }
+
+  void removeDevice(String deviceId) {
+    connectedDevices.remove(deviceId);
+    _receivedPackages.remove(deviceId);
+  }
+
   Future<void> terminate() async {
     _isTerminated = true;
     
-    // Cancel all pending transmissions
     for (var state in _pendingTransmissions.values) {
       state.isCancelled = true;
       state.retryTimer?.cancel();
       if (!state.completer.isCompleted) {
-        state.completer.complete(); // Complete normally for graceful shutdown
+        state.completer.complete();
       }
     }
     
@@ -69,7 +75,7 @@ class Protocol {
     clear();
   }
 
-  Future<void> _handleAcknowledgment(Package package) async {
+  Future<void> _handleAcknowledgment(Package package, String senderId) async {
     if (_isTerminated) return;
     
     if (package.number == _finishSequenceNumber) {
@@ -85,68 +91,114 @@ class Protocol {
     }
   }
 
-  Future<void> _processIncomingPackage(Package package) async {
+  Future<void> _processIncomingPackage(Package package, String senderId) async {
     if (_isTerminated) return;
     
-    if (!_receivedPackages.containsKey(package.number)) {
-      _receivedPackages[package.number] = package;
+    final devicePackages = _receivedPackages[senderId];
+    if (devicePackages != null && !devicePackages.containsKey(package.number)) {
+      devicePackages[package.number] = package;
       
       try {
-        await deviceConnectionService.sendMessageToDevice(
-          device,
-          Package(number: package.number, type: 'ACK'),
-        );
+        final device = connectedDevices[senderId];
+        if (device != null) {
+          await deviceConnectionService.sendMessageToDevice(
+            device,
+            Package(number: package.number, type: 'ACK'),
+          );
+        }
       } catch (e) {
         if (!_isTerminated) {
-          print('Failed to send acknowledgment for package ${package.number}: $e');
+          print('Failed to send acknowledgment for package ${package.number} to device $senderId: $e');
         }
       }
     }
   }
 
-  Future<void> handleMessage(Package package) async {
+  Future<void> handleMessage(Package package, String senderId) async {
     if (_isTerminated) return;
     
-    if (_isFinished) {
-      print('Protocol finished - ignoring incoming message');
-      return;
-    }
-
     try {
       switch(package.type) {
         case 'FIN':
-          await _processIncomingPackage(package);
-          if (!_isTerminated) _isFinished = true;
+          await _processIncomingPackage(package, senderId);
           break;
           
         case 'ACK':
-          await _handleAcknowledgment(package);
+          await _handleAcknowledgment(package, senderId);
           break;
           
         case 'DATA':
           if (package.data == null || !package.checksumsMatch()) {
             if (!_isTerminated) {
-              print('Invalid package: ${package.data == null ? 'data is null' : 'checksums do not match'}');
+              print('Invalid package from $senderId: ${package.data == null ? 'data is null' : 'checksums do not match'}');
             }
             return;
           }
           
-          await _processIncomingPackage(package);
+          await _processIncomingPackage(package, senderId);
           break;
           
         default:
           if (!_isTerminated) {
-            print('Unknown package type: ${package.type}');
+            print('Unknown package type from $senderId: ${package.type}');
           }
       }
     } catch (e) {
       if (!_isTerminated) {
-        print('Error handling message: $e');
+        print('Error handling message from $senderId: $e');
       }
     }
   }
 
-  Future<void> _sendPackageWithRetry(Package package) async {
+  Future<Map<String, String>> receiveData() async {
+    if (_isTerminated) {
+      throw ProtocolTerminatedException('Cannot receive data - protocol is terminated');
+    }
+
+    try {
+      await Future.any([
+        Future.doWhile(() async {
+          if (_isFinished || _isTerminated) return false;
+          await Future.delayed(Duration(milliseconds: 500));
+          return true;
+        }),
+        _terminationController.stream.first,
+      ]);
+
+      if (_isTerminated) {
+        throw ProtocolTerminatedException('Data reception interrupted');
+      }
+
+      final results = <String, String>{};
+      
+      for (var entry in _receivedPackages.entries) {
+        final deviceId = entry.key;
+        final packages = entry.value.values.toList()
+          ..sort((a, b) => a.number.compareTo(b.number));
+        
+        if (packages.isEmpty) continue;
+        
+        final dataChunks = packages
+          .where((p) => p.type == 'DATA' && p.data != null)
+          .map((p) => p.data!)
+          .toList();
+          
+        if (dataChunks.isNotEmpty) {
+          results[deviceId] = dataChunks.join();
+        }
+      }
+
+      return results;
+    } catch (e) {
+      if (_isTerminated) {
+        rethrow;
+      }
+      print('Error receiving data: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> _sendPackageWithRetry(Package package, String senderId) async {
     if (_isTerminated) {
       throw ProtocolTerminatedException('Cannot send package - protocol is terminated');
     }
@@ -166,10 +218,10 @@ class Protocol {
     Future<void> attemptSend() async {
       try {
         if (!state.isCancelled) {
-          await deviceConnectionService.sendMessageToDevice(device, package);
+          await deviceConnectionService.sendMessageToDevice(connectedDevices[senderId]!, package);
         }
       } catch (e) {
-        print('Failed to send package ${package.number}: $e');
+        print('Failed to send package ${package.number} to device $senderId: $e');
       }
     }
 
@@ -226,7 +278,7 @@ class Protocol {
     }
   }
 
-  Future<void> _sendMessage(String message) async {
+  Future<void> _sendMessage(String message, String senderId) async {
     if (_isTerminated) {
       throw ProtocolTerminatedException('Cannot send message - protocol is terminated');
     }
@@ -238,17 +290,17 @@ class Protocol {
     );
     
     try {
-      await _sendPackageWithRetry(package);
+      await _sendPackageWithRetry(package, senderId);
     } catch (e) {
       if (_isTerminated) {
         throw ProtocolTerminatedException('Message transmission interrupted by termination');
       }
-      print('Failed to send message: $e');
+      print('Failed to send message to device $senderId: $e');
       rethrow;
     }
   }
 
-  Future<void> sendData(String data) async {
+  Future<void> sendData(String data, String senderId) async {
     if (_isTerminated) {
       throw ProtocolTerminatedException('Cannot send data - protocol is terminated');
     }
@@ -265,7 +317,7 @@ class Protocol {
         if (_isTerminated) {
           throw ProtocolTerminatedException('Data transmission interrupted during sending chunks');
         }
-        final future = _sendMessage(chunks[i]);
+        final future = _sendMessage(chunks[i], senderId);
         futures.add(future);
       }
 
@@ -277,52 +329,14 @@ class Protocol {
 
       _finishSequenceNumber = _sequenceNumber + 1;
       await _sendPackageWithRetry(
-        Package(number: _finishSequenceNumber, type: 'FIN')
+        Package(number: _finishSequenceNumber, type: 'FIN'),
+        senderId
       );
     } catch (e) {
       if (_isTerminated) {
         rethrow;
       }
-      print('Data transmission failed: $e');
-      rethrow;
-    }
-  }
-
-  Future<String> receiveData() async {
-    if (_isTerminated) {
-      throw ProtocolTerminatedException('Cannot receive data - protocol is terminated');
-    }
-
-    try {
-      await Future.any([
-        Future.doWhile(() async {
-          if (_isFinished || _isTerminated) return false;
-          await Future.delayed(Duration(milliseconds: 500));
-          return true;
-        }),
-        _terminationController.stream.first
-      ]);
-
-      if (_isTerminated) {
-        throw ProtocolTerminatedException('Data reception interrupted by termination');
-      }
-
-      if (!_isFinished) {
-        throw StateError('Protocol terminated without finishing');
-      }
-
-      final packages = _receivedPackages.values.toList()
-        ..sort((a, b) => a.number.compareTo(b.number));
-
-      return packages
-        .where((package) => package.data != null)
-        .map((package) => package.data!)
-        .join();
-    } catch (e) {
-      if (e is ProtocolTerminatedException) {
-        rethrow;
-      }
-      print('Error during data reception: $e');
+      print('Data transmission failed to device $senderId: $e');
       rethrow;
     }
   }
