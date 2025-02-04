@@ -12,11 +12,13 @@ import 'screens/races_screen.dart';
 // import 'package:audioplayers/audioplayers.dart';
 import 'utils/app_colors.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 Process? _flaskProcess;
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   // Lock the orientation to portrait mode
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
@@ -128,6 +130,7 @@ class InitializationScreenState extends State<InitializationScreen> with SingleT
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
   late Animation<double> _opacityAnimation;
+  late Animation<Color?> _backgroundAnimation;
   bool _showText = false;
 
   @override
@@ -162,13 +165,19 @@ class InitializationScreenState extends State<InitializationScreen> with SingleT
       ),
     ]).animate(_controller);
 
-    _initializeApp();
-  }
+    _backgroundAnimation = ColorTween(
+      begin: const Color(0xFFFF5722), // Deep Orange (matches splash screen)
+      end: AppColors.primaryColor,
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0.0, 0.3, curve: Curves.easeInOut),
+    ));
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
+    // Start with a tiny delay to ensure smooth transition from splash screen
+    Future.delayed(const Duration(milliseconds: 100), () async {
+      FlutterNativeSplash.remove();
+      _initializeApp();
+    });
   }
 
   Future<void> _initializeApp() async {
@@ -177,7 +186,7 @@ class InitializationScreenState extends State<InitializationScreen> with SingleT
       _controller.forward();
       
       // After 1 second, show the text
-      await Future.delayed(const Duration(milliseconds: 1000));
+      // await Future.delayed(const Duration(milliseconds: 1000));
       if (mounted) {
         setState(() {
           _showText = true;
@@ -193,7 +202,7 @@ class InitializationScreenState extends State<InitializationScreen> with SingleT
               opacity: animation,
               child: const WelcomeScreen(),
             ),
-            transitionDuration: const Duration(milliseconds: 500),
+            transitionDuration: const Duration(milliseconds: 2000),
           ),
         );
       }
@@ -206,13 +215,13 @@ class InitializationScreenState extends State<InitializationScreen> with SingleT
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.primaryColor,
-      body: Center(
-        child: AnimatedBuilder(
-          animation: _controller,
-          builder: (context, child) {
-            return Opacity(
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Scaffold(
+          backgroundColor: _backgroundAnimation.value,
+          body: Center(
+            child: Opacity(
               opacity: _opacityAnimation.value,
               child: Transform.scale(
                 scale: _scaleAnimation.value,
@@ -221,8 +230,8 @@ class InitializationScreenState extends State<InitializationScreen> with SingleT
                   children: [
                     Image.asset(
                       'assets/icon/icon.png',
-                      width: 100,
-                      height: 100,
+                      width: 200,
+                      height: 200,
                     ),
                     if (_showText) ...[
                       const SizedBox(height: 20),
@@ -238,11 +247,17 @@ class InitializationScreenState extends State<InitializationScreen> with SingleT
                   ],
                 ),
               ),
-            );
-          },
-        ),
-      ),
+            ),
+          ),
+        );
+      },
     );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 }
 
