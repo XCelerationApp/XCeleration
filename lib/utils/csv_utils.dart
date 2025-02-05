@@ -10,18 +10,18 @@ class CsvUtils {
     required List<Map<String, dynamic>> teamResults,
     required List<Map<String, dynamic>> individualResults,
   }) {
-    List<List<String>> rows = [];
+    List<List<dynamic>> rows = [];
     if (isHeadToHead) {
       // Head-to-Head Results
       rows.add(['Team 1', 'Score', 'Time', 'Team 2', 'Score', 'Time']);
       for (var matchup in teamResults) {
         rows.add([
-          matchup['team1']['school'],
-          '${matchup['team1']['score']}',
-          matchup['team1']['times'],
-          matchup['team2']['school'],
-          '${matchup['team2']['score']}',
-          matchup['team2']['times'],
+          matchup['team1']?['school'] ?? 'Unknown School',
+          matchup['team1']?['score']?.toString() ?? 'N/A',
+          matchup['team1']?['times'] ?? 'N/A',
+          matchup['team2']?['school'] ?? 'Unknown School',
+          matchup['team2']?['score']?.toString() ?? 'N/A',
+          matchup['team2']?['times'] ?? 'N/A',
         ]);
       }
     } else {
@@ -29,25 +29,31 @@ class CsvUtils {
       rows.add(['Place', 'School', 'Score', 'Scorers', 'Times']);
       for (var team in teamResults) {
         rows.add([
-          '${team['place']}',
-          team['school'],
-          '${team['score']}',
-          team['scorers'],
-          team['times'],
+          team['place']?.toString() ?? 'N/A',
+          team['school'] ?? 'Unknown School',
+          team['score']?.toString() ?? 'N/A',
+          team['scorers'] ?? 'N/A',
+          team['times'] ?? 'N/A',
         ]);
       }
     }
+    
     // Individual Results
-    rows.add(['Place', 'Name', 'Grade', 'School', 'Time']);
-    for (var runner in individualResults) {
+    rows.add([]);  // Add empty row as separator
+    rows.add(['Individual Results']);
+    rows.add(['Place', 'Name', 'Grade', 'School', 'Time', 'Bib Number']);
+    for (int i = 0; i < individualResults.length; i++) {
+      var runner = individualResults[i];
       rows.add([
-        '${runner['position']}',
-        runner['name'],
-        '${runner['grade']}',
-        runner['school'],
-        runner['formatted_time'],
+        (i + 1).toString(),
+        runner['name'] ?? 'Unknown Runner',
+        runner['grade']?.toString() ?? 'N/A',
+        runner['school'] ?? 'Unknown School',
+        runner['finish_time'] ?? 'N/A',
+        runner['bib_number'] ?? 'N/A',
       ]);
     }
+    
     return const ListToCsvConverter().convert(rows);
   }
 
@@ -59,10 +65,7 @@ class CsvUtils {
       if (selectedDirectory != null) {
         // Create the file in the selected directory
         final file = File('$selectedDirectory/$filename');
-        
-        // Write the content to the file
         await file.writeAsString(csvContent);
-
         print('File saved at: ${file.path}');
         return file.path;
       } else {

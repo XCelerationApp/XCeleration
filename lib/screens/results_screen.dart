@@ -1,9 +1,16 @@
 import 'dart:math';
+import 'dart:io';
 import 'package:collection/collection.dart';
 import '../database_helper.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../utils/time_formatter.dart';
 import '../utils/csv_utils.dart';
+import '../utils/sheet_utils.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../utils/dialog_utils.dart';
+import 'package:path_provider/path_provider.dart';
 
 class ResultsScreen extends StatefulWidget {
   final int raceId;
@@ -61,9 +68,12 @@ class ResultsScreenState extends State<ResultsScreen> {
               children: [
                 // Header Section
                 Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
                   alignment: WrapAlignment.spaceBetween,
                   children: [
                     Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         const Text('Head-to-Head View'),
                         Switch(
@@ -76,24 +86,45 @@ class ResultsScreenState extends State<ResultsScreen> {
                         ),
                       ],
                     ),
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        double buttonWidth = min(constraints.maxWidth * 0.5, 200); // 50% of the available width
-                        double fontSize = buttonWidth * 0.08; // Scalable font size based on width
-                        return ElevatedButton.icon(
-                          onPressed: () => downloadCsv(teamResults, individualResults),
-                          icon: const Icon(Icons.download),
-                          label: Text(
-                            'Download CSV Results',
-                            style: TextStyle(fontSize: fontSize),
-                          ),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            double buttonWidth = min(constraints.maxWidth * 0.5, 200);
+                            double fontSize = buttonWidth * 0.08;
+                            return ElevatedButton.icon(
+                              onPressed: () => downloadCsv(teamResults, individualResults),
+                              icon: const Icon(Icons.download),
+                              label: Text(
+                                'Download CSV Results',
+                                style: TextStyle(fontSize: fontSize),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                minimumSize: const Size(200, 60),
+                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+                                fixedSize: Size(buttonWidth, 60),
+                              ),
+                            );
+                          },
+                        ),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true,
+                              useSafeArea: true,
+                              builder: (BuildContext context) => _buildShareSheet(context),
+                            );
+                          },
+                          icon: const Icon(Icons.share),
+                          label: const Text('Share'),
                           style: ElevatedButton.styleFrom(
-                            minimumSize: Size(200, 60), // Minimum width of 200 and height of 60
+                            minimumSize: const Size(100, 60),
                             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
-                            fixedSize: Size(buttonWidth, 60), // Set width proportional to screen size
                           ),
-                        );
-                      },
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -161,6 +192,131 @@ class ResultsScreenState extends State<ResultsScreen> {
         ),
     );
   }
+
+  Widget _buildShareSheet(BuildContext context) {
+    final teamResults = _isHeadToHead
+        ? _calculateHeadToHeadTeamResults()
+        : _calculateOverallTeamResults();
+    final individualResults = _calculateIndividualResults();
+
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.9,
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        children: [
+          createSheetHandle(height: 10, width: 60),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Share Results',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const Divider(),
+          const SizedBox(height: 16),
+          const Text(
+            'Choose Format',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: ListView(
+              children: [
+                _buildShareOption(
+                  icon: Icons.text_fields,
+                  title: 'Share as Text',
+                  subtitle: 'Simple text format for quick sharing',
+                  onTap: () => _shareAsText(),
+                ),
+                const SizedBox(height: 8),
+                _buildShareOption(
+                  icon: Icons.table_chart,
+                  title: 'Share as CSV',
+                  subtitle: 'Spreadsheet format for detailed analysis',
+                  onTap: () => _shareAsCsv(teamResults, individualResults),
+                ),
+                const SizedBox(height: 8),
+                _buildShareOption(
+                  icon: Icons.cloud,
+                  title: 'Share via Google Sheets',
+                  subtitle: 'Coming soon - Export directly to Google Sheets',
+                  onTap: () => _exportToGoogleSheets(),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildShareOption({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return Card(
+      elevation: 2,
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        leading: Icon(icon, size: 28),
+        title: Text(
+          title,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        subtitle: Text(subtitle),
+        onTap: () {
+          Navigator.pop(context); // Close the sheet
+          onTap();
+        },
+      ),
+    );
+  }
+
+  Future<void> _shareAsCsv(List<Map<String, dynamic>> teamResults, List<Map<String, dynamic>> individualResults) async {
+    try {
+      // Generate CSV content
+      final csvContent = CsvUtils.generateCsvContent(
+        isHeadToHead: _isHeadToHead,
+        teamResults: teamResults,
+        individualResults: individualResults
+      );
+
+      if (Theme.of(context).platform == TargetPlatform.iOS) {
+        // For iOS, create a temporary file and share it
+        final tempDir = await getTemporaryDirectory();
+        final file = File('${tempDir.path}/race_results.csv');
+        await file.writeAsString(csvContent);
+        
+        await Share.shareXFiles(
+          [XFile(file.path)],
+          subject: 'Race Results',
+        );
+      } else {
+        // For other platforms, share as text
+        await Share.share(csvContent, subject: 'Race Results (CSV)');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        DialogUtils.showErrorDialog(context, message: 'Failed to share CSV: $e');
+      }
+      rethrow;
+    }
+  }
+
   // Card for Overall Results
   Widget _buildTeamResultCard(Map<String, dynamic> team) {
     return Card(
@@ -459,5 +615,102 @@ class ResultsScreenState extends State<ResultsScreen> {
 
 
     return [...teamScores, ...nonScoringTeamScores];
+  }
+
+  Future<void> _shareViaMessage() async {
+    final text = _generateShareText();
+    try {
+      if (Theme.of(context).platform == TargetPlatform.iOS) {
+        // For iOS, we need to use a different URL scheme
+        final uri = Uri.parse('sms://&body=${Uri.encodeComponent(text)}');
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri);
+        } else {
+          throw Exception('Could not open Messages app');
+        }
+      } else if (Theme.of(context).platform == TargetPlatform.macOS) {
+        final uri = Uri.parse('messages://?body=${Uri.encodeComponent(text)}');
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri);
+        } else {
+          throw Exception('Could not open Messages.app');
+        }
+      } else {
+        // For Android
+        final uri = Uri.parse('sms:?body=${Uri.encodeComponent(text)}');
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri);
+        } else {
+          throw Exception('Could not open messaging app');
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        DialogUtils.showErrorDialog(context, message: 'Could not open messaging app');
+      }
+    }
+  }
+
+  Future<void> _exportToGoogleSheets() async {
+    // TODO: Implement Google Sheets export
+    if (context.mounted) {
+      DialogUtils.showErrorDialog(context, message: 'Google Sheets export coming soon!');
+    }
+  }
+
+  Future<void> _shareAsText() async {
+    final text = _generateShareText();
+    try {
+      if (Theme.of(context).platform == TargetPlatform.macOS) {
+        // For macOS, use clipboard and show a notification
+        await Clipboard.setData(ClipboardData(text: text));
+        if (context.mounted) {
+          DialogUtils.showSuccessDialog(context, message: 'Results copied to clipboard');
+        }
+      } else {
+        // For other platforms, use share_plus
+        await Share.share(text);
+      }
+    } catch (e) {
+      if (context.mounted) {
+        DialogUtils.showErrorDialog(context, message: 'Failed to share: $e');
+      }
+    }
+  }
+
+  String _generateShareText() {
+    final buffer = StringBuffer();
+    
+    // Add race info
+    buffer.writeln('Race Results\n');
+
+    // Add team results
+    if (_isHeadToHead) {
+      final teamResults = _calculateHeadToHeadTeamResults();
+      buffer.writeln('Head-to-Head Results:');
+      for (final matchup in teamResults) {
+        buffer.writeln('\n${matchup['team1']?['school']} vs ${matchup['team2']?['school']}');
+        buffer.writeln('1. ${matchup['team1']?['school']}: ${matchup['team1']?['score']} points');
+        buffer.writeln('2. ${matchup['team2']?['school']}: ${matchup['team2']?['score']} points');
+      }
+    } else {
+      final teamResults = _calculateOverallTeamResults();
+      buffer.writeln('Team Results:');
+      for (final team in teamResults) {
+        if (team['place'] != null) {
+          buffer.writeln('${team['place']}. ${team['school']}: ${team['score']} points');
+        }
+      }
+    }
+
+    // Add individual results
+    buffer.writeln('\nIndividual Results:');
+    final individualResults = _calculateIndividualResults();
+    for (int i = 0; i < individualResults.length; i++) {
+      final runner = individualResults[i];
+      buffer.writeln('${i + 1}. ${runner['name']} (${runner['school']}) - ${runner['finish_time']}');
+    }
+
+    return buffer.toString();
   }
 }

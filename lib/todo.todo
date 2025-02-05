@@ -19,6 +19,7 @@ UI:
 - make it more obvious that there are more text fields to fill in
 - differenciate between race screen and main screen
 - make app initializer look better
+- make things reload when database is updated (race creation, ...)
 
 Runners Management screen:
 - have school be a dropdown for add runner
@@ -26,8 +27,6 @@ Runners Management screen:
 - don't overwrite runner if runner with the same bib number is the same as the one being added
 
 Races screen:
-- have label/color for races that have been started yet
-- add date for each race (short, maybe just day month year)
 - move the delete race button to a different place (maybe swipe to delete)
 
 Race screen:
@@ -46,6 +45,7 @@ Conflicts screen:
 - make a screen dedicated to conflicts
 - show end of race time if conflicts are at the end of the race
 - rename old screen to merge results
+- change dialogs to sheets
 
 Merge results screen:
 - put save results button on bottom of the screen (keep it over the results but smaller)
@@ -55,3 +55,5 @@ Results screen:
 - create a pdf of the results
 - create a google sheet with the results
 - could change it just have a download button
+- make toggle visible
+- create different types of reports (pdf, google sheet, text, ...)
