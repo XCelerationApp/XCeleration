@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-// import 'dart:convert';
+import 'dart:convert';
 // import '../models/race.dart';
 import '../models/bib_data.dart';
 import '../utils/app_colors.dart';
@@ -27,6 +27,10 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
   // late Race race;
   bool _isRaceFinished = false;
   List<dynamic> _runners = [];
+  Map<DeviceName, Map<String, dynamic>> otherDevices = createOtherDeviceList(
+      DeviceName.bibRecorder,
+      DeviceType.browserDevice,
+    );
 
   @override
   void initState() {
@@ -54,10 +58,38 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                 ),
                 TextButton(
                   child: const Text('Load Runners'),
-                  onPressed: () {
-                    // TODO: Implement runner loading functionality
-                    Navigator.of(context).pop();
-                    _checkForRunners();
+                  onPressed: () async{
+                    await showDeviceConnectionPopup(
+                      context,
+                      deviceType: DeviceType.browserDevice,
+                      deviceName: DeviceName.bibRecorder,
+                      otherDevices: otherDevices,
+                    );
+                    setState(() {
+                      final data = otherDevices[DeviceName.bibRecorder]?['data'];
+                      if (data != null) {
+                        final runners = jsonDecode(data);
+                        if (runners.runtimeType != List || runners.isEmpty) {
+                          DialogUtils.showErrorDialog(context, 
+                            message: 'Invalid data received from bib recorder. Please try again.');
+                        }
+                        final runnerInCorrectFormat = runners.every((runner) => runner.containsKey('bib_number') && runner.containsKey('name') && runner.containsKey('school') && runner.containsKey('grade'));
+                        if (!runnerInCorrectFormat) {
+                          DialogUtils.showErrorDialog(context, 
+                            message: 'Invalid data received from bib recorder. Please try again.');
+                        }
+                        
+                        if (_runners.isNotEmpty) _runners.clear();
+                        print('Runners loaded: $runners');
+                        _runners = runners;
+                      }
+                    });
+                    if (_runners.isNotEmpty) {
+                      Navigator.pop(context);
+                    }
+                    else {
+                      print('No runners loaded');
+                    }
                   },
                 ),
               ],
