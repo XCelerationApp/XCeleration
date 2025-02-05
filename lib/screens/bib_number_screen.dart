@@ -26,7 +26,7 @@ class BibNumberScreen extends StatefulWidget {
 class _BibNumberScreenState extends State<BibNumberScreen> {
   // late Race race;
   bool _isRaceFinished = false;
-  List<dynamic> _runners = [];
+  List<dynamic> _runners = [{'bib_number': '00000', 'name': 'Runner 1', 'school': 'School 1', 'grade': 'Grade 1'}];
   Map<DeviceName, Map<String, dynamic>> otherDevices = createOtherDeviceList(
       DeviceName.bibRecorder,
       DeviceType.browserDevice,
@@ -78,7 +78,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                           DialogUtils.showErrorDialog(context, 
                             message: 'Invalid data received from bib recorder. Please try again.');
                         }
-                        
+
                         if (_runners.isNotEmpty) _runners.clear();
                         print('Runners loaded: $runners');
                         _runners = runners;
@@ -103,7 +103,6 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
   // Simplified bib number management
   Future<void> _handleBibNumber(String bibNumber, {
     List<double>? confidences,
-    bool focus = false,
     int? index,
   }) async {
     final provider = Provider.of<BibRecordsProvider>(context, listen: false);
@@ -158,7 +157,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     setState(() {});
   }
 
-  Future<void> _cleanEmptyRecords() async {
+  Future<bool> _cleanEmptyRecords() async {
     final provider = Provider.of<BibRecordsProvider>(context, listen: false);
     final emptyRecords = provider.bibRecords.where((bib) => bib.bibNumber.isEmpty).length;
     
@@ -174,7 +173,9 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
           provider.bibRecords.removeWhere((bib) => bib.bibNumber.isEmpty);
         });
       }
+      return confirmed;
     }
+    return true;
   }
 
   // UI Components
@@ -220,8 +221,10 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
           hintStyle: TextStyle(fontSize: 15),
         ),
         onSubmitted: (_) async {
-          await _handleBibNumber('', focus: true);
-          provider.focusNodes.last.requestFocus();
+          if (!_isRaceFinished) {
+            Provider.of<BibRecordsProvider>(context, listen: false).focusNodes[index].requestFocus();
+            await _handleBibNumber('');
+          }
         },
         onChanged: (value) => _handleBibNumber(value, index: index),
       ),
@@ -281,6 +284,8 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
   }
 
   Widget _buildActionButtons() {
+    final bibRecordsProvider = Provider.of<BibRecordsProvider>(context, listen: false);
+    final showToggleRaceStatusButton = bibRecordsProvider.bibRecords.isNotEmpty && bibRecordsProvider.bibRecords.firstWhere((record) => record.bibNumber.isNotEmpty, orElse: () => BibRecord(bibNumber: '')).bibNumber.isNotEmpty;
     return Row(
       children: [
         Padding(
@@ -294,17 +299,19 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
             onPressed: _handleMainAction,
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(5.0, 16.0, 0.0, 16.0),
-          child: RoundedRectangleButton(
-            text: _isRaceFinished ? 'Continue' : 'Finished',
-            color: AppColors.primaryColor,
-            width: 100,
-            height: 50,
-            fontSize: 18,
-            onPressed: _toggleRaceStatus,
+        if (showToggleRaceStatusButton) ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(5.0, 16.0, 0.0, 16.0),
+            child: RoundedRectangleButton(
+              text: _isRaceFinished ? 'Continue' : 'Finished',
+              color: AppColors.primaryColor,
+              width: 100,
+              height: 50,
+              fontSize: 18,
+              onPressed: _toggleRaceStatus,
+            ),
           ),
-        ),
+        ],
       ],
     );
   }
@@ -323,18 +330,20 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
         ),
       );
     } else {
-      _handleBibNumber('', focus: true);
+      _handleBibNumber('');
+
     }
   }
 
   /// Toggle [_isRaceFinished] and clean up empty records if race is finished.
-  void _toggleRaceStatus() {
+  void _toggleRaceStatus() async {
+    if (!_isRaceFinished) {
+      final confirmed = await _cleanEmptyRecords();
+      if (!confirmed) return;
+    }
     setState(() {
       _isRaceFinished = !_isRaceFinished;
     });
-    if (_isRaceFinished) {
-      _cleanEmptyRecords();
-    }
   }
 
   // _decodeRaceTimesString(String qrData) async {
