@@ -37,9 +37,9 @@ class Protocol {
   int _sequenceNumber = 0;
   bool _isFinished = false;
   bool _isTerminated = false;
-  late final int _finishSequenceNumber;
+  int _finishSequenceNumber = 0;
   
-  final _transmissionSemaphore = StreamController<void>();
+  final _transmissionSemaphore = StreamController<void>.broadcast();
   int _currentTransmissions = 0;
 
   Protocol({
