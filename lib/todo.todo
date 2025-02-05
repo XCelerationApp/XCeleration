@@ -18,7 +18,7 @@ UI:
 - go over the UI with others
 - make it more obvious that there are more text fields to fill in
 - differenciate between race screen and main screen
-- see if we can create a app initializer with a good image
+- make app initializer look better
 
 Runners Management screen:
 - have school be a dropdown for add runner
@@ -40,10 +40,7 @@ Timing screen:
 
 Record Bib Numbers screen:
 - make a custom keyboard for the bib numbers
-- make focusing less jumpy
 - make a popup that asked if you want to continue with problem bib numbers when finished
-- when finished confirm delete all blank bib numbers if not confirmed do not let user proceed
-- if there are no bib numbers do not let user click finished
 
 Conflicts screen:
 - make a screen dedicated to conflicts
