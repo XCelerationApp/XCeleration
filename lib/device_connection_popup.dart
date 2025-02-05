@@ -492,16 +492,17 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
     Future<void> deviceFoundCallback (device) async {
       print('Found device: ${device.deviceName}');
       setState(() {
-        widget.otherDevices[device.deviceName]!['status'] = ConnectionStatus.found;
+        widget.otherDevices[_getDeviceNameFromString(device.deviceName)]!['status'] = ConnectionStatus.found;
       });
       await _deviceConnectionService.inviteDevice(device);
     }
     Future<void> deviceLostCallback (device) async {
+      print('Lost device: ${device.deviceName}');
       return;
     }
     Future<void> deviceConnectingCallback (device) async {
       setState(() {
-        widget.otherDevices[device.deviceName]!['status'] = ConnectionStatus.connecting;
+        widget.otherDevices[_getDeviceNameFromString(device.deviceName)]!['status'] = ConnectionStatus.connecting;
       });
     }
     Future<void> deviceConnectedCallback (Device device) async {
