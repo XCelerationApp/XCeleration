@@ -4,6 +4,8 @@ import '../models/race.dart';
 import 'runners_management_screen.dart';
 import '../utils/sheet_utils.dart';
 import '../utils/app_colors.dart'; // Import AppColors
+import '../device_connection_popup.dart';
+import '../device_connection_service.dart';
 
 class RaceInfoScreen extends StatefulWidget {
   final int raceId;
@@ -240,7 +242,43 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
                     backgroundColor: AppColors.mediumColor,
                   ),
                   child: const Text('See Runners', style: TextStyle(fontSize: 25, color: AppColors.backgroundColor)),
-                )
+                ),
+                Center(
+                  child: Column(
+                    children: [
+                      ElevatedButton(
+                        onPressed: () {
+                          showDeviceConnectionPopup(
+                            context,
+                            deviceType: DeviceType.advertiserDevice,
+                            deviceName: DeviceName.coach,
+                            otherDevices: createOtherDeviceList(
+                              DeviceName.coach,
+                              DeviceType.advertiserDevice,
+                              data: 'data',
+                            ),
+                          );
+                        },
+                        child: Text('Send Runners Data'),
+                      ),
+                      ElevatedButton(
+                        onPressed: () {
+                          showDeviceConnectionPopup(
+                            context,
+                            deviceType: DeviceType.browserDevice,
+                            deviceName: DeviceName.coach,
+                            otherDevices: createOtherDeviceList(
+                              DeviceName.coach,
+                              DeviceType.browserDevice,
+                              data: 'data',
+                            ),
+                          );
+                        },
+                        child: Text('Get Race Results Data'),
+                      ),
+                    ]
+                  )
+                ),
               ],
             ),
           ),

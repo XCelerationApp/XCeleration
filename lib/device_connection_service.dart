@@ -11,7 +11,7 @@ class DeviceConnectionService {
 
   StreamSubscription? deviceMonitorSubscription;
   StreamSubscription? receivedDataSubscription;
-  List<Device> _connectedDevices = [];
+  final List<Device> _connectedDevices = [];
 
   Future<bool> checkIfNearbyConnectionsWorks() async {
     if (Platform.isAndroid || Platform.isIOS) {

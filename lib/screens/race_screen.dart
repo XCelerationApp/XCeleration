@@ -11,8 +11,6 @@ import 'results_screen.dart';
 import 'edit_and_resolve_screen.dart';
 import '../utils/app_colors.dart';
 import '../utils/sheet_utils.dart';
-import '../device_connection_popup.dart';
-import '../device_connection_service.dart';
 
 class RaceScreen extends StatefulWidget {
   final Race race;
@@ -69,14 +67,12 @@ class _RaceScreenState extends State<RaceScreen> {
             Tab(icon: Icon(Icons.timer), text: 'Results'),
             // Tab(icon: Icon(Icons.numbers), text: 'Record Bib Numbers'),
             Tab(icon: Icon(Icons.person), text: 'Runner Data'),
-            Tab(icon: Icon(Icons.send), text: 'Send Runners'),
           ] : [
             Tab(icon: Icon(Icons.info_outline), text: 'Race Info'),
             if (timingData['records'] != null && timingData['records']!.isNotEmpty && timingData['bibs'] != null && timingData['bibs']!.isNotEmpty)
               Tab(icon: Icon(Icons.checklist), text: 'Resolve Conflicts'),
             // Tab(icon: Icon(Icons.numbers), text: 'Record Bib Numbers'),
             Tab(icon: Icon(Icons.person), text: 'Runner Data'),
-            Tab(icon: Icon(Icons.send), text: 'Send Runners'),
           ];
         return DefaultTabController(
           length: tabs.length,
@@ -100,22 +96,6 @@ class _RaceScreenState extends State<RaceScreen> {
                         if (!showResults && (timingData['records'] != null && timingData['records']!.isNotEmpty && timingData['bibs'] != null && timingData['bibs']!.isNotEmpty)) EditAndResolveScreen(race: race, timingData: timingData),
                         // BibNumberScreen (race: race),
                         RunnersManagementScreen(raceId: race.race_id, isTeam: false),
-                        Center(
-                          child: ElevatedButton(
-                            onPressed: () {
-                              showDeviceConnectionPopup(
-                                context,
-                                deviceType: DeviceType.advertiserDevice,
-                                deviceName: DeviceName.coach,
-                                otherDevices: createOtherDeviceList(
-                                  DeviceName.coach,
-                                  DeviceType.advertiserDevice,
-                                ),
-                              );
-                            },
-                            child: Text('Send Runners Data'),
-                          ),
-                        ),
                     ],
                   ),
                 ),

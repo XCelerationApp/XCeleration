@@ -434,7 +434,7 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
   late Protocol _protocol;
   late DeviceConnectionService _deviceConnectionService;
 
-  late WirelessConnectionError? _wirelessConnectionError;
+  WirelessConnectionError? _wirelessConnectionError;
 
   @override
   void initState() {
@@ -452,7 +452,14 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
       final bool isServiceAvailable = await _deviceConnectionService.checkIfNearbyConnectionsWorks();
       if (!isServiceAvailable) {
         print('Device connection service is not available on this platform');
-        _wirelessConnectionError = WirelessConnectionError.unavailable;
+        setState(() {
+          _wirelessConnectionError = WirelessConnectionError.unavailable;
+        });
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            DialogUtils.showErrorDialog(context, message: 'Wireless connection failed: ${_wirelessConnectionError!.name}');
+          }
+        });
         return;
       }
 
@@ -470,7 +477,14 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
       }
     } catch (e) {
       print('Error in device connection popup: $e');
-      _wirelessConnectionError = WirelessConnectionError.unknown;
+      setState(() {
+        _wirelessConnectionError = WirelessConnectionError.unknown;
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          DialogUtils.showErrorDialog(context, message: 'Wireless connection failed: ${_wirelessConnectionError!.name}');
+        }
+      });
     }
   }
 
@@ -603,10 +617,6 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
 
   @override
   Widget build(BuildContext context) {
-    if (_wirelessConnectionError != null) {
-      DialogUtils.showErrorDialog(context, message: 'Wireless connection failed: ${_wirelessConnectionError!.name}');
-      _wirelessConnectionError = null;
-    }
     return Container(
       width: double.infinity,
       child: Column(
