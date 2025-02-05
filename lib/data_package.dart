@@ -9,9 +9,8 @@ class Package {
   Package({
     required this.number,
     required this.type,
-    data,
+    this.data
   }) {
-    data = null;
     if (type == 'DATA' && data != null) {
       data = data;
       checksum = _calculateChecksum();
