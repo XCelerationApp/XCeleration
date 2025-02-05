@@ -174,10 +174,16 @@ class Protocol {
       for (var entry in _receivedPackages.entries) {
         final deviceId = entry.key;
         final packages = entry.value.values.toList()
-          ..sort((a, b) => a.number.compareTo(b.number));
+          ..sort((a, b) => a.number.compareTo(b.number))..where((p) => p.type == 'DATA');
         
-        if (packages.isEmpty) continue;
-        
+        if (packages.isEmpty) {
+          results[deviceId] = '';
+          continue;
+        }
+        if (packages.length != packages.last.number) {
+          throw Exception('Not all packages received from $deviceId');
+        }
+
         final dataChunks = packages
           .where((p) => p.type == 'DATA' && p.data != null)
           .map((p) => p.data!)
@@ -222,6 +228,7 @@ class Protocol {
         }
       } catch (e) {
         print('Failed to send package ${package.number} to device $senderId: $e');
+        rethrow;
       }
     }
 
@@ -250,9 +257,9 @@ class Protocol {
       );
     }
 
+    _sequenceNumber++;
     await attemptSend();
     scheduleRetry();
-    _sequenceNumber++;
 
     try {
       await state.completer.future;

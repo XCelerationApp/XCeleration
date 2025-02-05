@@ -15,8 +15,6 @@ import '../role_functions.dart';
 import '../utils/sheet_utils.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';
-import '../device_connection_popup.dart';
-import '../device_connection_service.dart';
 
 class RacesScreen extends StatefulWidget {
   const RacesScreen({super.key});
@@ -568,20 +566,6 @@ class _RacesScreenState extends State<RacesScreen> {
         padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
         child: Column(
           children: [
-            SizedBox(height: 30),
-            ElevatedButton(
-              onPressed: () => showDeviceConnectionPopup(
-                context,
-                deviceType: DeviceType.browserDevice,
-                deviceName: DeviceName.coach,
-                otherDevices: createOtherDeviceList(
-                  DeviceName.coach,
-                  DeviceType.browserDevice
-                ),
-              ),
-              child: Text('Recieve data'),
-            
-            ),
             buildRoleBar(context, 'coach', 'Races'),
             // const SizedBox(height: 16),
             Expanded(
