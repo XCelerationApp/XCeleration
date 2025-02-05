@@ -134,8 +134,8 @@ class DeviceConnectionService {
     }
 
     receivedDataSubscription = nearbyService!.dataReceivedSubscription(callback: (data) async {
-      if (data['deviceId'] != device.deviceId) {
-        print('wrong device');
+      if (data['senderDeviceId'] != device.deviceId) {
+        print('wrong device (not from for ${device.deviceName})');
         return;
       }
       print("received message: ${data["message"]}");
