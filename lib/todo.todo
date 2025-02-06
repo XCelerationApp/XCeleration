@@ -10,6 +10,7 @@ Functionality:
 - make sure all possible errors are caught and handled
 - clean up code
 - have titles for catagories for spreadsheet
+- make sure QR codes work before recording race results (either ask user to test or use a package)
 
 UI:
 - turn popups into sheets
