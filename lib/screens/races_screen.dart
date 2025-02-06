@@ -523,6 +523,7 @@ class _RacesScreenState extends State<RacesScreen> {
         'teams': jsonEncode(teams),
         'team_colors': jsonEncode(colors),
     });
+    await _loadRaces();
     Navigator.pop(context);
 
     showModalBottomSheet(
