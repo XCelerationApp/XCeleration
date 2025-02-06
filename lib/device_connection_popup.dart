@@ -86,6 +86,7 @@ class DeviceConnectionPopupContent extends StatefulWidget {
 class _DeviceConnectionPopupContentState extends State<DeviceConnectionPopupContent> with SingleTickerProviderStateMixin {
   PopupScreen _popupScreen = PopupScreen.main;
   late AnimationController _animationController;
+  late DeviceName _deviceName;
   late DeviceName _oppositeDeviceName;
 
   @override
@@ -103,9 +104,14 @@ class _DeviceConnectionPopupContentState extends State<DeviceConnectionPopupCont
     super.dispose();
   }
 
-  Future<void> _handleScreenTransition(PopupScreen newScreen, {DeviceName? oppositeDeviceName}) async {
-    if (oppositeDeviceName != null) {
+  Future<void> _handleScreenTransition(PopupScreen newScreen, {DeviceName? deviceName, DeviceName? oppositeDeviceName}) async {
+    if (oppositeDeviceName != null && deviceName != null) {
+      _deviceName = deviceName;
       _oppositeDeviceName = oppositeDeviceName;
+    } else {
+      if (newScreen == PopupScreen.qr) {
+        throw Exception('Device name and opposite device name must be provided for qr screen');
+      }
     }
     if (newScreen == PopupScreen.main) {
       await _animationController.reverse();
@@ -215,6 +221,7 @@ class _DeviceConnectionPopupContentState extends State<DeviceConnectionPopupCont
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: QRConnectionPopupContent(
               data: widget.otherDevices[_oppositeDeviceName]!['data'],
+              deviceName: _deviceName,
               oppositeDeviceName: _oppositeDeviceName,
             ),
           ),
@@ -250,97 +257,14 @@ DeviceName _getDeviceNameFromString(String deviceName) {
 }
 
 
-Widget _buildDeviceConnectionTracker(DeviceName deviceName, ConnectionStatus status, VoidCallback onPressed) {
-  String text = switch(status) {
-        ConnectionStatus.connected => 'Connected...',
-        ConnectionStatus.connecting => 'Connecting...',
-        ConnectionStatus.finished => 'Finished',
-        ConnectionStatus.error => 'Error',
-        ConnectionStatus.sending => 'Sending...',
-        ConnectionStatus.receiving => 'Receiving...',
-        ConnectionStatus.timeout => 'Timed out',
-        ConnectionStatus.searching => 'Searching...',
-        ConnectionStatus.found => 'Found device...',
-      };
-  return Padding(
-    padding: const EdgeInsets.only(bottom: 8, top: 8),
-    child: Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.deepOrangeAccent, width: 2),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      padding: const EdgeInsets.all(8),
-      child: Row(
-        children: [
-          const Padding(
-            padding: EdgeInsets.only(right: 8),
-            child: Icon(
-              Icons.person,
-              color: Colors.deepOrange,
-              size: 50,
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Text(
-                  _getDeviceNameString(deviceName),
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.deepOrange,
-                  ),
-                ),
-              ),
-              SizedBox(height: 4),
-              Row(
-                children: [
-                  if (status != ConnectionStatus.finished && status != ConnectionStatus.error && status != ConnectionStatus.timeout)...[
-                    SizedBox(
-                      height: 15,
-                      width: 15,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.deepOrangeAccent,
-                      ),
-                    ),
-                    SizedBox(width: 5),
-                  ],
-                  Text(
-                    text,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.deepOrangeAccent,
-                    ),
-                  ),
-                ]
-              )
-            ],
-          ),
-          ElevatedButton(
-            onPressed: onPressed,
-            child: Text(
-              'Use QR',
-              style: TextStyle(
-                fontSize: 10,
-                color: Colors.deepOrangeAccent,
-              ),
-            )
-          )
-        ]
-      )
-    )
-  );
-}
-
-
 class QRConnectionPopupContent extends StatefulWidget {
   final String data;
+  final DeviceName deviceName;
   final DeviceName oppositeDeviceName;
   const QRConnectionPopupContent({
     super.key,
     required this.data,
+    required this.deviceName,
     required this.oppositeDeviceName,
   });
   @override
@@ -349,11 +273,13 @@ class QRConnectionPopupContent extends StatefulWidget {
 
 class _QRCodePopupContentState extends State<QRConnectionPopupContent> {
   late String _data;
+  late DeviceName _deviceName;
   late DeviceName _oppositeDeviceName;
 
   @override
   void initState() {
     super.initState();
+    _deviceName = widget.oppositeDeviceName;
     _oppositeDeviceName = widget.oppositeDeviceName;
     _data = widget.data;
   } 
@@ -391,7 +317,7 @@ class _QRCodePopupContentState extends State<QRConnectionPopupContent> {
                       height: size,
                       width: size,
                       child: QrImageView(
-                        data: _data,
+                        data: '${_getDeviceNameString(_deviceName)}:${_data}',
                         version: QrVersions.auto,
                         errorCorrectionLevel: QrErrorCorrectLevel.M,
                         size: size,
@@ -455,11 +381,6 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
         setState(() {
           _wirelessConnectionError = WirelessConnectionError.unavailable;
         });
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            DialogUtils.showErrorDialog(context, message: 'Wireless connection failed: ${_wirelessConnectionError!.name}');
-          }
-        });
         return;
       }
 
@@ -516,7 +437,7 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
         
         _deviceConnectionService.monitorMessageReceives(
           device,
-          messageReceivedCallback: _protocol.handleMessage,
+          messageReceivedCallback: (data) => _protocol.handleMessage(data['data'], data['senderDeviceId']),
         );
 
         if (_deviceType == DeviceType.browserDevice) {
@@ -576,10 +497,10 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
   }
 
   void closeWidget({Duration delay = const Duration(seconds: 2)}) {
+    if (!mounted) return;  
     Future.delayed(delay, () {
-      if (mounted) {
-        Navigator.of(context).pop();
-      }
+      if (!mounted) return;  
+      Navigator.of(context).pop();
     });
   }
 
@@ -589,24 +510,27 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
     _protocol.dispose();
     for (var deviceName in widget.otherDevices.keys) {
       if (widget.otherDevices[deviceName]!['status'] != ConnectionStatus.finished) {
-        setState(() {
-          widget.otherDevices[deviceName]!['status'] = ConnectionStatus.searching;
-        });
+        widget.otherDevices[deviceName]!['status'] = ConnectionStatus.searching;
       }
     }
 
     super.dispose();
   }
 
-  Future<void> _scanQrCode(BuildContext context) async {
-
+  Future<void> _scanQrCode(BuildContext context, DeviceName scanDeviceName) async {
     try {
       final result = await BarcodeScanner.scan();
       if (result.type == ResultType.Barcode) {
+        final parts = result.rawContent.split(':');
+        if (parts.length > 1 && parts[0] != _getDeviceNameString(scanDeviceName)) {
+          DialogUtils.showErrorDialog(context, message: 'Incorrect QR Code Scanned');
+          return;
+        }
         setState(() {
-          widget.otherDevices[_deviceName]!['status'] = ConnectionStatus.finished;
-          widget.otherDevices[_deviceName]!['data'] = result.rawContent;
+          widget.otherDevices[scanDeviceName]!['status'] = ConnectionStatus.finished;
+          widget.otherDevices[scanDeviceName]!['data'] = result.rawContent;
         });
+        _protocol.removeDevice(_getDeviceNameString(scanDeviceName));
       }
     } on MissingPluginException {
       DialogUtils.showErrorDialog(context, message: 'The QR code scanner is not available on this device.');
@@ -616,8 +540,114 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
 
   }
 
+
+  Widget _buildDeviceConnectionTracker(DeviceName deviceName, ConnectionStatus status, VoidCallback onPressed) {
+    String text = '';
+    if (_wirelessConnectionError == WirelessConnectionError.unavailable) {
+      text = status == ConnectionStatus.finished ? 'Data Received' : 'Data not received';
+    }
+    else {
+      text = switch(status) {
+        ConnectionStatus.connected => 'Connected...',
+        ConnectionStatus.connecting => 'Connecting...',
+        ConnectionStatus.finished => _deviceType == DeviceType.browserDevice ? 'Data Received' : 'Data Sent',
+        ConnectionStatus.error => 'Error',
+        ConnectionStatus.sending => 'Sending...',
+        ConnectionStatus.receiving => 'Receiving...',
+        ConnectionStatus.timeout => 'Timed out',
+        ConnectionStatus.searching => 'Searching...',
+        ConnectionStatus.found => 'Found device...',
+      };
+    }
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8, top: 8),
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.deepOrangeAccent, width: 2),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        padding: const EdgeInsets.all(8),
+        child: Row(
+          children: [
+            const Padding(
+              padding: EdgeInsets.only(right: 8),
+              child: Icon(
+                Icons.person,
+                color: Colors.deepOrange,
+                size: 50,
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Text(
+                    _getDeviceNameString(deviceName),
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.deepOrange,
+                    ),
+                  ),
+                ),
+                if (_deviceType != DeviceType.advertiserDevice)...[
+                  SizedBox(height: 4),
+                  Row(
+                    children: [
+                      if (status != ConnectionStatus.finished && status != ConnectionStatus.error && status != ConnectionStatus.timeout && _wirelessConnectionError != WirelessConnectionError.unavailable)...[
+                        SizedBox(
+                          height: 15,
+                          width: 15,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.deepOrangeAccent,
+                          ),
+                        ),
+                        SizedBox(width: 5),
+                      ],
+                      Text(
+                        text,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.deepOrangeAccent,
+                        ),
+                      ),
+                    ]
+                  )
+                ]
+              ],
+            ),
+            Spacer(), // Add this to push the button to the right
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8.0),
+              child: ElevatedButton(
+                onPressed: onPressed,
+                child: Text(
+                  _deviceType == DeviceType.advertiserDevice ? 'Show QR' : 'Scan QR',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: Colors.deepOrangeAccent,
+                  ),
+                )
+              ),
+            )
+          ]
+        )
+      )
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_wirelessConnectionError == WirelessConnectionError.unavailable) {
+      if (_deviceType == DeviceType.advertiserDevice && widget.otherDevices.length == 1) {
+        return QRConnectionPopupContent(
+          data: widget.otherDevices.values.elementAt(0)['data'],
+          deviceName: _deviceName,
+          oppositeDeviceName: widget.otherDevices.keys.elementAt(0),
+        );
+      }
+    }
     return Container(
       width: double.infinity,
       child: Column(
@@ -636,7 +666,7 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
                      _showQRCode(deviceName);
                   }
                   else {
-                    _scanQrCode(context);
+                    _scanQrCode(context, deviceName);
                   }
                  }
                 );

@@ -56,6 +56,7 @@ class Protocol {
   }
 
   void removeDevice(String deviceId) {
+    if (!connectedDevices.containsKey(deviceId)) return;
     connectedDevices.remove(deviceId);
     _receivedPackages.remove(deviceId);
   }

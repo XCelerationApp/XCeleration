@@ -12,6 +12,7 @@ class DeviceConnectionService {
   StreamSubscription? deviceMonitorSubscription;
   StreamSubscription? receivedDataSubscription;
   final List<Device> _connectedDevices = [];
+  final Map<String, Function(Map<String, dynamic>)> _messageCallbacks = {};
 
   Future<bool> checkIfNearbyConnectionsWorks() async {
     if (Platform.isAndroid || Platform.isIOS) {
@@ -127,32 +128,28 @@ class DeviceConnectionService {
     await nearbyService!.sendMessage(device.deviceId, package.toString());
   }
 
-  Future<void> monitorMessageReceives(Device device, {Future<void> Function(Package, String)? messageReceivedCallback, Duration timeout = const Duration(seconds: 60)}) async {
-    if (device.state != SessionState.connected) {
-      print("Device not connected - Cannot receive message");
-      return;
-    }
+  void monitorMessageReceives(Device device, {required Function(Map<String, dynamic>) messageReceivedCallback}) {
+    // Store the callback for this specific device
+    _messageCallbacks[device.deviceId] = messageReceivedCallback;
 
-    receivedDataSubscription = nearbyService!.dataReceivedSubscription(callback: (data) async {
-      if (data['senderDeviceId'] != device.deviceId) {
-        print('wrong device (not from ${device.deviceName})');
-        return;
-      }
-      print("received message: ${data["message"]}");
-      if (messageReceivedCallback != null) {
-        await messageReceivedCallback(Package.fromString(data["message"]), data['senderDeviceId']);
+    // Only set up the global subscription if it hasn't been set up yet
+    
+    receivedDataSubscription ??= nearbyService!.dataReceivedSubscription(callback: (data) async {
+      // Get the device-specific callback and call it if it exists
+      final callback = _messageCallbacks[data['senderDeviceId']];
+      if (callback != null) {
+        callback(data);
       }
     });
-    await Future.delayed(timeout);
-    await receivedDataSubscription?.cancel();
-    
   }
 
   void dispose() {
+    receivedDataSubscription?.cancel();
+    receivedDataSubscription = null;
+    _messageCallbacks.clear();
     nearbyService?.stopBrowsingForPeers();
     nearbyService?.stopAdvertisingPeer();
     deviceMonitorSubscription?.cancel();
-    receivedDataSubscription?.cancel();
     for (var device in _connectedDevices) {
       disconnectDevice(device);
     }
