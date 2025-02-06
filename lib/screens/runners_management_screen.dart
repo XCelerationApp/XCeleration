@@ -1,6 +1,7 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:flutter/services.dart';
 import '../utils/app_colors.dart';
 import '../utils/dialog_utils.dart';
 import '../utils/sheet_utils.dart';
@@ -826,7 +827,113 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
     await _loadRunners();
   }
 
+  Future<void> _showSampleSpreadsheet() async {
+    final file = await rootBundle.loadString('assets/sample_sheets/sample_spreadsheet.csv');
+    final lines = file.split('\n');
+    final table = Table(
+      border: TableBorder.all(color: Colors.grey),
+      children: lines.map((line) {
+        final cells = line.split(',');
+        return TableRow(
+          children: cells.map((cell) {
+            return TableCell(
+              verticalAlignment: TableCellVerticalAlignment.middle,
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text(cell),
+              ),
+            );
+          }).toList(),
+        );
+      }).toList(),
+    );
+    await showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(16),
+          child: SingleChildScrollView(
+            child: table,
+          ),
+        );
+      },
+    );
+    return;
+  }
+
+  Future<bool> _showSpreadsheetLoadSheet(BuildContext context) async {
+    return await showModalBottomSheet(
+      backgroundColor: AppColors.backgroundColor,
+      context: context,
+      isScrollControlled: true,
+      enableDrag: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(16),
+        ),
+      ),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            createSheetHandle(height: 10, width: 60),
+            const SizedBox(height: 8),
+            Text(
+              'Load Runners from Spreadsheet',
+              style: TextStyle(
+                fontSize: 30,
+                fontWeight: FontWeight.w500,
+                color: AppColors.primaryColor,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            ElevatedButton(
+              onPressed: () async => await _showSampleSpreadsheet(),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryColor,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                fixedSize: const Size(175, 75),
+              ),
+              child: const Text('See Example', style: TextStyle(fontSize: 24)),  
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(
+                      color: AppColors.primaryColor,
+                      fontSize: 24,
+                    ),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryColor,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                    fixedSize: const Size(175, 50),
+                  ),
+                  child: const Text('Load', style: TextStyle(fontSize: 24)),  
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _handleSpreadsheetLoad() async {
+    final confirmed = await _showSpreadsheetLoadSheet(context);
+    if (!confirmed) return;
     final runnerData = await processSpreadsheet(widget.raceId, widget.isTeam);
     final overwriteRunners = [];
     for (final runner in runnerData) {

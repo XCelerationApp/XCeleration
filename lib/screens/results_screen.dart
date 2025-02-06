@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../utils/time_formatter.dart';
 import '../utils/csv_utils.dart';
 import '../utils/dialog_utils.dart';
+import '../utils/sheet_utils.dart';
 import 'share_sheet_screen.dart';
 
 class ResultsScreen extends StatefulWidget {
@@ -55,142 +56,149 @@ class ResultsScreenState extends State<ResultsScreen> {
       // appBar: AppBar(title: const Text('Team Results')),
       body: (runners.isEmpty)
         ? const Center(child: CircularProgressIndicator())
-        : SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header Section
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  alignment: WrapAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text('Head-to-Head View'),
-                        Switch(
-                          value: _isHeadToHead,
-                          onChanged: (value) {
-                            setState(() {
-                              _isHeadToHead = value;
-                            });
-                          },
-                        ),
-                      ],
-                    ),
-                    Wrap(
-                      spacing: 8,
-                      children: [
-                        LayoutBuilder(
-                          builder: (context, constraints) {
-                            double buttonWidth = min(constraints.maxWidth * 0.5, 200);
-                            double fontSize = buttonWidth * 0.08;
-                            return ElevatedButton.icon(
-                              onPressed: () => downloadCsv(teamResults, individualResults),
-                              icon: const Icon(Icons.download),
-                              label: Text(
-                                'Download CSV Results',
-                                style: TextStyle(fontSize: fontSize),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                minimumSize: const Size(200, 60),
-                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
-                                fixedSize: Size(buttonWidth, 60),
-                              ),
-                            );
-                          },
-                        ),
-                        ElevatedButton.icon(
-                          onPressed: () {
-                            showModalBottomSheet(
-                              context: context,
-                              isScrollControlled: true,
-                              useSafeArea: true,
-                              builder: (BuildContext context) => ShareSheetScreen(
-                                teamResults: _isHeadToHead
-                                  ? _calculateHeadToHeadTeamResults()
-                                  : _calculateOverallTeamResults(),
-                                individualResults: _calculateIndividualResults(),
-                                // isHeadToHead: _isHeadToHead,
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.share),
-                          label: const Text('Share'),
-                          style: ElevatedButton.styleFrom(
-                            minimumSize: const Size(100, 60),
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+        : Column(
+          children: [
+            SizedBox(height: 8),
+            createSheetHandle(height: 10, width: 60),
+            SizedBox(height: 16),
+            SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header Section
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    alignment: WrapAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text('Head-to-Head View'),
+                          Switch(
+                            value: _isHeadToHead,
+                            onChanged: (value) {
+                              setState(() {
+                                _isHeadToHead = value;
+                              });
+                            },
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
+                      Wrap(
+                        spacing: 8,
+                        children: [
+                          LayoutBuilder(
+                            builder: (context, constraints) {
+                              double buttonWidth = min(constraints.maxWidth * 0.5, 200);
+                              double fontSize = buttonWidth * 0.08;
+                              return ElevatedButton.icon(
+                                onPressed: () => downloadCsv(teamResults, individualResults),
+                                icon: const Icon(Icons.download),
+                                label: Text(
+                                  'Download CSV Results',
+                                  style: TextStyle(fontSize: fontSize),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  minimumSize: const Size(200, 60),
+                                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+                                  fixedSize: Size(buttonWidth, 60),
+                                ),
+                              );
+                            },
+                          ),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              showModalBottomSheet(
+                                context: context,
+                                isScrollControlled: true,
+                                useSafeArea: true,
+                                builder: (BuildContext context) => ShareSheetScreen(
+                                  teamResults: _isHeadToHead
+                                    ? _calculateHeadToHeadTeamResults()
+                                    : _calculateOverallTeamResults(),
+                                  individualResults: _calculateIndividualResults(),
+                                  // isHeadToHead: _isHeadToHead,
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.share),
+                            label: const Text('Share'),
+                            style: ElevatedButton.styleFrom(
+                              minimumSize: const Size(100, 60),
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 16),
+
+                  // Overall or Head-to-Head Results
+                  if (!_isHeadToHead) ...[
+                    const Text(
+                      'Overall Team Results',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: teamResults.length,
+                      itemBuilder: (context, index) {
+                        final team = teamResults[index];
+                        return _buildTeamResultCard(team);
+                      },
+                    ),
+                  ] else ...[
+                    const Text(
+                      'Head-to-Head Results',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: teamResults.length,
+                      itemBuilder: (context, index) {
+                        final matchup = teamResults[index];
+                        return _buildHeadToHeadCard(matchup);
+                      },
                     ),
                   ],
-                ),
-                
-                const SizedBox(height: 16),
-
-                // Overall or Head-to-Head Results
-                if (!_isHeadToHead) ...[
+                  const Divider(),
+                  // Individual Results Section
                   const Text(
-                    'Overall Team Results',
+                    'Individual Results',
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
                   ListView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    itemCount: teamResults.length,
+                    itemCount: individualResults.length,
                     itemBuilder: (context, index) {
-                      final team = teamResults[index];
-                      return _buildTeamResultCard(team);
-                    },
-                  ),
-                ] else ...[
-                  const Text(
-                    'Head-to-Head Results',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: teamResults.length,
-                    itemBuilder: (context, index) {
-                      final matchup = teamResults[index];
-                      return _buildHeadToHeadCard(matchup);
+                      final runner = individualResults[index];
+                      return ListTile(
+                        title: Text(
+                          '${index + 1}. ${runner['name'] ?? 'Unknown Name'} (${runner['school'] ?? 'Unknown School'})',
+                        ),
+                        subtitle: Text(
+                          'Time: ${runner['finish_time'] ?? 'N/A'} | Grade: ${runner['grade'] ?? 'Unknown'} | Bib: ${runner['bib_number'] ?? 'N/A'}',
+                        ),
+                      );
                     },
                   ),
                 ],
-                const Divider(),
-                // Individual Results Section
-                const Text(
-                  'Individual Results',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: individualResults.length,
-                  itemBuilder: (context, index) {
-                    final runner = individualResults[index];
-                    return ListTile(
-                      title: Text(
-                        '${index + 1}. ${runner['name'] ?? 'Unknown Name'} (${runner['school'] ?? 'Unknown School'})',
-                      ),
-                      subtitle: Text(
-                        'Time: ${runner['finish_time'] ?? 'N/A'} | Grade: ${runner['grade'] ?? 'Unknown'} | Bib: ${runner['bib_number'] ?? 'N/A'}',
-                      ),
-                    );
-                  },
-                ),
-              ],
+              ),
             ),
           ),
-        ),
+        ]
+      ),
     );
   }
 
