@@ -20,7 +20,7 @@ UI:
 - make it more obvious that there are more text fields to fill in
 - differenciate between race screen and main screen
 - make app initializer look better
-- make things reload when database is updated (race creation, ...)
+- make things reload when database is updated (race creation (done), ...)
 
 Runners Management screen:
 - have school be a dropdown for add runner
@@ -53,8 +53,6 @@ Merge results screen:
 
 Results screen:
 - have titles over each category
-- create a pdf of the results
-- create a google sheet with the results
 - could change it just have a download button
 - make toggle visible
-- create different types of reports (pdf, google sheet, text, ...)
+- make result data better
