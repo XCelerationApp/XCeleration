@@ -92,6 +92,7 @@ class _DeviceConnectionPopupContentState extends State<DeviceConnectionPopupCont
   @override
   void initState() {
     super.initState();
+    _deviceName = widget.deviceName;
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
@@ -525,7 +526,7 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
       final result = await BarcodeScanner.scan();
       if (result.type == ResultType.Barcode) {
         final parts = result.rawContent.split(':');
-        if (parts.length > 1 && parts[0] != _getDeviceNameString(scanDeviceName)) {
+        if (parts.isEmpty || parts[0] != _getDeviceNameString(scanDeviceName)) {
           DialogUtils.showErrorDialog(context, message: 'Incorrect QR Code Scanned');
           return;
         }

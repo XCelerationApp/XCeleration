@@ -151,63 +151,19 @@ class Protocol {
     }
   }
 
-  Future<Map<String, String>> receiveData() async {
-    if (_isTerminated) {
-      throw ProtocolTerminatedException('Cannot receive data - protocol is terminated');
-    }
-
-    try {
-      await Future.any([
-        Future.doWhile(() async {
-          if (_isFinished || _isTerminated) return false;
-          await Future.delayed(Duration(milliseconds: 500));
-          return true;
-        }),
-        _terminationController.stream.first,
-      ]);
-
-      if (_isTerminated) {
-        throw ProtocolTerminatedException('Data reception interrupted');
-      }
-
-      final results = <String, String>{};
-      
-      for (var entry in _receivedPackages.entries) {
-        final deviceId = entry.key;
-        final packages = entry.value.values.toList()
-          ..sort((a, b) => a.number.compareTo(b.number))..where((p) => p.type == 'DATA');
-        
-        if (packages.isEmpty) {
-          results[deviceId] = '';
-          continue;
-        }
-        if (packages.length != packages.last.number) {
-          throw Exception('Not all packages received from $deviceId');
-        }
-
-        final dataChunks = packages
-          .where((p) => p.type == 'DATA' && p.data != null)
-          .map((p) => p.data!)
-          .toList();
-          
-        if (dataChunks.isNotEmpty) {
-          results[deviceId] = dataChunks.join();
-        }
-      }
-
-      return results;
-    } catch (e) {
-      if (_isTerminated) {
-        rethrow;
-      }
-      print('Error receiving data: $e');
-      rethrow;
-    }
+  Future<bool> _isDeviceConnected(String senderId) async {
+    final device = connectedDevices[senderId];
+    return device != null;
   }
 
   Future<void> _sendPackageWithRetry(Package package, String senderId) async {
     if (_isTerminated) {
       throw ProtocolTerminatedException('Cannot send package - protocol is terminated');
+    }
+
+    // Check device connection before attempting to send
+    if (!await _isDeviceConnected(senderId)) {
+      throw Exception('Device $senderId is not connected');
     }
 
     // Wait for available transmission slot
@@ -224,8 +180,11 @@ class Protocol {
 
     Future<void> attemptSend() async {
       try {
-        if (!state.isCancelled) {
+        // Check connection again before each send attempt
+        if (!state.isCancelled && await _isDeviceConnected(senderId)) {
           await deviceConnectionService.sendMessageToDevice(connectedDevices[senderId]!, package);
+        } else if (!state.isCancelled) {
+          throw Exception('Device disconnected during transmission');
         }
       } catch (e) {
         print('Failed to send package ${package.number} to device $senderId: $e');
@@ -238,6 +197,14 @@ class Protocol {
         Duration(seconds: retryTimeoutSeconds),
         () async {
           if (state.isCancelled) {
+            releaseTransmissionSlot();
+            return;
+          }
+
+          // Check connection before retry
+          if (!await _isDeviceConnected(senderId)) {
+            _pendingTransmissions.remove(package.number);
+            state.completer.completeError('Device disconnected during retry');
             releaseTransmissionSlot();
             return;
           }
@@ -286,65 +253,117 @@ class Protocol {
     }
   }
 
-  Future<void> _sendMessage(String message, String senderId) async {
-    if (_isTerminated) {
-      throw ProtocolTerminatedException('Cannot send message - protocol is terminated');
-    }
-
-    final package = Package(
-      number: _sequenceNumber + 1,
-      type: 'DATA',
-      data: message,
-    );
-    
-    try {
-      await _sendPackageWithRetry(package, senderId);
-    } catch (e) {
-      if (_isTerminated) {
-        throw ProtocolTerminatedException('Message transmission interrupted by termination');
-      }
-      print('Failed to send message to device $senderId: $e');
-      rethrow;
-    }
-  }
-
   Future<void> sendData(String data, String senderId) async {
     if (_isTerminated) {
       throw ProtocolTerminatedException('Cannot send data - protocol is terminated');
     }
 
-    final chunks = <String>[];
-    for (var i = 0; i < data.length; i += chunkSize) {
-      chunks.add(data.substring(i, min(i + chunkSize, data.length)));
+    if (!connectedDevices.containsKey(senderId)) {
+      throw Exception('Device $senderId not connected');
     }
 
     try {
-      final futures = <Future<void>>[];
-      
+      // Split data into chunks
+      final chunks = <String>[];
+      for (var i = 0; i < data.length; i += chunkSize) {
+        chunks.add(data.substring(i, min(i + chunkSize, data.length)));
+      }
+
+      // Send each chunk as a DATA package
       for (var i = 0; i < chunks.length; i++) {
-        if (_isTerminated) {
-          throw ProtocolTerminatedException('Data transmission interrupted during sending chunks');
-        }
-        final future = _sendMessage(chunks[i], senderId);
-        futures.add(future);
+        final package = Package(
+          number: _sequenceNumber + i + 1,
+          type: 'DATA',
+          data: chunks[i],
+        );
+        await _sendPackageWithRetry(package, senderId);
       }
 
-      await Future.wait(futures);
-
-      if (_isTerminated) {
-        throw ProtocolTerminatedException('Data transmission interrupted before completion');
-      }
-
-      _finishSequenceNumber = _sequenceNumber + 1;
-      await _sendPackageWithRetry(
-        Package(number: _finishSequenceNumber, type: 'FIN'),
-        senderId
+      // Send FIN package to mark end of transmission
+      _finishSequenceNumber = _sequenceNumber + chunks.length + 1;
+      final finPackage = Package(
+        number: _finishSequenceNumber,
+        type: 'FIN',
       );
+      await _sendPackageWithRetry(finPackage, senderId);
+      
+      print('Successfully sent ${chunks.length} chunks to device $senderId');
     } catch (e) {
       if (_isTerminated) {
         rethrow;
       }
-      print('Data transmission failed to device $senderId: $e');
+      print('Error sending data to device $senderId: $e');
+      rethrow;
+    }
+  }
+
+  Future<Map<String, String>> receiveData() async {
+    if (_isTerminated) {
+      throw ProtocolTerminatedException('Cannot receive data - protocol is terminated');
+    }
+
+    try {
+      // Wait for either completion or termination
+      await Future.any([
+        Future.doWhile(() async {
+          if (_isFinished || _isTerminated) return false;
+          await Future.delayed(Duration(milliseconds: 100)); // Reduced delay for faster response
+          return true;
+        }),
+        _terminationController.stream.first,
+      ]);
+
+      if (_isTerminated) {
+        throw ProtocolTerminatedException('Data reception interrupted');
+      }
+
+      final results = <String, String>{};
+      
+      for (var entry in _receivedPackages.entries) {
+        final deviceId = entry.key;
+        final packages = entry.value.values.toList()
+          ..sort((a, b) => a.number.compareTo(b.number));
+        
+        // Filter only DATA packages and verify sequence
+        final dataPackages = packages.where((p) => p.type == 'DATA').toList();
+        
+        if (dataPackages.isEmpty) {
+          results[deviceId] = '';
+          continue;
+        }
+
+        // Verify we have all packages in sequence
+        bool hasAllPackages = true;
+        for (var i = 0; i < dataPackages.length; i++) {
+          if (dataPackages[i].number != i + 1) {
+            hasAllPackages = false;
+            break;
+          }
+        }
+
+        if (!hasAllPackages) {
+          throw Exception('Missing packages in sequence from $deviceId');
+        }
+
+        // Combine data chunks
+        final dataChunks = dataPackages
+          .where((p) => p.data != null)
+          .map((p) => p.data!)
+          .toList();
+          
+        if (dataChunks.isNotEmpty) {
+          results[deviceId] = dataChunks.join();
+        } else {
+          results[deviceId] = '';
+        }
+      }
+
+      return results;
+    } catch (e) {
+      if (_isTerminated) {
+        rethrow;
+      }
+      print('Error receiving data: $e');
       rethrow;
     }
   }
