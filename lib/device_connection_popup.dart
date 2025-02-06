@@ -415,6 +415,7 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
       setState(() {
         widget.otherDevices[_getDeviceNameFromString(device.deviceName)]!['status'] = ConnectionStatus.found;
       });
+      if (_deviceType == DeviceType.advertiserDevice) return;
       await _deviceConnectionService.inviteDevice(device);
     }
     Future<void> deviceLostCallback (device) async {
@@ -590,7 +591,7 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
                     ),
                   ),
                 ),
-                if (_deviceType != DeviceType.advertiserDevice && _wirelessConnectionError != WirelessConnectionError.unavailable)...[
+                if (!(_deviceType == DeviceType.advertiserDevice && _wirelessConnectionError == WirelessConnectionError.unavailable))...[
                   SizedBox(height: 4),
                   Row(
                     children: [
