@@ -132,13 +132,20 @@ class DeviceConnectionService {
     // Store the callback for this specific device
     _messageCallbacks[device.deviceId] = messageReceivedCallback;
 
-    // Only set up the global subscription if it hasn't been set up yet
-    
+    // Only set up the subscription once
     receivedDataSubscription ??= nearbyService!.dataReceivedSubscription(callback: (data) async {
-      // Get the device-specific callback and call it if it exists
-      final callback = _messageCallbacks[data['senderDeviceId']];
-      if (callback != null) {
-        callback(data);
+      try {
+        if (data == null || !data.containsKey('senderDeviceId')) {
+          print('Received invalid data format');
+          return;
+        }
+
+        final callback = _messageCallbacks[data['senderDeviceId']];
+        if (callback != null) {
+          await callback(data);
+        }
+      } catch (e) {
+        print('Error processing received data: $e');
       }
     });
   }
