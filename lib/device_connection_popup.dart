@@ -185,7 +185,7 @@ class _DeviceConnectionPopupContentState extends State<DeviceConnectionPopupCont
             deviceType: widget.deviceType,
             otherDevices: widget.otherDevices,
             showQRCode: (DeviceName oppositeDeviceName) async { 
-              _handleScreenTransition(PopupScreen.qr, deviceName: widget.deviceName, oppositeDeviceName: oppositeDeviceName);
+              _handleScreenTransition(PopupScreen.qr, deviceName: _deviceName, oppositeDeviceName: oppositeDeviceName);
             },
           ),
           SizedBox(height: 20), // Add some bottom padding
@@ -281,7 +281,7 @@ class _QRCodePopupContentState extends State<QRConnectionPopupContent> {
   @override
   void initState() {
     super.initState();
-    _deviceName = widget.oppositeDeviceName;
+    _deviceName = widget.deviceName;
     _oppositeDeviceName = widget.oppositeDeviceName;
     _data = widget.data;
   } 
