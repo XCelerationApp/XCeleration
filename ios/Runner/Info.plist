@@ -65,5 +65,26 @@
 		<true/>
 		<key>UIStatusBarHidden</key>
 		<false/>
+		<key>CFBundleURLTypes</key>
+		<array>
+			<dict>
+				<key>CFBundleTypeRole</key>
+				<string>Editor</string>
+				<key>CFBundleURLSchemes</key>
+				<array>
+					<string>com.googleusercontent.apps.529053126812-cuhlura1vskuup3lg6hpf6iup6mlje6v</string>
+				</array>
+			</dict>
+			<dict>
+				<key>CFBundleURLSchemes</key>
+				<array>
+					<string>com.googleusercontent.apps.529053126812-cuhlura1vskuup3lg6hpf6iup6mlje6v</string>
+				</array>
+				<key>CFBundleURLName</key>
+				<string>google</string>
+			</dict>
+		</array>
+		<key>UIViewControllerBasedStatusBarAppearance</key>
+		<false/>
 	</dict>
 </plist>
