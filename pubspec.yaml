@@ -38,6 +38,10 @@ dependencies:
   file_selector_macos: ^0.8.0
   camera: ^0.11.0+2
   flutter_blue_plus: ^1.0.0
+  googleapis: ^11.0.0
+  googleapis_auth: ^1.4.0
+  url_launcher: ^6.1.10
+  share_plus: ^7.0.0
   # url_launcher: 6.1.14  # Adding specific version for macOS compatibility
 
   # The following adds the Cupertino Icons font to your application.
@@ -52,7 +56,7 @@ dependencies:
   flutter_colorpicker: ^1.1.0
   camerawesome: ^2.1.0
   # url_launcher: ^6.0.0
-  path_provider: ^2.0.0
+  path_provider: ^2.1.2
   # google_mlkit_face_detection: ^0.12.0
   opencv_4: ^1.0.0
   open_file: ^3.5.10

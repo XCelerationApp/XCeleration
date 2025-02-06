@@ -26,7 +26,8 @@ class BibNumberScreen extends StatefulWidget {
 class _BibNumberScreenState extends State<BibNumberScreen> {
   // late Race race;
   bool _isRaceFinished = false;
-  List<dynamic> _runners = [{'bib_number': '00000', 'name': 'Runner 1', 'school': 'School 1', 'grade': 'Grade 1'}];
+  // List<dynamic> _runners = [{'bib_number': '00000', 'name': 'Runner 1', 'school': 'School 1', 'grade': 'Grade 1'}];
+  List<dynamic> _runners = [];
   Map<DeviceName, Map<String, dynamic>> otherDevices = createOtherDeviceList(
       DeviceName.bibRecorder,
       DeviceType.browserDevice,

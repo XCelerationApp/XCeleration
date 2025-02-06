@@ -15,6 +15,7 @@ import '../role_functions.dart';
 import '../utils/sheet_utils.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';
+import 'results_screen.dart';
 
 class RacesScreen extends StatefulWidget {
   const RacesScreen({super.key});
@@ -127,7 +128,7 @@ class _RacesScreenState extends State<RacesScreen> {
   }
 
   void _resetControllers() {
-    nameController.text = 'Untitled Race';
+    nameController.text = '';
     locationController.text = '';
     dateController.text = '';
     distanceController.text = '';
@@ -160,6 +161,7 @@ class _RacesScreenState extends State<RacesScreen> {
           child: TextField(
             controller: nameController,
             decoration: const InputDecoration(
+              hintText: 'Race Name',
               // labelText: 'Race Name',
               // border: OutlineInputBorder(),
             ),
@@ -550,6 +552,7 @@ class _RacesScreenState extends State<RacesScreen> {
   Future<bool> _isRaceStarted(Race race) async {
     final raceId = race.race_id;
     final results = await DatabaseHelper.instance.getRaceResults(raceId);
+    print(results);
     return results.isNotEmpty;
   }
   
@@ -615,7 +618,7 @@ class _RacesScreenState extends State<RacesScreen> {
                                     ),
                                     builder: (context) => SizedBox(
                                       height: MediaQuery.of(context).size.height * 0.92,
-                                      child: RaceInfoScreen(
+                                      child: finishedRaces[index] ? ResultsScreen(raceId: races[index].raceId) : RaceInfoScreen(
                                         raceId: races[index].raceId,
                                       ),
                                     ),
