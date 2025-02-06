@@ -184,7 +184,9 @@ class _DeviceConnectionPopupContentState extends State<DeviceConnectionPopupCont
             deviceName: widget.deviceName,
             deviceType: widget.deviceType,
             otherDevices: widget.otherDevices,
-            showQRCode: (DeviceName oppositeDeviceName) => _handleScreenTransition(PopupScreen.qr, oppositeDeviceName: oppositeDeviceName),
+            showQRCode: (DeviceName oppositeDeviceName) async { 
+              _handleScreenTransition(PopupScreen.qr, deviceName: widget.deviceName, oppositeDeviceName: oppositeDeviceName);
+            },
           ),
           SizedBox(height: 20), // Add some bottom padding
         ],
