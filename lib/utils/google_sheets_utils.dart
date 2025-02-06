@@ -47,7 +47,10 @@ class GoogleSheetsUtils {
   static Future<sheets.SheetsApi?> _getSheetsApi(BuildContext context) async {
     try {
       final googleSignIn = GoogleSignIn(
-        scopes: [sheets.SheetsApi.spreadsheetsScope],
+        scopes: [
+          sheets.SheetsApi.spreadsheetsScope,
+          drive.DriveApi.driveFileScope,  // Add file scope for sharing
+        ],
         clientId: _clientId,
       );
       
@@ -59,6 +62,7 @@ class GoogleSheetsUtils {
       
       return sheets.SheetsApi(client);
     } catch (e) {
+      print('Sheets API Error: $e');  // Add error logging
       return null;
     }
   }
@@ -66,7 +70,9 @@ class GoogleSheetsUtils {
   static Future<drive.DriveApi?> _getDriveApi(BuildContext context) async {
     try {
       final googleSignIn = GoogleSignIn(
-        scopes: [drive.DriveApi.driveScope],
+        scopes: [
+          drive.DriveApi.driveFileScope,  // Use file scope instead of full drive scope
+        ],
         clientId: _clientId,
       );
       
@@ -78,6 +84,7 @@ class GoogleSheetsUtils {
       
       return drive.DriveApi(client);
     } catch (e) {
+      print('Drive API Error: $e');  // Add error logging
       return null;
     }
   }
@@ -115,22 +122,42 @@ class GoogleSheetsUtils {
         final driveApi = await _getDriveApi(context);
         if (driveApi != null) {
           try {
-            await driveApi.permissions.create(
-              drive.Permission(
-                type: 'anyone',
-                role: 'reader',
-                allowFileDiscovery: false,
-              ),
-              spreadsheetId,
+            // Create the permission for anyone to view
+            final permission = drive.Permission(
+              type: 'anyone',
+              role: 'reader',
+              allowFileDiscovery: false,
             );
+            
+            await driveApi.permissions.create(
+              permission,
+              spreadsheetId,
+              supportsAllDrives: true,
+              supportsTeamDrives: true,
+            );
+            
+            // Get the file to verify sharing settings
+            final file = await driveApi.files.get(
+              spreadsheetId,
+              $fields: 'webViewLink,permissions',
+            ) as drive.File;
+            
+            print('File permissions: ${file.permissions}');  // Debug log
+            
+            if (file.webViewLink != null) {
+              return file.webViewLink;
+            }
+            return 'https://docs.google.com/spreadsheets/d/$spreadsheetId';
           } catch (e) {
             print('Error setting permissions: $e');
+            // Still return the URL even if permission setting fails
+            return 'https://docs.google.com/spreadsheets/d/$spreadsheetId';
           }
         }
-
         return 'https://docs.google.com/spreadsheets/d/$spreadsheetId';
       }
     } catch (e) {
+      print('Spreadsheet creation error: $e');  // Add error logging
       return null;
     }
     return null;
