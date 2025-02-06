@@ -167,8 +167,8 @@ class InitializationScreenState extends State<InitializationScreen> with SingleT
     ]).animate(_controller);
 
     _backgroundAnimation = ColorTween(
-      begin: const Color(0xFFFF5722), // Deep Orange (matches splash screen)
-      end: AppColors.primaryColor,
+      begin: AppColors.primaryColor, // Deep Orange (matches splash screen)
+      end: AppColors.primaryColor.withOpacity(0.9),
     ).animate(CurvedAnimation(
       parent: _controller,
       curve: const Interval(0.0, 0.3, curve: Curves.easeInOut),
@@ -232,11 +232,6 @@ class InitializationScreenState extends State<InitializationScreen> with SingleT
                     if (_showText) ...[
                       const SizedBox(height: 60),
                     ],
-                    Icon(
-                      Icons.account_circle,
-                      size: 24,
-                      color: Colors.blue,
-                    ),
                     if (_showText) ...[
                       const SizedBox(height: 20),
                       Text(
@@ -278,7 +273,7 @@ class WelcomeScreen extends StatelessWidget {
             end: Alignment.bottomCenter,
             colors: [
               AppColors.primaryColor,
-              AppColors.selectedRoleColor,
+              AppColors.primaryColor.withOpacity(0.9),
             ],
           ),
         ),

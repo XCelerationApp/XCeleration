@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
-// import 'package:share_plus/share_plus.dart';
 import 'package:xcelerate/utils/sheet_utils.dart';
 import '../utils/share_utils.dart';
 import '../utils/dialog_utils.dart';
-// import '../utils/csv_utils.dart';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
-// import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as path;
 import 'package:url_launcher/url_launcher.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:path_provider/path_provider.dart';
 
 enum ResultFormat {
   plainText,
   googleSheet,
-  csv
+  pdf
 }
 
 class ShareSheetScreen extends StatefulWidget {
@@ -61,12 +61,12 @@ class _ShareSheetScreenState extends State<ShareSheetScreen> {
 
       final file = File(path.join(
         selectedDirectory,
-        'race_results.${format == ResultFormat.csv ? 'csv' : 'txt'}'
+        'race_results.${format == ResultFormat.pdf ? 'pdf' : 'txt'}'
       ));
 
-      if (format == ResultFormat.csv) {
-        final csvContent = await _getCsvContent();
-        await file.writeAsString(csvContent);
+      if (format == ResultFormat.pdf) {
+        final pdfData = await _generatePdf();
+        await file.writeAsBytes(await pdfData.save());
       } else {
         await file.writeAsString(_getFormattedText());
       }
@@ -91,9 +91,14 @@ class _ShareSheetScreenState extends State<ShareSheetScreen> {
         if (sheetUrl != null) {
           await Clipboard.setData(ClipboardData(text: sheetUrl));
         }
-      } else if (format == ResultFormat.csv) {
-        final csvContent = await _getCsvContent();
-        await Clipboard.setData(ClipboardData(text: csvContent));
+      } else if (format == ResultFormat.pdf) {
+        final pdfData = await _generatePdf();
+        // Since we can't copy PDF data directly to clipboard, we'll show a dialog
+        DialogUtils.showErrorDialog(
+          context,
+          message: 'PDF format cannot be copied to clipboard. Please use Save or Email options instead.'
+        );
+        return;
       } else {
         await Clipboard.setData(ClipboardData(text: _getFormattedText()));
       }
@@ -146,52 +151,106 @@ class _ShareSheetScreenState extends State<ShareSheetScreen> {
     return sheetsData;
   }
 
-  Future<String> _getCsvContent() async {
-    final sheetsData = _getSheetsData();
-    final StringBuffer buffer = StringBuffer();
-    
-    for (var row in sheetsData) {
-      buffer.writeln(row.join(','));
-    }
-    
-    return buffer.toString();
+  Future<pw.Document> _generatePdf() async {
+    final pdf = pw.Document();
+
+    pdf.addPage(
+      pw.MultiPage(
+        build: (context) => [
+          pw.Header(
+            level: 0,
+            child: pw.Text('Race Results', style: pw.TextStyle(fontSize: 24)),
+          ),
+          pw.Header(level: 1, child: pw.Text('Team Results')),
+          pw.Table.fromTextArray(
+            headers: ['Rank', 'School', 'Score', 'Split Time', 'Average Time'],
+            data: widget.teamResults.map((team) => [
+              team['place'].toString(),
+              team['school'].toString(),
+              team['score'].toString(),
+              team['split'].toString(),
+              team['averageTime'].toString(),
+            ]).toList(),
+          ),
+          pw.SizedBox(height: 20),
+          pw.Header(level: 1, child: pw.Text('Individual Results')),
+          pw.Table.fromTextArray(
+            headers: ['Place', 'Name', 'School', 'Time'],
+            data: widget.individualResults.map((runner) => [
+              runner['place'].toString(),
+              runner['name'].toString(),
+              runner['school'].toString(),
+              runner['finish_time'].toString(),
+            ]).toList(),
+          ),
+        ],
+      ),
+    );
+
+    return pdf;
   }
 
   Future<void> _sendEmail(BuildContext context, ResultFormat format) async {
-    String content;
-    String subject = 'Race Results';
-    
     if (format == ResultFormat.googleSheet) {
       final sheetsData = _getSheetsData();
       final sheetUrl = await ShareUtils.exportToGoogleSheets(context, sheetsData);
       if (sheetUrl != null) {
-        content = 'Race results are available in the following Google Sheet:\n\n$sheetUrl';
-      } else {
-        return;
+        final Uri emailLaunchUri = Uri(
+          scheme: 'mailto',
+          query: encodeQueryParameters({
+            'subject': 'Race Results',
+            'body': 'Race results are available in the following Google Sheet:\n\n$sheetUrl',
+          }),
+        );
+        if (await canLaunchUrl(emailLaunchUri)) {
+          await launchUrl(emailLaunchUri);
+        }
       }
-    } else if (format == ResultFormat.csv) {
-      content = await _getCsvContent();
+    } else if (format == ResultFormat.pdf) {
+      // For PDF, we'll save it first then attach it to the email
+      try {
+        final tempDir = await getTemporaryDirectory();
+        final file = File('${tempDir.path}/race_results.pdf');
+        final pdfData = await _generatePdf();
+        await file.writeAsBytes(await pdfData.save());
+
+        final Uri emailLaunchUri = Uri(
+          scheme: 'mailto',
+          query: encodeQueryParameters({
+            'subject': 'Race Results',
+            'body': 'Please find attached the race results PDF.',
+            'attachment': file.path,
+          }),
+        );
+        if (await canLaunchUrl(emailLaunchUri)) {
+          await launchUrl(emailLaunchUri);
+        }
+      } catch (e) {
+        if (mounted) {
+          DialogUtils.showErrorDialog(
+            context,
+            message: 'Failed to generate PDF: $e'
+          );
+        }
+      }
     } else {
-      content = _getFormattedText();
+      final Uri emailLaunchUri = Uri(
+        scheme: 'mailto',
+        query: encodeQueryParameters({
+          'subject': 'Race Results',
+          'body': _getFormattedText(),
+        }),
+      );
+      if (await canLaunchUrl(emailLaunchUri)) {
+        await launchUrl(emailLaunchUri);
+      }
     }
 
-    final Uri emailLaunchUri = Uri(
-      scheme: 'mailto',
-      query: encodeQueryParameters({
-        'subject': subject,
-        'body': content,
-      }),
-    );
-
-    if (await canLaunchUrl(emailLaunchUri)) {
-      await launchUrl(emailLaunchUri);
-    } else {
-      if (mounted) {
-        DialogUtils.showErrorDialog(
-          context,
-          message: 'Could not launch email client'
-        );
-      }
+    if (mounted && !await canLaunchUrl(Uri(scheme: 'mailto'))) {
+      DialogUtils.showErrorDialog(
+        context,
+        message: 'Could not launch email client'
+      );
     }
   }
 
@@ -229,8 +288,8 @@ class _ShareSheetScreenState extends State<ShareSheetScreen> {
                 label: Text('Google Sheet'),
               ),
               ButtonSegment<ResultFormat>(
-                value: ResultFormat.csv,
-                label: Text('CSV'),
+                value: ResultFormat.pdf,
+                label: Text('PDF'),
               ),
             ],
             selected: {_selectedFormat},

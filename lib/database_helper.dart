@@ -352,29 +352,29 @@ class DatabaseHelper {
       WHERE r.is_team_runner = 1 AND r.race_id = ?
     ''', [raceId]);
 
-    // return [...raceRunners, ...teamRunners];
-    return [
-      {
-        'runner_id': 1,
-        'bib_number': '1001',
-        'name': 'John Doe',
-        'school': 'Test School',
-        'grade': '5',
-        'place': 1,
-        'finish_time': '5.00',
-        'is_team_runner': 0
-      },
-      {
-        'runner_id': 2,
-        'bib_number': '1002',
-        'name': 'Jane Doe',
-        'school': 'Test School',
-        'grade': '5',
-        'place': 2,
-        'finish_time': '6.00',
-        'is_team_runner': 0
-      },
-    ];
+    return [...raceRunners, ...teamRunners];
+    // return [
+    //   {
+    //     'runner_id': 1,
+    //     'bib_number': '1001',
+    //     'name': 'John Doe',
+    //     'school': 'Test School',
+    //     'grade': '5',
+    //     'place': 1,
+    //     'finish_time': '5.00',
+    //     'is_team_runner': 0
+    //   },
+    //   {
+    //     'runner_id': 2,
+    //     'bib_number': '1002',
+    //     'name': 'Jane Doe',
+    //     'school': 'Test School',
+    //     'grade': '5',
+    //     'place': 2,
+    //     'finish_time': '6.00',
+    //     'is_team_runner': 0
+    //   },
+    // ];
   }
 
   Future<List<Map<String, dynamic>>> getAllResults() async {

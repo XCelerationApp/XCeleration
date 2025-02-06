@@ -43,6 +43,8 @@ dependencies:
   url_launcher: ^6.1.10
   share_plus: ^7.0.0
   google_sign_in: ^6.1.6
+  pdf: ^3.10.7  # For PDF generation
+  path_provider: ^2.1.2  # For accessing device directories
   # url_launcher: 6.1.14  # Adding specific version for macOS compatibility
 
   # The following adds the Cupertino Icons font to your application.
@@ -57,7 +59,7 @@ dependencies:
   flutter_colorpicker: ^1.1.0
   camerawesome: ^2.1.0
   # url_launcher: ^6.0.0
-  path_provider: ^2.1.2
+  # path_provider: ^2.1.2
   # google_mlkit_face_detection: ^0.12.0
   opencv_4: ^1.0.0
   open_file: ^3.5.10
