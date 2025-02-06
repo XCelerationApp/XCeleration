@@ -590,7 +590,7 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
                     ),
                   ),
                 ),
-                if (_deviceType != DeviceType.advertiserDevice)...[
+                if (_deviceType != DeviceType.advertiserDevice && _wirelessConnectionError != WirelessConnectionError.unavailable)...[
                   SizedBox(height: 4),
                   Row(
                     children: [
