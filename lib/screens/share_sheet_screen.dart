@@ -254,6 +254,29 @@ class _ShareSheetScreenState extends State<ShareSheetScreen> {
     }
   }
 
+  Future<void> _sendSms(BuildContext context, ResultFormat format) async {
+    String messageBody;
+    if (format == ResultFormat.googleSheet) {
+      final sheetsData = _getSheetsData();
+      final sheetUrl = await ShareUtils.exportToGoogleSheets(context, sheetsData);
+      messageBody = sheetUrl ?? 'Race results not available';
+    } else {
+      messageBody = _getFormattedText();
+    }
+
+    // On iOS, we need to use a different format
+    final Uri smsLaunchUri = Uri.parse('sms:&body=${Uri.encodeComponent(messageBody)}');
+
+    if (await canLaunchUrl(smsLaunchUri)) {
+      await launchUrl(smsLaunchUri);
+    } else if (mounted) {
+      DialogUtils.showErrorDialog(
+        context,
+        message: 'Could not launch SMS app'
+      );
+    }
+  }
+
   String encodeQueryParameters(Map<String, String> params) {
     return params.entries
         .map((e) => '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
@@ -324,6 +347,14 @@ class _ShareSheetScreenState extends State<ShareSheetScreen> {
             onPressed: () => _sendEmail(context, _selectedFormat),
             icon: const Icon(Icons.email),
             label: const Text('Send via Email'),
+          ),
+          const SizedBox(height: 12),
+          ElevatedButton.icon(
+            onPressed: _selectedFormat == ResultFormat.pdf 
+                ? null 
+                : () => _sendSms(context, _selectedFormat),
+            icon: const Icon(Icons.sms),
+            label: const Text('Send via SMS'),
           ),
         ],
       ),
