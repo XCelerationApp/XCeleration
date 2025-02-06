@@ -13,6 +13,7 @@ import 'screens/races_screen.dart';
 import 'utils/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'utils/google_sheets_utils.dart';
 
 Process? _flaskProcess;
 
@@ -231,10 +232,10 @@ class InitializationScreenState extends State<InitializationScreen> with SingleT
                     if (_showText) ...[
                       const SizedBox(height: 60),
                     ],
-                    Image.asset(
-                      'assets/icon/icon.png',
-                      width: MediaQuery.of(context).size.height / 3,
-                      height: MediaQuery.of(context).size.height / 3,
+                    Icon(
+                      Icons.account_circle,
+                      size: 24,
+                      color: Colors.blue,
                     ),
                     if (_showText) ...[
                       const SizedBox(height: 20),
@@ -270,20 +271,95 @@ class WelcomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.primaryColor,
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              AppColors.primaryColor,
+              AppColors.selectedRoleColor,
+            ],
+          ),
+        ),
+        child: SafeArea(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              const SizedBox(height: 20),
               Text(
-                'Welcome to XCelerate!',
-                style: TextStyle(fontSize: 35, fontWeight: FontWeight.w700, color: AppColors.backgroundColor),
-                textAlign: TextAlign.center,
+                'Welcome to Xcelerate',
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 40),
+              // Test Google Sign-In Button
+              if (Platform.isIOS)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        try {
+                          final success = await GoogleSheetsUtils.testSignIn(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                success ? 'Sign in successful!' : 'Sign in failed',
+                              ),
+                              backgroundColor: success ? Colors.green : Colors.red,
+                            ),
+                          );
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Google Sign-In is only supported on iOS devices'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: AppColors.primaryColor,
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                      ),
+                      child: Wrap(
+                        alignment: WrapAlignment.center,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.account_circle,
+                            size: 24,
+                            color: Colors.blue,
+                          ),
+                          const SizedBox(width: 10),
+                          const Text('Test Google Sign-In'),
+                        ],
+                      ),
+                    ),
+                  ),
+                )
+              else
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Text(
+                    'Google Sign-In is only available on iOS devices',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 16,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              const SizedBox(height: 20),
               Text(
                 'Please select your role',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.w300, color: AppColors.backgroundColor),
@@ -300,6 +376,7 @@ class WelcomeScreen extends StatelessWidget {
                   },
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.all(20.0),
+                    fixedSize: const Size(300, 75),
                   ),
                   child: Text('Coach', style: TextStyle(fontSize: 30, color: AppColors.selectedRoleTextColor)),
                 ),
@@ -315,6 +392,7 @@ class WelcomeScreen extends StatelessWidget {
                   },
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.all(20.0),
+                    fixedSize: const Size(300, 75),
                   ),
                   child: Text('Timer', style: TextStyle(fontSize: 30, color: AppColors.selectedRoleTextColor)),
                 ),
@@ -332,6 +410,7 @@ class WelcomeScreen extends StatelessWidget {
                   },
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.all(20.0),
+                    fixedSize: const Size(300, 75),
                   ),
                   child: Text('Record Bib #s', style: TextStyle(fontSize: 30, color: AppColors.selectedRoleTextColor)),
                 ),

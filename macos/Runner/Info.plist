@@ -38,5 +38,14 @@
 	<string>We need Bluetooth access to communicate with devices.</string>
 	<key>NSBluetoothPeripheralUsageDescription</key>
 	<string>We need Bluetooth access to communicate with devices.</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.529053126812-cuhlura1vskuup3lg6hpf6iup6mlje6v</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

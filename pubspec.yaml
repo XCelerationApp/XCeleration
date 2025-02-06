@@ -42,6 +42,7 @@ dependencies:
   googleapis_auth: ^1.4.0
   url_launcher: ^6.1.10
   share_plus: ^7.0.0
+  google_sign_in: ^6.1.6
   # url_launcher: 6.1.14  # Adding specific version for macOS compatibility
 
   # The following adds the Cupertino Icons font to your application.
@@ -72,6 +73,7 @@ dependencies:
   flutter_nearby_connections: ^1.1.2
   crypto: ^3.0.1
   flutter_slidable: ^4.0.0
+  flutter_svg: ^2.0.9
 
 dev_dependencies:
   flutter_test:
