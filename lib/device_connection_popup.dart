@@ -441,7 +441,10 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
         
         _deviceConnectionService.monitorMessageReceives(
           device,
-          messageReceivedCallback: (data) => _protocol.handleMessage(data['data'], data['senderDeviceId']),
+          messageReceivedCallback: (package, senderId) async {
+            print('Received package from $senderId: ${package.type}');
+            await _protocol.handleMessage(package, senderId);
+          },
         );
 
         if (_deviceType == DeviceType.browserDevice) {
