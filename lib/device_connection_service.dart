@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter_nearby_connections/flutter_nearby_connections.dart';
 import 'data_package.dart';
 import 'dart:io';
+import 'dart:convert';
 
 enum DeviceType { browserDevice, advertiserDevice }
 
@@ -128,24 +129,43 @@ class DeviceConnectionService {
     await nearbyService!.sendMessage(device.deviceId, package.toString());
   }
 
-  void monitorMessageReceives(Device device, {required Function(Map<String, dynamic>) messageReceivedCallback}) {
+  void monitorMessageReceives(Device device, {required Function(Package, String) messageReceivedCallback}) {
     // Store the callback for this specific device
-    _messageCallbacks[device.deviceId] = messageReceivedCallback;
-
-    // Only set up the subscription once
-    receivedDataSubscription ??= nearbyService!.dataReceivedSubscription(callback: (data) async {
+    _messageCallbacks[device.deviceId] = (Map<String, dynamic>? data) async {
       try {
-        if (data == null || !data.containsKey('senderDeviceId')) {
-          print('Received invalid data format');
+        if (data == null || !data.containsKey('message') || !data.containsKey('senderDeviceId')) {
+          print('Received invalid data format: $data');
           return;
         }
 
+        // Parse the message string into a Package object
+        try {
+          final packageJson = jsonDecode(data['message']);
+          if (packageJson is! Map<String, dynamic>) {
+            print('Invalid package format: not a JSON object');
+            return;
+          }
+          
+          final package = Package.fromJson(packageJson);
+          await messageReceivedCallback(package, data['senderDeviceId']);
+        } catch (e) {
+          print('Error parsing package: $e');
+        }
+      } catch (e) {
+        print('Error processing received data: $e');
+      }
+    };
+
+    // Only set up the subscription once
+    receivedDataSubscription ??= nearbyService!.dataReceivedSubscription(callback: (data) async {
+      print('Received data: $data');
+      try {
         final callback = _messageCallbacks[data['senderDeviceId']];
         if (callback != null) {
           await callback(data);
         }
       } catch (e) {
-        print('Error processing received data: $e');
+        print('Error in data received subscription: $e');
       }
     });
   }
