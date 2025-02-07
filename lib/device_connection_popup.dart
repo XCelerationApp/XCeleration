@@ -10,6 +10,9 @@ import 'data_protocol.dart';
 import 'utils/dialog_utils.dart';
 
 Future<void> showDeviceConnectionPopup(BuildContext context, { required DeviceType deviceType, required DeviceName deviceName, required Map<DeviceName, Map<String, dynamic>> otherDevices}) async {
+  // Create a completer to track when we're actually done
+  final completer = Completer<void>();
+  
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -22,9 +25,14 @@ Future<void> showDeviceConnectionPopup(BuildContext context, { required DeviceTy
         deviceName: deviceName,
         deviceType: deviceType,
         otherDevices: otherDevices,
+        onComplete: () {
+          if (!completer.isCompleted) completer.complete();
+        },
       );
     }
   );
+
+  return completer.future;
 }
 
 Map<DeviceName, Map<String, dynamic>> createOtherDeviceList(DeviceName deviceName, DeviceType deviceType, {String? data}) {
@@ -72,11 +80,13 @@ class DeviceConnectionPopupContent extends StatefulWidget {
   final DeviceName deviceName;
   final DeviceType deviceType;
   final Map<DeviceName, Map<String, dynamic>> otherDevices;
+  final VoidCallback onComplete;
   const DeviceConnectionPopupContent({
     super.key,
     required this.deviceName,
     required this.deviceType,
     required this.otherDevices,
+    required this.onComplete,
   });
 
   @override
@@ -102,6 +112,7 @@ class _DeviceConnectionPopupContentState extends State<DeviceConnectionPopupCont
   @override
   void dispose() {
     _animationController.dispose();
+    widget.onComplete();
     super.dispose();
   }
 
