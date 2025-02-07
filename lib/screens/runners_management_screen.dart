@@ -943,6 +943,8 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
       } else {
         existingRunner = (await DatabaseHelper.instance.getRaceRunnerByBib(widget.raceId, runner['bib_number']))[0];
       }
+      if (existingRunner != null && runner['bib_number'] == existingRunner['bib_number'] && runner['name'] == existingRunner['name'] && runner['school'] == existingRunner['school'] && runner['grade'] == existingRunner['grade']) continue;
+
       if (existingRunner != null) {
         overwriteRunners.add(runner);
       }

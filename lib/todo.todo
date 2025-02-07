@@ -11,21 +11,18 @@ Functionality:
 - clean up code
 - have titles for catagories for spreadsheet
 - make sure QR codes work before recording race results (either ask user to test or use a package)
+- change app name to XCelerate
 
 UI:
 - turn popups into sheets
 - make buttons that havent been redesigned look better
-- include an example spreadsheet
 - go over the UI with others
-- make it more obvious that there are more text fields to fill in
-- differenciate between race screen and main screen
 - make app initializer look better
 - make things reload when database is updated (race creation (done), ...)
 
 Runners Management screen:
 - have school be a dropdown for add runner
 - have better sorting
-- don't overwrite runner if runner with the same bib number is the same as the one being added
 
 Races screen:
 - move the delete race button to a different place (maybe swipe to delete)
