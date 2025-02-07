@@ -415,9 +415,14 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
       setState(() {
         _wirelessConnectionError = WirelessConnectionError.unknown;
       });
+      for (var deviceName in widget.otherDevices.keys) {
+        if (widget.otherDevices[deviceName]!['status'] != ConnectionStatus.finished) {
+          widget.otherDevices[deviceName]!['status'] = ConnectionStatus.searching;
+        }
+      }
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          DialogUtils.showErrorDialog(context, message: 'Wireless connection failed: ${_wirelessConnectionError!.name}');
+          DialogUtils.showErrorDialog(context, message: 'An error occurred in the wireless connection process. Use QR codes instead');
         }
       });
     }
@@ -541,7 +546,7 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
         widget.otherDevices[deviceName]!['status'] = ConnectionStatus.searching;
       }
     }
-
+    _wirelessConnectionError = null;
     super.dispose();
   }
 
@@ -571,7 +576,7 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
 
   Widget _buildDeviceConnectionTracker(DeviceName deviceName, ConnectionStatus status, VoidCallback onPressed) {
     String text = '';
-    if (_wirelessConnectionError == WirelessConnectionError.unavailable) {
+    if (_wirelessConnectionError == WirelessConnectionError.unavailable || _wirelessConnectionError == WirelessConnectionError.unknown) {
       text = status == ConnectionStatus.finished ? 'Data Received' : 'Data not received';
     }
     else {
@@ -622,7 +627,7 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
                   SizedBox(height: 4),
                   Row(
                     children: [
-                      if (status != ConnectionStatus.finished && status != ConnectionStatus.error && status != ConnectionStatus.timeout && _wirelessConnectionError != WirelessConnectionError.unavailable)...[
+                      if (status != ConnectionStatus.finished && status != ConnectionStatus.error && status != ConnectionStatus.timeout && _wirelessConnectionError != WirelessConnectionError.unavailable && _wirelessConnectionError != WirelessConnectionError.unknown)...[
                         SizedBox(
                           height: 15,
                           width: 15,
@@ -667,7 +672,7 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
 
   @override
   Widget build(BuildContext context) {
-    if (_wirelessConnectionError == WirelessConnectionError.unavailable) {
+    if (_wirelessConnectionError == WirelessConnectionError.unavailable || _wirelessConnectionError == WirelessConnectionError.unknown) {
       if (_deviceType == DeviceType.advertiserDevice && widget.otherDevices.length == 1) {
         return QRConnectionPopupContent(
           data: widget.otherDevices.values.elementAt(0)['data'],
