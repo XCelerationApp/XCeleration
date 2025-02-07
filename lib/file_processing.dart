@@ -1,10 +1,7 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:csv/csv.dart';
 import 'package:excel/excel.dart';
-// import 'dart:convert';
 import 'dart:io';
-// import 'package:race_timing_app/database_helper.dart';
-
 
 Future<List<Map<String, dynamic>>> processSpreadsheet(int raceId, bool isTeam) async {
   FilePickerResult? result = await FilePicker.platform.pickFiles(
@@ -23,6 +20,7 @@ Future<List<Map<String, dynamic>>> processSpreadsheet(int raceId, bool isTeam) a
       List<List<dynamic>> rows = const CsvToListConverter().convert(csvContent);
 
       for (var row in rows) {
+        if (row == rows.first) continue;
         if (row.isNotEmpty && row.length >= 4) {
           String name = row[0]?.toString() ?? '';
           int grade = int.tryParse(row[1]?.toString() ?? '') ?? 0;
@@ -32,12 +30,6 @@ Future<List<Map<String, dynamic>>> processSpreadsheet(int raceId, bool isTeam) a
 
           if (name.isNotEmpty && grade > 0 && school.isNotEmpty && bibNumber.isNotEmpty && bibNumberInt >= 0) {
             if (isTeam == true) {
-              // await DatabaseHelper.instance.insertTeamRunner({
-              //   'name': name,
-              //   'school': school,
-              //   'grade': grade,
-              //   'bib_number': bibNumber,
-              // });
               runnerData.add({
                 'name': name,
                 'school': school,
@@ -45,13 +37,6 @@ Future<List<Map<String, dynamic>>> processSpreadsheet(int raceId, bool isTeam) a
                 'bib_number': bibNumber,
               });
             } else {
-              // await DatabaseHelper.instance.insertRaceRunner({
-              //   'name': name,
-              //   'school': school,
-              //   'grade': grade,
-              //   'bib_number': bibNumberInt,
-              //   'race_id': raceId,
-              // });
               runnerData.add({
                 'name': name,
                 'school': school,
@@ -75,6 +60,7 @@ Future<List<Map<String, dynamic>>> processSpreadsheet(int raceId, bool isTeam) a
 
       for (var table in excel.tables.keys) {
         for (var row in excel.tables[table]!.rows) {
+          if (row == excel.tables[table]!.rows.first) continue;
           // Ensure the row is not empty and contains the required number of columns
           if (row.isNotEmpty && row.length >= 4) {
             // Parse the row data
@@ -88,12 +74,6 @@ Future<List<Map<String, dynamic>>> processSpreadsheet(int raceId, bool isTeam) a
             if (name.isNotEmpty && grade > 0 && school.isNotEmpty && bibNumberInt >= 0 && bibNumber.isNotEmpty) {
               // Insert into the database
               if (isTeam == true) {
-                // await DatabaseHelper.instance.insertTeamRunner({
-                //   'name': name,
-                //   'school': school,
-                //   'grade': grade,
-                //   'bib_number': bibNumber,
-                // });
                 runnerData.add({
                   'name': name,
                   'school': school,
@@ -101,13 +81,6 @@ Future<List<Map<String, dynamic>>> processSpreadsheet(int raceId, bool isTeam) a
                   'bib_number': bibNumber,
                 });
               } else {
-                // await DatabaseHelper.instance.insertRaceRunner({
-                //   'name': name,
-                //   'school': school,
-                //   'grade': grade,
-                //   'bib_number': bibNumberInt,
-                //   'race_id': raceId,
-                // });
                 runnerData.add({
                   'name': name,
                   'school': school,

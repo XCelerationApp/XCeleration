@@ -9,10 +9,6 @@ import 'package:http/http.dart' as http;
 import 'dart:io' show Platform;
 
 class GoogleSheetsUtils {
-  // TODO: Replace with your Web Client ID from Google Cloud Console
-  // Get this from: https://console.cloud.google.com/apis/credentials
-  // Note: The clientId should look something like:
-  // '123456789-abcdef.apps.googleusercontent.com'
   static const _clientId = '529053126812-cuhlura1vskuup3lg6hpf6iup6mlje6v.apps.googleusercontent.com';
   
   static Future<bool> testSignIn(BuildContext context) async {

@@ -107,6 +107,7 @@ flutter:
     - assets/icon/
     - assets/sounds/click.mp3
     - assets/sounds/completed_ding.mp3
+    - assets/sample_sheets/
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
 
