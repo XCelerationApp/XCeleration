@@ -15,7 +15,6 @@ import '../role_functions.dart';
 import '../utils/sheet_utils.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';
-import 'results_screen.dart';
 
 class RacesScreen extends StatefulWidget {
   const RacesScreen({super.key});
@@ -619,7 +618,7 @@ class _RacesScreenState extends State<RacesScreen> {
                                     ),
                                     builder: (context) => SizedBox(
                                       height: MediaQuery.of(context).size.height * 0.92,
-                                      child: finishedRaces[index] ? ResultsScreen(raceId: races[index].raceId) : RaceInfoScreen(
+                                      child: RaceInfoScreen(
                                         raceId: races[index].raceId,
                                       ),
                                     ),

@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import '../utils/time_formatter.dart';
 import '../utils/csv_utils.dart';
 import '../utils/dialog_utils.dart';
-import '../utils/sheet_utils.dart';
+// import '../utils/sheet_utils.dart';
 import 'share_sheet_screen.dart';
 
 class ResultsScreen extends StatefulWidget {
@@ -58,12 +58,12 @@ class ResultsScreenState extends State<ResultsScreen> {
         ? const Center(child: CircularProgressIndicator())
         : Column(
           children: [
-            SizedBox(height: 8),
-            createSheetHandle(height: 10, width: 60),
-            SizedBox(height: 16),
+            // SizedBox(height: 8),
+            // createSheetHandle(height: 10, width: 60),
+            // SizedBox(height: 16),
             SingleChildScrollView(
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(0.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -115,12 +115,21 @@ class ResultsScreenState extends State<ResultsScreen> {
                                 context: context,
                                 isScrollControlled: true,
                                 useSafeArea: true,
-                                builder: (BuildContext context) => ShareSheetScreen(
-                                  teamResults: _isHeadToHead
-                                    ? _calculateHeadToHeadTeamResults()
-                                    : _calculateOverallTeamResults(),
-                                  individualResults: _calculateIndividualResults(),
-                                  // isHeadToHead: _isHeadToHead,
+                                constraints: const BoxConstraints(
+                                  maxHeight: double.infinity,
+                                  minHeight: 0,
+                                  minWidth: double.infinity,
+                                  maxWidth: double.infinity,
+                                ),
+                                builder: (BuildContext context) => Container(
+                                  height: MediaQuery.of(context).size.height * 0.6,
+                                  child: ShareSheetScreen(
+                                    teamResults: _isHeadToHead
+                                      ? _calculateHeadToHeadTeamResults()
+                                      : _calculateOverallTeamResults(),
+                                    individualResults: _calculateIndividualResults(),
+                                    // isHeadToHead: _isHeadToHead,
+                                  ),
                                 ),
                               );
                             },
