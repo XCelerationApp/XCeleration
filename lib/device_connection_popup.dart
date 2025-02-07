@@ -448,8 +448,10 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
       });
 
       try {
+        print("Adding device to protocol");
         _protocol.addDevice(device);
         
+        print("Setting up message monitoring");
         _deviceConnectionService.monitorMessageReceives(
           device,
           messageReceivedCallback: (package, senderId) async {
@@ -459,12 +461,15 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
         );
 
         if (_deviceType == DeviceType.browserDevice) {
+          print("Browser device: preparing to receive data");
           setState(() {
             widget.otherDevices[_getDeviceNameFromString(device.deviceName)]!['status'] = ConnectionStatus.receiving;
           });
           
           try {
+            print("Starting to receive data");
             final results = await _protocol.receiveData();
+            print("Received data: $results");
             widget.otherDevices[_getDeviceNameFromString(device.deviceName)]!['data'] = results;
             setState(() {
               widget.otherDevices[_getDeviceNameFromString(device.deviceName)]!['status'] = ConnectionStatus.finished;
@@ -476,12 +481,16 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
           }
         } else {
           if (widget.otherDevices[_getDeviceNameFromString(device.deviceName)]!['data'] != null) {
+            print("Advertiser device: preparing to send data");
             setState(() {
               widget.otherDevices[_getDeviceNameFromString(device.deviceName)]!['status'] = ConnectionStatus.sending;
             });
             
             try {
-              await _protocol.sendData(widget.otherDevices[_getDeviceNameFromString(device.deviceName)]!['data']!, device.deviceId);
+              final data = widget.otherDevices[_getDeviceNameFromString(device.deviceName)]!['data']!;
+              print("Starting to send data: $data");
+              await _protocol.sendData(data, device.deviceId);
+              print("Data sent successfully");
               setState(() {
                 widget.otherDevices[_getDeviceNameFromString(device.deviceName)]!['status'] = ConnectionStatus.finished;
               });
@@ -491,6 +500,7 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
               rethrow;
             }
           } else {
+            print("No data available for advertiser device to send");
             throw Exception('No data for advertiser device ${device.deviceName} to send');
           }
         }

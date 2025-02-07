@@ -126,13 +126,18 @@ class DeviceConnectionService {
       print("Device not connected - Cannot send message");
       return;
     }
+    print("Sending message to device ${device.deviceName}: ${package.toString()}");
     await nearbyService!.sendMessage(device.deviceId, package.toString());
+    print("Message sent successfully");
   }
 
   void monitorMessageReceives(Device device, {required Function(Package, String) messageReceivedCallback}) {
+    print("Setting up message monitoring for device: ${device.deviceName}");
+    
     // Store the callback for this specific device
     _messageCallbacks[device.deviceId] = (Map<String, dynamic>? data) async {
       try {
+        print("Raw data received: $data");
         if (data == null || !data.containsKey('message') || !data.containsKey('senderDeviceId')) {
           print('Received invalid data format: $data');
           return;
@@ -140,6 +145,7 @@ class DeviceConnectionService {
 
         // Parse the message string into a Package object
         try {
+          print("Attempting to parse message: ${data['message']}");
           final packageJson = jsonDecode(data['message']);
           if (packageJson is! Map<String, dynamic>) {
             print('Invalid package format: not a JSON object');
@@ -147,6 +153,7 @@ class DeviceConnectionService {
           }
           
           final package = Package.fromJson(packageJson);
+          print("Successfully parsed package: ${package.type}");
           await messageReceivedCallback(package, data['senderDeviceId']);
         } catch (e) {
           print('Error parsing package: $e');
@@ -157,17 +164,24 @@ class DeviceConnectionService {
     };
 
     // Only set up the subscription once
-    receivedDataSubscription ??= nearbyService!.dataReceivedSubscription(callback: (data) async {
-      print('Received data: $data');
-      try {
-        final callback = _messageCallbacks[data['senderDeviceId']];
-        if (callback != null) {
-          await callback(data);
+    if (receivedDataSubscription == null) {
+      print("Creating new data subscription");
+      receivedDataSubscription = nearbyService!.dataReceivedSubscription(callback: (data) async {
+        print("Data received in subscription: $data");
+        try {
+          final callback = _messageCallbacks[data['senderDeviceId']];
+          if (callback != null) {
+            await callback(data);
+          } else {
+            print("No callback found for device ID: ${data['senderDeviceId']}");
+          }
+        } catch (e) {
+          print('Error in data received subscription: $e');
         }
-      } catch (e) {
-        print('Error in data received subscription: $e');
-      }
-    });
+      });
+    } else {
+      print("Using existing data subscription");
+    }
   }
 
   void dispose() {

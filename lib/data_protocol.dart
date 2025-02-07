@@ -116,26 +116,28 @@ class Protocol {
   }
 
   Future<void> handleMessage(Package package, String senderId) async {
+    print("Handling message from $senderId: ${package.type}");
     if (_isTerminated) return;
     
     try {
       switch(package.type) {
         case 'FIN':
+          print("Processing FIN package");
           await _processIncomingPackage(package, senderId);
           break;
           
         case 'ACK':
+          print("Processing ACK package");
           await _handleAcknowledgment(package, senderId);
           break;
           
         case 'DATA':
           if (package.data == null || !package.checksumsMatch()) {
-            if (!_isTerminated) {
-              print('Invalid package from $senderId: ${package.data == null ? 'data is null' : 'checksums do not match'}');
-            }
+            print('Invalid package from $senderId: ${package.data == null ? 'data is null' : 'checksums do not match'}');
             return;
           }
           
+          print("Processing DATA package");
           await _processIncomingPackage(package, senderId);
           break;
           
@@ -263,11 +265,13 @@ class Protocol {
     }
 
     try {
+      print("Starting to send data to device $senderId");
       // Split data into chunks
       final chunks = <String>[];
       for (var i = 0; i < data.length; i += chunkSize) {
         chunks.add(data.substring(i, min(i + chunkSize, data.length)));
       }
+      print("Split data into ${chunks.length} chunks");
 
       // Send each chunk as a DATA package
       for (var i = 0; i < chunks.length; i++) {
@@ -276,6 +280,7 @@ class Protocol {
           type: 'DATA',
           data: chunks[i],
         );
+        print("Sending chunk ${i + 1}/${chunks.length}");
         await _sendPackageWithRetry(package, senderId);
       }
 
@@ -285,6 +290,7 @@ class Protocol {
         number: _finishSequenceNumber,
         type: 'FIN',
       );
+      print("Sending FIN package");
       await _sendPackageWithRetry(finPackage, senderId);
       
       print('Successfully sent ${chunks.length} chunks to device $senderId');
@@ -314,9 +320,10 @@ class Protocol {
       ]);
 
       if (_isTerminated) {
+        print("Data reception terminated");
         throw ProtocolTerminatedException('Data reception interrupted');
       }
-
+      print("Data reception complete, gathering results");
       final results = <String, String>{};
       
       for (var entry in _receivedPackages.entries) {
