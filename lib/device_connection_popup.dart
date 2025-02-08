@@ -96,7 +96,6 @@ class DeviceConnectionPopupContent extends StatefulWidget {
 class _DeviceConnectionPopupContentState extends State<DeviceConnectionPopupContent> with SingleTickerProviderStateMixin {
   PopupScreen _popupScreen = PopupScreen.main;
   late AnimationController _animationController;
-  late DeviceName _deviceName;
   late DeviceName _oppositeDeviceName;
 
   @override
@@ -115,13 +114,12 @@ class _DeviceConnectionPopupContentState extends State<DeviceConnectionPopupCont
     super.dispose();
   }
 
-  Future<void> _handleScreenTransition(PopupScreen newScreen, {DeviceName? deviceName, DeviceName? oppositeDeviceName}) async {
-    if (oppositeDeviceName != null && deviceName != null) {
-      _deviceName = deviceName;
+  Future<void> _handleScreenTransition(PopupScreen newScreen, {DeviceName? oppositeDeviceName}) async {
+    if (oppositeDeviceName != null) {
       _oppositeDeviceName = oppositeDeviceName;
     } else {
       if (newScreen == PopupScreen.qr) {
-        throw Exception('Device name and opposite device name must be provided for qr screen');
+        throw Exception('Opposite device name must be provided for qr screen');
       }
     }
     if (newScreen == PopupScreen.main) {
@@ -196,7 +194,7 @@ class _DeviceConnectionPopupContentState extends State<DeviceConnectionPopupCont
             deviceType: widget.deviceType,
             otherDevices: widget.otherDevices,
             showQRCode: (DeviceName oppositeDeviceName) async { 
-              _handleScreenTransition(PopupScreen.qr, deviceName: _deviceName, oppositeDeviceName: oppositeDeviceName);
+              _handleScreenTransition(PopupScreen.qr, oppositeDeviceName: oppositeDeviceName);
             },
           ),
           SizedBox(height: 20), // Add some bottom padding
@@ -234,7 +232,7 @@ class _DeviceConnectionPopupContentState extends State<DeviceConnectionPopupCont
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: QRConnectionPopupContent(
               data: widget.otherDevices[_oppositeDeviceName]!['data'],
-              deviceName: _deviceName,
+              deviceName: widget.deviceName,
               oppositeDeviceName: _oppositeDeviceName,
             ),
           ),
