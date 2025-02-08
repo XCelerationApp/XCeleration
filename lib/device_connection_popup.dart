@@ -97,20 +97,39 @@ class _DeviceConnectionPopupContentState extends State<DeviceConnectionPopupCont
   PopupScreen _popupScreen = PopupScreen.main;
   late AnimationController _animationController;
   late DeviceName _oppositeDeviceName;
+  late AudioPlayer _audioPlayer;
 
   @override
   void initState() {
     super.initState();
+    _audioPlayer = AudioPlayer();
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
+    Future.wait(widget.otherDevices.keys.map((deviceName) async {
+      while (widget.otherDevices[deviceName]!['status'] != ConnectionStatus.finished) {
+        await Future.delayed(const Duration(milliseconds: 100));
+      }
+    })).then((_) async {
+      if (!mounted) return;
+      try {
+        await _audioPlayer.play(AssetSource('sounds/completed_ding.mp3'));
+      } catch (e) {
+        print('Error playing completion sound: $e');
+      }
+      Future.delayed(const Duration(seconds: 2), () {
+        if (!mounted) return;  
+        Navigator.of(context).pop();
+      });
+    });
   }
 
   @override
   void dispose() {
     _animationController.dispose();
     widget.onComplete();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
@@ -361,13 +380,11 @@ class WirelessConnectionPopupContent extends StatefulWidget {
 class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent> {
   late DeviceConnectionService _deviceConnectionService;
   late Protocol _protocol;
-  WirelessConnectionError? _wirelessConnectionError;
-  late AudioPlayer _audioPlayer;
+  late WirelessConnectionError _wirelessConnectionError;
 
   @override
   void initState() {
     super.initState();
-    _audioPlayer = AudioPlayer();
     _deviceConnectionService = DeviceConnectionService();
     _protocol = Protocol(deviceConnectionService: _deviceConnectionService);
     _init();
@@ -416,11 +433,15 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
 
   Future<void> _connectAndTransferData() async {
     Future<void> deviceFoundCallback (device) async {
-      if (widget.otherDevices[_getDeviceNameFromString(device.deviceName)]!['status'] == ConnectionStatus.finished) return;
-
+      final deviceName = _getDeviceNameFromString(device.deviceName);
+      if (!widget.otherDevices.containsKey(deviceName) || 
+          widget.otherDevices[deviceName]!['status'] == ConnectionStatus.finished) {
+        print('Ignoring device because it is not in the list of other devices or finished: ${device.deviceName}');
+        return;
+      }
       print('Found device: ${device.deviceName}');
       setState(() {
-        widget.otherDevices[_getDeviceNameFromString(device.deviceName)]!['status'] = ConnectionStatus.found;
+        widget.otherDevices[deviceName]!['status'] = ConnectionStatus.found;
       });
       if (widget.deviceType == DeviceType.advertiserDevice) return;
       await _deviceConnectionService.inviteDevice(device);
@@ -488,6 +509,7 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
               setState(() {
                 widget.otherDevices[_getDeviceNameFromString(device.deviceName)]!['status'] = ConnectionStatus.finished;
               });
+              _deviceConnectionService.disconnectDevice(device);
             } catch (e) {
               print('Error sending data for device ${device.deviceName}: $e');
               rethrow;
@@ -497,6 +519,7 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
             throw Exception('No data for advertiser device ${device.deviceName} to send');
           }
         }
+        _protocol.removeDevice(device.deviceId);
       } catch (e) {
         print('Error in connection callback for device ${device.deviceName}: $e');
         _protocol.removeDevice(device.deviceId);
@@ -515,40 +538,13 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
       deviceConnectingCallback: deviceConnectingCallback,
       deviceConnectedCallback: deviceConnectedCallback,
     );
-
-    Future.wait(widget.otherDevices.keys.map((deviceName) async {
-      while (widget.otherDevices[deviceName]!['status'] != ConnectionStatus.finished) {
-        await Future.delayed(const Duration(milliseconds: 100));
-      }
-    })).then((_) async {
-      try {
-        await _audioPlayer.play(AssetSource('sounds/completed_ding.mp3'));
-      } catch (e) {
-        print('Error playing completion sound: $e');
-      }
-      closeWidget();
-    });
-
-  }
-
-  void closeWidget({Duration delay = const Duration(seconds: 2)}) {
-    if (!mounted) return;  
-    Future.delayed(delay, () {
-      if (!mounted) return;  
-      Navigator.of(context).pop();
-    });
+    print('Finished setting up device monitoring');
   }
 
   @override
   void dispose() {
     _deviceConnectionService.dispose();
     _protocol.dispose();
-    for (var deviceName in widget.otherDevices.keys) {
-      if (widget.otherDevices[deviceName]!['status'] != ConnectionStatus.finished) {
-        widget.otherDevices[deviceName]!['status'] = ConnectionStatus.searching;
-      }
-    }
-    _wirelessConnectionError = null;
     super.dispose();
   }
 
@@ -574,7 +570,6 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
     }
 
   }
-
 
   Widget _buildDeviceConnectionTracker(DeviceName deviceName, ConnectionStatus status, VoidCallback onPressed) {
     String text = '';

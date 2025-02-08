@@ -98,6 +98,7 @@ class Protocol {
             device,
             Package(number: package.number, type: 'ACK'),
           );
+          _finishedDevices.add(senderId);
         }
       } catch (e) {
         if (!_isTerminated) {
