@@ -9,12 +9,12 @@ import 'resolve_conflict.dart';
 import '../runner_time_functions.dart';
 import '../utils/timing_utils.dart';
 
-class EditAndResolveScreen extends StatefulWidget {
+class MergeConflictsScreen extends StatefulWidget {
   final int raceId;
   final Map<String, dynamic> timingData;
   final List<Map<String, dynamic>> runnerRecords;
 
-  const EditAndResolveScreen({
+  const MergeConflictsScreen({
     super.key, 
     required this.raceId,
     required this.timingData,
@@ -22,19 +22,18 @@ class EditAndResolveScreen extends StatefulWidget {
   });
 
   @override
-  State<EditAndResolveScreen> createState() => _EditAndResolveScreenState();
+  State<MergeConflictsScreen> createState() => _MergeConflictsScreenState();
 }
 
-class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
+class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
   // State variables
   late final ScrollController _scrollController;
-  late final Map<int, TextEditingController> _finishTimeControllers;
-  late final List<TextEditingController> _controllers;
+  // late final Map<int, TextEditingController> _finishTimeControllers;
+  // late final List<TextEditingController> _controllers;
   late final int _raceId;
   late final Map<String, dynamic> _timingData;
   // late List<Map<String, dynamic>> _runners;
   late List<Map<String, dynamic>> _runnerRecords;
-  bool _dataSynced = false;
 
   @override
   void initState() {
@@ -47,26 +46,11 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
     _raceId = widget.raceId;
     _timingData = widget.timingData;
     _runnerRecords = widget.runnerRecords;
-    // _runners = [];
-    _finishTimeControllers = _initializeFinishTimeControllers();
-    _controllers = List.generate(getNumberOfTimes(_timingData['records'] ?? []), (index) => TextEditingController());
-    // _fetchRunners();
-  }
-
-  Map<int, TextEditingController> _initializeFinishTimeControllers() {
-    final controllers = <int, TextEditingController>{};
-    for (var record in _timingData['records']) {
-      if (record['type'] == 'runner_time' && record['is_confirmed'] == true) {
-        controllers[record['place']] = TextEditingController(text: record['finish_time']);
-      }
-    }
-    return controllers;
   }
 
   @override
   void didChangeDependencies() async {
     super.didChangeDependencies();
-    _dataSynced = true;
     _updateRunnerInfo();
     // await _syncBibData(
     //   _timingData['bibs']?.cast<String>() ?? [], 
@@ -489,15 +473,6 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
     print('Unused records: $unusedRecords');
 
     setState(() {
-      for (var record in unusedRecords.toList().reversed.toList()) {
-        if (record['place'] != null) {
-          print('Place: ${record['place']}');
-          final index = record['place'] != '' ? record['place'] - 1 : record['previous_place'] - 1;
-          _controllers[index].dispose();
-          _controllers.removeAt(index);
-        }
-      }
-      
       _timingData['records']?.removeWhere((record) => unusedTimes.contains(record['finish_time']));
       runners.removeWhere((runner) => unusedTimes.contains(runner['finish_time']));
     });
@@ -660,44 +635,18 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
     final runnersBeforeConflict = records.sublist(0, lastConflictIndex).where((r) => r['type'] == 'runner_time').toList();
     final offBy = lastConflict['offBy'];
     print('off by: $offBy');
-    final controllers = _controllers;
 
     records = updateTextColor(null, records, confirmed: false, endIndex: lastConflictIndex);
     for (int i = 0; i < offBy; i++) {
       final record = runnersBeforeConflict[runnersBeforeConflict.length - 1 - i];
       print('remove record: $record');
       setState(() {
-        controllers.removeAt(runnersBeforeConflict.length - 1 - i);
         records.remove(record);
       });
     }
     setState(() {
       records.remove(lastConflict);
     });
-  }
-
-  bool _timeIsValid(String newValue, int index, List<dynamic> timeRecords) {
-    Duration? parsedTime = loadDurationFromString(newValue);
-    if (parsedTime == null || parsedTime < Duration.zero) {
-      DialogUtils.showErrorDialog(context, message: 'Invalid time entered. Should be in HH:mm:ss.ms format');
-      return false;
-    }
-
-    if (index < 0 || index >= timeRecords.length) {
-      return false;
-    }
-
-    if (index > 0 && loadDurationFromString(timeRecords[index - 1]['finish_time'])! > parsedTime) {
-      DialogUtils.showErrorDialog(context, message: 'Time must be greater than the previous time');
-      return false;
-    }
-
-    if (index < timeRecords.length - 1 && loadDurationFromString(timeRecords[index + 1]['finish_time'])! < parsedTime) {
-      DialogUtils.showErrorDialog(context, message: 'Time must be less than the next time');
-      return false;
-    }
-
-    return true;
   }
 
   void _deleteConfirmedRecordsBeforeIndexUntilConflict(int recordIndex) {
@@ -736,10 +685,6 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
 
   @override
   void dispose() {
-    // Dispose all controllers
-    for (var controller in _finishTimeControllers.values) {
-      controller.dispose();
-    }
     super.dispose();
   }
 
@@ -787,7 +732,6 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
 
   bool _canShowResolveButton(List<dynamic> timeRecords) {
     return timeRecords.isNotEmpty && 
-           _dataSynced && 
            _getFirstConflict()[0] != null;
   }
 
@@ -834,9 +778,6 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
   Widget _buildRecordItem(BuildContext context, int index, List<dynamic> timeRecords) {
     final timeRecord = timeRecords[index];
     final Map<String, dynamic> runner = (_runnerRecords.isNotEmpty && index < _runnerRecords.length) ? _runnerRecords[index] : {};
-    if (_getFirstConflict()[0] == null || _finishTimeControllers[index] == null) {
-      _finishTimeControllers[index] = TextEditingController(text: timeRecord['finish_time']);
-    }
 
     switch (timeRecord['type']) {
       case 'runner_time':
@@ -939,63 +880,13 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
     int index,
     TextStyle textStyle
   ) {
-    final isEnabled = timeRecord['finish_time'] != 'tbd' && 
-                     timeRecord['finish_time'] != 'TBD' && 
-                     _getFirstConflict()[0] == null;
-
     return SizedBox(
       width: 100,
-      child: TextField(
-        controller: _finishTimeControllers[index],
-        decoration: InputDecoration(
-          hintText: 'Finish Time',
-          border: OutlineInputBorder(
-            borderSide: BorderSide(
-              color: timeRecord['conflict'] != null 
-                ? timeRecord['text_color'] 
-                : Colors.transparent,
-            ),
-          ),
-          hintStyle: TextStyle(
-            color: timeRecord['text_color'] ?? AppColors.darkColor,
-          ),
-          focusedBorder: const OutlineInputBorder(
-            borderSide: BorderSide(
-              color: Colors.blueAccent,
-            ),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderSide: BorderSide(
-              color: timeRecord['text_color'] ?? AppColors.darkColor,
-            ),
-          ),
-          disabledBorder: const OutlineInputBorder(
-            borderSide: BorderSide(
-              color: Colors.transparent,
-            ),
-          ),
-        ),
-        style: TextStyle(
-          color: timeRecord['text_color'] ?? AppColors.darkColor,
-        ),
-        enabled: isEnabled,
-        textAlign: TextAlign.center,
-        keyboardType: const TextInputType.numberWithOptions(
-          signed: true, 
-          decimal: false
-        ),
-        onSubmitted: (newValue) => _handleTimeSubmission(newValue, index, timeRecord),
+      child: Text(
+        '${timeRecord['finish_time']}',
+        style: textStyle,
       ),
     );
-  }
-
-  void _handleTimeSubmission(String newValue, int index, Map<String, dynamic> timeRecord) {
-    if (newValue.isNotEmpty && _timeIsValid(newValue, index, _timingData['records'])) {
-      timeRecord['finish_time'] = newValue;
-    } else {
-      // Reset to previous value
-      _finishTimeControllers[index]?.text = timeRecord['finish_time'];
-    }
   }
 
   Widget _buildRunnerTimeRecord(BuildContext context, int index, Map<String, dynamic> timeRecord, Map<String, dynamic> runner) {
@@ -1015,7 +906,6 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
               final confirmed = await _confirmDeleteLastRecord(index);
               if (confirmed ) {
                 setState(() {
-                  _controllers.removeAt(getNumberOfTimes(_timingData['records'] ?? []) - 1);
                   _timingData['records']?.removeAt(index);
                   _scrollController.animateTo(
                     max(_scrollController.position.maxScrollExtent, 0),

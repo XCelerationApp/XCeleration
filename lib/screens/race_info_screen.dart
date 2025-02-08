@@ -13,6 +13,7 @@ import 'dart:convert';
 import '../utils/encode_utils.dart';
 import 'merge_conflicts_screen.dart';
 import 'resolve_bib_number_screen.dart';
+import 'edit_and_review_screen.dart';
 
 class RaceInfoScreen extends StatefulWidget {
   final int raceId;
@@ -95,19 +96,19 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => EditAndResolveScreen(runnerRecords: runnerRecords, timingData: timingData, raceId: raceId),
+        builder: (context) => MergeConflictsScreen(runnerRecords: runnerRecords, timingData: timingData, raceId: raceId),
       ),
     );
   }
 
   _goToEditScreen(context, runnerRecords, timingData) async {
     DialogUtils.showErrorDialog(context, message: 'This feature is not yet implemented');
-    // Navigator.push(
-    //   context,
-    //   MaterialPageRoute(
-    //     builder: (context) => EditAndResolveScreen(runnerRecords: runnerRecords, timingData: timingData, raceId: raceId),
-    //   ),
-    // );
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditAndReviewScreen(timingData: timingData),
+      ),
+    );
   }
 
   @override
@@ -385,7 +386,7 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
                   ],
                 ),
               ),
-              if (_showRunners || _slideController.value > 0)
+              if (_showRunners && _slideController.value > 0)
                 SlideTransition(
                   position: Tween<Offset>(
                     begin: const Offset(1, 0),
@@ -424,7 +425,7 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
                     ),
                   ),
                 ),
-              if (_showResults || _slideController.value > 0)
+              if (_showResults && _slideController.value > 0)
                 SlideTransition(
                   position: Tween<Offset>(
                     begin: const Offset(1, 0),
