@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter/services.dart';
-// import 'package:audioplayers/audioplayers.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:barcode_scan2/barcode_scan2.dart';
 import 'device_connection_service.dart';
@@ -102,7 +102,6 @@ class _DeviceConnectionPopupContentState extends State<DeviceConnectionPopupCont
   @override
   void initState() {
     super.initState();
-    _deviceName = widget.deviceName;
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
@@ -286,16 +285,10 @@ class QRConnectionPopupContent extends StatefulWidget {
 }
 
 class _QRCodePopupContentState extends State<QRConnectionPopupContent> {
-  late String _data;
-  late DeviceName _deviceName;
-  late DeviceName _oppositeDeviceName;
 
   @override
   void initState() {
     super.initState();
-    _deviceName = widget.deviceName;
-    _oppositeDeviceName = widget.oppositeDeviceName;
-    _data = widget.data;
   } 
 
   @override
@@ -315,7 +308,7 @@ class _QRCodePopupContentState extends State<QRConnectionPopupContent> {
             children: [
               Center(
                 child: Text(
-                  'Show this QR code to ${_getDeviceNameString(_oppositeDeviceName)}',
+                  'Show this QR code to ${_getDeviceNameString(widget.oppositeDeviceName)}',
                   style: TextStyle(
                     fontSize: 16,
                     color: Colors.deepOrangeAccent,
@@ -331,7 +324,7 @@ class _QRCodePopupContentState extends State<QRConnectionPopupContent> {
                       height: size,
                       width: size,
                       child: QrImageView(
-                        data: '${_getDeviceNameString(_deviceName)}:${_data}',
+                        data: '${_getDeviceNameString(widget.deviceName)}:${widget.data}',
                         version: QrVersions.auto,
                         errorCorrectionLevel: QrErrorCorrectLevel.M,
                         size: size,
@@ -368,20 +361,15 @@ class WirelessConnectionPopupContent extends StatefulWidget {
 }
 
 class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent> {
-  late Future<void> Function(DeviceName deviceName) _showQRCode; 
-  late DeviceName _deviceName;
-  late DeviceType _deviceType;
-  late Protocol _protocol;
   late DeviceConnectionService _deviceConnectionService;
-
+  late Protocol _protocol;
   WirelessConnectionError? _wirelessConnectionError;
+  late AudioPlayer _audioPlayer;
 
   @override
   void initState() {
     super.initState();
-    _deviceName = widget.deviceName;
-    _deviceType = widget.deviceType;
-    _showQRCode = widget.showQRCode;
+    _audioPlayer = AudioPlayer();
     _deviceConnectionService = DeviceConnectionService();
     _protocol = Protocol(deviceConnectionService: _deviceConnectionService);
     _init();
@@ -399,7 +387,7 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
       }
 
       try {
-        await _deviceConnectionService.init('wirelessconn', _getDeviceNameString(_deviceName), _deviceType);
+        await _deviceConnectionService.init('wirelessconn', _getDeviceNameString(widget.deviceName), widget.deviceType);
       } catch (e) {
         print('Error initializing device connection service: $e');
         rethrow;
@@ -430,11 +418,13 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
 
   Future<void> _connectAndTransferData() async {
     Future<void> deviceFoundCallback (device) async {
+      if (widget.otherDevices[_getDeviceNameFromString(device.deviceName)]!['status'] == ConnectionStatus.finished) return;
+
       print('Found device: ${device.deviceName}');
       setState(() {
         widget.otherDevices[_getDeviceNameFromString(device.deviceName)]!['status'] = ConnectionStatus.found;
       });
-      if (_deviceType == DeviceType.advertiserDevice) return;
+      if (widget.deviceType == DeviceType.advertiserDevice) return;
       await _deviceConnectionService.inviteDevice(device);
     }
     Future<void> deviceLostCallback (device) async {
@@ -442,11 +432,13 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
       return;
     }
     Future<void> deviceConnectingCallback (device) async {
+      if (widget.otherDevices[_getDeviceNameFromString(device.deviceName)]!['status'] == ConnectionStatus.finished) return;
       setState(() {
         widget.otherDevices[_getDeviceNameFromString(device.deviceName)]!['status'] = ConnectionStatus.connecting;
       });
     }
     Future<void> deviceConnectedCallback (Device device) async {
+      if (widget.otherDevices[_getDeviceNameFromString(device.deviceName)]!['status'] == ConnectionStatus.finished) return;
       print('Connected to device: ${device.deviceName}');
       setState(() {
         widget.otherDevices[_getDeviceNameFromString(device.deviceName)]!['status'] = ConnectionStatus.connected;
@@ -465,7 +457,7 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
           },
         );
 
-        if (_deviceType == DeviceType.browserDevice) {
+        if (widget.deviceType == DeviceType.browserDevice) {
           print("Browser device: preparing to receive data");
           setState(() {
             widget.otherDevices[_getDeviceNameFromString(device.deviceName)]!['status'] = ConnectionStatus.receiving;
@@ -473,13 +465,12 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
           
           try {
             print("Starting to receive data");
-            final results = await _protocol.receiveData();
+            final results = await _protocol.receiveDataFromDevice(device.deviceId);
             print("Received data: $results");
             widget.otherDevices[_getDeviceNameFromString(device.deviceName)]!['data'] = results;
             setState(() {
               widget.otherDevices[_getDeviceNameFromString(device.deviceName)]!['status'] = ConnectionStatus.finished;
             });
-            closeWidget();
           } catch (e) {
             print('Error receiving data for device ${device.deviceName}: $e');
             rethrow;
@@ -499,7 +490,6 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
               setState(() {
                 widget.otherDevices[_getDeviceNameFromString(device.deviceName)]!['status'] = ConnectionStatus.finished;
               });
-              closeWidget();
             } catch (e) {
               print('Error sending data for device ${device.deviceName}: $e');
               rethrow;
@@ -526,7 +516,21 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
       deviceLostCallback: deviceLostCallback,
       deviceConnectingCallback: deviceConnectingCallback,
       deviceConnectedCallback: deviceConnectedCallback,
-  );
+    );
+
+    Future.wait(widget.otherDevices.keys.map((deviceName) async {
+      while (widget.otherDevices[deviceName]!['status'] != ConnectionStatus.finished) {
+        await Future.delayed(const Duration(milliseconds: 100));
+      }
+    })).then((_) async {
+      try {
+        await _audioPlayer.play(AssetSource('sounds/completed_ding.mp3'));
+      } catch (e) {
+        print('Error playing completion sound: $e');
+      }
+      closeWidget();
+    });
+
   }
 
   void closeWidget({Duration delay = const Duration(seconds: 2)}) {
@@ -583,7 +587,7 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
       text = switch(status) {
         ConnectionStatus.connected => 'Connected...',
         ConnectionStatus.connecting => 'Connecting...',
-        ConnectionStatus.finished => _deviceType == DeviceType.browserDevice ? 'Data Received' : 'Data Sent',
+        ConnectionStatus.finished => widget.deviceType == DeviceType.browserDevice ? 'Data Received' : 'Data Sent',
         ConnectionStatus.error => 'Error',
         ConnectionStatus.sending => 'Sending...',
         ConnectionStatus.receiving => 'Receiving...',
@@ -623,7 +627,7 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
                     ),
                   ),
                 ),
-                if (!(_deviceType == DeviceType.advertiserDevice && _wirelessConnectionError == WirelessConnectionError.unavailable))...[
+                if (!(widget.deviceType == DeviceType.advertiserDevice && _wirelessConnectionError == WirelessConnectionError.unavailable))...[
                   SizedBox(height: 4),
                   Row(
                     children: [
@@ -656,7 +660,7 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
               child: ElevatedButton(
                 onPressed: onPressed,
                 child: Text(
-                  _deviceType == DeviceType.advertiserDevice ? 'Show QR' : 'Scan QR',
+                  widget.deviceType == DeviceType.advertiserDevice ? 'Show QR' : 'Scan QR',
                   style: TextStyle(
                     fontSize: 10,
                     color: Colors.deepOrangeAccent,
@@ -673,10 +677,10 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
   @override
   Widget build(BuildContext context) {
     if (_wirelessConnectionError == WirelessConnectionError.unavailable || _wirelessConnectionError == WirelessConnectionError.unknown) {
-      if (_deviceType == DeviceType.advertiserDevice && widget.otherDevices.length == 1) {
+      if (widget.deviceType == DeviceType.advertiserDevice && widget.otherDevices.length == 1) {
         return QRConnectionPopupContent(
           data: widget.otherDevices.values.elementAt(0)['data'],
-          deviceName: _deviceName,
+          deviceName: widget.deviceName,
           oppositeDeviceName: widget.otherDevices.keys.elementAt(0),
         );
       }
@@ -695,8 +699,8 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
               itemBuilder: (context, index) {
                 DeviceName deviceName = widget.otherDevices.keys.elementAt(index);
                 return _buildDeviceConnectionTracker(deviceName, widget.otherDevices[deviceName]!['status'], () {
-                  if (_deviceType == DeviceType.advertiserDevice) {
-                     _showQRCode(deviceName);
+                  if (widget.deviceType == DeviceType.advertiserDevice) {
+                     widget.showQRCode(deviceName);
                   }
                   else {
                     _scanQrCode(context, deviceName);
