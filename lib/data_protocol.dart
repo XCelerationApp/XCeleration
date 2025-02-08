@@ -34,9 +34,9 @@ class Protocol {
   final StreamController<void> _terminationController = StreamController<void>();
   
   int _sequenceNumber = 0;
-  bool _isFinished = false;
+  final List<String> _finishedDevices = [];
   bool _isTerminated = false;
-  int _finishSequenceNumber = 0;
+  final Map<String, int> _finishSequenceNumbers = {};
 
 
   Protocol({ required this.deviceConnectionService });
@@ -44,12 +44,14 @@ class Protocol {
   void addDevice(Device device) {
     connectedDevices[device.deviceId] = device;
     _receivedPackages[device.deviceId] = {};
+    _finishSequenceNumbers[device.deviceId] = 0;
   }
 
   void removeDevice(String deviceId) {
     if (!connectedDevices.containsKey(deviceId)) return;
     connectedDevices.remove(deviceId);
     _receivedPackages.remove(deviceId);
+    _finishSequenceNumbers.remove(deviceId);
   }
 
   Future<void> terminate() async {
@@ -70,8 +72,8 @@ class Protocol {
   Future<void> _handleAcknowledgment(Package package, String senderId) async {
     if (_isTerminated) return;
     
-    if (package.number == _finishSequenceNumber) {
-      _isFinished = true;
+    if (package.number == _finishSequenceNumbers[senderId]) {
+      _finishedDevices.add(senderId);
     }
     
     print("Received acknowledgment for package ${package.number} from device $senderId");
@@ -248,9 +250,9 @@ class Protocol {
       }
 
       // Send FIN package to mark end of transmission
-      _finishSequenceNumber = _sequenceNumber + chunks.length + 1;
+      _finishSequenceNumbers[senderId] = _sequenceNumber + chunks.length + 1;
       final finPackage = Package(
-        number: _finishSequenceNumber,
+        number: _finishSequenceNumbers[senderId]!,
         type: 'FIN',
       );
       print("Sending FIN package");
@@ -266,7 +268,7 @@ class Protocol {
     }
   }
 
-  Future<Map<String, String>> receiveData() async {
+  Future<String> receiveDataFromDevice(String deviceId) async {
     if (_isTerminated) {
       throw ProtocolTerminatedException('Cannot receive data - protocol is terminated');
     }
@@ -275,7 +277,7 @@ class Protocol {
       // Wait for either completion or termination
       await Future.any([
         Future.doWhile(() async {
-          if (_isFinished || _isTerminated) return false;
+          if (_finishedDevices.contains(deviceId) || _isTerminated) return false;
           await Future.delayed(Duration(milliseconds: 100)); // Reduced delay for faster response
           return true;
         }),
@@ -287,48 +289,45 @@ class Protocol {
         throw ProtocolTerminatedException('Data reception interrupted');
       }
       print("Data reception complete, gathering results");
-      final results = <String, String>{};
       
-      for (var entry in _receivedPackages.entries) {
-        final deviceId = entry.key;
-        final packages = entry.value.values.toList()
-          ..sort((a, b) => a.number.compareTo(b.number));
-        
-        // Filter only DATA packages and verify sequence
-        final dataPackages = packages.where((p) => p.type == 'DATA').toList();
-        
-        if (dataPackages.isEmpty) {
-          results[deviceId] = '';
-          continue;
-        }
+      Map<int, Package> packages = _receivedPackages[deviceId] ?? {};
+      if (packages.isEmpty) {
+        throw Exception('No packages received from $deviceId');
+      }
+      final List<Package> sortedPackages = _receivedPackages[deviceId]!.values.toList()
+        ..sort((a, b) => a.number.compareTo(b.number));
+      
+      // Filter only DATA packages and verify sequence
+      final List<Package> dataPackages = sortedPackages.where((p) => p.type == 'DATA').toList();
+      
+      if (dataPackages.isEmpty) {
+        throw Exception('No DATA packages received from $deviceId');
+      }
 
-        // Verify we have all packages in sequence
-        bool hasAllPackages = true;
-        for (var i = 0; i < dataPackages.length; i++) {
-          if (dataPackages[i].number != i + 1) {
-            hasAllPackages = false;
-            break;
-          }
-        }
-
-        if (!hasAllPackages) {
-          throw Exception('Missing packages in sequence from $deviceId');
-        }
-
-        // Combine data chunks
-        final dataChunks = dataPackages
-          .where((p) => p.data != null)
-          .map((p) => p.data!)
-          .toList();
-          
-        if (dataChunks.isNotEmpty) {
-          results[deviceId] = dataChunks.join();
-        } else {
-          results[deviceId] = '';
+      // Verify we have all packages in sequence
+      bool hasAllPackages = true;
+      for (var i = 0; i < dataPackages.length; i++) {
+        if (dataPackages[i].number != i + 1) {
+          hasAllPackages = false;
+          break;
         }
       }
 
-      return results;
+      if (!hasAllPackages) {
+        throw Exception('Missing packages in sequence from $deviceId');
+      }
+
+      // Combine data chunks
+      final dataChunks = dataPackages
+        .where((p) => p.data != null)
+        .map((p) => p.data!)
+        .toList();
+        
+      if (dataChunks.isEmpty) {
+        throw Exception('No valid DATA packages received from $deviceId');
+      }
+      return dataChunks.join();
+
     } catch (e) {
       if (_isTerminated) {
         rethrow;
@@ -346,7 +345,8 @@ class Protocol {
     _pendingTransmissions.clear();
     _receivedPackages.clear();
     _sequenceNumber = 0;
-    _isFinished = false;
+    _finishedDevices.clear();
+    _finishSequenceNumbers.clear();
   }
   
   void dispose() {
