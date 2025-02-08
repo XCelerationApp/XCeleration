@@ -380,7 +380,7 @@ class WirelessConnectionPopupContent extends StatefulWidget {
 class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent> {
   late DeviceConnectionService _deviceConnectionService;
   late Protocol _protocol;
-  late WirelessConnectionError _wirelessConnectionError;
+  WirelessConnectionError? _wirelessConnectionError;
 
   @override
   void initState() {
