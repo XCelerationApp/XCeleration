@@ -11,7 +11,7 @@ Functionality:
 - clean up code
 - have titles for catagories for spreadsheet
 - make sure QR codes work before recording race results (either ask user to test or use a package)
-- change app name to XCelerate
+- figure out what to do when the are more confirmed records than recorded bib numbers
 
 UI:
 - turn popups into sheets
