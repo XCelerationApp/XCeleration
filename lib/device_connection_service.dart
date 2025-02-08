@@ -181,7 +181,7 @@ class DeviceConnectionService {
         try {
           final callback = _messageCallbacks[data['senderDeviceId']];
           if (callback != null) {
-            await callback(data);
+            await callback(data.cast<String, dynamic>());
           } else {
             print("No callback found for device ID: ${data['senderDeviceId']}");
           }
