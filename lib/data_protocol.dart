@@ -25,7 +25,6 @@ class Protocol {
   static const int maxSendAttempts = 3;
   static const int retryTimeoutSeconds = 5;
   static const int chunkSize = 1000;
-  static const int maxConcurrentTransmissions = 5;
   
   final DeviceConnectionService deviceConnectionService;
   final Map<String, Device> connectedDevices = {};  // Map of device IDs to devices
@@ -38,17 +37,9 @@ class Protocol {
   bool _isFinished = false;
   bool _isTerminated = false;
   int _finishSequenceNumber = 0;
-  
-  final _transmissionSemaphore = StreamController<void>.broadcast();
-  int _currentTransmissions = 0;
 
-  Protocol({
-    required this.deviceConnectionService,
-  }) {
-    for (var i = 0; i < maxConcurrentTransmissions; i++) {
-      _transmissionSemaphore.add(null);
-    }
-  }
+
+  Protocol({ required this.deviceConnectionService });
 
   void addDevice(Device device) {
     connectedDevices[device.deviceId] = device;
@@ -83,12 +74,11 @@ class Protocol {
       _isFinished = true;
     }
     
-    final state = _pendingTransmissions.remove(package.number);
-    if (state != null) {
-      state.retryTimer?.cancel();
-      if (!state.completer.isCompleted) {
-        state.completer.complete();
-      }
+    print("Received acknowledgment for package ${package.number} from device $senderId");
+    
+    final state = _pendingTransmissions[package.number];
+    if (state != null && !state.completer.isCompleted) {
+      state.completer.complete();
     }
   }
 
@@ -153,39 +143,27 @@ class Protocol {
     }
   }
 
-  Future<bool> _isDeviceConnected(String senderId) async {
+  bool _isDeviceConnected(String senderId) {
     final device = connectedDevices[senderId];
     return device != null;
   }
 
   Future<void> _sendPackageWithRetry(Package package, String senderId) async {
     if (_isTerminated) {
+      print("Protocol terminated, cannot send package");
       throw ProtocolTerminatedException('Cannot send package - protocol is terminated');
     }
-
-    // Check device connection before attempting to send
-    if (!await _isDeviceConnected(senderId)) {
-      throw Exception('Device $senderId is not connected');
-    }
-
-    // Wait for available transmission slot
-    await _transmissionSemaphore.stream.first;
-    _currentTransmissions++;
 
     final state = _TransmissionState();
     _pendingTransmissions[package.number] = state;
 
-    void releaseTransmissionSlot() {
-      _currentTransmissions--;
-      _transmissionSemaphore.add(null);
-    }
-
     Future<void> attemptSend() async {
       try {
-        // Check connection again before each send attempt
-        if (!state.isCancelled && await _isDeviceConnected(senderId)) {
+        if (!state.isCancelled && _isDeviceConnected(senderId)) {
+          print("Attempt ${state.retryCount + 1}/$maxSendAttempts to send package");
           await deviceConnectionService.sendMessageToDevice(connectedDevices[senderId]!, package);
-        } else if (!state.isCancelled) {
+        } else if (!state.isCancelled && !_isDeviceConnected(senderId)) {
+          state.completer.completeError('Device disconnected during transmission');
           throw Exception('Device disconnected during transmission');
         }
       } catch (e) {
@@ -198,60 +176,44 @@ class Protocol {
       state.retryTimer = Timer(
         Duration(seconds: retryTimeoutSeconds),
         () async {
-          if (state.isCancelled) {
-            releaseTransmissionSlot();
-            return;
-          }
+          if (state.isCancelled || state.completer.isCompleted) return;
 
-          // Check connection before retry
-          if (!await _isDeviceConnected(senderId)) {
-            _pendingTransmissions.remove(package.number);
-            state.completer.completeError('Device disconnected during retry');
-            releaseTransmissionSlot();
-            return;
-          }
-
-          if (state.retryCount < maxSendAttempts && !state.completer.isCompleted) {
+          if (state.retryCount < maxSendAttempts - 1) {
             state.retryCount++;
-            print('Retrying package ${package.number} (attempt ${state.retryCount})');
+            print('Retrying package ${package.number} (attempt ${state.retryCount + 1})');
             await attemptSend();
             scheduleRetry();
-          } else if (!state.completer.isCompleted) {
-            _pendingTransmissions.remove(package.number);
-            state.completer.completeError(
-              'Failed to send package ${package.number} after $maxSendAttempts attempts'
-            );
-            releaseTransmissionSlot();
+          } else {
+            state.completer.completeError('Failed to send package after ${state.retryCount + 1} attempts');
           }
         },
       );
     }
 
-    _sequenceNumber++;
-    await attemptSend();
-    scheduleRetry();
-
-    try {
-      await state.completer.future;
+    void cleanup() {
       state.retryTimer?.cancel();
-      releaseTransmissionSlot();
+      _pendingTransmissions.remove(package.number);
+    }
 
-      if (_isTerminated) {
-        throw ProtocolTerminatedException('Package transmission interrupted by termination');
-      }
+    print("Starting package send attempt for ${package.type} (seq: ${package.number})");
+    
+    try {
+      await attemptSend();
+      scheduleRetry();
       
-      if (!state.isCancelled) {
-        print('Package ${package.number} acknowledged');
+      // Wait for acknowledgment or failure
+      try {
+        await state.completer.future;
+        print('Package ${package.number} successfully sent and acknowledged');
+      } catch (e) {
+        print('Failed to send package ${package.number}: $e');
+        rethrow;
+      } finally {
+        cleanup();
       }
     } catch (e) {
-      releaseTransmissionSlot();
-      if (_isTerminated) {
-        rethrow;
-      }
-      if (!state.isCancelled) {
-        print('Package transmission failed: $e');
-        rethrow;
-      }
+      cleanup();
+      throw Exception('Failed to send package: $e');
     }
   }
 
@@ -282,6 +244,7 @@ class Protocol {
         );
         print("Sending chunk ${i + 1}/${chunks.length}");
         await _sendPackageWithRetry(package, senderId);
+        _sequenceNumber++;
       }
 
       // Send FIN package to mark end of transmission
@@ -384,12 +347,6 @@ class Protocol {
     _receivedPackages.clear();
     _sequenceNumber = 0;
     _isFinished = false;
-    
-    // Reset transmission semaphore
-    while (_currentTransmissions > 0) {
-      _transmissionSemaphore.add(null);
-      _currentTransmissions--;
-    }
   }
   
   void dispose() {

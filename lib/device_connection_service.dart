@@ -122,13 +122,23 @@ class DeviceConnectionService {
 
 
   Future<void> sendMessageToDevice(Device device, Package package) async {
+    if (nearbyService == null) {
+      print("ERROR: nearbyService is null");
+      throw Exception("NearbyService not initialized");
+    }
+    
     if (device.state != SessionState.connected) {
       print("Device not connected - Cannot send message");
       return;
     }
     print("Sending message to device ${device.deviceName}: ${package.toString()}");
-    await nearbyService!.sendMessage(device.deviceId, package.toString());
-    print("Message sent successfully");
+    try {
+      await nearbyService!.sendMessage(device.deviceId, package.toString());
+      print("Message sent successfully to ${device.deviceName}");
+    } catch (e) {
+      print("Error sending message to ${device.deviceName}: $e");
+      rethrow;
+    }
   }
 
   void monitorMessageReceives(Device device, {required Function(Package, String) messageReceivedCallback}) {
