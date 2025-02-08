@@ -1,20 +1,31 @@
+// Flutter imports
 import 'package:flutter/material.dart';
-import 'package:xcelerate/utils/sheet_utils.dart';
-import '../utils/share_utils.dart';
-import '../utils/dialog_utils.dart';
-import 'dart:io';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/services.dart';
+
+// Third-party package imports
+import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as path;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
+// Local imports
+import '../utils/sheet_utils.dart';
+import '../utils/share_utils.dart';
+import '../utils/dialog_utils.dart';
+import '../utils/app_colors.dart';
+
+// Dart imports
+import 'dart:io';
+import 'dart:convert';
+
+/// Enum defining the available formats for exporting results
 enum ResultFormat {
   plainText,
   googleSheet,
-  pdf
+  pdf,
 }
 
 class ShareSheetScreen extends StatefulWidget {
@@ -34,35 +45,41 @@ class ShareSheetScreen extends StatefulWidget {
 class _ShareSheetScreenState extends State<ShareSheetScreen> {
   ResultFormat _selectedFormat = ResultFormat.plainText;
 
+  // Text Formatting Methods
   String _getFormattedText() {
     final StringBuffer buffer = StringBuffer();
     
-    // Team Results
+    // Team Results Section
     buffer.writeln('Team Results');
     buffer.writeln('Rank\tSchool\tScore\tSplit Time\tAverage Time');
-    for (var team in widget.teamResults) {
-      buffer.writeln('${team['place']}\t${team['school']}\t${team['score']}\t${team['split']}\t${team['averageTime']}');
+    for (final team in widget.teamResults) {
+      buffer.writeln(
+        '${team['place']}\t${team['school']}\t${team['score']}\t'
+        '${team['split']}\t${team['averageTime']}'
+      );
     }
     
-    // Individual Results
+    // Individual Results Section
     buffer.writeln('\nIndividual Results');
     buffer.writeln('Place\tName\tSchool\tTime');
-    for (var runner in widget.individualResults) {
-      buffer.writeln('${runner['place']}\t${runner['name']}\t${runner['school']}\t${runner['finish_time']}');
+    for (final runner in widget.individualResults) {
+      buffer.writeln(
+        '${runner['place']}\t${runner['name']}\t${runner['school']}\t'
+        '${runner['finish_time']}'
+      );
     }
     
     return buffer.toString();
   }
 
+  // File Operations
   Future<void> _saveLocally(BuildContext context, ResultFormat format) async {
     try {
-      String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
+      final String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
       if (selectedDirectory == null) return;
 
-      final file = File(path.join(
-        selectedDirectory,
-        'race_results.${format == ResultFormat.pdf ? 'pdf' : 'txt'}'
-      ));
+      final String extension = format == ResultFormat.pdf ? 'pdf' : 'txt';
+      final file = File(path.join(selectedDirectory, 'race_results.$extension'));
 
       if (format == ResultFormat.pdf) {
         final pdfData = await _generatePdf();
@@ -83,24 +100,28 @@ class _ShareSheetScreenState extends State<ShareSheetScreen> {
     }
   }
 
+  // Clipboard Operations
   Future<void> _copyToClipboard(BuildContext context, ResultFormat format) async {
     try {
-      if (format == ResultFormat.googleSheet) {
-        final sheetsData = _getSheetsData();
-        final sheetUrl = await ShareUtils.exportToGoogleSheets(context, sheetsData);
-        if (sheetUrl != null) {
-          await Clipboard.setData(ClipboardData(text: sheetUrl));
-        }
-      } else if (format == ResultFormat.pdf) {
-        final pdfData = await _generatePdf();
-        // Since we can't copy PDF data directly to clipboard, we'll show a dialog
-        DialogUtils.showErrorDialog(
-          context,
-          message: 'PDF format cannot be copied to clipboard. Please use Save or Email options instead.'
-        );
-        return;
-      } else {
-        await Clipboard.setData(ClipboardData(text: _getFormattedText()));
+      switch (format) {
+        case ResultFormat.googleSheet:
+          final sheetsData = _getSheetsData();
+          final sheetUrl = await ShareUtils.exportToGoogleSheets(context, sheetsData);
+          if (sheetUrl != null) {
+            await Clipboard.setData(ClipboardData(text: sheetUrl));
+          }
+          break;
+        
+        case ResultFormat.pdf:
+          DialogUtils.showErrorDialog(
+            context,
+            message: 'PDF format cannot be copied to clipboard. Please use Save or Email options instead.'
+          );
+          return;
+        
+        case ResultFormat.plainText:
+          await Clipboard.setData(ClipboardData(text: _getFormattedText()));
+          break;
       }
 
       if (mounted) {
@@ -115,38 +136,33 @@ class _ShareSheetScreenState extends State<ShareSheetScreen> {
     }
   }
 
+  // Data Formatting Methods
   List<List<dynamic>> _getSheetsData() {
-    final List<List<dynamic>> sheetsData = [];
-    
-    // Add headers
-    sheetsData.add(['Team Results']);
-    sheetsData.add(['Rank', 'School', 'Score', 'Split Time', 'Average Time']);
-    
-    // Add team data
-    for (var team in widget.teamResults) {
-      sheetsData.add([
+    final List<List<dynamic>> sheetsData = [
+      // Team Results Section
+      ['Team Results'],
+      ['Rank', 'School', 'Score', 'Split Time', 'Average Time'],
+      ...widget.teamResults.map((team) => [
         team['place'],
         team['school'],
         team['score'],
         team['split'],
         team['averageTime'],
-      ]);
-    }
-    
-    // Add spacing and individual results header
-    sheetsData.add([]);
-    sheetsData.add(['Individual Results']);
-    sheetsData.add(['Place', 'Name', 'School', 'Time']);
-    
-    // Add individual data
-    for (var runner in widget.individualResults) {
-      sheetsData.add([
+      ]),
+      
+      // Spacing
+      [],
+      
+      // Individual Results Section
+      ['Individual Results'],
+      ['Place', 'Name', 'School', 'Time'],
+      ...widget.individualResults.map((runner) => [
         runner['place'],
         runner['name'],
         runner['school'],
         runner['finish_time'],
-      ]);
-    }
+      ]),
+    ];
 
     return sheetsData;
   }
@@ -157,10 +173,13 @@ class _ShareSheetScreenState extends State<ShareSheetScreen> {
     pdf.addPage(
       pw.MultiPage(
         build: (context) => [
+          // Title
           pw.Header(
             level: 0,
             child: pw.Text('Race Results', style: pw.TextStyle(fontSize: 24)),
           ),
+          
+          // Team Results Section
           pw.Header(level: 1, child: pw.Text('Team Results')),
           pw.Table.fromTextArray(
             headers: ['Rank', 'School', 'Score', 'Split Time', 'Average Time'],
@@ -172,7 +191,10 @@ class _ShareSheetScreenState extends State<ShareSheetScreen> {
               team['averageTime'].toString(),
             ]).toList(),
           ),
+          
           pw.SizedBox(height: 20),
+          
+          // Individual Results Section
           pw.Header(level: 1, child: pw.Text('Individual Results')),
           pw.Table.fromTextArray(
             headers: ['Place', 'Name', 'School', 'Time'],
@@ -190,94 +212,119 @@ class _ShareSheetScreenState extends State<ShareSheetScreen> {
     return pdf;
   }
 
+  // Sharing Methods
   Future<void> _sendEmail(BuildContext context, ResultFormat format) async {
-    if (format == ResultFormat.googleSheet) {
-      final sheetsData = _getSheetsData();
-      final sheetUrl = await ShareUtils.exportToGoogleSheets(context, sheetsData);
-      if (sheetUrl != null) {
-        final Uri emailLaunchUri = Uri(
-          scheme: 'mailto',
-          query: encodeQueryParameters({
-            'subject': 'Race Results',
-            'body': 'Race results are available in the following Google Sheet:\n\n$sheetUrl',
-          }),
-        );
-        if (await canLaunchUrl(emailLaunchUri)) {
-          await launchUrl(emailLaunchUri);
-        }
-      }
-    } else if (format == ResultFormat.pdf) {
-      // For PDF, we'll save it first then attach it to the email
-      try {
-        final tempDir = await getTemporaryDirectory();
-        final file = File('${tempDir.path}/race_results.pdf');
-        final pdfData = await _generatePdf();
-        await file.writeAsBytes(await pdfData.save());
+    try {
+      switch (format) {
+        case ResultFormat.googleSheet:
+          final sheetsData = _getSheetsData();
+          final sheetUrl = await ShareUtils.exportToGoogleSheets(context, sheetsData);
+          if (sheetUrl != null) {
+            await _launchEmail(
+              subject: 'Race Results',
+              body: 'Race results are available in the following Google Sheet:\n\n$sheetUrl',
+            );
+          }
+          break;
 
-        final Uri emailLaunchUri = Uri(
-          scheme: 'mailto',
-          query: encodeQueryParameters({
-            'subject': 'Race Results',
-            'body': 'Please find attached the race results PDF.',
-            'attachment': file.path,
-          }),
-        );
-        if (await canLaunchUrl(emailLaunchUri)) {
-          await launchUrl(emailLaunchUri);
-        }
-      } catch (e) {
-        if (mounted) {
-          DialogUtils.showErrorDialog(
-            context,
-            message: 'Failed to generate PDF: $e'
+        case ResultFormat.pdf:
+          final pdfData = await _generatePdf();
+          final bytes = await pdfData.save();
+          final base64Pdf = base64Encode(bytes);
+          
+          await _launchEmail(
+            subject: 'Race Results',
+            body: 'Please find attached the race results PDF.',
+            attachment: 'data:application/pdf;base64,$base64Pdf',
           );
-        }
-      }
-    } else {
-      final Uri emailLaunchUri = Uri(
-        scheme: 'mailto',
-        query: encodeQueryParameters({
-          'subject': 'Race Results',
-          'body': _getFormattedText(),
-        }),
-      );
-      if (await canLaunchUrl(emailLaunchUri)) {
-        await launchUrl(emailLaunchUri);
-      }
-    }
+          break;
 
-    if (mounted && !await canLaunchUrl(Uri(scheme: 'mailto'))) {
-      DialogUtils.showErrorDialog(
-        context,
-        message: 'Could not launch email client'
-      );
+        case ResultFormat.plainText:
+          await _launchEmail(
+            subject: 'Race Results',
+            body: _getFormattedText(),
+          );
+          break;
+      }
+    } catch (e) {
+      if (mounted) {
+        DialogUtils.showErrorDialog(context, message: 'Failed to send email: $e');
+      }
     }
   }
 
   Future<void> _sendSms(BuildContext context, ResultFormat format) async {
-    String messageBody;
-    if (format == ResultFormat.googleSheet) {
-      final sheetsData = _getSheetsData();
-      final sheetUrl = await ShareUtils.exportToGoogleSheets(context, sheetsData);
-      messageBody = sheetUrl ?? 'Race results not available';
-    } else {
-      messageBody = _getFormattedText();
-    }
+    try {
+      String messageBody;
+      if (format == ResultFormat.googleSheet) {
+        final sheetsData = _getSheetsData();
+        final sheetUrl = await ShareUtils.exportToGoogleSheets(context, sheetsData);
+        messageBody = sheetUrl ?? 'Race results not available';
+      } else if (format == ResultFormat.pdf) {
+        final pdfData = await _generatePdf();
+        final bytes = await pdfData.save();
+        final base64Pdf = base64Encode(bytes);
+        
+        final Uri smsLaunchUri = Uri.parse('sms:?&body=Please find the race results attached.');
+        if (await canLaunchUrl(smsLaunchUri)) {
+          await Share.shareXFiles(
+            [
+              XFile.fromData(
+                bytes,
+                name: 'race_results.pdf',
+                mimeType: 'application/pdf',
+              )
+            ],
+          );
+        } else if (mounted) {
+          DialogUtils.showErrorDialog(context, message: 'Could not share the PDF');
+        }
+        return;
+      } else {
+        messageBody = _getFormattedText();
+      }
 
-    // On iOS, we need to use a different format
-    final Uri smsLaunchUri = Uri.parse('sms:&body=${Uri.encodeComponent(messageBody)}');
+      final Uri smsLaunchUri = Uri.parse('sms:&body=${Uri.encodeComponent(messageBody)}');
 
-    if (await canLaunchUrl(smsLaunchUri)) {
-      await launchUrl(smsLaunchUri);
-    } else if (mounted) {
-      DialogUtils.showErrorDialog(
-        context,
-        message: 'Could not launch SMS app'
-      );
+      if (await canLaunchUrl(smsLaunchUri)) {
+        await launchUrl(smsLaunchUri);
+      } else if (mounted) {
+        DialogUtils.showErrorDialog(context, message: 'Could not launch SMS app');
+      }
+    } catch (e) {
+      if (mounted) {
+        DialogUtils.showErrorDialog(context, message: 'Failed to send SMS: $e');
+      }
     }
   }
 
-  String encodeQueryParameters(Map<String, String> params) {
+  // Helper Methods
+  Future<void> _launchEmail({
+    required String subject,
+    required String body,
+    String? attachment,
+  }) async {
+    final Map<String, String> params = {
+      'subject': subject,
+      'body': body,
+    };
+    if (attachment != null) {
+      params['attachment'] = attachment;
+    }
+
+    final Uri emailLaunchUri = Uri(
+      scheme: 'mailto',
+      query: _encodeQueryParameters(params),
+    );
+
+    if (await canLaunchUrl(emailLaunchUri)) {
+      await launchUrl(emailLaunchUri);
+    } else if (mounted) {
+      DialogUtils.showErrorDialog(context, message: 'Could not launch email client');
+    }
+  }
+
+  String _encodeQueryParameters(Map<String, String> params) {
     return params.entries
         .map((e) => '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
         .join('&');
@@ -286,77 +333,138 @@ class _ShareSheetScreenState extends State<ShareSheetScreen> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          createSheetHandle(height: 10, width: 60),
-          const SizedBox(height: 8),
+          // Header
+          Center(child: createSheetHandle(height: 10, width: 60)),
+          const SizedBox(height: 16),
+          
+          // Format Selection
           const Text(
             'Select Format',
             style: TextStyle(
-              fontSize: 18,
+              fontSize: 20,
               fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(height: 8),
-          SegmentedButton<ResultFormat>(
-            segments: const [
-              ButtonSegment<ResultFormat>(
-                value: ResultFormat.plainText,
-                label: Text('Plain Text'),
+          const SizedBox(height: 12),
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(25),
+              border: Border.all(
+                color: AppColors.unselectedRoleTextColor,
+                width: 1,
               ),
-              ButtonSegment<ResultFormat>(
-                value: ResultFormat.googleSheet,
-                label: Text('Google Sheet'),
+            ),
+            child: SegmentedButton<ResultFormat>(
+              selectedIcon: const Icon(
+                Icons.check,
+                color: AppColors.unselectedRoleColor,
               ),
-              ButtonSegment<ResultFormat>(
-                value: ResultFormat.pdf,
-                label: Text('PDF'),
+              segments: const [
+                ButtonSegment<ResultFormat>(
+                  value: ResultFormat.plainText,
+                  label: Center(
+                    child: Text(
+                      'Plain Text',
+                      style: TextStyle(fontSize: 16, height: 1.2),
+                    ),
+                  ),
+                ),
+                ButtonSegment<ResultFormat>(
+                  value: ResultFormat.googleSheet,
+                  label: Center(
+                    child: Text(
+                      'Google Sheet',
+                      style: TextStyle(fontSize: 16, height: 1.2),
+                    ),
+                  ),
+                ),
+                ButtonSegment<ResultFormat>(
+                  value: ResultFormat.pdf,
+                  label: Center(
+                    child: Text(
+                      'PDF',
+                      style: TextStyle(fontSize: 16, height: 1.2),
+                    ),
+                  ),
+                ),
+              ],
+              selected: {_selectedFormat},
+              onSelectionChanged: (Set<ResultFormat> newSelection) {
+                setState(() => _selectedFormat = newSelection.first);
+              },
+              style: ButtonStyle(
+                backgroundColor: MaterialStateProperty.resolveWith<Color>((states) => 
+                  states.contains(MaterialState.selected) 
+                    ? AppColors.primaryColor 
+                    : AppColors.backgroundColor
+                ),
+                foregroundColor: MaterialStateProperty.resolveWith<Color>((states) =>
+                  states.contains(MaterialState.selected)
+                    ? AppColors.unselectedRoleColor
+                    : AppColors.unselectedRoleTextColor
+                ),
               ),
-            ],
-            selected: {_selectedFormat},
-            onSelectionChanged: (Set<ResultFormat> newSelection) {
-              setState(() {
-                _selectedFormat = newSelection.first;
-              });
-            },
+            ),
           ),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: _selectedFormat == ResultFormat.googleSheet
-                ? () => ShareUtils.exportToGoogleSheets(context, _getSheetsData())
-                : () => _saveLocally(context, _selectedFormat),
-            icon: Icon(_selectedFormat == ResultFormat.googleSheet
+          const SizedBox(height: 32),
+          
+          // Action Buttons
+          _buildActionButton(
+            icon: _selectedFormat == ResultFormat.googleSheet
                 ? Icons.cloud_upload
-                : Icons.save),
-            label: Text(_selectedFormat == ResultFormat.googleSheet
+                : Icons.save,
+            label: _selectedFormat == ResultFormat.googleSheet
                 ? 'Export to Google Sheets'
-                : 'Save Locally'),
+                : 'Save Locally',
+            onPressed: () => _selectedFormat == ResultFormat.googleSheet
+                ? ShareUtils.exportToGoogleSheets(context, _getSheetsData())
+                : _saveLocally(context, _selectedFormat),
           ),
           const SizedBox(height: 12),
-          ElevatedButton.icon(
-            onPressed: () => _copyToClipboard(context, _selectedFormat),
-            icon: const Icon(Icons.copy),
-            label: Text(_selectedFormat == ResultFormat.googleSheet
+          _buildActionButton(
+            icon: Icons.copy,
+            label: _selectedFormat == ResultFormat.googleSheet
                 ? 'Copy Sheet Link'
-                : 'Copy to Clipboard'),
+                : 'Copy to Clipboard',
+            onPressed: () => _selectedFormat == ResultFormat.pdf
+                ? null
+                : () => _copyToClipboard(context, _selectedFormat),
           ),
           const SizedBox(height: 12),
-          ElevatedButton.icon(
+          _buildActionButton(
+            icon: Icons.email,
+            label: 'Send via Email',
             onPressed: () => _sendEmail(context, _selectedFormat),
-            icon: const Icon(Icons.email),
-            label: const Text('Send via Email'),
           ),
           const SizedBox(height: 12),
-          ElevatedButton.icon(
-            onPressed: _selectedFormat == ResultFormat.pdf 
-                ? null 
-                : () => _sendSms(context, _selectedFormat),
-            icon: const Icon(Icons.sms),
-            label: const Text('Send via SMS'),
+          _buildActionButton(
+            icon: Icons.sms,
+            label: 'Send via SMS',
+            onPressed: () => _sendSms(context, _selectedFormat),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback? onPressed,
+  }) {
+    return ElevatedButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon),
+      label: Text(label),
+      style: ElevatedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
       ),
     );
   }
