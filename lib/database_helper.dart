@@ -236,7 +236,7 @@ class DatabaseHelper {
     );
   }
 
-  Future<List<dynamic>> getRaceRunnerByBib(int raceId, String bibNumber, {bool getTeamRunner=false}) async {
+  Future<Map<String, dynamic>?> getRaceRunnerByBib(int raceId, String bibNumber) async {
     final db = await instance.database;
     final results = await db.query(
       'race_runners',
@@ -244,21 +244,18 @@ class DatabaseHelper {
       whereArgs: [raceId, bibNumber],
     );
 
-    final runner = results.isNotEmpty ? results.first : null;
-    if (runner == null && getTeamRunner) {
-      return [await getTeamRunnerByBib(bibNumber), true];
-    }
-    return [runner, false];
+    final Map<String, dynamic>? runner = results.isNotEmpty ? results.first : null;
+    return runner;
   }
 
   Future<List<Map<String, dynamic>>> getRaceRunnersByBibs(int raceId, List<String> bibNumbers) async {
     List<Map<String, dynamic>> results = [];
     for (int i = 0; i < bibNumbers.length; i++) {
-      final runner = await getRaceRunnerByBib(raceId, bibNumbers[i], getTeamRunner: true);
-      if (runner[0] == null) {
+      final runner = await getRaceRunnerByBib(raceId, bibNumbers[i]);
+      if (runner == null) {
         break;
       }
-      results.add(runner[0]);
+      results.add(runner);
     }
     return results;
   }
@@ -352,29 +349,29 @@ class DatabaseHelper {
       WHERE r.is_team_runner = 1 AND r.race_id = ?
     ''', [raceId]);
 
-    return [...raceRunners, ...teamRunners];
-    // return [
-    //   {
-    //     'runner_id': 1,
-    //     'bib_number': '1001',
-    //     'name': 'John Doe',
-    //     'school': 'Test School',
-    //     'grade': '5',
-    //     'place': 1,
-    //     'finish_time': '5.00',
-    //     'is_team_runner': 0
-    //   },
-    //   {
-    //     'runner_id': 2,
-    //     'bib_number': '1002',
-    //     'name': 'Jane Doe',
-    //     'school': 'Test School',
-    //     'grade': '5',
-    //     'place': 2,
-    //     'finish_time': '6.00',
-    //     'is_team_runner': 0
-    //   },
-    // ];
+    // return [...raceRunners, ...teamRunners];
+    return [
+      {
+        'runner_id': 1,
+        'bib_number': '1001',
+        'name': 'John Doe',
+        'school': 'Test School',
+        'grade': '5',
+        'place': 1,
+        'finish_time': '5.00',
+        'is_team_runner': 0
+      },
+      {
+        'runner_id': 2,
+        'bib_number': '1002',
+        'name': 'Jane Doe',
+        'school': 'Test School',
+        'grade': '5',
+        'place': 2,
+        'finish_time': '6.00',
+        'is_team_runner': 0
+      },
+    ];
   }
 
   Future<List<Map<String, dynamic>>> getAllResults() async {

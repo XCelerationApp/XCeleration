@@ -11,7 +11,8 @@ import '../utils/dialog_utils.dart';
 import '../device_connection_service.dart';
 import 'dart:convert';
 import '../utils/encode_utils.dart';
-import 'edit_and_resolve_screen.dart';
+import 'merge_conflicts_screen.dart';
+import 'resolve_bib_number_screen.dart';
 
 class RaceInfoScreen extends StatefulWidget {
   final int raceId;
@@ -82,15 +83,12 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
     return jsonEncode(runners);
   }
 
-  Future<bool> _checkForConflicts(List<dynamic> runnerRecords, Map<String, dynamic> timingData) async {
-    final conflicts = getConflictingRecords(timingData['records'], timingData['records'].length);
-    if (conflicts.isNotEmpty) {
-      return true;
-    }
-    if (runnerRecords.any((record) => record['error'] != null)) {
-      return true;
-    }
-    return false;
+  bool _containsTimingConflicts(Map<String, dynamic> timingData) {
+    return getConflictingRecords(timingData['records'], timingData['records'].length).isNotEmpty;
+  }
+
+  bool _containsBibConflicts(List<dynamic> runnerRecords) {
+    return runnerRecords.any((record) => record['error'] != null);
   }
 
   Future<void> _goToMergeConflictsScreen(context, runnerRecords, timingData) async {
@@ -357,12 +355,20 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
                               final encodedBibRecords = otherDevices[DeviceName.bibRecorder]!['data'];
                               final encodedFinishTimes = otherDevices[DeviceName.raceTimer]!['data'];
                               
-                              final runnerRecords = await processEncodedBibRecordsData(encodedBibRecords, context, raceId);
+                              var runnerRecords = await processEncodedBibRecordsData(encodedBibRecords, context, raceId);
                               final timingData = await processEncodedTimingData(encodedFinishTimes, context);
                               
                               if (runnerRecords.isNotEmpty && timingData != null) {
                                 timingData['records'] = await syncBibData(runnerRecords.length, timingData['records'], timingData['finishTimes'], context);
-                                final bool conflicts = await _checkForConflicts(runnerRecords, timingData);
+                                if (_containsBibConflicts(runnerRecords)) {
+                                  runnerRecords = await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => ResolveBibNumberScreen(records: runnerRecords, raceId: raceId),
+                                    ),
+                                  );
+                                }
+                                final bool conflicts = await _containsTimingConflicts(timingData);
                                 Navigator.pop(context);
                                 if (conflicts) {
                                   _goToMergeConflictsScreen(context, runnerRecords, timingData);
