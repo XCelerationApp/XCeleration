@@ -6,9 +6,9 @@ import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as path;
 import 'package:url_launcher/url_launcher.dart';
-import 'package:pdf/pdf.dart';
+// import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:path_provider/path_provider.dart';
+// import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 // Local imports
@@ -263,7 +263,6 @@ class _ShareSheetScreenState extends State<ShareSheetScreen> {
       } else if (format == ResultFormat.pdf) {
         final pdfData = await _generatePdf();
         final bytes = await pdfData.save();
-        final base64Pdf = base64Encode(bytes);
         
         final Uri smsLaunchUri = Uri.parse('sms:?&body=Please find the race results attached.');
         if (await canLaunchUrl(smsLaunchUri)) {

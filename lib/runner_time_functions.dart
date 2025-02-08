@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'dart:math';
 import 'utils/app_colors.dart';
+import 'utils/dialog_utils.dart';
 
 dynamic updateTextColor(Color? color, records, {bool confirmed = false, String? conflict, endIndex}) {
   if (endIndex != null && endIndex < records.length && records.isNotEmpty) {
@@ -107,4 +109,54 @@ dynamic missingRunnerTime(offBy, records, numTimes, String finishTime) {
       'offBy': offBy,
     });
   return records;
+}
+
+List<dynamic> getConflictingRecords(
+  List<dynamic> records,
+  int conflictIndex,
+) {
+  final firstConflictIndex = records.sublist(0, conflictIndex).indexWhere(
+      (record) => record['type'] == 'runner_time' && record['is_confirmed'] == false,
+    );
+  
+  return firstConflictIndex == -1 ? [] : 
+    records.sublist(firstConflictIndex, conflictIndex);
+}
+
+// Timing Operations
+Future<List<Map<String, dynamic>>> syncBibData(int runnerRecordsLength, List<Map<String, dynamic>> records, String finishTime, BuildContext context) async {
+  final numberOfRunnerTimes = getNumberOfTimes(records);
+  if (numberOfRunnerTimes != runnerRecordsLength) {
+    await _handleTimingDiscrepancy(runnerRecordsLength, records, numberOfRunnerTimes, finishTime, context);
+  } else {
+    records = await confirmRunnerNumber(records, numberOfRunnerTimes, finishTime);
+  }
+  return records;
+}
+
+Future<void> _handleTimingDiscrepancy(int runnerRecordsLength, List<Map<String, dynamic>> records, int numberOfRunnerTimes, String finishTime, BuildContext context) async {
+  final difference = runnerRecordsLength - numberOfRunnerTimes;
+  if (difference > 0) {
+    missingRunnerTime(difference, records, numberOfRunnerTimes, finishTime);
+  } else {
+    final numConfirmedRunners = records.where((r) => 
+      r['type'] == 'runner_time' && r['is_confirmed'] == true
+    ).length;
+    
+    if (numConfirmedRunners > runnerRecordsLength) {
+      DialogUtils.showErrorDialog(context, 
+        message: 'Cannot load bib numbers: more confirmed runners than loaded bib numbers.');
+      return;
+    }
+    extraRunnerTime(-difference, records, numberOfRunnerTimes, finishTime);
+  }
+}
+
+// Timing Utilities
+int getNumberOfTimes(records) {
+  return max(0, records.fold<int>(0, (int count, Map<String, dynamic> record) {
+    if (record['type'] == 'runner_time') return count + 1;
+    if (record['type'] == 'extra_runner_time') return count - 1;
+    return count;
+  }));
 }

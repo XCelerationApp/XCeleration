@@ -747,7 +747,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
       duplicateRunner = await DatabaseHelper.instance.getTeamRunnerByBib(bib);
       duplicateBib = duplicateRunner?['bib_number'];
     } else {
-      duplicateRunner = (await DatabaseHelper.instance.getRaceRunnerByBib(widget.raceId, bib))[0];
+      duplicateRunner = await DatabaseHelper.instance.getRaceRunnerByBib(widget.raceId, bib);
       duplicateBib = duplicateRunner?['bib_number'];
     }
     if (duplicateBib != null) {
@@ -941,7 +941,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
       if (widget.isTeam) {
         existingRunner = await DatabaseHelper.instance.getTeamRunnerByBib(runner['bib_number']);
       } else {
-        existingRunner = (await DatabaseHelper.instance.getRaceRunnerByBib(widget.raceId, runner['bib_number']))[0];
+        existingRunner = await DatabaseHelper.instance.getRaceRunnerByBib(widget.raceId, runner['bib_number']);
       }
       if (existingRunner != null && runner['bib_number'] == existingRunner['bib_number'] && runner['name'] == existingRunner['name'] && runner['school'] == existingRunner['school'] && runner['grade'] == existingRunner['grade']) continue;
 

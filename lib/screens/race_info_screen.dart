@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:xcelerate/runner_time_functions.dart';
 import '../database_helper.dart';
 import '../models/race.dart';
 import 'runners_management_screen.dart';
@@ -6,7 +7,11 @@ import 'results_screen.dart';
 import '../utils/sheet_utils.dart';
 import '../utils/app_colors.dart'; // Import AppColors
 import '../device_connection_popup.dart';
+import '../utils/dialog_utils.dart';
 import '../device_connection_service.dart';
+import 'dart:convert';
+import '../utils/encode_utils.dart';
+import 'edit_and_resolve_screen.dart';
 
 class RaceInfoScreen extends StatefulWidget {
   final int raceId;
@@ -65,6 +70,46 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
     else {
       print('raceData is null');
     }
+  }
+
+  Future<List<dynamic>> _getRunnersData() async {
+    final runners = await DatabaseHelper.instance.getRaceRunners(raceId);
+    return runners;
+  }
+
+  Future<String> _getEncodedRunnersData() async {
+    final runners = await _getRunnersData();
+    return jsonEncode(runners);
+  }
+
+  Future<bool> _checkForConflicts(List<dynamic> runnerRecords, Map<String, dynamic> timingData) async {
+    final conflicts = getConflictingRecords(timingData['records'], timingData['records'].length);
+    if (conflicts.isNotEmpty) {
+      return true;
+    }
+    if (runnerRecords.any((record) => record['error'] != null)) {
+      return true;
+    }
+    return false;
+  }
+
+  Future<void> _goToMergeConflictsScreen(context, runnerRecords, timingData) async {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditAndResolveScreen(runnerRecords: runnerRecords, timingData: timingData, raceId: raceId),
+      ),
+    );
+  }
+
+  _goToEditScreen(context, runnerRecords, timingData) async {
+    DialogUtils.showErrorDialog(context, message: 'This feature is not yet implemented');
+    // Navigator.push(
+    //   context,
+    //   MaterialPageRoute(
+    //     builder: (context) => EditAndResolveScreen(runnerRecords: runnerRecords, timingData: timingData, raceId: raceId),
+    //   ),
+    // );
   }
 
   @override
@@ -282,7 +327,8 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
                       child: Column(
                         children: [
                           ElevatedButton(
-                            onPressed: () {
+                            onPressed: () async {
+                              final data = await _getEncodedRunnersData();
                               showDeviceConnectionPopup(
                                 context,
                                 deviceType: DeviceType.advertiserDevice,
@@ -290,24 +336,40 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
                                 otherDevices: createOtherDeviceList(
                                   DeviceName.coach,
                                   DeviceType.advertiserDevice,
-                                  data: 'data',
+                                  data: data,
                                 ),
                               );
                             },
                             child: Text('Send Runners Data'),
                           ),
                           ElevatedButton(
-                            onPressed: () {
-                              showDeviceConnectionPopup(
+                            onPressed: () async {
+                              final otherDevices = createOtherDeviceList(
+                                DeviceName.coach,
+                                DeviceType.browserDevice,
+                              );
+                              await showDeviceConnectionPopup(
                                 context,
                                 deviceType: DeviceType.browserDevice,
                                 deviceName: DeviceName.coach,
-                                otherDevices: createOtherDeviceList(
-                                  DeviceName.coach,
-                                  DeviceType.browserDevice,
-                                  data: 'data',
-                                ),
+                                otherDevices: otherDevices,
                               );
+                              final encodedBibRecords = otherDevices[DeviceName.bibRecorder]!['data'];
+                              final encodedFinishTimes = otherDevices[DeviceName.raceTimer]!['data'];
+                              
+                              final runnerRecords = await processEncodedBibRecordsData(encodedBibRecords, context, raceId);
+                              final timingData = await processEncodedTimingData(encodedFinishTimes, context);
+                              
+                              if (runnerRecords.isNotEmpty && timingData != null) {
+                                timingData['records'] = await syncBibData(runnerRecords.length, timingData['records'], timingData['finishTimes'], context);
+                                final bool conflicts = await _checkForConflicts(runnerRecords, timingData);
+                                Navigator.pop(context);
+                                if (conflicts) {
+                                  _goToMergeConflictsScreen(context, runnerRecords, timingData);
+                                } else {
+                                  _goToEditScreen(context, runnerRecords, timingData);
+                                }
+                              }
                             },
                             child: Text('Get Race Results Data'),
                           ),

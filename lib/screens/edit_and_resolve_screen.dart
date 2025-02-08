@@ -1,23 +1,24 @@
 import 'package:flutter/material.dart';
-import '../models/race.dart';
 import '../utils/time_formatter.dart';
 import 'dart:math';
 import '../database_helper.dart';
-import 'race_screen.dart';
+import 'races_screen.dart';
 import '../utils/app_colors.dart';
+import '../utils/dialog_utils.dart';
 import 'resolve_conflict.dart';
 import '../runner_time_functions.dart';
 import '../utils/timing_utils.dart';
-import '../utils/dialog_utils.dart';
 
 class EditAndResolveScreen extends StatefulWidget {
-  final Race race;
+  final int raceId;
   final Map<String, dynamic> timingData;
+  final List<Map<String, dynamic>> runnerRecords;
 
   const EditAndResolveScreen({
     super.key, 
-    required this.race,
+    required this.raceId,
     required this.timingData,
+    required this.runnerRecords,
   });
 
   @override
@@ -30,9 +31,9 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
   late final Map<int, TextEditingController> _finishTimeControllers;
   late final List<TextEditingController> _controllers;
   late final int _raceId;
-  late final Race _race;
   late final Map<String, dynamic> _timingData;
-  late List<Map<String, dynamic>> _runners;
+  // late List<Map<String, dynamic>> _runners;
+  late List<Map<String, dynamic>> _runnerRecords;
   bool _dataSynced = false;
 
   @override
@@ -43,13 +44,13 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
 
   void _initializeState() {
     _scrollController = ScrollController();
-    _race = widget.race;
-    _raceId = _race.race_id;
+    _raceId = widget.raceId;
     _timingData = widget.timingData;
-    _runners = [];
+    _runnerRecords = widget.runnerRecords;
+    // _runners = [];
     _finishTimeControllers = _initializeFinishTimeControllers();
-    _controllers = List.generate(_getNumberOfTimes(), (index) => TextEditingController());
-    _fetchRunners();
+    _controllers = List.generate(getNumberOfTimes(_timingData['records'] ?? []), (index) => TextEditingController());
+    // _fetchRunners();
   }
 
   Map<int, TextEditingController> _initializeFinishTimeControllers() {
@@ -65,20 +66,22 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
   @override
   void didChangeDependencies() async {
     super.didChangeDependencies();
-    await _syncBibData(
-      _timingData['bibs']?.cast<String>() ?? [], 
-      _timingData['records']?.cast<Map<String, dynamic>>() ?? []
-    );
+    _dataSynced = true;
+    _updateRunnerInfo();
+    // await _syncBibData(
+    //   _timingData['bibs']?.cast<String>() ?? [], 
+    //   _timingData['records']?.cast<Map<String, dynamic>>() ?? []
+    // );
   }
 
   // Database Operations
-  Future<void> _fetchRunners() async {
-    final fetchedRunners = await DatabaseHelper.instance
-        .getRaceRunnersByBibs(_raceId, _timingData['bibs']?.cast<String>() ?? []);
-    if (mounted) {
-      setState(() => _runners = fetchedRunners.cast<Map<String, dynamic>>());
-    }
-  }
+  // Future<void> _fetchRunners() async {
+  //   final fetchedRunners = await DatabaseHelper.instance
+  //       .getRaceRunnersByBibs(_raceId, _timingData['bibs']?.cast<String>() ?? []);
+  //   if (mounted) {
+  //     setState(() => _runners = fetchedRunners.cast<Map<String, dynamic>>());
+  //   }
+  // }
 
   Future<void> _saveResults() async {
     if (!_checkIfAllRunnersResolved()) {
@@ -117,100 +120,97 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
   }
 
   void _showResultsSavedSnackBar() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Results saved successfully. View results?'),
-        action: SnackBarAction(
-          label: 'View Results',
-          onPressed: () => _navigateToRaceScreen(),
-        ),
-      ),
-    );
+    _navigateToResultsScreen();
+    DialogUtils.showSuccessDialog(context, message: 'Results saved successfully. View results?');
+
+    // ScaffoldMessenger.of(context).showSnackBar(
+    //   SnackBar(
+    //     content: const Text('Results saved successfully. View results?'),
+    //     action: SnackBarAction(
+    //       label: 'View Results',
+    //       onPressed: () => _navigateToRaceScreen(),
+    //     ),
+    //   ),
+    // );
   }
 
-  void _navigateToRaceScreen() {
+  void _navigateToResultsScreen() {
+    DialogUtils.showErrorDialog(context, message: 'Results saved successfully. Results screen not yet implemented.');
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (context) => RaceScreen(race: _race, initialTabIndex: 1),
+        builder: (context) => RacesScreen(),
       ),
     );
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    // ScaffoldMessenger.of(context).hideCurrentSnackBar();
   }
 
-  // Timing Operations
-  Future<void> _syncBibData(List<String> bibData, List<Map<String, dynamic>> records) async {
-    final numberOfRunnerTimes = _getNumberOfTimes();
-    if (numberOfRunnerTimes != bibData.length) {
-      await _handleTimingDiscrepancy(bibData, records, numberOfRunnerTimes);
-    } else {
-      await _confirmRunnerNumber(useStopTime: true);
-    }
+  // // Timing Operations
+  // Future<void> _syncBibData(List<String> bibData, List<Map<String, dynamic>> records) async {
+  //   final numberOfRunnerTimes = _getNumberOfTimes();
+  //   if (numberOfRunnerTimes != bibData.length) {
+  //     await _handleTimingDiscrepancy(bibData, records, numberOfRunnerTimes);
+  //   } else {
+  //     await _confirmRunnerNumber(useStopTime: true);
+  //   }
 
-    await _updateRunnerInfo(bibData, records);
+  //   await _updateRunnerInfo(bibData, records);
     
-    if (mounted) {
-      setState(() => _dataSynced = true);
-      if (!_checkIfAllRunnersResolved()) {
-        await _openResolveDialog();
-      }
-    }
-  }
+  //   if (mounted) {
+  //     setState(() => _dataSynced = true);
+  //     if (!_checkIfAllRunnersResolved()) {
+  //       await _openResolveDialog();
+  //     }
+  //   }
+  // }
 
-  Future<void> _handleTimingDiscrepancy(List<String> bibData, List<Map<String, dynamic>> records, int numberOfRunnerTimes) async {
-    final difference = bibData.length - numberOfRunnerTimes;
-    if (difference > 0) {
-      _missingRunnerTime(offBy: difference, useStopTime: true);
-    } else {
-      final numConfirmedRunners = records.where((r) => 
-        r['type'] == 'runner_time' && r['is_confirmed'] == true
-      ).length;
+  // Future<void> _handleTimingDiscrepancy(List<String> bibData, List<Map<String, dynamic>> records, int numberOfRunnerTimes) async {
+  //   final difference = bibData.length - numberOfRunnerTimes;
+  //   if (difference > 0) {
+  //     _missingRunnerTime(offBy: difference, useStopTime: true);
+  //   } else {
+  //     final numConfirmedRunners = records.where((r) => 
+  //       r['type'] == 'runner_time' && r['is_confirmed'] == true
+  //     ).length;
       
-      if (numConfirmedRunners > bibData.length) {
-        DialogUtils.showErrorDialog(context, 
-          message: 'Cannot load bib numbers: more confirmed runners than loaded bib numbers.');
-        return;
-      }
-      _extraRunnerTime(offBy: -difference, useStopTime: true);
-    }
-  }
+  //     if (numConfirmedRunners > bibData.length) {
+  //       DialogUtils.showErrorDialog(context, 
+  //         message: 'Cannot load bib numbers: more confirmed runners than loaded bib numbers.');
+  //       return;
+  //     }
+  //     _extraRunnerTime(offBy: -difference, useStopTime: true);
+  //   }
+  // }
 
-  Future<void> _updateRunnerInfo(List<String> bibData, List<Map<String, dynamic>> records) async {
-    for (int i = 0; i < bibData.length; i++) {
-      final record = records.firstWhere(
+  Future<void> _updateRunnerInfo() async {
+    for (int i = 0; i < _runnerRecords.length; i++) {
+      final record = _timingData['records']?.cast<Map<String, dynamic>>()?.firstWhere(
         (r) => r['type'] == 'runner_time' && r['place'] == i + 1 && r['is_confirmed'] == true,
         orElse: () => {}.cast<String, dynamic>(),
       );
       if (record.isEmpty) continue;
-
-      final [runner, isTeamRunner] = await DatabaseHelper.instance
-          .getRaceRunnerByBib(_raceId, bibData[i], getTeamRunner: true);
-      
-      if (runner != null && mounted) {
+      final runner = _runnerRecords[i];
+      if (runner.isNotEmpty && mounted) {
         setState(() {
-          final index = records.indexOf(record);
-          records[index] = {
+          final index = _timingData['records']?.indexOf(record);
+          _timingData['records'][index] = {
             ...record,
             ...runner,
-            'race_runner_id': runner['race_runner_id'] ?? runner['runner_id'],
-            'race_id': _raceId,
-            'is_team_runner': isTeamRunner,
-            'bib_number': bibData[i],
           };
         });
       }
     }
   }
 
-  // Timing Utilities
-  int _getNumberOfTimes() {
-    final records = _timingData['records'] ?? [];
-    return max(0, records.fold<int>(0, (int count, Map<String, dynamic> record) {
-      if (record['type'] == 'runner_time') return count + 1;
-      if (record['type'] == 'extra_runner_time') return count - 1;
-      return count;
-    }));
-  }
+  // // Timing Utilities
+  // int _getNumberOfTimes() {
+  //   final records = _timingData['records'] ?? [];
+  //   return max(0, records.fold<int>(0, (int count, Map<String, dynamic> record) {
+  //     if (record['type'] == 'runner_time') return count + 1;
+  //     if (record['type'] == 'extra_runner_time') return count - 1;
+  //     return count;
+  //   }));
+  // }
 
   List<dynamic> _getFirstConflict() {
     final records = _timingData['records'] ?? [];
@@ -319,8 +319,8 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
     List<dynamic> conflictingRunners = [];
     for (int i = startingIndex; i < conflictRecord['numTimes']; i++) {
       final runner = await DatabaseHelper.instance
-          .getRaceRunnerByBib(_raceId, bibData[i], getTeamRunner: true);
-      if (runner.isNotEmpty) conflictingRunners.add(runner[0]);
+          .getRaceRunnerByBib(_raceId, bibData[i]);
+      if (runner != null) conflictingRunners.add(runner);
     }
     print('First conflicting record index: $firstConflictingRecordIndex');
     print('Last confirmed index: $lastConfirmedIndex');
@@ -371,7 +371,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
     print('Last confirmed index: $lastConfirmedIndex');
     print('Conflict index: $conflictIndex');
 
-    final conflictingRecords = _getConflictingRecords(records, conflictIndex);
+    final conflictingRecords = getConflictingRecords(records, conflictIndex);
     print('Conflicting records: $conflictingRecords');
 
     final firstConflictingRecordIndex = records.indexOf(conflictingRecords.first);
@@ -389,8 +389,8 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
     List<dynamic> conflictingRunners = [];
     for (int i = lastConfirmedRecord.isEmpty ? 0 : lastConfirmedRecord['place']; i < conflictRecord['numTimes']; i++) {
       final runner = await DatabaseHelper.instance
-          .getRaceRunnerByBib(_raceId, bibData[i], getTeamRunner: true);
-      if (runner.isNotEmpty) conflictingRunners.add(runner[0]);
+          .getRaceRunnerByBib(_raceId, bibData[i]);
+      if (runner != null) conflictingRunners.add(runner);
     }
 
     print('Conflicting runners: $conflictingRunners');
@@ -545,18 +545,6 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
     record['text_color'] = AppColors.navBarTextColor;
   }
 
-  List<dynamic> _getConflictingRecords(
-    List<dynamic> records,
-    int conflictIndex,
-  ) {
-    final firstConflictIndex = records.sublist(0, conflictIndex).indexWhere(
-        (record) => record['type'] == 'runner_time' && record['is_confirmed'] == false,
-      );
-    
-    return firstConflictIndex == -1 ? [] : 
-      records.sublist(firstConflictIndex, conflictIndex);
-  }
-
   void _showSuccessMessage() {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Successfully resolved conflict')),
@@ -564,7 +552,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
   }
 
   Future<void> _confirmRunnerNumber({bool useStopTime = false}) async {
-    int numTimes = _getNumberOfTimes(); // Placeholder for actual length input
+    int numTimes = getNumberOfTimes(_timingData['records'] ?? []); // Placeholder for actual length input
     
     Duration difference = getCurrentDuration(_timingData['startTime'], _timingData['endTime']);
 
@@ -578,7 +566,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
   }
   
   void _extraRunnerTime({int offBy = 1, bool useStopTime = false}) async {
-    final numTimes = _getNumberOfTimes().toInt();
+    final numTimes = getNumberOfTimes(_timingData['records'] ?? []).toInt();
 
     final records = _timingData['records'];
     final previousRunner = records.last;
@@ -613,7 +601,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
   }
 
   void _missingRunnerTime({int offBy = 1, bool useStopTime = false}) {
-    final int numTimes = _getNumberOfTimes();
+    final int numTimes = getNumberOfTimes(_timingData['records'] ?? []).toInt();
     
 
     setState(() {
@@ -845,7 +833,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
 
   Widget _buildRecordItem(BuildContext context, int index, List<dynamic> timeRecords) {
     final timeRecord = timeRecords[index];
-    final Map<String, dynamic> runner = (_runners.isNotEmpty && index < _runners.length) ? _runners[index] : {};
+    final Map<String, dynamic> runner = (_runnerRecords.isNotEmpty && index < _runnerRecords.length) ? _runnerRecords[index] : {};
     if (_getFirstConflict()[0] == null || _finishTimeControllers[index] == null) {
       _finishTimeControllers[index] = TextEditingController(text: timeRecord['finish_time']);
     }
@@ -1027,7 +1015,7 @@ class _EditAndResolveScreenState extends State<EditAndResolveScreen> {
               final confirmed = await _confirmDeleteLastRecord(index);
               if (confirmed ) {
                 setState(() {
-                  _controllers.removeAt(_getNumberOfTimes() - 1);
+                  _controllers.removeAt(getNumberOfTimes(_timingData['records'] ?? []) - 1);
                   _timingData['records']?.removeAt(index);
                   _scrollController.animateTo(
                     max(_scrollController.position.maxScrollExtent, 0),

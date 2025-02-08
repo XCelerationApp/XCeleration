@@ -525,6 +525,29 @@ class _RacesScreenState extends State<RacesScreen> {
     await _loadRaces();
     Navigator.pop(context);
 
+
+    _showRaceInfo(id);
+    // showModalBottomSheet(
+    //   backgroundColor: AppColors.backgroundColor,
+    //   context: context,
+    //   isScrollControlled: true,
+    //   enableDrag: true,
+    //   useSafeArea: true,
+    //   shape: RoundedRectangleBorder(
+    //     borderRadius: BorderRadius.vertical(
+    //       top: Radius.circular(16),
+    //     ),
+    //   ),
+    //   builder: (context) => SizedBox(
+    //     height: MediaQuery.of(context).size.height * 0.9,
+    //     child: RaceInfoScreen(
+    //       raceId: id,
+    //     ),
+    //   ),
+    // );
+  }
+
+  void _showRaceInfo(int raceId) {
     showModalBottomSheet(
       backgroundColor: AppColors.backgroundColor,
       context: context,
@@ -539,7 +562,7 @@ class _RacesScreenState extends State<RacesScreen> {
       builder: (context) => SizedBox(
         height: MediaQuery.of(context).size.height * 0.9,
         child: RaceInfoScreen(
-          raceId: id,
+          raceId: raceId,
         ),
       ),
     );
@@ -605,24 +628,25 @@ class _RacesScreenState extends State<RacesScreen> {
                                 subtitle: finishedRaces[index] ? Text(_formatDate(races[index].race_date), style: TextStyle(fontSize: 14, fontWeight: FontWeight.w400))
                                   : Text('${_formatDate(races[index].race_date)} - Race not completed', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w400, color: Colors.red)),
                                 onTap: () {
-                                  showModalBottomSheet(
-                                    backgroundColor: AppColors.backgroundColor,
-                                    context: context,
-                                    isScrollControlled: true,
-                                    enableDrag: true,
-                                    useSafeArea: true,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.vertical(
-                                        top: Radius.circular(16),
-                                      ),
-                                    ),
-                                    builder: (context) => SizedBox(
-                                      height: MediaQuery.of(context).size.height * 0.92,
-                                      child: RaceInfoScreen(
-                                        raceId: races[index].raceId,
-                                      ),
-                                    ),
-                                  );
+                                  _showRaceInfo(races[index].raceId);
+                                  // showModalBottomSheet(
+                                  //   backgroundColor: AppColors.backgroundColor,
+                                  //   context: context,
+                                  //   isScrollControlled: true,
+                                  //   enableDrag: true,
+                                  //   useSafeArea: true,
+                                  //   shape: RoundedRectangleBorder(
+                                  //     borderRadius: BorderRadius.vertical(
+                                  //       top: Radius.circular(16),
+                                  //     ),
+                                  //   ),
+                                  //   builder: (context) => SizedBox(
+                                  //     height: MediaQuery.of(context).size.height * 0.92,
+                                  //     child: RaceInfoScreen(
+                                  //       raceId: races[index].raceId,
+                                  //     ),
+                                  //   ),
+                                  // );
                                 },
                               ),
                             );
