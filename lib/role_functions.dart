@@ -157,7 +157,7 @@ void changeRole(BuildContext context, String currentRole) {
 
 Widget buildRoleBar(BuildContext context, String currentRole, String title) {
   return Container(
-    padding: EdgeInsets.only(top: 50, bottom: 10, left: 10, right: 10),
+    padding: EdgeInsets.only(top: 50, bottom: 10, left: 5, right: 0),
     decoration: BoxDecoration(
       border: Border(
         bottom: BorderSide(
@@ -167,32 +167,33 @@ Widget buildRoleBar(BuildContext context, String currentRole, String title) {
       ),
     ),
     child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Padding(
-          padding: EdgeInsets.only(right: 10),
+        Expanded(
           child: Text(
             title,
             style: TextStyle(
-              fontSize: 30,
-              fontWeight: FontWeight.w600,
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
               color: AppColors.navBarColor,
             ),
           ),
         ),
-        ElevatedButton(
+        TextButton(
           onPressed: () => changeRole(context, currentRole),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.unselectedRoleColor,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(15),
-            ),
-            padding: EdgeInsets.symmetric(horizontal: 15, vertical: 20),
-          ),
-          child: Text(
-            'Role: ${currentRole[0].toUpperCase()}${currentRole.substring(1)}',
-            style: TextStyle(color: AppColors.navBarTextColor),
-          ),
+          child: Row(
+            children: [
+              Text(
+                '${currentRole[0].toUpperCase()}${currentRole.substring(1)}',
+                style: TextStyle(fontSize: 20, color: AppColors.navBarTextColor),
+              ),
+              Icon(
+                Icons.keyboard_arrow_down,
+                size: 30,
+                color: AppColors.navBarTextColor,
+              ),
+            ],
+          ), 
         ),
       ],
     ),
