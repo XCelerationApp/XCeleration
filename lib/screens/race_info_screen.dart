@@ -355,12 +355,17 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
                               );
                               final encodedBibRecords = otherDevices[DeviceName.bibRecorder]!['data'];
                               final encodedFinishTimes = otherDevices[DeviceName.raceTimer]!['data'];
+                              print('encodedBibRecords: $encodedBibRecords');
+                              print('encodedFinishTimes: $encodedFinishTimes');
                               
                               var runnerRecords = await processEncodedBibRecordsData(encodedBibRecords, context, raceId);
+                              print('runnerRecords: $runnerRecords');
                               final timingData = await processEncodedTimingData(encodedFinishTimes, context);
+                              print('timingData: $timingData');
                               
                               if (runnerRecords.isNotEmpty && timingData != null) {
                                 timingData['records'] = await syncBibData(runnerRecords.length, timingData['records'], timingData['finishTimes'], context);
+                                Navigator.pop(context);
                                 if (_containsBibConflicts(runnerRecords)) {
                                   runnerRecords = await Navigator.push(
                                     context,
@@ -370,7 +375,6 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
                                   );
                                 }
                                 final bool conflicts = await _containsTimingConflicts(timingData);
-                                Navigator.pop(context);
                                 if (conflicts) {
                                   _goToMergeConflictsScreen(context, runnerRecords, timingData);
                                 } else {

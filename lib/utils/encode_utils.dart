@@ -65,9 +65,8 @@ bool isValidTimingData(Map<String, dynamic> data) {
           data['endTime'] != null;
 }
 
-Future<List<Map<String, dynamic>>> decodeBibRecordsString(String encodedData, int raceId) async {
-  final condensedBibRecords = json.decode(encodedData);
-  final List<String> bibNumbers = condensedBibRecords.split(' ');
+Future<List<Map<String, dynamic>>> decodeBibRecordsString(String encodedBibRecords, int raceId) async {
+  final List<String> bibNumbers = encodedBibRecords.split(' ');
   List<Map<String, dynamic>> bibRecords = [];
   for (var bibNumber in bibNumbers) {
     if (bibNumber.isNotEmpty) {
@@ -104,16 +103,16 @@ Future<List<Map<String, dynamic>>> processEncodedBibRecordsData(String data, Bui
 
 bool isValidBibData(Map<String, dynamic> data) {
   return data.isNotEmpty &&
-          data.containsKey('bib_number') &&
-          data.containsKey('name') &&
-          data.containsKey('grade') &&
-          data.containsKey('school') &&
-          data['bib_number'] != null &&
-          data['bib_number'].isNotEmpty &&
-          data['name'] != null &&
-          data['name'].isNotEmpty &&
-          data['grade'] != null &&
-          data['grade'].isNotEmpty &&
-          data['school'] != null &&
-          data['school'].isNotEmpty;
+    data.containsKey('bib_number') &&
+    data.containsKey('name') &&
+    data.containsKey('grade') &&
+    data.containsKey('school') &&
+    data['bib_number'] != null &&
+    data['bib_number'].isNotEmpty &&
+    data['name'] != null &&
+    data['name'].isNotEmpty &&
+    data['grade'] != null &&
+    data['grade'].isNotEmpty &&
+    data['school'] != null &&
+    data['school'].isNotEmpty;
 }

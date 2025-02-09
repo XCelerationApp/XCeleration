@@ -292,7 +292,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 5.0),
           child: RoundedRectangleButton(
-            text: _isRaceFinished ? 'Load Race Times' : 'Add Bib Number',
+            text: _isRaceFinished ? 'Share Bib Numbers' : 'Add Bib Number',
             color: AppColors.navBarColor,
             width: 175,
             height: 50,
@@ -317,9 +317,15 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     );
   }
 
+  String _getEncodedBibData() {
+    final bibRecordsProvider = Provider.of<BibRecordsProvider>(context, listen: false);
+    return bibRecordsProvider.bibRecords.map((record) => record.bibNumber).toList().join(' ');
+  }
+
   void _handleMainAction() {
     if (_isRaceFinished) {
       print('Race is finished');
+      final String bibData = _getEncodedBibData();
       showDeviceConnectionPopup(
         context,
         deviceType: DeviceType.advertiserDevice,
@@ -327,7 +333,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
         otherDevices: createOtherDeviceList(
           DeviceName.bibRecorder,
           DeviceType.advertiserDevice,
-          data: '_bibRecords.encode()',
+          data: bibData,
         ),
       );
     } else {
