@@ -294,6 +294,39 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
                     ),
                     const SizedBox(height: 10),
                     ElevatedButton(
+                      onPressed: () => _goToMergeConflictsScreen(
+                        context, 
+                        [
+                          {'bib_number': '1', 'name': 'Teo Donnelley', 'grade': 11, 'school': 'AW', 'error': null},
+                          {'bib_number': '2', 'name': 'Bill', 'grade': 10, 'school': 'TL', 'error': null},
+                          {'bib_number': '3', 'name': 'Ethan', 'grade': 12, 'school': 'SR', 'error': null},
+                          
+                        ], 
+                        {
+                          'endTime': '2.84',
+                          'records': [
+                            {'finish_time': '0.45', 'type': 'runner_time', 'is_confirmed': false, 'text_color': null, 'place': 1},
+                            {'finish_time': '0.83', 'type': 'runner_time', 'is_confirmed': false, 'text_color': null, 'place': 2},
+                            {'finish_time': '1.06', 'type': 'runner_time', 'is_confirmed': false, 'text_color': null, 'place': 3},
+                            {'finish_time': '1.17', 'type': 'runner_time', 'is_confirmed': false, 'text_color': null, 'place': 4},
+                            {'type': 'extra_runner_time', 'offBy': 1, 'numTimes': 3, 'text_color': AppColors.redColor},
+                          ],
+                          'startTime': null,
+                        }
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 2,
+                        fixedSize: const Size(300, 70),
+                        backgroundColor: AppColors.mediumColor,
+                      ),
+                      child: const Text('Test Merge Conflicts', style: TextStyle(fontSize: 25, color: AppColors.backgroundColor)),
+                    ),
+                    const SizedBox(height: 10),
+                    ElevatedButton(
                       onPressed: () => _goToRunnersScreen(context),
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),

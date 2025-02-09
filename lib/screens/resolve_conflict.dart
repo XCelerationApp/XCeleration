@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import '../utils/app_colors.dart';
 import '../utils/time_formatter.dart';
+import '../utils/dialog_utils.dart';
 
-class ConflictResolutionDialog extends StatefulWidget {
+class ConflictResolutionScreen extends StatefulWidget {
   final List<dynamic> conflictingRunners;
   final List<String> availableTimes;
   final dynamic lastConfirmedRecord;
@@ -16,7 +17,7 @@ class ConflictResolutionDialog extends StatefulWidget {
   late final List<TextEditingController> timeControllers;
   late final List<TextEditingController>? manualEntryControllers;
 
-  ConflictResolutionDialog({
+  ConflictResolutionScreen({
     super.key,
     required this.conflictRecord,
     required this.onResolve,
@@ -25,10 +26,8 @@ class ConflictResolutionDialog extends StatefulWidget {
     required this.lastConfirmedRecord,
     required this.nextConfirmedRecord,
     required this.availableTimes,
-
     this.allowManualEntry = false,
   }) {
-    // Initialize the controllers here
     timeControllers = List.generate(
         conflictingRunners.length, 
         (_) => TextEditingController()
@@ -39,51 +38,62 @@ class ConflictResolutionDialog extends StatefulWidget {
   }
 
   @override
-  _ConflictResolutionDialogState createState() => _ConflictResolutionDialogState();
-
+  _ConflictResolutionScreenState createState() => _ConflictResolutionScreenState();
 }
 
-class _ConflictResolutionDialogState extends State<ConflictResolutionDialog> {
+class _ConflictResolutionScreenState extends State<ConflictResolutionScreen> {
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(widget.allowManualEntry ? 'Enter Time' : 'Select Time'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (widget.lastConfirmedRecord.isNotEmpty) 
-              _buildRunnerRow(widget.lastConfirmedRecord, isConfirmed: true),
-            ...List.generate(
-              widget.conflictingRunners.length,
-              (index) => _buildTimeSelectionRow(
-                widget.conflictingRunners[index],
-                widget.timeControllers[index],
-                widget.manualEntryControllers?[index],
-                widget.availableTimes,
-              ),
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.allowManualEntry ? 'Enter Time' : 'Select Time'),
+        leading: IconButton(
+          icon: Icon(Icons.close),
+          onPressed: () => Navigator.pop(context),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => _handleResolve(
+              context, 
+              widget.timeControllers, 
+              widget.conflictingRunners,
+              widget.lastConfirmedRecord,
+              widget.conflictRecord
             ),
-            if (widget.nextConfirmedRecord.isNotEmpty) 
-              _buildRunnerRow(widget.nextConfirmedRecord, isConfirmed: true),
-          ],
+            child: Text('Resolve', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (widget.lastConfirmedRecord.isNotEmpty) ...[
+                _buildRunnerRow(widget.lastConfirmedRecord, isConfirmed: true),
+                Divider(),
+              ],
+              Expanded(
+                child: ListView.separated(
+                  itemCount: widget.conflictingRunners.length,
+                  separatorBuilder: (context, index) => Divider(),
+                  itemBuilder: (context, index) => _buildTimeSelectionRow(
+                    widget.conflictingRunners[index],
+                    widget.timeControllers[index],
+                    widget.manualEntryControllers?[index],
+                    widget.availableTimes,
+                  ),
+                ),
+              ),
+              if (widget.nextConfirmedRecord.isNotEmpty) ...[
+                Divider(),
+                _buildRunnerRow(widget.nextConfirmedRecord, isConfirmed: true),
+              ],
+            ],
+          ),
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text('Cancel'),
-        ),
-        TextButton(
-          onPressed: () => _handleResolve(
-            context, 
-            widget.timeControllers, 
-            widget.conflictingRunners,
-            widget.lastConfirmedRecord,
-            widget.conflictRecord
-          ),
-          child: Text('Resolve'),
-        ),
-      ],
     );
   }
 
@@ -229,17 +239,17 @@ class _ConflictResolutionDialogState extends State<ConflictResolutionDialog> {
       final time = _parseTime(controllers[i].text);
 
       if (time == null) {
-        _showError(context, 'Enter a valid time for ${runners[i]['name']}');
+        DialogUtils.showErrorDialog(context, message: 'Enter a valid time for ${runners[i]['name']}');
         return null;
       }
       
       if (time <= lastConfirmedTime) {
-        _showError(context, 'Time must be after ${lastConfirmed['finish_time']}');
+        DialogUtils.showErrorDialog(context, message: 'Time must be after ${lastConfirmed['finish_time']}');
         return null;
       }
 
       if (time >= (loadDurationFromString(conflictRecord['finish_time']) ?? Duration.zero)) {
-        _showError(context, 'Time must be before ${conflictRecord['finish_time']}');
+        DialogUtils.showErrorDialog(context, message: 'Time must be before ${conflictRecord['finish_time']}');
         return null;
       }
       
@@ -247,7 +257,7 @@ class _ConflictResolutionDialogState extends State<ConflictResolutionDialog> {
     }
 
     if (!_isAscendingOrder(formattedTimes)) {
-      _showError(context, 'Times must be in ascending order');
+      DialogUtils.showErrorDialog(context, message: 'Times must be in ascending order');
       return null;
     }
 
@@ -295,13 +305,3 @@ bool _isAscendingOrder(List<Duration> times) {
   }
   return true;
 }
-
-void _showError(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message, style: TextStyle(color: Colors.red[900], fontSize: 16)),
-        backgroundColor: Colors.white,
-        duration: Duration(seconds: 2),
-      ),
-    );
-  }
