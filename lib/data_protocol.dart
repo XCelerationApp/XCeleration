@@ -31,7 +31,7 @@ class Protocol {
   
   final Map<String, Map<int, Package>> _receivedPackages = {};  // Map of device ID to their packages
   final Map<int, _TransmissionState> _pendingTransmissions = {};
-  final StreamController<void> _terminationController = StreamController<void>();
+  final StreamController<void> _terminationController = StreamController<void>.broadcast();
   
   int _sequenceNumber = 0;
   final List<String> _finishedDevices = [];
