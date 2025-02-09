@@ -653,7 +653,8 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
               child: ElevatedButton(
                 onPressed: onPressed,
                 child: Text(
-                  widget.deviceType == DeviceType.advertiserDevice ? 'Show QR' : 'Scan QR',
+                  widget.deviceType == DeviceType.advertiserDevice ? 'Show QR' :
+                  status == ConnectionStatus.finished ? 'Rescan QR' : 'Scan QR',
                   style: TextStyle(
                     fontSize: 10,
                     color: Colors.deepOrangeAccent,
