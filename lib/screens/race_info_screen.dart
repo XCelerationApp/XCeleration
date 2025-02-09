@@ -7,7 +7,7 @@ import 'results_screen.dart';
 import '../utils/sheet_utils.dart';
 import '../utils/app_colors.dart'; // Import AppColors
 import '../device_connection_popup.dart';
-import '../utils/dialog_utils.dart';
+// import '../utils/dialog_utils.dart';
 import '../device_connection_service.dart';
 import 'dart:convert';
 import '../utils/encode_utils.dart';
@@ -102,11 +102,10 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
   }
 
   _goToEditScreen(context, runnerRecords, timingData) async {
-    DialogUtils.showErrorDialog(context, message: 'This feature is not yet implemented');
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => EditAndReviewScreen(timingData: timingData),
+        builder: (context) => EditAndReviewScreen(timingData: timingData, raceId: raceId),
       ),
     );
   }
@@ -230,6 +229,7 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
             children: [
               SizedBox(height: 10),
               createSheetHandle(height: 10, width: 60),
+              SizedBox(height: 50),
               SingleChildScrollView(
                 child: Column(
                   children: [
@@ -364,7 +364,7 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
                               print('timingData: $timingData');
                               
                               if (runnerRecords.isNotEmpty && timingData != null) {
-                                timingData['records'] = await syncBibData(runnerRecords.length, timingData['records'], timingData['finishTimes'], context);
+                                timingData['records'] = await syncBibData(runnerRecords.length, timingData['records'], timingData['endTime'], context);
                                 Navigator.pop(context);
                                 if (_containsBibConflicts(runnerRecords)) {
                                   runnerRecords = await Navigator.push(
@@ -378,6 +378,7 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
                                 if (conflicts) {
                                   _goToMergeConflictsScreen(context, runnerRecords, timingData);
                                 } else {
+                                  timingData['records'] = timingData['records'].where((r) => r['type'] == 'runner_time').toList();
                                   _goToEditScreen(context, runnerRecords, timingData);
                                 }
                               }

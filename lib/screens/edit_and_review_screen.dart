@@ -2,17 +2,19 @@ import 'package:flutter/material.dart';
 import '../utils/time_formatter.dart';
 import 'dart:math';
 import '../database_helper.dart';
-import 'races_screen.dart';
+import 'results_screen.dart';
 import '../utils/app_colors.dart';
 import '../utils/dialog_utils.dart';
 import '../runner_time_functions.dart';
 
 class EditAndReviewScreen extends StatefulWidget {
   final Map<String, dynamic> timingData;
+  final int raceId;
 
   const EditAndReviewScreen({
     super.key, 
     required this.timingData,
+    required this.raceId,
   });
 
   @override
@@ -25,6 +27,7 @@ class _EditAndReviewScreenState extends State<EditAndReviewScreen> {
   late final Map<int, TextEditingController> _finishTimeControllers;
   late final List<TextEditingController> _controllers;
   late final Map<String, dynamic> _timingData;
+  late final int _raceId;
 
   @override
   void initState() {
@@ -35,6 +38,7 @@ class _EditAndReviewScreenState extends State<EditAndReviewScreen> {
   void _initializeState() {
     _scrollController = ScrollController();
     _timingData = widget.timingData;
+    _raceId = widget.raceId;
     _finishTimeControllers = _initializeFinishTimeControllers();
     _controllers = List.generate(getNumberOfTimes(_timingData['records'] ?? []), (index) => TextEditingController());
     // _fetchRunners();
@@ -97,7 +101,7 @@ class _EditAndReviewScreenState extends State<EditAndReviewScreen> {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (context) => RacesScreen(),
+        builder: (context) => ResultsScreen(raceId: _raceId),
       ),
     );
   }
@@ -161,6 +165,7 @@ class _EditAndReviewScreenState extends State<EditAndReviewScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            SizedBox(height: 30),
             _buildControlButtons(startTime, timeRecords),
             _buildRecordsList(timeRecords),
           ],
@@ -190,9 +195,12 @@ class _EditAndReviewScreenState extends State<EditAndReviewScreen> {
           builder: (context, constraints) {
             return ElevatedButton(
               onPressed: onPressed,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryColor,
+              ),
               child: Text(
                 text,
-                style: TextStyle(fontSize: constraints.maxWidth * 0.12),
+                style: TextStyle(fontSize: constraints.maxWidth * 0.12, color: AppColors.unselectedRoleColor),
               ),
             );
           },
@@ -259,7 +267,7 @@ class _EditAndReviewScreenState extends State<EditAndReviewScreen> {
               style: TextStyle(
                 fontSize: MediaQuery.of(context).size.width * 0.05,
                 fontWeight: FontWeight.bold,
-                color: timeRecord['text_color'],
+                color: AppColors.darkColor,
               ),
             ),
           ),
@@ -294,9 +302,7 @@ class _EditAndReviewScreenState extends State<EditAndReviewScreen> {
         Text(
           '${timeRecord['place']}',
           style: textStyle.copyWith(
-            color: timeRecord['text_color'] != null 
-              ? AppColors.navBarTextColor 
-              : null,
+            color: AppColors.darkColor,
           ),
         ),
 
@@ -337,22 +343,20 @@ class _EditAndReviewScreenState extends State<EditAndReviewScreen> {
           hintText: 'Finish Time',
           border: OutlineInputBorder(
             borderSide: BorderSide(
-              color: timeRecord['conflict'] != null 
-                ? timeRecord['text_color'] 
-                : Colors.transparent,
+              color: AppColors.darkColor,
             ),
           ),
           hintStyle: TextStyle(
-            color: timeRecord['text_color'] ?? AppColors.darkColor,
+            color: AppColors.darkColor,
           ),
           focusedBorder: const OutlineInputBorder(
             borderSide: BorderSide(
-              color: Colors.blueAccent,
+              color: AppColors.primaryColor,
             ),
           ),
           enabledBorder: OutlineInputBorder(
             borderSide: BorderSide(
-              color: timeRecord['text_color'] ?? AppColors.darkColor,
+              color: AppColors.darkColor,
             ),
           ),
           disabledBorder: const OutlineInputBorder(
@@ -362,7 +366,7 @@ class _EditAndReviewScreenState extends State<EditAndReviewScreen> {
           ),
         ),
         style: TextStyle(
-          color: timeRecord['text_color'] ?? AppColors.darkColor,
+          color: AppColors.darkColor,
         ),
         enabled: isEnabled,
         textAlign: TextAlign.center,
