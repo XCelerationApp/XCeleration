@@ -66,7 +66,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                       otherDevices: otherDevices,
                     );
                     setState(() {
-                      final data = otherDevices[DeviceName.bibRecorder]?['data'];
+                      final data = otherDevices[DeviceName.coach]?['data'];
                       if (data != null) {
                         final runners = jsonDecode(data);
                         if (runners.runtimeType != List || runners.isEmpty) {
@@ -89,6 +89,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                     }
                     else {
                       print('No runners loaded');
+                      print(otherDevices);
                     }
                   },
                 ),

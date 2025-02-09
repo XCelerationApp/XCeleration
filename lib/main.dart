@@ -283,7 +283,7 @@ class WelcomeScreen extends StatelessWidget {
             children: [
               const SizedBox(height: 20),
               Text(
-                'Welcome to Xcelerate',
+                'Welcome to XCelerate',
                 style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
