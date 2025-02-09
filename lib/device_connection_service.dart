@@ -139,7 +139,7 @@ class DeviceConnectionService {
       print("Device not connected - Cannot send message");
       return;
     }
-    print("Sending message to device ${device.deviceName}: ${package.toString()}");
+    print("Sending message to device ${device.deviceName}}");
     try {
       await nearbyService!.sendMessage(device.deviceId, package.toString());
       print("Message sent successfully to ${device.deviceName}");

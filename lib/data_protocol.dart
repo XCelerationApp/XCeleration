@@ -22,7 +22,7 @@ class ProtocolTerminatedException implements Exception {
 }
 
 class Protocol {
-  static const int maxSendAttempts = 3;
+  static const int maxSendAttempts = 4;
   static const int retryTimeoutSeconds = 5;
   static const int chunkSize = 1000;
   
@@ -111,37 +111,53 @@ class Protocol {
   Future<void> handleMessage(Package package, String senderId) async {
     print("Handling message from $senderId: ${package.type}");
     if (_isTerminated) return;
-    
+    if (package.type != 'ACK' && package.type != 'DATA' && package.type != 'FIN') {
+      throw Exception("Invalid package type: ${package.type}");
+    }
+    print("[${DateTime.now()}] Received ${package.type} package ${package.number} from $senderId");
+
+    if (package.type == 'ACK') {
+      await _handleAcknowledgment(package, senderId);
+      return;
+    }
+
+    if (package.type == 'DATA' && (package.data == null || !package.checksumsMatch())) {
+      print("Invalid package (${package.number}) from device $senderId");
+      return;
+    }
+
+    // Store the package if it's a DATA or FIN package
+    if (!_receivedPackages.containsKey(senderId)) {
+      _receivedPackages[senderId] = {};
+    }
+    _receivedPackages[senderId]![package.number] = package;
+
+    // Send acknowledgment
     try {
-      switch(package.type) {
-        case 'FIN':
-          print("Processing FIN package");
-          await _processIncomingPackage(package, senderId);
-          break;
-          
-        case 'ACK':
-          print("Processing ACK package");
-          await _handleAcknowledgment(package, senderId);
-          break;
-          
-        case 'DATA':
-          if (package.data == null || !package.checksumsMatch()) {
-            print('Invalid package from $senderId: ${package.data == null ? 'data is null' : 'checksums do not match'}');
-            return;
-          }
-          
-          print("Processing DATA package");
-          await _processIncomingPackage(package, senderId);
-          break;
-          
-        default:
-          if (!_isTerminated) {
-            print('Unknown package type from $senderId: ${package.type}');
-          }
+      if (!_isDeviceConnected(senderId)) {
+        print("Cannot send acknowledgment - device $senderId not connected");
+        return;
+      }
+
+      // For FIN package, mark this device as finished after sending ACK
+      if (package.type == 'FIN') {
+        print("[${DateTime.now()}] Received FIN package from $senderId");
+        _finishSequenceNumbers[senderId] = package.number;
+      }
+
+      await deviceConnectionService.sendMessageToDevice(
+        connectedDevices[senderId]!,
+        Package(number: package.number, type: 'ACK'),
+      );
+      
+      if (package.type == 'FIN') {
+        print("[${DateTime.now()}] Marking device $senderId as finished");
+        _finishedDevices.add(senderId);
       }
     } catch (e) {
       if (!_isTerminated) {
-        print('Error handling message from $senderId: $e');
+        print('Error sending acknowledgment to device $senderId: $e');
+        rethrow;
       }
     }
   }
@@ -152,6 +168,9 @@ class Protocol {
   }
 
   Future<void> _sendPackageWithRetry(Package package, String senderId) async {
+    final startTime = DateTime.now();
+    print("[${startTime.toString()}] Starting _sendPackageWithRetry for package ${package.number}");
+    
     if (_isTerminated) {
       print("Protocol terminated, cannot send package");
       throw ProtocolTerminatedException('Cannot send package - protocol is terminated');
@@ -163,7 +182,8 @@ class Protocol {
     Future<void> attemptSend() async {
       try {
         if (!state.isCancelled && _isDeviceConnected(senderId)) {
-          print("Attempt ${state.retryCount + 1}/$maxSendAttempts to send package");
+          final attemptTime = DateTime.now();
+          print("[${attemptTime.toString()}] Attempt ${state.retryCount + 1}/$maxSendAttempts to send package");
           await deviceConnectionService.sendMessageToDevice(connectedDevices[senderId]!, package);
         } else if (!state.isCancelled && !_isDeviceConnected(senderId)) {
           state.completer.completeError('Device disconnected during transmission');
@@ -183,10 +203,13 @@ class Protocol {
 
           if (state.retryCount < maxSendAttempts - 1) {
             state.retryCount++;
-            print('Retrying package ${package.number} (attempt ${state.retryCount + 1})');
+            final retryTime = DateTime.now();
+            print('[${retryTime.toString()}] Retrying package ${package.number} (attempt ${state.retryCount + 1})');
             await attemptSend();
             scheduleRetry();
           } else {
+            final failTime = DateTime.now();
+            print('[${failTime.toString()}] Failed to send package after ${state.retryCount + 1} attempts');
             state.completer.completeError('Failed to send package after ${state.retryCount + 1} attempts');
           }
         },
@@ -198,7 +221,7 @@ class Protocol {
       _pendingTransmissions.remove(package.number);
     }
 
-    print("Starting package send attempt for ${package.type} (seq: ${package.number})");
+    print("[${DateTime.now().toString()}] Starting package send attempt for ${package.type} (seq: ${package.number})");
     
     try {
       await attemptSend();
@@ -207,9 +230,13 @@ class Protocol {
       // Wait for acknowledgment or failure
       try {
         await state.completer.future;
-        print('Package ${package.number} successfully sent and acknowledged');
+        final endTime = DateTime.now();
+        final duration = endTime.difference(startTime);
+        print('[${endTime.toString()}] Package ${package.number} successfully sent and acknowledged after ${duration.inMilliseconds}ms');
       } catch (e) {
-        print('Failed to send package ${package.number}: $e');
+        final errorTime = DateTime.now();
+        final duration = errorTime.difference(startTime);
+        print('[${errorTime.toString()}] Failed to send package ${package.number} after ${duration.inMilliseconds}ms: $e');
         rethrow;
       } finally {
         cleanup();
@@ -240,18 +267,18 @@ class Protocol {
 
       // Send each chunk as a DATA package
       for (var i = 0; i < chunks.length; i++) {
+        _sequenceNumber++;
         final package = Package(
-          number: _sequenceNumber + i + 1,
+          number: _sequenceNumber,
           type: 'DATA',
           data: chunks[i],
         );
         print("Sending chunk ${i + 1}/${chunks.length}");
         await _sendPackageWithRetry(package, senderId);
-        _sequenceNumber++;
       }
 
       // Send FIN package to mark end of transmission
-      _finishSequenceNumbers[senderId] = _sequenceNumber + chunks.length + 1;
+      _finishSequenceNumbers[senderId] = _sequenceNumber + 1;
       final finPackage = Package(
         number: _finishSequenceNumbers[senderId]!,
         type: 'FIN',
