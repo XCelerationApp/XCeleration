@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter_nearby_connections/flutter_nearby_connections.dart';
 import 'data_package.dart';
 import 'dart:io';
-import 'dart:convert';
 
 enum DeviceType { browserDevice, advertiserDevice }
 
@@ -156,13 +155,9 @@ class DeviceConnectionService {
         // Parse the message string into a Package object
         try {
           print("Attempting to parse message: ${data['message']}");
-          final packageJson = jsonDecode(data['message']);
-          if (packageJson is! Map<String, dynamic>) {
-            print('Invalid package format: not a JSON object');
-            return;
-          }
+          final String packageString = data['message'];
           
-          final package = Package.fromJson(packageJson);
+          final package = Package.fromString(packageString);
           print("Successfully parsed package: ${package.type}");
           await messageReceivedCallback(package, data['senderDeviceId']);
         } catch (e) {

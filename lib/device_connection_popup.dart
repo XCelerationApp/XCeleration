@@ -559,7 +559,7 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
         }
         setState(() {
           widget.otherDevices[scanDeviceName]!['status'] = ConnectionStatus.finished;
-          widget.otherDevices[scanDeviceName]!['data'] = result.rawContent;
+          widget.otherDevices[scanDeviceName]!['data'] = parts[1];
         });
         _protocol.removeDevice(_getDeviceNameString(scanDeviceName));
       }
