@@ -7,10 +7,10 @@ class ResolveBibNumberScreen extends StatefulWidget {
   final int raceId;
   
   const ResolveBibNumberScreen({
-    Key? key,
+    super.key,
     required this.records,
     required this.raceId
-  }) : super(key: key);
+  });
 
   @override
   State<ResolveBibNumberScreen> createState() => _ResolveBibNumberScreenState();

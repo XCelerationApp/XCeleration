@@ -121,7 +121,7 @@ class ResultsScreenState extends State<ResultsScreen> {
                                   minWidth: double.infinity,
                                   maxWidth: double.infinity,
                                 ),
-                                builder: (BuildContext context) => Container(
+                                builder: (BuildContext context) => SizedBox(
                                   height: MediaQuery.of(context).size.height * 0.7,
                                   child: ShareSheetScreen(
                                     teamResults: _isHeadToHead
