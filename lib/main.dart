@@ -13,7 +13,6 @@ import 'screens/races_screen.dart';
 import 'utils/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
-import 'utils/google_sheets_utils.dart';
 
 Process? _flaskProcess;
 
@@ -290,71 +289,8 @@ class WelcomeScreen extends StatelessWidget {
                   color: Colors.white,
                 ),
               ),
-              const SizedBox(height: 40),
-              // Test Google Sign-In Button
-              if (Platform.isIOS)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        try {
-                          final success = await GoogleSheetsUtils.testSignIn(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                success ? 'Sign in successful!' : 'Sign in failed',
-                              ),
-                              backgroundColor: success ? Colors.green : Colors.red,
-                            ),
-                          );
-                        } catch (e) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Google Sign-In is only supported on iOS devices'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: AppColors.primaryColor,
-                        padding: const EdgeInsets.symmetric(vertical: 15),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                      ),
-                      child: Wrap(
-                        alignment: WrapAlignment.center,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.account_circle,
-                            size: 24,
-                            color: Colors.blue,
-                          ),
-                          const SizedBox(width: 10),
-                          const Text('Test Google Sign-In'),
-                        ],
-                      ),
-                    ),
-                  ),
-                )
-              else
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Text(
-                    'Google Sign-In is only available on iOS devices',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 16,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 40, width: double.infinity),
+              
               Text(
                 'Please select your role',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.w300, color: AppColors.backgroundColor),

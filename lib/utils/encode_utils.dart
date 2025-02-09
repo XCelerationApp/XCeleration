@@ -59,10 +59,10 @@ Future<Map<String, dynamic>?> processEncodedTimingData(String data, BuildContext
 
 bool isValidTimingData(Map<String, dynamic> data) {
   return data.isNotEmpty &&
-          data.containsKey('records') &&
-          data.containsKey('endTime') &&
-          data['records'].isNotEmpty &&
-          data['endTime'] != null;
+    data.containsKey('records') &&
+    data.containsKey('endTime') &&
+    data['records'].isNotEmpty &&
+    data['endTime'] != null;
 }
 
 Future<List<Map<String, dynamic>>> decodeBibRecordsString(String encodedBibRecords, int raceId) async {
@@ -75,7 +75,7 @@ Future<List<Map<String, dynamic>>> decodeBibRecordsString(String encodedBibRecor
         bibRecords.add({'bib_number': bibNumber, 'name': 'Unknown', 'grade': 'Unknown', 'school': 'Unknown', 'error': 'Runner not found'});
       }
       else {
-        bibRecords.add({'bib_number': bibNumber, 'name': runner['full_name'], 'grade': runner['grade'], 'school': runner['school'], 'error': null});
+        bibRecords.add({'bib_number': bibNumber, 'name': runner['name'], 'grade': runner['grade'], 'school': runner['school'], 'error': null});
       }
     }
   }
