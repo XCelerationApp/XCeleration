@@ -48,6 +48,9 @@ Conflicts screen:
 Merge results screen:
 - put save results button on bottom of the screen (keep it over the results but smaller)
 
+Edit and review screen:
+- make the save results button open the race info sheet with the results ontop
+
 Results screen:
 - have titles over each category
 - could change it just have a download button

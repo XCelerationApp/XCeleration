@@ -8,7 +8,7 @@ import '../database_helper.dart';
 decodeRaceTimesString(String encodedData) async {
   final decodedData = json.decode(encodedData);
   final startTime = null;
-  final endTime = loadDurationFromString(decodedData[1]);
+  final endTime = decodedData[1];
   final condensedRecords = decodedData[0];
   List<Map<String, dynamic>> records = [];
   int place = 0;
@@ -112,7 +112,7 @@ bool isValidBibData(Map<String, dynamic> data) {
     data['name'] != null &&
     data['name'].isNotEmpty &&
     data['grade'] != null &&
-    data['grade'].isNotEmpty &&
+    data['grade'] > 0 &&
     data['school'] != null &&
     data['school'].isNotEmpty;
 }
