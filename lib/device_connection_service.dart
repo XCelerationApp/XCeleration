@@ -75,21 +75,30 @@ class DeviceConnectionService {
     deviceMonitorSubscription = nearbyService!.stateChangedSubscription(callback: (devicesList) async {
       for (var device in devicesList) {
         if (!deviceNames.contains(device.deviceName)) {
-          return;
+          print("Device not in list of expected devices: ${device.deviceName}");
+          continue; // Skip this device but continue processing others
         }
+        
+        print("Processing device ${device.deviceName} with state ${device.state}");
+        
         if (device.state == SessionState.notConnected) {
           if (_connectedDevices.contains(device)) {
             _connectedDevices.remove(device);
             await deviceLostCallback?.call(device);
           }
+          // Only call deviceFoundCallback for newly discovered devices
+          if (!_connectedDevices.contains(device)) {
+            await deviceFoundCallback?.call(device);
+          }
         }
-        await deviceFoundCallback?.call(device);
-        if (device.state == SessionState.connecting) {
+        else if (device.state == SessionState.connecting) {
           await deviceConnectingCallback?.call(device);
         }
         else if (device.state == SessionState.connected) {
-          _connectedDevices.add(device);
-          await deviceConnectedCallback?.call(device);
+          if (!_connectedDevices.contains(device)) {
+            _connectedDevices.add(device);
+            await deviceConnectedCallback?.call(device);
+          }
         }   
       }
     });
