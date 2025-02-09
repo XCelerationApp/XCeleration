@@ -315,7 +315,7 @@ class _QRCodePopupContentState extends State<QRConnectionPopupContent> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SizedBox(
       width: double.infinity,
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -679,7 +679,7 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
         );
       }
     }
-    return Container(
+    return SizedBox(
       width: double.infinity,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

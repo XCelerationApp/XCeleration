@@ -33,10 +33,10 @@ class ShareSheetScreen extends StatefulWidget {
   final List<Map<String, dynamic>> individualResults;
 
   const ShareSheetScreen({
-    Key? key,
+    super.key,
     required this.teamResults,
     required this.individualResults,
-  }) : super(key: key);
+  });
 
   @override
   State<ShareSheetScreen> createState() => _ShareSheetScreenState();
@@ -396,13 +396,13 @@ class _ShareSheetScreenState extends State<ShareSheetScreen> {
                 setState(() => _selectedFormat = newSelection.first);
               },
               style: ButtonStyle(
-                backgroundColor: MaterialStateProperty.resolveWith<Color>((states) => 
-                  states.contains(MaterialState.selected) 
+                backgroundColor: WidgetStateProperty.resolveWith<Color>((states) => 
+                  states.contains(WidgetState.selected) 
                     ? AppColors.primaryColor 
                     : AppColors.backgroundColor
                 ),
-                foregroundColor: MaterialStateProperty.resolveWith<Color>((states) =>
-                  states.contains(MaterialState.selected)
+                foregroundColor: WidgetStateProperty.resolveWith<Color>((states) =>
+                  states.contains(WidgetState.selected)
                     ? AppColors.unselectedRoleColor
                     : AppColors.unselectedRoleTextColor
                 ),
