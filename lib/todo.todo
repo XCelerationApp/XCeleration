@@ -1,5 +1,6 @@
 Functionality:
 - error proof wireless connection
+- add downloading of race results if QR and wireless dont work
 - non local database
 - share/save results
 - fix downloaded results to be in correct format

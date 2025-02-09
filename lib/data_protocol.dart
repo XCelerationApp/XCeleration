@@ -84,30 +84,6 @@ class Protocol {
     }
   }
 
-  Future<void> _processIncomingPackage(Package package, String senderId) async {
-    if (_isTerminated) return;
-    
-    final devicePackages = _receivedPackages[senderId];
-    if (devicePackages != null && !devicePackages.containsKey(package.number)) {
-      devicePackages[package.number] = package;
-      
-      try {
-        final device = connectedDevices[senderId];
-        if (device != null) {
-          await deviceConnectionService.sendMessageToDevice(
-            device,
-            Package(number: package.number, type: 'ACK'),
-          );
-          _finishedDevices.add(senderId);
-        }
-      } catch (e) {
-        if (!_isTerminated) {
-          print('Failed to send acknowledgment for package ${package.number} to device $senderId: $e');
-        }
-      }
-    }
-  }
-
   Future<void> handleMessage(Package package, String senderId) async {
     print("Handling message from $senderId: ${package.type}");
     if (_isTerminated) return;
