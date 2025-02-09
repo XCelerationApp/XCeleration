@@ -568,7 +568,6 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
     } catch (e) {
       DialogUtils.showErrorDialog(context, message: 'An unknown error occurred: $e');
     }
-
   }
 
   Widget _buildDeviceConnectionTracker(DeviceName deviceName, ConnectionStatus status, VoidCallback onPressed) {
