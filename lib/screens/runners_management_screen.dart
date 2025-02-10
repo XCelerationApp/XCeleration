@@ -35,6 +35,13 @@ class _FormControllers {
     school.clear();
     bib.clear();
   }
+
+  void initializeWithRunner(Runner runner) {
+    name.text = runner.name;
+    grade.text = runner.grade.toString();
+    school.text = runner.school;
+    bib.text = runner.bibNumber;
+  }
 }
 
 class Runner {
@@ -71,6 +78,22 @@ class Runner {
     runnerId: map['runner_id'],
     raceRunnerId: map['race_runner_id'],
   );
+
+  Runner copyWith({
+    String? name,
+    int? grade,
+    String? school,
+    String? bibNumber,
+  }) {
+    return Runner(
+      name: name ?? this.name,
+      grade: grade ?? this.grade,
+      school: school ?? this.school,
+      bibNumber: bibNumber ?? this.bibNumber,
+      runnerId: this.runnerId,
+      raceRunnerId: this.raceRunnerId,
+    );
+  }
 }
 
 // Components
@@ -382,9 +405,9 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
       case 'Edit':
         await _showRunnerSheet(
           context: context,
-          title: 'Edit Runner',
           runner: runner,
         );
+        break;
       case 'Delete':
         final confirmed = await DialogUtils.showConfirmationDialog(
           context,
@@ -395,6 +418,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
           await _deleteRunner(runner);
           await _loadRunners();
         }
+        break;
     }
   }
 
@@ -484,7 +508,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
       children: [
         _buildActionButton(
           'Add Runner',
-          onPressed: () => _showRunnerSheet(context: context, title: 'Add Runner'),
+          onPressed: () => _showRunnerSheet(context: context, runner: null),
         ),
         _buildActionButton(
           'Load Spreadsheet',
@@ -591,122 +615,233 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
       },
     );
   }
-
   // Dialog and Action Methods
   Future<void> _showRunnerSheet({
     required BuildContext context,
-    required String title,
     Runner? runner,
   }) async {
+    final title = runner == null ? 'Add Runner' : 'Edit Runner';
+    
+    // Create new controllers for this sheet
+    final nameController = TextEditingController();
+    final gradeController = TextEditingController();
+    final schoolController = TextEditingController();
+    final bibController = TextEditingController();
+
     if (runner != null) {
-      _formControllers.name.text = runner.name;
-      _formControllers.grade.text = runner.grade.toString();
-      _formControllers.school.text = runner.school;
-      _formControllers.bib.text = runner.bibNumber;
+      nameController.text = runner.name;
+      gradeController.text = runner.grade.toString();
+      schoolController.text = runner.school;
+      bibController.text = runner.bibNumber;
     }
 
-    return showModalBottomSheet(
-      backgroundColor: AppColors.backgroundColor,
-      context: context,
+    await showModalBottomSheet(
       isScrollControlled: true,
       enableDrag: true,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(16),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+            left: 16,
+            right: 16,
+            top: 16,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                createSheetHandle(height: 4, width: 40),
+                const SizedBox(height: 16),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryColor,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildFormRow(
+                      label: 'Name',
+                      controller: nameController,
+                      hint: 'John Doe',
+                    ),
+                    const SizedBox(height: 16),
+                    _buildFormRow(
+                      label: 'Grade',
+                      controller: gradeController,
+                      hint: '9',
+                      keyboardType: TextInputType.number,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildFormRow(
+                      label: 'School',
+                      controller: schoolController,
+                      hint: 'School Name',
+                    ),
+                    const SizedBox(height: 16),
+                    _buildFormRow(
+                      label: 'Bib #',
+                      controller: bibController,
+                      hint: '1234',
+                      keyboardType: TextInputType.number,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryColor,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    onPressed: () async {
+                      // Validate form
+                      String? error;
+                      if (nameController.text.isEmpty) {
+                        error = 'Please enter a name';
+                      } else if (gradeController.text.isEmpty) {
+                        error = 'Please enter a grade';
+                      } else if (schoolController.text.isEmpty) {
+                        error = 'Please select a school';
+                      } else if (bibController.text.isEmpty) {
+                        error = 'Please enter a bib number';
+                      }
+
+                      if (error != null) {
+                        DialogUtils.showErrorDialog(context, message: error);
+                        return;
+                      }
+
+                      // Create or update runner
+                      final newRunner = Runner(
+                        name: nameController.text,
+                        grade: int.tryParse(gradeController.text) ?? 0,
+                        school: schoolController.text,
+                        bibNumber: bibController.text,
+                        runnerId: runner?.runnerId,
+                        raceRunnerId: runner?.raceRunnerId,
+                      );
+
+                      try {
+                        await _handleRunnerSubmission(newRunner);
+                        if (context.mounted) Navigator.pop(context);
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Error: $e'),
+                              backgroundColor: Colors.red,
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
+                      }
+                    },
+                    child: Text(
+                      runner == null ? 'Create' : 'Save',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
-      builder: (context) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            createSheetHandle(height: 10, width: 60),
-            const SizedBox(height: 8),
-            SingleChildScrollView(
-              child: Column(
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 30,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.primaryColor,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  _buildRunnerForm(runner),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      TextButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        child: const Text(
-                          'Cancel',
-                          style: TextStyle(
-                            color: AppColors.primaryColor,
-                            fontSize: 24,
+    );
+
+    // Clean up controllers
+    nameController.dispose();
+    gradeController.dispose();
+    schoolController.dispose();
+    bibController.dispose();
+  }
+
+  Widget _buildFormRow({
+    required String label,
+    required TextEditingController controller,
+    required String hint,
+    TextInputType? keyboardType,
+  }) {
+    if (label == 'School') {
+      return Row(
+        children: [
+          SizedBox(
+            width: 80,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: StatefulBuilder(
+              builder: (context, setState) {
+                final schools = _teams.map((t) => t.name).toList()..sort();
+                final isCustom = !schools.contains(controller.text) && controller.text.isNotEmpty;
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: ButtonTheme(
+                          alignedDropdown: true,
+                          child: DropdownButton<String>(
+                            value: isCustom ? null : (controller.text.isEmpty ? null : controller.text),
+                            hint: Text(hint, style: const TextStyle(color: Colors.grey)),
+                            isExpanded: true,
+                            items: [
+                              ...schools.map((school) => DropdownMenuItem(
+                                value: school,
+                                child: Text(school),
+                              )),
+                            ],
+                            onChanged: (value) {
+                              if (value != null) {
+                                setState(() => controller.text = value);
+                              }
+                            },
                           ),
                         ),
                       ),
-                      ElevatedButton(
-                        onPressed: () => _handleRunnerSubmission(runner),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primaryColor,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                          fixedSize: const Size(175, 50),
-                        ),
-                        child: Text(runner == null ? 'Create' : 'Save', style: const TextStyle(fontSize: 24)),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                    ),
+                  ],
+                );
+              },
             ),
-          ],
-        ),
-      ),
-    );
-  }
+          ),
+        ],
+      );
+    }
 
-  Widget _buildRunnerForm(Runner? runner) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
       children: [
-        _buildFormField(
-          label: 'Full Name:',
-          controller: _formControllers.name,
-        ),
-        _buildFormField(
-          label: 'Grade:',
-          controller: _formControllers.grade,
-          keyboardType: TextInputType.number,
-        ),
-        _buildFormField(
-          label: 'School:',
-          controller: _formControllers.school,
-        ),
-        _buildFormField(
-          label: 'Bib Number:',
-          controller: _formControllers.bib,
-          keyboardType: TextInputType.number,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFormField({
-    required String label,
-    required TextEditingController controller,
-    TextInputType? keyboardType,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 4.0),
+        SizedBox(
+          width: 80,
           child: Text(
             label,
             style: const TextStyle(
@@ -715,13 +850,18 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
             ),
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4.0),
+        const SizedBox(width: 8),
+        Expanded(
           child: TextField(
             controller: controller,
             keyboardType: keyboardType,
-            decoration: const InputDecoration(
-              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: const TextStyle(color: Colors.grey),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
           ),
         ),
@@ -729,58 +869,51 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
     );
   }
 
-  Future<void> _handleRunnerSubmission(Runner? existingRunner) async {
-    final name = _formControllers.name.text;
-    final grade = int.tryParse(_formControllers.grade.text);
-    final school = _formControllers.school.text;
-    final bib = _formControllers.bib.text;
-
-    if (name.isEmpty || grade == null || school.isEmpty || bib.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in all fields')),
-      );
-      return;
-    }
-    Map<String, dynamic>? duplicateRunner;
-    String? duplicateBib;
-    if (widget.isTeam) {
-      duplicateRunner = await DatabaseHelper.instance.getTeamRunnerByBib(bib);
-      duplicateBib = duplicateRunner?['bib_number'];
-    } else {
-      duplicateRunner = await DatabaseHelper.instance.getRaceRunnerByBib(widget.raceId, bib);
-      duplicateBib = duplicateRunner?['bib_number'];
-    }
-    if (duplicateBib != null) {
-      final shouldOverwrite = await DialogUtils.showConfirmationDialog(context, title: 'Overwrite Runner', content:'A runner with bib number $duplicateBib already exists. Do you want to overwrite the existing runner instead?');
-      if (!shouldOverwrite) return;
+  Future<void> _handleRunnerSubmission(Runner runner) async {
+    try {
+      // Check if a runner with this bib number already exists
+      dynamic existingRunner;
       if (widget.isTeam) {
-        await DatabaseHelper.instance.deleteTeamRunner(duplicateBib);
+        existingRunner = await DatabaseHelper.instance.getTeamRunnerByBib(runner.bibNumber);
       } else {
-        await DatabaseHelper.instance.deleteRaceRunner(widget.raceId, duplicateBib);
+        existingRunner = await DatabaseHelper.instance.getRaceRunnerByBib(widget.raceId, runner.bibNumber);
       }
+
+      if (existingRunner != null) {
+        // If we're updating the same runner (same ID), just update
+        if ((widget.isTeam && existingRunner['runner_id'] == runner.runnerId) ||
+            (!widget.isTeam && existingRunner['race_runner_id'] == runner.raceRunnerId)) {
+          await _updateRunner(runner);
+        } else {
+          // If a different runner exists with this bib, ask for confirmation
+          final shouldOverwrite = await DialogUtils.showConfirmationDialog(
+            context,
+            title: 'Overwrite Runner',
+            content: 'A runner with bib number ${runner.bibNumber} already exists. Do you want to overwrite it?',
+          );
+          
+          if (!shouldOverwrite) throw Exception('Cancelled by user');
+          
+          // Delete the existing runner and insert the new one
+          if (widget.isTeam) {
+            await DatabaseHelper.instance.deleteTeamRunner(runner.bibNumber);
+          } else {
+            await DatabaseHelper.instance.deleteRaceRunner(widget.raceId, runner.bibNumber);
+          }
+          await _insertRunner(runner);
+        }
+      } else {
+        // No existing runner, just insert
+        await _insertRunner(runner);
+      }
+      
+      await _loadRunners();
+    } catch (e) {
+      throw Exception('Failed to save runner: $e');
     }
-
-    final runner = Runner(
-      name: name,
-      grade: grade,
-      school: school,
-      bibNumber: bib,
-      runnerId: existingRunner?.runnerId,
-      raceRunnerId: existingRunner?.raceRunnerId,
-    );
-
-    if (existingRunner == null) {
-      await _addRunner(runner);
-    } else {
-      await _updateRunner(runner);
-    }
-
-    _formControllers.clear();
-    await _loadRunners();
-    Navigator.of(context).pop();
   }
 
-  Future<void> _addRunner(Runner runner) async {
+  Future<void> _insertRunner(Runner runner) async {
     if (widget.isTeam) {
       await DatabaseHelper.instance.insertTeamRunner(runner.toMap());
     } else {
@@ -791,21 +924,10 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
 
   Future<void> _updateRunner(Runner runner) async {
     if (widget.isTeam) {
-      await DatabaseHelper.instance.updateTeamRunner({
-        'name': runner.name,
-        'school': runner.school,
-        'grade': runner.grade,
-        'bib_number': runner.bibNumber,
-        'runner_id': runner.runnerId,
-      });
+      await DatabaseHelper.instance.updateTeamRunner(runner.toMap());
     } else {
-      await DatabaseHelper.instance.updateRaceRunner({
-        'name': runner.name,
-        'school': runner.school,
-        'grade': runner.grade,
-        'bib_number': runner.bibNumber,
-        'race_runner_id': runner.raceRunnerId,
-      });
+      final map = runner.toMap()..['race_id'] = widget.raceId;
+      await DatabaseHelper.instance.updateRaceRunner(map);
     }
   }
 
@@ -849,14 +971,12 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
     );
     await showModalBottomSheet(
       context: context,
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(16),
-          child: SingleChildScrollView(
-            child: table,
-          ),
-        );
-      },
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(16),
+        child: SingleChildScrollView(
+          child: table,
+        ),
+      ),
     );
     return;
   }
