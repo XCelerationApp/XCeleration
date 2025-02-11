@@ -593,7 +593,7 @@ class _RacesScreenState extends State<RacesScreen> {
         child: Column(
           children: [
             buildRoleBar(context, 'coach', 'Races'),
-            // const SizedBox(height: 16),
+            const SizedBox(height: 15),
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8.0),
