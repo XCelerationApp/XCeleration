@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
-import 'race_info_screen.dart';
+import 'race_screen.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import '../models/race.dart';
 import '../database_helper.dart';
