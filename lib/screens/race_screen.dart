@@ -152,7 +152,7 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
     });
   }
 
-  Widget _buildActionButton(String title, VoidCallback onPressed) {
+  Widget _buildActionButton(String title, VoidCallback onPressed, {bool showArrow = true}) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: ElevatedButton(
@@ -175,11 +175,13 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
               const Spacer(),
               Text(title, style: TextStyle(fontSize: 25, color: AppColors.darkColor), textAlign: TextAlign.center),
               const Spacer(),
-              Icon(
-                Icons.arrow_forward_ios, 
-                color: AppColors.darkColor,
-                size: 30,
-              )
+              if (showArrow) ...[
+                Icon(
+                  Icons.arrow_forward_ios, 
+                  color: AppColors.darkColor,
+                  size: 30,
+                )
+              ]
             ]
           ),
         ),
@@ -347,7 +349,7 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
                 child: Column(
                   children: [
                     const SizedBox(height: 10),
-                    _buildActionButton('See Details', () => _goToDetailsScreen(context)),
+                    _buildActionButton('See Race Info', () => _goToDetailsScreen(context)),
                     const SizedBox(height: 10),
                     _buildActionButton('See Runners', () => _goToRunnersScreen(context)),
                     if (showResultsButton) ...[
@@ -356,63 +358,71 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
                     ],
                     if (!showResultsButton) ...[
                       const SizedBox(height: 10),
-                      _buildActionButton('Share Runners', () async {
-                        final data = await _getEncodedRunnersData();
-                        showDeviceConnectionPopup(
-                          context,
-                          deviceType: DeviceType.advertiserDevice,
-                          deviceName: DeviceName.coach,
-                          otherDevices: createOtherDeviceList(
-                            DeviceName.coach,
-                            DeviceType.advertiserDevice,
-                            data: data,
-                          ),
-                        );
-                      }),
+                      _buildActionButton(
+                        'Share Runners',
+                        () async {
+                          final data = await _getEncodedRunnersData();
+                          showDeviceConnectionPopup(
+                            context,
+                            deviceType: DeviceType.advertiserDevice,
+                            deviceName: DeviceName.coach,
+                            otherDevices: createOtherDeviceList(
+                              DeviceName.coach,
+                              DeviceType.advertiserDevice,
+                              data: data,
+                            ),
+                          );
+                        },
+                        showArrow: false
+                      ),
                       const SizedBox(height: 10),
-                      _buildActionButton('Load Data', () async {
-                        final otherDevices = createOtherDeviceList(
-                          DeviceName.coach,
-                          DeviceType.browserDevice,
-                        );
-                        await showDeviceConnectionPopup(
-                          context,
-                          deviceType: DeviceType.browserDevice,
-                          deviceName: DeviceName.coach,
-                          otherDevices: otherDevices,
-                        );
-                        final encodedBibRecords = otherDevices[DeviceName.bibRecorder]!['data'];
-                        final encodedFinishTimes = otherDevices[DeviceName.raceTimer]!['data'];
-                        print('encodedBibRecords: $encodedBibRecords');
-                        print('encodedFinishTimes: $encodedFinishTimes');
-                        
-                        var runnerRecords = await processEncodedBibRecordsData(encodedBibRecords, context, raceId);
-                        print('runnerRecords: $runnerRecords');
-                        final timingData = await processEncodedTimingData(encodedFinishTimes, context);
-                        print('timingData: $timingData');
-                        
-                        if (runnerRecords.isNotEmpty && timingData != null) {
-                          timingData['records'] = await syncBibData(runnerRecords.length, timingData['records'], timingData['endTime'], context);
-                          Navigator.pop(context);
-                          if (_containsBibConflicts(runnerRecords)) {
-                            runnerRecords = await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ResolveBibNumberScreen(records: runnerRecords, raceId: raceId),
-                              ),
-                            );
+                      _buildActionButton(
+                        'Load Data',
+                        () async {
+                          final otherDevices = createOtherDeviceList(
+                            DeviceName.coach,
+                            DeviceType.browserDevice,
+                          );
+                          await showDeviceConnectionPopup(
+                            context,
+                            deviceType: DeviceType.browserDevice,
+                            deviceName: DeviceName.coach,
+                            otherDevices: otherDevices,
+                          );
+                          final encodedBibRecords = otherDevices[DeviceName.bibRecorder]!['data'];
+                          final encodedFinishTimes = otherDevices[DeviceName.raceTimer]!['data'];
+                          print('encodedBibRecords: $encodedBibRecords');
+                          print('encodedFinishTimes: $encodedFinishTimes');
+                          if (encodedBibRecords == null || encodedFinishTimes == null) return;
+                          
+                          var runnerRecords = await processEncodedBibRecordsData(encodedBibRecords, context, raceId);
+                          print('runnerRecords: $runnerRecords');
+                          final timingData = await processEncodedTimingData(encodedFinishTimes, context);
+                          print('timingData: $timingData');
+                          
+                          if (runnerRecords.isNotEmpty && timingData != null) {
+                            timingData['records'] = await syncBibData(runnerRecords.length, timingData['records'], timingData['endTime'], context);
+                            Navigator.pop(context);
+                            if (_containsBibConflicts(runnerRecords)) {
+                              runnerRecords = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ResolveBibNumberScreen(records: runnerRecords, raceId: raceId),
+                                ),
+                              );
+                            }
+                            final bool conflicts = await _containsTimingConflicts(timingData);
+                            if (conflicts) {
+                              _goToMergeConflictsScreen(context, runnerRecords, timingData);
+                            } else {
+                              timingData['records'] = timingData['records'].where((r) => r['type'] == 'runner_time').toList();
+                              _goToEditScreen(context, runnerRecords, timingData);
+                            }
                           }
-                          final bool conflicts = await _containsTimingConflicts(timingData);
-                          if (conflicts) {
-                            _goToMergeConflictsScreen(context, runnerRecords, timingData);
-                          } else {
-                            timingData['records'] = timingData['records'].where((r) => r['type'] == 'runner_time').toList();
-                            _goToEditScreen(context, runnerRecords, timingData);
-                          }
-                        }
-                      })
+                        }, 
+                        showArrow: false
+                      )
                     ],
-                    
                   ],
                 ),
               ),
