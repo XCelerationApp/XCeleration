@@ -37,6 +37,7 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
   late TextEditingController _distanceController;
   late int raceId;
   late AnimationController _slideController;
+  bool _showDetails = false;
   bool _showRunners = false;
   bool _showResults = false;
   Race? race;
@@ -47,8 +48,8 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
     raceId = widget.raceId;
     _loadRaceData();
     _slideController = AnimationController(
+      duration: const Duration(milliseconds: 300),  
       vsync: this,
-      duration: const Duration(milliseconds: 300),
     );
   }
 
@@ -120,72 +121,11 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
     super.dispose();
   }
 
-  Widget _buildTextField({
-    required String label,
-    required TextEditingController controller,
-    required void Function(String) onChanged,
-    TextInputType? keyboardType,
-    String? hintText,
-    Widget? prefixIcon,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-            color: Colors.grey[700],
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: TextField(
-            controller: controller,
-            keyboardType: keyboardType,
-            onChanged: onChanged,
-            decoration: InputDecoration(
-              hintText: hintText,
-              prefixIcon: prefixIcon,
-              filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: Colors.grey.withOpacity(0.3),
-                ),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: Colors.grey.withOpacity(0.3),
-                ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(
-                  color: Colors.blueAccent,
-                  width: 2,
-                ),
-              ),
-              contentPadding: const EdgeInsets.all(16),
-            ),
-          ),
-        ),
-        const SizedBox(height: 24),
-      ],
-    );
+  void _goToDetailsScreen(BuildContext context) {
+    setState(() {
+      _showDetails = true;
+    });
+    _slideController.forward();
   }
 
   void _goToRunnersScreen(BuildContext context) {
@@ -202,13 +142,164 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
     _slideController.forward();
   }
 
-  void _goBackToRaceInfo() {
+  void _goBackToMainRaceScreen() {
     _slideController.reverse().then((_) {
       setState(() {
         _showRunners = false;
         _showResults = false;
+        _showDetails = false;
       });
     });
+  }
+
+  Widget _buildActionButton(String title, VoidCallback onPressed) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: ElevatedButton(
+        onPressed: () => onPressed(),
+        style: ElevatedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(width: 2, color: Colors.grey),
+          ),
+          elevation: 2,
+          fixedSize: const Size(300, 70),
+          backgroundColor: AppColors.backgroundColor,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Spacer(),
+              Text(title, style: TextStyle(fontSize: 25, color: AppColors.darkColor), textAlign: TextAlign.center),
+              const Spacer(),
+              Icon(
+                Icons.arrow_forward_ios, 
+                color: AppColors.darkColor,
+                size: 30,
+              )
+            ]
+          ),
+        ),
+      )
+    );
+  }
+
+  Widget _buildRaceInfo() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        SizedBox(
+          width: 120,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(_name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+              SizedBox(width: 20),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.location_on_outlined,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    _location,
+                    style: TextStyle(
+                      fontSize: 15,
+                    ),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.calendar_today,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    _date.substring(0, 10),
+                    style: TextStyle(
+                      fontSize: 15,
+                    ),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.straighten,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    _distance,
+                    style: TextStyle(
+                      fontSize: 15,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSecondaryScreen(Widget content) {
+    return Stack(
+      children: [
+        SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(1, 0),
+            end: Offset.zero,
+          ).animate(CurvedAnimation(
+            parent: _slideController,
+            curve: Curves.easeInOut,  
+          )),
+          child: FadeTransition(  
+            opacity: CurvedAnimation(
+              parent: _slideController,
+              curve: Curves.easeIn,
+            ),
+            child: Material(
+              color: AppColors.backgroundColor,
+              child: Stack(
+                children: [
+                  Positioned(
+                    top: 0,
+                    left: 8,
+                    child: SizedBox(
+                      height: 40,
+                      child: IconButton(
+                        icon: const Icon(Icons.arrow_back, color: AppColors.primaryColor, size: 40),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        style: ButtonStyle(
+                          iconColor: WidgetStateProperty.all(AppColors.primaryColor),
+                        ),
+                        onPressed: _goBackToMainRaceScreen,
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 40,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: content,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildContent() {
@@ -221,287 +312,110 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
         }
         
         final showResultsButton = snapshot.hasData && snapshot.data!.isNotEmpty;
+
+        if (_showDetails && _slideController.value > 0) {
+          return _buildSecondaryScreen(_buildRaceInfo());
+        }
+        
+        if (_showRunners && _slideController.value > 0) {
+          return _buildSecondaryScreen(RunnersManagementScreen(isTeam: false, raceId: raceId));
+        }
+        
+        if (_showResults && _slideController.value > 0) {
+          return _buildSecondaryScreen(ResultsScreen(raceId: raceId));
+        }
         
         return SizedBox(
           width: double.infinity,
           height: screenHeight * 0.92,
-          child: Stack(
+          child: Column(
             children: [
               SizedBox(height: 10),
               createSheetHandle(height: 10, width: 60),
-              SizedBox(height: 50),
+              SizedBox(height: 10),
+              Center(
+                child: Text(
+                  _name,
+                  style: TextStyle(
+                    fontSize: 30,
+                    fontWeight: FontWeight.bold,
+                  ),
+                )
+              ),
+              SizedBox(height: 10),
               SingleChildScrollView(
                 child: Column(
                   children: [
-                    SizedBox(height: 30),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildTextField(
-                          label: 'Race Name',
-                          controller: _nameController,
-                          onChanged: (value) => setState(() => _name = value),
-                          prefixIcon: const Icon(Icons.emoji_events_outlined),
-                        ),
-                        _buildTextField(
-                          label: 'Location',
-                          controller: _locationController,
-                          onChanged: (value) => setState(() => _location = value),
-                          prefixIcon: const Icon(Icons.location_on_outlined),
-                        ),
-                        _buildTextField(
-                          label: 'Date',
-                          controller: _dateController,
-                          onChanged: (value) {
-                            setState(() => _date = value);
-                            final date = DateTime.tryParse(value);
-                            if (date != null) {
-                              setState(() => _date = date.toString());
-                            }
-                          },
-                          prefixIcon: IconButton(
-                            icon: const Icon(Icons.calendar_today),
-                            onPressed: () async {
-                              DateTime? pickedDate = await showDatePicker(
-                                context: context,
-                                initialDate: DateTime.tryParse(_date) ?? DateTime.now(),
-                                firstDate: DateTime(2000), 
-                                lastDate: DateTime(2101), 
-                              );
-                              if (pickedDate != null) {
-                                _dateController.text = pickedDate.toLocal().toString().split(' ')[0];
-                                setState(() => _date = pickedDate.toString()); 
-                              }
-                            },
-                          ),
-                          hintText: 'YYYY-MM-DD',
-                          keyboardType: TextInputType.datetime,
-                        ),
-                        _buildTextField(
-                          label: 'Distance',
-                          controller: _distanceController,
-                          onChanged: (value) {
-                            final doubleDistance = double.tryParse(value);
-                            if (doubleDistance != null) {
-                              final distancePart = _distance.split(' ')[0];
-                              setState(() => _distance.replaceAll(distancePart, doubleDistance.toString()));
-                            }
-                          },
-                          keyboardType: const TextInputType.numberWithOptions(signed: true, decimal: true),
-                          prefixIcon: const Icon(Icons.straighten),
-                        ),
-                      ],
-                    ),
                     const SizedBox(height: 10),
-                    ElevatedButton(
-                      onPressed: () => _goToMergeConflictsScreen(
-                        context, 
-                        [
-                          {'bib_number': '1', 'name': 'Teo Donnelley', 'grade': 11, 'school': 'AW', 'error': null},
-                          {'bib_number': '2', 'name': 'Bill', 'grade': 10, 'school': 'TL', 'error': null},
-                          {'bib_number': '3', 'name': 'Ethan', 'grade': 12, 'school': 'SR', 'error': null},
-                          
-                        ], 
-                        {
-                          'endTime': '2.84',
-                          'records': [
-                            {'finish_time': '0.45', 'type': 'runner_time', 'is_confirmed': false, 'text_color': null, 'place': 1},
-                            {'finish_time': '0.83', 'type': 'runner_time', 'is_confirmed': false, 'text_color': null, 'place': 2},
-                            {'finish_time': '1.06', 'type': 'runner_time', 'is_confirmed': false, 'text_color': null, 'place': 3},
-                            {'finish_time': '1.17', 'type': 'runner_time', 'is_confirmed': false, 'text_color': null, 'place': 4},
-                            {'type': 'extra_runner_time', 'offBy': 1, 'numTimes': 3, 'text_color': AppColors.redColor},
-                          ],
-                          'startTime': null,
-                        }
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 2,
-                        fixedSize: const Size(300, 70),
-                        backgroundColor: AppColors.mediumColor,
-                      ),
-                      child: const Text('Test Merge Conflicts', style: TextStyle(fontSize: 25, color: AppColors.backgroundColor)),
-                    ),
+                    _buildActionButton('See Details', () => _goToDetailsScreen(context)),
                     const SizedBox(height: 10),
-                    ElevatedButton(
-                      onPressed: () => _goToRunnersScreen(context),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 2,
-                        fixedSize: const Size(300, 70),
-                        backgroundColor: AppColors.mediumColor,
-                      ),
-                      child: const Text('See Runners', style: TextStyle(fontSize: 25, color: AppColors.backgroundColor)),
-                    ),
+                    _buildActionButton('See Runners', () => _goToRunnersScreen(context)),
                     if (showResultsButton) ...[
                       const SizedBox(height: 10),
-                      ElevatedButton(
-                        onPressed: () => _goToResultsScreen(context),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 2,
-                          fixedSize: const Size(300, 70),
-                          backgroundColor: AppColors.mediumColor,
-                        ),
-                        child: const Text('See Results', style: TextStyle(fontSize: 25, color: AppColors.backgroundColor)),
-                      ),
+                      _buildActionButton('See Results', () => _goToResultsScreen(context)),
                     ],
-                    Center(
-                      child: Column(
-                        children: [
-                          ElevatedButton(
-                            onPressed: () async {
-                              final data = await _getEncodedRunnersData();
-                              showDeviceConnectionPopup(
-                                context,
-                                deviceType: DeviceType.advertiserDevice,
-                                deviceName: DeviceName.coach,
-                                otherDevices: createOtherDeviceList(
-                                  DeviceName.coach,
-                                  DeviceType.advertiserDevice,
-                                  data: data,
-                                ),
-                              );
-                            },
-                            child: Text('Send Runners Data'),
+                    if (!showResultsButton) ...[
+                      const SizedBox(height: 10),
+                      _buildActionButton('Share Runners', () async {
+                        final data = await _getEncodedRunnersData();
+                        showDeviceConnectionPopup(
+                          context,
+                          deviceType: DeviceType.advertiserDevice,
+                          deviceName: DeviceName.coach,
+                          otherDevices: createOtherDeviceList(
+                            DeviceName.coach,
+                            DeviceType.advertiserDevice,
+                            data: data,
                           ),
-                          ElevatedButton(
-                            onPressed: () async {
-                              final otherDevices = createOtherDeviceList(
-                                DeviceName.coach,
-                                DeviceType.browserDevice,
-                              );
-                              await showDeviceConnectionPopup(
-                                context,
-                                deviceType: DeviceType.browserDevice,
-                                deviceName: DeviceName.coach,
-                                otherDevices: otherDevices,
-                              );
-                              final encodedBibRecords = otherDevices[DeviceName.bibRecorder]!['data'];
-                              final encodedFinishTimes = otherDevices[DeviceName.raceTimer]!['data'];
-                              print('encodedBibRecords: $encodedBibRecords');
-                              print('encodedFinishTimes: $encodedFinishTimes');
-                              
-                              var runnerRecords = await processEncodedBibRecordsData(encodedBibRecords, context, raceId);
-                              print('runnerRecords: $runnerRecords');
-                              final timingData = await processEncodedTimingData(encodedFinishTimes, context);
-                              print('timingData: $timingData');
-                              
-                              if (runnerRecords.isNotEmpty && timingData != null) {
-                                timingData['records'] = await syncBibData(runnerRecords.length, timingData['records'], timingData['endTime'], context);
-                                Navigator.pop(context);
-                                if (_containsBibConflicts(runnerRecords)) {
-                                  runnerRecords = await Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => ResolveBibNumberScreen(records: runnerRecords, raceId: raceId),
-                                    ),
-                                  );
-                                }
-                                final bool conflicts = await _containsTimingConflicts(timingData);
-                                if (conflicts) {
-                                  _goToMergeConflictsScreen(context, runnerRecords, timingData);
-                                } else {
-                                  timingData['records'] = timingData['records'].where((r) => r['type'] == 'runner_time').toList();
-                                  _goToEditScreen(context, runnerRecords, timingData);
-                                }
-                              }
-                            },
-                            child: Text('Get Race Results Data'),
-                          ),
-                        ]
-                      )
-                    ),
+                        );
+                      }),
+                      const SizedBox(height: 10),
+                      _buildActionButton('Load Data', () async {
+                        final otherDevices = createOtherDeviceList(
+                          DeviceName.coach,
+                          DeviceType.browserDevice,
+                        );
+                        await showDeviceConnectionPopup(
+                          context,
+                          deviceType: DeviceType.browserDevice,
+                          deviceName: DeviceName.coach,
+                          otherDevices: otherDevices,
+                        );
+                        final encodedBibRecords = otherDevices[DeviceName.bibRecorder]!['data'];
+                        final encodedFinishTimes = otherDevices[DeviceName.raceTimer]!['data'];
+                        print('encodedBibRecords: $encodedBibRecords');
+                        print('encodedFinishTimes: $encodedFinishTimes');
+                        
+                        var runnerRecords = await processEncodedBibRecordsData(encodedBibRecords, context, raceId);
+                        print('runnerRecords: $runnerRecords');
+                        final timingData = await processEncodedTimingData(encodedFinishTimes, context);
+                        print('timingData: $timingData');
+                        
+                        if (runnerRecords.isNotEmpty && timingData != null) {
+                          timingData['records'] = await syncBibData(runnerRecords.length, timingData['records'], timingData['endTime'], context);
+                          Navigator.pop(context);
+                          if (_containsBibConflicts(runnerRecords)) {
+                            runnerRecords = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ResolveBibNumberScreen(records: runnerRecords, raceId: raceId),
+                              ),
+                            );
+                          }
+                          final bool conflicts = await _containsTimingConflicts(timingData);
+                          if (conflicts) {
+                            _goToMergeConflictsScreen(context, runnerRecords, timingData);
+                          } else {
+                            timingData['records'] = timingData['records'].where((r) => r['type'] == 'runner_time').toList();
+                            _goToEditScreen(context, runnerRecords, timingData);
+                          }
+                        }
+                      })
+                    ],
+                    
                   ],
                 ),
               ),
-              if (_showRunners && _slideController.value > 0)
-                SlideTransition(
-                  position: Tween<Offset>(
-                    begin: const Offset(1, 0),
-                    end: Offset.zero,
-                  ).animate(CurvedAnimation(
-                    parent: _slideController,
-                    curve: Curves.easeOut,
-                  )),
-                  child: SizedBox.expand(
-                    child: Material(
-                      color: AppColors.backgroundColor,
-                      child: Stack(
-                        children: [
-                          Positioned(
-                            top: 0,
-                            left: 8,
-                            child: SizedBox(
-                              height: 40,
-                              child: IconButton(
-                                icon: const Icon(Icons.arrow_back, color: AppColors.primaryColor, size: 40),
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                                style: ButtonStyle(
-                                  iconColor: WidgetStateProperty.all(AppColors.primaryColor),
-                                ),
-                                onPressed: _goBackToRaceInfo,
-                              ),
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.only(top: 40),
-                            child: RunnersManagementScreen(isTeam: false, raceId: raceId),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              if (_showResults && _slideController.value > 0)
-                SlideTransition(
-                  position: Tween<Offset>(
-                    begin: const Offset(1, 0),
-                    end: Offset.zero,
-                  ).animate(CurvedAnimation(
-                    parent: _slideController,
-                    curve: Curves.easeOut,
-                  )),
-                  child: SizedBox.expand(
-                    child: Material(
-                      color: AppColors.backgroundColor,
-                      child: Stack(
-                        children: [
-                          Positioned(
-                            top: 0,
-                            left: 8,
-                            child: SizedBox(
-                              height: 40,
-                              child: IconButton(
-                                icon: const Icon(Icons.arrow_back, color: AppColors.primaryColor, size: 40),
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                                style: ButtonStyle(
-                                  iconColor: WidgetStateProperty.all(AppColors.primaryColor),
-                                ),
-                                onPressed: _goBackToRaceInfo,
-                              ),
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.only(top: 40),
-                            child: ResultsScreen(raceId: raceId),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
             ],
           ),
         );
@@ -524,23 +438,13 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
 
     return Column(
       children: [
-        // if (!_showRunners) ...[
-        //   SizedBox(height: 10),
-        //   createSheetHandle(height: 10, width: 60),
-        // ],
-        // if (_showRunners) ...[
-        //   SizedBox(height: 30),
-        //   // createSheetHandle(height: 10, width: 60),
-        // ],
         Expanded(
-          // child: SingleChildScrollView(
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.only(left: 24.0, right: 24.0, bottom: 24.0, top: 10.0),
-                child: _buildContent(),
-              ),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.only(left: 24.0, right: 24.0, bottom: 24.0, top: 10.0),
+              child: _buildContent(),
             ),
-          // ),
+          ),
         ),
         if (hasChanges) ...[
           const SizedBox(height: 10),
