@@ -654,7 +654,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                createSheetHandle(height: 4, width: 40),
+                createSheetHandle(height: 10, width: 60),
                 const SizedBox(height: 16),
                 Text(
                   title,
