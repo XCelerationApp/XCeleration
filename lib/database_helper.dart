@@ -280,6 +280,26 @@ class DatabaseHelper {
     );
   }
 
+  Future<List<Map<String, dynamic>>> searchRaceRunners(int raceId, String query, [String searchParameter = 'all']) async {
+    final db = await instance.database;
+    String whereClause;
+    List<dynamic> whereArgs = [raceId, '%$query%'];
+    if (searchParameter == 'all') {
+      whereClause = 'race_id = ? AND (name LIKE ? OR grade LIKE ? OR bib_number LIKE ?)';
+      whereArgs.add('%$query%');
+      whereArgs.add('%$query%');
+    } else {
+      whereClause = 'race_id = ? AND $searchParameter LIKE ?';
+    }
+    final results = await db.query(
+      'race_runners',
+      where: whereClause,
+      whereArgs: whereArgs,
+    );
+    return results;
+  }
+
+
   Future<void> insertRaceResult(Map<String, dynamic> result) async {
     // Check if the runner exists in team runners or race runners
     bool runnerExists = await _runnerExists(result['race_runner_id']);
@@ -349,29 +369,29 @@ class DatabaseHelper {
       WHERE r.is_team_runner = 1 AND r.race_id = ?
     ''', [raceId]);
 
-    // return [...raceRunners, ...teamRunners];
-    return [
-      {
-        'runner_id': 1,
-        'bib_number': '1001',
-        'name': 'John Doe',
-        'school': 'Test School',
-        'grade': '5',
-        'place': 1,
-        'finish_time': '5.00',
-        'is_team_runner': 0
-      },
-      {
-        'runner_id': 2,
-        'bib_number': '1002',
-        'name': 'Jane Doe',
-        'school': 'Test School',
-        'grade': '5',
-        'place': 2,
-        'finish_time': '6.00',
-        'is_team_runner': 0
-      },
-    ];
+    return [...raceRunners, ...teamRunners];
+    // return [
+    //   {
+    //     'runner_id': 1,
+    //     'bib_number': '1001',
+    //     'name': 'John Doe',
+    //     'school': 'Test School',
+    //     'grade': '5',
+    //     'place': 1,
+    //     'finish_time': '5.00',
+    //     'is_team_runner': 0
+    //   },
+    //   {
+    //     'runner_id': 2,
+    //     'bib_number': '1002',
+    //     'name': 'Jane Doe',
+    //     'school': 'Test School',
+    //     'grade': '5',
+    //     'place': 2,
+    //     'finish_time': '6.00',
+    //     'is_team_runner': 0
+    //   },
+    // ];
   }
 
   Future<List<Map<String, dynamic>>> getAllResults() async {
