@@ -10,6 +10,7 @@ Functionality:
 - clean up code
 - make sure QR codes work before recording race results (either ask user to test or use a package)
 - figure out what to do when the are more confirmed records than recorded bib numbers
+- add swiping to delete/edit for bib numbers, races, runners, and times
 
 UI:
 - make the popups and error messages look better
@@ -36,6 +37,7 @@ Timing screen:
 Record Bib Numbers screen:
 - make a custom keyboard for the bib numbers
 - make a popup that asked if you want to continue with problem bib numbers when finished
+- fix how the bib numbers look
 
 Conflicts screen:
 - make a screen dedicated to conflicts
