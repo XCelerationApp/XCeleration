@@ -500,11 +500,18 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                           ),
                           direction: DismissDirection.endToStart,
                           confirmDismiss: (direction) async {
-                            return await DialogUtils.showConfirmationDialog(
+                            for (var node in provider.focusNodes) {
+                              node.unfocus();
+                              // Disable focus restoration for this node
+                              node.canRequestFocus = false;
+                            }
+                            bool delete = await DialogUtils.showConfirmationDialog(
                               context,
                               title: 'Confirm Deletion',
                               content: 'Are you sure you want to delete this bib number?',
                             );
+                            _restoreFocusability();
+                            return delete;
                           },
                           onDismissed: (direction) {
                             setState(() {
