@@ -71,7 +71,7 @@ dynamic extraRunnerTime(offBy, records, numTimes, String finishTime) {
   }
 
   final color = AppColors.redColor;
-  records = updateTextColor(color, records, conflict: 'extra_runner_time', confirmed: false);
+  records = updateTextColor(color, records, conflict: 'extra_runner_time', confirmed: true);
 
   records.add({
     'finish_time': finishTime,
@@ -87,14 +87,14 @@ dynamic missingRunnerTime(offBy, records, numTimes, String finishTime) {
   int correcttedNumTimes = numTimes + offBy; // Placeholder for actual length input
   
   final color = AppColors.redColor;
-  records = updateTextColor(color, records, conflict: 'missing_runner_time', confirmed: false);
+  records = updateTextColor(color, records, conflict: 'missing_runner_time', confirmed: true);
 
     for (int i = 1; i <= offBy; i++) {
       records.add({
         'finish_time': 'TBD',
         'bib_number': null,
         'type': 'runner_time',
-        'is_confirmed': false,
+        'is_confirmed': true,
         'conflict': 'missing_runner_time',
         'text_color': color,
         'place': numTimes + i,
@@ -116,7 +116,7 @@ List<dynamic> getConflictingRecords(
   int conflictIndex,
 ) {
   final firstConflictIndex = records.sublist(0, conflictIndex).indexWhere(
-      (record) => record['type'] == 'runner_time' && record['is_confirmed'] == false,
+      (record) => record['type'] == 'runner_time' && record['conflict'] != null,
     );
   
   return firstConflictIndex == -1 ? [] : 

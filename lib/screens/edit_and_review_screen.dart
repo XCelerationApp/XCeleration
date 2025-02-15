@@ -47,7 +47,7 @@ class _EditAndReviewScreenState extends State<EditAndReviewScreen> {
   Map<int, TextEditingController> _initializeFinishTimeControllers() {
     final controllers = <int, TextEditingController>{};
     for (var record in _timingData['records']) {
-      if (record['type'] == 'runner_time' && record['is_confirmed'] == true) {
+      if (record['type'] == 'runner_time' && record['conflict'] == null) {
         controllers[record['place']] = TextEditingController(text: record['finish_time']);
       }
     }
