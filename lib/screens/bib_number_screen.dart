@@ -208,7 +208,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
         children: [
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.all(4.0),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
@@ -247,7 +247,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
       keyboardType: const TextInputType.numberWithOptions(signed: true, decimal: false),
       textInputAction: TextInputAction.done,
       style: const TextStyle(fontSize: 16),
-      textAlign: TextAlign.center,
+      textAlign: TextAlign.start,
       decoration: const InputDecoration(
         hintText: 'Ex: 123',
         hintStyle: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),

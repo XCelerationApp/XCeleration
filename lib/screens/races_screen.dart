@@ -52,18 +52,12 @@ class _RacesScreenState extends State<RacesScreen> {
   void _updateLocationButtonVisibility() {
     setState(() {
       isLocationButtonVisible = locationController.text.trim() != userlocationController.text.trim();
-      print('isLocationButtonVisible: $isLocationButtonVisible');
-      print('locationController.text: ${locationController.text}');
-      print('userlocationController.text: ${userlocationController.text}');
-      print('locationController.text.trim(): ${locationController.text.trim()}');
-      print('userlocationController.text.trim(): ${userlocationController.text.trim()}');
     });
   }
 
   // Method to add a new TextEditingController
   void _addTeamField() {
     setState(() {
-      print('_addTeamField');
       _teamControllers.add(TextEditingController());
       _teamColors.add(Colors.white);
     });
@@ -243,7 +237,6 @@ class _RacesScreenState extends State<RacesScreen> {
                                 _teamColors[_teamControllers.indexOf(controller)] = color;
                               });
                             },
-                            showLabel: true,
                             pickerAreaHeightPercent: 0.8,
                           ),
                         ),
@@ -523,6 +516,7 @@ class _RacesScreenState extends State<RacesScreen> {
         'team_colors': jsonEncode(colors),
     });
     await _loadRaces();
+    if (!mounted) return;
     Navigator.pop(context);
 
 
@@ -575,7 +569,6 @@ class _RacesScreenState extends State<RacesScreen> {
   Future<bool> _isRaceStarted(Race race) async {
     final raceId = race.race_id;
     final results = await DatabaseHelper.instance.getRaceResults(raceId);
-    print(results);
     return results.isNotEmpty;
   }
   

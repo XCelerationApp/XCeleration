@@ -18,6 +18,8 @@ UI:
 - go over the UI with others
 - make app initializer look better
 - make things reload when database is updated (race creation (done), ...)
+- delete data when user switches out of timer or recorder, but ask for confirmation first
+- add popups that tell the user how the app works when they first install it
 
 Runners Management screen:
 - have school be a dropdown for add runner
@@ -36,8 +38,8 @@ Timing screen:
 
 Record Bib Numbers screen:
 - make a custom keyboard for the bib numbers
-- make a popup that asked if you want to continue with problem bib numbers when finished
-- fix how the bib numbers look
+- make a popup that asked if you want to continue with problem (error) bib numbers when finished
+- add auto scrolling when bib number list gets to long
 
 Conflicts screen:
 - make a screen dedicated to conflicts
