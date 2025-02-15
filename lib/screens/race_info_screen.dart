@@ -14,6 +14,7 @@ import '../utils/encode_utils.dart';
 import 'merge_conflicts_screen.dart';
 import 'resolve_bib_number_screen.dart';
 import 'edit_and_review_screen.dart';
+import 'resolve_bib_number_screen.dart';
 
 class RaceInfoScreen extends StatefulWidget {
   final int raceId;
@@ -90,6 +91,15 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
 
   bool _containsBibConflicts(List<dynamic> runnerRecords) {
     return runnerRecords.any((record) => record['error'] != null);
+  }
+
+  _goToTestResolveBibNumbesScreen(context, records) async {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ResolveBibNumberScreen(records: records, raceId: raceId),
+      ),
+    );
   }
 
   Future<void> _goToMergeConflictsScreen(context, runnerRecords, timingData) async {

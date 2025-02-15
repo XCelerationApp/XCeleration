@@ -17,4 +17,5 @@ class AppColors {
   static const Color unselectedRoleColor = Color(0xFFF5F3FB);
   static const Color selectedRoleTextColor = Color(0xFFE3582E);
   static const Color unselectedRoleTextColor = Color(0xFF010002);
+  static Color confirmRunnerColor = Colors.green.shade500;
 }

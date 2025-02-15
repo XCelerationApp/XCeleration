@@ -76,7 +76,6 @@ class DatabaseHelper {
         race_id INTEGER NOT NULL,
         race_runner_id INTEGER NOT NULL,
         place INTEGER,
-        is_team_runner BOOLEAN DEFAULT FALSE,
         finish_time TEXT,
         FOREIGN KEY (race_id) REFERENCES races(race_id)
       )

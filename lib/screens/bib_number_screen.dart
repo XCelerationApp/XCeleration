@@ -126,7 +126,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
   }
 
   dynamic getRunnerByBib(String bibNumber) {
-    final runner = _runners.firstWhere((runner) => runner['bib_number'] == bibNumber);
+    final runner = _runners.firstWhere((runner) => runner['bib_number'] == bibNumber, orElse: () => null);
     return runner;
   }
 
