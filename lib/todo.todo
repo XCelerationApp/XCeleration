@@ -38,9 +38,7 @@ Timing screen:
 - disable start until cleared? or continue?
 
 Record Bib Numbers screen:
-- make a custom keyboard for the bib numbers
 - make a popup that asked if you want to continue with problem (error) bib numbers when finished
-- add auto scrolling when bib number list gets to long
 
 Conflicts screen:
 - make a screen dedicated to conflicts
