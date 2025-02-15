@@ -309,10 +309,34 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
   }
 
   void _showShareBibNumbersPopup() async {
-    final confirmed = await _cleanEmptyRecords();
-    if (!confirmed) return;
+    // Clear all focus nodes to prevent focus restoration
+    final provider = Provider.of<BibRecordsProvider>(context, listen: false);
+    for (var node in provider.focusNodes) {
+      node.unfocus();
+      // Disable focus restoration for this node
+      node.canRequestFocus = false;
+    }
+
+    bool confirmed = await _cleanEmptyRecords();
+    if (!confirmed) {
+      _restoreFocusability();
+      return;
+    }
+    
+    confirmed = await _checkDuplicateRecords();
+    if (!confirmed) {
+      _restoreFocusability();
+      return;
+    }
+    
+    confirmed = await _checkUnknownRecords();
+    if (!confirmed) {
+      _restoreFocusability();
+      return;
+    }
+
     final String bibData = _getEncodedBibData();
-    showDeviceConnectionPopup(
+    await showDeviceConnectionPopup(
       context,
       deviceType: DeviceType.advertiserDevice,
       deviceName: DeviceName.bibRecorder,
@@ -322,6 +346,15 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
         data: bibData,
       ),
     );
+
+  _restoreFocusability();
+  }
+
+  void _restoreFocusability() {
+    final provider = Provider.of<BibRecordsProvider>(context, listen: false);
+    for (var node in provider.focusNodes) {
+      node.canRequestFocus = true;
+    }
   }
 
   Future<bool> _cleanEmptyRecords() async {
@@ -340,6 +373,36 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
           provider.bibRecords.removeWhere((bib) => bib.bibNumber.isEmpty);
         });
       }
+      return confirmed;
+    }
+    return true;
+  }
+
+  Future<bool> _checkDuplicateRecords() async {
+    final provider = Provider.of<BibRecordsProvider>(context, listen: false);
+    final duplicateRecords = provider.bibRecords.where((bib) => bib.flags['duplicate_bib_number'] == true).length;
+    
+    if (duplicateRecords > 0) {
+      final confirmed = await DialogUtils.showConfirmationDialog(
+        context,
+        title: 'Duplicate Bib Numbers',
+        content: 'There are $duplicateRecords duplicate bib numbers. Do you want to continue?',
+      );
+      return confirmed;
+    }
+    return true;
+  }
+
+  Future<bool> _checkUnknownRecords() async {
+    final provider = Provider.of<BibRecordsProvider>(context, listen: false);
+    final unknownRecords = provider.bibRecords.where((bib) => bib.flags['not_in_database'] == true).length;
+    
+    if (unknownRecords > 0) {
+      final confirmed = await DialogUtils.showConfirmationDialog(
+        context,
+        title: 'Unknown Bib Numbers',
+        content: 'There are $unknownRecords bib numbers that are not in the database. Do you want to continue?',
+      );
       return confirmed;
     }
     return true;
