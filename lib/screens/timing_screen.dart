@@ -109,14 +109,14 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
         });
       });
       
-      final conflict = _getFirstConflict();
-      if (conflict[0] != null) {
-        DialogUtils.showErrorDialog(
-          context, 
-          message: 'Race stopped. Make sure to resolve conflicts after loading bib numbers.',
-          title: 'Race Stopped'
-        );
-      }
+      // final conflict = _getFirstConflict();
+      // if (conflict[0] != null) {
+      //   DialogUtils.showErrorDialog(
+      //     context, 
+      //     message: 'Race stopped. Make sure to resolve conflicts after loading bib numbers.',
+      //     title: 'Race Stopped'
+      //   );
+      // }
     }
   }
 
@@ -152,14 +152,14 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   }
 
 
-  List<dynamic> _getFirstConflict() {
-    for (var record in _records) {
-      if (record['type'] != 'runner_time' && record['type'] != 'confirm_runner_number') {
-        return [record['type'], _records.indexOf(record)];
-      }
-    }
-    return [null, -1];
-  }
+  // List<dynamic> _getFirstConflict() {
+  //   for (var record in _records) {
+  //     if (record['type'] != 'runner_time' && record['type'] != 'confirm_runner_number') {
+  //       return [record['type'], _records.indexOf(record)];
+  //     }
+  //   }
+  //   return [null, -1];
+  // }
 
   void _confirmRunnerNumber() {
     final numTimes = _getNumberOfTimes();
@@ -649,9 +649,9 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
 
   bool _hasUndoableConflict() {
     return _records.isNotEmpty &&
-           _records.last['type'] != 'runner_time' &&
-           _records.last['type'] != null &&
-           _records.last['type'] != 'confirm_runner_number';
+      _records.last['type'] != 'runner_time' &&
+      _records.last['type'] != null &&
+      _records.last['type'] != 'confirm_runner_number';
   }
 
   Future<void> _handleRecordLongPress(int index) async {

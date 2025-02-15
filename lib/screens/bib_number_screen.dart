@@ -24,8 +24,7 @@ class BibNumberScreen extends StatefulWidget {
 
 class _BibNumberScreenState extends State<BibNumberScreen> {
   // late Race race;
-  bool _isRaceFinished = false;
-  // List<dynamic> _runners = [{'bib_number': '00000', 'name': 'Runner 1', 'school': 'School 1', 'grade': 'Grade 1'}];
+  // List<dynamic> _runners = [{'bib_number': '1234', 'name': 'Teo Donnelley', 'school': 'AW', 'grade': '11'}];
   List<dynamic> _runners = [];
   Map<DeviceName, Map<String, dynamic>> otherDevices = createOtherDeviceList(
     DeviceName.bibRecorder,
@@ -37,6 +36,9 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     super.initState();
     // race = widget.race!;
     _checkForRunners();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _handleBibNumber('');
+    });
   }
 
   void _checkForRunners() {
@@ -118,21 +120,42 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
       provider.updateBibRecord(index, bibNumber);
     }
 
-    if (bibNumber.isNotEmpty) {
-      await _validateBibNumber(index, bibNumber, confidences);
+    // Validate all bib numbers to update duplicate states
+    for (var i = 0; i < provider.bibRecords.length; i++) {
+      await _validateBibNumber(i, provider.bibRecords[i].bibNumber, 
+        i == index ? confidences : null);
     }
 
     Provider.of<BibRecordsProvider>(context, listen: false).focusNodes[index].requestFocus();
   }
 
   dynamic getRunnerByBib(String bibNumber) {
-    final runner = _runners.firstWhere((runner) => runner['bib_number'] == bibNumber, orElse: () => null);
-    return runner;
+    try {
+      return _runners.firstWhere(
+        (runner) => runner['bib_number'] == bibNumber,
+        orElse: () => null,
+      );
+    } catch (e) {
+      return null;
+    }
   }
 
   Future<void> _validateBibNumber(int index, String bibNumber, List<double>? confidences) async {
     final provider = Provider.of<BibRecordsProvider>(context, listen: false);
     final record = provider.bibRecords[index];
+
+    // Reset all flags first
+    record.flags['low_confidence_score'] = false;
+    record.flags['not_in_database'] = false;
+    record.flags['duplicate_bib_number'] = false;
+    record.name = '';
+    record.school = '';
+
+    // If bibNumber is empty, clear all flags and return
+    if (bibNumber.isEmpty) {
+      setState(() {});
+      return;
+    }
 
     // Check confidence scores
     if (confidences?.any((score) => score < 0.9) ?? false) {
@@ -140,7 +163,6 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     }
 
     // Check database
-    // final runner = await DatabaseHelper.instance.getRaceRunnerByBib(1, bibNumber, getTeamRunner: true);
     final runner = getRunnerByBib(bibNumber);
     if (runner == null) {
       record.flags['not_in_database'] = true;
@@ -151,106 +173,105 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     }
 
     // Check duplicates
-    record.flags['duplicate_bib_number'] = provider.bibRecords
-        .where((r) => r.bibNumber == bibNumber)
-        .length > 1;
+    final duplicateIndexes = provider.bibRecords
+        .asMap()
+        .entries
+        .where((e) => e.value.bibNumber == bibNumber && e.value.bibNumber.isNotEmpty)
+        .map((e) => e.key)
+        .toList();
+
+    if (duplicateIndexes.length > 1) {
+      // Mark as duplicate if this is not the first occurrence
+      record.flags['duplicate_bib_number'] = duplicateIndexes.indexOf(index) > 0;
+    }
 
     setState(() {});
   }
 
-  Future<bool> _cleanEmptyRecords() async {
+  void _onBibRecordRemoved(int index) {
     final provider = Provider.of<BibRecordsProvider>(context, listen: false);
-    final emptyRecords = provider.bibRecords.where((bib) => bib.bibNumber.isEmpty).length;
-    
-    if (emptyRecords > 0) {
-      final confirmed = await DialogUtils.showConfirmationDialog(
-        context,
-        title: 'Clean Empty Records',
-        content: 'There are $emptyRecords empty bib numbers that will be deleted. Continue?',
-      );
-      
-      if (confirmed) {
-        setState(() {
-          provider.bibRecords.removeWhere((bib) => bib.bibNumber.isEmpty);
-        });
-      }
-      return confirmed;
+    provider.removeBibRecord(index);
+
+    // Revalidate all remaining bib numbers to update duplicate flags
+    for (var i = 0; i < provider.bibRecords.length; i++) {
+      _validateBibNumber(i, provider.bibRecords[i].bibNumber, null);
     }
-    return true;
   }
 
   // UI Components
   Widget _buildBibInput(int index, BibRecord record) {
     final provider = Provider.of<BibRecordsProvider>(context, listen: false);
     
-    return Card(
-      elevation: 2,
-      margin: const EdgeInsets.symmetric(vertical: 6.0),
-      color: _getBibCardColor(record),
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(4.0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                _buildBibTextField(index, provider),
-                const SizedBox(width: 8),
-                _buildRunnerInfo(record),
-                _buildDeleteButton(index),
+                SizedBox(
+                  width: 60,
+                  child: _buildBibTextField(index, provider),
+                ),
+                Expanded(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (record.name.isNotEmpty && !record.hasErrors)
+                        _buildRunnerInfo(record)
+                      else if (record.hasErrors)
+                        _buildErrorText(record),
+                    ],
+                  ),
+                ),
               ],
             ),
-            if (record.hasErrors) 
-              _buildErrorText(record),
-          ],
-        ),
+          ),
+          const Divider(
+            height: 1,
+            thickness: 1,
+            color: Colors.grey,
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildBibTextField(int index, BibRecordsProvider provider) {
-    return SizedBox(
-      width: 100,
-      child: TextField(
-        focusNode: provider.focusNodes[index],
-        controller: provider.controllers[index],
-        keyboardType: const TextInputType.numberWithOptions(signed: true, decimal: false),
-        textInputAction: TextInputAction.done,
-        decoration: const InputDecoration(
-          hintText: 'Enter Bib',
-          border: OutlineInputBorder(),
-          hintStyle: TextStyle(fontSize: 15),
-        ),
-        onSubmitted: (_) async {
-          if (!_isRaceFinished) {
-            Provider.of<BibRecordsProvider>(context, listen: false).focusNodes[index].requestFocus();
-            await _handleBibNumber('');
-          }
-        },
-        onChanged: (value) => _handleBibNumber(value, index: index),
+    return TextField(
+      focusNode: provider.focusNodes[index],
+      controller: provider.controllers[index],
+      keyboardType: const TextInputType.numberWithOptions(signed: true, decimal: false),
+      textInputAction: TextInputAction.done,
+      style: const TextStyle(fontSize: 16),
+      textAlign: TextAlign.start,
+      decoration: const InputDecoration(
+        hintText: 'Ex: 123',
+        hintStyle: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+        border: InputBorder.none,
+        contentPadding: EdgeInsets.symmetric(vertical: 8),
+        isDense: true,
       ),
+      onSubmitted: (_) async {
+        Provider.of<BibRecordsProvider>(context, listen: false).focusNodes[index].requestFocus();
+        await _handleBibNumber('');
+      },
+      onChanged: (value) => _handleBibNumber(value, index: index),
     );
   }
 
   Widget _buildRunnerInfo(BibRecord record) {
     if (record.flags['not_in_database'] == false && record.bibNumber.isNotEmpty) {
-      return Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('${record.name}, ${record.school}'),
-          ],
-        ),
+      return Text(
+        '${record.name}, ${record.school}',
+        textAlign: TextAlign.center,
+        style: const TextStyle(fontSize: 14),
       );
     }
-    return const Spacer();
-  }
-
-  Widget _buildDeleteButton(int index) {
-    return IconButton(
-      icon: const Icon(Icons.delete),
-      onPressed: () => _confirmDeleteBibNumber(index),
-    );
+    return const SizedBox.shrink();
   }
 
   Widget _buildErrorText(BibRecord record) {
@@ -259,61 +280,62 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     if (record.flags['not_in_database']!) errors.add('Runner not found');
     if (record.flags['low_confidence_score']!) errors.add('Low Confidence Score');
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        if (record.flags['not_in_database'] == false) ...[
-          const SizedBox(height: 4),
-          Container(
-            width: double.infinity,
-            height: 1,
-            color: Colors.grey,
+        const Icon(Icons.error_outline, size: 16, color: Colors.red),
+        const SizedBox(width: 8),
+        Text(
+          errors.join(' • '),
+          style: const TextStyle(
+            color: Colors.red,
+            fontSize: 12,
           ),
-        ],
-        const SizedBox(height: 4),
-        Text(errors.join('\n')),
+        ),
       ],
     );
   }
 
-  Color? _getBibCardColor(BibRecord record) {
-    if (record.flags['duplicate_bib_number']!) return Colors.red[50];
-    if (record.flags['not_in_database']! || record.flags['low_confidence_score']!) {
-      return Colors.orange[50];
-    }
-    return null;
-  }
-
-  Widget _buildActionButtons() {
-    final bibRecordsProvider = Provider.of<BibRecordsProvider>(context, listen: false);
-    final showToggleRaceStatusButton = bibRecordsProvider.bibRecords.isNotEmpty && bibRecordsProvider.bibRecords.firstWhere((record) => record.bibNumber.isNotEmpty, orElse: () => BibRecord(bibNumber: '')).bibNumber.isNotEmpty;
-    return Row(
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 5.0),
-          child: RoundedRectangleButton(
-            text: _isRaceFinished ? 'Share Bib Numbers' : 'Add Bib Number',
-            color: AppColors.navBarColor,
-            width: 175,
-            height: 50,
-            fontSize: 18,
-            onPressed: _handleMainAction,
-          ),
-        ),
-        if (showToggleRaceStatusButton) ...[
-          Padding(
-            padding: const EdgeInsets.fromLTRB(5.0, 16.0, 0.0, 16.0),
-            child: RoundedRectangleButton(
-              text: _isRaceFinished ? 'Continue' : 'Finished',
+  Widget _buildAddButton() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16.0),
+      child: Center(
+        child: InkWell(
+          onTap: () => _handleBibNumber(''),
+          borderRadius: BorderRadius.circular(30),
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.primaryColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(30),
+            ),
+            child: Icon(
+              Icons.add_circle_outline,
+              size: 32,
               color: AppColors.primaryColor,
-              width: 100,
-              height: 50,
-              fontSize: 18,
-              onPressed: _toggleRaceStatus,
             ),
           ),
-        ],
-      ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomActionButtons() {
+    final bibRecordsProvider = Provider.of<BibRecordsProvider>(context, listen: false);
+    final hasNonEmptyBibNumbers = bibRecordsProvider.bibRecords.any((record) => record.bibNumber.isNotEmpty);
+
+    if (!hasNonEmptyBibNumbers) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: RoundedRectangleButton(
+        text: 'Share Bib Numbers',
+        color: AppColors.navBarColor,
+        width: double.infinity,
+        height: 50,
+        fontSize: 18,
+        onPressed: _showShareBibNumbersPopup,
+      ),
     );
   }
 
@@ -322,36 +344,22 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     return bibRecordsProvider.bibRecords.map((record) => record.bibNumber).toList().join(' ');
   }
 
-  void _handleMainAction() {
-    if (_isRaceFinished) {
-      print('Race is finished');
-      final String bibData = _getEncodedBibData();
-      showDeviceConnectionPopup(
-        context,
-        deviceType: DeviceType.advertiserDevice,
-        deviceName: DeviceName.bibRecorder,
-        otherDevices: createOtherDeviceList(
-          DeviceName.bibRecorder,
-          DeviceType.advertiserDevice,
-          data: bibData,
-        ),
-      );
-    } else {
-      _handleBibNumber('');
-
-    }
+  void _showShareBibNumbersPopup() async {
+    final confirmed = await _cleanEmptyRecords();
+    if (!confirmed) return;
+    final String bibData = _getEncodedBibData();
+    showDeviceConnectionPopup(
+      context,
+      deviceType: DeviceType.advertiserDevice,
+      deviceName: DeviceName.bibRecorder,
+      otherDevices: createOtherDeviceList(
+        DeviceName.bibRecorder,
+        DeviceType.advertiserDevice,
+        data: bibData,
+      ),
+    );
   }
 
-  /// Toggle [_isRaceFinished] and clean up empty records if race is finished.
-  void _toggleRaceStatus() async {
-    if (!_isRaceFinished) {
-      final confirmed = await _cleanEmptyRecords();
-      if (!confirmed) return;
-    }
-    setState(() {
-      _isRaceFinished = !_isRaceFinished;
-    });
-  }
 
   // _decodeRaceTimesString(String qrData) async {
   //   final decodedData = json.decode(qrData);
@@ -412,19 +420,25 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
   //          data['endTime'] != null;
   // }
 
-  void _confirmDeleteBibNumber(int index) {
-    DialogUtils.showConfirmationDialog(
-      context,
-      title: 'Confirm Deletion',
-      content: 'Are you sure you want to delete this bib number?',
-    ).then((confirmed) {
+  Future<bool> _cleanEmptyRecords() async {
+    final provider = Provider.of<BibRecordsProvider>(context, listen: false);
+    final emptyRecords = provider.bibRecords.where((bib) => bib.bibNumber.isEmpty).length;
+    
+    if (emptyRecords > 0) {
+      final confirmed = await DialogUtils.showConfirmationDialog(
+        context,
+        title: 'Clean Empty Records',
+        content: 'There are $emptyRecords empty bib numbers that will be deleted. Continue?',
+      );
+      
       if (confirmed) {
         setState(() {
-          Provider.of<BibRecordsProvider>(context, listen: false)
-            .removeBibRecord(index);
+          provider.bibRecords.removeWhere((bib) => bib.bibNumber.isEmpty);
         });
       }
-    });
+      return confirmed;
+    }
+    return true;
   }
 
   @override
@@ -432,38 +446,56 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
-        body: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              buildRoleBar(context, 'bib recorder', 'Record Bibs'),
-              const SizedBox(height: 16),
-              Expanded(
-                child: Consumer<BibRecordsProvider>(
-                  builder: (context, provider, _) {
-                    return ListView.builder(
-                      itemCount: provider.bibRecords.length + 1,
-                      itemBuilder: (context, index) {
-                        if (index < provider.bibRecords.length) {
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 4.0,
-                              horizontal: 8.0,
+        body: Column(
+          children: [
+            buildRoleBar(context, 'bib recorder', 'Record Bibs'),
+            const SizedBox(height: 16),
+            Expanded(
+              child: Consumer<BibRecordsProvider>(
+                builder: (context, provider, _) {
+                  return ListView.builder(
+                    padding: EdgeInsets.zero,
+                    itemCount: provider.bibRecords.length + 1,
+                    itemBuilder: (context, index) {
+                      if (index < provider.bibRecords.length) {
+                        return Dismissible(
+                          key: ValueKey(provider.bibRecords[index]),
+                          background: Container(
+                            color: Colors.red,
+                            alignment: Alignment.centerRight,
+                            padding: const EdgeInsets.only(right: 16.0),
+                            child: const Icon(
+                              Icons.delete,
+                              color: Colors.white,
                             ),
-                            child: _buildBibInput(
-                              index,
-                              provider.bibRecords[index],
-                            ),
-                          );
-                        }
-                        return _buildActionButtons();
-                      },
-                    );
-                  },
-                ),
+                          ),
+                          direction: DismissDirection.endToStart,
+                          confirmDismiss: (direction) async {
+                            return await DialogUtils.showConfirmationDialog(
+                              context,
+                              title: 'Confirm Deletion',
+                              content: 'Are you sure you want to delete this bib number?',
+                            );
+                          },
+                          onDismissed: (direction) {
+                            setState(() {
+                              _onBibRecordRemoved(index);
+                            });
+                          },
+                          child: _buildBibInput(
+                            index,
+                            provider.bibRecords[index],
+                          ),
+                        );
+                      }
+                      return _buildAddButton();
+                    },
+                  );
+                },
               ),
-            ],
-          ),
+            ),
+            _buildBottomActionButtons(),
+          ],
         ),
       ),
     );
