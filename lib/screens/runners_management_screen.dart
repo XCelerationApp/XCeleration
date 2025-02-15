@@ -289,12 +289,27 @@ class SearchBar extends StatelessWidget {
         ),
         const SizedBox(width: 10),
         Expanded(
-          child: DropdownButton<String>(
-            value: searchAttribute,
-            onChanged: onAttributeChanged,
-            items: ['Bib Number', 'Name', 'Grade', 'School']
-                .map((value) => DropdownMenuItem(value: value, child: Text(value)))
-                .toList(),
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: AppColors.navBarColor),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: DropdownButton<String>(
+                value: searchAttribute,
+                onChanged: onAttributeChanged,
+                items: ['Bib Number', 'Name', 'Grade', 'School']
+                    .map((value) => DropdownMenuItem(value: value, child: Text(value)))
+                    .toList(),
+                icon: const Icon(Icons.arrow_drop_down, color: AppColors.navBarColor),
+                iconSize: 30,
+                isExpanded: true,
+                focusColor: AppColors.backgroundColor,
+                underline: const SizedBox(),
+                style: const TextStyle(color: AppColors.navBarColor, fontSize: 16),
+              ),
+            ),
           ),
         ),
         IconButton(
