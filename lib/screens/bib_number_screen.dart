@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'dart:convert';
 // import '../models/race.dart';
@@ -31,17 +32,15 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     DeviceType.browserDevice,
   );
 
+  final ScrollController _scrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
-    // race = widget.race!;
     _checkForRunners();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _handleBibNumber('');
-    });
   }
 
-  void _checkForRunners() {
+  Future<void> _checkForRunners() async{
     if (_runners.isEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         showDialog(
@@ -87,11 +86,11 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                       }
                     });
                     if (_runners.isNotEmpty) {
-                      Navigator.pop(context);
+                      Navigator.pop(context);  
+                      _handleBibNumber('');
                     }
                     else {
                       print('No runners loaded');
-                      print(otherDevices);
                     }
                   },
                 ),
@@ -100,43 +99,6 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
           },
         );
       });
-    }
-  }
-
-  // Simplified bib number management
-  Future<void> _handleBibNumber(String bibNumber, {
-    List<double>? confidences,
-    int? index,
-  }) async {
-    final provider = Provider.of<BibRecordsProvider>(context, listen: false);
-    
-    if (index == null) {
-      index = provider.bibRecords.length;
-      provider.addBibRecord(BibRecord(
-        bibNumber: bibNumber,
-        confidences: confidences ?? [],
-      ));
-    } else {
-      provider.updateBibRecord(index, bibNumber);
-    }
-
-    // Validate all bib numbers to update duplicate states
-    for (var i = 0; i < provider.bibRecords.length; i++) {
-      await _validateBibNumber(i, provider.bibRecords[i].bibNumber, 
-        i == index ? confidences : null);
-    }
-
-    Provider.of<BibRecordsProvider>(context, listen: false).focusNodes[index].requestFocus();
-  }
-
-  dynamic getRunnerByBib(String bibNumber) {
-    try {
-      return _runners.firstWhere(
-        (runner) => runner['bib_number'] == bibNumber,
-        orElse: () => null,
-      );
-    } catch (e) {
-      return null;
     }
   }
 
@@ -200,42 +162,42 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
 
   // UI Components
   Widget _buildBibInput(int index, BibRecord record) {
-    final provider = Provider.of<BibRecordsProvider>(context, listen: false);
-    
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: Column(
-        children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(4.0),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                SizedBox(
-                  width: 60,
-                  child: _buildBibTextField(index, provider),
-                ),
-                Expanded(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      if (record.name.isNotEmpty && !record.hasErrors)
-                        _buildRunnerInfo(record)
-                      else if (record.hasErrors)
-                        _buildErrorText(record),
-                    ],
-                  ),
-                ),
-              ],
+    return GestureDetector(
+      onTap: () {
+        final provider = Provider.of<BibRecordsProvider>(context, listen: false);
+        provider.focusNodes[index].requestFocus();
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border(
+            bottom: BorderSide(
+              color: Colors.grey.shade300,
+              width: 1,
             ),
           ),
-          const Divider(
-            height: 1,
-            thickness: 1,
-            color: Colors.grey,
-          ),
-        ],
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            SizedBox(
+              width: 60,
+              child: _buildBibTextField(index, Provider.of<BibRecordsProvider>(context)),
+            ),
+            Expanded(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (record.name.isNotEmpty && !record.hasErrors)
+                    _buildRunnerInfo(record)
+                  else if (record.hasErrors)
+                    _buildErrorText(record),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -244,22 +206,24 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     return TextField(
       focusNode: provider.focusNodes[index],
       controller: provider.controllers[index],
-      keyboardType: const TextInputType.numberWithOptions(signed: true, decimal: false),
-      textInputAction: TextInputAction.done,
+      keyboardType: TextInputType.number,
       style: const TextStyle(fontSize: 16),
       textAlign: TextAlign.start,
       decoration: const InputDecoration(
-        hintText: 'Ex: 123',
+        hintText: 'Bib #...',
         hintStyle: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
         border: InputBorder.none,
         contentPadding: EdgeInsets.symmetric(vertical: 8),
         isDense: true,
       ),
+      inputFormatters: [
+        FilteringTextInputFormatter.digitsOnly,
+      ],
       onSubmitted: (_) async {
-        Provider.of<BibRecordsProvider>(context, listen: false).focusNodes[index].requestFocus();
         await _handleBibNumber('');
       },
       onChanged: (value) => _handleBibNumber(value, index: index),
+      keyboardAppearance: Brightness.light,
     );
   }
 
@@ -302,16 +266,16 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
       child: Center(
         child: InkWell(
           onTap: () => _handleBibNumber(''),
-          borderRadius: BorderRadius.circular(30),
+          borderRadius: BorderRadius.circular(35),
           child: Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(15),
             decoration: BoxDecoration(
               color: AppColors.primaryColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(30),
+              borderRadius: BorderRadius.circular(40),
             ),
             child: Icon(
               Icons.add_circle_outline,
-              size: 32,
+              size: 40,
               color: AppColors.primaryColor,
             ),
           ),
@@ -360,66 +324,6 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     );
   }
 
-
-  // _decodeRaceTimesString(String qrData) async {
-  //   final decodedData = json.decode(qrData);
-  //   final startTime = null;
-  //   final endTime = loadDurationFromString(decodedData[1]);
-  //   final condensedRecords = decodedData[0];
-  //   List<Map<String, dynamic>> records = [];
-  //   int place = 0;
-  //   for (var recordString in condensedRecords) {
-  //     if (loadDurationFromString(recordString) != null) {
-  //       place++;
-  //       records.add({'finish_time': recordString, 'type': 'runner_time', 'is_confirmed': false, 'text_color': null, 'place': place});
-  //     }
-  //     else {
-  //       final [type, offBy, finish_time] = recordString.split(' ');
-  //       if (type == 'confirm_runner_number'){
-  //         records = confirmRunnerNumber(records, place - 1, finish_time);
-  //       }
-  //       else if (type == 'missing_runner_time'){
-  //         records = await missingRunnerTime(int.tryParse(offBy), records, place, finish_time);
-  //         place += int.tryParse(offBy)!;
-  //       }
-  //       else if (type == 'extra_runner_time'){
-  //         records = await extraRunnerTime(int.tryParse(offBy), records, place, finish_time);
-  //         place -= int.tryParse(offBy)!;
-  //       }
-  //       else {
-  //         print("Unknown type: $type, string: $recordString");
-  //       }
-  //     }
-  //   }
-  //   return {'endTime': endTime, 'records': records, 'startTime': startTime};
-  // }
-
-  // Future<void> _processRaceData(String data) async {
-  //   try {
-  //     final timingData = await _decodeRaceTimesString(data);
-  //     print(timingData);
-  //     for (var record in timingData['records']) {
-  //       print(record);
-  //     }
-  //     if (_isValidTimingData(timingData)) {
-  //       // _navigateToRaceScreen(timingData);
-  //     } else {
-  //       DialogUtils.showErrorDialog(context, message: 'Error: Invalid QR code data');
-  //     }
-  //   } catch (e) {
-  //     DialogUtils.showErrorDialog(context, message: 'Error processing data: $e');
-  //     rethrow;
-  //   }
-  // }
-
-  // bool _isValidTimingData(Map<String, dynamic> data) {
-  //   return data.isNotEmpty &&
-  //          data.containsKey('records') &&
-  //          data.containsKey('endTime') &&
-  //          data['records'].isNotEmpty &&
-  //          data['endTime'] != null;
-  // }
-
   Future<bool> _cleanEmptyRecords() async {
     final provider = Provider.of<BibRecordsProvider>(context, listen: false);
     final emptyRecords = provider.bibRecords.where((bib) => bib.bibNumber.isEmpty).length;
@@ -441,20 +345,82 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     return true;
   }
 
+  Future<void> _handleBibNumber(String bibNumber, {
+    List<double>? confidences,
+    int? index,
+  }) async {
+    final provider = Provider.of<BibRecordsProvider>(context, listen: false);
+    
+    if (index != null) {
+      _validateBibNumber(index, bibNumber, confidences);
+      provider.updateBibRecord(index, bibNumber);
+    } else {
+      provider.addBibRecord(BibRecord(
+        bibNumber: bibNumber,
+        confidences: confidences ?? [],
+      ));
+      // Scroll to bottom when adding new bib
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+    }
+
+    // Validate all bib numbers to update duplicate states
+    for (var i = 0; i < provider.bibRecords.length; i++) {
+      await _validateBibNumber(i, provider.bibRecords[i].bibNumber, 
+        i == index ? confidences : null);
+    }
+
+    if (_runners.isNotEmpty) {
+      Provider.of<BibRecordsProvider>(context, listen: false)
+        .focusNodes[index ?? provider.bibRecords.length - 1]
+        .requestFocus();
+    }
+  }
+
+  void _scrollToBottom() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
+  }
+
+  dynamic getRunnerByBib(String bibNumber) {
+    try {
+      return _runners.firstWhere(
+        (runner) => runner['bib_number'] == bibNumber,
+        orElse: () => null,
+      );
+    } catch (e) {
+      return null;
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    final provider = Provider.of<BibRecordsProvider>(context, listen: false);
+    for (var node in provider.focusNodes) {
+      node.removeListener(() {});
+    }
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
+        resizeToAvoidBottomInset: true,
         body: Column(
           children: [
             buildRoleBar(context, 'bib recorder', 'Record Bibs'),
-            const SizedBox(height: 16),
             Expanded(
               child: Consumer<BibRecordsProvider>(
-                builder: (context, provider, _) {
+                builder: (context, provider, child) {
                   return ListView.builder(
-                    padding: EdgeInsets.zero,
+                    controller: _scrollController,
                     itemCount: provider.bibRecords.length + 1,
                     itemBuilder: (context, index) {
                       if (index < provider.bibRecords.length) {
@@ -494,7 +460,49 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                 },
               ),
             ),
-            _buildBottomActionButtons(),
+            Consumer<BibRecordsProvider>(
+              builder: (context, provider, _) {
+                return provider.isKeyboardVisible 
+                  ? const SizedBox.shrink() 
+                  : _buildBottomActionButtons();
+              },
+            ),
+            Consumer<BibRecordsProvider>(
+              builder: (context, provider, _) {
+                if (!provider.isKeyboardVisible || provider.bibRecords.isEmpty) return const SizedBox.shrink();
+                return Container(
+                  height: 44,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFD2D5DB), // iOS numeric keypad color
+                    border: Border(
+                      top: BorderSide(
+                        color: Color(0xFFBBBBBB),
+                        width: 0.5,
+                      ),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(right: 16.0),
+                        child: TextButton(
+                          onPressed: () => FocusScope.of(context).unfocus(),
+                          child: const Text(
+                            'Done',
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.darkColor,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
           ],
         ),
       ),
