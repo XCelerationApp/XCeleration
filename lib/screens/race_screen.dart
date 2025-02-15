@@ -93,6 +93,16 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
     return runnerRecords.any((record) => record['error'] != null);
   }
 
+
+  _goToTestResolveBibNumbesScreen(context, records) async {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ResolveBibNumberScreen(records: records, raceId: raceId),
+      ),
+    );
+  }
+  
   Future<void> _goToMergeConflictsScreen(context, runnerRecords, timingData) async {
     Navigator.push(
       context,
@@ -348,6 +358,52 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
               SingleChildScrollView(
                 child: Column(
                   children: [
+                    const SizedBox(height: 10),
+                    _buildActionButton('Test Merge Conflicts', () => _goToMergeConflictsScreen(
+                        context, 
+                        [
+                          {'bib_number': '1', 'name': 'Teo Donnelley', 'grade': 11, 'school': 'AW', 'error': null},
+                          {'bib_number': '2', 'name': 'Bill', 'grade': 10, 'school': 'TL', 'error': null},
+                          {'bib_number': '3', 'name': 'Ethan', 'grade': 12, 'school': 'SR', 'error': null},
+                          {'bib_number': '4', 'name': 'John', 'grade': 9, 'school': 'SR', 'error': null},
+                          {'bib_number': '5', 'name': 'Sally', 'grade': 8, 'school': 'SR', 'error': null},
+                          {'bib_number': '6', 'name': 'Jane', 'grade': 7, 'school': 'SR', 'error': null},
+                          {'bib_number': '7', 'name': 'Bob', 'grade': 6, 'school': 'SR', 'error': null},
+                          {'bib_number': '8', 'name': 'Charlie', 'grade': 5, 'school': 'SR', 'error': null},
+                        ], 
+                        {
+                          'endTime': '2.84',
+                          'records': [
+                            {'finish_time': '0.45', 'type': 'runner_time', 'is_confirmed': true, 'text_color': null, 'place': 1},
+                            {'finish_time': '0.83', 'type': 'runner_time', 'is_confirmed': true, 'text_color': null, 'place': 2},
+                            {'finish_time': '1.02', 'type': 'confirm_runner_number', 'is_confirmed': true, 'text_color': Colors.green, 'numTimes': 2},
+                            {'finish_time': '1.06', 'type': 'runner_time', 'conflict': 'extra_runner_time', 'is_confirmed': false, 'text_color': null, 'place': 3},
+                            {'finish_time': '1.12', 'type': 'runner_time', 'conflict': 'extra_runner_time', 'is_confirmed': false, 'text_color': null, 'place': 4},
+                            {'finish_time': '1.17', 'type': 'runner_time', 'conflict': 'extra_runner_time', 'is_confirmed': false, 'text_color': null, 'place': 5},
+                            {'finish_time': '1.20', 'type': 'runner_time', 'conflict': 'extra_runner_time', 'is_confirmed': false, 'text_color': null, 'place': ''},
+                            {'finish_time': '1.21', 'type': 'extra_runner_time', 'offBy': 1, 'numTimes': 5, 'text_color': AppColors.redColor},
+                            {'finish_time': '1.24', 'type': 'runner_time', 'conflict': 'missing_runner_time', 'is_confirmed': false, 'text_color': null, 'place': 6},
+                            {'finish_time': '1.27', 'type': 'runner_time', 'conflict': 'missing_runner_time', 'is_confirmed': false, 'text_color': null, 'place': 7},
+                            {'finish_time': 'TBD', 'type': 'runner_time', 'conflict': 'missing_runner_time', 'is_confirmed': false, 'text_color': null, 'place': 8},
+                            {'finish_time': '1.60', 'type': 'missing_runner_time', 'text_color': AppColors.redColor, 'numTimes': 8},
+                          ],
+                          'startTime': null,
+                        }
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    _buildActionButton(
+                      'Test Resolve Bib Numbers',
+                      () => _goToTestResolveBibNumbesScreen(
+                        context, 
+                        [
+                          {'bib_number': '1', 'name': 'Teo Donnelley', 'grade': 11, 'school': 'AW', 'error': null},
+                          {'bib_number': '2', 'name': 'Bill', 'grade': 10, 'school': 'TL', 'error': null},
+                          {'bib_number': '300', 'name': 'Unknown', 'grade': null, 'school': 'Unknown School', 'error': 'Unknown Runner'},
+                          {'bib_number': '301', 'name': 'Unknown', 'grade': null, 'school': 'Unknown School', 'error': 'Unknown Runner'},
+                        ], 
+                      ),
+                    ),
                     const SizedBox(height: 10),
                     _buildActionButton('See Race Info', () => _goToDetailsScreen(context)),
                     const SizedBox(height: 10),
