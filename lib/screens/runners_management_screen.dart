@@ -16,34 +16,6 @@ class Team {
   Team({required this.name, required this.color});
 }
 
-class _FormControllers {
-  final name = TextEditingController();
-  final grade = TextEditingController();
-  final school = TextEditingController();
-  final bib = TextEditingController();
-
-  void dispose() {
-    name.dispose();
-    grade.dispose();
-    school.dispose();
-    bib.dispose();
-  }
-
-  void clear() {
-    name.clear();
-    grade.clear();
-    school.clear();
-    bib.clear();
-  }
-
-  void initializeWithRunner(Runner runner) {
-    name.text = runner.name;
-    grade.text = runner.grade.toString();
-    school.text = runner.school;
-    bib.text = runner.bibNumber;
-  }
-}
-
 class Runner {
   final String name;
   final int grade;
@@ -338,81 +310,108 @@ class RunnersManagementScreen extends StatefulWidget {
 }
 
 class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
-  final _formControllers = _FormControllers();
-  final _searchController = TextEditingController();
-  String _searchAttribute = 'Bib Number';
-  
   List<Runner> _runners = [];
   List<Runner> _filteredRunners = [];
-  final List<Team> _teams = [];
+  List<Team> _teams = [];
+  bool _isLoading = true;
+  String _searchAttribute = 'Bib Number';
+  final TextEditingController _searchController = TextEditingController();
+  
+  // Sheet controllers
+  TextEditingController? _nameController;
+  TextEditingController? _gradeController;
+  TextEditingController? _schoolController;
+  TextEditingController? _bibController;
 
   @override
   void initState() {
     super.initState();
-    _loadRunners();
-    _loadTeams();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    await Future.wait([
+      _loadRunners(),
+      _loadTeams(),
+    ]);
+    setState(() {
+      _isLoading = false;
+    });
   }
 
   @override
   void dispose() {
-    _formControllers.dispose();
     _searchController.dispose();
+    _disposeControllers();
     super.dispose();
+  }
+
+  void _initControllers() {
+    _disposeControllers(); // Clean up any existing controllers first
+    _nameController = TextEditingController();
+    _gradeController = TextEditingController();
+    _schoolController = TextEditingController();
+    _bibController = TextEditingController();
+  }
+
+  void _disposeControllers() {
+    _nameController?.dispose();
+    _gradeController?.dispose();
+    _schoolController?.dispose();
+    _bibController?.dispose();
+    _nameController = null;
+    _gradeController = null;
+    _schoolController = null;
+    _bibController = null;
   }
 
   Future<void> _loadTeams() async {
     final race = await DatabaseHelper.instance.getRaceById(widget.raceId);
-    for (var i = 0; i < race!.teams.length; i++) {
-      final Color teamColor = race.teamColors[i];
-      final String teamName = race.teams[i];
-      _teams.add(Team(name: teamName, color: teamColor));
-      print(_teams);
+    if (mounted) {
+      setState(() {
+        _teams.clear();
+        for (var i = 0; i < race!.teams.length; i++) {
+          _teams.add(Team(name: race.teams[i], color: race.teamColors[i]));
+        }
+      });
     }
-    setState(() {});
   }
 
   Future<void> _loadRunners() async {
-    final runners = widget.isTeam
-        ? await DatabaseHelper.instance.getAllTeamRunners()
-        : await DatabaseHelper.instance.getRaceRunners(widget.raceId);
-    setState(() {
-      _runners = runners.map(Runner.fromMap).toList();
-      _sortRunners();
-      _filteredRunners = _runners;
-    });
+    final runners = await DatabaseHelper.instance.getRaceRunners(widget.raceId);
+    if (mounted) {
+      setState(() {
+        _runners = runners.map(Runner.fromMap).toList();
+        _filteredRunners = _runners;
+        _sortRunners();
+      });
+    }
   }
 
   void _sortRunners() {
     _runners.sort((a, b) {
-      if (int.parse(a.bibNumber) == int.parse(b.bibNumber)) {
-        return a.bibNumber.compareTo(b.bibNumber);
-      } else {
-        return int.parse(a.bibNumber).compareTo(int.parse(b.bibNumber));
-      }
+      final schoolCompare = a.school.compareTo(b.school);
+      if (schoolCompare != 0) return schoolCompare;
+      return a.name.compareTo(b.name);
     });
   }
 
   void _filterRunners(String query) {
-    if (query.isEmpty) {
-      setState(() => _filteredRunners = _runners);
-      return;
-    }
-
     setState(() {
-      _filteredRunners = _runners.where((runner) {
-        final value = switch (_searchAttribute) {
-          'Bib Number' => runner.bibNumber,
-          'Name' => runner.name.toLowerCase(),
-          'Grade' => runner.grade.toString(),
-          'School' => runner.school.toLowerCase(),
-          _ => ''
-        };
-        final searchTerm = _searchAttribute == 'Name' || _searchAttribute == 'School'
-            ? query.toLowerCase()
-            : query;
-        return value.contains(searchTerm);
-      }).toList();
-    });
+      if (query.isEmpty) {
+        _filteredRunners = List.from(_runners);
+      } else {
+        _filteredRunners = _runners.where((runner) {
+          final value = switch (_searchAttribute) {
+            'Bib Number' => runner.bibNumber,
+            'Name' => runner.name.toLowerCase(),
+            'Grade' => runner.grade.toString(),
+            'School' => runner.school.toLowerCase(),
+            String() => '',
+          };
+          return value.contains(query.toLowerCase());
+        }).toList();
+    }});
   }
 
   Future<void> _handleRunnerAction(String action, Runner runner) async {
@@ -573,12 +572,16 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
   }
 
   Widget _buildRunnersList() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     if (_filteredRunners.isEmpty) {
       return Center(
         child: Text(
           _searchController.text.isEmpty
-              ? (widget.isTeam ? 'No Runners' : 'No Runners for this race')
-              : 'No Runners found',
+              ? 'No Runners'
+              : 'No runners found',
           style: const TextStyle(fontSize: 24),
         ),
       );
@@ -636,156 +639,207 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
     Runner? runner,
   }) async {
     final title = runner == null ? 'Add Runner' : 'Edit Runner';
+    String? nameError;
+    String? gradeError;
+    String? schoolError;
+    String? bibError;
     
-    // Create new controllers for this sheet
-    final nameController = TextEditingController();
-    final gradeController = TextEditingController();
-    final schoolController = TextEditingController();
-    final bibController = TextEditingController();
+    // Initialize controllers
+    _initControllers();
 
     if (runner != null) {
-      nameController.text = runner.name;
-      gradeController.text = runner.grade.toString();
-      schoolController.text = runner.school;
-      bibController.text = runner.bibNumber;
+      _nameController?.text = runner.name;
+      _gradeController?.text = runner.grade.toString();
+      _schoolController?.text = runner.school;
+      _bibController?.text = runner.bibNumber;
     }
 
-    await showModalBottomSheet(
-      isScrollControlled: true,
-      enableDrag: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-            left: 16,
-            right: 16,
-            top: 16,
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                createSheetHandle(height: 10, width: 60),
-                const SizedBox(height: 16),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primaryColor,
+    try {
+      await showModalBottomSheet(
+        isScrollControlled: true,
+        enableDrag: true,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+        context: context,
+        builder: (context) => StatefulBuilder(
+          builder: (context, setSheetState) => Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+              left: 16,
+              right: 16,
+              top: 16,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  createSheetHandle(height: 10, width: 60),
+                  const SizedBox(height: 16),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primaryColor,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 24),
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildFormRow(
-                      label: 'Name',
-                      controller: nameController,
-                      hint: 'John Doe',
-                    ),
-                    const SizedBox(height: 16),
-                    _buildFormRow(
-                      label: 'Grade',
-                      controller: gradeController,
-                      hint: '9',
-                      keyboardType: TextInputType.number,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildFormRow(
-                      label: 'School',
-                      controller: schoolController,
-                      hint: 'School Name',
-                    ),
-                    const SizedBox(height: 16),
-                    _buildFormRow(
-                      label: 'Bib #',
-                      controller: bibController,
-                      hint: '1234',
-                      keyboardType: TextInputType.number,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryColor,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                  const SizedBox(height: 24),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildFormRow(
+                        label: 'Name',
+                        controller: _nameController!,
+                        hint: 'John Doe',
+                        error: nameError,
+                        onChanged: (value) {
+                          if (value.isEmpty) {
+                            setSheetState(() {
+                              nameError = 'Please enter a name';
+                            });
+                          } else {
+                            setSheetState(() {
+                              nameError = null;
+                            });
+                          }
+                        },
+                        setSheetState: setSheetState,
                       ),
-                    ),
-                    onPressed: () async {
-                      // Validate form
-                      String? error;
-                      if (nameController.text.isEmpty) {
-                        error = 'Please enter a name';
-                      } else if (gradeController.text.isEmpty) {
-                        error = 'Please enter a grade';
-                      } else if (schoolController.text.isEmpty) {
-                        error = 'Please select a school';
-                      } else if (bibController.text.isEmpty) {
-                        error = 'Please enter a bib number';
-                      }
-
-                      if (error != null) {
-                        DialogUtils.showErrorDialog(context, message: error);
-                        return;
-                      }
-
-                      // Create or update runner
-                      final newRunner = Runner(
-                        name: nameController.text,
-                        grade: int.tryParse(gradeController.text) ?? 0,
-                        school: schoolController.text,
-                        bibNumber: bibController.text,
-                        runnerId: runner?.runnerId,
-                        raceRunnerId: runner?.raceRunnerId,
-                      );
-
-                      try {
-                        await _handleRunnerSubmission(newRunner);
-                        if (context.mounted) Navigator.pop(context);
-                      } catch (e) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Error: $e'),
-                              backgroundColor: Colors.red,
-                              behavior: SnackBarBehavior.floating,
-                            ),
+                      const SizedBox(height: 16),
+                      _buildFormRow(
+                        label: 'Grade',
+                        controller: _gradeController!,
+                        hint: '9',
+                        keyboardType: TextInputType.number,
+                        error: gradeError,
+                        onChanged: (value) {
+                          if (value.isEmpty) {
+                            setSheetState(() {
+                              gradeError = 'Please enter a grade';
+                            });
+                          } else if (int.tryParse(value) == null) {
+                            setSheetState(() {
+                              gradeError = 'Please enter a valid grade number';
+                            });
+                          } else {
+                            final grade = int.parse(value);
+                            if (grade < 9 || grade > 12) {
+                              setSheetState(() {
+                                gradeError = 'Grade must be between 9 and 12';
+                              });
+                            } else {
+                              setSheetState(() {
+                                gradeError = null;
+                              });
+                            }
+                          }
+                        },
+                        setSheetState: setSheetState,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildFormRow(
+                        label: 'School',
+                        controller: _schoolController!,
+                        hint: 'School Name',
+                        error: schoolError,
+                        onChanged: (value) {
+                          if (value.isEmpty) {
+                            setSheetState(() {
+                              schoolError = 'Please select a school';
+                            });
+                          } else {
+                            setSheetState(() {
+                              schoolError = null;
+                            });
+                          }
+                        },
+                        setSheetState: setSheetState,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildFormRow(
+                        label: 'Bib #',
+                        controller: _bibController!,
+                        hint: '1234',
+                        keyboardType: TextInputType.number,
+                        error: bibError,
+                        onChanged: (value) {
+                          if (value.isEmpty) {
+                            setSheetState(() {
+                              bibError = 'Please enter a bib number';
+                            });
+                          } else if (int.tryParse(value) == null) {
+                            setSheetState(() {
+                              bibError = 'Please enter a valid bib number';
+                            });
+                          } else {
+                            setSheetState(() {
+                              bibError = null;
+                            });
+                          }
+                        },
+                        setSheetState: setSheetState,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryColor,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      onPressed: () async {
+                        try {
+                          final newRunner = Runner(
+                            name: _nameController!.text,
+                            grade: int.tryParse(_gradeController!.text) ?? 0,
+                            school: _schoolController!.text,
+                            bibNumber: _bibController!.text,
+                            runnerId: runner?.runnerId,
+                            raceRunnerId: runner?.raceRunnerId,
                           );
+
+                          await _handleRunnerSubmission(newRunner);
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Error: $e'),
+                                backgroundColor: Colors.red,
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          }
                         }
-                      }
-                    },
-                    child: Text(
-                      runner == null ? 'Create' : 'Save',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                      },
+                      child: Text(
+                        runner == null ? 'Create' : 'Save',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
-      ),
-    );
-
-    // Clean up controllers
-    nameController.dispose();
-    gradeController.dispose();
-    schoolController.dispose();
-    bibController.dispose();
+      );
+    } finally {
+      // Always dispose controllers when sheet is closed
+      _disposeControllers();
+    }
   }
 
   Widget _buildFormRow({
@@ -793,9 +847,13 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
     required TextEditingController controller,
     required String hint,
     TextInputType? keyboardType,
+    String? error,
+    required Function(String) onChanged,
+    required StateSetter setSheetState,
   }) {
     if (label == 'School') {
       return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
             width: 80,
@@ -817,33 +875,50 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: ButtonTheme(
-                          alignedDropdown: true,
-                          child: DropdownButton<String>(
-                            value: isCustom ? null : (controller.text.isEmpty ? null : controller.text),
-                            hint: Text(hint, style: const TextStyle(color: Colors.grey)),
-                            isExpanded: true,
-                            items: [
-                              ...schools.map((school) => DropdownMenuItem(
-                                value: school,
-                                child: Text(school),
-                              )),
-                            ],
-                            onChanged: (value) {
-                              if (value != null) {
-                                setState(() => controller.text = value);
-                              }
-                            },
+                    Focus(
+                      onFocusChange: (hasFocus) {
+                        if (!hasFocus) {
+                          onChanged(controller.text);
+                        }
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(color: error != null ? Colors.red : Colors.grey),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: ButtonTheme(
+                            alignedDropdown: true,
+                            child: DropdownButton<String>(
+                              value: isCustom ? null : (controller.text.isEmpty ? null : controller.text),
+                              hint: Text(hint, style: const TextStyle(color: Colors.grey)),
+                              isExpanded: true,
+                              items: [
+                                ...schools.map((school) => DropdownMenuItem(
+                                  value: school,
+                                  child: Text(school),
+                                )),
+                              ],
+                              onChanged: (value) {
+                                setState(() => controller.text = value ?? '');
+                                onChanged(value ?? '');
+                              },
+                            ),
                           ),
                         ),
                       ),
                     ),
+                    if (error != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4, left: 12),
+                        child: Text(
+                          error,
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
                   ],
                 );
               },
@@ -854,6 +929,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
     }
 
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
           width: 80,
@@ -867,17 +943,49 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
         ),
         const SizedBox(width: 8),
         Expanded(
-          child: TextField(
-            controller: controller,
-            keyboardType: keyboardType,
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: const TextStyle(color: Colors.grey),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Focus(
+                onFocusChange: (hasFocus) {
+                  if (!hasFocus) {
+                    onChanged(controller.text);
+                  }
+                },
+                child: TextField(
+                  controller: controller,
+                  keyboardType: keyboardType,
+                  decoration: InputDecoration(
+                    hintText: hint,
+                    hintStyle: const TextStyle(color: Colors.grey),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: error != null ? Colors.red : Colors.grey),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: error != null ? Colors.red : Colors.grey),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: error != null ? Colors.red : AppColors.primaryColor),
+                    ),
+                    errorText: error,
+                    errorStyle: const TextStyle(
+                      color: Colors.red,
+                      fontSize: 12,
+                    ),
+                  ),
+                  onTapOutside: (_) {
+                    onChanged(controller.text);
+                  },
+                  onChanged: (value) {
+                    onChanged(value);
+                  }
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ],
