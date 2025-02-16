@@ -11,6 +11,7 @@ toRace(Map<String, dynamic> race) {
         raceDate: DateTime.parse(race['race_date']),
         location: race['location'],
         distance: race['distance'],
+        distanceUnit: race['distance_unit'],
         teamColors: teamColorsList.map((x) => Color(int.parse(x))).toList(),
         teams: teamsList.cast<String>(),
     );
@@ -21,7 +22,8 @@ class Race {
   final String raceName;
   final DateTime raceDate;
   final String location;
-  final String distance;
+  final double distance;
+  final String distanceUnit;
   final List<Color> teamColors;
   final List<String> teams;
 
@@ -31,6 +33,7 @@ class Race {
     required this.raceDate,
     required this.location,
     required this.distance,
+    required this.distanceUnit,
     required this.teamColors,
     required this.teams,
   });
@@ -39,7 +42,8 @@ class Race {
   String get race_name => raceName;
   String get race_location => location;
   DateTime get race_date => raceDate;
-  String get race_distance => distance;
+  double get race_distance => distance;
+  String get race_distance_unit => distanceUnit;
   int get race_id => raceId;
   List<Color> get race_team_colors => teamColors;
   List<String> get race_teams => teams;

@@ -425,7 +425,6 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
         record['school'] = runners[i]['school'];
         record['race_runner_id'] = runners[i]['race_runner_id'] ?? runners[i]['runner_id'];
         record['race_id'] = _raceId;
-        record['is_team_runner'] = runners[i]['is_team_runner'];
         record['text_color'] = AppColors.navBarTextColor;
       });
     }
@@ -512,7 +511,6 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
         record['school'] = runners[i]['school'];
         record['race_runner_id'] = runners[i]['race_runner_id'] ?? runners[i]['runner_id'];
         record['race_id'] = _raceId;
-        record['is_team_runner'] = runners[i]['is_team_runner'];
         record['text_color'] = AppColors.navBarTextColor;
       });
     }

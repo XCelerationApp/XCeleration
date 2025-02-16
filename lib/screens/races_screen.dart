@@ -15,6 +15,7 @@ import '../role_functions.dart';
 import '../utils/sheet_utils.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 
 class RacesScreen extends StatefulWidget {
   const RacesScreen({super.key});
@@ -93,7 +94,7 @@ class _RacesScreenState extends State<RacesScreen> {
     );
   }
 
-  Widget _buildCreateRaceSheetContent(StateSetter setState) {
+  Widget _buildCreateRaceSheetContent(StateSetter setState, {bool isEditing = false, int? raceId}) {
     return Column(
       children: [
         const SizedBox(height: 10),
@@ -104,19 +105,121 @@ class _RacesScreenState extends State<RacesScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _buildCreateRaceSheetTitle(),
+                _buildCreateRaceSheetTitle(isEditing: isEditing),
                 _buildRaceNameField(),
                 _buildCompetingTeamsField(setState),
                 _buildRaceLocationField(),
                 _buildRaceDateField(),
                 _buildRaceDistanceField(),
-                _buildCreateButton(),
+                _buildActionButton(isEditing: isEditing, raceId: raceId),
                 const SizedBox(height: 16),
               ],
             ),
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildCreateRaceSheetTitle({bool isEditing = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Text(
+        isEditing ? 'Edit Race' : 'Create New Race',
+        style: const TextStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.bold,
+        ),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+
+  Widget _buildActionButton({bool isEditing = false, int? raceId}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: ElevatedButton(
+        onPressed: () async {
+          if (nameController.text.isEmpty) {
+            DialogUtils.showErrorDialog(
+              context,
+              message: 'Please enter a race name.',
+            );
+            return;
+          }
+
+          if (locationController.text.isEmpty) {
+            DialogUtils.showErrorDialog(
+              context,
+              message: 'Please enter a race location.',
+            );
+            return;
+          }
+
+          if (dateController.text.isEmpty) {
+            DialogUtils.showErrorDialog(
+              context,
+              message: 'Please select a race date.',
+            );
+            return;
+          }
+
+          if (distanceController.text.isEmpty) {
+            DialogUtils.showErrorDialog(
+              context,
+              message: 'Please enter a race distance.',
+            );
+            return;
+          }
+
+          List<String> teams = _teamControllers
+              .map((controller) => controller.text.trim())
+              .where((text) => text.isNotEmpty)
+              .toList();
+
+          if (teams.isEmpty) {
+            DialogUtils.showErrorDialog(
+              context,
+              message: 'Please add at least one team.',
+            );
+            return;
+          }
+
+          final race = {
+            'race_name': nameController.text,
+            'location': locationController.text,
+            'race_date': dateController.text,
+            'distance': double.parse(distanceController.text),
+            'distance_unit': unit,
+            'teams': jsonEncode(teams),
+            'team_colors': jsonEncode(_teamColors.map((color) => color.value).toList()),
+          };
+
+          if (isEditing && raceId != null) {
+            race['race_id'] = raceId;
+            await DatabaseHelper.instance.updateRace(race);
+          } else {
+            await DatabaseHelper.instance.insertRace(race);
+          }
+          await _loadRaces();
+
+          if (mounted) {
+            Navigator.pop(context);
+          }
+        },
+        style: ElevatedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          backgroundColor: AppColors.primaryColor,
+          fixedSize: const Size.fromHeight(50),
+        ),
+        child: Text(
+          isEditing ? 'Save Changes' : 'Create Race',
+          style: const TextStyle(fontSize: 24, color: Colors.white),
+        ),
+      ),
     );
   }
 
@@ -161,35 +264,6 @@ class _RacesScreenState extends State<RacesScreen> {
           ),
         )
       ],
-    );
-  }
-
-  Widget _buildCreateButton() {
-    return Padding(
-      padding: const EdgeInsets.only(top: 16.0),
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primaryColor,
-          fixedSize: const Size(300, 75),
-        ),
-        onPressed: () {
-          _createRace();
-        },
-        child: const Text('Create', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.backgroundColor)),
-      ),
-    );
-  }
-
-  Widget _buildCreateRaceSheetTitle() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      child: Text(
-        'Create a New Race',
-        style: const TextStyle(
-          fontSize: 24,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
     );
   }
 
@@ -567,11 +641,171 @@ class _RacesScreenState extends State<RacesScreen> {
   }
 
   Future<bool> _isRaceStarted(Race race) async {
-    final raceId = race.race_id;
+    final raceId = race.raceId;
     final results = await DatabaseHelper.instance.getRaceResults(raceId);
     return results.isNotEmpty;
   }
-  
+
+  Widget _buildRaceCard(Race race) {
+    return Slidable(
+      key: Key(race.raceId.toString()),
+      endActionPane: ActionPane(
+        motion: const ScrollMotion(),
+        children: [
+          SlidableAction(
+            onPressed: (_) => _editRace(race),
+            backgroundColor: Colors.blue,
+            foregroundColor: Colors.white,
+            icon: Icons.edit,
+          ),
+          SlidableAction(
+            onPressed: (_) => _deleteRace(race),
+            backgroundColor: Colors.red,
+            foregroundColor: Colors.white,
+            icon: Icons.delete,
+          ),
+        ],
+      ),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        width: double.infinity,
+        child: Card(
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: InkWell(
+            onTap: () => _showRaceInfo(race.raceId),
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    race.raceName,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(Icons.location_on, size: 16, color: Colors.grey),
+                      const SizedBox(width: 4),
+                      Text(
+                        race.location,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
+                      const SizedBox(width: 4),
+                      Text(
+                        DateFormat('MMMM d, y').format(race.raceDate),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        '${race.distance} ${race.distanceUnit}',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _editRace(Race race) async {
+    // Pre-fill the controllers with race data
+    nameController.text = race.raceName;
+    locationController.text = race.location;
+    dateController.text = DateFormat('yyyy-MM-dd').format(race.raceDate);
+    distanceController.text = race.distance.toString();
+    unit = race.distanceUnit;
+
+    // Clear existing team controllers
+    for (var controller in _teamControllers) {
+      controller.dispose();
+    }
+    _teamControllers.clear();
+    _teamColors.clear();
+
+    // Add team controllers for existing teams
+    for (var i = 0; i < race.teams.length; i++) {
+      var controller = TextEditingController(text: race.teams[i]);
+      _teamControllers.add(controller);
+      _teamColors.add(race.teamColors[i]);
+    }
+
+    // Show the edit sheet
+    await showModalBottomSheet(
+      backgroundColor: AppColors.backgroundColor,
+      context: context,
+      isScrollControlled: true,
+      enableDrag: true,
+      useSafeArea: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(16),
+        ),
+      ),
+      builder: (context) => StatefulBuilder(
+        builder: (BuildContext context, StateSetter setState) {
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+            ),
+            child: SizedBox(
+              height: MediaQuery.of(context).size.height * 0.92,
+              child: _buildCreateRaceSheetContent(
+                setState,
+                isEditing: true,
+                raceId: race.raceId,
+              ),
+            ),
+          );
+        },
+      ),
+    );
+
+    // Reload races after editing
+    await _loadRaces();
+  }
+
+  Future<void> _deleteRace(Race race) async {
+    final confirmed = await DialogUtils.showConfirmationDialog(
+      context,
+      title: 'Delete Race',
+      content: 'Are you sure you want to delete "${race.raceName}"? This action cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+    );
+
+    if (confirmed == true) {
+      await DatabaseHelper.instance.deleteRace(race.raceId);
+      await _loadRaces();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -614,35 +848,7 @@ class _RacesScreenState extends State<RacesScreen> {
                         return ListView.builder(
                           itemCount: races.length,
                           itemBuilder: (context, index) {
-                            return Card(
-                              color: finishedRaces[index] ? Colors.green[100] : Colors.amber,
-                              child: ListTile(
-                                title: Text(races[index].race_name, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
-                                subtitle: finishedRaces[index] ? Text(_formatDate(races[index].race_date), style: TextStyle(fontSize: 14, fontWeight: FontWeight.w400))
-                                  : Text('${_formatDate(races[index].race_date)} - Race not completed', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w400, color: Colors.red)),
-                                onTap: () {
-                                  _showRaceInfo(races[index].raceId);
-                                  // showModalBottomSheet(
-                                  //   backgroundColor: AppColors.backgroundColor,
-                                  //   context: context,
-                                  //   isScrollControlled: true,
-                                  //   enableDrag: true,
-                                  //   useSafeArea: true,
-                                  //   shape: RoundedRectangleBorder(
-                                  //     borderRadius: BorderRadius.vertical(
-                                  //       top: Radius.circular(16),
-                                  //     ),
-                                  //   ),
-                                  //   builder: (context) => SizedBox(
-                                  //     height: MediaQuery.of(context).size.height * 0.92,
-                                  //     child: RaceInfoScreen(
-                                  //       raceId: races[index].raceId,
-                                  //     ),
-                                  //   ),
-                                  // );
-                                },
-                              ),
-                            );
+                            return _buildRaceCard(races[index]);
                           },
                         );
                       },

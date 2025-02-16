@@ -50,7 +50,8 @@ class DatabaseHelper {
         team_colors TEXT,
         teams TEXT,
         location TEXT,
-        distance TEXT,
+        distance DOUBLE,
+        distance_unit TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     ''');
@@ -173,6 +174,7 @@ class DatabaseHelper {
         raceDate: raceDate,
         location: maps[i]['location'],
         distance: maps[i]['distance'],
+        distanceUnit: maps[i]['distance_unit'],
         teamColors: teamColors,
         teams: teams,
       );
@@ -210,6 +212,7 @@ class DatabaseHelper {
       raceDate: raceDate,
       location: race['location'],
       distance: race['distance'],
+      distanceUnit: race['distance_unit'],
       teamColors: teamColors,
       teams: teams,
     );
@@ -346,8 +349,7 @@ class DatabaseHelper {
         rr.school, 
         rr.grade, 
         r.place, 
-        r.finish_time,
-        0 AS is_team_runner
+        r.finish_time
       FROM race_results r
       LEFT JOIN race_runners rr ON rr.race_runner_id = r.race_runner_id
       WHERE rr.race_id = ?
@@ -361,11 +363,10 @@ class DatabaseHelper {
         sr.school, 
         sr.grade, 
         r.place, 
-        r.finish_time,
-        1 AS is_team_runner
+        r.finish_time
       FROM race_results r
       LEFT JOIN team_runners sr ON sr.runner_id = r.race_runner_id
-      WHERE r.is_team_runner = 1 AND r.race_id = ?
+      WHERE r.race_id = ?
     ''', [raceId]);
 
     return [...raceRunners, ...teamRunners];
@@ -378,7 +379,6 @@ class DatabaseHelper {
     //     'grade': '5',
     //     'place': 1,
     //     'finish_time': '5.00',
-    //     'is_team_runner': 0
     //   },
     //   {
     //     'runner_id': 2,
@@ -388,7 +388,6 @@ class DatabaseHelper {
     //     'grade': '5',
     //     'place': 2,
     //     'finish_time': '6.00',
-    //     'is_team_runner': 0
     //   },
     // ];
   }

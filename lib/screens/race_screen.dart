@@ -30,7 +30,8 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
   late String _name = '';
   late String _location = '';
   late String _date = '';
-  late String _distance = '';
+  late double _distance = 0.0;
+  late String _distanceUnit = 'miles';
   late TextEditingController _nameController;
   late TextEditingController _locationController;
   late TextEditingController _dateController;
@@ -248,7 +249,7 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
                   ),
                   const SizedBox(width: 5),
                   Text(
-                    _distance,
+                    '$_distance $_distanceUnit',
                     style: TextStyle(
                       fontSize: 15,
                     ),
@@ -359,7 +360,7 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
                 child: Column(
                   children: [
                     const SizedBox(height: 10),
-                    _buildActionButton('Test Merge Conflicts', () => _goToMergeConflictsScreen(
+                    _buildActionButton('Merge Conflicts', () => _goToMergeConflictsScreen(
                         context, 
                         [
                           {'bib_number': '1', 'name': 'Teo Donnelley', 'grade': 11, 'school': 'AW', 'error': null},
@@ -393,7 +394,7 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
                     ),
                     const SizedBox(height: 10),
                     _buildActionButton(
-                      'Test Resolve Bib Numbers',
+                      'Resolve Bibs',
                       () => _goToTestResolveBibNumbesScreen(
                         context, 
                         [

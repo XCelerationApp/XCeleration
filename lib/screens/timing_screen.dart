@@ -329,32 +329,6 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     }
   }
 
-  Future<bool> _confirmDeleteLastRecord(int recordIndex) async {
-    final record = _records[recordIndex];
-    if (record['type'] == 'runner_time' && 
-        record['is_confirmed'] == false && 
-        record['conflict'] == null) {
-      return await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Confirm Deletion'),
-          content: const Text('Are you sure you want to delete this runner?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Delete'),
-            ),
-          ],
-        ),
-      ) ?? false;
-    }
-    return false;
-  }
-
   void _clearRaceTimes() {
     showDialog<bool>(
       context: context,
@@ -525,6 +499,13 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
             ),
             direction: DismissDirection.endToStart,
             confirmDismiss: (direction) async {
+              if (record['conflict'] != null) {
+                DialogUtils.showErrorDialog(
+                  context,
+                  message: 'Cannot delete a time that is part of a conflict.',
+                );
+                return false;
+              }
               if (record['is_confirmed'] == true) {
                 DialogUtils.showErrorDialog(
                   context,
@@ -588,8 +569,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
             },
             child: _buildConfirmationRecord(record, index),
           );
-        }
-        else if (record['type'] == 'missing_runner_time' || record['type'] == 'extra_runner_time') {
+        } else if (record['type'] == 'missing_runner_time' || record['type'] == 'extra_runner_time') {
           return Dismissible(
             key: ValueKey(record),
             background: Container(
@@ -603,6 +583,13 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
             ),
             direction: DismissDirection.endToStart,
             confirmDismiss: (direction) async {
+              if (_records.last != record) {
+                DialogUtils.showErrorDialog(
+                  context,
+                  message: 'Cannot undo a conflict that is not the last one.',
+                );
+                return false;
+              }
               return await DialogUtils.showConfirmationDialog(
                 context,
                 title: 'Confirm Undo',
@@ -709,18 +696,16 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          // GestureDetector(
-          //   behavior: HitTestBehavior.opaque,
-          //   onLongPress: () => _handleConfirmationLongPress(index),
-            Text(
-              record['type'] == 'missing_runner_time' ? 'Missing Runner at ${record['finish_time']}': 'Extra Runner at ${record['finish_time']}',
-              style: TextStyle(
-                fontSize: MediaQuery.of(context).size.width * 0.05,
-                fontWeight: FontWeight.bold,
-                color: record['text_color'],
-              ),
+          Text(
+            record['type'] == 'missing_runner_time' 
+              ? 'Missing Runner at ${record['finish_time']}'
+              : 'Extra Runner at ${record['finish_time']}',
+            style: TextStyle(
+              fontSize: MediaQuery.of(context).size.width * 0.05,
+              fontWeight: FontWeight.bold,
+              color: record['text_color'],
             ),
-          // ),
+          ),
           const Divider(
             thickness: 1,
             color: Color.fromRGBO(128, 128, 128, 0.5),
@@ -782,31 +767,6 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
       _records.last['type'] != 'runner_time' &&
       _records.last['type'] != null &&
       _records.last['type'] != 'confirm_runner_number';
-  }
-
-  Future<void> _handleRecordLongPress(int index) async {
-    if (index == _records.length - 1) {
-      final confirmed = await _confirmDeleteLastRecord(index);
-      if (confirmed) {
-        setState(() {
-          _records.removeAt(index);
-          _scrollController.animateTo(
-            max(_scrollController.position.maxScrollExtent, 0),
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOut,
-          );
-        });
-      }
-    }
-  }
-
-  void _handleConfirmationLongPress(int index) {
-    if (index == _records.length - 1) {
-      setState(() {
-        _records.removeAt(index);
-        _updateTextColor(null);
-      });
-    }
   }
 
   Duration _calculateElapsedTime(DateTime? startTime, Duration? endTime) {
