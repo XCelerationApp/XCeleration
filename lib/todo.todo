@@ -32,7 +32,7 @@ Runners Management screen:
 - style the buttons
 
 Bib Number screen:
-- change keyboard for mac
+- 
 
 Races screen:
 - put error text under text boxes
@@ -43,9 +43,6 @@ Timing screen:
 - change the color of the top divider
 - add notes to each time? (maybe)
 - disable start until cleared? or continue?
-
-Record Bib Numbers screen:
-- 
 
 Conflicts screen:
 - allow editing?
