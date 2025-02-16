@@ -477,108 +477,111 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
         resizeToAvoidBottomInset: true,
-        body: Column(
-          children: [
-            buildRoleBar(context, 'bib recorder', 'Record Bibs'),
-            Expanded(
-              child: Consumer<BibRecordsProvider>(
-                builder: (context, provider, child) {
-                  return ListView.builder(
-                    controller: _scrollController,
-                    itemCount: provider.bibRecords.length + 1,
-                    itemBuilder: (context, index) {
-                      if (index < provider.bibRecords.length) {
-                        return Dismissible(
-                          key: ValueKey(provider.bibRecords[index]),
-                          background: Container(
-                            color: Colors.red,
-                            alignment: Alignment.centerRight,
-                            padding: const EdgeInsets.only(right: 16.0),
-                            child: const Icon(
-                              Icons.delete,
-                              color: Colors.white,
+        body: Padding(
+          padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
+          child: Column(
+            children: [
+              buildRoleBar(context, 'bib recorder', 'Record Bibs'),
+              Expanded(
+                child: Consumer<BibRecordsProvider>(
+                  builder: (context, provider, child) {
+                    return ListView.builder(
+                      controller: _scrollController,
+                      itemCount: provider.bibRecords.length + 1,
+                      itemBuilder: (context, index) {
+                        if (index < provider.bibRecords.length) {
+                          return Dismissible(
+                            key: ValueKey(provider.bibRecords[index]),
+                            background: Container(
+                              color: Colors.red,
+                              alignment: Alignment.centerRight,
+                              padding: const EdgeInsets.only(right: 16.0),
+                              child: const Icon(
+                                Icons.delete,
+                                color: Colors.white,
+                              ),
                             ),
-                          ),
-                          direction: DismissDirection.endToStart,
-                          confirmDismiss: (direction) async {
-                            for (var node in provider.focusNodes) {
-                              node.unfocus();
-                              // Disable focus restoration for this node
-                              node.canRequestFocus = false;
-                            }
-                            bool delete = await DialogUtils.showConfirmationDialog(
-                              context,
-                              title: 'Confirm Deletion',
-                              content: 'Are you sure you want to delete this bib number?',
-                            );
-                            _restoreFocusability();
-                            return delete;
-                          },
-                          onDismissed: (direction) {
-                            setState(() {
-                              _onBibRecordRemoved(index);
-                            });
-                          },
-                          child: _buildBibInput(
-                            index,
-                            provider.bibRecords[index],
-                          ),
-                        );
-                      }
-                      return _buildAddButton();
-                    },
-                  );
+                            direction: DismissDirection.endToStart,
+                            confirmDismiss: (direction) async {
+                              for (var node in provider.focusNodes) {
+                                node.unfocus();
+                                // Disable focus restoration for this node
+                                node.canRequestFocus = false;
+                              }
+                              bool delete = await DialogUtils.showConfirmationDialog(
+                                context,
+                                title: 'Confirm Deletion',
+                                content: 'Are you sure you want to delete this bib number?',
+                              );
+                              _restoreFocusability();
+                              return delete;
+                            },
+                            onDismissed: (direction) {
+                              setState(() {
+                                _onBibRecordRemoved(index);
+                              });
+                            },
+                            child: _buildBibInput(
+                              index,
+                              provider.bibRecords[index],
+                            ),
+                          );
+                        }
+                        return _buildAddButton();
+                      },
+                    );
+                  },
+                ),
+              ),
+              Consumer<BibRecordsProvider>(
+                builder: (context, provider, _) {
+                  return provider.isKeyboardVisible 
+                    ? const SizedBox.shrink() 
+                    : _buildBottomActionButtons();
                 },
               ),
-            ),
-            Consumer<BibRecordsProvider>(
-              builder: (context, provider, _) {
-                return provider.isKeyboardVisible 
-                  ? const SizedBox.shrink() 
-                  : _buildBottomActionButtons();
-              },
-            ),
-            Consumer<BibRecordsProvider>(
-              builder: (context, provider, _) {
-                if (!(Platform.isIOS || Platform.isAndroid) ||!provider.isKeyboardVisible || provider.bibRecords.isEmpty) return const SizedBox.shrink();
-                return Container(
-                  height: 44,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFD2D5DB), // iOS numeric keypad color
-                    border: Border(
-                      top: BorderSide(
-                        color: Color(0xFFBBBBBB),
-                        width: 0.5,
+              Consumer<BibRecordsProvider>(
+                builder: (context, provider, _) {
+                  if (!(Platform.isIOS || Platform.isAndroid) ||!provider.isKeyboardVisible || provider.bibRecords.isEmpty) return const SizedBox.shrink();
+                  return Container(
+                    height: 44,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFD2D5DB), // iOS numeric keypad color
+                      border: Border(
+                        top: BorderSide(
+                          color: Color(0xFFBBBBBB),
+                          width: 0.5,
+                        ),
                       ),
                     ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(right: 16.0),
-                        child: TextButton(
-                          onPressed: () => FocusScope.of(context).unfocus(),
-                          style: TextButton.styleFrom(
-                            backgroundColor: Colors.transparent,
-                            overlayColor: Color.fromARGB(255, 78, 78, 80),
-                          ),
-                          child: const Text(
-                            'Done',
-                            style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.darkColor,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(right: 16.0),
+                          child: TextButton(
+                            onPressed: () => FocusScope.of(context).unfocus(),
+                            style: TextButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              overlayColor: Color.fromARGB(255, 78, 78, 80),
+                            ),
+                            child: const Text(
+                              'Done',
+                              style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.darkColor,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ],
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
