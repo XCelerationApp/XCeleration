@@ -28,21 +28,190 @@ class RacesScreen extends StatefulWidget {
 class _RacesScreenState extends State<RacesScreen> {
   List<Race> races = [];
   bool isLocationButtonVisible = true;
-  final nameController = TextEditingController(text: 'Untitled Race');
-  final locationController = TextEditingController(text: '');
-  final dateController = TextEditingController(text: '');
-  final distanceController = TextEditingController(text: '');
-  final userlocationController = TextEditingController(text: '');
-  final List<TextEditingController> _teamControllers = [TextEditingController(), TextEditingController()];
-  final List<Color> _teamColors = [Colors.white, Colors.white];
+  final nameController = TextEditingController();
+  final locationController = TextEditingController();
+  final dateController = TextEditingController();
+  final distanceController = TextEditingController();
+  final userlocationController = TextEditingController();
+  List<TextEditingController> _teamControllers = [];
+  List<Color> _teamColors = [];
   String unit = 'miles';
   
+  // Focus nodes
+  final nameFocus = FocusNode();
+  final locationFocus = FocusNode();
+  final dateFocus = FocusNode();
+  final distanceFocus = FocusNode();
+
+  // Validation error messages
+  String? nameError;
+  String? locationError;
+  String? dateError;
+  String? distanceError;
+  String? teamsError;
+
+  final _inputDecoration = InputDecoration(
+    filled: true,
+    fillColor: Colors.grey[200],
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide.none,
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: AppColors.primaryColor, width: 2),
+    ),
+    errorBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: Colors.red, width: 1),
+    ),
+    focusedErrorBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: Colors.red, width: 2),
+    ),
+    errorStyle: TextStyle(
+      color: Colors.red,
+      fontSize: 12,
+    ),
+    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+  );
+
   @override
   void initState() {
     super.initState();
     _loadRaces();
+    _teamControllers.add(TextEditingController());
+    _teamControllers.add(TextEditingController());
+    _teamColors.add(Colors.white);
+    _teamColors.add(Colors.white);
+
+    // Add focus listeners
+    nameFocus.addListener(_validateName);
+    locationFocus.addListener(_validateLocation);
+    dateFocus.addListener(_validateDate);
+    distanceFocus.addListener(_validateDistance);
   }
-  
+
+  @override
+  void dispose() {
+    nameFocus.dispose();
+    locationFocus.dispose();
+    dateFocus.dispose();
+    distanceFocus.dispose();
+    super.dispose();
+  }
+
+  void _validateName() {
+    setState(() {
+      if (nameController.text.isEmpty) {
+        nameError = 'Please enter a race name';
+      } else {
+        nameError = null;
+      }
+    });
+  }
+
+  void _validateLocation() {
+    setState(() {
+      if (locationController.text.isEmpty) {
+        locationError = 'Please enter a location';
+      } else {
+        locationError = null;
+      }
+    });
+  }
+
+  void _validateDate() {
+    setState(() {
+      if (dateController.text.isEmpty) {
+        dateError = 'Please select a date';
+      } else {
+        try {
+          final date = DateTime.parse(dateController.text);
+          if (date.year < 1900) {
+            dateError = 'Invalid date';
+          } else {
+            dateError = null;
+          }
+        } catch (e) {
+          dateError = 'Invalid date format';
+        }
+      }
+    });
+  }
+
+  void _validateDistance() {
+    setState(() {
+      if (distanceController.text.isEmpty) {
+        distanceError = 'Please enter a distance';
+      } else {
+        try {
+          final distance = double.parse(distanceController.text);
+          if (distance <= 0) {
+            distanceError = 'Distance must be greater than 0';
+          } else {
+            distanceError = null;
+          }
+        } catch (e) {
+          distanceError = 'Invalid number';
+        }
+      }
+    });
+  }
+
+  void _validateTeams() {
+    setState(() {
+      List<String> teams = _teamControllers
+          .map((controller) => controller.text.trim())
+          .where((text) => text.isNotEmpty)
+          .toList();
+      teamsError = teams.isEmpty ? 'Please add at least one team' : null;
+    });
+  }
+
+  String? _getFirstError() {
+    if (nameController.text.isEmpty) {
+      return 'Please enter a race name';
+    }
+    if (locationController.text.isEmpty) {
+      return 'Please enter a race location';
+    }
+    if (dateController.text.isEmpty) {
+      return 'Please select a race date';
+    } else {
+      try {
+        final date = DateTime.parse(dateController.text);
+        if (date.year < 1900) {
+          return 'Invalid date';
+        }
+      } catch (e) {
+        return 'Invalid date format';
+      }
+    }
+    if (distanceController.text.isEmpty) {
+      return 'Please enter a race distance';
+    } else {
+      try {
+        final distance = double.parse(distanceController.text);
+        if (distance <= 0) {
+          return 'Distance must be greater than 0';
+        }
+      } catch (e) {
+        return 'Invalid distance';
+      }
+    }
+    
+    List<String> teams = _teamControllers
+        .map((controller) => controller.text.trim())
+        .where((text) => text.isNotEmpty)
+        .toList();
+    if (teams.isEmpty) {
+      return 'Please add at least one team';
+    }
+    
+    return null;
+  }
+
   Future<void> _loadRaces() async {
     final races = await DatabaseHelper.instance.getAllRaces();
     setState(() {
@@ -79,14 +248,14 @@ class _RacesScreenState extends State<RacesScreen> {
         ),
       ),
       builder: (context) => StatefulBuilder(
-        builder: (BuildContext context, StateSetter setState) {
+        builder: (BuildContext context, StateSetter setSheetState) {
           return Padding(
             padding: EdgeInsets.only(
               bottom: MediaQuery.of(context).viewInsets.bottom,
             ),
             child: SizedBox(
               height: MediaQuery.of(context).size.height * 0.92,
-              child: _buildCreateRaceSheetContent(setState),
+              child: _buildCreateRaceSheetContent(setSheetState),
             ),
           );
         },
@@ -94,7 +263,7 @@ class _RacesScreenState extends State<RacesScreen> {
     );
   }
 
-  Widget _buildCreateRaceSheetContent(StateSetter setState, {bool isEditing = false, int? raceId}) {
+  Widget _buildCreateRaceSheetContent(StateSetter setSheetState, {bool isEditing = false, int? raceId}) {
     return Column(
       children: [
         const SizedBox(height: 10),
@@ -106,11 +275,11 @@ class _RacesScreenState extends State<RacesScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _buildCreateRaceSheetTitle(isEditing: isEditing),
-                _buildRaceNameField(),
-                _buildCompetingTeamsField(setState),
-                _buildRaceLocationField(),
-                _buildRaceDateField(),
-                _buildRaceDistanceField(),
+                _buildRaceNameField(setSheetState),
+                _buildCompetingTeamsField(setSheetState),
+                _buildRaceLocationField(setSheetState),
+                _buildRaceDateField(setSheetState),
+                _buildRaceDistanceField(setSheetState),
                 _buildActionButton(isEditing: isEditing, raceId: raceId),
                 const SizedBox(height: 16),
               ],
@@ -140,47 +309,11 @@ class _RacesScreenState extends State<RacesScreen> {
       padding: const EdgeInsets.symmetric(vertical: 16),
       child: ElevatedButton(
         onPressed: () async {
-          if (nameController.text.isEmpty) {
+          final error = _getFirstError();
+          if (error != null) {
             DialogUtils.showErrorDialog(
               context,
-              message: 'Please enter a race name.',
-            );
-            return;
-          }
-
-          if (locationController.text.isEmpty) {
-            DialogUtils.showErrorDialog(
-              context,
-              message: 'Please enter a race location.',
-            );
-            return;
-          }
-
-          if (dateController.text.isEmpty) {
-            DialogUtils.showErrorDialog(
-              context,
-              message: 'Please select a race date.',
-            );
-            return;
-          }
-
-          if (distanceController.text.isEmpty) {
-            DialogUtils.showErrorDialog(
-              context,
-              message: 'Please enter a race distance.',
-            );
-            return;
-          }
-
-          List<String> teams = _teamControllers
-              .map((controller) => controller.text.trim())
-              .where((text) => text.isNotEmpty)
-              .toList();
-
-          if (teams.isEmpty) {
-            DialogUtils.showErrorDialog(
-              context,
-              message: 'Please add at least one team.',
+              message: error,
             );
             return;
           }
@@ -191,7 +324,10 @@ class _RacesScreenState extends State<RacesScreen> {
             'race_date': dateController.text,
             'distance': double.parse(distanceController.text),
             'distance_unit': unit,
-            'teams': jsonEncode(teams),
+            'teams': jsonEncode(_teamControllers
+                .map((controller) => controller.text.trim())
+                .where((text) => text.isNotEmpty)
+                .toList()),
             'team_colors': jsonEncode(_teamColors.map((color) => color.value).toList()),
           };
 
@@ -236,383 +372,478 @@ class _RacesScreenState extends State<RacesScreen> {
     _teamColors.clear();
     _teamColors.add(Colors.white);
     _teamColors.add(Colors.white);
+    nameError = null;
+    locationError = null;
+    dateError = null;
+    distanceError = null;
+    teamsError = null;
   }
 
-  Widget _buildRaceNameField() {
+  Widget _buildRaceNameField(StateSetter setSheetState) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.only(top: 8.0),
           child: Text(
-            'Race Name:',
+            'Race Name',
             style: const TextStyle(
-              fontSize: 20,
+              fontSize: 18,
               fontWeight: FontWeight.w600,
+              color: Colors.black87,
             ),
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8.0),
-          child: TextField(
+        const SizedBox(height: 8),
+        Focus(
+          onFocusChange: (hasFocus) {
+            if (!hasFocus) {
+              setSheetState(() {
+                if (nameController.text.isEmpty) {
+                  nameError = 'Please enter a race name';
+                } else {
+                  nameError = null;
+                }
+              });
+            }
+          },
+          child: TextFormField(
             controller: nameController,
-            decoration: const InputDecoration(
-              hintText: 'Race Name',
-              // labelText: 'Race Name',
-              // border: OutlineInputBorder(),
+            focusNode: nameFocus,
+            decoration: _inputDecoration.copyWith(
+              hintText: 'Enter race name',
+              errorText: nameError,
             ),
+            onTapOutside: (_) {
+              setSheetState(() {
+                if (nameController.text.isEmpty) {
+                  nameError = 'Please enter a race name';
+                } else {
+                  nameError = null;
+                }
+              });
+            },
           ),
-        )
+        ),
       ],
     );
   }
 
-  Widget _buildCompetingTeamsField(StateSetter setState) {
+  Widget _buildCompetingTeamsField(StateSetter setSheetState) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(top: 8.0),
+          padding: const EdgeInsets.only(top: 24),
           child: Text(
-            'Competing Teams:',
+            'Competing Teams',
             style: const TextStyle(
-              fontSize: 20,
+              fontSize: 18,
               fontWeight: FontWeight.w600,
+              color: Colors.black87,
             ),
           ),
         ),
+        if (teamsError != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              teamsError!,
+              style: TextStyle(
+                color: Colors.red,
+                fontSize: 12,
+              ),
+            ),
+          ),
         ..._teamControllers.map((controller) => Padding(
           padding: const EdgeInsets.symmetric(vertical: 8.0),
           child: Row(
             children: [
-              SizedBox(
-                width: 200,
-                child: TextField(
+              Expanded(
+                child: TextFormField(
                   controller: controller,
-                  decoration: InputDecoration(
-                    labelText: 'Team Name',
-                    border: OutlineInputBorder(),
+                  decoration: _inputDecoration.copyWith(
+                    hintText: 'Team name',
                   ),
+                  onChanged: (value) {
+                    setSheetState(() {
+                      teamsError = _teamControllers.every(
+                        (controller) => controller.text.trim().isEmpty)
+                          ? 'Please add at least one team'
+                          : null;
+                    });
+                  },
                 ),
               ),
-              SizedBox(width: 10),
+              const SizedBox(width: 12),
               GestureDetector(
-                onTap: () {
-                  showDialog(
-                    context: context,
-                    builder: (BuildContext context) {
-                      return AlertDialog(
-                        title: Text('Pick a color'),
-                        content: SingleChildScrollView(
-                          child: ColorPicker(
-                            pickerColor: _teamColors[_teamControllers.indexOf(controller)],
-                            onColorChanged: (color) {
-                              setState(() {
-                                _teamColors[_teamControllers.indexOf(controller)] = color;
-                              });
-                            },
-                            pickerAreaHeightPercent: 0.8,
-                          ),
-                        ),
-                        actions: <Widget>[
-                          TextButton(
-                            child: Text('Done'),
-                            onPressed: () {
-                              Navigator.of(context).pop();
-                            },
-                          ),
-                        ],
-                      );
-                    },
-                  );
-                },
+                onTap: () => _showColorPicker(setSheetState, controller),
                 child: Container(
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
                     color: _teamColors[_teamControllers.indexOf(controller)],
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.grey),
+                    border: Border.all(color: Colors.grey[300]!),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 4,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ],
           ),
         )),
-        ElevatedButton(
+        const SizedBox(height: 12),
+        TextButton.icon(
           onPressed: () {
-            setState(() {
+            setSheetState(() {
               _addTeamField();
             });
           },
-          child: const Text('Add Another Team'),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildRaceLocationField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 16),
-          child: Text(
-            'Race Location:',
-            style: const TextStyle(
-              fontSize: 20,
+          icon: Icon(Icons.add_circle_outline, color: AppColors.primaryColor),
+          label: Text(
+            'Add Another Team',
+            style: TextStyle(
+              color: AppColors.primaryColor,
               fontWeight: FontWeight.w600,
             ),
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8.0),
-          child: Row(
-            key: ValueKey(isLocationButtonVisible),
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: locationController,
-                  decoration: InputDecoration(
-                    hintText: (Platform.isIOS || Platform.isAndroid) ? 'Other Location' : 'Race Location',
-                  ),
-                  onChanged: (value) {
-                    _updateLocationButtonVisibility();
-                  },
-                ),
-              ),
-              if (isLocationButtonVisible && (Platform.isIOS || Platform.isAndroid))
-                TextButton(
-                  child: Row(
-                    children: [
-                      const Icon(Icons.location_on_outlined),
-                      Text('My Location'),
-                    ],
-                  ),
-                  onPressed: () async {
-                    try {
-                      LocationPermission permission = await Geolocator.checkPermission();
-                      if (permission == LocationPermission.denied) {
-                        permission = await Geolocator.requestPermission();
-                      }
-
-                      if (permission == LocationPermission.deniedForever) {
-                        DialogUtils.showErrorDialog(context, message: ('Location permissions are permanently denied, we cannot request permissions.'));
-                        return;
-                      }
-
-                      if (permission == LocationPermission.denied) {
-                        DialogUtils.showErrorDialog(context, message: ('Location permissions are denied, please enable them in settings.'));
-                        return;
-                      }
-
-                      if (!await Geolocator.isLocationServiceEnabled()) {
-                        DialogUtils.showErrorDialog(context, message: ('Location services are disabled'));
-                        return;
-                      }
-
-                      final position = await Geolocator.getCurrentPosition();
-                      final placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
-                      final placemark = placemarks.first;
-                      setState(() {
-                        locationController.text = '${placemark.subThoroughfare} ${placemark.thoroughfare}, ${placemark.locality}, ${placemark.administrativeArea} ${placemark.postalCode}';
-                        userlocationController.text = locationController.text;
-                      });
-                      _updateLocationButtonVisibility();
-                    } catch (e) {
-                      print('Error getting location: $e');
-                    }
-                  },
-                ),
-            ],
+          style: TextButton.styleFrom(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+              side: BorderSide(color: AppColors.primaryColor),
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildRaceDateField() {
+  Widget _buildRaceLocationField(StateSetter setSheetState) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(top: 16),
+          padding: const EdgeInsets.only(top: 24),
           child: Text(
-            'Race Date:',
+            'Race Location',
             style: const TextStyle(
-              fontSize: 20,
+              fontSize: 18,
               fontWeight: FontWeight.w600,
+              color: Colors.black87,
             ),
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8.0),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: dateController,
-                  decoration: InputDecoration(
-                    hintText: 'Date (YYYY-MM-DD)',
-                  ),
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.calendar_today),
-                onPressed: () async {
-                  DateTime? pickedDate = await showDatePicker(
-                    context: context,
-                    initialDate: DateTime.now(),
-                    firstDate: DateTime(2000),
-                    lastDate: DateTime(2101),
-                  );
-                  if (pickedDate != null) {
-                    dateController.text = pickedDate.toLocal().toString().split(' ')[0];
+        const SizedBox(height: 8),
+        Row(
+          key: ValueKey(isLocationButtonVisible),
+          children: [
+            Expanded(
+              child: Focus(
+                onFocusChange: (hasFocus) {
+                  if (!hasFocus) {
+                    setSheetState(() {
+                      if (locationController.text.isEmpty) {
+                        locationError = 'Please enter a location';
+                      } else {
+                        locationError = null;
+                      }
+                    });
                   }
                 },
+                child: TextFormField(
+                  controller: locationController,
+                  focusNode: locationFocus,
+                  decoration: _inputDecoration.copyWith(
+                    hintText: (Platform.isIOS || Platform.isAndroid) 
+                      ? 'Other location'
+                      : 'Enter race location',
+                    errorText: locationError,
+                    suffixIcon: isLocationButtonVisible && (Platform.isIOS || Platform.isAndroid)
+                      ? IconButton(
+                          icon: Icon(Icons.my_location, color: AppColors.primaryColor),
+                          onPressed: _getCurrentLocation,
+                        )
+                      : null,
+                  ),
+                  onTapOutside: (_) {
+                    setSheetState(() {
+                      if (locationController.text.isEmpty) {
+                        locationError = 'Please enter a location';
+                      } else {
+                        locationError = null;
+                      }
+                    });
+                  },
+                ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ],
     );
   }
 
-  Widget _buildRaceDistanceField() {
+  Widget _buildRaceDateField(StateSetter setSheetState) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(top: 16),
+          padding: const EdgeInsets.only(top: 24),
           child: Text(
-            'Race Distance:',
+            'Race Date',
             style: const TextStyle(
-              fontSize: 20,
+              fontSize: 18,
               fontWeight: FontWeight.w600,
+              color: Colors.black87,
             ),
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8.0),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: distanceController,
-                  decoration: InputDecoration(
-                    hintText: '0.0',
-                  ),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                ),
+        const SizedBox(height: 8),
+        Focus(
+          onFocusChange: (hasFocus) {
+            if (!hasFocus) {
+              setSheetState(() {
+                if (dateController.text.isEmpty) {
+                  dateError = 'Please select a date';
+                } else {
+                  try {
+                    final date = DateTime.parse(dateController.text);
+                    if (date.year < 1900) {
+                      dateError = 'Invalid date';
+                    } else {
+                      dateError = null;
+                    }
+                  } catch (e) {
+                    dateError = 'Invalid date format';
+                  }
+                }
+              });
+            }
+          },
+          child: TextFormField(
+            controller: dateController,
+            focusNode: dateFocus,
+            decoration: _inputDecoration.copyWith(
+              hintText: 'YYYY-MM-DD',
+              errorText: dateError,
+              suffixIcon: IconButton(
+                icon: Icon(Icons.calendar_today, color: AppColors.primaryColor),
+                onPressed: () => _selectDate(context),
               ),
-              Spacer(),
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Row(
-                  children: [
-                    const Text('Unit: '),
-                    DropdownButton<String>(
-                      value: unit,
-                      onChanged: (String? newValue) {
-                        setState(() {
-                          unit = newValue!;
-                        });
-                      },
-                      items: <String>['miles', 'kilometers']
-                        .map<DropdownMenuItem<String>>((String value) {
-                          return DropdownMenuItem<String>(
-                            value: value,
-                            child: Text(value),
-                          );
-                        })
-                        .toList(),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+            ),
+            onTapOutside: (_) {
+              setSheetState(() {
+                if (dateController.text.isEmpty) {
+                  dateError = 'Please select a date';
+                } else {
+                  try {
+                    final date = DateTime.parse(dateController.text);
+                    if (date.year < 1900) {
+                      dateError = 'Invalid date';
+                    } else {
+                      dateError = null;
+                    }
+                  } catch (e) {
+                    dateError = 'Invalid date format';
+                  }
+                }
+              });
+            },
           ),
         ),
       ],
     );
   }
 
-  void _createRace() async {
-    for (var controller in _teamControllers) {
-      if (controller.text.isEmpty) {
-        DialogUtils.showErrorDialog(context, message: ('Please fill in all the fields'));
-        return;
-      }
-    }
-    if (_teamControllers.length < 2) {
-      DialogUtils.showErrorDialog(context, message: ('Please enter at least 2 teams'));
-      return;
-    }
-    if (nameController.text.isEmpty ||
-        locationController.text.isEmpty ||
-        dateController.text.isEmpty ||
-        distanceController.text.isEmpty) {
-      DialogUtils.showErrorDialog(context, message: ('Please fill in all the fields'));
-      return;
-    }
-    DateTime date;
-    double distance;
+  Widget _buildRaceDistanceField(StateSetter setSheetState) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 24),
+          child: Text(
+            'Race Distance',
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Focus(
+                onFocusChange: (hasFocus) {
+                  if (!hasFocus) {
+                    setSheetState(() {
+                      if (distanceController.text.isEmpty) {
+                        distanceError = 'Please enter a distance';
+                      } else {
+                        try {
+                          final distance = double.parse(distanceController.text);
+                          if (distance <= 0) {
+                            distanceError = 'Distance must be greater than 0';
+                          } else {
+                            distanceError = null;
+                          }
+                        } catch (e) {
+                          distanceError = 'Invalid number';
+                        }
+                      }
+                    });
+                  }
+                },
+                child: TextFormField(
+                  controller: distanceController,
+                  focusNode: distanceFocus,
+                  decoration: _inputDecoration.copyWith(
+                    hintText: '0.0',
+                    errorText: distanceError,
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  onTapOutside: (_) {
+                    setSheetState(() {
+                      if (distanceController.text.isEmpty) {
+                        distanceError = 'Please enter a distance';
+                      } else {
+                        try {
+                          final distance = double.parse(distanceController.text);
+                          if (distance <= 0) {
+                            distanceError = 'Distance must be greater than 0';
+                          } else {
+                            distanceError = null;
+                          }
+                        } catch (e) {
+                          distanceError = 'Invalid number';
+                        }
+                      }
+                    });
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.grey[200],
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: DropdownButton<String>(
+                value: unit,
+                onChanged: (String? newValue) {
+                  setState(() {
+                    unit = newValue!;
+                  });
+                },
+                items: <String>['miles', 'kilometers']
+                  .map<DropdownMenuItem<String>>((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  })
+                  .toList(),
+                underline: SizedBox(),
+                icon: Icon(Icons.arrow_drop_down, color: AppColors.primaryColor),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Future<void> _getCurrentLocation() async {
     try {
-      date = DateTime.parse(dateController.text);
-      if (date.year < 1900) {
-        DialogUtils.showErrorDialog(context, message: ('Date must be in the future'));
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        DialogUtils.showErrorDialog(context, message: 'Location permissions are permanently denied');
         return;
       }
-      distance = double.parse(distanceController.text);
-      if (distance < 0) {
-        DialogUtils.showErrorDialog(context, message: ('Distance must be positive'));
+
+      if (permission == LocationPermission.denied) {
+        DialogUtils.showErrorDialog(context, message: 'Location permissions are denied');
         return;
       }
-    } on FormatException {
-      DialogUtils.showErrorDialog(context, message: ('Invalid date or distance'));
-      return;
+
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        DialogUtils.showErrorDialog(context, message: 'Location services are disabled');
+        return;
+      }
+
+      final position = await Geolocator.getCurrentPosition();
+      final placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
+      final placemark = placemarks.first;
+      setState(() {
+        locationController.text = '${placemark.subThoroughfare} ${placemark.thoroughfare}, ${placemark.locality}, ${placemark.administrativeArea} ${placemark.postalCode}';
+        userlocationController.text = locationController.text;
+        locationError = null;
+      });
+      _updateLocationButtonVisibility();
+    } catch (e) {
+      print('Error getting location: $e');
+      DialogUtils.showErrorDialog(context, message: 'Could not get location');
     }
+  }
 
-    final List<String> teams = _teamControllers.map((controller) => controller.text).toList();
-    final List<String> colors = _teamColors.map((color) => '0x${color.value.toRadixString(16).padLeft(8, '0')}').toList();
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2101),
+    );
+    if (picked != null) {
+      setState(() {
+        dateController.text = picked.toLocal().toString().split(' ')[0];
+        dateError = null;
+      });
+    }
+  }
 
-    final String raceName = nameController.text;
-
-    final String distanceType = unit;
-
-    final String distanceString = '${distance.toString().replaceAll(' ', '')} $distanceType';
-    final id = await DatabaseHelper.instance.insertRace({
-        'race_name': raceName,
-        'location': locationController.text,
-        'race_date': dateController.text,
-        'distance': distanceString,
-        'teams': jsonEncode(teams),
-        'team_colors': jsonEncode(colors),
-    });
-    await _loadRaces();
-    if (!mounted) return;
-    Navigator.pop(context);
-
-
-    _showRaceInfo(id);
-    // showModalBottomSheet(
-    //   backgroundColor: AppColors.backgroundColor,
-    //   context: context,
-    //   isScrollControlled: true,
-    //   enableDrag: true,
-    //   useSafeArea: true,
-    //   shape: RoundedRectangleBorder(
-    //     borderRadius: BorderRadius.vertical(
-    //       top: Radius.circular(16),
-    //     ),
-    //   ),
-    //   builder: (context) => SizedBox(
-    //     height: MediaQuery.of(context).size.height * 0.9,
-    //     child: RaceInfoScreen(
-    //       raceId: id,
-    //     ),
-    //   ),
-    // );
+  void _showColorPicker(StateSetter setSheetState, TextEditingController controller) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Pick a color'),
+          content: SingleChildScrollView(
+            child: ColorPicker(
+              pickerColor: _teamColors[_teamControllers.indexOf(controller)],
+              onColorChanged: (color) {
+                setSheetState(() {
+                  _teamColors[_teamControllers.indexOf(controller)] = color;
+                });
+              },
+              pickerAreaHeightPercent: 0.8,
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Done'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _showRaceInfo(int raceId) {
@@ -636,33 +867,61 @@ class _RacesScreenState extends State<RacesScreen> {
     );
   }
 
-  String _formatDate(DateTime date) {
-    return DateFormat('MMM dd yyyy').format(date);
-  }
-
-  Future<bool> _isRaceStarted(Race race) async {
-    final raceId = race.raceId;
-    final results = await DatabaseHelper.instance.getRaceResults(raceId);
-    return results.isNotEmpty;
-  }
-
   Widget _buildRaceCard(Race race) {
     return Slidable(
       key: Key(race.raceId.toString()),
       endActionPane: ActionPane(
-        motion: const ScrollMotion(),
+        extentRatio: 0.5,
+        motion: const DrawerMotion(),
+        dragDismissible: false,
         children: [
-          SlidableAction(
+          CustomSlidableAction(
             onPressed: (_) => _editRace(race),
-            backgroundColor: Colors.blue,
+            backgroundColor: AppColors.primaryColor,
             foregroundColor: Colors.white,
-            icon: Icons.edit,
+            padding: EdgeInsets.zero,
+            autoClose: true,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.edit_outlined,
+                  size: 24,
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Edit',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
           ),
-          SlidableAction(
+          CustomSlidableAction(
             onPressed: (_) => _deleteRace(race),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.primaryColor.withRed(255),
             foregroundColor: Colors.white,
-            icon: Icons.delete,
+            padding: EdgeInsets.zero,
+            autoClose: true,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.delete_outline,
+                  size: 24,
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Delete',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -678,9 +937,10 @@ class _RacesScreenState extends State<RacesScreen> {
             onTap: () => _showRaceInfo(race.raceId),
             borderRadius: BorderRadius.circular(12),
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     race.raceName,
@@ -689,7 +949,7 @@ class _RacesScreenState extends State<RacesScreen> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   Row(
                     children: [
                       const Icon(Icons.location_on, size: 16, color: Colors.grey),
@@ -703,7 +963,7 @@ class _RacesScreenState extends State<RacesScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 8),
                   Row(
                     children: [
                       const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
@@ -716,12 +976,18 @@ class _RacesScreenState extends State<RacesScreen> {
                         ),
                       ),
                       const Spacer(),
-                      Text(
-                        '${race.distance} ${race.distanceUnit}',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey,
-                        ),
+                      Row(
+                        children: [
+                          const Icon(Icons.directions_run, size: 16, color: Colors.grey),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${race.distance} ${race.distanceUnit}',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -769,7 +1035,7 @@ class _RacesScreenState extends State<RacesScreen> {
         ),
       ),
       builder: (context) => StatefulBuilder(
-        builder: (BuildContext context, StateSetter setState) {
+        builder: (BuildContext context, StateSetter setSheetState) {
           return Padding(
             padding: EdgeInsets.only(
               bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -777,7 +1043,7 @@ class _RacesScreenState extends State<RacesScreen> {
             child: SizedBox(
               height: MediaQuery.of(context).size.height * 0.92,
               child: _buildCreateRaceSheetContent(
-                setState,
+                setSheetState,
                 isEditing: true,
                 raceId: race.raceId,
               ),
@@ -836,21 +1102,10 @@ class _RacesScreenState extends State<RacesScreen> {
                     }
                     races = snapshot.data ?? [];
 
-                    return FutureBuilder<List<bool>>(
-                      future: Future.wait(races.map((race) => _isRaceStarted(race)).toList()),
-                      builder: (context, finishedSnapshot) {
-                        if (finishedSnapshot.connectionState == ConnectionState.waiting) {
-                          return Center(child: CircularProgressIndicator());
-                        }
-
-                        final finishedRaces = finishedSnapshot.data ?? List.filled(races.length, false);
-
-                        return ListView.builder(
-                          itemCount: races.length,
-                          itemBuilder: (context, index) {
-                            return _buildRaceCard(races[index]);
-                          },
-                        );
+                    return ListView.builder(
+                      itemCount: races.length,
+                      itemBuilder: (context, index) {
+                        return _buildRaceCard(races[index]);
                       },
                     );
                   },
