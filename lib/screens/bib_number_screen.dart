@@ -482,6 +482,18 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
           child: Column(
             children: [
               buildRoleBar(context, 'bib recorder', 'Record Bibs'),
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                child: Consumer<BibRecordsProvider>(
+                  builder: (context, provider, _) {
+                    return Text(
+                      'Bib Number Count: ${provider.bibRecords.where((bib) => bib.bibNumber.isNotEmpty).length}',
+                      style: const TextStyle(fontSize: 16)
+                    );
+                  }
+                )
+              ),
               Expanded(
                 child: Consumer<BibRecordsProvider>(
                   builder: (context, provider, child) {
