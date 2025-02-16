@@ -14,6 +14,7 @@ import '../device_connection_service.dart';
 // import '../runner_time_functions.dart';
 // import 'race_screen.dart';
 import '../role_functions.dart';
+import 'dart:io';
 
 class BibNumberScreen extends StatefulWidget {
   // final Race? race;
@@ -210,7 +211,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
       style: const TextStyle(fontSize: 16),
       textAlign: TextAlign.start,
       decoration: const InputDecoration(
-        hintText: 'Bib #...',
+        hintText: 'Bib #',
         hintStyle: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
         border: InputBorder.none,
         contentPadding: EdgeInsets.symmetric(vertical: 8),
@@ -539,7 +540,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
             ),
             Consumer<BibRecordsProvider>(
               builder: (context, provider, _) {
-                if (!provider.isKeyboardVisible || provider.bibRecords.isEmpty) return const SizedBox.shrink();
+                if (!(Platform.isIOS || Platform.isAndroid) ||!provider.isKeyboardVisible || provider.bibRecords.isEmpty) return const SizedBox.shrink();
                 return Container(
                   height: 44,
                   decoration: const BoxDecoration(
@@ -558,6 +559,10 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                         padding: const EdgeInsets.only(right: 16.0),
                         child: TextButton(
                           onPressed: () => FocusScope.of(context).unfocus(),
+                          style: TextButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            overlayColor: Color.fromARGB(255, 78, 78, 80),
+                          ),
                           child: const Text(
                             'Done',
                             style: TextStyle(
