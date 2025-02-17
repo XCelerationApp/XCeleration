@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import '../utils/app_colors.dart';
 import '../utils/dialog_utils.dart';
 import '../utils/sheet_utils.dart';
+import '../utils/textfield_utils.dart';
 import '../database_helper.dart';
 import '../file_processing.dart';
 
@@ -688,97 +689,105 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
                   Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      _buildFormRow(
+                      buildInputRow(
                         label: 'Name',
-                        controller: _nameController!,
-                        hint: 'John Doe',
-                        error: nameError,
-                        onChanged: (value) {
-                          if (value.isEmpty) {
-                            setSheetState(() {
-                              nameError = 'Please enter a name';
-                            });
-                          } else {
-                            setSheetState(() {
-                              nameError = null;
-                            });
-                          }
-                        },
-                        setSheetState: setSheetState,
-                      ),
-                      const SizedBox(height: 16),
-                      _buildFormRow(
-                        label: 'Grade',
-                        controller: _gradeController!,
-                        hint: '9',
-                        keyboardType: TextInputType.number,
-                        error: gradeError,
-                        onChanged: (value) {
-                          if (value.isEmpty) {
-                            setSheetState(() {
-                              gradeError = 'Please enter a grade';
-                            });
-                          } else if (int.tryParse(value) == null) {
-                            setSheetState(() {
-                              gradeError = 'Please enter a valid grade number';
-                            });
-                          } else {
-                            final grade = int.parse(value);
-                            if (grade < 9 || grade > 12) {
+                        inputWidget: buildTextField(
+                          controller: _nameController!,
+                          hint: 'John Doe',
+                          error: nameError,
+                          onChanged: (value) {
+                            if (value.isEmpty) {
                               setSheetState(() {
-                                gradeError = 'Grade must be between 9 and 12';
+                                nameError = 'Please enter a name';
                               });
                             } else {
                               setSheetState(() {
-                                gradeError = null;
+                                nameError = null;
                               });
                             }
-                          }
-                        },
-                        setSheetState: setSheetState,
+                          },
+                          setSheetState: setSheetState,
+                        ),
                       ),
                       const SizedBox(height: 16),
-                      _buildFormRow(
+                      buildInputRow(
+                        label: 'Grade',
+                        inputWidget: buildTextField(
+                          controller: _gradeController!,
+                          hint: '9',
+                          keyboardType: TextInputType.number,
+                          error: gradeError,
+                          onChanged: (value) {
+                            if (value.isEmpty) {
+                              setSheetState(() {
+                                gradeError = 'Please enter a grade';
+                              });
+                            } else if (int.tryParse(value) == null) {
+                              setSheetState(() {
+                                gradeError = 'Please enter a valid grade number';
+                              });
+                            } else {
+                              final grade = int.parse(value);
+                              if (grade < 9 || grade > 12) {
+                                setSheetState(() {
+                                  gradeError = 'Grade must be between 9 and 12';
+                                });
+                              } else {
+                                setSheetState(() {
+                                  gradeError = null;
+                                });
+                              }
+                            }
+                          },
+                          setSheetState: setSheetState,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      buildInputRow(
                         label: 'School',
-                        controller: _schoolController!,
-                        hint: 'School Name',
-                        error: schoolError,
-                        onChanged: (value) {
-                          if (value.isEmpty) {
-                            setSheetState(() {
-                              schoolError = 'Please select a school';
-                            });
-                          } else {
-                            setSheetState(() {
-                              schoolError = null;
-                            });
-                          }
-                        },
-                        setSheetState: setSheetState,
+                        inputWidget: buildDropdown(
+                          controller: _schoolController!,
+                          hint: 'Select School',
+                          error: schoolError,
+                          onChanged: (value) {
+                            if (value.isEmpty) {
+                              setSheetState(() {
+                                schoolError = 'Please select a school';
+                              });
+                            } else {
+                              setSheetState(() {
+                                schoolError = null;
+                              });
+                            }
+                          },
+                          setSheetState: setSheetState,
+                          items: _teams.map((team) => team.name).toList()..sort(),
+                        ),
                       ),
                       const SizedBox(height: 16),
-                      _buildFormRow(
+                      buildInputRow(
                         label: 'Bib #',
-                        controller: _bibController!,
-                        hint: '1234',
-                        keyboardType: TextInputType.number,
-                        error: bibError,
-                        onChanged: (value) {
-                          if (value.isEmpty) {
-                            setSheetState(() {
-                              bibError = 'Please enter a bib number';
-                            });
-                          } else if (int.tryParse(value) == null) {
-                            setSheetState(() {
-                              bibError = 'Please enter a valid bib number';
-                            });
-                          } else {
-                            setSheetState(() {
-                              bibError = null;
-                            });
-                          }
-                        },
-                        setSheetState: setSheetState,
+                        inputWidget: buildTextField(
+                          controller: _bibController!,
+                          hint: '1234',
+                          error: bibError,
+                          onChanged: (value) {
+                            if (value.isEmpty) {
+                              setSheetState(() {
+                                bibError = 'Please enter a bib number';
+                              });
+                            } else if (int.tryParse(value) == null) {
+                              setSheetState(() {
+                                bibError = 'Please enter a valid bib number';
+                              });
+                            } else {
+                              setSheetState(() {
+                                bibError = null;
+                              });
+                            }
+                          },
+                          setSheetState: setSheetState,
+                        ),
                       ),
                     ],
                   ),
@@ -845,155 +854,155 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
     }
   }
 
-  Widget _buildFormRow({
-    required String label,
-    required TextEditingController controller,
-    required String hint,
-    TextInputType? keyboardType,
-    String? error,
-    required Function(String) onChanged,
-    required StateSetter setSheetState,
-  }) {
-    if (label == 'School') {
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 80,
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: StatefulBuilder(
-              builder: (context, setState) {
-                final schools = _teams.map((t) => t.name).toList()..sort();
-                final isCustom = !schools.contains(controller.text) && controller.text.isNotEmpty;
+  // Widget _buildFormRow({
+  //   required String label,
+  //   required TextEditingController controller,
+  //   required String hint,
+  //   TextInputType? keyboardType,
+  //   String? error,
+  //   required Function(String) onChanged,
+  //   required StateSetter setSheetState,
+  // }) {
+  //   if (label == 'School') {
+  //     return Row(
+  //       crossAxisAlignment: CrossAxisAlignment.start,
+  //       children: [
+  //         SizedBox(
+  //           width: 80,
+  //           child: Text(
+  //             label,
+  //             style: const TextStyle(
+  //               fontSize: 16,
+  //               fontWeight: FontWeight.w600,
+  //             ),
+  //           ),
+  //         ),
+  //         const SizedBox(width: 8),
+  //         Expanded(
+  //           child: StatefulBuilder(
+  //             builder: (context, setState) {
+  //               final schools = _teams.map((t) => t.name).toList()..sort();
+  //               final isCustom = !schools.contains(controller.text) && controller.text.isNotEmpty;
 
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Focus(
-                      onFocusChange: (hasFocus) {
-                        if (!hasFocus) {
-                          onChanged(controller.text);
-                        }
-                      },
-                      child: Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(color: error != null ? Colors.red : Colors.grey),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: ButtonTheme(
-                            alignedDropdown: true,
-                            child: DropdownButton<String>(
-                              value: isCustom ? null : (controller.text.isEmpty ? null : controller.text),
-                              hint: Text(hint, style: const TextStyle(color: Colors.grey)),
-                              isExpanded: true,
-                              items: [
-                                ...schools.map((school) => DropdownMenuItem(
-                                  value: school,
-                                  child: Text(school),
-                                )),
-                              ],
-                              onChanged: (value) {
-                                setState(() => controller.text = value ?? '');
-                                onChanged(value ?? '');
-                              },
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    if (error != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4, left: 12),
-                        child: Text(
-                          error,
-                          style: const TextStyle(
-                            color: Colors.red,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                  ],
-                );
-              },
-            ),
-          ),
-        ],
-      );
-    }
+  //               return Column(
+  //                 crossAxisAlignment: CrossAxisAlignment.stretch,
+  //                 children: [
+  //                   Focus(
+  //                     onFocusChange: (hasFocus) {
+  //                       if (!hasFocus) {
+  //                         onChanged(controller.text);
+  //                       }
+  //                     },
+  //                     child: Container(
+  //                       decoration: BoxDecoration(
+  //                         border: Border.all(color: error != null ? Colors.red : Colors.grey),
+  //                         borderRadius: BorderRadius.circular(8),
+  //                       ),
+  //                       child: DropdownButtonHideUnderline(
+  //                         child: ButtonTheme(
+  //                           alignedDropdown: true,
+  //                           child: DropdownButton<String>(
+  //                             value: isCustom ? null : (controller.text.isEmpty ? null : controller.text),
+  //                             hint: Text(hint, style: const TextStyle(color: Colors.grey)),
+  //                             isExpanded: true,
+  //                             items: [
+  //                               ...schools.map((school) => DropdownMenuItem(
+  //                                 value: school,
+  //                                 child: Text(school),
+  //                               )),
+  //                             ],
+  //                             onChanged: (value) {
+  //                               setState(() => controller.text = value ?? '');
+  //                               onChanged(value ?? '');
+  //                             },
+  //                           ),
+  //                         ),
+  //                       ),
+  //                     ),
+  //                   ),
+                    // if (error != null)
+                    //   Padding(
+                    //     padding: const EdgeInsets.only(top: 4, left: 12),
+                    //     child: Text(
+                    //       error,
+                    //       style: const TextStyle(
+                    //         color: Colors.red,
+                    //         fontSize: 12,
+                    //       ),
+                    //     ),
+                    //   ),
+  //                 ],
+  //               );
+  //             },
+  //           ),
+  //         ),
+  //       ],
+  //     );
+  //   }
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 80,
-          child: Text(
-            label,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Focus(
-                onFocusChange: (hasFocus) {
-                  if (!hasFocus) {
-                    onChanged(controller.text);
-                  }
-                },
-                child: TextField(
-                  controller: controller,
-                  keyboardType: keyboardType,
-                  decoration: InputDecoration(
-                    hintText: hint,
-                    hintStyle: const TextStyle(color: Colors.grey),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: error != null ? Colors.red : Colors.grey),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: error != null ? Colors.red : Colors.grey),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: error != null ? Colors.red : AppColors.primaryColor),
-                    ),
-                    errorText: error,
-                    errorStyle: const TextStyle(
-                      color: Colors.red,
-                      fontSize: 12,
-                    ),
-                  ),
-                  onTapOutside: (_) {
-                    onChanged(controller.text);
-                  },
-                  onChanged: (value) {
-                    onChanged(value);
-                  }
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
+  //   return Row(
+  //     crossAxisAlignment: CrossAxisAlignment.start,
+  //     children: [
+  //       SizedBox(
+  //         width: 80,
+  //         child: Text(
+  //           label,
+  //           style: const TextStyle(
+  //             fontSize: 16,
+  //             fontWeight: FontWeight.w600,
+  //           ),
+  //         ),
+  //       ),
+  //       const SizedBox(width: 8),
+  //       Expanded(
+  //         child: Column(
+  //           crossAxisAlignment: CrossAxisAlignment.stretch,
+  //           children: [
+  //             Focus(
+  //               onFocusChange: (hasFocus) {
+  //                 if (!hasFocus) {
+  //                   onChanged(controller.text);
+  //                 }
+  //               },
+  //               child: TextField(
+  //                 controller: controller,
+  //                 keyboardType: keyboardType,
+  //                 decoration: InputDecoration(
+  //                   hintText: hint,
+  //                   hintStyle: const TextStyle(color: Colors.grey),
+  //                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+  //                   border: OutlineInputBorder(
+  //                     borderRadius: BorderRadius.circular(8),
+  //                     borderSide: BorderSide(color: error != null ? Colors.red : Colors.grey),
+  //                   ),
+  //                   enabledBorder: OutlineInputBorder(
+  //                     borderRadius: BorderRadius.circular(8),
+  //                     borderSide: BorderSide(color: error != null ? Colors.red : Colors.grey),
+  //                   ),
+  //                   focusedBorder: OutlineInputBorder(
+  //                     borderRadius: BorderRadius.circular(8),
+  //                     borderSide: BorderSide(color: error != null ? Colors.red : AppColors.primaryColor),
+  //                   ),
+  //                   errorText: error,
+  //                   errorStyle: const TextStyle(
+  //                     color: Colors.red,
+  //                     fontSize: 12,
+  //                   ),
+  //                 ),
+  //                 onTapOutside: (_) {
+  //                   onChanged(controller.text);
+  //                 },
+  //                 onChanged: (value) {
+  //                   onChanged(value);
+  //                 }
+  //               ),
+  //             ),
+  //           ],
+  //         ),
+  //       ),
+  //     ],
+  //   );
+  // }
 
   Future<void> _handleRunnerSubmission(Runner runner) async {
     try {
