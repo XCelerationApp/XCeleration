@@ -5,9 +5,6 @@ import 'race_screen.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import '../models/race.dart';
 import '../database_helper.dart';
-// import 'race_detail_screen.dart';
-// import 'race_info_screen.dart';
-// import 'race_screen.dart';
 import '../utils/app_colors.dart';
 import '../utils/textfield_utils.dart';
 import '../utils/dialog_utils.dart';
@@ -39,13 +36,6 @@ class _RacesScreenState extends State<RacesScreen> {
   List<Color> _teamColors = [];
   String unit = 'mi';
   
-  // Focus nodes
-  // final nameFocus = FocusNode();
-  // final locationFocus = FocusNode();
-  // final dateFocus = FocusNode();
-  // final distanceFocus = FocusNode();
-  // final unitFocus = FocusNode();
-
   // Validation error messages
   String? nameError;
   String? locationError;
@@ -126,16 +116,6 @@ class _RacesScreenState extends State<RacesScreen> {
       }
     });
   }
-
-  // void _validateTeams() {
-  //   setState(() {
-  //     List<String> teams = _teamControllers
-  //         .map((controller) => controller.text.trim())
-  //         .where((text) => text.isNotEmpty)
-  //         .toList();
-  //     teamsError = teams.isEmpty ? 'Please add at least one team' : null;
-  //   });
-  // }
 
   String? _getFirstError() {
     if (nameController.text.isEmpty) {
@@ -365,54 +345,6 @@ class _RacesScreenState extends State<RacesScreen> {
         setSheetState: setSheetState,
       ),
     );
-    // return Column(
-    //   crossAxisAlignment: CrossAxisAlignment.start,
-    //   children: [
-    //     Padding(
-    //       padding: const EdgeInsets.only(top: 8.0),
-    //       child: Text(
-    //         'Race Name',
-    //         style: const TextStyle(
-    //           fontSize: 18,
-    //           fontWeight: FontWeight.w600,
-    //           color: Colors.black87,
-    //         ),
-    //       ),
-    //     ),
-    //     const SizedBox(height: 8),
-    //     buildTextField(controller: nameController, hint: 'Enter race name', onChanged: (_) => _validateName(nameController.text, setSheetState), setSheetState: setSheetState)
-    //     // Focus(
-    //     //   onFocusChange: (hasFocus) {
-    //     //     if (!hasFocus) {
-    //     //       setSheetState(() {
-    //     //         if (nameController.text.isEmpty) {
-    //     //           nameError = 'Please enter a race name';
-    //     //         } else {
-    //     //           nameError = null;
-    //     //         }
-    //     //       });
-    //     //     }
-    //     //   },
-    //     //   child: TextFormField(
-    //     //     controller: nameController,
-    //     //     focusNode: nameFocus,
-    //     //     decoration: _inputDecoration.copyWith(
-    //     //       hintText: 'Enter race name',
-    //     //       errorText: nameError,
-    //     //     ),
-    //     //     onTapOutside: (_) {
-    //     //       setSheetState(() {
-    //     //         if (nameController.text.isEmpty) {
-    //     //           nameError = 'Please enter a race name';
-    //     //         } else {
-    //     //           nameError = null;
-    //     //         }
-    //     //       });
-    //     //     },
-    //     //   ),
-    //     // ),
-    //   ],
-    // );
   }
 
   Widget _buildCompetingTeamsField(StateSetter setSheetState) {
@@ -555,82 +487,6 @@ class _RacesScreenState extends State<RacesScreen> {
         ],
       ),
     );
-    // return Column(
-    //   crossAxisAlignment: CrossAxisAlignment.start,
-    //   children: [
-    //     Padding(
-    //       padding: const EdgeInsets.only(top: 24),
-    //       child: Text(
-    //         'Race Location',
-    //         style: const TextStyle(
-    //           fontSize: 18,
-    //           fontWeight: FontWeight.w600,
-    //           color: Colors.black87,
-    //         ),
-    //       ),
-    //     ),
-    //     const SizedBox(height: 8),
-    //     Row(
-    //       key: ValueKey(isLocationButtonVisible),
-    //       children: [
-    //         Expanded(
-    //           flex: 3,
-    //           child: buildTextField(controller: locationController, hint: (Platform.isIOS || Platform.isAndroid) 
-    //               ? 'Other location'
-    //               : 'Enter race location',
-    //             error: locationError,
-    //             setSheetState: setSheetState,
-    //             onChanged: (_) => _validateLocation(locationController.text, setSheetState),
-    //           ),
-    //         ),
-
-    //          if (isLocationButtonVisible && (Platform.isIOS || Platform.isAndroid))
-    //             IconButton(
-    //                 icon: Icon(Icons.my_location, color: AppColors.primaryColor),
-    //                 onPressed: _getCurrentLocation,
-    //               )
-    //           // child: Focus(
-    //           //   onFocusChange: (hasFocus) {
-    //           //     if (!hasFocus) {
-    //           //       setSheetState(() {
-    //           //         if (locationController.text.isEmpty) {
-    //           //           locationError = 'Please enter a location';
-    //           //         } else {
-    //           //           locationError = null;
-    //           //         }
-    //           //       });
-    //           //     }
-    //           //   },
-    //           //   child: TextFormField(
-    //           //     controller: locationController,
-    //           //     focusNode: locationFocus,
-    //           //     decoration: _inputDecoration.copyWith(
-    //           //       hintText: (Platform.isIOS || Platform.isAndroid) 
-    //           //         ? 'Other location'
-    //           //         : 'Enter race location',
-    //           //       errorText: locationError,
-    //                 // suffixIcon: isLocationButtonVisible && (Platform.isIOS || Platform.isAndroid)
-    //                 //   ? IconButton(
-    //                 //       icon: Icon(Icons.my_location, color: AppColors.primaryColor),
-    //                 //       onPressed: _getCurrentLocation,
-    //                 //     )
-    //                 //   : null,
-    //           //     ),
-    //           //     onTapOutside: (_) {
-    //           //       setSheetState(() {
-    //           //         if (locationController.text.isEmpty) {
-    //           //           locationError = 'Please enter a location';
-    //           //         } else {
-    //           //           locationError = null;
-    //           //         }
-    //           //       });
-    //           //     },
-    //           //   ),
-    //           // ),
-    //       ],
-    //     ),
-    //   ],
-    // );
   }
 
   Widget _buildRaceDateField(StateSetter setSheetState) {
@@ -648,75 +504,6 @@ class _RacesScreenState extends State<RacesScreen> {
         onChanged: (_) => _validateDate(dateController.text, setSheetState),
       ),
     );
-    // return Column(
-    //   crossAxisAlignment: CrossAxisAlignment.start,
-    //   children: [
-    //     Padding(
-    //       padding: const EdgeInsets.only(top: 24),
-    //       child: Text(
-    //         'Race Date',
-    //         style: const TextStyle(
-    //           fontSize: 18,
-    //           fontWeight: FontWeight.w600,
-    //           color: Colors.black87,
-    //         ),
-    //       ),
-    //     ),
-    //     const SizedBox(height: 8),
-    //     Focus(
-    //       onFocusChange: (hasFocus) {
-    //         if (!hasFocus) {
-    //           setSheetState(() {
-    //             if (dateController.text.isEmpty) {
-    //               dateError = 'Please select a date';
-    //             } else {
-    //               try {
-    //                 final date = DateTime.parse(dateController.text);
-    //                 if (date.year < 1900) {
-    //                   dateError = 'Invalid date';
-    //                 } else {
-    //                   dateError = null;
-    //                 }
-    //               } catch (e) {
-    //                 dateError = 'Invalid date format';
-    //               }
-    //             }
-    //           });
-    //         }
-    //       },
-    //       child: TextFormField(
-    //         controller: dateController,
-    //         focusNode: dateFocus,
-    //         decoration: _inputDecoration.copyWith(
-    //           hintText: 'YYYY-MM-DD',
-    //           errorText: dateError,
-    //           suffixIcon: IconButton(
-    //             icon: Icon(Icons.calendar_today, color: AppColors.primaryColor),
-    //             onPressed: () => _selectDate(context),
-    //           ),
-    //         ),
-    //         onTapOutside: (_) {
-    //           setSheetState(() {
-    //             if (dateController.text.isEmpty) {
-    //               dateError = 'Please select a date';
-    //             } else {
-    //               try {
-    //                 final date = DateTime.parse(dateController.text);
-    //                 if (date.year < 1900) {
-    //                   dateError = 'Invalid date';
-    //                 } else {
-    //                   dateError = null;
-    //                 }
-    //               } catch (e) {
-    //                 dateError = 'Invalid date format';
-    //               }
-    //             }
-    //           });
-    //         },
-    //       ),
-    //     ),
-    //   ],
-    // );
   }
 
   Widget _buildRaceDistanceField(StateSetter setSheetState) {
@@ -750,105 +537,6 @@ class _RacesScreenState extends State<RacesScreen> {
         ],
       ),
     );
-    // return Column(
-    //   crossAxisAlignment: CrossAxisAlignment.start,
-    //   children: [
-    //     Padding(
-    //       padding: const EdgeInsets.only(top: 24),
-    //       child: Text(
-    //         'Race Distance',
-    //         style: const TextStyle(
-    //           fontSize: 18,
-    //           fontWeight: FontWeight.w600,
-    //           color: Colors.black87,
-    //         ),
-    //       ),
-    //     ),
-    //     const SizedBox(height: 8),
-    //     Row(
-    //       crossAxisAlignment: CrossAxisAlignment.start,
-    //       children: [
-    //         Expanded(
-    //           child: Focus(
-    //             onFocusChange: (hasFocus) {
-    //               if (!hasFocus) {
-    //                 setSheetState(() {
-    //                   if (distanceController.text.isEmpty) {
-    //                     distanceError = 'Please enter a distance';
-    //                   } else {
-    //                     try {
-    //                       final distance = double.parse(distanceController.text);
-    //                       if (distance <= 0) {
-    //                         distanceError = 'Distance must be greater than 0';
-    //                       } else {
-    //                         distanceError = null;
-    //                       }
-    //                     } catch (e) {
-    //                       distanceError = 'Invalid number';
-    //                     }
-    //                   }
-    //                 });
-    //               }
-    //             },
-    //             child: TextFormField(
-    //               controller: distanceController,
-    //               focusNode: distanceFocus,
-    //               decoration: _inputDecoration.copyWith(
-    //                 hintText: '0.0',
-    //                 errorText: distanceError,
-    //               ),
-    //               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-    //               onTapOutside: (_) {
-    //                 setSheetState(() {
-    //                   if (distanceController.text.isEmpty) {
-    //                     distanceError = 'Please enter a distance';
-    //                   } else {
-    //                     try {
-    //                       final distance = double.parse(distanceController.text);
-    //                       if (distance <= 0) {
-    //                         distanceError = 'Distance must be greater than 0';
-    //                       } else {
-    //                         distanceError = null;
-    //                       }
-    //                     } catch (e) {
-    //                       distanceError = 'Invalid number';
-    //                     }
-    //                   }
-    //                 });
-    //               },
-    //             ),
-    //           ),
-    //         ),
-    //         const SizedBox(width: 12),
-    //         Container(
-    //           padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-    //           decoration: BoxDecoration(
-    //             color: Colors.grey[200],
-    //             borderRadius: BorderRadius.circular(12),
-    //           ),
-    //           child: DropdownButton<String>(
-    //             value: unit,
-    //             onChanged: (String? newValue) {
-    //               setState(() {
-    //                 unit = newValue!;
-    //               });
-    //             },
-    //             items: <String>['miles', 'kilometers']
-    //               .map<DropdownMenuItem<String>>((String value) {
-    //                 return DropdownMenuItem<String>(
-    //                   value: value,
-    //                   child: Text(value),
-    //                 );
-    //               })
-    //               .toList(),
-    //             underline: SizedBox(),
-    //             icon: Icon(Icons.arrow_drop_down, color: AppColors.primaryColor),
-    //           ),
-    //         ),
-    //       ],
-    //     ),
-    //   ],
-    // );
   }
 
   Future<void> _getCurrentLocation() async {
