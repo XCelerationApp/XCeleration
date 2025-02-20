@@ -16,6 +16,7 @@ Future<void> showDeviceConnectionPopup(BuildContext context, { required DeviceTy
 
   sheet(
     context: context,
+    showHeader: false,
     title: deviceType == DeviceType.advertiserDevice ? 'Wireless Sharing' : 'Wireless Receiving',
     body: DeviceConnectionPopupContent(
       deviceName: deviceName,
@@ -189,10 +190,10 @@ class _DeviceConnectionPopupContentState extends State<DeviceConnectionPopupCont
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
       ),
-      child:
-      // child: Column(
-      //   mainAxisSize: MainAxisSize.min,
-      //   children: [
+      // child:
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
           // Padding(
           //   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
           //   child: Text(
@@ -204,6 +205,10 @@ class _DeviceConnectionPopupContentState extends State<DeviceConnectionPopupCont
           //     ),
           //   ),
           // ),
+          createSheetHeader(
+            widget.deviceType == DeviceType.advertiserDevice ? 'Wireless Sharing' : 'Wireless Receiving',
+            context: context,
+          ),
           WirelessConnectionPopupContent(
             deviceName: widget.deviceName,
             deviceType: widget.deviceType,
@@ -213,8 +218,8 @@ class _DeviceConnectionPopupContentState extends State<DeviceConnectionPopupCont
             },
           ),
           // SizedBox(height: 20), // Add some bottom padding
-      //   ],
-      // ),
+        ],
+      ),
     );
   }
 
@@ -223,26 +228,32 @@ class _DeviceConnectionPopupContentState extends State<DeviceConnectionPopupCont
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          SizedBox(height: 10),
-          Row(
-            children: [
-              SizedBox(width: 10),
-              _buildBackButton(),
-              Expanded(
-                child: Center(
-                  child: Text(
-                    'QR Connection',
-                    style: TextStyle(
-                      fontSize: 20,
-                      color: Colors.deepOrangeAccent,
-                      fontWeight: FontWeight.bold
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(width: 20),
-            ],
+          createSheetHeader(
+            'QR Connection',
+            context: context,
+            backArrow: true,
+            onBack: () => _handleScreenTransition(PopupScreen.main),
           ),
+          // SizedBox(height: 10),
+          // Row(
+          //   children: [
+          //     SizedBox(width: 10),
+          //     _buildBackButton(),
+          //     Expanded(
+          //       child: Center(
+          //         child: Text(
+          //           'QR Connection',
+          //           style: TextStyle(
+          //             fontSize: 20,
+          //             color: Colors.deepOrangeAccent,
+          //             fontWeight: FontWeight.bold
+          //           ),
+          //         ),
+          //       ),
+          //     ),
+          //     SizedBox(width: 20),
+          //   ],
+          // ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: QRConnectionPopupContent(
