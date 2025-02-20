@@ -25,6 +25,13 @@ UI:
 - make it so that you can't swipe back to the welcome screen on the far left screen
 - create coach marks
 - put error text under text boxes
+- make uniform padding (8 pixel standard)
+- fix races card: date on the right 3 letter date, maybe google maps box.
+- better font
+- race buttons:
+  - left align text
+split wireless (default) from QR
+- add QR code scanning UI - show the progress of each in the scanner and allow multiple scans
 
 
 Runners Management screen:
@@ -37,7 +44,7 @@ Bib Number screen:
 Races screen:
 - put error text under text boxes
 - change the color of the races depending on if they are finished
-- improve race info screen
+- improve race info screen (add map?)
 
 Timing screen:
 - change the color of the top divider

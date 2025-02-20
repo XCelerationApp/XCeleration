@@ -163,40 +163,67 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
     });
   }
 
-  Widget _buildActionButton(String title, VoidCallback onPressed, {bool showArrow = true}) {
+  Widget _buildPageButton(String title, IconData icon, VoidCallback onPressed) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: ElevatedButton(
-        onPressed: () => onPressed(),
+        onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          padding: const EdgeInsets.all(16),
+          backgroundColor: Colors.white,
+          elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
-            side: BorderSide(width: 2, color: Colors.grey),
           ),
-          elevation: 2,
-          fixedSize: const Size(300, 70),
-          backgroundColor: AppColors.backgroundColor,
         ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Spacer(),
-              Text(title, style: TextStyle(fontSize: 25, color: AppColors.darkColor), textAlign: TextAlign.center),
-              const Spacer(),
-              if (showArrow) ...[
-                Icon(
-                  Icons.arrow_forward_ios, 
+        child: Row(
+          children: [
+            Icon(icon, color: AppColors.primaryColor, size: 24),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: 16,
                   color: AppColors.darkColor,
-                  size: 30,
-                )
-              ]
-            ]
-          ),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            Icon(Icons.chevron_right, color: Colors.grey[400], size: 24),
+          ],
         ),
-      )
+      ),
+    );
+  }
+
+  Widget _buildActionButton(String title, IconData icon, VoidCallback onPressed) {
+    return ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: BorderSide(color: Colors.grey[300]!),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: AppColors.primaryColor, size: 20),
+          const SizedBox(width: 8),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 14,
+              color: AppColors.darkColor,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -212,7 +239,7 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
               Text(_name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
               SizedBox(width: 20),
               Row(
-                children: [
+                    children: [
                   const Icon(
                     Icons.location_on_outlined,
                     size: 20,
@@ -227,20 +254,20 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
                 ],
               ),
               Row(
-                children: [
+                            children: [
                   const Icon(
                     Icons.calendar_today,
                     size: 20,
-                  ),
+                              ),
                   const SizedBox(width: 5),
                   Text(
                     _date.substring(0, 10),
                     style: TextStyle(
                       fontSize: 15,
-                    ),
-                  ),
-                ],
-              ),
+                                ),
+                              ),
+                            ],
+                          ),
               Row(
                 children: [
                   const Icon(
@@ -252,8 +279,8 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
                     '$_distance $_distanceUnit',
                     style: TextStyle(
                       fontSize: 15,
-                    ),
                   ),
+                ),
                 ],
               ),
             ],
@@ -316,7 +343,8 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
   }
 
   Widget _buildContent() {
-    final screenHeight = MediaQuery.of(context).size.height;
+    if (!mounted) return SizedBox.shrink();
+
     return FutureBuilder<List<dynamic>>(
       future: DatabaseHelper.instance.getRaceResults(raceId),
       builder: (context, snapshot) {
@@ -340,149 +368,155 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
         
         return SizedBox(
           width: double.infinity,
-          height: screenHeight * 0.92,
+          height: MediaQuery.of(context).size.height * 0.92,
           child: Column(
             children: [
               SizedBox(height: 10),
               createSheetHandle(height: 10, width: 60),
               SizedBox(height: 10),
-              Center(
-                child: Text(
-                  _name,
-                  style: TextStyle(
-                    fontSize: 30,
-                    fontWeight: FontWeight.bold,
-                  ),
-                )
+              Text(
+                _name,
+                style: TextStyle(
+                  fontSize: 30,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               SizedBox(height: 10),
               SingleChildScrollView(
                 child: Column(
                   children: [
+                    // const SizedBox(height: 10),
+                    // _buildActionButton('Merge Conflicts', () => _goToMergeConflictsScreen(
+                    //     context, 
+                    //     [
+                    //       {'bib_number': '1', 'name': 'Teo Donnelley', 'grade': 11, 'school': 'AW', 'error': null},
+                    //       {'bib_number': '2', 'name': 'Bill', 'grade': 10, 'school': 'TL', 'error': null},
+                    //       {'bib_number': '3', 'name': 'Ethan', 'grade': 12, 'school': 'SR', 'error': null},
+                    //       {'bib_number': '4', 'name': 'John', 'grade': 9, 'school': 'SR', 'error': null},
+                    //       {'bib_number': '5', 'name': 'Sally', 'grade': 8, 'school': 'SR', 'error': null},
+                    //       {'bib_number': '6', 'name': 'Jane', 'grade': 7, 'school': 'SR', 'error': null},
+                    //       {'bib_number': '7', 'name': 'Bob', 'grade': 6, 'school': 'SR', 'error': null},
+                    //       {'bib_number': '8', 'name': 'Charlie', 'grade': 5, 'school': 'SR', 'error': null},
+                    //     ], 
+                    //     {
+                    //       'endTime': '2.84',
+                    //       'records': [
+                    //         {'finish_time': '0.45', 'type': 'runner_time', 'is_confirmed': true, 'text_color': null, 'place': 1},
+                    //         {'finish_time': '0.83', 'type': 'runner_time', 'is_confirmed': true, 'text_color': null, 'place': 2},
+                    //         {'finish_time': '1.02', 'type': 'confirm_runner_number', 'is_confirmed': true, 'text_color': Colors.green, 'numTimes': 2},
+                    //         {'finish_time': '1.06', 'type': 'runner_time', 'conflict': 'extra_runner_time', 'is_confirmed': false, 'text_color': null, 'place': 3},
+                    //         {'finish_time': '1.12', 'type': 'runner_time', 'conflict': 'extra_runner_time', 'is_confirmed': false, 'text_color': null, 'place': 4},
+                    //         {'finish_time': '1.17', 'type': 'runner_time', 'conflict': 'extra_runner_time', 'is_confirmed': false, 'text_color': null, 'place': 5},
+                    //         {'finish_time': '1.20', 'type': 'runner_time', 'conflict': 'extra_runner_time', 'is_confirmed': false, 'text_color': null, 'place': ''},
+                    //         {'finish_time': '1.21', 'type': 'extra_runner_time', 'offBy': 1, 'numTimes': 5, 'text_color': AppColors.redColor},
+                    //         {'finish_time': '1.24', 'type': 'runner_time', 'conflict': 'missing_runner_time', 'is_confirmed': false, 'text_color': null, 'place': 6},
+                    //         {'finish_time': '1.27', 'type': 'runner_time', 'conflict': 'missing_runner_time', 'is_confirmed': false, 'text_color': null, 'place': 7},
+                    //         {'finish_time': 'TBD', 'type': 'runner_time', 'conflict': 'missing_runner_time', 'is_confirmed': false, 'text_color': null, 'place': 8},
+                    //         {'finish_time': '1.60', 'type': 'missing_runner_time', 'text_color': AppColors.redColor, 'numTimes': 8},
+                    //       ],
+                    //       'startTime': null,
+                    //     }
+                    //   ),
+                    // ),
+                    // const SizedBox(height: 10),
+                    // _buildActionButton(
+                    //   'Resolve Bibs',
+                    //   () => _goToTestResolveBibNumbesScreen(
+                    //     context, 
+                    //     [
+                    //       {'bib_number': '1', 'name': 'Teo Donnelley', 'grade': 11, 'school': 'AW', 'error': null},
+                    //       {'bib_number': '2', 'name': 'Bill', 'grade': 10, 'school': 'TL', 'error': null},
+                    //       {'bib_number': '300', 'name': 'Unknown', 'grade': null, 'school': 'Unknown School', 'error': 'Unknown Runner'},
+                    //       {'bib_number': '301', 'name': 'Unknown', 'grade': null, 'school': 'Unknown School', 'error': 'Unknown Runner'},
+                    //     ], 
+                    //   ),
+                    // ),
+                    // const SizedBox(height: 10),
+                    _buildPageButton('See Race Info', Icons.info, () => _goToDetailsScreen(context)),
                     const SizedBox(height: 10),
-                    _buildActionButton('Merge Conflicts', () => _goToMergeConflictsScreen(
-                        context, 
-                        [
-                          {'bib_number': '1', 'name': 'Teo Donnelley', 'grade': 11, 'school': 'AW', 'error': null},
-                          {'bib_number': '2', 'name': 'Bill', 'grade': 10, 'school': 'TL', 'error': null},
-                          {'bib_number': '3', 'name': 'Ethan', 'grade': 12, 'school': 'SR', 'error': null},
-                          {'bib_number': '4', 'name': 'John', 'grade': 9, 'school': 'SR', 'error': null},
-                          {'bib_number': '5', 'name': 'Sally', 'grade': 8, 'school': 'SR', 'error': null},
-                          {'bib_number': '6', 'name': 'Jane', 'grade': 7, 'school': 'SR', 'error': null},
-                          {'bib_number': '7', 'name': 'Bob', 'grade': 6, 'school': 'SR', 'error': null},
-                          {'bib_number': '8', 'name': 'Charlie', 'grade': 5, 'school': 'SR', 'error': null},
-                        ], 
-                        {
-                          'endTime': '2.84',
-                          'records': [
-                            {'finish_time': '0.45', 'type': 'runner_time', 'is_confirmed': true, 'text_color': null, 'place': 1},
-                            {'finish_time': '0.83', 'type': 'runner_time', 'is_confirmed': true, 'text_color': null, 'place': 2},
-                            {'finish_time': '1.02', 'type': 'confirm_runner_number', 'is_confirmed': true, 'text_color': Colors.green, 'numTimes': 2},
-                            {'finish_time': '1.06', 'type': 'runner_time', 'conflict': 'extra_runner_time', 'is_confirmed': false, 'text_color': null, 'place': 3},
-                            {'finish_time': '1.12', 'type': 'runner_time', 'conflict': 'extra_runner_time', 'is_confirmed': false, 'text_color': null, 'place': 4},
-                            {'finish_time': '1.17', 'type': 'runner_time', 'conflict': 'extra_runner_time', 'is_confirmed': false, 'text_color': null, 'place': 5},
-                            {'finish_time': '1.20', 'type': 'runner_time', 'conflict': 'extra_runner_time', 'is_confirmed': false, 'text_color': null, 'place': ''},
-                            {'finish_time': '1.21', 'type': 'extra_runner_time', 'offBy': 1, 'numTimes': 5, 'text_color': AppColors.redColor},
-                            {'finish_time': '1.24', 'type': 'runner_time', 'conflict': 'missing_runner_time', 'is_confirmed': false, 'text_color': null, 'place': 6},
-                            {'finish_time': '1.27', 'type': 'runner_time', 'conflict': 'missing_runner_time', 'is_confirmed': false, 'text_color': null, 'place': 7},
-                            {'finish_time': 'TBD', 'type': 'runner_time', 'conflict': 'missing_runner_time', 'is_confirmed': false, 'text_color': null, 'place': 8},
-                            {'finish_time': '1.60', 'type': 'missing_runner_time', 'text_color': AppColors.redColor, 'numTimes': 8},
-                          ],
-                          'startTime': null,
-                        }
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    _buildActionButton(
-                      'Resolve Bibs',
-                      () => _goToTestResolveBibNumbesScreen(
-                        context, 
-                        [
-                          {'bib_number': '1', 'name': 'Teo Donnelley', 'grade': 11, 'school': 'AW', 'error': null},
-                          {'bib_number': '2', 'name': 'Bill', 'grade': 10, 'school': 'TL', 'error': null},
-                          {'bib_number': '300', 'name': 'Unknown', 'grade': null, 'school': 'Unknown School', 'error': 'Unknown Runner'},
-                          {'bib_number': '301', 'name': 'Unknown', 'grade': null, 'school': 'Unknown School', 'error': 'Unknown Runner'},
-                        ], 
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    _buildActionButton('See Race Info', () => _goToDetailsScreen(context)),
-                    const SizedBox(height: 10),
-                    _buildActionButton('See Runners', () => _goToRunnersScreen(context)),
+                    _buildPageButton('See Runners', Icons.person, () => _goToRunnersScreen(context)),
                     if (showResultsButton) ...[
                       const SizedBox(height: 10),
-                      _buildActionButton('See Results', () => _goToResultsScreen(context)),
+                      _buildPageButton('See Results', Icons.flag, () => _goToResultsScreen(context)),
                     ],
                     if (!showResultsButton) ...[
-                      const SizedBox(height: 10),
-                      _buildActionButton(
-                        'Share Runners',
-                        () async {
-                          final data = await _getEncodedRunnersData();
-                          showDeviceConnectionPopup(
-                            context,
-                            deviceType: DeviceType.advertiserDevice,
-                            deviceName: DeviceName.coach,
-                            otherDevices: createOtherDeviceList(
-                              DeviceName.coach,
-                              DeviceType.advertiserDevice,
-                              data: data,
+                      const SizedBox(height: 16),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: _buildActionButton(
+                                'Share Runners',
+                                Icons.share,
+                                () async {
+                                  final data = await _getEncodedRunnersData();
+                                  showDeviceConnectionPopup(
+                                    context,
+                                    deviceType: DeviceType.advertiserDevice,
+                                    deviceName: DeviceName.coach,
+                                    otherDevices: createOtherDeviceList(
+                                      DeviceName.coach,
+                                      DeviceType.advertiserDevice,
+                                      data: data,
+                                    ),
+                                  );
+                                },
+                              ),
                             ),
-                          );
-                        },
-                        showArrow: false
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: _buildActionButton(
+                                'Receive Results',
+                                Icons.download,
+                                () async {
+                                  final otherDevices = createOtherDeviceList(
+                                    DeviceName.coach,
+                                    DeviceType.browserDevice,
+                                  );
+                                  await showDeviceConnectionPopup(
+                                    context,
+                                    deviceType: DeviceType.browserDevice,
+                                    deviceName: DeviceName.coach,
+                                    otherDevices: otherDevices,
+                                  );
+                                  final encodedBibRecords = otherDevices[DeviceName.bibRecorder]!['data'];
+                                  final encodedFinishTimes = otherDevices[DeviceName.raceTimer]!['data'];
+                                  if (encodedBibRecords == null || encodedFinishTimes == null) return;
+                                  
+                                  var runnerRecords = await processEncodedBibRecordsData(encodedBibRecords, context, raceId);
+                                  final timingData = await processEncodedTimingData(encodedFinishTimes, context);
+                                  
+                                  if (runnerRecords.isNotEmpty && timingData != null) {
+                                    timingData['records'] = await syncBibData(runnerRecords.length, timingData['records'], timingData['endTime'], context);
+                                    Navigator.pop(context);
+                                    if (_containsBibConflicts(runnerRecords)) {
+                                      runnerRecords = await Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => ResolveBibNumberScreen(records: runnerRecords, raceId: raceId),
+                                        ),
+                                      );
+                                    }
+                                    final bool conflicts = await _containsTimingConflicts(timingData);
+                                    if (conflicts) {
+                                      _goToMergeConflictsScreen(context, runnerRecords, timingData);
+                                    } else {
+                                      timingData['records'] = timingData['records'].where((r) => r['type'] == 'runner_time').toList();
+                                      _goToEditScreen(context, runnerRecords, timingData);
+                                    }
+                                  }
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 10),
-                      _buildActionButton(
-                        'Load Data',
-                        () async {
-                          final otherDevices = createOtherDeviceList(
-                            DeviceName.coach,
-                            DeviceType.browserDevice,
-                          );
-                          await showDeviceConnectionPopup(
-                            context,
-                            deviceType: DeviceType.browserDevice,
-                            deviceName: DeviceName.coach,
-                            otherDevices: otherDevices,
-                          );
-                          final encodedBibRecords = otherDevices[DeviceName.bibRecorder]!['data'];
-                          final encodedFinishTimes = otherDevices[DeviceName.raceTimer]!['data'];
-                          print('encodedBibRecords: $encodedBibRecords');
-                          print('encodedFinishTimes: $encodedFinishTimes');
-                          if (encodedBibRecords == null || encodedFinishTimes == null) return;
-                          
-                          var runnerRecords = await processEncodedBibRecordsData(encodedBibRecords, context, raceId);
-                          print('runnerRecords: $runnerRecords');
-                          final timingData = await processEncodedTimingData(encodedFinishTimes, context);
-                          print('timingData: $timingData');
-                          
-                          if (runnerRecords.isNotEmpty && timingData != null) {
-                            timingData['records'] = await syncBibData(runnerRecords.length, timingData['records'], timingData['endTime'], context);
-                            Navigator.pop(context);
-                            if (_containsBibConflicts(runnerRecords)) {
-                              runnerRecords = await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => ResolveBibNumberScreen(records: runnerRecords, raceId: raceId),
-                                ),
-                              );
-                            }
-                            final bool conflicts = await _containsTimingConflicts(timingData);
-                            if (conflicts) {
-                              _goToMergeConflictsScreen(context, runnerRecords, timingData);
-                            } else {
-                              timingData['records'] = timingData['records'].where((r) => r['type'] == 'runner_time').toList();
-                              _goToEditScreen(context, runnerRecords, timingData);
-                            }
-                          }
-                        }, 
-                        showArrow: false
-                      )
+                      const SizedBox(height: 16),
                     ],
                   ],
                 ),
-              ),
+              )
             ],
           ),
         );
