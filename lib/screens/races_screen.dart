@@ -184,84 +184,51 @@ class _RacesScreenState extends State<RacesScreen> {
   void _showCreateRaceSheet(BuildContext context) {
     _resetControllers();
 
-    showModalBottomSheet(
-      backgroundColor: AppColors.backgroundColor,
-      context: context,
-      isScrollControlled: true,
-      enableDrag: true,
-      useSafeArea: true,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(16),
-        ),
-      ),
-      builder: (context) => StatefulBuilder(
+    sheet(context: context, title: 'Create New Race', body: StatefulBuilder(
         builder: (BuildContext context, StateSetter setSheetState) {
-          return Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
-            ),
-            child: SizedBox(
-              height: MediaQuery.of(context).size.height * 0.92,
-              child: _buildCreateRaceSheetContent(setSheetState),
-            ),
-          );
+          return _buildCreateRaceSheetContent(setSheetState);
         },
-      ),
-    );
+      ));
   }
 
   Widget _buildCreateRaceSheetContent(StateSetter setSheetState, {bool isEditing = false, int? raceId}) {
-    return Column(
-      children: [
-        const SizedBox(height: 10),
-        createSheetHandle(height: 10, width: 60),
-        Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _buildCreateRaceSheetTitle(isEditing: isEditing),
-                _buildRaceNameField(setSheetState),
-                SizedBox(height: 16),
-                _buildCompetingTeamsField(setSheetState),
-                SizedBox(height: 16),
-                _buildRaceLocationField(setSheetState),
-                SizedBox(height: 16),
-                _buildRaceDateField(setSheetState),
-                SizedBox(height: 16),
-                _buildRaceDistanceField(setSheetState),
-                SizedBox(height: 16),
-                _buildActionButton(isEditing: isEditing, raceId: raceId),
-                const SizedBox(height: 16),
-                const SizedBox(height: 16),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCreateRaceSheetTitle({bool isEditing = false}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      child: Text(
-        isEditing ? 'Edit Race' : 'Create New Race',
-        style: const TextStyle(
-          fontSize: 24,
-          fontWeight: FontWeight.bold,
-        ),
-        textAlign: TextAlign.center,
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // _buildCreateRaceSheetTitle(isEditing: isEditing),
+          _buildRaceNameField(setSheetState),
+          SizedBox(height: 12),
+          _buildCompetingTeamsField(setSheetState),
+          SizedBox(height: 12),
+          _buildRaceLocationField(setSheetState),
+          SizedBox(height: 12),
+          _buildRaceDateField(setSheetState),
+          SizedBox(height: 12),
+          _buildRaceDistanceField(setSheetState),
+          SizedBox(height: 12),
+          _buildActionButton(isEditing: isEditing, raceId: raceId),
+        ],
       ),
     );
   }
 
+  // Widget _buildCreateRaceSheetTitle({bool isEditing = false}) {
+  //   return Padding(
+  //     padding: const EdgeInsets.symmetric(vertical: 16),
+  //     child: Text(
+  //       isEditing ? 'Edit Race' : 'Create New Race',
+  //       style: const TextStyle(
+  //         fontSize: 24,
+  //         fontWeight: FontWeight.bold,
+  //       ),
+  //       textAlign: TextAlign.center,
+  //     ),
+  //   );
+  // }
+
   Widget _buildActionButton({bool isEditing = false, int? raceId}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      child: ElevatedButton(
+    return ElevatedButton(
         onPressed: () async {
           final error = _getFirstError();
           if (error != null) {
@@ -303,13 +270,12 @@ class _RacesScreenState extends State<RacesScreen> {
             borderRadius: BorderRadius.circular(16),
           ),
           backgroundColor: AppColors.primaryColor,
-          fixedSize: const Size.fromHeight(50),
+          fixedSize: const Size.fromHeight(64),
         ),
         child: Text(
           isEditing ? 'Save Changes' : 'Create Race',
           style: const TextStyle(fontSize: 24, color: Colors.white),
         ),
-      ),
     );
   }
 
@@ -377,7 +343,7 @@ class _RacesScreenState extends State<RacesScreen> {
           int index = entry.key;
           TextEditingController controller = entry.value;
           return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            padding: const EdgeInsets.only(bottom: 8.0),
             child: Row(
               children: [
                 Expanded(
@@ -621,24 +587,12 @@ class _RacesScreenState extends State<RacesScreen> {
     );
   }
 
-  void _showRaceInfo(int raceId) {
-    showModalBottomSheet(
-      backgroundColor: AppColors.backgroundColor,
+  void _showRaceScreen(int raceId) {
+    sheet(
       context: context,
-      isScrollControlled: true,
-      enableDrag: true,
-      useSafeArea: true,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(16),
-        ),
-      ),
-      builder: (context) => SizedBox(
-        height: MediaQuery.of(context).size.height * 0.9,
-        child: RaceInfoScreen(
-          raceId: raceId,
-        ),
-      ),
+      showHeader: false,
+      body: RaceScreen(raceId: raceId), 
+      title: races.firstWhere((race) => race.raceId == raceId).raceName, 
     );
   }
 
@@ -709,7 +663,7 @@ class _RacesScreenState extends State<RacesScreen> {
             borderRadius: BorderRadius.circular(12),
           ),
           child: InkWell(
-            onTap: () => _showRaceInfo(race.raceId),
+            onTap: () => _showRaceScreen(race.raceId),
             borderRadius: BorderRadius.circular(12),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
@@ -729,11 +683,14 @@ class _RacesScreenState extends State<RacesScreen> {
                     children: [
                       const Icon(Icons.location_on, size: 16, color: Colors.grey),
                       const SizedBox(width: 4),
-                      Text(
-                        race.location,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey,
+                      Expanded(
+                        child: Text(
+                          race.location,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey,
+                          ),
                         ),
                       ),
                     ],
@@ -744,7 +701,7 @@ class _RacesScreenState extends State<RacesScreen> {
                       const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
                       const SizedBox(width: 4),
                       Text(
-                        DateFormat('MMMM d, y').format(race.raceDate),
+                        DateFormat('MMM d, y').format(race.raceDate),
                         style: const TextStyle(
                           fontSize: 14,
                           color: Colors.grey,
@@ -798,18 +755,10 @@ class _RacesScreenState extends State<RacesScreen> {
     }
 
     // Show the edit sheet
-    await showModalBottomSheet(
-      backgroundColor: AppColors.backgroundColor,
+    await sheet(
       context: context,
-      isScrollControlled: true,
-      enableDrag: true,
-      useSafeArea: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(16),
-        ),
-      ),
-      builder: (context) => StatefulBuilder(
+      title: 'Edit Race',
+      body: StatefulBuilder(
         builder: (BuildContext context, StateSetter setSheetState) {
           return Padding(
             padding: EdgeInsets.only(
@@ -852,39 +801,36 @@ class _RacesScreenState extends State<RacesScreen> {
     return Scaffold(
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showCreateRaceSheet(context),
-        tooltip: 'Create new race',
+        // tooltip: 'Create new race',
         backgroundColor: AppColors.primaryColor,
         child: Icon(Icons.add),
       ),
       body: Padding(
-        padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
+        padding: const EdgeInsets.fromLTRB(24.0, 0, 24.0, 24.0),
         child: Column(
           children: [
             buildRoleBar(context, 'coach', 'Races'),
             const SizedBox(height: 15),
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                child: FutureBuilder<List<Race>>(
-                  future: DatabaseHelper.instance.getAllRaces(),
-                  builder: (context, snapshot){
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return Center(child: CircularProgressIndicator());
-                    } else if (snapshot.hasError) {
-                      return Center(child: Text('Error: ${snapshot.error}'));
-                    } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                      return Center(child: Text('No races found.'));
-                    }
-                    races = snapshot.data ?? [];
+              child: FutureBuilder<List<Race>>(
+                future: DatabaseHelper.instance.getAllRaces(),
+                builder: (context, snapshot){
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(child: CircularProgressIndicator());
+                  } else if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}'));
+                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return Center(child: Text('No races found.'));
+                  }
+                  races = snapshot.data ?? [];
 
-                    return ListView.builder(
-                      itemCount: races.length,
-                      itemBuilder: (context, index) {
-                        return _buildRaceCard(races[index]);
-                      },
-                    );
-                  },
-                ),
+                  return ListView.builder(
+                    itemCount: races.length,
+                    itemBuilder: (context, index) {
+                      return _buildRaceCard(races[index]);
+                    },
+                  );
+                },
               ),
             )
           ]

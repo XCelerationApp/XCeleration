@@ -48,7 +48,7 @@ final List<RoleOption> roleOptions = [
 Widget _buildRoleTitle(RoleOption role, String currentRole) {
   return Row(
     children: [
-      Icon(role.icon, size: 45, color: role.value == currentRole
+      Icon(role.icon, size: 56, color: role.value == currentRole
                   ? AppColors.selectedRoleTextColor
                   : AppColors.unselectedRoleTextColor),
       SizedBox(width: 8),
@@ -58,8 +58,8 @@ Widget _buildRoleTitle(RoleOption role, String currentRole) {
           Text(
             role.title,
             style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
               color: role.value == currentRole
                   ? AppColors.selectedRoleTextColor
                   : AppColors.unselectedRoleTextColor,
@@ -68,7 +68,7 @@ Widget _buildRoleTitle(RoleOption role, String currentRole) {
           Text(
             role.description,
             style: TextStyle(
-                fontSize: 10,
+                fontSize: 14,
                 fontWeight: FontWeight.w400,
                 color: role.value == currentRole
                     ? AppColors.selectedRoleTextColor
@@ -110,47 +110,15 @@ Widget _buildRoleListTile(BuildContext context, RoleOption role, String currentR
 }
 
 void changeRole(BuildContext context, String currentRole) {
-  showModalBottomSheet(
-    backgroundColor: AppColors.backgroundColor,
+  sheet(
     context: context,
-    isScrollControlled: true,
-    enableDrag: true,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(
-        top: Radius.circular(16),
-      ),
-    ),
-    builder: (context) => Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const SizedBox(height: 10),
-          createSheetHandle(height: 10, width: 60),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0),
-                  child: Text(
-                    'Change Role',
-                    style: TextStyle(
-                      fontSize: 30,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.darkColor,
-                    ),
-                  ),
-                ),
-                ...roleOptions.map((role) => _buildRoleListTile(context, role, currentRole)),
-                const SizedBox(height: 30),
-              ],
-            ),
-          ),
-        ],
-      ),
+    title: 'Change Role',
+    body: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ...roleOptions.map((role) => _buildRoleListTile(context, role, currentRole)),
+        const SizedBox(height: 30),
+      ],
     ),
   );
 }

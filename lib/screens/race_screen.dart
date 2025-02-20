@@ -15,18 +15,18 @@ import 'merge_conflicts_screen.dart';
 import 'resolve_bib_number_screen.dart';
 import 'edit_and_review_screen.dart';
 
-class RaceInfoScreen extends StatefulWidget {
+class RaceScreen extends StatefulWidget {
   final int raceId;
-  const RaceInfoScreen({
+  const RaceScreen({
     super.key, 
     required this.raceId,
   });
 
   @override
-  _RaceInfoScreenState createState() => _RaceInfoScreenState();
+  _RaceScreenState createState() => _RaceScreenState();
 }
 
-class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStateMixin {
+class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
   late String _name = '';
   late String _location = '';
   late String _date = '';
@@ -95,14 +95,14 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
   }
 
 
-  _goToTestResolveBibNumbesScreen(context, records) async {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ResolveBibNumberScreen(records: records, raceId: raceId),
-      ),
-    );
-  }
+  // _goToTestResolveBibNumbesScreen(context, records) async {
+  //   Navigator.push(
+  //     context,
+  //     MaterialPageRoute(
+  //       builder: (context) => ResolveBibNumberScreen(records: records, raceId: raceId),
+  //     ),
+  //   );
+  // }
   
   Future<void> _goToMergeConflictsScreen(context, runnerRecords, timingData) async {
     Navigator.push(
@@ -164,35 +164,32 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
   }
 
   Widget _buildPageButton(String title, IconData icon, VoidCallback onPressed) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: ElevatedButton(
-        onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          padding: const EdgeInsets.all(16),
-          backgroundColor: Colors.white,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+    return ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        padding: const EdgeInsets.all(16),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
         ),
-        child: Row(
-          children: [
-            Icon(icon, color: AppColors.primaryColor, size: 24),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Text(
-                title,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: AppColors.darkColor,
-                  fontWeight: FontWeight.w500,
-                ),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: AppColors.primaryColor, size: 24),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              title,
+              style: TextStyle(
+                fontSize: 16,
+                color: AppColors.darkColor,
+                fontWeight: FontWeight.w500,
               ),
             ),
-            Icon(Icons.chevron_right, color: Colors.grey[400], size: 24),
-          ],
-        ),
+          ),
+          Icon(Icons.chevron_right, color: Colors.grey[400], size: 24),
+        ],
       ),
     );
   }
@@ -201,7 +198,7 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
     return ElevatedButton(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
         backgroundColor: Colors.white,
         elevation: 0,
         shape: RoundedRectangleBorder(
@@ -228,65 +225,74 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
   }
 
   Widget _buildRaceInfo() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        SizedBox(
-          width: 120,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(_name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
-              SizedBox(width: 20),
-              Row(
-                    children: [
-                  const Icon(
-                    Icons.location_on_outlined,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 5),
-                  Text(
-                    _location,
-                    style: TextStyle(
-                      fontSize: 15,
-                    ),
-                  ),
-                ],
-              ),
-              Row(
-                            children: [
-                  const Icon(
-                    Icons.calendar_today,
-                    size: 20,
-                              ),
-                  const SizedBox(width: 5),
-                  Text(
-                    _date.substring(0, 10),
-                    style: TextStyle(
-                      fontSize: 15,
-                                ),
-                              ),
-                            ],
-                          ),
-              Row(
+        createSheetHeader('Race Information', backArrow: true, context: context, onBack: _goBackToMainRaceScreen),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SizedBox(
+              width: 120,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(
-                    Icons.straighten,
-                    size: 20,
+                  Text(_name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+                  SizedBox(width: 20),
+                      Row(
+                        children: [
+                      const Icon(
+                        Icons.location_on_outlined,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 5),
+                      Expanded(
+                        child: Text(
+                          _location,
+                          style: TextStyle(
+                            overflow: TextOverflow.ellipsis,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 5),
-                  Text(
-                    '$_distance $_distanceUnit',
-                    style: TextStyle(
-                      fontSize: 15,
+                  Row(
+                                children: [
+                      const Icon(
+                        Icons.calendar_today,
+                        size: 20,
+                                  ),
+                      const SizedBox(width: 5),
+                      Text(
+                        _date.substring(0, 10),
+                        style: TextStyle(
+                          fontSize: 15,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.straighten,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        '$_distance $_distanceUnit',
+                        style: TextStyle(
+                          fontSize: 15,
+                      ),
+                      ),
+                    ],
                   ),
-                ),
                 ],
               ),
-            ],
-          ),
-        ),
-      ],
+            ),
+          ],
+        )
+      ]
     );
   }
 
@@ -308,32 +314,31 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
             ),
             child: Material(
               color: AppColors.backgroundColor,
-              child: Stack(
-                children: [
-                  Positioned(
-                    top: 0,
-                    left: 8,
-                    child: SizedBox(
-                      height: 40,
-                      child: IconButton(
-                        icon: const Icon(Icons.arrow_back, color: AppColors.primaryColor, size: 40),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                        style: ButtonStyle(
-                          iconColor: WidgetStateProperty.all(AppColors.primaryColor),
-                        ),
-                        onPressed: _goBackToMainRaceScreen,
-                      ),
+              child: SizedBox(
+                height: MediaQuery.of(context).size.height * 0.92,
+                child: Column(
+                  children: [
+                    // SizedBox(
+                    //   height: 40,
+                    //   child: Row(
+                    //     children: [
+                    //       IconButton(
+                    //         icon: const Icon(Icons.arrow_back, color: AppColors.primaryColor, size: 32),
+                    //         padding: EdgeInsets.zero,
+                    //         constraints: const BoxConstraints(),
+                    //         style: ButtonStyle(
+                    //           iconColor: WidgetStateProperty.all(AppColors.primaryColor),
+                    //         ),
+                    //         onPressed: _goBackToMainRaceScreen,
+                    //       ),
+                    //     ],
+                    //   ),
+                    // ),
+                    Expanded(
+                      child: content,
                     ),
-                  ),
-                  Positioned(
-                    top: 40,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    child: content,
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -343,7 +348,7 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
   }
 
   Widget _buildContent() {
-    if (!mounted) return SizedBox.shrink();
+    if (!mounted) return const SizedBox.shrink();
 
     return FutureBuilder<List<dynamic>>(
       future: DatabaseHelper.instance.getRaceResults(raceId),
@@ -359,29 +364,26 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
         }
         
         if (_showRunners && _slideController.value > 0) {
-          return _buildSecondaryScreen(RunnersManagementScreen(isTeam: false, raceId: raceId));
+          return _buildSecondaryScreen(RunnersManagementScreen(
+            isTeam: false,
+            raceId: raceId,
+            onBack: _goBackToMainRaceScreen,
+          ));
         }
         
         if (_showResults && _slideController.value > 0) {
-          return _buildSecondaryScreen(ResultsScreen(raceId: raceId));
+          return _buildSecondaryScreen(ResultsScreen(
+            raceId: raceId,
+            onBack: _goBackToMainRaceScreen,
+          ));
         }
         
-        return SizedBox(
-          width: double.infinity,
-          height: MediaQuery.of(context).size.height * 0.92,
-          child: Column(
-            children: [
-              SizedBox(height: 10),
-              createSheetHandle(height: 10, width: 60),
-              SizedBox(height: 10),
-              Text(
-                _name,
-                style: TextStyle(
-                  fontSize: 30,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              SizedBox(height: 10),
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            createSheetHeader(_name),
+              // SizedBox(height: 8),
               SingleChildScrollView(
                 child: Column(
                   children: [
@@ -433,14 +435,14 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
                     // ),
                     // const SizedBox(height: 10),
                     _buildPageButton('See Race Info', Icons.info, () => _goToDetailsScreen(context)),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 8),
                     _buildPageButton('See Runners', Icons.person, () => _goToRunnersScreen(context)),
                     if (showResultsButton) ...[
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 8),
                       _buildPageButton('See Results', Icons.flag, () => _goToResultsScreen(context)),
                     ],
                     if (!showResultsButton) ...[
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 8),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 8.0),
                         child: Row(
@@ -450,76 +452,75 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
                                 'Share Runners',
                                 Icons.share,
                                 () async {
-                                  final data = await _getEncodedRunnersData();
-                                  showDeviceConnectionPopup(
+                              final data = await _getEncodedRunnersData();
+                              showDeviceConnectionPopup(
+                                context,
+                                deviceType: DeviceType.advertiserDevice,
+                                deviceName: DeviceName.coach,
+                                otherDevices: createOtherDeviceList(
+                                  DeviceName.coach,
+                                  DeviceType.advertiserDevice,
+                                  data: data,
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _buildActionButton(
+                            'Receive Results',
+                            Icons.download,
+                            () async {
+                              final otherDevices = createOtherDeviceList(
+                                DeviceName.coach,
+                                DeviceType.browserDevice,
+                              );
+                              await showDeviceConnectionPopup(
+                                context,
+                                deviceType: DeviceType.browserDevice,
+                                deviceName: DeviceName.coach,
+                                otherDevices: otherDevices,
+                              );
+                              final encodedBibRecords = otherDevices[DeviceName.bibRecorder]!['data'];
+                              final encodedFinishTimes = otherDevices[DeviceName.raceTimer]!['data'];
+                              if (encodedBibRecords == null || encodedFinishTimes == null) return;
+                              
+                              var runnerRecords = await processEncodedBibRecordsData(encodedBibRecords, context, raceId);
+                              final timingData = await processEncodedTimingData(encodedFinishTimes, context);
+                              
+                              if (runnerRecords.isNotEmpty && timingData != null) {
+                                timingData['records'] = await syncBibData(runnerRecords.length, timingData['records'], timingData['endTime'], context);
+                                Navigator.pop(context);
+                                if (_containsBibConflicts(runnerRecords)) {
+                                  runnerRecords = await Navigator.push(
                                     context,
-                                    deviceType: DeviceType.advertiserDevice,
-                                    deviceName: DeviceName.coach,
-                                    otherDevices: createOtherDeviceList(
-                                      DeviceName.coach,
-                                      DeviceType.advertiserDevice,
-                                      data: data,
+                                    MaterialPageRoute(
+                                      builder: (context) => ResolveBibNumberScreen(records: runnerRecords, raceId: raceId),
                                     ),
                                   );
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: _buildActionButton(
-                                'Receive Results',
-                                Icons.download,
-                                () async {
-                                  final otherDevices = createOtherDeviceList(
-                                    DeviceName.coach,
-                                    DeviceType.browserDevice,
-                                  );
-                                  await showDeviceConnectionPopup(
-                                    context,
-                                    deviceType: DeviceType.browserDevice,
-                                    deviceName: DeviceName.coach,
-                                    otherDevices: otherDevices,
-                                  );
-                                  final encodedBibRecords = otherDevices[DeviceName.bibRecorder]!['data'];
-                                  final encodedFinishTimes = otherDevices[DeviceName.raceTimer]!['data'];
-                                  if (encodedBibRecords == null || encodedFinishTimes == null) return;
-                                  
-                                  var runnerRecords = await processEncodedBibRecordsData(encodedBibRecords, context, raceId);
-                                  final timingData = await processEncodedTimingData(encodedFinishTimes, context);
-                                  
-                                  if (runnerRecords.isNotEmpty && timingData != null) {
-                                    timingData['records'] = await syncBibData(runnerRecords.length, timingData['records'], timingData['endTime'], context);
-                                    Navigator.pop(context);
-                                    if (_containsBibConflicts(runnerRecords)) {
-                                      runnerRecords = await Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => ResolveBibNumberScreen(records: runnerRecords, raceId: raceId),
-                                        ),
-                                      );
-                                    }
-                                    final bool conflicts = await _containsTimingConflicts(timingData);
-                                    if (conflicts) {
-                                      _goToMergeConflictsScreen(context, runnerRecords, timingData);
-                                    } else {
-                                      timingData['records'] = timingData['records'].where((r) => r['type'] == 'runner_time').toList();
-                                      _goToEditScreen(context, runnerRecords, timingData);
-                                    }
-                                  }
-                                },
-                              ),
-                            ),
-                          ],
+                                }
+                                final bool conflicts = await _containsTimingConflicts(timingData);
+                                if (conflicts) {
+                                  _goToMergeConflictsScreen(context, runnerRecords, timingData);
+                                } else {
+                                  timingData['records'] = timingData['records'].where((r) => r['type'] == 'runner_time').toList();
+                                  _goToEditScreen(context, runnerRecords, timingData);
+                                }
+                              }
+                            },
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 16),
+                      ],
+                    ),
+                  // ],
+                ),
                     ],
                   ],
-                ),
-              )
-            ],
-          ),
-        );
+              ),
+            )
+        ]
+          );
       },
     );
   }
@@ -528,64 +529,12 @@ class _RaceInfoScreenState extends State<RaceInfoScreen> with TickerProviderStat
   Widget build(BuildContext context) {
     if (race == null) {
       return Center(
-        child: CircularProgressIndicator(), // Show loading indicator
+        child: CircularProgressIndicator(),
       );
     }
 
-    bool hasChanges = _name != race!.race_name || 
-      _location != race!.location || 
-      _date != race!.race_date.toString() || 
-      _distance != race!.distance;
-
-    return Column(
-      children: [
-        Expanded(
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.only(left: 24.0, right: 24.0, bottom: 24.0, top: 10.0),
-              child: _buildContent(),
-            ),
-          ),
-        ),
-        if (hasChanges) ...[
-          const SizedBox(height: 10),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () async {
-                await DatabaseHelper.instance.updateRace({
-                  'race_id': race?.race_id,
-                  'race_name': _name,
-                  'location': _location,
-                  'race_date': _date,
-                  'distance': _distance,
-                });
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Changes saved successfully'),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 2,
-              ),
-              child: const Text(
-                'Save Changes',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 15),
-        ],
-      ],
+    return IntrinsicHeight(
+      child: _buildContent(),
     );
   }
 }

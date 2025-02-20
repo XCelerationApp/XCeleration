@@ -32,6 +32,7 @@ UI:
   - left align text
 split wireless (default) from QR
 - add QR code scanning UI - show the progress of each in the scanner and allow multiple scans
+- make padding 24px (8 rule)
 
 
 Runners Management screen:

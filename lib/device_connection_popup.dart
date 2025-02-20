@@ -8,30 +8,25 @@ import 'device_connection_service.dart';
 import 'package:flutter_nearby_connections/flutter_nearby_connections.dart';
 import 'data_protocol.dart';
 import 'utils/dialog_utils.dart';
+import 'utils/sheet_utils.dart';
 
 Future<void> showDeviceConnectionPopup(BuildContext context, { required DeviceType deviceType, required DeviceName deviceName, required Map<DeviceName, Map<String, dynamic>> otherDevices}) async {
   // Create a completer to track when we're actually done
   final completer = Completer<void>();
-  
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    useSafeArea: true,
-    constraints: BoxConstraints(
-      maxHeight: MediaQuery.of(context).size.height * 0.9,
-    ),
-    builder: (BuildContext context) {
-      return DeviceConnectionPopupContent(
-        deviceName: deviceName,
-        deviceType: deviceType,
-        otherDevices: otherDevices,
-        onComplete: () {
-          if (!completer.isCompleted) completer.complete();
-        },
-      );
-    }
-  );
 
+  sheet(
+    context: context,
+    title: deviceType == DeviceType.advertiserDevice ? 'Wireless Sharing' : 'Wireless Receiving',
+    body: DeviceConnectionPopupContent(
+      deviceName: deviceName,
+      deviceType: deviceType,
+      otherDevices: otherDevices,
+      onComplete: () {
+        completer.complete();
+      },
+    ),
+  );
+  
   return completer.future;
 }
 
@@ -194,20 +189,21 @@ class _DeviceConnectionPopupContentState extends State<DeviceConnectionPopupCont
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-            child: Text(
-              widget.deviceType == DeviceType.advertiserDevice ? 'Wireless Sharing' : 'Wireless Receiving',
-              style: TextStyle(
-                fontSize: 30,
-                color: Colors.deepOrangeAccent,
-                fontWeight: FontWeight.bold
-              ),
-            ),
-          ),
+      child:
+      // child: Column(
+      //   mainAxisSize: MainAxisSize.min,
+      //   children: [
+          // Padding(
+          //   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+          //   child: Text(
+          //     widget.deviceType == DeviceType.advertiserDevice ? 'Wireless Sharing' : 'Wireless Receiving',
+          //     style: TextStyle(
+          //       fontSize: 30,
+          //       color: Colors.deepOrangeAccent,
+          //       fontWeight: FontWeight.bold
+          //     ),
+          //   ),
+          // ),
           WirelessConnectionPopupContent(
             deviceName: widget.deviceName,
             deviceType: widget.deviceType,
@@ -216,9 +212,9 @@ class _DeviceConnectionPopupContentState extends State<DeviceConnectionPopupCont
               _handleScreenTransition(PopupScreen.qr, oppositeDeviceName: oppositeDeviceName);
             },
           ),
-          SizedBox(height: 20), // Add some bottom padding
-        ],
-      ),
+          // SizedBox(height: 20), // Add some bottom padding
+      //   ],
+      // ),
     );
   }
 
