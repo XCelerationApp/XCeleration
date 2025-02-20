@@ -760,7 +760,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
                 child: Row(
                   children: [
                     _buildPlaceNumber(timeRecord['place']),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 6),
                     Expanded(
                       child: _buildRunnerInfo(runner),
                     ),
@@ -801,7 +801,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
 
   Widget _buildPlaceNumber(int place) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.2),
         borderRadius: BorderRadius.circular(16),
@@ -847,19 +847,26 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 4),
             ],
             if (runner['school'] != null)
-              Expanded(
-                child: Text(
-                  runner['school'],
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: Colors.white,
+              // Expanded(
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  overflow: TextOverflow.ellipsis,
+                  child: Text(
+                    runner['school'],
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.white,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-              ),
+              // ),
           ],
         ),
       ],
