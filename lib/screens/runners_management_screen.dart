@@ -449,51 +449,43 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
 
   Widget _buildListTitles() {
     const double fontSize = 14;
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.primaryColor.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      // padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-      // margin: const EdgeInsets.symmetric(horizontal: 8.0),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 5,
+    return Row(
+      children: [
+        Expanded(
+          flex: 5,
+          child: Text(
+            'Name',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize)
+          ),
+        ),
+        Expanded(
+          flex: 2,
+          child: Center(
             child: Text(
-              'Name',
+              'School',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize)
             ),
           ),
-          Expanded(
-            flex: 2,
-            child: Center(
-              child: Text(
-                'School',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize)
-              ),
+        ),
+        Expanded(
+          flex: 2,
+          child: Center(
+            child: Text(
+              'Gr.',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize)
             ),
           ),
-          Expanded(
-            flex: 2,
-            child: Center(
-              child: Text(
-                'Gr.',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize)
-              ),
+        ),
+        Expanded(
+          flex: 2,
+          child: Center(
+            child: Text(
+              'Bib',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize)
             ),
           ),
-          Expanded(
-            flex: 2,
-            child: Center(
-              child: Text(
-                'Bib',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize)
-              ),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -502,6 +494,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
     return Material(
       color: AppColors.backgroundColor,
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           createSheetHeader(
             'Race Runners',
@@ -517,9 +510,9 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
           ],
           _buildListTitles(),
           const SizedBox(height: 4),
-          Expanded(
-            child: _buildRunnersList(),
-          ),
+          // Expanded(
+          _buildRunnersList(),
+          // ),
         ],
       ),
     );
@@ -606,6 +599,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
     final sortedSchools = groupedRunners.keys.toList()..sort();
 
     return ListView.builder(
+      shrinkWrap: true,
       itemCount: sortedSchools.length,
       itemBuilder: (context, index) {
         final school = sortedSchools[index];

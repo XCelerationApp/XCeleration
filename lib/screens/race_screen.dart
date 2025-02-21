@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:xcelerate/runner_time_functions.dart';
 import '../database_helper.dart';
 import '../models/race.dart';
@@ -32,6 +33,8 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
   late String _date = '';
   late double _distance = 0.0;
   late String _distanceUnit = 'miles';
+  late List<Color> _teamColors = [];
+  late List<String> _teamNames = [];
   late TextEditingController _nameController;
   late TextEditingController _locationController;
   late TextEditingController _dateController;
@@ -63,6 +66,8 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
         _location = race!.location;
         _date = race!.race_date.toString();
         _distance = race!.distance;
+        _teamColors = race!.teamColors;
+        _teamNames = race!.teams;
         final stringDate = DateTime.parse(race!.race_date.toString()).toIso8601String().split('T').first;
 
         _nameController = TextEditingController(text: _name);
@@ -229,70 +234,102 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
       mainAxisSize: MainAxisSize.min,
       children: [
         createSheetHeader('Race Information', backArrow: true, context: context, onBack: _goBackToMainRaceScreen),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SizedBox(
-              width: 120,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(_name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
-                  SizedBox(width: 20),
-                      Row(
-                        children: [
-                      const Icon(
-                        Icons.location_on_outlined,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 5),
-                      Expanded(
-                        child: Text(
-                          _location,
-                          style: TextStyle(
-                            overflow: TextOverflow.ellipsis,
-                            fontSize: 15,
-                          ),
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(_name, 
+                style: const TextStyle(
+                  fontSize: 24, 
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                )
+              ),
+              const SizedBox(height: 24),
+              Text('Teams', 
+                style: const TextStyle(
+                  fontSize: 18, 
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                )
+              ),
+              const SizedBox(height: 12),
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _teamNames.length,
+                separatorBuilder: (context, index) => const SizedBox(height: 8),
+                itemBuilder: (context, index) => Row(
+                  children: [
+                    Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: _teamColors[index],
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.black12,
+                          width: 1,
                         ),
                       ),
-                    ],
-                  ),
-                  Row(
-                                children: [
-                      const Icon(
-                        Icons.calendar_today,
-                        size: 20,
-                                  ),
-                      const SizedBox(width: 5),
-                      Text(
-                        _date.substring(0, 10),
-                        style: TextStyle(
-                          fontSize: 15,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.straighten,
-                        size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      _teamNames[index],
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: Colors.black87,
                       ),
-                      const SizedBox(width: 5),
-                      Text(
-                        '$_distance $_distanceUnit',
-                        style: TextStyle(
-                          fontSize: 15,
-                      ),
-                      ),
-                    ],
-                  ),
-                ],
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(height: 24),
+              _buildInfoRow(
+                Icons.location_on_outlined,
+                _location,
+                maxLines: 2,
+              ),
+              const SizedBox(height: 16),
+              _buildInfoRow(
+                Icons.calendar_today,
+                _date.substring(0, 10),
+              ),
+              const SizedBox(height: 16),
+              _buildInfoRow(
+                Icons.straighten,
+                '$_distance $_distanceUnit',
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String text, {int maxLines = 1}) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(
+          icon,
+          size: 20,
+          color: Colors.black54,
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              fontSize: 16,
+              color: Colors.black87,
             ),
-          ],
-        )
-      ]
+            maxLines: maxLines,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
     );
   }
 
@@ -314,31 +351,11 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
             ),
             child: Material(
               color: AppColors.backgroundColor,
-              child: SizedBox(
-                height: MediaQuery.of(context).size.height * 0.92,
-                child: Column(
-                  children: [
-                    // SizedBox(
-                    //   height: 40,
-                    //   child: Row(
-                    //     children: [
-                    //       IconButton(
-                    //         icon: const Icon(Icons.arrow_back, color: AppColors.primaryColor, size: 32),
-                    //         padding: EdgeInsets.zero,
-                    //         constraints: const BoxConstraints(),
-                    //         style: ButtonStyle(
-                    //           iconColor: WidgetStateProperty.all(AppColors.primaryColor),
-                    //         ),
-                    //         onPressed: _goBackToMainRaceScreen,
-                    //       ),
-                    //     ],
-                    //   ),
-                    // ),
-                    Expanded(
-                      child: content,
-                    ),
-                  ],
-                ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                   content,
+                ],
               ),
             ),
           ),
@@ -405,16 +422,16 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
                     //       'records': [
                     //         {'finish_time': '0.45', 'type': 'runner_time', 'is_confirmed': true, 'text_color': null, 'place': 1},
                     //         {'finish_time': '0.83', 'type': 'runner_time', 'is_confirmed': true, 'text_color': null, 'place': 2},
-                    //         {'finish_time': '1.02', 'type': 'confirm_runner_number', 'is_confirmed': true, 'text_color': Colors.green, 'numTimes': 2},
-                    //         {'finish_time': '1.06', 'type': 'runner_time', 'conflict': 'extra_runner_time', 'is_confirmed': false, 'text_color': null, 'place': 3},
-                    //         {'finish_time': '1.12', 'type': 'runner_time', 'conflict': 'extra_runner_time', 'is_confirmed': false, 'text_color': null, 'place': 4},
-                    //         {'finish_time': '1.17', 'type': 'runner_time', 'conflict': 'extra_runner_time', 'is_confirmed': false, 'text_color': null, 'place': 5},
+                    //         {'finish_time': '1.02', 'type': 'confirm_runner_number', 'is_confirmed': true, 'text_color': Colors.green, 'place': 3},
+                    //         {'finish_time': '1.06', 'type': 'runner_time', 'conflict': 'extra_runner_time', 'is_confirmed': false, 'text_color': null, 'place': 4},
+                    //         {'finish_time': '1.12', 'type': 'runner_time', 'conflict': 'extra_runner_time', 'is_confirmed': false, 'text_color': null, 'place': 5},
+                    //         {'finish_time': '1.17', 'type': 'runner_time', 'conflict': 'extra_runner_time', 'is_confirmed': false, 'text_color': null, 'place': 6},
                     //         {'finish_time': '1.20', 'type': 'runner_time', 'conflict': 'extra_runner_time', 'is_confirmed': false, 'text_color': null, 'place': ''},
                     //         {'finish_time': '1.21', 'type': 'extra_runner_time', 'offBy': 1, 'numTimes': 5, 'text_color': AppColors.redColor},
-                    //         {'finish_time': '1.24', 'type': 'runner_time', 'conflict': 'missing_runner_time', 'is_confirmed': false, 'text_color': null, 'place': 6},
-                    //         {'finish_time': '1.27', 'type': 'runner_time', 'conflict': 'missing_runner_time', 'is_confirmed': false, 'text_color': null, 'place': 7},
-                    //         {'finish_time': 'TBD', 'type': 'runner_time', 'conflict': 'missing_runner_time', 'is_confirmed': false, 'text_color': null, 'place': 8},
-                    //         {'finish_time': '1.60', 'type': 'missing_runner_time', 'text_color': AppColors.redColor, 'numTimes': 8},
+                    //         {'finish_time': '1.24', 'type': 'runner_time', 'conflict': 'missing_runner_time', 'is_confirmed': false, 'text_color': null, 'place': 7},
+                    //         {'finish_time': '1.27', 'type': 'runner_time', 'conflict': 'missing_runner_time', 'is_confirmed': false, 'text_color': null, 'place': 8},
+                    //         {'finish_time': 'TBD', 'type': 'runner_time', 'conflict': 'missing_runner_time', 'is_confirmed': false, 'text_color': null, 'place': 9},
+                    //         {'finish_time': '1.60', 'type': 'missing_runner_time', 'text_color': AppColors.redColor, 'numTimes': 10},
                     //       ],
                     //       'startTime': null,
                     //     }
@@ -533,8 +550,6 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
       );
     }
 
-    return IntrinsicHeight(
-      child: _buildContent(),
-    );
+    return _buildContent();
   }
 }
