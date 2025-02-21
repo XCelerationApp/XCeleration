@@ -664,7 +664,8 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
                 buildInputRow(
                   label: 'Name',
                   inputWidget: buildTextField(
-                    controller: _nameController!,
+                    context: context,
+                    controller: _nameController ?? TextEditingController(),
                     hint: 'John Doe',
                     error: nameError,
                     onChanged: (value) {
@@ -685,7 +686,8 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
                 buildInputRow(
                   label: 'Grade',
                   inputWidget: buildTextField(
-                    controller: _gradeController!,
+                    context: context,
+                    controller: _gradeController ?? TextEditingController(),
                     hint: '9',
                     keyboardType: TextInputType.number,
                     error: gradeError,
@@ -718,7 +720,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
                 buildInputRow(
                   label: 'School',
                   inputWidget: buildDropdown(
-                    controller: _schoolController!,
+                    controller: _schoolController ?? TextEditingController(),
                     hint: 'Select School',
                     error: schoolError,
                     onChanged: (value) {
@@ -740,7 +742,8 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
                 buildInputRow(
                   label: 'Bib #',
                   inputWidget: buildTextField(
-                    controller: _bibController!,
+                    context: context,
+                    controller: _bibController ?? TextEditingController(),
                     hint: '1234',
                     error: bibError,
                     onChanged: (value) {
@@ -767,7 +770,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
               height: 50,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: (schoolError != null || bibError != null || gradeError != null || nameError != null || _nameController!.text.isEmpty || _gradeController!.text.isEmpty || _schoolController!.text.isEmpty || _bibController!.text.isEmpty)
+                  backgroundColor: (schoolError != null || bibError != null || gradeError != null || nameError != null || _nameController == null || _nameController!.text.isEmpty || _gradeController!.text.isEmpty || _schoolController!.text.isEmpty || _bibController!.text.isEmpty)
                       ? AppColors.primaryColor.withOpacity(.5)
                       : AppColors.primaryColor,
                   shape: RoundedRectangleBorder(

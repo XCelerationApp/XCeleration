@@ -55,17 +55,13 @@ class ResultsScreenState extends State<ResultsScreen> {
             context: context,
             onBack: widget.onBack,
           ),
-          if (_runners.isEmpty)
-            const Expanded(
-              child: Center(child: CircularProgressIndicator()),
-            )
+          if (_runners.isEmpty) ...[
+            Center(child: CircularProgressIndicator()),
+          ]
           else
-            Expanded(
-              child: Column(
+            Column(
+              mainAxisSize: MainAxisSize.min,
                 children: [
-                  // SizedBox(height: 8),
-                  // createSheetHandle(height: 10, width: 60),
-                  // SizedBox(height: 16),
                   SingleChildScrollView(
                   child: Padding(
                     padding: const EdgeInsets.all(0.0),
@@ -83,6 +79,10 @@ class ResultsScreenState extends State<ResultsScreen> {
                               children: [
                                 const Text('Head-to-Head View'),
                                 Switch(
+                                  inactiveThumbColor: Colors.grey,
+                                  activeColor: AppColors.primaryColor,
+                                  inactiveTrackColor: AppColors.primaryColor,
+                                  activeTrackColor: Colors.grey,
                                   value: _isHeadToHead,
                                   onChanged: (value) {
                                     setState(() {
@@ -199,7 +199,7 @@ class ResultsScreenState extends State<ResultsScreen> {
                 // ]
               ),
                 ]
-            ),
+            // ),
           // ],
         ),
         ],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:xcelerate/runner_time_functions.dart';
 import '../database_helper.dart';
 import '../models/race.dart';
@@ -172,7 +173,7 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
     return ElevatedButton(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.only(bottom: 20),
         backgroundColor: Colors.white,
         elevation: 0,
         shape: RoundedRectangleBorder(
@@ -451,12 +452,12 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
                     //   ),
                     // ),
                     // const SizedBox(height: 10),
-                    _buildPageButton('See Race Info', Icons.info, () => _goToDetailsScreen(context)),
-                    const SizedBox(height: 8),
-                    _buildPageButton('See Runners', Icons.person, () => _goToRunnersScreen(context)),
+                    _buildPageButton('Race Info', Icons.info, () => _goToDetailsScreen(context)),
+                    // const SizedBox(height: 8),
+                    _buildPageButton('Runners', Icons.person, () => _goToRunnersScreen(context)),
                     if (showResultsButton) ...[
-                      const SizedBox(height: 8),
-                      _buildPageButton('See Results', Icons.flag, () => _goToResultsScreen(context)),
+                      // const SizedBox(height: 8),
+                      _buildPageButton('Results', Icons.flag, () => _goToResultsScreen(context)),
                     ],
                     if (!showResultsButton) ...[
                       const SizedBox(height: 8),

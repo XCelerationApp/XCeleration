@@ -66,6 +66,7 @@ Widget buildDropdown({
 }
 
 Widget buildTextField({
+  required BuildContext context,
   required TextEditingController controller,
   required String hint,
   String? error,
@@ -144,6 +145,9 @@ Widget buildTextField({
           counterText: '', // Hide the built-in counter
         ),
         onTapOutside: (_) {
+          if (context.mounted) {
+            FocusScope.of(context).unfocus();
+          }
           onChanged(controller.text);
         },
         onChanged: onChanged,

@@ -24,7 +24,7 @@ UI:
 - add popups that tell the user how the app works when they first install it
 - make it so that you can't swipe back to the welcome screen on the far left screen
 - create coach marks
-- put error text under text boxes
+- put error text under text boxes (basically done)
 - make uniform padding (8 pixel standard)
 - fix races card: date on the right 3 letter date, maybe google maps box.
 - better font
@@ -33,10 +33,10 @@ UI:
 split wireless (default) from QR
 - add QR code scanning UI - show the progress of each in the scanner and allow multiple scans
 - make padding 24px (8 rule)
+- fade content when back arrow is clicked
 
 
 Runners Management screen:
-- an error when swiping out of add runner
 - style the buttons
 
 Bib Number screen:
@@ -44,8 +44,8 @@ Bib Number screen:
 
 Races screen:
 - put error text under text boxes
-- change the color of the races depending on if they are finished
 - improve race info screen (add map?)
+- change icons to better ones
 
 Timing screen:
 - change the color of the top divider
@@ -64,6 +64,5 @@ Edit and review screen:
 
 Results screen:
 - have titles over each category
-- could change it just have a download button
-- make toggle visible
 - make result data better
+- make results look better when there is less than 5 runners per team or other limiting factors

@@ -304,6 +304,7 @@ class _RacesScreenState extends State<RacesScreen> {
     return buildInputRow(
       label: 'Name',
       inputWidget: buildTextField(
+        context: context,
         controller: nameController,
         hint: 'Enter race name',
         error: nameError,
@@ -348,6 +349,7 @@ class _RacesScreenState extends State<RacesScreen> {
               children: [
                 Expanded(
                   child: buildTextField(
+                    context: context,
                     controller: controller,
                     hint: 'Team name',
                     onChanged: (value) {
@@ -430,6 +432,7 @@ class _RacesScreenState extends State<RacesScreen> {
           Expanded(
             flex: 2,
             child: buildTextField(
+              context: context,
               controller: locationController,
               hint: (Platform.isIOS || Platform.isAndroid)
                   ? 'Other location'
@@ -459,6 +462,7 @@ class _RacesScreenState extends State<RacesScreen> {
     return buildInputRow(
       label: 'Date',
       inputWidget: buildTextField(
+        context: context,
         controller: dateController,
         hint: 'YYYY-MM-DD',
         error: dateError,
@@ -480,6 +484,7 @@ class _RacesScreenState extends State<RacesScreen> {
           Expanded(
             flex: 2,
             child: buildTextField(
+              context: context,
               controller: distanceController,
               hint: '0.0',
               error: distanceError,
@@ -597,138 +602,150 @@ class _RacesScreenState extends State<RacesScreen> {
   }
 
   Widget _buildRaceCard(Race race) {
-    return Slidable(
-      key: Key(race.raceId.toString()),
-      endActionPane: ActionPane(
-        extentRatio: 0.5,
-        motion: const DrawerMotion(),
-        dragDismissible: false,
-        children: [
-          CustomSlidableAction(
-            onPressed: (_) => _editRace(race),
-            backgroundColor: AppColors.primaryColor,
-            foregroundColor: Colors.white,
-            padding: EdgeInsets.zero,
-            autoClose: true,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.edit_outlined,
-                  size: 24,
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Edit',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          CustomSlidableAction(
-            onPressed: (_) => _deleteRace(race),
-            backgroundColor: AppColors.primaryColor.withRed(255),
-            foregroundColor: Colors.white,
-            padding: EdgeInsets.zero,
-            autoClose: true,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.delete_outline,
-                  size: 24,
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Delete',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-        width: double.infinity,
-        child: Card(
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: InkWell(
-            onTap: () => _showRaceScreen(race.raceId),
-            borderRadius: BorderRadius.circular(12),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    race.raceName,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+    return FutureBuilder<bool>(
+      future: DatabaseHelper.instance.isRaceFinished(race.raceId),
+      builder: (context, snapshot){
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
+        final bool raceFinished = snapshot.data ?? false;
+        return Slidable(
+          key: Key(race.raceId.toString()),
+          endActionPane: ActionPane(
+            extentRatio: 0.5,
+            motion: const DrawerMotion(),
+            dragDismissible: false,
+            children: [
+              CustomSlidableAction(
+                onPressed: (_) => _editRace(race),
+                backgroundColor: AppColors.primaryColor,
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.zero,
+                autoClose: true,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.edit_outlined,
+                      size: 24,
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      const Icon(Icons.location_on, size: 16, color: Colors.grey),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          race.location,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey,
-                          ),
-                        ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Edit',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
+                    ),
+                  ],
+                ),
+              ),
+              CustomSlidableAction(
+                onPressed: (_) => _deleteRace(race),
+                backgroundColor: AppColors.primaryColor.withRed(255),
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.zero,
+                autoClose: true,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.delete_outline,
+                      size: 24,
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Delete',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            width: double.infinity,
+            child: Card(
+              color: raceFinished ? Colors.lightGreen: AppColors.selectedRoleColor,
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: InkWell(
+                onTap: () => _showRaceScreen(race.raceId),
+                borderRadius: BorderRadius.circular(12),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
-                      const SizedBox(width: 4),
                       Text(
-                        DateFormat('MMM d, y').format(race.raceDate),
+                        race.raceName,
                         style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const Spacer(),
+                      const SizedBox(height: 12),
                       Row(
                         children: [
-                          const Icon(Icons.directions_run, size: 16, color: Colors.grey),
+                          const Icon(Icons.location_on, size: 16, color: AppColors.darkColor),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              race.location,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                color: AppColors.darkColor,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const Icon(Icons.calendar_today, size: 16, color: AppColors.darkColor),
                           const SizedBox(width: 4),
                           Text(
-                            '${race.distance} ${race.distanceUnit}',
+                            DateFormat('MMM d, y').format(race.raceDate),
                             style: const TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey,
+                              fontSize: 16,
+                              color: AppColors.darkColor,
                             ),
+                          ),
+                          const Spacer(),
+                          Row(
+                            children: [
+                              const Icon(Icons.directions_run, size: 16, color: AppColors.darkColor),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${race.distance} ${race.distanceUnit}',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  color: AppColors.darkColor,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
                     ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
-        ),
-      ),
+        );
+      }
     );
   }
 
@@ -810,9 +827,9 @@ class _RacesScreenState extends State<RacesScreen> {
         child: Column(
           children: [
             buildRoleBar(context, 'coach', 'Races'),
-            const SizedBox(height: 15),
-            Expanded(
-              child: FutureBuilder<List<Race>>(
+            // const SizedBox(height: 15),
+            // Expanded(
+            FutureBuilder<List<Race>>(
                 future: DatabaseHelper.instance.getAllRaces(),
                 builder: (context, snapshot){
                   if (snapshot.connectionState == ConnectionState.waiting) {
@@ -825,13 +842,14 @@ class _RacesScreenState extends State<RacesScreen> {
                   races = snapshot.data ?? [];
 
                   return ListView.builder(
+                    shrinkWrap: true,
                     itemCount: races.length,
                     itemBuilder: (context, index) {
                       return _buildRaceCard(races[index]);
                     },
                   );
                 },
-              ),
+              // ),
             )
           ]
       ),
