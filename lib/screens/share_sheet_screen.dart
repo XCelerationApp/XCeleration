@@ -12,7 +12,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
 
 // Local imports
-import '../utils/sheet_utils.dart';
+// import '../utils/sheet_utils.dart';
 import '../utils/share_utils.dart';
 import '../utils/dialog_utils.dart';
 import '../utils/app_colors.dart';
@@ -331,122 +331,108 @@ class _ShareSheetScreenState extends State<ShareSheetScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Header
-          Center(child: createSheetHandle(height: 10, width: 60)),
-          const SizedBox(height: 16),
-          
-          // Format Selection
-          const Text(
-            'Select Format',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(25),
+            border: Border.all(
+              color: AppColors.unselectedRoleTextColor,
+              width: 1,
             ),
           ),
-          const SizedBox(height: 12),
-          Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(25),
-              border: Border.all(
-                color: AppColors.unselectedRoleTextColor,
-                width: 1,
-              ),
+          child: SegmentedButton<ResultFormat>(
+            selectedIcon: const Icon(
+              Icons.check,
+              color: AppColors.unselectedRoleColor,
             ),
-            child: SegmentedButton<ResultFormat>(
-              selectedIcon: const Icon(
-                Icons.check,
-                color: AppColors.unselectedRoleColor,
+            segments: const [
+              ButtonSegment<ResultFormat>(
+                value: ResultFormat.plainText,
+                label: Center(
+                  child: Text(
+                    'Plain Text',
+                    style: TextStyle(fontSize: 16, height: 1.2),
+                  ),
+                ),
               ),
-              segments: const [
-                ButtonSegment<ResultFormat>(
-                  value: ResultFormat.plainText,
-                  label: Center(
-                    child: Text(
-                      'Plain Text',
-                      style: TextStyle(fontSize: 16, height: 1.2),
-                    ),
+              ButtonSegment<ResultFormat>(
+                value: ResultFormat.googleSheet,
+                label: Center(
+                  child: Text(
+                    'Google Sheet',
+                    style: TextStyle(fontSize: 16, height: 1.2),
                   ),
                 ),
-                ButtonSegment<ResultFormat>(
-                  value: ResultFormat.googleSheet,
-                  label: Center(
-                    child: Text(
-                      'Google Sheet',
-                      style: TextStyle(fontSize: 16, height: 1.2),
-                    ),
+              ),
+              ButtonSegment<ResultFormat>(
+                value: ResultFormat.pdf,
+                label: Center(
+                  child: Text(
+                    'PDF',
+                    style: TextStyle(fontSize: 16, height: 1.2),
                   ),
                 ),
-                ButtonSegment<ResultFormat>(
-                  value: ResultFormat.pdf,
-                  label: Center(
-                    child: Text(
-                      'PDF',
-                      style: TextStyle(fontSize: 16, height: 1.2),
-                    ),
-                  ),
-                ),
-              ],
-              selected: {_selectedFormat},
-              onSelectionChanged: (Set<ResultFormat> newSelection) {
-                setState(() => _selectedFormat = newSelection.first);
-              },
-              style: ButtonStyle(
-                backgroundColor: WidgetStateProperty.resolveWith<Color>((states) => 
-                  states.contains(WidgetState.selected) 
-                    ? AppColors.primaryColor 
-                    : AppColors.backgroundColor
-                ),
-                foregroundColor: WidgetStateProperty.resolveWith<Color>((states) =>
-                  states.contains(WidgetState.selected)
-                    ? AppColors.unselectedRoleColor
-                    : AppColors.unselectedRoleTextColor
-                ),
+              ),
+            ],
+            selected: {_selectedFormat},
+            onSelectionChanged: (Set<ResultFormat> newSelection) {
+              setState(() => _selectedFormat = newSelection.first);
+            },
+            style: ButtonStyle(
+              backgroundColor: WidgetStateProperty.resolveWith<Color>((states) => 
+                states.contains(WidgetState.selected) 
+                  ? AppColors.primaryColor 
+                  : AppColors.backgroundColor
+              ),
+              foregroundColor: WidgetStateProperty.resolveWith<Color>((states) =>
+                states.contains(WidgetState.selected)
+                  ? AppColors.unselectedRoleColor
+                  : AppColors.unselectedRoleTextColor
               ),
             ),
           ),
-          const SizedBox(height: 32),
-          
-          // Action Buttons
-          _buildActionButton(
-            icon: _selectedFormat == ResultFormat.googleSheet
-                ? Icons.cloud_upload
-                : Icons.save,
-            label: _selectedFormat == ResultFormat.googleSheet
-                ? 'Export to Google Sheets'
-                : 'Save Locally',
-            onPressed: () => _selectedFormat == ResultFormat.googleSheet
-                ? ShareUtils.exportToGoogleSheets(context, _getSheetsData())
-                : _saveLocally(context, _selectedFormat),
-          ),
-          const SizedBox(height: 12),
-          _buildActionButton(
-            icon: Icons.copy,
-            label: _selectedFormat == ResultFormat.googleSheet
-                ? 'Copy Sheet Link'
-                : 'Copy to Clipboard',
-            onPressed: () => _selectedFormat == ResultFormat.pdf
-                ? null
-                : () => _copyToClipboard(context, _selectedFormat),
-          ),
-          const SizedBox(height: 12),
-          _buildActionButton(
-            icon: Icons.email,
-            label: 'Send via Email',
-            onPressed: () => _sendEmail(context, _selectedFormat),
-          ),
-          const SizedBox(height: 12),
-          _buildActionButton(
-            icon: Icons.sms,
-            label: 'Send via SMS',
-            onPressed: () => _sendSms(context, _selectedFormat),
-          ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 32),
+        
+        // Action Buttons
+        _buildActionButton(
+          icon: _selectedFormat == ResultFormat.googleSheet
+              ? Icons.cloud_upload
+              : Icons.save,
+          label: _selectedFormat == ResultFormat.googleSheet
+              ? 'Export to Google Sheets'
+              : 'Save Locally',
+          onPressed: () => _selectedFormat == ResultFormat.googleSheet
+              ? ShareUtils.exportToGoogleSheets(context, _getSheetsData())
+              : _saveLocally(context, _selectedFormat),
+        ),
+        const SizedBox(height: 12),
+        _buildActionButton(
+          icon: Icons.copy,
+          label: _selectedFormat == ResultFormat.googleSheet
+              ? 'Copy Sheet Link'
+              : 'Copy to Clipboard',
+          onPressed: () => _selectedFormat == ResultFormat.pdf
+              ? null
+              : () => _copyToClipboard(context, _selectedFormat),
+        ),
+        const SizedBox(height: 12),
+        _buildActionButton(
+          icon: Icons.email,
+          label: 'Send via Email',
+          onPressed: () => _sendEmail(context, _selectedFormat),
+        ),
+        const SizedBox(height: 12),
+        _buildActionButton(
+          icon: Icons.sms,
+          label: 'Send via SMS',
+          onPressed: () => _sendSms(context, _selectedFormat),
+        ),
+      ],
     );
   }
 

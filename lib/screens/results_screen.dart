@@ -5,208 +5,204 @@ import 'package:flutter/material.dart';
 import '../utils/time_formatter.dart';
 import '../utils/csv_utils.dart';
 import '../utils/dialog_utils.dart';
-// import '../utils/sheet_utils.dart';
+import '../utils/sheet_utils.dart';
+import '../utils/app_colors.dart';
 import 'share_sheet_screen.dart';
 
 class ResultsScreen extends StatefulWidget {
   final int raceId;
+  final VoidCallback? onBack;
 
-  const ResultsScreen({super.key, required this.raceId});
+  const ResultsScreen({
+    super.key,
+    required this.raceId,
+    this.onBack,
+  });
 
   @override
-  ResultsScreenState createState() => ResultsScreenState();
+  State<ResultsScreen> createState() => ResultsScreenState();
 }
 
 class ResultsScreenState extends State<ResultsScreen> {
   bool _isHeadToHead = false;
-  List<Map<String, dynamic>> runners = [];
-  late int raceId;
+  List<Map<String, dynamic>> _results = [];
+  List<Map<String, dynamic>> _runners = [];
 
   @override
   void initState() {
     super.initState();
-    raceId = widget.raceId;
-    _loadRunners();
+    _loadResults();
   }
 
-  Future<void> _loadRunners() async {
-    // Fetch runners from the database
-    runners = await DatabaseHelper.instance.getRaceResults(raceId);
-
-    List<Map<String, dynamic>> modifiedRunners = runners.map((runner) {
-      return {
-        ...runner,
-        'finishTimeAsDuration': loadDurationFromString(runner['finish_time']),
-      };
-    }).toList();
-
+  Future<void> _loadResults() async {
+    final results = await DatabaseHelper.instance.getRaceResults(widget.raceId);
+    final runners = await DatabaseHelper.instance.getRaceRunners(widget.raceId);
     setState(() {
-      runners = modifiedRunners; // Update the state with the modified runners
+      _results = List<Map<String, dynamic>>.from(results);
+      _runners = List<Map<String, dynamic>>.from(runners);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final individualResults = _calculateIndividualResults();
-    final teamResults = _isHeadToHead
-        ? _calculateHeadToHeadTeamResults()
-        : _calculateOverallTeamResults();
-
-    return Scaffold(
-      // appBar: AppBar(title: const Text('Team Results')),
-      body: (runners.isEmpty)
-        ? const Center(child: CircularProgressIndicator())
-        : Column(
-          children: [
-            // SizedBox(height: 8),
-            // createSheetHandle(height: 10, width: 60),
-            // SizedBox(height: 16),
-            SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(0.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    return Material(
+      color: AppColors.backgroundColor,
+      child: Column(
+        children: [
+          createSheetHeader(
+            'Results',
+            backArrow: true,
+            context: context,
+            onBack: widget.onBack,
+          ),
+          if (_runners.isEmpty) ...[
+            Center(child: CircularProgressIndicator()),
+          ]
+          else
+            Column(
+              mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Header Section
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    alignment: WrapAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text('Head-to-Head View'),
-                          Switch(
-                            value: _isHeadToHead,
-                            onChanged: (value) {
-                              setState(() {
-                                _isHeadToHead = value;
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                      Wrap(
-                        spacing: 8,
-                        children: [
-                          LayoutBuilder(
-                            builder: (context, constraints) {
-                              double buttonWidth = min(constraints.maxWidth * 0.5, 200);
-                              double fontSize = buttonWidth * 0.08;
-                              return ElevatedButton.icon(
-                                onPressed: () => downloadCsv(teamResults, individualResults),
-                                icon: const Icon(Icons.download),
-                                label: Text(
-                                  'Download CSV Results',
-                                  style: TextStyle(fontSize: fontSize),
+                  SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.all(0.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Header Section
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          alignment: WrapAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text('Head-to-Head View'),
+                                Switch(
+                                  inactiveThumbColor: Colors.grey,
+                                  activeColor: AppColors.primaryColor,
+                                  inactiveTrackColor: AppColors.primaryColor,
+                                  activeTrackColor: Colors.grey,
+                                  value: _isHeadToHead,
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _isHeadToHead = value;
+                                    });
+                                  },
                                 ),
-                                style: ElevatedButton.styleFrom(
-                                  minimumSize: const Size(200, 60),
-                                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
-                                  fixedSize: Size(buttonWidth, 60),
+                              ],
+                            ),
+                            Wrap(
+                              spacing: 8,
+                              children: [
+                                LayoutBuilder(
+                                  builder: (context, constraints) {
+                                    double buttonWidth = min(constraints.maxWidth * 0.5, 200);
+                                    double fontSize = buttonWidth * 0.08;
+                                    return ElevatedButton.icon(
+                                      onPressed: () => downloadCsv(_calculateOverallTeamResults(), _calculateIndividualResults()),
+                                      icon: const Icon(Icons.download),
+                                      label: Text(
+                                        'Download CSV Results',
+                                        style: TextStyle(fontSize: fontSize),
+                                      ),
+                                      style: ElevatedButton.styleFrom(
+                                        minimumSize: const Size(200, 60),
+                                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+                                        fixedSize: Size(buttonWidth, 60),
+                                      ),
+                                    );
+                                  },
                                 ),
-                              );
-                            },
-                          ),
-                          ElevatedButton.icon(
-                            onPressed: () {
-                              showModalBottomSheet(
-                                context: context,
-                                isScrollControlled: true,
-                                useSafeArea: true,
-                                constraints: const BoxConstraints(
-                                  maxHeight: double.infinity,
-                                  minHeight: 0,
-                                  minWidth: double.infinity,
-                                  maxWidth: double.infinity,
-                                ),
-                                builder: (BuildContext context) => SizedBox(
-                                  height: MediaQuery.of(context).size.height * 0.7,
-                                  child: ShareSheetScreen(
-                                    teamResults: _isHeadToHead
-                                      ? _calculateHeadToHeadTeamResults()
-                                      : _calculateOverallTeamResults(),
-                                    individualResults: _calculateIndividualResults(),
-                                    // isHeadToHead: _isHeadToHead,
+                                ElevatedButton.icon(
+                                  onPressed: () async {
+                                    await sheet(context: context, body: ShareSheetScreen(
+                                      teamResults: _isHeadToHead
+                                        ? _calculateHeadToHeadTeamResults()
+                                        : _calculateOverallTeamResults(),
+                                      individualResults: _calculateIndividualResults(),
+                                      // isHeadToHead: _isHeadToHead,
+                                    ), title: 'Share Results');
+                                  },
+                                  icon: const Icon(Icons.share),
+                                  label: const Text('Share'),
+                                  style: ElevatedButton.styleFrom(
+                                    minimumSize: const Size(100, 60),
+                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
                                   ),
                                 ),
-                              );
-                            },
-                            icon: const Icon(Icons.share),
-                            label: const Text('Share'),
-                            style: ElevatedButton.styleFrom(
-                              minimumSize: const Size(100, 60),
-                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+                              ],
                             ),
+                          ],
+                        ),
+                        
+                        const SizedBox(height: 16),
+
+                        // Overall or Head-to-Head Results
+                        if (!_isHeadToHead) ...[
+                          const Text(
+                            'Overall Team Results',
+                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 8),
+                          ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: _calculateOverallTeamResults().length,
+                            itemBuilder: (context, index) {
+                              final team = _calculateOverallTeamResults()[index];
+                              return _buildTeamResultCard(team);
+                            },
+                          ),
+                        ] else ...[
+                          const Text(
+                            'Head-to-Head Results',
+                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 8),
+                          ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: _calculateHeadToHeadTeamResults().length,
+                            itemBuilder: (context, index) {
+                              final matchup = _calculateHeadToHeadTeamResults()[index];
+                              return _buildHeadToHeadCard(matchup);
+                            },
                           ),
                         ],
-                      ),
-                    ],
-                  ),
-                  
-                  const SizedBox(height: 16),
-
-                  // Overall or Head-to-Head Results
-                  if (!_isHeadToHead) ...[
-                    const Text(
-                      'Overall Team Results',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 8),
-                    ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: teamResults.length,
-                      itemBuilder: (context, index) {
-                        final team = teamResults[index];
-                        return _buildTeamResultCard(team);
-                      },
-                    ),
-                  ] else ...[
-                    const Text(
-                      'Head-to-Head Results',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 8),
-                    ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: teamResults.length,
-                      itemBuilder: (context, index) {
-                        final matchup = teamResults[index];
-                        return _buildHeadToHeadCard(matchup);
-                      },
-                    ),
-                  ],
-                  const Divider(),
-                  // Individual Results Section
-                  const Text(
-                    'Individual Results',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: individualResults.length,
-                    itemBuilder: (context, index) {
-                      final runner = individualResults[index];
-                      return ListTile(
-                        title: Text(
-                          '${index + 1}. ${runner['name'] ?? 'Unknown Name'} (${runner['school'] ?? 'Unknown School'})',
+                        const Divider(),
+                        // Individual Results Section
+                        const Text(
+                          'Individual Results',
+                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                         ),
-                        subtitle: Text(
-                          'Time: ${runner['finish_time'] ?? 'N/A'} | Grade: ${runner['grade'] ?? 'Unknown'} | Bib: ${runner['bib_number'] ?? 'N/A'}',
+                        const SizedBox(height: 8),
+                        ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: _calculateIndividualResults().length,
+                          itemBuilder: (context, index) {
+                            final runner = _calculateIndividualResults()[index];
+                            return ListTile(
+                              title: Text(
+                                '${index + 1}. ${runner['name'] ?? 'Unknown Name'} (${runner['school'] ?? 'Unknown School'})',
+                              ),
+                              subtitle: Text(
+                                'Time: ${runner['finish_time'] ?? 'N/A'} | Grade: ${runner['grade'] ?? 'Unknown'} | Bib: ${runner['bib_number'] ?? 'N/A'}',
+                              ),
+                            );
+                          },
                         ),
-                      );
-                    },
+                      ],
+                    ),
                   ),
-                ],
+                // ]
               ),
-            ),
-          ),
-        ]
+                ]
+            // ),
+          // ],
+        ),
+        ],
       ),
     );
   }
@@ -371,25 +367,25 @@ class ResultsScreenState extends State<ResultsScreen> {
   }
 
   List<Map<String, dynamic>> _calculateIndividualResults() {
-    final sortedRunners = List<Map<String, dynamic>>.from(runners);
+    final sortedRunners = List<Map<String, dynamic>>.from(_runners);
     sortedRunners.sort((a, b) => a['finishTimeAsDuration'].compareTo(b['finishTimeAsDuration']));
     return sortedRunners;
   }
 
   List<Map<String, dynamic>> _calculateOverallTeamResults() {
     // Normal team scoring logic (all teams considered together)
-    return _calculateTeamResults(runners);
+    return _calculateTeamResults(_runners);
   }
 
   List<Map<String, dynamic>> _calculateHeadToHeadTeamResults() {
-    final schools = runners.map((r) => r['school']).toSet().toList();
+    final schools = _runners.map((r) => r['school']).toSet().toList();
     final headToHeadResults = <Map<String, dynamic>>[];
 
     for (int i = 0; i < schools.length; i++) {
       for (int j = i + 1; j < schools.length; j++) {
         final schoolA = schools[i];
         final schoolB = schools[j];
-        final filteredRunners = runners
+        final filteredRunners = _runners
             .where((r) => r['school'] == schoolA || r['school'] == schoolB)
             .toList();
 
@@ -506,40 +502,4 @@ class ResultsScreenState extends State<ResultsScreen> {
 
     return [...teamScores, ...nonScoringTeamScores];
   }
-
-  // String _generateShareText() {
-  //   final buffer = StringBuffer();
-    
-  //   // Add race info
-  //   buffer.writeln('Race Results\n');
-
-  //   // Add team results
-  //   if (_isHeadToHead) {
-  //     final teamResults = _calculateHeadToHeadTeamResults();
-  //     buffer.writeln('Head-to-Head Results:');
-  //     for (final matchup in teamResults) {
-  //       buffer.writeln('\n${matchup['team1']?['school']} vs ${matchup['team2']?['school']}');
-  //       buffer.writeln('1. ${matchup['team1']?['school']}: ${matchup['team1']?['score']} points');
-  //       buffer.writeln('2. ${matchup['team2']?['school']}: ${matchup['team2']?['score']} points');
-  //     }
-  //   } else {
-  //     final teamResults = _calculateOverallTeamResults();
-  //     buffer.writeln('Team Results:');
-  //     for (final team in teamResults) {
-  //       if (team['place'] != null) {
-  //         buffer.writeln('${team['place']}. ${team['school']}: ${team['score']} points');
-  //       }
-  //     }
-  //   }
-
-  //   // Add individual results
-  //   buffer.writeln('\nIndividual Results:');
-  //   final individualResults = _calculateIndividualResults();
-  //   for (int i = 0; i < individualResults.length; i++) {
-  //     final runner = individualResults[i];
-  //     buffer.writeln('${i + 1}. ${runner['name']} (${runner['school']}) - ${runner['finish_time']}');
-  //   }
-
-  //   return buffer.toString();
-  // }
 }

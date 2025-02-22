@@ -369,32 +369,38 @@ class DatabaseHelper {
       WHERE r.race_id = ?
     ''', [raceId]);
 
-    return [...raceRunners, ...teamRunners];
-    // return [
-    //   {
-    //     'runner_id': 1,
-    //     'bib_number': '1001',
-    //     'name': 'John Doe',
-    //     'school': 'Test School',
-    //     'grade': '5',
-    //     'place': 1,
-    //     'finish_time': '5.00',
-    //   },
-    //   {
-    //     'runner_id': 2,
-    //     'bib_number': '1002',
-    //     'name': 'Jane Doe',
-    //     'school': 'Test School',
-    //     'grade': '5',
-    //     'place': 2,
-    //     'finish_time': '6.00',
-    //   },
-    // ];
+    // return [...raceRunners, ...teamRunners];
+    return [
+      {
+        'runner_id': 1,
+        'bib_number': '1001',
+        'name': 'John Doe',
+        'school': 'Test School',
+        'grade': '5',
+        'place': 1,
+        'finish_time': '5.00',
+      },
+      {
+        'runner_id': 2,
+        'bib_number': '1002',
+        'name': 'Jane Doe',
+        'school': 'Test School',
+        'grade': '5',
+        'place': 2,
+        'finish_time': '6.00',
+      },
+    ];
   }
 
   Future<List<Map<String, dynamic>>> getAllResults() async {
     final db = await instance.database;
     return await db.query('race_results');
+  }
+
+  Future<bool> isRaceFinished(int raceId) async {
+    final raceResults = await instance.getRaceResults(raceId);
+    if (raceResults.isEmpty) return false;
+    return true;
   }
 
   // Cleanup Methods
