@@ -13,6 +13,7 @@ import '../utils/dialog_utils.dart';
 import '../utils/button_utils.dart';
 import '../device_connection_service.dart';
 import '../role_functions.dart';
+import '../utils/tutorial_manager.dart';
 
 class TimingScreen extends StatefulWidget {
   const TimingScreen({super.key});
@@ -26,18 +27,28 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   late final AudioPlayer _audioPlayer;
   bool _isAudioPlayerReady = false;
   late final TabController _tabController;
-  
   late TimingData _timingData;
   List<Map<String, dynamic>> get _records => _timingData.records;
-  
+  final TutorialManager tutorialManager = TutorialManager();
 
   @override
   void initState() {
     super.initState();
     _initializeControllers();
     _initAudioPlayer();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+        _setupTutorials();
+    });
   }
-  
+
+  void _setupTutorials() {
+    tutorialManager.startTutorial([
+      // 'swipe_tutorial',
+      'role_bar_tutorial',
+    ]);
+  }
+
   void _initializeControllers() {
     _tabController = TabController(length: 3, vsync: this);
     _audioPlayer = AudioPlayer();
@@ -50,6 +61,12 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
       if (mounted) setState(() => _isAudioPlayerReady = true);
     } catch (e) {
       debugPrint('Error initializing audio player: $e');
+      // Don't retry if the asset is missing
+      if (e.toString().contains('The asset does not exist')) {
+        debugPrint('Audio asset missing - continuing without sound');
+        return;
+      }
+      // Only retry for other types of errors
       if (!_isAudioPlayerReady && mounted) {
         await Future.delayed(const Duration(milliseconds: 500));
         _initAudioPlayer();
@@ -357,33 +374,30 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
 
   @override
   Widget build(BuildContext context) {
-    _timingData = Provider.of<TimingData>(context, listen: false);
+      _timingData = Provider.of<TimingData>(context, listen: false);
     final startTime = _timingData.startTime;
     final endTime = _timingData.endTime;
 
-    return Scaffold(
-      // appBar: AppBar(
-      //   title: const Text('Race Timing'),
-      //   actions: [
-      //     changeRoleButton(context, 'timer'),
-      //   ],
-      // ),
-      body: Padding(
-        padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            buildRoleBar(context, 'timer', 'Race Timing'),
-            const SizedBox(height: 16),
-            _buildTimerDisplay(startTime, endTime),
-            _buildControlButtons(startTime),
-            if (_records.isNotEmpty) const Divider(height: 30),
-            Expanded(child: _buildRecordsList()),
-            if (startTime != null && _records.isNotEmpty)
-              _buildBottomControls(),
-          ],
+    return TutorialRoot(
+      tutorialManager: tutorialManager,
+      child: Scaffold(
+        body: Padding(
+          padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              buildRoleBar(context, 'timer', tutorialManager),
+              const SizedBox(height: 16),
+              _buildTimerDisplay(startTime, endTime),
+              _buildControlButtons(startTime),
+              if (_records.isNotEmpty) const Divider(height: 30),
+              Expanded(child: _buildRecordsList()),
+              if (startTime != null && _records.isNotEmpty)
+                _buildBottomControls(),
+            ],
+          ),
         ),
-      ),
+      )
     );
   }
 

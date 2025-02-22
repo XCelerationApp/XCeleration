@@ -18,6 +18,8 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:intl/intl.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import '../utils/tutorial_manager.dart';
+import '../utils/coach_mark.dart';
 
 class RacesScreen extends StatefulWidget {
   const RacesScreen({super.key});
@@ -38,7 +40,9 @@ class _RacesScreenState extends State<RacesScreen> {
   final userlocationController = TextEditingController();
   final List<TextEditingController> _teamControllers = [];
   final List<Color> _teamColors = [];
-  // String unit = 'mi';
+  String unit = 'mi';
+
+  final TutorialManager tutorialManager = TutorialManager();
   
   // Validation error messages
   String? nameError;
@@ -56,6 +60,34 @@ class _RacesScreenState extends State<RacesScreen> {
     _teamColors.add(Colors.white);
     _teamColors.add(Colors.white);
     unitController.text = 'mi';
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _setupTutorials();
+    });
+
+  }
+
+  void _setupTutorials() {
+    tutorialManager.startTutorial([
+      'race_swipe_tutorial',
+      'role_bar_tutorial',
+      'create_race_button_tutorial'  
+    ]);
+  }
+
+  CoachMark _buildSwipeTutorial(Widget child) {
+    return CoachMark(
+      id: 'race_swipe_tutorial',
+      tutorialManager: tutorialManager,
+      config: const CoachMarkConfig(
+        title: 'Swipe Actions',
+        description: 'Swipe right on a race to edit/delete',
+        icon: Icons.swipe,
+        type: CoachMarkType.general,
+        backgroundColor: Color(0xFF1976D2),
+      ),
+      child: child,
+    );
   }
 
   @override
@@ -525,6 +557,7 @@ class _RacesScreenState extends State<RacesScreen> {
   }
 
   Future<void> _getCurrentLocation() async {
+    if(!mounted) return;
     try {
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
@@ -532,16 +565,19 @@ class _RacesScreenState extends State<RacesScreen> {
       }
 
       if (permission == LocationPermission.deniedForever) {
+        if(!mounted) return;
         DialogUtils.showErrorDialog(context, message: 'Location permissions are permanently denied');
         return;
       }
 
       if (permission == LocationPermission.denied) {
+        if(!mounted) return;
         DialogUtils.showErrorDialog(context, message: 'Location permissions are denied');
         return;
       }
 
       if (!await Geolocator.isLocationServiceEnabled()) {
+        if(!mounted) return;
         DialogUtils.showErrorDialog(context, message: 'Location services are disabled');
         return;
       }
@@ -557,6 +593,7 @@ class _RacesScreenState extends State<RacesScreen> {
       _updateLocationButtonVisibility();
     } catch (e) {
       print('Error getting location: $e');
+      if(!mounted) return;
       DialogUtils.showErrorDialog(context, message: 'Could not get location');
     }
   }
@@ -846,77 +883,109 @@ class _RacesScreenState extends State<RacesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showCreateRaceSheet(context),
-        // tooltip: 'Create new race',
-        backgroundColor: AppColors.primaryColor,
-        child: Icon(Icons.add),
-      ),
-      body: Padding(
-        padding: EdgeInsets.fromLTRB(24.0, 56.0, 24.0, 24.0),
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Races',
-                  style: TextStyle(
-                    fontSize: 56,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.darkColor,
+    return TutorialRoot(
+      tutorialManager: tutorialManager,
+      child: Scaffold(
+        floatingActionButton: CoachMark(
+          id: 'create_race_button_tutorial',
+          tutorialManager: tutorialManager,
+          config: const CoachMarkConfig(
+            title: 'Create Race',
+            alignmentX: AlignmentX.left,
+            alignmentY: AlignmentY.top,
+            description: 'Click here to create a new race',
+            icon: Icons.add,
+            type: CoachMarkType.targeted,
+            backgroundColor: Color(0xFF1976D2),
+            elevation: 12,
+          ),
+          child: FloatingActionButton(
+            onPressed: () => _showCreateRaceSheet(context),
+            // tooltip: 'Create new race',
+            backgroundColor: AppColors.primaryColor,
+            child: Icon(Icons.add),
+          ),
+        ),
+        body: Padding(
+          padding: EdgeInsets.fromLTRB(24.0, 56.0, 24.0, 24.0),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Races',
+                    style: TextStyle(
+                      fontSize: 56,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.darkColor,
+                    ),
                   ),
-                ),
-                GestureDetector(
-                  onTap: () {
-                    changeProfile(context, 'coach');
-                  },
-                  child: Icon(Icons.person_outline, color: AppColors.darkColor, size: 56)
-                ),
-              ],
-            ),
-            FutureBuilder<List<dynamic>>(
-                future: DatabaseHelper.instance.getAllRaces(),
-                builder: (context, snapshot){
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  if (snapshot.hasError) {
-                    return Center(child: Text('Error: ${snapshot.error}'));
-                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return Center(child: Text('No races found.'));
-                  }
-
-                  final raceData = snapshot.data ?? [];
-                  final finishedRaces = raceData.where((race) => race['state'] == 'finished').toList();
-                  final raceInProgress = raceData.where((race) => race['state'] == 'in_progress').toList();
-                  final upcomingRaces = raceData.where((race) => race['state'] == 'upcoming').toList();
-                  return SingleChildScrollView(
-                    // shrinkWrap: true,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (raceInProgress.isNotEmpty) ...[
-                          buildSectionHeader('In Progress'),
-                          ...raceInProgress.map((raceInfo) => _buildRaceCard(raceInfo['race'] as Race, raceInfo['state'] as String)),
-                        ],
-                        if (upcomingRaces.isNotEmpty) ...[
-                        buildSectionHeader('Upcoming'),
-                        ...upcomingRaces.map((raceInfo) => _buildRaceCard(raceInfo['race'] as Race, raceInfo['state'] as String)),
-                      ],
-                      if (finishedRaces.isNotEmpty) ...[
-                        buildSectionHeader('Finished'),
-                        ...finishedRaces.map((raceInfo) => _buildRaceCard(raceInfo['race'] as Race, raceInfo['state'] as String)),
-                      ],
-                    ],
-                  ));
-                },
+                  CoachMark(
+                    id: 'role_bar_tutorial',
+                    tutorialManager: tutorialManager,
+                    config: const CoachMarkConfig(
+                      title: 'Switch Roles',
+                      alignmentX: AlignmentX.left,
+                      alignmentY: AlignmentY.bottom,
+                      description: 'Click here to switch between Coach and Assistant roles',
+                      icon: Icons.touch_app,
+                      type: CoachMarkType.targeted,
+                      backgroundColor: Color(0xFF1976D2),
+                      elevation: 12,
+                    ),
+                    child: GestureDetector(
+                      onTap: () {
+                        changeProfile(context, 'coach');
+                      },
+                      child: Icon(Icons.person_outline, color: AppColors.darkColor, size: 56)
+                    ),
+                  ),
+                ],
               ),
-            // ),
-          ]
-      ),
+              _buildSwipeTutorial(
+                FutureBuilder<List<dynamic>>(
+                  future: DatabaseHelper.instance.getAllRaces(),
+                  builder: (context, snapshot){
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (snapshot.hasError) {
+                      return Center(child: Text('Error: ${snapshot.error}'));
+                    } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return Center(child: Text('No races found.'));
+                    }
+
+                    final raceData = snapshot.data ?? [];
+                    final finishedRaces = raceData.where((race) => race['state'] == 'finished').toList();
+                    final raceInProgress = raceData.where((race) => race['state'] == 'in_progress').toList();
+                    final upcomingRaces = raceData.where((race) => race['state'] == 'upcoming').toList();
+                    return SingleChildScrollView(
+                      // shrinkWrap: true,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (raceInProgress.isNotEmpty) ...[
+                            buildSectionHeader('In Progress'),
+                            ...raceInProgress.map((raceInfo) => _buildRaceCard(raceInfo['race'] as Race, raceInfo['state'] as String)),
+                          ],
+                          if (upcomingRaces.isNotEmpty) ...[
+                          buildSectionHeader('Upcoming'),
+                          ...upcomingRaces.map((raceInfo) => _buildRaceCard(raceInfo['race'] as Race, raceInfo['state'] as String)),
+                        ],
+                        if (finishedRaces.isNotEmpty) ...[
+                          buildSectionHeader('Finished'),
+                          ...finishedRaces.map((raceInfo) => _buildRaceCard(raceInfo['race'] as Race, raceInfo['state'] as String)),
+                        ],
+                      ],
+                    ));
+                  },
+                ),
+              ),
+            ]
+        ),
+        )
       )
     );
   }

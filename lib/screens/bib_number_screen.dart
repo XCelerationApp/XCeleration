@@ -15,6 +15,8 @@ import '../device_connection_service.dart';
 // import 'race_screen.dart';
 import '../role_functions.dart';
 import 'dart:io';
+import '../utils/tutorial_manager.dart';
+import '../utils/coach_mark.dart';
 
 class BibNumberScreen extends StatefulWidget {
   // final Race? race;
@@ -26,8 +28,8 @@ class BibNumberScreen extends StatefulWidget {
 
 class _BibNumberScreenState extends State<BibNumberScreen> {
   // late Race race;
-  // List<dynamic> _runners = [{'bib_number': '1234', 'name': 'Teo Donnelley', 'school': 'AW', 'grade': '11'}];
-  List<dynamic> _runners = [];
+  List<dynamic> _runners = [{'bib_number': '1234', 'name': 'Teo Donnelley', 'school': 'AW', 'grade': '11'}];
+  // List<dynamic> _runners = [];
   Map<DeviceName, Map<String, dynamic>> otherDevices = createOtherDeviceList(
     DeviceName.bibRecorder,
     DeviceType.browserDevice,
@@ -35,10 +37,25 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
 
   final ScrollController _scrollController = ScrollController();
 
+  final tutorialManager = TutorialManager();
+
   @override
   void initState() {
     super.initState();
     _checkForRunners();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _setupTutorials();
+    });
+  }
+
+
+  void _setupTutorials() {
+    tutorialManager.startTutorial([
+      // 'swipe_tutorial',
+      'role_bar_tutorial',
+      'add_button_tutorial'
+    ]);
   }
 
   Future<void> _checkForRunners() async{
@@ -265,19 +282,33 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16.0),
       child: Center(
-        child: InkWell(
-          onTap: () => _handleBibNumber(''),
-          borderRadius: BorderRadius.circular(35),
-          child: Container(
-            padding: const EdgeInsets.all(15),
-            decoration: BoxDecoration(
-              color: AppColors.primaryColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(40),
-            ),
-            child: Icon(
-              Icons.add_circle_outline,
-              size: 40,
-              color: AppColors.primaryColor,
+        child: CoachMark(
+          id: 'add_button_tutorial',
+          tutorialManager: tutorialManager,
+          config: const CoachMarkConfig(
+            title: 'Add Runner',
+            alignmentX: AlignmentX.center,
+            alignmentY: AlignmentY.bottom,
+            description: 'Click here to add a new runner',
+            icon: Icons.add_circle_outline,
+            type: CoachMarkType.targeted,
+            backgroundColor: Color(0xFF1976D2),
+            elevation: 12,
+          ),
+          child: InkWell(
+            onTap: () => _handleBibNumber(''),
+            borderRadius: BorderRadius.circular(35),
+            child: Container(
+              padding: const EdgeInsets.all(15),
+              decoration: BoxDecoration(
+                color: AppColors.primaryColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(40),
+              ),
+              child: Icon(
+                Icons.add_circle_outline,
+                size: 40,
+                color: AppColors.primaryColor,
+              ),
             ),
           ),
         ),
@@ -473,129 +504,132 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => FocusScope.of(context).unfocus(),
-      child: Scaffold(
-        resizeToAvoidBottomInset: true,
-        body: Padding(
-          padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
-          child: Column(
-            children: [
-              buildRoleBar(context, 'bib recorder', 'Record Bibs'),
-              const SizedBox(height: 16),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                child: Consumer<BibRecordsProvider>(
-                  builder: (context, provider, _) {
-                    return Text(
-                      'Bib Number Count: ${provider.bibRecords.where((bib) => bib.bibNumber.isNotEmpty).length}',
-                      style: const TextStyle(fontSize: 16)
-                    );
-                  }
-                )
-              ),
-              Expanded(
-                child: Consumer<BibRecordsProvider>(
-                  builder: (context, provider, child) {
-                    return ListView.builder(
-                      controller: _scrollController,
-                      itemCount: provider.bibRecords.length + 1,
-                      itemBuilder: (context, index) {
-                        if (index < provider.bibRecords.length) {
-                          return Dismissible(
-                            key: ValueKey(provider.bibRecords[index]),
-                            background: Container(
-                              color: Colors.red,
-                              alignment: Alignment.centerRight,
-                              padding: const EdgeInsets.only(right: 16.0),
-                              child: const Icon(
-                                Icons.delete,
-                                color: Colors.white,
+    return TutorialRoot(
+      tutorialManager: tutorialManager,
+      child: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Scaffold(
+          resizeToAvoidBottomInset: true,
+          body: Padding(
+            padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
+            child: Column(
+              children: [
+                buildRoleBar(context, 'bib recorder', tutorialManager),
+                const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  child: Consumer<BibRecordsProvider>(
+                    builder: (context, provider, _) {
+                      return Text(
+                        'Bib Number Count: ${provider.bibRecords.where((bib) => bib.bibNumber.isNotEmpty).length}',
+                        style: const TextStyle(fontSize: 16)
+                      );
+                    }
+                  )
+                ),
+                Expanded(
+                  child: Consumer<BibRecordsProvider>(
+                    builder: (context, provider, child) {
+                      return ListView.builder(
+                        controller: _scrollController,
+                        itemCount: provider.bibRecords.length + 1,
+                        itemBuilder: (context, index) {
+                          if (index < provider.bibRecords.length) {
+                            return Dismissible(
+                              key: ValueKey(provider.bibRecords[index]),
+                              background: Container(
+                                color: Colors.red,
+                                alignment: Alignment.centerRight,
+                                padding: const EdgeInsets.only(right: 16.0),
+                                child: const Icon(
+                                  Icons.delete,
+                                  color: Colors.white,
+                                ),
                               ),
-                            ),
-                            direction: DismissDirection.endToStart,
-                            confirmDismiss: (direction) async {
-                              for (var node in provider.focusNodes) {
-                                node.unfocus();
-                                // Disable focus restoration for this node
-                                node.canRequestFocus = false;
-                              }
-                              bool delete = await DialogUtils.showConfirmationDialog(
-                                context,
-                                title: 'Confirm Deletion',
-                                content: 'Are you sure you want to delete this bib number?',
-                              );
-                              _restoreFocusability();
-                              return delete;
-                            },
-                            onDismissed: (direction) {
-                              setState(() {
-                                _onBibRecordRemoved(index);
-                              });
-                            },
-                            child: _buildBibInput(
-                              index,
-                              provider.bibRecords[index],
-                            ),
-                          );
-                        }
-                        return _buildAddButton();
-                      },
-                    );
+                              direction: DismissDirection.endToStart,
+                              confirmDismiss: (direction) async {
+                                for (var node in provider.focusNodes) {
+                                  node.unfocus();
+                                  // Disable focus restoration for this node
+                                  node.canRequestFocus = false;
+                                }
+                                bool delete = await DialogUtils.showConfirmationDialog(
+                                  context,
+                                  title: 'Confirm Deletion',
+                                  content: 'Are you sure you want to delete this bib number?',
+                                );
+                                _restoreFocusability();
+                                return delete;
+                              },
+                              onDismissed: (direction) {
+                                setState(() {
+                                  _onBibRecordRemoved(index);
+                                });
+                              },
+                              child: _buildBibInput(
+                                index,
+                                provider.bibRecords[index],
+                              ),
+                            );
+                          }
+                          return _buildAddButton();
+                        },
+                      );
+                    },
+                  ),
+                ),
+                Consumer<BibRecordsProvider>(
+                  builder: (context, provider, _) {
+                    return provider.isKeyboardVisible 
+                      ? const SizedBox.shrink() 
+                      : _buildBottomActionButtons();
                   },
                 ),
-              ),
-              Consumer<BibRecordsProvider>(
-                builder: (context, provider, _) {
-                  return provider.isKeyboardVisible 
-                    ? const SizedBox.shrink() 
-                    : _buildBottomActionButtons();
-                },
-              ),
-              Consumer<BibRecordsProvider>(
-                builder: (context, provider, _) {
-                  if (!(Platform.isIOS || Platform.isAndroid) ||!provider.isKeyboardVisible || provider.bibRecords.isEmpty) return const SizedBox.shrink();
-                  return Container(
-                    height: 44,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFD2D5DB), // iOS numeric keypad color
-                      border: Border(
-                        top: BorderSide(
-                          color: Color(0xFFBBBBBB),
-                          width: 0.5,
+                Consumer<BibRecordsProvider>(
+                  builder: (context, provider, _) {
+                    if (!(Platform.isIOS || Platform.isAndroid) ||!provider.isKeyboardVisible || provider.bibRecords.isEmpty) return const SizedBox.shrink();
+                    return Container(
+                      height: 44,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFD2D5DB), // iOS numeric keypad color
+                        border: Border(
+                          top: BorderSide(
+                            color: Color(0xFFBBBBBB),
+                            width: 0.5,
+                          ),
                         ),
                       ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.only(right: 16.0),
-                          child: TextButton(
-                            onPressed: () => FocusScope.of(context).unfocus(),
-                            style: TextButton.styleFrom(
-                              backgroundColor: Colors.transparent,
-                              overlayColor: Color.fromARGB(255, 78, 78, 80),
-                            ),
-                            child: const Text(
-                              'Done',
-                              style: TextStyle(
-                                fontSize: 17,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.darkColor,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(right: 16.0),
+                            child: TextButton(
+                              onPressed: () => FocusScope.of(context).unfocus(),
+                              style: TextButton.styleFrom(
+                                backgroundColor: Colors.transparent,
+                                overlayColor: Color.fromARGB(255, 78, 78, 80),
+                              ),
+                              child: const Text(
+                                'Done',
+                                style: TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.darkColor,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ],
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
         ),
-      ),
+      )
     );
   }
 }

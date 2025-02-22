@@ -4,6 +4,8 @@ import '../screens/timing_screen.dart';
 import '../screens/bib_number_screen.dart';
 import '../utils/app_colors.dart';
 import 'utils/sheet_utils.dart';
+import '../utils/tutorial_manager.dart';
+import '../utils/coach_mark.dart';
 
 class RoleOption {
   final String value;
@@ -153,9 +155,9 @@ void changeProfile(BuildContext context, String currentProfile) {
   );
 }
 
-Widget buildRoleBar(BuildContext context, String currentRole, String title) {
+Widget buildRoleBar(BuildContext context, String currentRole, TutorialManager tutorialManager) {
   return Container(
-    padding: EdgeInsets.only(top: 50, bottom: 10, left: 5, right: 0),
+    padding: EdgeInsets.only(bottom: 10, left: 5, right: 0),
     decoration: BoxDecoration(
       border: Border(
         bottom: BorderSide(
@@ -164,36 +166,55 @@ Widget buildRoleBar(BuildContext context, String currentRole, String title) {
         ),
       ),
     ),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Expanded(
-          child: Text(
-            title,
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              color: AppColors.navBarColor,
+        buildTopUnusableSpaceSpacing(context),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            CoachMark(
+              id: 'role_bar_tutorial',
+              tutorialManager: tutorialManager,
+              config: const CoachMarkConfig(
+                title: 'Switch Roles',
+                alignmentX: AlignmentX.left,
+                alignmentY: AlignmentY.bottom,
+                description: 'Click here to switch between Coach, Timer, and Bib Recorder roles',
+                icon: Icons.touch_app,
+                type: CoachMarkType.targeted,
+                backgroundColor: Color(0xFF1976D2),
+                elevation: 12,
+              ),
+              child: buildRoleButton(context, currentRole)
             ),
-          ),
-        ),
-        TextButton(
-          onPressed: () => changeRole(context, currentRole),
-          child: Row(
-            children: [
-              Text(
-                '${currentRole[0].toUpperCase()}${currentRole.substring(1)}',
-                style: TextStyle(fontSize: 20, color: AppColors.navBarTextColor),
-              ),
-              Icon(
-                Icons.keyboard_arrow_down,
-                size: 30,
-                color: AppColors.navBarTextColor,
-              ),
-            ],
-          ), 
+          ],
         ),
       ],
     ),
+  );
+}
+
+Widget buildTopUnusableSpaceSpacing(BuildContext context) {
+  return SizedBox(height: 50);
+}
+
+Widget buildRoleButton(BuildContext context, String currentRole) {
+  return TextButton(
+    onPressed: () => changeRole(context, currentRole),
+    child: Row(
+      children: [
+        Text(
+          '${currentRole[0].toUpperCase()}${currentRole.substring(1)}',
+          style: TextStyle(fontSize: 20, color: AppColors.navBarTextColor),
+        ),
+        Icon(
+          Icons.keyboard_arrow_down,
+          size: 30,
+          color: AppColors.navBarTextColor,
+        ),
+      ],
+    ), 
   );
 }
