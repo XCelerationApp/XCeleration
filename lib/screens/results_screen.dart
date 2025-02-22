@@ -101,7 +101,7 @@ class ResultsScreenState extends State<ResultsScreen> {
                                     double fontSize = buttonWidth * 0.08;
                                     return ElevatedButton.icon(
                                       onPressed: () => downloadCsv(_calculateOverallTeamResults(), _calculateIndividualResults()),
-                                      icon: const Icon(Icons.download),
+                                      icon: Image.asset('assets/icon/receive.png', width: 32, height: 32),
                                       label: Text(
                                         'Download CSV Results',
                                         style: TextStyle(fontSize: fontSize),

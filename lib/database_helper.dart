@@ -144,41 +144,60 @@ class DatabaseHelper {
     );
   }
 
-  Future<List<Race>> getAllRaces() async {
+  Future<List<dynamic>> getAllRaces({bool getState = true}) async {
     final db = await instance.database;
     final List<Map<String, dynamic>> maps = await db.query(
       'races',
-      orderBy: 'created_at DESC',
+      orderBy: 'race_date DESC',
     );
 
-    return List.generate(maps.length, (i) {
+    List<dynamic> result = [];
+    
+    for (var map in maps) {
       DateTime raceDate;
       try {
-        raceDate = DateTime.parse(maps[i]['race_date'].trim());
+        raceDate = DateTime.parse(map['race_date'].trim());
       } catch (e) {
-        print('Error parsing date: ${maps[i]['race_date']}');
-        raceDate = DateTime.now(); // or handle it in a way that makes sense for your app
+        raceDate = DateTime.now();
       }
-      final List<dynamic> teamColorsDynamic = jsonDecode(maps[i]['team_colors']);
-      final List<dynamic> teamsDynamic = jsonDecode(maps[i]['teams']);
-      final List<String> teamColorStrings = teamColorsDynamic.map((e) => e.toString()).toList();
-      final List<String> teams = teamsDynamic.map((e) => e.toString()).toList();
-      final List<Color> teamColors = teamColorStrings.map((colorString) {
-        final colorValue = int.parse(colorString);
+
+      final List<String> teams = List<String>.from(jsonDecode(map['teams']));
+      final List<Color> teamColors = List<int>.from(jsonDecode(map['team_colors'])).map((colorValue) {
         return Color(colorValue);
       }).toList();
 
-      return Race(
-        raceId: maps[i]['race_id'],
-        raceName: maps[i]['race_name'],
-        raceDate: raceDate,
-        location: maps[i]['location'],
-        distance: maps[i]['distance'],
-        distanceUnit: maps[i]['distance_unit'],
-        teamColors: teamColors,
-        teams: teams,
-      );
-    });
+      if (!getState){ result.add(Race(
+          raceId: map['race_id'],
+          raceName: map['race_name'],
+          raceDate: raceDate,
+          location: map['location'],
+          distance: map['distance'],
+          distanceUnit: map['distance_unit'],
+          teamColors: teamColors,
+          teams: teams,
+        ));
+      }
+      else {
+        final raceState = await getRaceState(map['race_id']);
+
+        result.add({
+          ...map,
+          'race': Race(
+            raceId: map['race_id'],
+            raceName: map['race_name'],
+            raceDate: raceDate,
+            location: map['location'],
+            distance: map['distance'],
+            distanceUnit: map['distance_unit'],
+            teamColors: teamColors,
+            teams: teams,
+          ),
+          'state': raceState,
+        });
+      }
+    }
+
+    return result;
   }
 
   Future<Race?> getRaceById(int id) async {
@@ -369,7 +388,7 @@ class DatabaseHelper {
       WHERE r.race_id = ?
     ''', [raceId]);
 
-    // return [...raceRunners, ...teamRunners];
+    if (raceId == 1) return [...raceRunners, ...teamRunners];
     return [
       {
         'runner_id': 1,
@@ -397,10 +416,10 @@ class DatabaseHelper {
     return await db.query('race_results');
   }
 
-  Future<bool> isRaceFinished(int raceId) async {
+  Future<String> getRaceState(int raceId) async {
     final raceResults = await instance.getRaceResults(raceId);
-    if (raceResults.isEmpty) return false;
-    return true;
+    if (raceResults.isEmpty) return 'in_progress';
+    return 'finished';
   }
 
   // Cleanup Methods

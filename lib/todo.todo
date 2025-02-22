@@ -34,6 +34,7 @@ split wireless (default) from QR
 - add QR code scanning UI - show the progress of each in the scanner and allow multiple scans
 - make padding 24px (8 rule)
 - fade content when back arrow is clicked
+- have a profile and if you are not coach you can't change role to coach (can change to coach in settings)
 
 
 Runners Management screen:

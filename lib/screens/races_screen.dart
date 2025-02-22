@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'race_screen.dart';
+import 'runners_management_screen.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import '../models/race.dart';
 import '../database_helper.dart';
 import '../utils/app_colors.dart';
+import '../utils/ui_components.dart';
 import '../utils/textfield_utils.dart';
 import '../utils/dialog_utils.dart';
-import 'dart:io';
+
 import '../role_functions.dart';
 import '../utils/sheet_utils.dart';
+import 'dart:io';
 import 'dart:convert';
 import 'package:intl/intl.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
@@ -32,9 +36,9 @@ class _RacesScreenState extends State<RacesScreen> {
   final distanceController = TextEditingController();
   final unitController = TextEditingController();
   final userlocationController = TextEditingController();
-  List<TextEditingController> _teamControllers = [];
-  List<Color> _teamColors = [];
-  String unit = 'mi';
+  final List<TextEditingController> _teamControllers = [];
+  final List<Color> _teamColors = [];
+  // String unit = 'mi';
   
   // Validation error messages
   String? nameError;
@@ -161,9 +165,9 @@ class _RacesScreenState extends State<RacesScreen> {
   }
 
   Future<void> _loadRaces() async {
-    final races = await DatabaseHelper.instance.getAllRaces();
+    final races = await DatabaseHelper.instance.getAllRaces(getState: false);
     setState(() {
-      this.races = races;
+      this.races = races.cast<Race>();
     });
   }
 
@@ -186,9 +190,19 @@ class _RacesScreenState extends State<RacesScreen> {
 
     sheet(context: context, title: 'Create New Race', body: StatefulBuilder(
         builder: (BuildContext context, StateSetter setSheetState) {
-          return _buildCreateRaceSheetContent(setSheetState);
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+            ),
+            child: SizedBox(
+              height: MediaQuery.of(context).size.height * 0.92,
+              child: _buildCreateRaceSheetContent(
+                setSheetState,
+              ),
+            ),
+          );
         },
-      ));
+      ),);
   }
 
   Widget _buildCreateRaceSheetContent(StateSetter setSheetState, {bool isEditing = false, int? raceId}) {
@@ -244,7 +258,7 @@ class _RacesScreenState extends State<RacesScreen> {
             'location': locationController.text,
             'race_date': dateController.text,
             'distance': double.parse(distanceController.text),
-            'distance_unit': unit,
+            'distance_unit': unitController.text,
             'teams': jsonEncode(_teamControllers
                 .map((controller) => controller.text.trim())
                 .where((text) => text.isNotEmpty)
@@ -502,7 +516,7 @@ class _RacesScreenState extends State<RacesScreen> {
               error: null,
               setSheetState: setSheetState,
               items: ['mi', 'km'],
-              onChanged: (_) => null,
+              onChanged: (value) => unitController.text = value,
             ),
           ),
         ],
@@ -592,160 +606,177 @@ class _RacesScreenState extends State<RacesScreen> {
     );
   }
 
-  void _showRaceScreen(int raceId) {
-    sheet(
-      context: context,
-      showHeader: false,
-      body: RaceScreen(raceId: raceId), 
-      title: races.firstWhere((race) => race.raceId == raceId).raceName, 
+  Future<bool> _checkIfRunnersAreLoaded(int raceId) async {
+    final race = races.firstWhere((race) => race.raceId == raceId);
+    final raceRunners = await DatabaseHelper.instance.getRaceRunners(raceId);
+    
+    // Check if we have any runners at all
+    if (raceRunners.isEmpty) {
+      return false;
+    }
+
+    // Check if each team has at least 2 runners (minimum for a race)
+    final teamRunnerCounts = <String, int>{};
+    for (final runner in raceRunners) {
+      final team = runner['school'] as String;
+      teamRunnerCounts[team] = (teamRunnerCounts[team] ?? 0) + 1;
+    }
+
+    // Verify each team in the race has enough runners
+    for (final teamName in race.teams) {
+      final runnerCount = teamRunnerCounts[teamName] ?? 0;
+      if (runnerCount < 5) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  void _showRaceScreen(int raceId) async {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => RaceScreen(raceId: raceId),
+      ),
     );
   }
 
-  Widget _buildRaceCard(Race race) {
-    return FutureBuilder<bool>(
-      future: DatabaseHelper.instance.isRaceFinished(race.raceId),
-      builder: (context, snapshot){
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
-        }
-        final bool raceFinished = snapshot.data ?? false;
-        return Slidable(
-          key: Key(race.raceId.toString()),
-          endActionPane: ActionPane(
-            extentRatio: 0.5,
-            motion: const DrawerMotion(),
-            dragDismissible: false,
-            children: [
-              CustomSlidableAction(
-                onPressed: (_) => _editRace(race),
-                backgroundColor: AppColors.primaryColor,
-                foregroundColor: Colors.white,
-                padding: EdgeInsets.zero,
-                autoClose: true,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.edit_outlined,
-                      size: 24,
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Edit',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
+  Widget _buildRaceCard(Race race, String state) {
+    final bool raceFinished = state == 'finished';
+    return Slidable(
+      key: Key(race.raceId.toString()),
+      endActionPane: ActionPane(
+        extentRatio: 0.5,
+        motion: const DrawerMotion(),
+        dragDismissible: false,
+        children: [
+          CustomSlidableAction(
+            onPressed: (_) => _editRace(race),
+            backgroundColor: AppColors.primaryColor,
+            foregroundColor: Colors.white,
+            padding: EdgeInsets.zero,
+            autoClose: true,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.edit_outlined,
+                  size: 24,
                 ),
-              ),
-              CustomSlidableAction(
-                onPressed: (_) => _deleteRace(race),
-                backgroundColor: AppColors.primaryColor.withRed(255),
-                foregroundColor: Colors.white,
-                padding: EdgeInsets.zero,
-                autoClose: true,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.delete_outline,
-                      size: 24,
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Delete',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
+                const SizedBox(height: 4),
+                const Text(
+                  'Edit',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-          child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            width: double.infinity,
-            child: Card(
-              color: raceFinished ? Colors.lightGreen: AppColors.selectedRoleColor,
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: InkWell(
-                onTap: () => _showRaceScreen(race.raceId),
-                borderRadius: BorderRadius.circular(12),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
+          CustomSlidableAction(
+            onPressed: (_) => _deleteRace(race),
+            backgroundColor: AppColors.primaryColor.withRed(255),
+            foregroundColor: Colors.white,
+            padding: EdgeInsets.zero,
+            autoClose: true,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.delete_outline,
+                  size: 24,
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Delete',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        width: double.infinity,
+        child: Card(
+          color: raceFinished ? const Color(0xFFBBDB86): const Color(0xFFE8C375),
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: InkWell(
+            onTap: () => _showRaceScreen(race.raceId),
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    race.raceName,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
                     children: [
-                      Text(
-                        race.raceName,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                      const Icon(Icons.location_on, size: 16, color: AppColors.darkColor),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          race.location,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: AppColors.darkColor,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          const Icon(Icons.location_on, size: 16, color: AppColors.darkColor),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              race.location,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                color: AppColors.darkColor,
-                              ),
-                            ),
-                          ),
-                        ],
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(Icons.calendar_today, size: 16, color: AppColors.darkColor),
+                      const SizedBox(width: 4),
+                      Text(
+                        DateFormat('MMM d, y').format(race.raceDate),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: AppColors.darkColor,
+                        ),
                       ),
-                      const SizedBox(height: 8),
+                      const Spacer(),
                       Row(
                         children: [
-                          const Icon(Icons.calendar_today, size: 16, color: AppColors.darkColor),
+                          const Icon(Icons.directions_run, size: 16, color: AppColors.darkColor),
                           const SizedBox(width: 4),
                           Text(
-                            DateFormat('MMM d, y').format(race.raceDate),
+                            '${race.distance} ${race.distanceUnit}',
                             style: const TextStyle(
                               fontSize: 16,
                               color: AppColors.darkColor,
                             ),
                           ),
-                          const Spacer(),
-                          Row(
-                            children: [
-                              const Icon(Icons.directions_run, size: 16, color: AppColors.darkColor),
-                              const SizedBox(width: 4),
-                              Text(
-                                '${race.distance} ${race.distanceUnit}',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  color: AppColors.darkColor,
-                                ),
-                              ),
-                            ],
-                          ),
                         ],
                       ),
                     ],
                   ),
-                ),
+                ],
               ),
             ),
           ),
-        );
-      }
+        ),
+      ),
     );
   }
 
@@ -755,7 +786,7 @@ class _RacesScreenState extends State<RacesScreen> {
     locationController.text = race.location;
     dateController.text = DateFormat('yyyy-MM-dd').format(race.raceDate);
     distanceController.text = race.distance.toString();
-    unit = race.distanceUnit;
+    unitController.text = race.distanceUnit;
 
     // Clear existing team controllers
     for (var controller in _teamControllers) {
@@ -823,34 +854,67 @@ class _RacesScreenState extends State<RacesScreen> {
         child: Icon(Icons.add),
       ),
       body: Padding(
-        padding: const EdgeInsets.fromLTRB(24.0, 0, 24.0, 24.0),
+        padding: EdgeInsets.fromLTRB(24.0, 56.0, 24.0, 24.0),
         child: Column(
           children: [
-            buildRoleBar(context, 'coach', 'Races'),
-            // const SizedBox(height: 15),
-            // Expanded(
-            FutureBuilder<List<Race>>(
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Races',
+                  style: TextStyle(
+                    fontSize: 56,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.darkColor,
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () {
+                    changeProfile(context, 'coach');
+                  },
+                  child: Icon(Icons.person_outline, color: AppColors.darkColor, size: 56)
+                ),
+              ],
+            ),
+            FutureBuilder<List<dynamic>>(
                 future: DatabaseHelper.instance.getAllRaces(),
                 builder: (context, snapshot){
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Center(child: CircularProgressIndicator());
-                  } else if (snapshot.hasError) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError) {
                     return Center(child: Text('Error: ${snapshot.error}'));
                   } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
                     return Center(child: Text('No races found.'));
                   }
-                  races = snapshot.data ?? [];
 
-                  return ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: races.length,
-                    itemBuilder: (context, index) {
-                      return _buildRaceCard(races[index]);
-                    },
-                  );
+                  final raceData = snapshot.data ?? [];
+                  final finishedRaces = raceData.where((race) => race['state'] == 'finished').toList();
+                  final raceInProgress = raceData.where((race) => race['state'] == 'in_progress').toList();
+                  final upcomingRaces = raceData.where((race) => race['state'] == 'upcoming').toList();
+                  return SingleChildScrollView(
+                    // shrinkWrap: true,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (raceInProgress.isNotEmpty) ...[
+                          buildSectionHeader('In Progress'),
+                          ...raceInProgress.map((raceInfo) => _buildRaceCard(raceInfo['race'] as Race, raceInfo['state'] as String)),
+                        ],
+                        if (upcomingRaces.isNotEmpty) ...[
+                        buildSectionHeader('Upcoming'),
+                        ...upcomingRaces.map((raceInfo) => _buildRaceCard(raceInfo['race'] as Race, raceInfo['state'] as String)),
+                      ],
+                      if (finishedRaces.isNotEmpty) ...[
+                        buildSectionHeader('Finished'),
+                        ...finishedRaces.map((raceInfo) => _buildRaceCard(raceInfo['race'] as Race, raceInfo['state'] as String)),
+                      ],
+                    ],
+                  ));
                 },
-              // ),
-            )
+              ),
+            // ),
           ]
       ),
       )

@@ -23,13 +23,6 @@ class RoleOption {
 
 final List<RoleOption> roleOptions = [
   RoleOption(
-    value: 'coach',
-    title: 'Coach',
-    description: 'Manage races',
-    icon: Icons.person_outlined,
-    screen: const RacesScreen(),
-  ),
-  RoleOption(
     value: 'timer',
     title: 'Timer',
     description: 'Time a race',
@@ -42,6 +35,23 @@ final List<RoleOption> roleOptions = [
     description: 'Record bib numbers',
     icon: Icons.numbers,
     screen: const BibNumberScreen(),
+  ),
+];
+
+final List<RoleOption> profileOptions = [
+  RoleOption(
+    value: 'coach',
+    title: 'Coach',
+    description: 'Manage races',
+    icon: Icons.person_outlined,
+    screen: const RacesScreen(),
+  ),
+  RoleOption(
+    value: 'assistant',
+    title: 'Assistant',
+    description: 'Assist the coach by timing or recording bib numbers',
+    icon: Icons.person,
+    screen: const RacesScreen(),
   ),
 ];
 
@@ -65,14 +75,20 @@ Widget _buildRoleTitle(RoleOption role, String currentRole) {
                   : AppColors.unselectedRoleTextColor,
             ),
           ),
-          Text(
-            role.description,
-            style: TextStyle(
+          ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: 150, maxWidth: 190),
+            child: Text(
+              role.description,
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w400,
                 color: role.value == currentRole
                     ? AppColors.selectedRoleTextColor
-                    : AppColors.unselectedRoleTextColor),
+                    : AppColors.unselectedRoleTextColor,
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 2,
+            ),
           ),
         ],
       ),
@@ -116,7 +132,21 @@ void changeRole(BuildContext context, String currentRole) {
     body: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        ...roleOptions.map((role) => _buildRoleListTile(context, role, currentRole)),
+        ...profileOptions.map((role) => _buildRoleListTile(context, role, currentRole)),
+        const SizedBox(height: 30),
+      ],
+    ),
+  );
+}
+
+void changeProfile(BuildContext context, String currentProfile) {
+  sheet(
+    context: context,
+    title: 'Change Profile',
+    body: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ...profileOptions.map((role) => _buildRoleListTile(context, role, currentProfile)),
         const SizedBox(height: 30),
       ],
     ),

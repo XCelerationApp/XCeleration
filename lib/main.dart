@@ -325,27 +325,42 @@ class WelcomeScreen extends StatelessWidget {
                     padding: const EdgeInsets.all(20.0),
                     fixedSize: const Size(300, 75),
                   ),
-                  child: Text('Timer', style: TextStyle(fontSize: 30, color: AppColors.selectedRoleTextColor)),
+                  child: Text('Assistant', style: TextStyle(fontSize: 30, color: AppColors.selectedRoleTextColor)),
                 ),
               ),
-              SizedBox(height: 15),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      PageRouteBuilder(
-                        pageBuilder: (context, animation, secondaryAnimation) => BibNumberScreen(),
-                      ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.all(20.0),
-                    fixedSize: const Size(300, 75),
-                  ),
-                  child: Text('Record Bib #s', style: TextStyle(fontSize: 30, color: AppColors.selectedRoleTextColor)),
-                ),
-              ),
+              // Padding(
+              //   padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              //   child: ElevatedButton(
+              //     onPressed: () {
+              //       Navigator.of(context).push(
+              //         MaterialPageRoute(builder: (context) => const TimingScreen()),
+              //       );
+              //     },
+              //     style: ElevatedButton.styleFrom(
+              //       padding: const EdgeInsets.all(20.0),
+              //       fixedSize: const Size(300, 75),
+              //     ),
+              //     child: Text('Timer', style: TextStyle(fontSize: 30, color: AppColors.selectedRoleTextColor)),
+              //   ),
+              // ),
+              // SizedBox(height: 15),
+              // Padding(
+              //   padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              //   child: ElevatedButton(
+              //     onPressed: () {
+              //       Navigator.of(context).push(
+              //         PageRouteBuilder(
+              //           pageBuilder: (context, animation, secondaryAnimation) => BibNumberScreen(),
+              //         ),
+              //       );
+              //     },
+              //     style: ElevatedButton.styleFrom(
+              //       padding: const EdgeInsets.all(20.0),
+              //       fixedSize: const Size(300, 75),
+              //     ),
+              //     child: Text('Record Bib #s', style: TextStyle(fontSize: 30, color: AppColors.selectedRoleTextColor)),
+              //   ),
+              // ),
             ],
           ),
         ),

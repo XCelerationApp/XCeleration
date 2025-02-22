@@ -100,7 +100,7 @@ Widget createSheetHeader(String title, {
   );
 }
 
-Future<dynamic> sheet({required BuildContext context, required Widget body, required String title, double titleSize = 24, Widget? action_buttons, bool showHeader = true}) async {
+Future<dynamic> sheet({required BuildContext context, required Widget body, required String title, double titleSize = 24, Widget? action_buttons, bool showHeader = true, bool takeUpScreen = false}) async {
   return await showModalBottomSheet(
     backgroundColor: AppColors.backgroundColor,
     context: context,
@@ -114,13 +114,14 @@ Future<dynamic> sheet({required BuildContext context, required Widget body, requ
     builder: (context) => ConstrainedBox(
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.92,
+        minHeight: takeUpScreen ? MediaQuery.of(context).size.height * 0.92 : 0,
       ),
       child: Padding(
         padding: EdgeInsets.only(
           top: 8,
           left: 24,
           right: 24,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 36,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,

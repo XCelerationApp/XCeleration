@@ -8,6 +8,7 @@ import '../utils/sheet_utils.dart';
 import '../utils/textfield_utils.dart';
 import '../database_helper.dart';
 import '../file_processing.dart';
+import '../utils/ui_components.dart';
 
 // Models
 class Team {
@@ -63,8 +64,8 @@ class Runner {
       grade: grade ?? this.grade,
       school: school ?? this.school,
       bibNumber: bibNumber ?? this.bibNumber,
-      runnerId: this.runnerId,
-      raceRunnerId: this.raceRunnerId,
+      runnerId: runnerId,
+      raceRunnerId: raceRunnerId,
     );
   }
 }
@@ -298,14 +299,16 @@ class SearchBar extends StatelessWidget {
 // Main Screen
 class RunnersManagementScreen extends StatefulWidget {
   final int raceId;
-  final bool isTeam;
   final VoidCallback? onBack;
+  final VoidCallback? onContentChanged;
+  final bool? showHeader;
 
   const RunnersManagementScreen({
     super.key,
-    required this.isTeam,
     required this.raceId,
+    this.showHeader,
     this.onBack,
+    this.onContentChanged,
   });
 
   @override
@@ -315,8 +318,9 @@ class RunnersManagementScreen extends StatefulWidget {
 class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
   List<Runner> _runners = [];
   List<Runner> _filteredRunners = [];
-  List<Team> _teams = [];
+  final List<Team> _teams = [];
   bool _isLoading = true;
+  bool _showHeader = true;
   String _searchAttribute = 'Bib Number';
   final TextEditingController _searchController = TextEditingController();
   
@@ -329,6 +333,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
   @override
   void initState() {
     super.initState();
+    _showHeader = widget.showHeader ?? true;
     _loadData();
   }
 
@@ -382,13 +387,12 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
 
   Future<void> _loadRunners() async {
     final runners = await DatabaseHelper.instance.getRaceRunners(widget.raceId);
-    if (mounted) {
-      setState(() {
-        _runners = runners.map(Runner.fromMap).toList();
-        _filteredRunners = _runners;
-        _sortRunners();
-      });
-    }
+    setState(() {
+      _runners = runners.map(Runner.fromMap).toList();
+      _filteredRunners = _runners;
+      _sortRunners();
+    });
+    widget.onContentChanged?.call();
   }
 
   void _sortRunners() {
@@ -440,11 +444,8 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
   }
 
   Future<void> _deleteRunner(Runner runner) async {
-    if (widget.isTeam) {
-      await DatabaseHelper.instance.deleteTeamRunner(runner.bibNumber);
-    } else {
-      await DatabaseHelper.instance.deleteRaceRunner(widget.raceId, runner.bibNumber);
-    }
+    await DatabaseHelper.instance.deleteRaceRunner(widget.raceId, runner.bibNumber);
+    await _loadRunners();
   }
 
   Widget _buildListTitles() {
@@ -496,12 +497,14 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          createSheetHeader(
-            'Race Runners',
-            backArrow: true,
-            context: context,
-            onBack: widget.onBack,
-          ),
+          if (_showHeader) ...[
+            createSheetHeader(
+              'Race Runners',
+              backArrow: true,
+              context: context,
+              onBack: widget.onBack,
+            ),
+          ],
           _buildActionButtons(),
           const SizedBox(height: 12),
           if (_runners.isNotEmpty) ...[
@@ -826,64 +829,52 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
 
   Future<void> _handleRunnerSubmission(Runner runner) async {
     try {
-      // Check if a runner with this bib number already exists
       dynamic existingRunner;
-      if (widget.isTeam) {
-        existingRunner = await DatabaseHelper.instance.getTeamRunnerByBib(runner.bibNumber);
-      } else {
-        existingRunner = await DatabaseHelper.instance.getRaceRunnerByBib(widget.raceId, runner.bibNumber);
-      }
+      existingRunner = await DatabaseHelper.instance.getRaceRunnerByBib(widget.raceId, runner.bibNumber);
 
       if (existingRunner != null) {
         // If we're updating the same runner (same ID), just update
-        if ((widget.isTeam && existingRunner['runner_id'] == runner.runnerId) ||
-            (!widget.isTeam && existingRunner['race_runner_id'] == runner.raceRunnerId)) {
+        if (existingRunner['race_runner_id'] == runner.raceRunnerId) {
           await _updateRunner(runner);
         } else {
           // If a different runner exists with this bib, ask for confirmation
-          final shouldOverwrite = await DialogUtils.showConfirmationDialog(
-            context,
-            title: 'Overwrite Runner',
-            content: 'A runner with bib number ${runner.bibNumber} already exists. Do you want to overwrite it?',
-          );
-          
-          if (!shouldOverwrite) throw Exception('Cancelled by user');
-          
-          // Delete the existing runner and insert the new one
-          if (widget.isTeam) {
-            await DatabaseHelper.instance.deleteTeamRunner(runner.bibNumber);
-          } else {
-            await DatabaseHelper.instance.deleteRaceRunner(widget.raceId, runner.bibNumber);
-          }
-          await _insertRunner(runner);
+        final shouldOverwrite = await DialogUtils.showConfirmationDialog(
+          context,
+          title: 'Overwrite Runner',
+          content: 'A runner with bib number ${runner.bibNumber} already exists. Do you want to overwrite it?',
+        );
+        
+        if (!shouldOverwrite) return;
+        
+        await DatabaseHelper.instance.deleteRaceRunner(widget.raceId, runner.bibNumber);
+        await _insertRunner(runner);
         }
       } else {
-        // No existing runner, just insert
         await _insertRunner(runner);
       }
       
       await _loadRunners();
+      if (widget.onContentChanged != null) {
+        widget.onContentChanged!();
+      }
     } catch (e) {
       throw Exception('Failed to save runner: $e');
     }
   }
 
   Future<void> _insertRunner(Runner runner) async {
-    if (widget.isTeam) {
-      await DatabaseHelper.instance.insertTeamRunner(runner.toMap());
-    } else {
-      final map = runner.toMap()..['race_id'] = widget.raceId;
-      await DatabaseHelper.instance.insertRaceRunner(map);
-    }
+    final map = runner.toMap()..['race_id'] = widget.raceId;
+    await DatabaseHelper.instance.insertRaceRunner(map);
+    // }
   }
 
   Future<void> _updateRunner(Runner runner) async {
-    if (widget.isTeam) {
-      await DatabaseHelper.instance.updateTeamRunner(runner.toMap());
-    } else {
+    // if (widget.isTeam) {
+    //   await DatabaseHelper.instance.updateTeamRunner(runner.toMap());
+    // } else {
       final map = runner.toMap()..['race_id'] = widget.raceId;
       await DatabaseHelper.instance.updateRaceRunner(map);
-    }
+    // }
   }
 
   Future<void> _confirmDeleteAllRunners(BuildContext context) async {
@@ -895,11 +886,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
     
     if (!confirmed) return;
     
-    if (widget.isTeam) {
-      await DatabaseHelper.instance.clearTeamRunners();
-    } else {
-      await DatabaseHelper.instance.deleteAllRaceRunners(widget.raceId);
-    }
+    await DatabaseHelper.instance.deleteAllRaceRunners(widget.raceId);
     
     await _loadRunners();
   }
@@ -991,26 +978,17 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
   Future<void> _handleSpreadsheetLoad() async {
     final confirmed = await _showSpreadsheetLoadSheet(context);
     if (confirmed == null || !confirmed) return;
-    final runnerData = await processSpreadsheet(widget.raceId, widget.isTeam);
+    final runnerData = await processSpreadsheet(widget.raceId, false);
     final overwriteRunners = [];
     for (final runner in runnerData) {
       dynamic existingRunner;
-      if (widget.isTeam) {
-        existingRunner = await DatabaseHelper.instance.getTeamRunnerByBib(runner['bib_number']);
-      } else {
-        existingRunner = await DatabaseHelper.instance.getRaceRunnerByBib(widget.raceId, runner['bib_number']);
-      }
+      existingRunner = await DatabaseHelper.instance.getRaceRunnerByBib(widget.raceId, runner['bib_number']);
       if (existingRunner != null && runner['bib_number'] == existingRunner['bib_number'] && runner['name'] == existingRunner['name'] && runner['school'] == existingRunner['school'] && runner['grade'] == existingRunner['grade']) continue;
 
       if (existingRunner != null) {
         overwriteRunners.add(runner);
-      }
-      else {
-        if (widget.isTeam) {
-          await DatabaseHelper.instance.insertTeamRunner(runner);
-        } else {
-          await DatabaseHelper.instance.insertRaceRunner(runner);
-        }
+      } else {
+        await DatabaseHelper.instance.insertRaceRunner(runner);
       }
     }
     await _loadRunners();
@@ -1023,14 +1001,8 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
     );
     if (!overwriteExistingRunners) return;
     for (final runner in overwriteRunners) {
-      if (widget.isTeam) {
-        await DatabaseHelper.instance.deleteTeamRunner(runner['bib_number']);
-        await DatabaseHelper.instance.insertTeamRunner(runner);
-        print('Runner $runner overwritten');
-      } else {
-        await DatabaseHelper.instance.deleteRaceRunner(widget.raceId, runner['bib_number']);
-        await DatabaseHelper.instance.insertRaceRunner(runner);
-      }
+      await DatabaseHelper.instance.deleteRaceRunner(widget.raceId, runner['bib_number']);
+      await DatabaseHelper.instance.insertRaceRunner(runner);
     }
     await _loadRunners();
   }

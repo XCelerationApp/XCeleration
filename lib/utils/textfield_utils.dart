@@ -38,7 +38,7 @@ Widget buildDropdown({
                     ...items.map((item) => DropdownMenuItem(
                       value: item,
                       child: Text(item),
-                    )).toList(),
+                    )),
                   ],
                   onChanged: (value) {
                     setSheetState(() => controller.text = value ?? '');

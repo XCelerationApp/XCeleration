@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter/services.dart';
 import 'package:xcelerate/runner_time_functions.dart';
 import '../database_helper.dart';
 import '../models/race.dart';
@@ -16,6 +17,7 @@ import '../utils/encode_utils.dart';
 import 'merge_conflicts_screen.dart';
 import 'resolve_bib_number_screen.dart';
 import 'edit_and_review_screen.dart';
+import '../utils/ui_components.dart';
 
 class RaceScreen extends StatefulWidget {
   final int raceId;
@@ -33,7 +35,7 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
   late String _location = '';
   late String _date = '';
   late double _distance = 0.0;
-  late String _distanceUnit = 'miles';
+  late final String _distanceUnit = 'miles';
   late List<Color> _teamColors = [];
   late List<String> _teamNames = [];
   late TextEditingController _nameController;
@@ -169,7 +171,7 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
     });
   }
 
-  Widget _buildPageButton(String title, IconData icon, VoidCallback onPressed) {
+  Widget _buildPageButton(String title, String iconName, VoidCallback onPressed) {
     return ElevatedButton(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
@@ -182,7 +184,11 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
       ),
       child: Row(
         children: [
-          Icon(icon, color: AppColors.primaryColor, size: 24),
+          if (iconName == 'info') ...[
+            SvgPicture.asset('assets/icon/$iconName.svg', width: 20, height: 20, colorFilter: ColorFilter.mode(AppColors.primaryColor, BlendMode.srcIn)),
+          ]
+          else
+            Image.asset('assets/icon/$iconName.png', width: 20, height: 20),
           const SizedBox(width: 16),
           Expanded(
             child: Text(
@@ -200,7 +206,7 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildActionButton(String title, IconData icon, VoidCallback onPressed) {
+  Widget _buildActionButton(String title, String iconName, VoidCallback onPressed) {
     return ElevatedButton(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
@@ -215,7 +221,7 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, color: AppColors.primaryColor, size: 20),
+          Image.asset('assets/icon/$iconName.png', width: 20, height: 20),
           const SizedBox(width: 8),
           Text(
             title,
@@ -383,7 +389,6 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
         
         if (_showRunners && _slideController.value > 0) {
           return _buildSecondaryScreen(RunnersManagementScreen(
-            isTeam: false,
             raceId: raceId,
             onBack: _goBackToMainRaceScreen,
           ));
@@ -452,23 +457,21 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
                     //   ),
                     // ),
                     // const SizedBox(height: 10),
-                    _buildPageButton('Race Info', Icons.info, () => _goToDetailsScreen(context)),
+                    _buildPageButton('Race Info', 'info', () => _goToDetailsScreen(context)),
                     // const SizedBox(height: 8),
-                    _buildPageButton('Runners', Icons.person, () => _goToRunnersScreen(context)),
+                    _buildPageButton('Runners', 'runner', () => _goToRunnersScreen(context)),
                     if (showResultsButton) ...[
                       // const SizedBox(height: 8),
-                      _buildPageButton('Results', Icons.flag, () => _goToResultsScreen(context)),
+                      _buildPageButton('Results', 'flag', () => _goToResultsScreen(context)),
                     ],
                     if (!showResultsButton) ...[
-                      const SizedBox(height: 8),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                        child: Row(
+                      // const SizedBox(height: 8),
+                      Row(
                           children: [
                             Expanded(
                               child: _buildActionButton(
                                 'Share Runners',
-                                Icons.share,
+                                'share',
                                 () async {
                               final data = await _getEncodedRunnersData();
                               showDeviceConnectionPopup(
@@ -484,11 +487,11 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
                             },
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 12),
                         Expanded(
                           child: _buildActionButton(
                             'Receive Results',
-                            Icons.download,
+                            'receive',
                             () async {
                               final otherDevices = createOtherDeviceList(
                                 DeviceName.coach,
@@ -532,7 +535,7 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
                       ],
                     ),
                   // ],
-                ),
+                // ),
                     ],
                   ],
               ),
@@ -543,14 +546,145 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
     );
   }
 
+  Future<bool> _checkIfRunnersAreLoaded(int raceId) async {
+    final race = await DatabaseHelper.instance.getRaceById(raceId);
+    final raceRunners = await DatabaseHelper.instance.getRaceRunners(raceId);
+    
+    // Check if we have any runners at all
+    if (raceRunners.isEmpty) {
+      return false;
+    }
+
+    // Check if each team has at least 2 runners (minimum for a race)
+    final teamRunnerCounts = <String, int>{};
+    for (final runner in raceRunners) {
+      final team = runner['school'] as String;
+      teamRunnerCounts[team] = (teamRunnerCounts[team] ?? 0) + 1;
+    }
+
+    // Verify each team in the race has enough runners
+    for (final teamName in race!.teams) {
+      final runnerCount = teamRunnerCounts[teamName] ?? 0;
+      if (runnerCount < 5) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
   @override
   Widget build(BuildContext context) {
     if (race == null) {
-      return Center(
+      return const Center(
         child: CircularProgressIndicator(),
       );
     }
 
-    return _buildContent();
+    late final FlowStep runnersStep;
+    runnersStep = FlowStep(
+      title: 'Load Runners',
+      content: RunnersManagementScreen(
+        raceId: raceId,
+        showHeader: false,
+        onBack: null,
+        onContentChanged: () => runnersStep.notifyContentChanged(),
+      ),
+      canProceed: () => _checkIfRunnersAreLoaded(raceId),
+    );
+
+    final steps = [
+      runnersStep,
+      FlowStep(
+        title: 'Share Runners',
+        content: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text(
+              'Before the race starts, share\nthe runners with the bib\nrecorders phone.',
+              textAlign: TextAlign.left,
+              style: TextStyle(
+                fontSize: 24,
+              ),
+            ),
+            const SizedBox(height: 8),
+            SvgPicture.asset('assets/icon/radio.svg', color: AppColors.primaryColor, width: 300, height: 300),
+            SizedBox(width: 8),
+            // Share runners button
+            ElevatedButton(
+              onPressed: () async {
+                final data = await _getEncodedRunnersData();
+                showDeviceConnectionPopup(
+                  context,
+                  deviceType: DeviceType.advertiserDevice,
+                  deviceName: DeviceName.coach,
+                  otherDevices: createOtherDeviceList(
+                    DeviceName.coach,
+                    DeviceType.advertiserDevice,
+                    data: data,
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryColor,
+                minimumSize: Size(300, 75),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SvgPicture.asset('assets/icon/share.svg', color: Colors.white, width: 32, height: 32),
+                  SizedBox(width: 8),
+                  Text(
+                    'Share runners',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 28,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        canProceed: () async => true,
+      ),
+      FlowStep(
+        title: 'Load Race Results',
+        content: Text('Load Race Results'),
+        canProceed: () async => true,
+      ),
+      FlowStep(
+        title: 'Resolve Bib Conflicts',
+        content: Text('Resolve Bib Conflicts'),
+        canProceed: () async => true,
+      ),
+      FlowStep(
+        title: 'Merge Conflicts',
+        content: Text('Merge Conflicts'),
+        canProceed: () async => true,
+      ),
+      FlowStep(
+        title: 'Results',
+        content: Text('Results'),
+        canProceed: () async => true,
+      ),
+    ];
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await showFlow(
+        context: context,
+        steps: steps,
+      );
+      Navigator.pop(context);
+    });
+
+    return const Scaffold(
+      body: Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
   }
 }
