@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter/services.dart';
 import 'package:xcelerate/runner_time_functions.dart';
 import '../database_helper.dart';
 import '../models/race.dart';
@@ -48,16 +50,539 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
   bool _showRunners = false;
   bool _showResults = false;
   Race? race;
+  bool _raceSetup = false;
+  bool _preRaceFinished = false;
+  bool _postRaceFinished = false;
+  bool _resultsLoaded = false;
+  List<Map<String, dynamic>>? _runnerRecords;
+  Map<String, dynamic>? _timingData;
 
   @override
   void initState() {
     super.initState();
-    raceId = widget.raceId;
-    _loadRaceData();
-    _slideController = AnimationController(
-      duration: const Duration(milliseconds: 300),  
-      vsync: this,
+    _loadRace();
+  }
+
+  Future<void> _loadRace() async {
+    final loadedRace = await DatabaseHelper.instance.getRaceById(widget.raceId);
+    setState(() {
+      race = loadedRace;
+    });
+    _raceSetup = await DatabaseHelper.instance.checkIfRaceRunnersAreLoaded(widget.raceId);
+    
+    // Load saved results if they exist
+    final savedResults = await DatabaseHelper.instance.getRaceResultsData(widget.raceId);
+    if (savedResults != null) {
+      setState(() {
+        _runnerRecords = savedResults['runnerRecords'];
+        _timingData = savedResults['timingData'];
+        _resultsLoaded = true;
+      });
+    }
+    
+    _continueRaceFlow();
+  }
+
+  Future<void> _saveRaceResults() async {
+    if (_runnerRecords != null && _timingData != null) {
+      await DatabaseHelper.instance.saveRaceResults(
+        widget.raceId,
+        {
+          'runnerRecords': _runnerRecords,
+          'timingData': _timingData,
+        },
+      );
+    }
+  }
+
+  Future<void> _continueRaceFlow() async {
+    if (race == null) return;
+
+    switch (race!.flowState) {
+      case 'setup':
+        await _setupRace(widget.raceId);
+        break;
+      case 'pre_race':
+        await _preRaceSetup(widget.raceId);
+        break;
+      case 'post_race':
+        await _postRaceSetup(widget.raceId);
+        break;
+      case 'finished':
+        // Show completed state or results
+        break;
+      default:
+        await _setupRace(widget.raceId);
+    }
+  }
+
+  Future<void> _checkAndStartFlow() async {
+    if (race == null) return;
+    
+    switch (race!.flowState) {
+      case 'setup':
+        await _setupRace(raceId);
+        break;
+      case 'pre_race':
+        await _preRaceSetup(raceId);
+        break;
+      case 'post_race':
+        await _postRaceSetup(raceId);
+        break;
+      default:
+        break;
+    }
+  }
+
+  Future<void> _setupRace(int raceId) async {
+    late final FlowStep runnersStep;
+    runnersStep = FlowStep(
+      title: 'Load Runners',
+      description: 'Add runners to your race by entering their information or importing from a previous race. Each team needs at least 5 runners to proceed.',
+      content: RunnersManagementScreen(
+        raceId: raceId,
+        showHeader: false,
+        onBack: null,
+        onContentChanged: () => runnersStep.notifyContentChanged(),
+      ),
+      canProceed: () => _checkIfRunnersAreLoaded(raceId),
     );
+
+    final completionStep = FlowStep(
+      title: 'Setup Complete',
+      description: 'Great job! You\'ve finished setting up your race. Click Next to begin the pre-race preparations.',
+      content: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SvgPicture.asset(
+              'assets/icon/checkmark.svg',
+              width: 120,
+              height: 120,
+              colorFilter: ColorFilter.mode(AppColors.primaryColor, BlendMode.srcIn),
+            ),
+            const SizedBox(height: 32),
+            Text(
+              'Race Setup Complete!',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: AppColors.darkColor,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'You\'re ready to start managing your race.',
+              style: TextStyle(
+                fontSize: 16,
+                color: AppColors.darkColor.withOpacity(0.7),
+              ),
+            ),
+          ],
+        ),
+      ),
+      canProceed: () async => true,
+    );
+
+    final isCompleted = await showFlow(
+      context: context,
+      showProgressIndicator: false,
+      steps: [runnersStep, completionStep],
+      // dismissible: false,
+    );
+
+    if (isCompleted) {
+      _raceSetup = await DatabaseHelper.instance.checkIfRaceRunnersAreLoaded(raceId);
+      if (_raceSetup) {
+        await DatabaseHelper.instance.updateRaceFlowState(raceId, 'pre_race');
+        setState(() {
+          race = race!.copyWith(flowState: 'pre_race');
+        });
+        await _preRaceSetup(raceId);
+      }
+    }
+  }
+
+  Future<void> _preRaceSetup(int raceId) async {
+    final steps = [
+      FlowStep(
+        title: 'Review Runners',
+        description: 'Make sure all runner information is correct before the race starts. You can make any last-minute changes here.',
+        content: Column(
+          children: [
+            RunnersManagementScreen(
+              raceId: raceId, 
+              showHeader: false, 
+              onBack: null, 
+              onContentChanged: () {},
+            )
+          ]
+        ),
+        canProceed: () async => true,
+      ),
+      FlowStep(
+        title: 'Share Runners',
+        description: 'Share the runner list with the bib recorder\'s phone. This is required for tracking runners during the race.',
+        content: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SvgPicture.asset(
+              'assets/icon/radio.svg', 
+              color: AppColors.primaryColor, 
+              width: 200, 
+              height: 200
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () async {
+                final data = await _getEncodedRunnersData();
+                showDeviceConnectionPopup(
+                  context,
+                  deviceType: DeviceType.advertiserDevice,
+                  deviceName: DeviceName.coach,
+                  otherDevices: createOtherDeviceList(
+                    DeviceName.coach,
+                    DeviceType.advertiserDevice,
+                    data: data,
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryColor,
+                minimumSize: const Size(240, 56),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(28),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SvgPicture.asset(
+                    'assets/icon/share.svg', 
+                    color: Colors.white, 
+                    width: 24, 
+                    height: 24
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Share Runners',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        canProceed: () async => true,
+      ),
+      FlowStep(
+        title: 'Start Race',
+        description: 'The race is ready to begin. Once the race is finished, click Next to proceed with collecting results.',
+        content: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Icon(
+              //   Icons.sports_score,
+              //   size: 80,
+              //   color: AppColors.primaryColor,
+              // ),
+              // const SizedBox(height: 24),
+              // Text(
+              //   'Ready to Start!',
+              //   style: TextStyle(
+              //     fontSize: 24,
+              //     fontWeight: FontWeight.bold,
+              //     color: AppColors.darkColor,
+              //   ),
+              // ),
+              // const SizedBox(height: 16),
+              // Text(
+              //   'Click Next once the race is finished to collect results.',
+              //   style: TextStyle(
+              //     fontSize: 16,
+              //     color: AppColors.darkColor.withOpacity(0.7),
+              //   ),
+              //   textAlign: TextAlign.center,
+              // ),
+            ],
+          ),
+        ),
+        canProceed: () async => true,
+      ),
+    ];
+
+    final isCompleted = await showFlow(
+      context: context,
+      steps: steps,
+      // dismissible: false,
+    );
+
+    if (isCompleted) {
+      await DatabaseHelper.instance.updateRaceFlowState(raceId, 'post_race');
+      setState(() {
+        race = race!.copyWith(flowState: 'post_race');
+      });
+      await _postRaceSetup(raceId);
+    }
+  }
+
+  Future<void> _postRaceSetup(int raceId) async {
+    setState(() {
+      _resultsLoaded = false;
+    });
+
+    final steps = [
+      FlowStep(
+        title: 'Load Results',
+        description: 'Load the results of the race from the assistant devices.',
+        content:
+        Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SvgPicture.asset(
+              'assets/icon/radio.svg', 
+              color: AppColors.primaryColor, 
+              width: 200, 
+              height: 200
+            ),
+            const SizedBox(height: 24),
+            if (_resultsLoaded) ...[
+              Text(
+                'Results Loaded',
+                style: TextStyle(
+                  fontSize: 18,
+                  color: AppColors.primaryColor,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'You can proceed to review the results or load them again if needed.',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: AppColors.darkColor.withOpacity(0.7),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+            ],
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryColor,
+                minimumSize: const Size(240, 56),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(28),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.download_sharp, color: Colors.white),
+                  const SizedBox(width: 12),
+                  Text(
+                    _resultsLoaded ? 'Reload Results' : 'Load Results',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+              onPressed:
+              () async {
+                final otherDevices = createOtherDeviceList(
+                  DeviceName.coach,
+                  DeviceType.browserDevice,
+                );
+                await showDeviceConnectionPopup(
+                  context,
+                  deviceType: DeviceType.browserDevice,
+                  deviceName: DeviceName.coach,
+                  otherDevices: otherDevices,
+                );
+                final encodedBibRecords = otherDevices[DeviceName.bibRecorder]!['data'];
+                final encodedFinishTimes = otherDevices[DeviceName.raceTimer]!['data'];
+                if (encodedBibRecords == null || encodedFinishTimes == null) return;
+                
+                var runnerRecords = await processEncodedBibRecordsData(encodedBibRecords, context, raceId);
+                final timingData = await processEncodedTimingData(encodedFinishTimes, context);
+                
+                if (runnerRecords.isNotEmpty && timingData != null) {
+                  timingData['records'] = await syncBibData(runnerRecords.length, timingData['records'], timingData['endTime'], context);
+                  Navigator.pop(context);
+                  if (_containsBibConflicts(runnerRecords)) {
+                    runnerRecords = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ResolveBibNumberScreen(records: runnerRecords, raceId: raceId),
+                      ),
+                    );
+                  }
+                  final bool conflicts = await _containsTimingConflicts(timingData);
+                  if (conflicts) {
+                    _goToMergeConflictsScreen(context, runnerRecords, timingData);
+                  } else {
+                    timingData['records'] = timingData['records'].where((r) => r['type'] == 'runner_time').toList();
+                    _goToEditScreen(context, runnerRecords, timingData);
+                  }
+                  setState(() {
+                    _runnerRecords = runnerRecords;
+                    _timingData = timingData;
+                    _resultsLoaded = true;
+                  });
+                  await _saveRaceResults();
+                }
+              }
+            )]),
+        canProceed: () async => _resultsLoaded,
+      ),
+      FlowStep(
+        title: 'Review Results',
+        description: 'Review and verify the race results before saving them.',
+        content: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.fact_check_outlined,
+                size: 80,
+                color: AppColors.primaryColor,
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Review Race Results',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.darkColor,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Make sure all times and placements are correct.',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: AppColors.darkColor.withOpacity(0.7),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 32),
+              // Placeholder for results table
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey[300]!),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 1,
+                          child: Text('Place', 
+                            style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.darkColor),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 3,
+                          child: Text('Runner', 
+                            style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.darkColor),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Text('Time', 
+                            style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.darkColor),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    // Placeholder rows
+                    for (var i = 1; i <= 3; i++)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              flex: 1,
+                              child: Text(i.toString()),
+                            ),
+                            Expanded(
+                              flex: 3,
+                              child: Text('Runner $i'),
+                            ),
+                            Expanded(
+                              flex: 2,
+                              child: Text('${(i * 15.5).toStringAsFixed(2)}s'),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        canProceed: () async => true,
+      ),
+      FlowStep(
+        title: 'Save Results',
+        description: 'Save the final race results to complete the race.',
+        content: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.save_outlined,
+                size: 80,
+                color: AppColors.primaryColor,
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Save Race Results',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.darkColor,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Click Next to save the results and complete the race.',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: AppColors.darkColor.withOpacity(0.7),
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+        canProceed: () async => true,
+      ),
+    ];
+
+    final isCompleted = await showFlow(
+      context: context,
+      steps: steps,
+      // dismissible: false,
+    );
+
+    if (isCompleted) {
+      await DatabaseHelper.instance.updateRaceFlowState(raceId, 'finished');
+      setState(() {
+        race = race!.copyWith(flowState: 'finished');
+      });
+    }
   }
 
   Future<void> _loadRaceData() async {
@@ -406,142 +931,51 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             createSheetHeader(_name),
-              // SizedBox(height: 8),
-              SingleChildScrollView(
-                child: Column(
-                  children: [
-                    // const SizedBox(height: 10),
-                    // _buildActionButton('Merge Conflicts', () => _goToMergeConflictsScreen(
-                    //     context, 
-                    //     [
-                    //       {'bib_number': '1', 'name': 'Teo Donnelley', 'grade': 11, 'school': 'AW', 'error': null},
-                    //       {'bib_number': '2', 'name': 'Bill', 'grade': 10, 'school': 'TL', 'error': null},
-                    //       {'bib_number': '3', 'name': 'Ethan', 'grade': 12, 'school': 'SR', 'error': null},
-                    //       {'bib_number': '4', 'name': 'John', 'grade': 9, 'school': 'SR', 'error': null},
-                    //       {'bib_number': '5', 'name': 'Sally', 'grade': 8, 'school': 'SR', 'error': null},
-                    //       {'bib_number': '6', 'name': 'Jane', 'grade': 7, 'school': 'SR', 'error': null},
-                    //       {'bib_number': '7', 'name': 'Bob', 'grade': 6, 'school': 'SR', 'error': null},
-                    //       {'bib_number': '8', 'name': 'Charlie', 'grade': 5, 'school': 'SR', 'error': null},
-                    //     ], 
-                    //     {
-                    //       'endTime': '2.84',
-                    //       'records': [
-                    //         {'finish_time': '0.45', 'type': 'runner_time', 'is_confirmed': true, 'text_color': null, 'place': 1},
-                    //         {'finish_time': '0.83', 'type': 'runner_time', 'is_confirmed': true, 'text_color': null, 'place': 2},
-                    //         {'finish_time': '1.02', 'type': 'confirm_runner_number', 'is_confirmed': true, 'text_color': Colors.green, 'place': 3},
-                    //         {'finish_time': '1.06', 'type': 'runner_time', 'conflict': 'extra_runner_time', 'is_confirmed': false, 'text_color': null, 'place': 4},
-                    //         {'finish_time': '1.12', 'type': 'runner_time', 'conflict': 'extra_runner_time', 'is_confirmed': false, 'text_color': null, 'place': 5},
-                    //         {'finish_time': '1.17', 'type': 'runner_time', 'conflict': 'extra_runner_time', 'is_confirmed': false, 'text_color': null, 'place': 6},
-                    //         {'finish_time': '1.20', 'type': 'runner_time', 'conflict': 'extra_runner_time', 'is_confirmed': false, 'text_color': null, 'place': ''},
-                    //         {'finish_time': '1.21', 'type': 'extra_runner_time', 'offBy': 1, 'numTimes': 5, 'text_color': AppColors.redColor},
-                    //         {'finish_time': '1.24', 'type': 'runner_time', 'conflict': 'missing_runner_time', 'is_confirmed': false, 'text_color': null, 'place': 7},
-                    //         {'finish_time': '1.27', 'type': 'runner_time', 'conflict': 'missing_runner_time', 'is_confirmed': false, 'text_color': null, 'place': 8},
-                    //         {'finish_time': 'TBD', 'type': 'runner_time', 'conflict': 'missing_runner_time', 'is_confirmed': false, 'text_color': null, 'place': 9},
-                    //         {'finish_time': '1.60', 'type': 'missing_runner_time', 'text_color': AppColors.redColor, 'numTimes': 10},
-                    //       ],
-                    //       'startTime': null,
-                    //     }
-                    //   ),
-                    // ),
-                    // const SizedBox(height: 10),
-                    // _buildActionButton(
-                    //   'Resolve Bibs',
-                    //   () => _goToTestResolveBibNumbesScreen(
-                    //     context, 
-                    //     [
-                    //       {'bib_number': '1', 'name': 'Teo Donnelley', 'grade': 11, 'school': 'AW', 'error': null},
-                    //       {'bib_number': '2', 'name': 'Bill', 'grade': 10, 'school': 'TL', 'error': null},
-                    //       {'bib_number': '300', 'name': 'Unknown', 'grade': null, 'school': 'Unknown School', 'error': 'Unknown Runner'},
-                    //       {'bib_number': '301', 'name': 'Unknown', 'grade': null, 'school': 'Unknown School', 'error': 'Unknown Runner'},
-                    //     ], 
-                    //   ),
-                    // ),
-                    // const SizedBox(height: 10),
-                    _buildPageButton('Race Info', 'info', () => _goToDetailsScreen(context)),
-                    // const SizedBox(height: 8),
-                    _buildPageButton('Runners', 'runner', () => _goToRunnersScreen(context)),
-                    if (showResultsButton) ...[
-                      // const SizedBox(height: 8),
-                      _buildPageButton('Results', 'flag', () => _goToResultsScreen(context)),
-                    ],
-                    if (!showResultsButton) ...[
-                      // const SizedBox(height: 8),
-                      Row(
-                          children: [
-                            Expanded(
-                              child: _buildActionButton(
-                                'Share Runners',
-                                'share',
-                                () async {
-                              final data = await _getEncodedRunnersData();
-                              showDeviceConnectionPopup(
-                                context,
-                                deviceType: DeviceType.advertiserDevice,
-                                deviceName: DeviceName.coach,
-                                otherDevices: createOtherDeviceList(
-                                  DeviceName.coach,
-                                  DeviceType.advertiserDevice,
-                                  data: data,
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildActionButton(
-                            'Receive Results',
-                            'receive',
-                            () async {
-                              final otherDevices = createOtherDeviceList(
-                                DeviceName.coach,
-                                DeviceType.browserDevice,
-                              );
-                              await showDeviceConnectionPopup(
-                                context,
-                                deviceType: DeviceType.browserDevice,
-                                deviceName: DeviceName.coach,
-                                otherDevices: otherDevices,
-                              );
-                              final encodedBibRecords = otherDevices[DeviceName.bibRecorder]!['data'];
-                              final encodedFinishTimes = otherDevices[DeviceName.raceTimer]!['data'];
-                              if (encodedBibRecords == null || encodedFinishTimes == null) return;
-                              
-                              var runnerRecords = await processEncodedBibRecordsData(encodedBibRecords, context, raceId);
-                              final timingData = await processEncodedTimingData(encodedFinishTimes, context);
-                              
-                              if (runnerRecords.isNotEmpty && timingData != null) {
-                                timingData['records'] = await syncBibData(runnerRecords.length, timingData['records'], timingData['endTime'], context);
-                                Navigator.pop(context);
-                                if (_containsBibConflicts(runnerRecords)) {
-                                  runnerRecords = await Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => ResolveBibNumberScreen(records: runnerRecords, raceId: raceId),
-                                    ),
-                                  );
-                                }
-                                final bool conflicts = await _containsTimingConflicts(timingData);
-                                if (conflicts) {
-                                  _goToMergeConflictsScreen(context, runnerRecords, timingData);
-                                } else {
-                                  timingData['records'] = timingData['records'].where((r) => r['type'] == 'runner_time').toList();
-                                  _goToEditScreen(context, runnerRecords, timingData);
-                                }
-                              }
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                  // ],
-                // ),
-                    ],
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SizedBox(height: 8),
+                  _buildPageButton('Race Info', 'info', () => _goToDetailsScreen(context)),
+                  const SizedBox(height: 12),
+                  _buildPageButton('Runners', 'runner', () => _goToRunnersScreen(context)),
+                  if (showResultsButton) ...[
+                    const SizedBox(height: 12),
+                    _buildPageButton('Results', 'flag', () => _goToResultsScreen(context)),
                   ],
+                  if (race!.flowState == 'setup' || race!.flowState == 'pre_race') ...[
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: () async {
+                        if (race!.flowState == 'setup') {
+                          await _setupRace(raceId);
+                        } else {
+                          await _preRaceSetup(raceId);
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryColor,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: Text(
+                        race!.flowState == 'setup' ? 'Setup Race' : 'Continue Race Setup',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
-            )
-        ]
-          );
+            ),
+          ],
+        );
       },
     );
   }
@@ -573,118 +1007,151 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
     return true;
   }
 
+  Future<void> _showRaceResultsScreen(int raceId) async{
+  }
+
   @override
   Widget build(BuildContext context) {
     if (race == null) {
-      return const Center(
-        child: CircularProgressIndicator(),
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
       );
     }
 
-    late final FlowStep runnersStep;
-    runnersStep = FlowStep(
-      title: 'Load Runners',
-      content: RunnersManagementScreen(
-        raceId: raceId,
-        showHeader: false,
-        onBack: null,
-        onContentChanged: () => runnersStep.notifyContentChanged(),
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(race!.race_name),
+        leading: IconButton(
+          icon: const Icon(Icons.close),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
       ),
-      canProceed: () => _checkIfRunnersAreLoaded(raceId),
-    );
-
-    final steps = [
-      runnersStep,
-      FlowStep(
-        title: 'Share Runners',
-        content: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text(
-              'Before the race starts, share\nthe runners with the bib\nrecorders phone.',
-              textAlign: TextAlign.left,
-              style: TextStyle(
-                fontSize: 24,
-              ),
-            ),
-            const SizedBox(height: 8),
-            SvgPicture.asset('assets/icon/radio.svg', color: AppColors.primaryColor, width: 300, height: 300),
-            SizedBox(width: 8),
-            // Share runners button
-            ElevatedButton(
-              onPressed: () async {
-                final data = await _getEncodedRunnersData();
-                showDeviceConnectionPopup(
-                  context,
-                  deviceType: DeviceType.advertiserDevice,
-                  deviceName: DeviceName.coach,
-                  otherDevices: createOtherDeviceList(
-                    DeviceName.coach,
-                    DeviceType.advertiserDevice,
-                    data: data,
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryColor,
-                minimumSize: Size(300, 75),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Race status banner
+          Container(
+            color: _getStatusColor(race!.flowState),
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+            child: Row(
+              children: [
+                Icon(
+                  _getStatusIcon(race!.flowState),
+                  color: Colors.white,
                 ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SvgPicture.asset('assets/icon/share.svg', color: Colors.white, width: 32, height: 32),
-                  SizedBox(width: 8),
-                  Text(
-                    'Share runners',
+                const SizedBox(width: 8),
+                Text(
+                  _getStatusText(race!.flowState),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Spacer(),
+                TextButton(
+                  onPressed: _continueRaceFlow,
+                  style: TextButton.styleFrom(
+                    backgroundColor: Colors.white.withOpacity(0.2),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  ),
+                  child: const Text(
+                    'Continue',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
+                ),
+              ],
+            ),
+          ),
+          // Race details
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Race Details',
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildDetailRow('Date', race!.race_date.toString().split(' ')[0]),
+                  _buildDetailRow('Location', race!.location),
+                  _buildDetailRow('Distance', '${race!.distance} ${race!.distanceUnit}'),
+                  _buildDetailRow('Teams', race!.teams.join(', ')),
+                  _buildDetailRow('Status', _getStatusText(race!.flowState)),
                 ],
               ),
             ),
-          ],
-        ),
-        canProceed: () async => true,
-      ),
-      FlowStep(
-        title: 'Load Race Results',
-        content: Text('Load Race Results'),
-        canProceed: () async => true,
-      ),
-      FlowStep(
-        title: 'Resolve Bib Conflicts',
-        content: Text('Resolve Bib Conflicts'),
-        canProceed: () async => true,
-      ),
-      FlowStep(
-        title: 'Merge Conflicts',
-        content: Text('Merge Conflicts'),
-        canProceed: () async => true,
-      ),
-      FlowStep(
-        title: 'Results',
-        content: Text('Results'),
-        canProceed: () async => true,
-      ),
-    ];
-
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await showFlow(
-        context: context,
-        steps: steps,
-      );
-      Navigator.pop(context);
-    });
-
-    return const Scaffold(
-      body: Center(
-        child: CircularProgressIndicator(),
+          ),
+        ],
       ),
     );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Text(
+            '$label: ',
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          Text(value),
+        ],
+      ),
+    );
+  }
+
+  Color _getStatusColor(String flowState) {
+    switch (flowState) {
+      case 'setup':
+        return Colors.blue;
+      case 'pre_race':
+        return Colors.orange;
+      case 'post_race':
+        return Colors.purple;
+      case 'finished':
+        return Colors.green;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  IconData _getStatusIcon(String flowState) {
+    switch (flowState) {
+      case 'setup':
+        return Icons.settings;
+      case 'pre_race':
+        return Icons.sports_score;
+      case 'post_race':
+        return Icons.assessment;
+      case 'finished':
+        return Icons.check_circle;
+      default:
+        return Icons.help_outline;
+    }
+  }
+
+  String _getStatusText(String flowState) {
+    switch (flowState) {
+      case 'setup':
+        return 'Setting Up';
+      case 'pre_race':
+        return 'Pre-Race';
+      case 'post_race':
+        return 'Post-Race';
+      case 'finished':
+        return 'Completed';
+      default:
+        return 'Unknown';
+    }
   }
 }
