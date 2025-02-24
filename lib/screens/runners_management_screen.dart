@@ -8,7 +8,6 @@ import '../utils/sheet_utils.dart';
 import '../utils/textfield_utils.dart';
 import '../database_helper.dart';
 import '../file_processing.dart';
-import '../utils/ui_components.dart';
 
 // Models
 class Team {
@@ -154,7 +153,7 @@ class _RunnerListItemState extends State<RunnerListItem> {
       ),
       child: Container(
         decoration: BoxDecoration(
-          color: bibColor.withOpacity(0.1),
+          color: bibColor.withAlpha((0.1 * 255).round()),
         ),
         child: Column(
           children: [
@@ -615,7 +614,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
           children: [
             const Divider(height: 1, thickness: 1, color: Colors.grey),
             Container(
-              color: schoolColor?.withOpacity(0.1) ?? Colors.grey.withOpacity(0.1),
+              color: schoolColor?.withAlpha((0.1 * 255).round()) ?? Colors.grey.withAlpha((0.1 * 255).round()),
               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
               child: Text(
                 school,
@@ -774,7 +773,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: (schoolError != null || bibError != null || gradeError != null || nameError != null || _nameController == null || _nameController!.text.isEmpty || _gradeController!.text.isEmpty || _schoolController!.text.isEmpty || _bibController!.text.isEmpty)
-                      ? AppColors.primaryColor.withOpacity(.5)
+                      ? AppColors.primaryColor.withAlpha((0.5 * 255).round())
                       : AppColors.primaryColor,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -837,8 +836,9 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
         if (existingRunner['race_runner_id'] == runner.raceRunnerId) {
           await _updateRunner(runner);
         } else {
+          if (!mounted) return;
           // If a different runner exists with this bib, ask for confirmation
-        final shouldOverwrite = await DialogUtils.showConfirmationDialog(
+          final shouldOverwrite = await DialogUtils.showConfirmationDialog(
           context,
           title: 'Overwrite Runner',
           content: 'A runner with bib number ${runner.bibNumber} already exists. Do you want to overwrite it?',
@@ -912,6 +912,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
       }).toList(),
     );
 
+    if (!mounted) return;
     await sheet(
       context: context,
       title: 'Sample Spreadsheet',
@@ -994,6 +995,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
     await _loadRunners();
     if (overwriteRunners.isEmpty) return;
     final overwriteRunnersBibs = overwriteRunners.map((runner) => runner['bib_number']).toList();
+    if (!mounted) return;
     final overwriteExistingRunners = await DialogUtils.showConfirmationDialog(
       context,
       title: 'Confirm Overwrite',

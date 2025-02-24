@@ -39,7 +39,7 @@ class FlowStep {
 
   void notifyContentChanged() {
     _contentChangeController.add(null);
-    print('notified content changed');
+    debugPrint('notified content changed');
   }
 
   void dispose() {
@@ -140,7 +140,7 @@ class FlowIndicator extends StatelessWidget {
                           'assets/icon/check.svg',
                           width: 16,
                           height: 16,
-                          color: Colors.white,
+                          colorFilter: ColorFilter.mode(Colors.white, BlendMode.srcIn),
                         )
                       : Text(
                           '${index + 1}',

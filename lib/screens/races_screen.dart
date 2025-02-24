@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'race_screen.dart';
-import 'runners_management_screen.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import '../models/race.dart';
 import '../database_helper.dart';
@@ -25,11 +23,11 @@ class RacesScreen extends StatefulWidget {
   const RacesScreen({super.key});
 
   @override
-  _RacesScreenState createState() => _RacesScreenState();
+ RacesScreenState createState() => RacesScreenState();
 }
 
 
-class _RacesScreenState extends State<RacesScreen> {
+class RacesScreenState extends State<RacesScreen> {
   List<Race> races = [];
   bool isLocationButtonVisible = true;
   final nameController = TextEditingController();
@@ -295,7 +293,7 @@ class _RacesScreenState extends State<RacesScreen> {
                 .map((controller) => controller.text.trim())
                 .where((text) => text.isNotEmpty)
                 .toList()),
-            'team_colors': jsonEncode(_teamColors.map((color) => color.value).toList()),
+            'team_colors': jsonEncode(_teamColors.map((color) => color.toARGB32()).toList()),
           };
 
           if (isEditing && raceId != null) {
@@ -421,7 +419,7 @@ class _RacesScreenState extends State<RacesScreen> {
                       border: Border.all(color: Colors.grey[300]!),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withAlpha((0.1 * 255).round()),
                           blurRadius: 4,
                           offset: Offset(0, 2),
                         ),
@@ -592,7 +590,7 @@ class _RacesScreenState extends State<RacesScreen> {
       });
       _updateLocationButtonVisibility();
     } catch (e) {
-      print('Error getting location: $e');
+      debugPrint('Error getting location: $e');
       if(!mounted) return;
       DialogUtils.showErrorDialog(context, message: 'Could not get location');
     }
@@ -795,10 +793,10 @@ class _RacesScreenState extends State<RacesScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: flowStateColor.withOpacity(0.1),
+                          color: flowStateColor.withAlpha((0.1 * 255).round()),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: flowStateColor.withOpacity(0.5),
+                            color: flowStateColor.withAlpha((0.5 * 255).round()),
                             width: 1,
                           ),
                         ),

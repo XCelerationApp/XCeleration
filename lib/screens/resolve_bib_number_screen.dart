@@ -121,7 +121,7 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
                 side: BorderSide(
-                  color: AppColors.primaryColor.withOpacity(0.2),
+                  color: AppColors.primaryColor.withAlpha((0.2 * 255).round()),
                   width: 1,
                 ),
               ),
@@ -175,10 +175,10 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withAlpha((0.1 * 255).round()),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: color.withOpacity(0.2),
+          color: color.withAlpha((0.2 * 255).round()),
           width: 1,
         ),
       ),
@@ -256,7 +256,7 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withAlpha((0.05 * 255).round()),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -272,13 +272,13 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(
-              color: AppColors.primaryColor.withOpacity(0.2),
+              color: AppColors.primaryColor.withAlpha((0.2 * 255).round()),
             ),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(
-              color: AppColors.primaryColor.withOpacity(0.2),
+              color: AppColors.primaryColor.withAlpha((0.2 * 255).round()),
             ),
           ),
           focusedBorder: OutlineInputBorder(
@@ -323,7 +323,7 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withAlpha((0.05 * 255).round()),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),

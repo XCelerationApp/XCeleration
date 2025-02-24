@@ -24,18 +24,18 @@ class GoogleSheetsUtils {
       
       final account = await googleSignIn.signIn();
       if (account == null) {
-        print('Sign in cancelled by user');
+        debugPrint('Sign in cancelled by user');
         return false;
       }
 
       final auth = await account.authentication;
       final client = GoogleAuthClient(auth.accessToken!);
       final sheetsApi = sheets.SheetsApi(client);
-      print(sheetsApi);
+      debugPrint(sheetsApi.toString());
       
       return true;
     } catch (e) {
-      print('Sign in error: $e');
+      debugPrint('Sign in error: $e');
       return false;
     }
   }
@@ -58,7 +58,7 @@ class GoogleSheetsUtils {
       
       return sheets.SheetsApi(client);
     } catch (e) {
-      print('Sheets API Error: $e');  // Add error logging
+      debugPrint('Sheets API Error: $e');  // Add error logging
       return null;
     }
   }
@@ -80,7 +80,7 @@ class GoogleSheetsUtils {
       
       return drive.DriveApi(client);
     } catch (e) {
-      print('Drive API Error: $e');  // Add error logging
+      debugPrint('Drive API Error: $e');  // Add error logging
       return null;
     }
   }
@@ -113,8 +113,9 @@ class GoogleSheetsUtils {
           range,
           valueInputOption: 'USER_ENTERED',
         );
+        if (!context.mounted) return null;
 
-        // Set the sharing permissions to "anyone with the link can view"
+        // Set the sharing permissions to 'anyone with the link can view'
         final driveApi = await _getDriveApi(context);
         if (driveApi != null) {
           try {
@@ -138,14 +139,14 @@ class GoogleSheetsUtils {
               $fields: 'webViewLink,permissions',
             ) as drive.File;
             
-            print('File permissions: ${file.permissions}');  // Debug log
+            debugPrint('File permissions: ${file.permissions}');  // Debug log
             
             if (file.webViewLink != null) {
               return file.webViewLink;
             }
             return 'https://docs.google.com/spreadsheets/d/$spreadsheetId';
           } catch (e) {
-            print('Error setting permissions: $e');
+            debugPrint('Error setting permissions: $e');
             // Still return the URL even if permission setting fails
             return 'https://docs.google.com/spreadsheets/d/$spreadsheetId';
           }
@@ -153,7 +154,7 @@ class GoogleSheetsUtils {
         return 'https://docs.google.com/spreadsheets/d/$spreadsheetId';
       }
     } catch (e) {
-      print('Spreadsheet creation error: $e');  // Add error logging
+      debugPrint('Spreadsheet creation error: $e');  // Add error logging
       return null;
     }
     return null;

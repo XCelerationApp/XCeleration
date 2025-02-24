@@ -29,10 +29,10 @@ class RaceScreen extends StatefulWidget {
   });
 
   @override
-  _RaceScreenState createState() => _RaceScreenState();
+  RaceScreenState createState() => RaceScreenState();
 }
 
-class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
+class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
   late String _name = '';
   late String _location = '';
   late String _date = '';
@@ -175,7 +175,7 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
               'You\'re ready to start managing your race.',
               style: TextStyle(
                 fontSize: 16,
-                color: AppColors.darkColor.withOpacity(0.7),
+                color: AppColors.darkColor.withAlpha((0.7 * 255).round()),
               ),
             ),
           ],
@@ -228,7 +228,7 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
           children: [
             SvgPicture.asset(
               'assets/icon/radio.svg', 
-              color: AppColors.primaryColor, 
+              colorFilter: ColorFilter.mode(AppColors.primaryColor, BlendMode.srcIn), 
               width: 200, 
               height: 200
             ),
@@ -236,6 +236,7 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
             ElevatedButton(
               onPressed: () async {
                 final data = await _getEncodedRunnersData();
+                if (!mounted) return;
                 showDeviceConnectionPopup(
                   context,
                   deviceType: DeviceType.advertiserDevice,
@@ -259,7 +260,7 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
                 children: [
                   SvgPicture.asset(
                     'assets/icon/share.svg', 
-                    color: Colors.white, 
+                    colorFilter: ColorFilter.mode(Colors.white, BlendMode.srcIn), 
                     width: 24, 
                     height: 24
                   ),
@@ -346,7 +347,7 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
           children: [
             SvgPicture.asset(
               'assets/icon/radio.svg', 
-              color: AppColors.primaryColor, 
+              colorFilter: ColorFilter.mode(AppColors.primaryColor, BlendMode.srcIn), 
               width: 200, 
               height: 200
             ),
@@ -365,7 +366,7 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
                 'You can proceed to review the results or load them again if needed.',
                 style: TextStyle(
                   fontSize: 14,
-                  color: AppColors.darkColor.withOpacity(0.7),
+                  color: AppColors.darkColor.withAlpha((0.7 * 255).round()),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -408,13 +409,14 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
                 );
                 final encodedBibRecords = otherDevices[DeviceName.bibRecorder]!['data'];
                 final encodedFinishTimes = otherDevices[DeviceName.raceTimer]!['data'];
-                if (encodedBibRecords == null || encodedFinishTimes == null) return;
-                
+                if (encodedBibRecords == null || encodedFinishTimes == null || !mounted) return;
                 var runnerRecords = await processEncodedBibRecordsData(encodedBibRecords, context, raceId);
+                if (!mounted) return;
                 final timingData = await processEncodedTimingData(encodedFinishTimes, context);
                 
-                if (runnerRecords.isNotEmpty && timingData != null) {
+                if (runnerRecords.isNotEmpty && timingData != null && mounted) {
                   timingData['records'] = await syncBibData(runnerRecords.length, timingData['records'], timingData['endTime'], context);
+                  if (!mounted) return;
                   Navigator.pop(context);
                   if (_containsBibConflicts(runnerRecords)) {
                     runnerRecords = await Navigator.push(
@@ -424,7 +426,8 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
                       ),
                     );
                   }
-                  final bool conflicts = await _containsTimingConflicts(timingData);
+                  final bool conflicts = _containsTimingConflicts(timingData);
+                  if (!mounted) return;
                   if (conflicts) {
                     _goToMergeConflictsScreen(context, runnerRecords, timingData);
                   } else {
@@ -468,7 +471,7 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
                 'Make sure all times and placements are correct.',
                 style: TextStyle(
                   fontSize: 16,
-                  color: AppColors.darkColor.withOpacity(0.7),
+                  color: AppColors.darkColor.withAlpha((0.7 * 255).round()),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -560,7 +563,7 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
                 'Click Next to save the results and complete the race.',
                 style: TextStyle(
                   fontSize: 16,
-                  color: AppColors.darkColor.withOpacity(0.7),
+                  color: AppColors.darkColor.withAlpha((0.7 * 255).round()),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -605,7 +608,7 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
       });
     }
     else {
-      print('raceData is null');
+      debugPrint('raceData is null');
     }
   }
 
@@ -1053,7 +1056,7 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
                 TextButton(
                   onPressed: _continueRaceFlow,
                   style: TextButton.styleFrom(
-                    backgroundColor: Colors.white.withOpacity(0.2),
+                    backgroundColor: Colors.white.withAlpha((0.2 * 255).round()),
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   ),
                   child: const Text(

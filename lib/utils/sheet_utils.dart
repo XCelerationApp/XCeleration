@@ -100,7 +100,7 @@ Widget createSheetHeader(String title, {
   );
 }
 
-Future<dynamic> sheet({required BuildContext context, required Widget body, required String title, double titleSize = 24, Widget? action_buttons, bool showHeader = true, bool takeUpScreen = false}) async {
+Future<dynamic> sheet({required BuildContext context, required Widget body, required String title, double titleSize = 24, Widget? actionButtons, bool showHeader = true, bool takeUpScreen = false}) async {
   return await showModalBottomSheet(
     backgroundColor: AppColors.backgroundColor,
     context: context,
@@ -128,7 +128,7 @@ Future<dynamic> sheet({required BuildContext context, required Widget body, requ
           children: [
             if (showHeader) createSheetHeader(title, titleSize: titleSize),
             Flexible(child: body),
-            if (action_buttons != null) action_buttons,
+            if (actionButtons != null) actionButtons,
           ],
         ),
       ),

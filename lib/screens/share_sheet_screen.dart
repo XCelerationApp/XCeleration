@@ -88,13 +88,13 @@ class _ShareSheetScreenState extends State<ShareSheetScreen> {
         await file.writeAsString(_getFormattedText());
       }
 
-      if (mounted) {
+      if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Saved to ${file.path}')),
         );
       }
     } catch (e) {
-      if (mounted) {
+      if (context.mounted) {
         DialogUtils.showErrorDialog(context, message: 'Failed to save file: $e');
       }
     }
@@ -124,13 +124,13 @@ class _ShareSheetScreenState extends State<ShareSheetScreen> {
           break;
       }
 
-      if (mounted) {
+      if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Copied to clipboard')),
         );
       }
     } catch (e) {
-      if (mounted) {
+      if (context.mounted) {
         DialogUtils.showErrorDialog(context, message: 'Failed to copy to clipboard: $e');
       }
     }
@@ -181,7 +181,7 @@ class _ShareSheetScreenState extends State<ShareSheetScreen> {
           
           // Team Results Section
           pw.Header(level: 1, child: pw.Text('Team Results')),
-          pw.Table.fromTextArray(
+          pw.TableHelper.fromTextArray(
             headers: ['Rank', 'School', 'Score', 'Split Time', 'Average Time'],
             data: widget.teamResults.map((team) => [
               team['place'].toString(),
@@ -196,7 +196,7 @@ class _ShareSheetScreenState extends State<ShareSheetScreen> {
           
           // Individual Results Section
           pw.Header(level: 1, child: pw.Text('Individual Results')),
-          pw.Table.fromTextArray(
+          pw.TableHelper.fromTextArray(
             headers: ['Place', 'Name', 'School', 'Time'],
             data: widget.individualResults.map((runner) => [
               runner['place'].toString(),
@@ -247,7 +247,7 @@ class _ShareSheetScreenState extends State<ShareSheetScreen> {
           break;
       }
     } catch (e) {
-      if (mounted) {
+      if (context.mounted) {
         DialogUtils.showErrorDialog(context, message: 'Failed to send email: $e');
       }
     }
@@ -275,7 +275,7 @@ class _ShareSheetScreenState extends State<ShareSheetScreen> {
               )
             ],
           );
-        } else if (mounted) {
+        } else if (context.mounted) {
           DialogUtils.showErrorDialog(context, message: 'Could not share the PDF');
         }
         return;
@@ -287,11 +287,11 @@ class _ShareSheetScreenState extends State<ShareSheetScreen> {
 
       if (await canLaunchUrl(smsLaunchUri)) {
         await launchUrl(smsLaunchUri);
-      } else if (mounted) {
+      } else if (context.mounted) {
         DialogUtils.showErrorDialog(context, message: 'Could not launch SMS app');
       }
     } catch (e) {
-      if (mounted) {
+      if (context.mounted) {
         DialogUtils.showErrorDialog(context, message: 'Failed to send SMS: $e');
       }
     }

@@ -28,8 +28,8 @@ class BibNumberScreen extends StatefulWidget {
 
 class _BibNumberScreenState extends State<BibNumberScreen> {
   // late Race race;
-  List<dynamic> _runners = [{'bib_number': '1234', 'name': 'Teo Donnelley', 'school': 'AW', 'grade': '11'}];
-  // List<dynamic> _runners = [];
+  // List<dynamic> _runners = [{'bib_number': '1234', 'name': 'Teo Donnelley', 'school': 'AW', 'grade': '11'}];
+  List<dynamic> _runners = [];
   Map<DeviceName, Map<String, dynamic>> otherDevices = createOtherDeviceList(
     DeviceName.bibRecorder,
     DeviceType.browserDevice,
@@ -99,16 +99,16 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                         }
 
                         if (_runners.isNotEmpty) _runners.clear();
-                        print('Runners loaded: $runners');
+                        debugPrint('Runners loaded: $runners');
                         _runners = runners;
                       }
                     });
-                    if (_runners.isNotEmpty) {
+                    if (_runners.isNotEmpty && context.mounted) {
                       Navigator.pop(context);  
                       _handleBibNumber('');
                     }
                     else {
-                      print('No runners loaded');
+                      debugPrint('No runners loaded');
                     }
                   },
                 ),
@@ -368,6 +368,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     }
 
     final String bibData = _getEncodedBibData();
+    if (!mounted) return;
     await showDeviceConnectionPopup(
       context,
       deviceType: DeviceType.advertiserDevice,
@@ -464,7 +465,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
         i == index ? confidences : null);
     }
 
-    if (_runners.isNotEmpty) {
+    if (_runners.isNotEmpty && mounted) {
       Provider.of<BibRecordsProvider>(context, listen: false)
         .focusNodes[index ?? provider.bibRecords.length - 1]
         .requestFocus();

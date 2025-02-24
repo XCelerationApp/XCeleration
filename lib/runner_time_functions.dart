@@ -40,7 +40,7 @@ dynamic confirmRunnerNumber(records, numTimes, String finishTime) {
 }
 
 dynamic deleteConfirmedRecordsBeforeIndexUntilConflict(records, int recordIndex) {
-  print(recordIndex);
+  debugPrint(recordIndex.toString());
   if (recordIndex < 0 || recordIndex >= records.length) {
     return;
   }
@@ -126,17 +126,17 @@ List<dynamic> getConflictingRecords(
 // Timing Operations
 Future<List<Map<String, dynamic>>> syncBibData(int runnerRecordsLength, List<Map<String, dynamic>> records, String finishTime, BuildContext context) async {
   final numberOfRunnerTimes = getNumberOfTimes(records);
-  print('Number of runner times: $numberOfRunnerTimes');
+  debugPrint('Number of runner times: $numberOfRunnerTimes');
   if (numberOfRunnerTimes != runnerRecordsLength) {
-    print('Runner records length: $runnerRecordsLength, Number of runner times: $numberOfRunnerTimes');
+    debugPrint('Runner records length: $runnerRecordsLength, Number of runner times: $numberOfRunnerTimes');
     await _handleTimingDiscrepancy(runnerRecordsLength, records, numberOfRunnerTimes, finishTime, context);
   } else {
-    print('Runner records length: $runnerRecordsLength, Number of runner times: $numberOfRunnerTimes');
+    debugPrint('Runner records length: $runnerRecordsLength, Number of runner times: $numberOfRunnerTimes');
     records = await confirmRunnerNumber(records, numberOfRunnerTimes, finishTime);
   }
-  print('');
-  print(records);
-  print('');
+  debugPrint('');
+  debugPrint(records.toString());
+  debugPrint('');
   return records;
 }
 

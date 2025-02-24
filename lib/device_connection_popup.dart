@@ -112,7 +112,7 @@ class _DeviceConnectionPopupContentState extends State<DeviceConnectionPopupCont
       try {
         await _audioPlayer.play(AssetSource('sounds/completed_ding.mp3'));
       } catch (e) {
-        print('Error playing completion sound: $e');
+        debugPrint('Error playing completion sound: $e');
       }
       Future.delayed(const Duration(seconds: 2), () {
         if (!mounted) return;  
@@ -266,17 +266,6 @@ class _DeviceConnectionPopupContentState extends State<DeviceConnectionPopupCont
       ),
     );
   }
-
-  Widget _buildBackButton() {
-    return Container(
-      height: 48,
-      alignment: Alignment.centerLeft,
-      child: IconButton(
-        icon: Icon(Icons.arrow_back, color: Colors.deepOrange),
-        onPressed: () => _handleScreenTransition(PopupScreen.main),
-      ),
-    );
-  }
 }
 
 Map<DeviceName, String> _deviceNameStrings = {
@@ -401,7 +390,7 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
     try {
       final bool isServiceAvailable = await _deviceConnectionService.checkIfNearbyConnectionsWorks();
       if (!isServiceAvailable) {
-        print('Device connection service is not available on this platform');
+        debugPrint('Device connection service is not available on this platform');
         setState(() {
           _wirelessConnectionError = WirelessConnectionError.unavailable;
         });
@@ -411,17 +400,17 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
       try {
         await _deviceConnectionService.init('wirelessconn', _getDeviceNameString(widget.deviceName), widget.deviceType);
       } catch (e) {
-        print('Error initializing device connection service: $e');
+        debugPrint('Error initializing device connection service: $e');
         rethrow;
       }
       try {
         _connectAndTransferData();
       } catch (e) {
-        print('Error connecting and transferring data: $e');
+        debugPrint('Error connecting and transferring data: $e');
         rethrow;
       }
     } catch (e) {
-      print('Error in device connection popup: $e');
+      debugPrint('Error in device connection popup: $e');
       setState(() {
         _wirelessConnectionError = WirelessConnectionError.unknown;
       });
@@ -443,10 +432,10 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
       final deviceName = _getDeviceNameFromString(device.deviceName);
       if (!widget.otherDevices.containsKey(deviceName) || 
           widget.otherDevices[deviceName]!['status'] == ConnectionStatus.finished) {
-        print('Ignoring device because it is not in the list of other devices or finished: ${device.deviceName}');
+        debugPrint('Ignoring device because it is not in the list of other devices or finished: ${device.deviceName}');
         return;
       }
-      print('Found device: ${device.deviceName}');
+      debugPrint('Found device: ${device.deviceName}');
       setState(() {
         widget.otherDevices[deviceName]!['status'] = ConnectionStatus.found;
       });
@@ -454,7 +443,7 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
       await _deviceConnectionService.inviteDevice(device);
     }
     Future<void> deviceLostCallback (device) async {
-      print('Lost device: ${device.deviceName}');
+      debugPrint('Lost device: ${device.deviceName}');
       return;
     }
     Future<void> deviceConnectingCallback (device) async {
@@ -465,70 +454,70 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
     }
     Future<void> deviceConnectedCallback (Device device) async {
       if (widget.otherDevices[_getDeviceNameFromString(device.deviceName)]!['status'] == ConnectionStatus.finished) return;
-      print('Connected to device: ${device.deviceName}');
+      debugPrint('Connected to device: ${device.deviceName}');
       setState(() {
         widget.otherDevices[_getDeviceNameFromString(device.deviceName)]!['status'] = ConnectionStatus.connected;
       });
 
       try {
-        print("Adding device to protocol");
+        debugPrint('Adding device to protocol');
         _protocol.addDevice(device);
         
-        print("Setting up message monitoring");
+        debugPrint('Setting up message monitoring');
         _deviceConnectionService.monitorMessageReceives(
           device,
           messageReceivedCallback: (package, senderId) async {
-            print('Received package from $senderId: ${package.type}');
+            debugPrint('Received package from $senderId: ${package.type}');
             await _protocol.handleMessage(package, senderId);
           },
         );
 
         if (widget.deviceType == DeviceType.browserDevice) {
-          print("Browser device: preparing to receive data");
+          debugPrint('Browser device: preparing to receive data');
           setState(() {
             widget.otherDevices[_getDeviceNameFromString(device.deviceName)]!['status'] = ConnectionStatus.receiving;
           });
           
           try {
-            print("Starting to receive data");
+            debugPrint('Starting to receive data');
             final results = await _protocol.receiveDataFromDevice(device.deviceId);
-            print("Received data: $results");
+            debugPrint('Received data: $results');
             widget.otherDevices[_getDeviceNameFromString(device.deviceName)]!['data'] = results;
             setState(() {
               widget.otherDevices[_getDeviceNameFromString(device.deviceName)]!['status'] = ConnectionStatus.finished;
             });
           } catch (e) {
-            print('Error receiving data for device ${device.deviceName}: $e');
+            debugPrint('Error receiving data for device ${device.deviceName}: $e');
             rethrow;
           }
         } else {
           if (widget.otherDevices[_getDeviceNameFromString(device.deviceName)]!['data'] != null) {
-            print("Advertiser device: preparing to send data");
+            debugPrint('Advertiser device: preparing to send data');
             setState(() {
               widget.otherDevices[_getDeviceNameFromString(device.deviceName)]!['status'] = ConnectionStatus.sending;
             });
             
             try {
               final data = widget.otherDevices[_getDeviceNameFromString(device.deviceName)]!['data']!;
-              print("Starting to send data: $data");
+              debugPrint('Starting to send data: $data');
               await _protocol.sendData(data, device.deviceId);
-              print("Data sent successfully");
+              debugPrint('Data sent successfully');
               setState(() {
                 widget.otherDevices[_getDeviceNameFromString(device.deviceName)]!['status'] = ConnectionStatus.finished;
               });
               _deviceConnectionService.disconnectDevice(device);
             } catch (e) {
-              print('Error sending data for device ${device.deviceName}: $e');
+              debugPrint('Error sending data for device ${device.deviceName}: $e');
               rethrow;
             }
           } else {
-            print("No data available for advertiser device to send");
+            debugPrint('No data available for advertiser device to send');
             throw Exception('No data for advertiser device ${device.deviceName} to send');
           }
         }
         _protocol.removeDevice(device.deviceId);
       } catch (e) {
-        print('Error in connection callback for device ${device.deviceName}: $e');
+        debugPrint('Error in connection callback for device ${device.deviceName}: $e');
         _protocol.removeDevice(device.deviceId);
         widget.otherDevices[_getDeviceNameFromString(device.deviceName)]!['status'] = ConnectionStatus.error;
         rethrow;
@@ -545,7 +534,7 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
       deviceConnectingCallback: deviceConnectingCallback,
       deviceConnectedCallback: deviceConnectedCallback,
     );
-    print('Finished setting up device monitoring');
+    debugPrint('Finished setting up device monitoring');
   }
 
   @override
@@ -561,6 +550,7 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
       if (result.type == ResultType.Barcode) {
         final parts = result.rawContent.split(':');
         if (parts.isEmpty || parts[0] != _getDeviceNameString(scanDeviceName)) {
+          if (!context.mounted) return;
           DialogUtils.showErrorDialog(context, message: 'Incorrect QR Code Scanned');
           return;
         }
@@ -571,8 +561,10 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
         _protocol.removeDevice(_getDeviceNameString(scanDeviceName));
       }
     } on MissingPluginException {
+      if (!context.mounted) return;
       DialogUtils.showErrorDialog(context, message: 'The QR code scanner is not available on this device.');
     } catch (e) {
+      if (!context.mounted) return;
       DialogUtils.showErrorDialog(context, message: 'An unknown error occurred: $e');
     }
   }

@@ -18,20 +18,20 @@ decodeRaceTimesString(String encodedData) async {
       records.add({'finish_time': recordString, 'type': 'runner_time', 'is_confirmed': false, 'text_color': null, 'place': place});
     }
     else {
-      final [type, offBy, finish_time] = recordString.split(' ');
+      final [type, offBy, finishTime] = recordString.split(' ');
       if (type == 'confirm_runner_number'){
-        records = confirmRunnerNumber(records, place - 1, finish_time);
+        records = confirmRunnerNumber(records, place - 1, finishTime);
       }
       else if (type == 'missing_runner_time'){
-        records = await missingRunnerTime(int.tryParse(offBy), records, place, finish_time);
+        records = await missingRunnerTime(int.tryParse(offBy), records, place, finishTime);
         place += int.tryParse(offBy)!;
       }
       else if (type == 'extra_runner_time'){
-        records = await extraRunnerTime(int.tryParse(offBy), records, place, finish_time);
+        records = await extraRunnerTime(int.tryParse(offBy), records, place, finishTime);
         place -= int.tryParse(offBy)!;
       }
       else {
-        print("Unknown type: $type, string: $recordString");
+        debugPrint('Unknown type: $type, string: $recordString');
       }
     }
   }
@@ -41,10 +41,11 @@ decodeRaceTimesString(String encodedData) async {
 Future<Map<String, dynamic>?> processEncodedTimingData(String data, BuildContext context) async {
   try {
     final timingData = await decodeRaceTimesString(data);
-    print(timingData);
+    debugPrint(timingData);
     for (var record in timingData['records']) {
-      print(record);
+      debugPrint(record);
     }
+    if (!context.mounted) return null;
     if (isValidTimingData(timingData)) {
       return timingData;
     } else {
@@ -85,10 +86,11 @@ Future<List<Map<String, dynamic>>> decodeBibRecordsString(String encodedBibRecor
 Future<List<Map<String, dynamic>>> processEncodedBibRecordsData(String data, BuildContext context, int raceId) async {
   try {
     final bibData = await decodeBibRecordsString(data, raceId);
-    print(bibData);
+    debugPrint(bibData.toString());
     for (var bibRecord in bibData) {
-      print(bibRecord);
+      debugPrint(bibRecord.toString());
     }
+    if (!context.mounted) return [];
     if (bibData.every((bibData) => isValidBibData(bibData))) {
       return bibData;
     } else {

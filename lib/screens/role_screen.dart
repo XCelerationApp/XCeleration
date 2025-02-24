@@ -9,7 +9,7 @@ class CustomPageRoute extends PageRouteBuilder {
 
   CustomPageRoute({required this.child})
       : super(
-          transitionDuration: const Duration(milliseconds: 500),
+          transitionDuration: const Duration(milliseconds: 600),
           pageBuilder: (context, animation, secondaryAnimation) => child,
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             const curve = Curves.easeInOut;
@@ -21,6 +21,26 @@ class CustomPageRoute extends PageRouteBuilder {
             );
           },
         );
+}
+
+Widget buildRoleButton({
+  required String text,
+  required VoidCallback onPressed,
+}) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+    child: ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        padding: const EdgeInsets.all(20.0),
+        fixedSize: const Size(300, 75),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(fontSize: 30, color: AppColors.selectedRoleTextColor),
+      ),
+    ),
+  );
 }
 
 class RoleScreen extends StatelessWidget {
@@ -60,36 +80,22 @@ class RoleScreen extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
               SizedBox(height: 30),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      CustomPageRoute(child: const RacesScreen()),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.all(20.0),
-                    fixedSize: const Size(300, 75),
-                  ),
-                  child: Text('Coach', style: TextStyle(fontSize: 30, color: AppColors.selectedRoleTextColor)),
-                ),
+              buildRoleButton(
+                text: 'Coach',
+                onPressed: () {
+                  Navigator.of(context).push(
+                    CustomPageRoute(child: const RacesScreen()),
+                  );
+                },
               ),
               SizedBox(height: 15),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      CustomPageRoute(child: const AssistantRoleScreen()),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.all(20.0),
-                    fixedSize: const Size(300, 75),
-                  ),
-                  child: Text('Assistant', style: TextStyle(fontSize: 30, color: AppColors.selectedRoleTextColor)),
-                ),
+              buildRoleButton(
+                text: 'Assistant',
+                onPressed: () {
+                  Navigator.of(context).push(
+                    CustomPageRoute(child: const AssistantRoleScreen()),
+                  );
+                },
               ),
             ],
           ),
@@ -138,36 +144,22 @@ class AssistantRoleScreen extends StatelessWidget {
                     textAlign: TextAlign.center,
                   ),
                   SizedBox(height: 30),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          CustomPageRoute(child: const TimingScreen()),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.all(20.0),
-                        fixedSize: const Size(300, 75),
-                      ),
-                      child: Text('Timer', style: TextStyle(fontSize: 30, color: AppColors.selectedRoleTextColor)),
-                    ),
+                  buildRoleButton(
+                    text: 'Timer',
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        CustomPageRoute(child: const TimingScreen()),
+                      );
+                    },
                   ),
                   SizedBox(height: 15),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          CustomPageRoute(child: const BibNumberScreen()),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.all(20.0),
-                        fixedSize: const Size(300, 75),
-                      ),
-                      child: Text('Recorder', style: TextStyle(fontSize: 30, color: AppColors.selectedRoleTextColor)),
-                    ),
+                  buildRoleButton(
+                    text: 'Recorder',
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        CustomPageRoute(child: const BibNumberScreen()),
+                      );
+                    },
                   ),
                 ],
               ),

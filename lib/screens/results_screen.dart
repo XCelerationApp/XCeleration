@@ -353,7 +353,7 @@ class ResultsScreenState extends State<ResultsScreen> {
 
       // Save CSV file
       final filepath = await CsvUtils.saveCsvWithFileSaver(filename, csvContent);
-
+      if (!mounted) return;
       if (filepath != '') {
         DialogUtils.showSuccessDialog(context, message: 'CSV saved at $filepath');
       }
@@ -481,9 +481,9 @@ class ResultsScreenState extends State<ResultsScreen> {
       nonScoringTeamScores.add({
         'place': null,
         'school': school,
-        'score': "N/A",
-        'scorers': "N/A",
-        'times': "N/A",
+        'score': 'N/A',
+        'scorers': 'N/A',
+        'times': 'N/A',
         'sixth_runner': null,
         'seventh_runner': null,
       });

@@ -51,7 +51,7 @@ final List<RoleOption> profileOptions = [
   RoleOption(
     value: 'assistant',
     title: 'Assistant',
-    description: 'Assist the coach by timing or recording bib numbers',
+    description: 'Assist the coach by gathering race results',
     icon: Icons.person,
     screen: const RacesScreen(),
   ),
@@ -134,7 +134,7 @@ void changeRole(BuildContext context, String currentRole) {
     body: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        ...profileOptions.map((role) => _buildRoleListTile(context, role, currentRole)),
+        ...roleOptions.map((role) => _buildRoleListTile(context, role, currentRole)),
         const SizedBox(height: 30),
       ],
     ),

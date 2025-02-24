@@ -792,7 +792,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
 
   @override
   void dispose() {
-    print('TimingScreen disposed');
+    debugPrint('TimingScreen disposed');
     _tabController.dispose();
     _scrollController.dispose();
     _audioPlayer.dispose();

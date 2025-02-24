@@ -2,7 +2,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'dart:convert';
 import '../models/race.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
@@ -310,7 +310,7 @@ class DatabaseHelper {
     final db = await instance.database;
     final batch = db.batch();
     for (var result in results) {
-      print(result);
+      debugPrint(result.toString());
       batch.insert('race_results', result);
     }
     await batch.commit();
@@ -509,7 +509,7 @@ class DatabaseHelper {
 
 
   Future<void> deleteDatabase() async {
-    print('deleting database');
+    debugPrint('deleting database');
     String path = join(await getDatabasesPath(), 'races.db');
     await databaseFactory.deleteDatabase(path);
     _database = null;
