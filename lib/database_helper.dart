@@ -52,6 +52,7 @@ class DatabaseHelper {
         location TEXT,
         distance DOUBLE,
         distance_unit TEXT,
+        flow_state TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     ''');
@@ -79,6 +80,19 @@ class DatabaseHelper {
         place INTEGER,
         finish_time TEXT,
         FOREIGN KEY (race_id) REFERENCES races(race_id)
+      )
+    ''');
+
+    // Create race_results table
+    await db.execute('''
+      CREATE TABLE race_results_data(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        race_id INTEGER NOT NULL,
+        results_data TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY (race_id) REFERENCES races (race_id)
+          ON DELETE CASCADE
       )
     ''');
   }
@@ -154,44 +168,13 @@ class DatabaseHelper {
     List<dynamic> result = [];
     
     for (var map in maps) {
-      DateTime raceDate;
-      try {
-        raceDate = DateTime.parse(map['race_date'].trim());
-      } catch (e) {
-        raceDate = DateTime.now();
-      }
-
-      final List<String> teams = List<String>.from(jsonDecode(map['teams']));
-      final List<Color> teamColors = List<int>.from(jsonDecode(map['team_colors'])).map((colorValue) {
-        return Color(colorValue);
-      }).toList();
-
-      if (!getState){ result.add(Race(
-          raceId: map['race_id'],
-          raceName: map['race_name'],
-          raceDate: raceDate,
-          location: map['location'],
-          distance: map['distance'],
-          distanceUnit: map['distance_unit'],
-          teamColors: teamColors,
-          teams: teams,
-        ));
-      }
-      else {
+      if (!getState) {
+        result.add(Race.fromJson(map));
+      } else {
         final raceState = await getRaceState(map['race_id']);
-
         result.add({
           ...map,
-          'race': Race(
-            raceId: map['race_id'],
-            raceName: map['race_name'],
-            raceDate: raceDate,
-            location: map['location'],
-            distance: map['distance'],
-            distanceUnit: map['distance_unit'],
-            teamColors: teamColors,
-            teams: teams,
-          ),
+          'race': Race.fromJson(map),
           'state': raceState,
         });
       }
@@ -207,34 +190,10 @@ class DatabaseHelper {
       where: 'race_id = ?',
       whereArgs: [id],
     );
-    final Map<String, dynamic>? race = results.isNotEmpty ? results.first : null;
-    if (race == null) return null;
-    DateTime raceDate;
-    try {
-      raceDate = DateTime.parse(race['race_date'].trim());
-    } catch (e) {
-      print('Error parsing date: ${race['race_date']}');
-      raceDate = DateTime.now(); // or handle it in a way that makes sense for your app
-    }
-    final List<dynamic> teamColorsDynamic = jsonDecode(race['team_colors']);
-    final List<dynamic> teamsDynamic = jsonDecode(race['teams']);
-    final List<String> teamColorStrings = teamColorsDynamic.map((e) => e.toString()).toList();
-    final List<String> teams = teamsDynamic.map((e) => e.toString()).toList();
-    final List<Color> teamColors = teamColorStrings.map((colorString) {
-      final colorValue = int.parse(colorString);
-      return Color(colorValue);
-    }).toList();
-
-    return Race(
-      raceId: race['race_id'],
-      raceName: race['race_name'],
-      raceDate: raceDate,
-      location: race['location'],
-      distance: race['distance'],
-      distanceUnit: race['distance_unit'],
-      teamColors: teamColors,
-      teams: teams,
-    );
+    
+    if (results.isEmpty) return null;
+    
+    return Race.fromJson(results.first);
   }
 
   // Race Runners Methods
@@ -416,10 +375,101 @@ class DatabaseHelper {
     return await db.query('race_results');
   }
 
-  Future<String> getRaceState(int raceId) async {
+  Future<bool> checkIfRaceRunnersAreLoaded(int raceId, {race}) async {
+    race ??= await DatabaseHelper.instance.getRaceById(raceId);
+    final raceRunners = await DatabaseHelper.instance.getRaceRunners(raceId);
+    
+    // Check if we have any runners at all
+    if (raceRunners.isEmpty) {
+      return false;
+    }
+
+    // Check if each team has at least 2 runners (minimum for a race)
+    final teamRunnerCounts = <String, int>{};
+    for (final runner in raceRunners) {
+      final team = runner['school'] as String;
+      teamRunnerCounts[team] = (teamRunnerCounts[team] ?? 0) + 1;
+    }
+
+    // Verify each team in the race has enough runners
+    for (final teamName in race!.teams) {
+      final runnerCount = teamRunnerCounts[teamName] ?? 0;
+      if (runnerCount < 5) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+
+  Future<String> getRaceState(int raceId, {race}) async {
     final raceResults = await instance.getRaceResults(raceId);
     if (raceResults.isEmpty) return 'in_progress';
     return 'finished';
+  }
+
+  Future<void> updateRaceFlowState(int raceId, String flowState) async {
+    final db = await instance.database;
+    await db.update(
+      'races',
+      {'flow_state': flowState},
+      where: 'race_id = ?',
+      whereArgs: [raceId],
+    );
+  }
+
+  // Save race results
+  Future<void> saveRaceResults(int raceId, Map<String, dynamic> results) async {
+    final db = await instance.database;
+    
+    // Convert results to JSON string for storage
+    final jsonResults = json.encode(results);
+    
+    // Check if results already exist
+    final existing = await db.query(
+      'race_results_data',
+      where: 'race_id = ?',
+      whereArgs: [raceId],
+    );
+    
+    if (existing.isEmpty) {
+      // Insert new results
+      await db.insert('race_results_data', {
+        'race_id': raceId,
+        'results_data': jsonResults,
+        'created_at': DateTime.now().toIso8601String(),
+        'updated_at': DateTime.now().toIso8601String(),
+      });
+    } else {
+      // Update existing results
+      await db.update(
+        'race_results_data',
+        {
+          'results_data': jsonResults,
+          'updated_at': DateTime.now().toIso8601String(),
+        },
+        where: 'race_id = ?',
+        whereArgs: [raceId],
+      );
+    }
+  }
+
+  // Get race results
+  Future<Map<String, dynamic>?> getRaceResultsData(int raceId) async {
+    final db = await instance.database;
+    
+    final results = await db.query(
+      'race_results_data',
+      where: 'race_id = ?',
+      whereArgs: [raceId],
+    );
+    
+    if (results.isEmpty) return null;
+    
+    // Parse JSON string back to Map
+    final jsonResults = results.first['results_data'] as String;
+    return json.decode(jsonResults) as Map<String, dynamic>;
   }
 
   // Cleanup Methods

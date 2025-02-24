@@ -644,7 +644,7 @@ class _RacesScreenState extends State<RacesScreen> {
   }
 
   Future<bool> _checkIfRunnersAreLoaded(int raceId) async {
-    final race = races.firstWhere((race) => race.raceId == raceId);
+    final race = races.firstWhere((race) => race.race_id == raceId);
     final raceRunners = await DatabaseHelper.instance.getRaceRunners(raceId);
     
     // Check if we have any runners at all
@@ -670,19 +670,44 @@ class _RacesScreenState extends State<RacesScreen> {
     return true;
   }
 
-  void _showRaceScreen(int raceId) async {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => RaceScreen(raceId: raceId),
+  void _showRaceScreen(int raceId) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      isDismissible: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.95,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (context, scrollController) => Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: RaceScreen(raceId: raceId),
+        ),
       ),
     );
   }
 
   Widget _buildRaceCard(Race race, String state) {
-    final bool raceFinished = state == 'finished';
+    final flowStateText = {
+      'setup': 'Setup Required',
+      'pre_race': 'Pre-Race Setup',
+      'post_race': 'Post-Race',
+      'finished': 'Completed',
+    }[race.flowState] ?? 'Setup Required';
+
+    final flowStateColor = {
+      'setup': Colors.orange,
+      'pre_race': Colors.blue,
+      'post_race': Colors.purple,
+      'finished': Colors.green,
+    }[race.flowState] ?? Colors.orange;
+
     return Slidable(
-      key: Key(race.raceId.toString()),
+      key: Key(race.race_id.toString()),
       endActionPane: ActionPane(
         extentRatio: 0.5,
         motion: const DrawerMotion(),
@@ -742,13 +767,13 @@ class _RacesScreenState extends State<RacesScreen> {
         margin: const EdgeInsets.only(bottom: 12),
         width: double.infinity,
         child: Card(
-          color: raceFinished ? const Color(0xFFBBDB86): const Color(0xFFE8C375),
+          color: race.flowState == 'finished' ? const Color(0xFFBBDB86): const Color(0xFFE8C375),
           elevation: 2,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
           child: InkWell(
-            onTap: () => _showRaceScreen(race.raceId),
+            onTap: () => _showRaceScreen(race.race_id),
             borderRadius: BorderRadius.circular(12),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
@@ -756,14 +781,39 @@ class _RacesScreenState extends State<RacesScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    race.raceName,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          race.raceName,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: flowStateColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: flowStateColor.withOpacity(0.5),
+                            width: 1,
+                          ),
+                        ),
+                        child: Text(
+                          flowStateText,
+                          style: TextStyle(
+                            color: flowStateColor,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   Row(
                     children: [
                       const Icon(Icons.location_on, size: 16, color: AppColors.darkColor),
@@ -786,7 +836,7 @@ class _RacesScreenState extends State<RacesScreen> {
                       const Icon(Icons.calendar_today, size: 16, color: AppColors.darkColor),
                       const SizedBox(width: 4),
                       Text(
-                        DateFormat('MMM d, y').format(race.raceDate),
+                        DateFormat('MMM d, y').format(race.race_date),
                         style: const TextStyle(
                           fontSize: 16,
                           color: AppColors.darkColor,
