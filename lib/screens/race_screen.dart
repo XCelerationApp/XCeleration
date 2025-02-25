@@ -1,9 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:flutter/services.dart';
 import 'package:xcelerate/runner_time_functions.dart';
 import '../database_helper.dart';
 import '../models/race.dart';
@@ -14,7 +10,6 @@ import '../utils/app_colors.dart'; // Import AppColors
 import '../device_connection_popup.dart';
 // import '../utils/dialog_utils.dart';
 import '../device_connection_service.dart';
-import 'dart:convert';
 import '../utils/encode_utils.dart';
 import 'merge_conflicts_screen.dart';
 import 'resolve_bib_number_screen.dart';
@@ -619,7 +614,12 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
 
   Future<String> _getEncodedRunnersData() async {
     final runners = await _getRunnersData();
-    return jsonEncode(runners);
+    return runners.map((runner) => [
+      runner['bib_number'],
+      runner['name'],
+      runner['school'],
+      runner['grade']
+    ].join(',')).join(' ');
   }
 
   bool _containsTimingConflicts(Map<String, dynamic> timingData) {

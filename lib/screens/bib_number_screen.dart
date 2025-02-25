@@ -120,6 +120,24 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     }
   }
 
+  List<Map<String, dynamic>> decodeRunners(String encodedRunners) {
+    List<Map<String, dynamic>> runners = [];
+    for (var runner in encodedRunners.split(' ')) {
+      if (runner.isNotEmpty) {
+        List<String> runnerValues = runner.split(',');
+        if (runnerValues.length == 4) {
+          runners.add({
+            'bib_number': runnerValues[0],
+            'name': runnerValues[1],
+            'school': runnerValues[2],
+            'grade': runnerValues[3],
+          });
+        }
+      }
+    }
+    return runners;
+  }
+
   Future<void> _validateBibNumber(int index, String bibNumber, List<double>? confidences) async {
     final provider = Provider.of<BibRecordsProvider>(context, listen: false);
     final record = provider.bibRecords[index];
