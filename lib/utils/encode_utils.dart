@@ -15,7 +15,12 @@ decodeRaceTimesString(String encodedData) async {
   for (var recordString in condensedRecords) {
     if (loadDurationFromString(recordString) != null) {
       place++;
-      records.add({'finish_time': recordString, 'type': 'runner_time', 'is_confirmed': false, 'text_color': null, 'place': place});
+      records.add({
+        'finish_time': recordString,
+        'type': 'runner_time',
+        'is_confirmed': false,
+        'place': place
+      });
     }
     else {
       final [type, offBy, finish_time] = recordString.split(' ');
@@ -112,7 +117,7 @@ bool isValidBibData(Map<String, dynamic> data) {
     data['name'] != null &&
     data['name'].isNotEmpty &&
     data['grade'] != null &&
-    data['grade'] > 0 &&
+    (data['grade'] == 'Unknown' || (data['grade'] is int && data['grade'] > 0)) &&
     data['school'] != null &&
     data['school'].isNotEmpty;
 }

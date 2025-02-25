@@ -13,6 +13,7 @@ import 'screens/races_screen.dart';
 import 'utils/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'utils/typography.dart';
 
 Process? _flaskProcess;
 
@@ -49,19 +50,8 @@ void stopFlaskServer() {
   _flaskProcess?.kill(); // Stop the Flask server
 }
 
-class MyApp extends StatefulWidget {
+class MyApp extends StatelessWidget {
   const MyApp({super.key});
-
-  @override
-  MyAppState createState() => MyAppState();
-}
-
-class MyAppState extends State<MyApp> {
-  @override
-  void dispose() {
-    stopFlaskServer();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -96,7 +86,11 @@ class MyAppState extends State<MyApp> {
           ),
         ),
         textTheme: TextTheme(
-          bodyMedium: TextStyle(color: AppColors.darkColor),
+          displayLarge: AppTypography.displayLarge,
+          titleLarge: AppTypography.titleSemibold,
+          bodyLarge: AppTypography.bodyRegular,
+          bodyMedium: AppTypography.bodyRegular,
+          labelLarge: AppTypography.bodySemibold,
           bodySmall: TextStyle(color: AppColors.mediumColor),
         ),
         buttonTheme: ButtonThemeData(

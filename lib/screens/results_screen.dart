@@ -7,7 +7,8 @@ import '../utils/csv_utils.dart';
 import '../utils/dialog_utils.dart';
 import '../utils/sheet_utils.dart';
 import '../utils/app_colors.dart';
-import 'share_sheet_screen.dart';
+import '../utils/typography.dart';
+import '../components/share_sheet_screen.dart';
 
 class ResultsScreen extends StatefulWidget {
   final int raceId;
@@ -77,7 +78,10 @@ class ResultsScreenState extends State<ResultsScreen> {
                             Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Text('Head-to-Head View'),
+                                Text(
+                                  'Head-to-Head View',
+                                  style: AppTypography.bodySemibold,
+                                ),
                                 Switch(
                                   inactiveThumbColor: Colors.grey,
                                   activeColor: AppColors.primaryColor,
@@ -116,13 +120,16 @@ class ResultsScreenState extends State<ResultsScreen> {
                                 ),
                                 ElevatedButton.icon(
                                   onPressed: () async {
-                                    await sheet(context: context, body: ShareSheetScreen(
-                                      teamResults: _isHeadToHead
-                                        ? _calculateHeadToHeadTeamResults()
-                                        : _calculateOverallTeamResults(),
-                                      individualResults: _calculateIndividualResults(),
-                                      // isHeadToHead: _isHeadToHead,
-                                    ), title: 'Share Results');
+                                    await sheet(
+                                      context: context,
+                                      title: 'Share Results',
+                                      body: ShareSheetScreen(
+                                        teamResults: _isHeadToHead
+                                          ? _calculateHeadToHeadTeamResults()
+                                          : _calculateOverallTeamResults(),
+                                        individualResults: _calculateIndividualResults(),
+                                      ),
+                                    );
                                   },
                                   icon: const Icon(Icons.share),
                                   label: const Text('Share'),
@@ -140,9 +147,9 @@ class ResultsScreenState extends State<ResultsScreen> {
 
                         // Overall or Head-to-Head Results
                         if (!_isHeadToHead) ...[
-                          const Text(
+                          Text(
                             'Overall Team Results',
-                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                            style: AppTypography.titleSemibold,
                           ),
                           const SizedBox(height: 8),
                           ListView.builder(
@@ -155,9 +162,9 @@ class ResultsScreenState extends State<ResultsScreen> {
                             },
                           ),
                         ] else ...[
-                          const Text(
+                          Text(
                             'Head-to-Head Results',
-                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                            style: AppTypography.titleSemibold,
                           ),
                           const SizedBox(height: 8),
                           ListView.builder(
@@ -172,9 +179,9 @@ class ResultsScreenState extends State<ResultsScreen> {
                         ],
                         const Divider(),
                         // Individual Results Section
-                        const Text(
+                        Text(
                           'Individual Results',
-                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                          style: AppTypography.titleSemibold,
                         ),
                         const SizedBox(height: 8),
                         ListView.builder(
@@ -186,9 +193,11 @@ class ResultsScreenState extends State<ResultsScreen> {
                             return ListTile(
                               title: Text(
                                 '${index + 1}. ${runner['name'] ?? 'Unknown Name'} (${runner['school'] ?? 'Unknown School'})',
+                                style: AppTypography.bodyRegular,
                               ),
                               subtitle: Text(
                                 'Time: ${runner['finish_time'] ?? 'N/A'} | Grade: ${runner['grade'] ?? 'Unknown'} | Bib: ${runner['bib_number'] ?? 'N/A'}',
+                                style: AppTypography.bodyRegular,
                               ),
                             );
                           },
@@ -226,38 +235,29 @@ class ResultsScreenState extends State<ResultsScreen> {
                 if (team['place'] != null)
                   Text(
                     '${team['place']}. ${team['school']}',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: AppTypography.titleSemibold,
                   ),
                 if (team['place'] == null)
                   Text(
                     '${team['school']}',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: AppTypography.titleSemibold,
                   ),
                 Text(
                   '${team['score']} Points',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey,
-                  ),
+                  style: AppTypography.bodyRegular.copyWith(color: Colors.grey),
                 ),
               ],
             ),
             const SizedBox(height: 8),
             Text(
               'Scorers: ${team['scorers']}',
-              style: const TextStyle(fontSize: 14),
+              style: AppTypography.bodyRegular,
             ),
             const SizedBox(height: 4),
             if (team['place'] != null)
               Text(
                 'Times: ${team['times']}',
-                style: const TextStyle(fontSize: 14, color: Colors.grey),
+                style: AppTypography.bodyRegular.copyWith(color: Colors.grey),
               ),
           ],
         ),
@@ -281,10 +281,7 @@ class ResultsScreenState extends State<ResultsScreen> {
             // Matchup Header
             Text(
               '${matchup['team1']?['school'] ?? 'Unknown'} vs ${matchup['team2']?['school'] ?? 'Unknown'}',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: AppTypography.titleSemibold,
             ),
             const SizedBox(height: 8),
 
@@ -317,23 +314,23 @@ class ResultsScreenState extends State<ResultsScreen> {
           children: [
             Text(
               '$rank. ${team['school']}',
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: AppTypography.bodySemibold,
             ),
             Text(
               '${team['score']} Points',
-              style: const TextStyle(fontSize: 14, color: Colors.grey),
+              style: AppTypography.bodyRegular.copyWith(color: Colors.grey),
             ),
           ],
         ),
         const SizedBox(height: 4),
         Text(
           'Scorers: ${team['scorers']}',
-          style: const TextStyle(fontSize: 14),
+          style: AppTypography.bodyRegular,
         ),
         const SizedBox(height: 4),
         Text(
           'Times: ${team['times']}',
-          style: const TextStyle(fontSize: 14, color: Colors.grey),
+          style: AppTypography.bodyRegular.copyWith(color: Colors.grey),
         ),
       ],
     );

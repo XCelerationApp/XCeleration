@@ -1,22 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'app_colors.dart';
 import 'sheet_utils.dart';
+import 'typography.dart';
 import 'dart:async';
 import 'package:flutter_svg/flutter_svg.dart';
 
+// Utility widget for section headers
 Container buildSectionHeader(String title) {
   return Container(
-    padding: const EdgeInsets.only(bottom: 12.0),
+    padding: const EdgeInsets.all(12.0),
     child: Text(
       title,
-      style: const TextStyle(
-        fontSize: 36,
-        fontWeight: FontWeight.w600,
+      style: AppTypography.titleSemibold.copyWith(
+        color: AppColors.primaryColor,
       ),
     ),
   );
 }
 
+// FlowStep and FlowController remain largely unchanged but are reused effectively
 class FlowStep {
   final String title;
   final String description;
@@ -39,7 +42,6 @@ class FlowStep {
 
   void notifyContentChanged() {
     _contentChangeController.add(null);
-    print('notified content changed');
   }
 
   void dispose() {
@@ -66,12 +68,17 @@ class FlowController extends ChangeNotifier {
   int get currentIndex => _currentIndex;
   bool get canGoBack => _currentIndex > 0;
   bool get canGoForward => _currentIndex < steps.length - 1;
-  
+
   FlowStep get currentStep => steps[_currentIndex];
 
   Future<bool> canProceedToNextStep() async {
     if (currentStep.canProceed == null) return true;
-    return await currentStep.canProceed!();
+    try {
+      return await currentStep.canProceed!();
+    } catch (e) {
+      print('Error in canProceed: $e');
+      return false; // Handle errors gracefully
+    }
   }
 
   Future<void> goToNext() async {
@@ -102,71 +109,73 @@ class FlowController extends ChangeNotifier {
   }
 }
 
-class FlowIndicator extends StatelessWidget {
+// Enhanced progress indicator with animations
+class EnhancedFlowIndicator extends StatelessWidget {
   final int totalSteps;
   final int currentStep;
+  final VoidCallback? onBack;
 
-  const FlowIndicator({
-    super.key,
+  const EnhancedFlowIndicator({
     required this.totalSteps,
     required this.currentStep,
+    this.onBack,
   });
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final itemWidth = 32.0; // Width of circle
-        final lineWidth = (constraints.maxWidth - (itemWidth * totalSteps)) / (totalSteps - 1);
-
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: List.generate(totalSteps, (index) {
-            final isActive = index <= currentStep;
-            final isCompleted = index < currentStep;
-
-            return Row(
-              children: [
-                Container(
-                  width: itemWidth,
-                  height: itemWidth,
-                  decoration: BoxDecoration(
-                    color: isActive ? AppColors.primaryColor : Colors.grey[300],
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: isCompleted
-                      ? SvgPicture.asset(
-                          'assets/icon/check.svg',
-                          width: 16,
-                          height: 16,
-                          color: Colors.white,
-                        )
-                      : Text(
-                          '${index + 1}',
-                          style: TextStyle(
-                            color: isActive ? Colors.white : Colors.grey[600],
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                  ),
-                ),
-                if (index < totalSteps - 1)
-                  Container(
-                    width: lineWidth,
-                    height: 2,
-                    color: isActive ? AppColors.primaryColor : Colors.grey[300],
-                  ),
-              ],
-            );
-          }),
-        );
-      }
+    return Container(
+      height: 32,
+      margin: const EdgeInsets.only(top: 8),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Back Button (if present)
+          if (onBack != null)
+            Positioned(
+              left: 16,
+              top: 4,
+              child: IconButton(
+                icon: const Icon(Icons.arrow_back, size: 24, color: Colors.black),
+                onPressed: onBack,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+            ),
+          // Progress Indicator (always centered)
+          Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.of(context).size.width * 0.35,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(totalSteps, (index) {
+                  final isCurrentStep = index == currentStep;
+                  final isCompleted = index < currentStep;
+                  return Expanded(
+                    flex: isCurrentStep ? 3 : 1,
+                    child: Container(
+                      height: 5,
+                      margin: EdgeInsets.only(
+                        right: index < totalSteps - 1 ? 4 : 0,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isCompleted || isCurrentStep ? AppColors.darkColor : AppColors.lightColor,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  );
+                }),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
+// Updated showFlow function with Provider
 Future<bool> showFlow({
   required BuildContext context,
   required List<FlowStep> steps,
@@ -174,157 +183,113 @@ Future<bool> showFlow({
 }) async {
   final controller = FlowController(steps);
   bool completed = false;
-  
-  await showModalBottomSheet(
+
+  await sheet(
     context: context,
-    isDismissible: true,
-    enableDrag: true,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (context) => StatefulBuilder(
-      builder: (context, setState) => AnimatedBuilder(
-        animation: controller,
-        builder: (context, _) {
+    title: null,
+    takeUpScreen: true,
+    body: ChangeNotifierProvider.value(
+      value: controller,
+      child: Consumer<FlowController>(
+        builder: (context, controller, _) {
           final currentStep = controller.currentStep;
-          
-          return Container(
-            height: MediaQuery.of(context).size.height * 0.9,
-            decoration: BoxDecoration(
-              color: AppColors.backgroundColor,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Progress indicator
-                if (showProgressIndicator) ...[
-                  const SizedBox(height: 16),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Row(
-                      children: List.generate(
-                        steps.length,
-                        (index) => Expanded(
-                          child: Container(
-                            height: 4,
-                            margin: const EdgeInsets.symmetric(horizontal: 2),
-                            decoration: BoxDecoration(
-                              color: index <= controller.currentIndex 
-                                ? AppColors.primaryColor 
-                                : Colors.grey[300],
-                              borderRadius: BorderRadius.circular(2),
-                            ),
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (showProgressIndicator)
+                EnhancedFlowIndicator(
+                  totalSteps: steps.length,
+                  currentStep: controller.currentIndex,
+                  onBack: controller.canGoBack ? controller.goBack : null,
+                ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(0, 16, 0, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      currentStep.title,
+                      style: const TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      currentStep.description,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: Colors.black54,
+                        height: 1.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return SingleChildScrollView(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minHeight: constraints.maxHeight - 120, // Account for bottom padding and button
+                        ),
+                        child: Padding(
+                          padding: EdgeInsets.zero,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              currentStep.content,
+                            ],
                           ),
                         ),
                       ),
+                    );
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(0, 16, 0, 24),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      if (controller.canGoForward) {
+                        await controller.goToNext();
+                      } else {
+                        Navigator.pop(context);
+                        completed = true;
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryColor,
+                      disabledBackgroundColor: AppColors.primaryColor.withOpacity(0.5),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      elevation: 0,
+                      padding: EdgeInsets.zero,
+                    ),
+                    child: Text(
+                      'Next',
+                      style: AppTypography.bodySemibold.copyWith(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
-                ],
-                
-                // Header
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        currentStep.title,
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        currentStep.description,
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                  ),
                 ),
-
-                // Content
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: currentStep.content,
-                    ),
-                  ),
-                ),
-
-                // Navigation buttons
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      if (controller.canGoBack)
-                        TextButton.icon(
-                          onPressed: () {
-                            controller.goBack();
-                            setState(() {});
-                          },
-                          icon: const Icon(Icons.arrow_back),
-                          label: const Text('Back'),
-                        ),
-                      const Spacer(),
-                      FutureBuilder<bool>(
-                        future: currentStep.canProceed?.call() ?? Future.value(true),
-                        builder: (context, snapshot) {
-                          final canProceed = snapshot.data ?? true;
-                          
-                          return ElevatedButton(
-                            onPressed: canProceed
-                              ? () async {
-                                  if (controller.canGoForward) {
-                                    await controller.goToNext();
-                                    setState(() {});
-                                  } else {
-                                    completed = true;
-                                    Navigator.pop(context);
-                                  }
-                                }
-                              : null,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primaryColor,
-                              minimumSize: const Size(120, 48),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(24),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  'Next',
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                if (controller.canGoForward) ...[
-                                  const SizedBox(width: 8),
-                                  const Icon(Icons.arrow_forward, size: 20),
-                                ],
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           );
         },
       ),
     ),
   );
-  
+
   controller.dispose();
   return completed;
 }

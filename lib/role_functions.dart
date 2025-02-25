@@ -134,7 +134,7 @@ void changeRole(BuildContext context, String currentRole) {
     body: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        ...profileOptions.map((role) => _buildRoleListTile(context, role, currentRole)),
+        ...roleOptions.map((role) => _buildRoleListTile(context, role, currentRole)),
         const SizedBox(height: 30),
       ],
     ),

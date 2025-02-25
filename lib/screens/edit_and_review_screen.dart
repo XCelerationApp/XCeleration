@@ -6,6 +6,7 @@ import 'results_screen.dart';
 import '../utils/app_colors.dart';
 import '../utils/dialog_utils.dart';
 import '../runner_time_functions.dart';
+import '../utils/typography.dart';
 
 class EditAndReviewScreen extends StatefulWidget {
   final Map<String, dynamic> timingData;
@@ -166,6 +167,16 @@ class _EditAndReviewScreenState extends State<EditAndReviewScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             SizedBox(height: 30),
+            Text(
+              'Review Results',
+              style: AppTypography.titleSemibold,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Please review and edit the results before saving:',
+              style: AppTypography.bodyRegular,
+            ),
+            const SizedBox(height: 16),
             _buildControlButtons(startTime, timeRecords),
             _buildRecordsList(timeRecords),
           ],

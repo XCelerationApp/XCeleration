@@ -17,6 +17,8 @@ import '../role_functions.dart';
 import 'dart:io';
 import '../utils/tutorial_manager.dart';
 import '../utils/coach_mark.dart';
+import '../utils/typography.dart';
+import '../utils/enums.dart';
 
 class BibNumberScreen extends StatefulWidget {
   // final Race? race;
@@ -225,14 +227,12 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
       focusNode: provider.focusNodes[index],
       controller: provider.controllers[index],
       keyboardType: TextInputType.number,
-      style: const TextStyle(fontSize: 16),
+      style: AppTypography.bodyRegular,
       textAlign: TextAlign.start,
-      decoration: const InputDecoration(
-        hintText: 'Bib #',
-        hintStyle: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
-        border: InputBorder.none,
-        contentPadding: EdgeInsets.symmetric(vertical: 8),
-        isDense: true,
+      decoration: InputDecoration(
+        labelText: 'Bib #',
+        labelStyle: AppTypography.bodyRegular,
+        border: const OutlineInputBorder(),
       ),
       inputFormatters: [
         FilteringTextInputFormatter.digitsOnly,
@@ -250,7 +250,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
       return Text(
         '${record.name}, ${record.school}',
         textAlign: TextAlign.center,
-        style: const TextStyle(fontSize: 14),
+        style: AppTypography.bodyRegular,
       );
     }
     return const SizedBox.shrink();
@@ -269,7 +269,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
         const SizedBox(width: 8),
         Text(
           errors.join(' • '),
-          style: const TextStyle(
+          style: AppTypography.bodyRegular.copyWith(
             color: Colors.red,
             fontSize: 12,
           ),
@@ -522,7 +522,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                     builder: (context, provider, _) {
                       return Text(
                         'Bib Number Count: ${provider.bibRecords.where((bib) => bib.bibNumber.isNotEmpty).length}',
-                        style: const TextStyle(fontSize: 16)
+                        style: AppTypography.bodyRegular
                       );
                     }
                   )
@@ -610,9 +610,9 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                                 backgroundColor: Colors.transparent,
                                 overlayColor: Color.fromARGB(255, 78, 78, 80),
                               ),
-                              child: const Text(
+                              child: Text(
                                 'Done',
-                                style: TextStyle(
+                                style: AppTypography.bodyRegular.copyWith(
                                   fontSize: 17,
                                   fontWeight: FontWeight.w600,
                                   color: AppColors.darkColor,

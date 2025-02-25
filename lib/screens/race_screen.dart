@@ -1,25 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/services.dart';
 import 'package:xcelerate/runner_time_functions.dart';
 import '../database_helper.dart';
 import '../models/race.dart';
 import 'runners_management_screen.dart';
 import 'results_screen.dart';
+import '../utils/UI_components.dart';
+import '../utils/app_colors.dart';
+import '../utils/dialog_utils.dart';
+import '../utils/flow_components.dart';
 import '../utils/sheet_utils.dart';
-import '../utils/app_colors.dart'; // Import AppColors
+import '../utils/enums.dart';
 import '../device_connection_popup.dart';
-// import '../utils/dialog_utils.dart';
-import '../device_connection_service.dart';
+import '../device_connection_service.dart' hide DeviceType;
 import 'dart:convert';
 import '../utils/encode_utils.dart';
 import 'merge_conflicts_screen.dart';
 import 'resolve_bib_number_screen.dart';
 import 'edit_and_review_screen.dart';
-import '../utils/ui_components.dart';
+import '../utils/typography.dart';
 
 class RaceScreen extends StatefulWidget {
   final int raceId;
@@ -56,6 +58,13 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
   bool _resultsLoaded = false;
   List<Map<String, dynamic>>? _runnerRecords;
   Map<String, dynamic>? _timingData;
+  bool _hasBibConflicts = false;
+  bool _hasTimingConflicts = false;
+
+  final ValueNotifier<ConnectionStatus> _connectionStatusNotifier = ValueNotifier<ConnectionStatus>(ConnectionStatus.searching);
+  final ValueNotifier<ConnectionStatus> _qrConnectionStatusNotifier = ValueNotifier<ConnectionStatus>(ConnectionStatus.searching);
+  final ValueNotifier<ConnectionStatus> _bibRecorderStatusNotifier = ValueNotifier<ConnectionStatus>(ConnectionStatus.searching);
+  final ValueNotifier<ConnectionStatus> _raceTimerStatusNotifier = ValueNotifier<ConnectionStatus>(ConnectionStatus.searching);
 
   @override
   void initState() {
@@ -155,28 +164,16 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            SvgPicture.asset(
-              'assets/icon/checkmark.svg',
-              width: 120,
-              height: 120,
-              colorFilter: ColorFilter.mode(AppColors.primaryColor, BlendMode.srcIn),
-            ),
+            Icon(Icons.check_circle, size: 120, color: AppColors.primaryColor),
             const SizedBox(height: 32),
             Text(
               'Race Setup Complete!',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: AppColors.darkColor,
-              ),
+              style: AppTypography.titleSemibold.copyWith(color: AppColors.darkColor),
             ),
             const SizedBox(height: 16),
             Text(
               'You\'re ready to start managing your race.',
-              style: TextStyle(
-                fontSize: 16,
-                color: AppColors.darkColor.withOpacity(0.7),
-              ),
+              style: AppTypography.bodyRegular.copyWith(color: AppColors.darkColor.withOpacity(0.7)),
             ),
           ],
         ),
@@ -186,7 +183,7 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
 
     final isCompleted = await showFlow(
       context: context,
-      showProgressIndicator: false,
+      showProgressIndicator: true,
       steps: [runnersStep, completionStep],
       // dismissible: false,
     );
@@ -222,60 +219,87 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
       ),
       FlowStep(
         title: 'Share Runners',
-        description: 'Share the runner list with the bib recorder\'s phone. This is required for tracking runners during the race.',
+        description: 'Share the runners with the bib recorders phone before starting the race.',
         content: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            SvgPicture.asset(
-              'assets/icon/radio.svg', 
-              color: AppColors.primaryColor, 
-              width: 200, 
-              height: 200
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: () async {
-                final data = await _getEncodedRunnersData();
-                showDeviceConnectionPopup(
-                  context,
-                  deviceType: DeviceType.advertiserDevice,
-                  deviceName: DeviceName.coach,
-                  otherDevices: createOtherDeviceList(
-                    DeviceName.coach,
-                    DeviceType.advertiserDevice,
-                    data: data,
-                  ),
+            ValueListenableBuilder<ConnectionStatus>(
+              valueListenable: _connectionStatusNotifier,
+              builder: (context, status, child) {
+                return SearchableButton(
+                  label: 'Bib recorder',
+                  icon: Icons.person,
+                  connectionStatus: status,
+                  onTap: () async {
+                    final data = await _getEncodedRunnersData();
+                    _startDeviceConnection(
+                      context,
+                      deviceType: DeviceType.advertiserDevice,
+                      deviceName: DeviceName.coach,
+                      data: data,
+                    );
+                  },
+                  isQrCode: false,
                 );
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryColor,
-                minimumSize: const Size(240, 56),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(28),
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SvgPicture.asset(
-                    'assets/icon/share.svg', 
-                    color: Colors.white, 
-                    width: 24, 
-                    height: 24
-                  ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'Share Runners',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'or',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.black54,
+                height: 1.5,
               ),
             ),
+            const SizedBox(height: 24),
+            ValueListenableBuilder<ConnectionStatus>(
+              valueListenable: _qrConnectionStatusNotifier,
+              builder: (context, status, child) {
+                return SearchableButton(
+                  label: 'Share QR code',
+                  icon: Icons.qr_code,
+                  connectionStatus: status,
+                  showSearchingText: false,
+                  onTap: () async {
+                    final data = await _getEncodedRunnersData();
+                    _showQRCodeConnection(
+                      context,
+                      deviceType: DeviceType.advertiserDevice,
+                      deviceName: DeviceName.coach,
+                      data: data,
+                    );
+                  },
+                  isQrCode: true,
+                );
+              },
+            ),
           ],
+        ),
+        canProceed: () async => true,
+      ),
+      FlowStep(
+        title: 'Setup Complete',
+        description: 'You\'re ready to start timing the race!',
+        content: FlowStepContent(
+          title: 'Setup Complete',
+          description: 'You\'re ready to start timing the race!',
+          currentStep: 1,
+          totalSteps: 2,
+          content: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              children: [
+                const Spacer(),
+                FlowActionButton(
+                  label: 'Start Race',
+                  onPressed: () {
+                    // Handle race start
+                  },
+                ),
+              ],
+            ),
+          ),
         ),
         canProceed: () async => true,
       ),
@@ -286,29 +310,25 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Icon(
-              //   Icons.sports_score,
-              //   size: 80,
-              //   color: AppColors.primaryColor,
-              // ),
-              // const SizedBox(height: 24),
-              // Text(
-              //   'Ready to Start!',
-              //   style: TextStyle(
-              //     fontSize: 24,
-              //     fontWeight: FontWeight.bold,
-              //     color: AppColors.darkColor,
-              //   ),
-              // ),
-              // const SizedBox(height: 16),
-              // Text(
-              //   'Click Next once the race is finished to collect results.',
-              //   style: TextStyle(
-              //     fontSize: 16,
-              //     color: AppColors.darkColor.withOpacity(0.7),
-              //   ),
-              //   textAlign: TextAlign.center,
-              // ),
+              Icon(Icons.sports_score, size: 80, color: AppColors.primaryColor),
+              const SizedBox(height: 24),
+              Text(
+                'Ready to Start!',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.darkColor,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Click Next once the race is finished to collect results.',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: AppColors.darkColor.withOpacity(0.7),
+                ),
+                textAlign: TextAlign.center,
+              ),
             ],
           ),
         ),
@@ -332,115 +352,157 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
   }
 
   Future<void> _postRaceSetup(int raceId) async {
+    print('_postRaceSetup');
+    print('_resultsLoaded: $_resultsLoaded, _runnerRecords: $_runnerRecords, _hasBibConflicts: $_hasBibConflicts');
     setState(() {
-      _resultsLoaded = false;
+      // _resultsLoaded = _;
+      _hasBibConflicts = _resultsLoaded && _runnerRecords != null && _containsBibConflicts(_runnerRecords!);
+      _hasTimingConflicts = _resultsLoaded && _timingData != null && _containsTimingConflicts(_timingData!);
+      // _hasTimingConflicts = false;
     });
 
     final steps = [
       FlowStep(
         title: 'Load Results',
         description: 'Load the results of the race from the assistant devices.',
-        content:
-        Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SvgPicture.asset(
-              'assets/icon/radio.svg', 
-              color: AppColors.primaryColor, 
-              width: 200, 
-              height: 200
-            ),
-            const SizedBox(height: 24),
-            if (_resultsLoaded) ...[
-              Text(
-                'Results Loaded',
-                style: TextStyle(
-                  fontSize: 18,
-                  color: AppColors.primaryColor,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'You can proceed to review the results or load them again if needed.',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: AppColors.darkColor.withOpacity(0.7),
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-            ],
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryColor,
-                minimumSize: const Size(240, 56),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(28),
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.download_sharp, color: Colors.white),
-                  const SizedBox(width: 12),
-                  Text(
-                    _resultsLoaded ? 'Reload Results' : 'Load Results',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-              onPressed:
-              () async {
-                final otherDevices = createOtherDeviceList(
-                  DeviceName.coach,
-                  DeviceType.browserDevice,
-                );
-                await showDeviceConnectionPopup(
-                  context,
-                  deviceType: DeviceType.browserDevice,
-                  deviceName: DeviceName.coach,
-                  otherDevices: otherDevices,
-                );
-                final encodedBibRecords = otherDevices[DeviceName.bibRecorder]!['data'];
-                final encodedFinishTimes = otherDevices[DeviceName.raceTimer]!['data'];
-                if (encodedBibRecords == null || encodedFinishTimes == null) return;
-                
-                var runnerRecords = await processEncodedBibRecordsData(encodedBibRecords, context, raceId);
-                final timingData = await processEncodedTimingData(encodedFinishTimes, context);
-                
-                if (runnerRecords.isNotEmpty && timingData != null) {
-                  timingData['records'] = await syncBibData(runnerRecords.length, timingData['records'], timingData['endTime'], context);
-                  Navigator.pop(context);
-                  if (_containsBibConflicts(runnerRecords)) {
-                    runnerRecords = await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ResolveBibNumberScreen(records: runnerRecords, raceId: raceId),
-                      ),
+        content: SingleChildScrollView(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 600),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ValueListenableBuilder<ConnectionStatus>(
+                  valueListenable: _bibRecorderStatusNotifier,
+                  builder: (context, status, child) {
+                    return SearchableButton(
+                      label: 'Bib Recorder',
+                      icon: Icons.person_outline,
+                      connectionStatus: status,
+                      showSearchingText: true,
                     );
                   }
-                  final bool conflicts = await _containsTimingConflicts(timingData);
-                  if (conflicts) {
-                    _goToMergeConflictsScreen(context, runnerRecords, timingData);
-                  } else {
-                    timingData['records'] = timingData['records'].where((r) => r['type'] == 'runner_time').toList();
-                    _goToEditScreen(context, runnerRecords, timingData);
+                ),
+                const SizedBox(height: 16),
+                ValueListenableBuilder<ConnectionStatus>(
+                  valueListenable: _raceTimerStatusNotifier,
+                  builder: (context, status, child) {
+                    return SearchableButton(
+                      label: 'Race Timer',
+                      icon: Icons.timer_outlined,
+                      connectionStatus: status,
+                      showSearchingText: true,
+                    );
                   }
-                  setState(() {
-                    _runnerRecords = runnerRecords;
-                    _timingData = timingData;
-                    _resultsLoaded = true;
-                  });
-                  await _saveRaceResults();
-                }
-              }
-            )]),
-        canProceed: () async => _resultsLoaded,
+                ),
+                const SizedBox(height: 24),
+                if (_resultsLoaded) ...[
+                  if (_hasBibConflicts) ...[
+                    _buildConflictButton(
+                      'Bib Number Conflicts',
+                      'Some runners have conflicting bib numbers. Please resolve these conflicts before proceeding.',
+                      () => _showBibConflictsSheet(context),
+                    ),
+                  ]
+                  else if (_hasTimingConflicts) ...[
+                    _buildConflictButton(
+                      'Timing Conflicts',
+                      'There are conflicts in the race timing data. Please review and resolve these conflicts.',
+                      () => _showTimingConflictsSheet(),
+                    ),
+                  ],
+                  if (!_hasBibConflicts && !_hasTimingConflicts) ...[
+                    Text(
+                      'Results Loaded Successfully',
+                      style: AppTypography.bodySemibold.copyWith(color: AppColors.primaryColor),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'You can proceed to review the results or load them again if needed.',
+                      style: AppTypography.bodyRegular.copyWith(color: AppColors.darkColor.withOpacity(0.7)),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                ],
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryColor,
+                      minimumSize: const Size(240, 56),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(28),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.download_sharp, color: Colors.white),
+                        const SizedBox(width: 12),
+                        Text(
+                          _resultsLoaded ? 'Reload Results' : 'Load Results',
+                          style: AppTypography.bodySemibold.copyWith(color: Colors.white),
+                        ),
+                      ],
+                    ),
+                    onPressed: () async {
+                      _bibRecorderStatusNotifier.value = ConnectionStatus.searching;
+                      _raceTimerStatusNotifier.value = ConnectionStatus.searching;
+                      
+                      final otherDevices = createOtherDeviceList(
+                        DeviceName.coach,
+                        DeviceType.browserDevice,
+                      );
+
+                      await showDeviceConnectionPopup(
+                        context,
+                        deviceType: DeviceType.browserDevice,
+                        deviceName: DeviceName.coach,
+                        otherDevices: otherDevices,
+                      );
+
+                      final encodedBibRecords = otherDevices[DeviceName.bibRecorder]?['data'] as String?;
+                      final encodedFinishTimes = otherDevices[DeviceName.raceTimer]?['data'] as String?;
+
+                      if (encodedBibRecords != null) {
+                        _bibRecorderStatusNotifier.value = ConnectionStatus.finished;
+                      }
+                      if (encodedFinishTimes != null) {
+                        _raceTimerStatusNotifier.value = ConnectionStatus.finished;
+                      }
+
+                      if (encodedBibRecords == null || encodedFinishTimes == null) {
+                        _bibRecorderStatusNotifier.value = ConnectionStatus.error;
+                        _raceTimerStatusNotifier.value = ConnectionStatus.error;
+                        return;
+                      }
+                      
+                      var runnerRecords = await processEncodedBibRecordsData(encodedBibRecords, context, raceId);
+                      final timingData = await processEncodedTimingData(encodedFinishTimes, context);
+                      
+                      if (runnerRecords.isNotEmpty && timingData != null) {
+                        timingData['records'] = await syncBibData(runnerRecords.length, timingData['records'], timingData['endTime'], context);
+                        setState(() {
+                          _runnerRecords = runnerRecords;
+                          _timingData = timingData;
+                          _resultsLoaded = true;
+                          _hasBibConflicts = _containsBibConflicts(runnerRecords);
+                          _hasTimingConflicts = _containsTimingConflicts(timingData);
+                        });
+                        
+                        await _saveRaceResults();
+                      }
+                    }
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        canProceed: () async => _resultsLoaded && !_hasBibConflicts && !_hasTimingConflicts,
       ),
       FlowStep(
         title: 'Review Results',
@@ -449,27 +511,16 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.fact_check_outlined,
-                size: 80,
-                color: AppColors.primaryColor,
-              ),
+              Icon(Icons.fact_check_outlined, size: 80, color: AppColors.primaryColor),
               const SizedBox(height: 24),
               Text(
                 'Review Race Results',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.darkColor,
-                ),
+                style: AppTypography.titleSemibold.copyWith(color: AppColors.darkColor),
               ),
               const SizedBox(height: 16),
               Text(
                 'Make sure all times and placements are correct.',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: AppColors.darkColor.withOpacity(0.7),
-                ),
+                style: AppTypography.bodyRegular.copyWith(color: AppColors.darkColor.withOpacity(0.7)),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 32),
@@ -487,19 +538,19 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
                         Expanded(
                           flex: 1,
                           child: Text('Place', 
-                            style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.darkColor),
+                            style: AppTypography.bodySemibold.copyWith(color: AppColors.darkColor),
                           ),
                         ),
                         Expanded(
                           flex: 3,
                           child: Text('Runner', 
-                            style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.darkColor),
+                            style: AppTypography.bodySemibold.copyWith(color: AppColors.darkColor),
                           ),
                         ),
                         Expanded(
                           flex: 2,
                           child: Text('Time', 
-                            style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.darkColor),
+                            style: AppTypography.bodySemibold.copyWith(color: AppColors.darkColor),
                           ),
                         ),
                       ],
@@ -541,27 +592,16 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.save_outlined,
-                size: 80,
-                color: AppColors.primaryColor,
-              ),
+              Icon(Icons.save_outlined, size: 80, color: AppColors.primaryColor),
               const SizedBox(height: 24),
               Text(
                 'Save Race Results',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.darkColor,
-                ),
+                style: AppTypography.titleSemibold.copyWith(color: AppColors.darkColor),
               ),
               const SizedBox(height: 16),
               Text(
                 'Click Next to save the results and complete the race.',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: AppColors.darkColor.withOpacity(0.7),
-                ),
+                style: AppTypography.bodyRegular.copyWith(color: AppColors.darkColor.withOpacity(0.7)),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -610,7 +650,7 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
   }
 
   Future<List<dynamic>> _getRunnersData() async {
-    final runners = await DatabaseHelper.instance.getRaceRunners(raceId);
+    final runners = await DatabaseHelper.instance.getRaceRunners(widget.raceId);
     return runners;
   }
 
@@ -627,24 +667,148 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
     return runnerRecords.any((record) => record['error'] != null);
   }
 
-
-  // _goToTestResolveBibNumbesScreen(context, records) async {
-  //   Navigator.push(
-  //     context,
-  //     MaterialPageRoute(
-  //       builder: (context) => ResolveBibNumberScreen(records: records, raceId: raceId),
-  //     ),
-  //   );
-  // }
-  
-  Future<void> _goToMergeConflictsScreen(context, runnerRecords, timingData) async {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => MergeConflictsScreen(runnerRecords: runnerRecords, timingData: timingData, raceId: raceId),
+  Widget _buildConflictButton(String title, String description, VoidCallback onPressed) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.red[100],
+          foregroundColor: Colors.red[900],
+          padding: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: Colors.red[300]!),
+          ),
+        ),
+        onPressed: onPressed,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, color: Colors.red[900]),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: AppTypography.bodySemibold.copyWith(color: Colors.red[900]),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              description,
+              style: AppTypography.bodyRegular.copyWith(color: Colors.red[900]!.withOpacity(0.8)),
+            ),
+          ],
+        ),
       ),
     );
   }
+
+  Future<void> _showBibConflictsSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      isDismissible: false,
+      builder: (BuildContext context) {
+        return SizedBox(
+          height: MediaQuery.of(context).size.height * 0.9,
+          child: Column(
+            children: [
+              AppBar(
+                leading: IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context),
+                ),
+                title: Text(
+                  'Resolve Bib Number Conflicts',
+                  style: AppTypography.titleSemibold,
+                ),
+              ),
+              Expanded(
+                child: ResolveBibNumberScreen(
+                  raceId: widget.raceId,
+                  records: _runnerRecords!,
+                  onComplete: (resolvedRecords) {
+                    setState(() {
+                      _runnerRecords = resolvedRecords;
+                      _hasBibConflicts = false;
+                    });
+                    Navigator.pop(context);
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    return Future.value();
+  }
+
+  Future<void> _showTimingConflictsSheet() async {
+    final result = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.9,
+        minChildSize: 0.5,
+        maxChildSize: 0.9,
+        builder: (context, scrollController) => Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              AppBar(
+                title: Text(
+                  'Resolve Timing Conflicts',
+                  style: AppTypography.titleSemibold,
+                ),
+                leading: IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+              Expanded(
+                child: MergeConflictsScreen(
+                  raceId: widget.raceId,
+                  runnerRecords: _runnerRecords!,
+                  timingData: _timingData!,
+                  onComplete: (resolvedData) {
+                    setState(() {
+                      _timingData = resolvedData;
+                      _hasTimingConflicts = false;
+                    });
+                    Navigator.pop(context);
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (result != null) {
+      setState(() {
+        _timingData = result;
+        _hasTimingConflicts = false;
+      });
+      await _saveRaceResults();
+    }
+  }
+
+  // Future<void> _goToMergeConflictsScreen(context, runnerRecords, timingData) async {
+  //   Navigator.push(
+  //     context,
+  //     MaterialPageRoute(
+  //       builder: (context) => MergeConflictsScreen(runnerRecords: runnerRecords, timingData: timingData, raceId: raceId),
+  //     ),
+  //   );
+  // }
 
   _goToEditScreen(context, runnerRecords, timingData) async {
     Navigator.push(
@@ -710,7 +874,7 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
       child: Row(
         children: [
           if (iconName == 'info') ...[
-            SvgPicture.asset('assets/icon/$iconName.svg', width: 20, height: 20, colorFilter: ColorFilter.mode(AppColors.primaryColor, BlendMode.srcIn)),
+            Icon(Icons.info, size: 20, color: AppColors.primaryColor),
           ]
           else
             Image.asset('assets/icon/$iconName.png', width: 20, height: 20),
@@ -718,11 +882,7 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
           Expanded(
             child: Text(
               title,
-              style: TextStyle(
-                fontSize: 16,
-                color: AppColors.darkColor,
-                fontWeight: FontWeight.w500,
-              ),
+              style: AppTypography.bodyRegular.copyWith(color: AppColors.darkColor),
             ),
           ),
           Icon(Icons.chevron_right, color: Colors.grey[400], size: 24),
@@ -750,11 +910,7 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
           const SizedBox(width: 8),
           Text(
             title,
-            style: TextStyle(
-              fontSize: 14,
-              color: AppColors.darkColor,
-              fontWeight: FontWeight.w500,
-            ),
+            style: AppTypography.bodyRegular.copyWith(color: AppColors.darkColor),
           ),
         ],
       ),
@@ -772,19 +928,11 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(_name, 
-                style: const TextStyle(
-                  fontSize: 24, 
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                )
+                style: AppTypography.titleSemibold,
               ),
               const SizedBox(height: 24),
               Text('Teams', 
-                style: const TextStyle(
-                  fontSize: 18, 
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                )
+                style: AppTypography.bodySemibold,
               ),
               const SizedBox(height: 12),
               ListView.separated(
@@ -809,10 +957,7 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
                     const SizedBox(width: 12),
                     Text(
                       _teamNames[index],
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: Colors.black87,
-                      ),
+                      style: AppTypography.bodyRegular,
                     ),
                   ],
                 ),
@@ -853,10 +998,7 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
         Expanded(
           child: Text(
             text,
-            style: const TextStyle(
-              fontSize: 16,
-              color: Colors.black87,
-            ),
+            style: AppTypography.bodyRegular,
             maxLines: maxLines,
             overflow: TextOverflow.ellipsis,
           ),
@@ -963,11 +1105,7 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
                       ),
                       child: Text(
                         race!.flowState == 'setup' ? 'Setup Race' : 'Continue Race Setup',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
+                        style: AppTypography.bodySemibold.copyWith(color: Colors.white),
                       ),
                     ),
                   ],
@@ -1022,7 +1160,10 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(race!.race_name),
+        title: Text(
+          race!.race_name,
+          style: AppTypography.titleSemibold.copyWith(color: Colors.white),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () => Navigator.of(context).pop(),
@@ -1044,10 +1185,7 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
                 const SizedBox(width: 8),
                 Text(
                   _getStatusText(race!.flowState),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: AppTypography.bodySemibold.copyWith(color: Colors.white),
                 ),
                 const Spacer(),
                 TextButton(
@@ -1056,12 +1194,9 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
                     backgroundColor: Colors.white.withOpacity(0.2),
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   ),
-                  child: const Text(
+                  child: Text(
                     'Continue',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: AppTypography.bodySemibold.copyWith(color: Colors.white),
                   ),
                 ),
               ],
@@ -1076,7 +1211,7 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
                 children: [
                   Text(
                     'Race Details',
-                    style: Theme.of(context).textTheme.headlineSmall,
+                    style: AppTypography.titleSemibold,
                   ),
                   const SizedBox(height: 16),
                   _buildDetailRow('Date', race!.race_date.toString().split(' ')[0]),
@@ -1100,9 +1235,7 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
         children: [
           Text(
             '$label: ',
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-            ),
+            style: AppTypography.bodySemibold,
           ),
           Text(value),
         ],
@@ -1153,5 +1286,52 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
       default:
         return 'Unknown';
     }
+  }
+
+  void _startDeviceConnection(
+    BuildContext context, {
+    required DeviceType deviceType,
+    required DeviceName deviceName,
+    required String data,
+  }) {
+    final otherDevices = createOtherDeviceList(deviceName, deviceType, data: data);
+  
+    showDeviceConnectionPopup(
+      context,
+      deviceType: deviceType,
+      deviceName: deviceName,
+      otherDevices: otherDevices,
+    ).then((_) {
+      // Reset status after connection is complete
+      _connectionStatusNotifier.value = ConnectionStatus.searching;
+    });
+
+    // Listen to status changes
+    for (var device in otherDevices.entries) {
+      if (device.value['status'] != null) {
+        _connectionStatusNotifier.value = device.value['status'];
+      }
+    }
+  }
+
+  void _showQRCodeConnection(
+    BuildContext context, {
+    required DeviceType deviceType,
+    required DeviceName deviceName,
+    required String data,
+  }) {
+    final otherDevices = createOtherDeviceList(deviceName, deviceType, data: data);
+  
+    _qrConnectionStatusNotifier.value = ConnectionStatus.connecting;
+  
+    showDeviceConnectionPopup(
+      context,
+      deviceType: deviceType,
+      deviceName: deviceName,
+      otherDevices: otherDevices,
+    ).then((_) {
+      // Reset status after connection is complete
+      _qrConnectionStatusNotifier.value = ConnectionStatus.searching;
+    });
   }
 }

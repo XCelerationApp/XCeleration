@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../utils/time_formatter.dart';
+import '../utils/typography.dart';
 // import 'dart:math';
 import '../database_helper.dart';
 import 'races_screen.dart';
@@ -12,12 +13,14 @@ class MergeConflictsScreen extends StatefulWidget {
   final int raceId;
   final Map<String, dynamic> timingData;
   final List<Map<String, dynamic>> runnerRecords;
+  final Function(Map<String, dynamic>) onComplete;
 
   const MergeConflictsScreen({
     super.key, 
     required this.raceId,
     required this.timingData,
     required this.runnerRecords,
+    required this.onComplete,
   });
 
   @override
@@ -87,16 +90,9 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
       .where((record) => record['type'] == 'runner_time')
       .map((record) async {
         final recordIndex = record['place'] - 1;
-        print(recordIndex);
         final raceRunner = await DatabaseHelper.instance.getRaceRunnerByBib(_raceId, _runnerRecords[recordIndex]['bib_number']);
-        print(_runnerRecords[recordIndex]);
-        print('race runner: $raceRunner');
         return {
           'race_id': _raceId,
-          // 'bib_number': record['bib_number'],
-          // 'name': record['name'],
-          // 'grade': record['grade'],
-          // 'school': record['school'],
           'place': record['place'],
           'race_runner_id': raceRunner?['race_runner_id'],
           'finish_time': record['finish_time'],
@@ -105,6 +101,13 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
       .toList());
 
     await DatabaseHelper.instance.insertRaceResults(processedRecords);
+    
+    // Update the timing data with resolved records
+    final resolvedTimingData = Map<String, dynamic>.from(_timingData);
+    resolvedTimingData['records'] = records;
+    
+    // Call the onComplete callback with the resolved data
+    widget.onComplete(resolvedTimingData);
   }
 
   void _showResultsSavedSnackBar() {
@@ -694,12 +697,9 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
         ),
         child: ExpansionTile(
           initiallyExpanded: true,
-          title: const Text(
+          title: Text(
             'Review Race Results',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+            style: AppTypography.titleSemibold,
           ),
           trailing: const Icon(Icons.arrow_drop_down),
           children: [
@@ -708,12 +708,12 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     '1. Check each runner\'s information is correct\n'
                     '2. Verify or adjust finish times as needed\n'
                     '3. Resolve any conflicts shown in orange\n'
                     '4. Save when all results are confirmed',
-                    style: TextStyle(fontSize: 14),
+                    style: AppTypography.bodyRegular,
                   ),
                 ],
               ),
@@ -823,11 +823,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
       children: [
         Text(
           runner['name'] ?? '',
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-            color: Colors.white,
-          ),
+          style: AppTypography.bodySemibold,
         ),
         const SizedBox(height: 4),
         Row(
@@ -841,10 +837,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
                 ),
                 child: Text(
                   'Grade ${runner["grade"]}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.white,
-                  ),
+                  style: AppTypography.bodyRegular,
                 ),
               ),
               const SizedBox(width: 4),
@@ -859,10 +852,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
                   ),
                   child: Text(
                     runner['school'],
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.white,
-                    ),
+                    style: AppTypography.bodyRegular,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -886,11 +876,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
           const SizedBox(width: 8),
           Text(
             time,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: Colors.white,
-            ),
+            style: AppTypography.bodySemibold,
           ),
         ],
       ),
@@ -913,11 +899,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
         value: availableOptions.contains(timeController.text) ? timeController.text : null,
         hint: Text(
           timeController.text.isEmpty ? 'Select Time' : timeController.text,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.w500,
-          ),
+          style: AppTypography.bodySemibold,
         ),
         items: [
           if (manual) 
@@ -927,11 +909,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
                 width: MediaQuery.of(context).size.width * 0.25,
                 child: TextField(
                   controller: manualController,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: AppTypography.bodySemibold,
                   cursorColor: Colors.white,
                   decoration: const InputDecoration(
                     hintText: 'Enter time',
@@ -959,11 +937,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
             value: time,
             child: Text(
               time,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
-              ),
+              style: AppTypography.bodySemibold,
             ),
           )),
         ],
@@ -1059,22 +1033,13 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
               const SizedBox(width: 8),
               Text(
                 'Confirmed',
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.green,
-                ),
+                style: AppTypography.bodyRegular,
               ),
             ],
           ),
           Text(
             timeRecord['finish_time'] ?? '',
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: Colors.green,
-              letterSpacing: 0.5,
-            ),
+            style: AppTypography.bodySemibold,
           ),
         ],
       ),
@@ -1104,11 +1069,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
         ),
         child: Text(
           text,
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w500,
-            color: Colors.white,
-          ),
+          style: AppTypography.bodySemibold.copyWith(color: Colors.white),
         ),
       ),
     );
