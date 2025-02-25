@@ -50,7 +50,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
     _raceId = widget.raceId;
     _timingData = widget.timingData;
     _runnerRecords = widget.runnerRecords;
-    print('_runnerRecords: $_runnerRecords');
+    debugPrint('_runnerRecords: $_runnerRecords');
     _createChunks();
   }
 
@@ -159,7 +159,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
           'runners': _runnerRecords.sublist(place - 1, (records[i]['numTimes'] ?? records[i]['place'])),
           'conflictIndex': i,
         });
-        print('records[i][\'numTimes\']: ${records[i]['numTimes']}');
+        debugPrint('records[i][\'numTimes\']: ${records[i]['numTimes']}');
         startIndex = i + 1;
         place = records[i]['numTimes'] + 1;
       }
@@ -169,10 +169,10 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
       _selectedTimes[chunks[i]['conflictIndex']] = [];
       final runners = chunks[i]['runners'] ?? [];
       final records = chunks[i]['records'] ?? [];
-      print('chunk ${i + 1}: ${chunks[i]}');
-      print('-----------------------------');
-      print('runners length: ${runners.length}');
-      print('records length: ${records.length}');
+      debugPrint('chunk ${i + 1}: ${chunks[i]}');
+      debugPrint('-----------------------------');
+      debugPrint('runners length: ${runners.length}');
+      debugPrint('records length: ${records.length}');
       chunks[i]['joined_records'] = List.generate(
         runners.length,
         (j) => [runners[j], records[j]],
@@ -180,11 +180,11 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
       chunks[i]['controllers'] = {'timeControllers': List.generate(runners.length, (j) => TextEditingController()), 'manualControllers': List.generate(runners.length, (j) => TextEditingController())};
       if (chunks[i]['type'] == 'extra_runner_time') {
         chunks[i]['resolve'] = await _resolveTooManyRunnerTimes(chunks[i]['conflictIndex']);
-        // print('Resolved: ${chunks[i]['resolve']}');
+        // debugPrint('Resolved: ${chunks[i]['resolve']}');
       }
       else if (chunks[i]['type'] == 'missing_runner_time') {
         chunks[i]['resolve'] = await _resolveTooFewRunnerTimes(chunks[i]['conflictIndex']);
-        // print('Resolved: ${chunks[i]['resolve']}');
+        // debugPrint('Resolved: ${chunks[i]['resolve']}');
       }
     }
 
@@ -207,14 +207,14 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
     Duration? lastConfirmedTime = lastConfirmed?.isEmpty ? Duration.zero : loadDurationFromString(lastConfirmed['finish_time']);
     lastConfirmedTime ??= Duration.zero;
 
-    // print('\n\ntimes: $times');
-    // print('runners: $runners');
-    // print('lastConfirmed time: $lastConfirmedTime');
+    // debugPrint('\n\ntimes: $times');
+    // debugPrint('runners: $runners');
+    // debugPrint('lastConfirmed time: $lastConfirmedTime');
 
     for (var i = 0; i < times.length; i++) {
       final time = loadDurationFromString(times[i]);
       final runner = i > runners.length - 1 ? runners.last : runners[i];
-      print('time: $time');
+      debugPrint('time: $time');
 
       if (time == null) {
         DialogUtils.showErrorDialog(context, message: 'Enter a valid time for ${runner['name']}');
@@ -271,7 +271,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
     
     // final lastConfirmedRecord = lastConfirmedIndex == -1 ? {} : records[lastConfirmedIndex];
     final lastConfirmedPlace = lastConfirmedIndex == -1 ? 0 : records[lastConfirmedIndex]['numTimes'];
-    // print('Last confirmed record: $lastConfirmedPlace');
+    // debugPrint('Last confirmed record: $lastConfirmedPlace');
     // final nextConfirmedRecord = records.sublist(conflictIndex + 1)
     //     .firstWhere((record) => record['is_confirmed'] == true, orElse: () => {}.cast<String, dynamic>());
 
@@ -279,28 +279,28 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
     if (firstConflictingRecordIndex == -1) return {};
 
     final startingIndex = lastConfirmedPlace as int;
-    // print('Starting index: $startingIndex');
+    // debugPrint('Starting index: $startingIndex');
 
     final spaceBetweenConfirmedAndConflict = lastConfirmedIndex == -1 ? 1 : firstConflictingRecordIndex - lastConfirmedIndex;
-    // print('firstConflictingRecordIndex: $firstConflictingRecordIndex');
-    print('lastConfirmedIndex here: $lastConfirmedIndex');
-    // print('');
-    // print('');
-    // print('Space between confirmed and conflict: $spaceBetweenConfirmedAndConflict');
+    // debugPrint('firstConflictingRecordIndex: $firstConflictingRecordIndex');
+    debugPrint('lastConfirmedIndex here: $lastConfirmedIndex');
+    // debugPrint('');
+    // debugPrint('');
+    // debugPrint('Space between confirmed and conflict: $spaceBetweenConfirmedAndConflict');
 
     final List<Map<String, dynamic>> conflictingRecords = records
         .sublist(lastConfirmedIndex + spaceBetweenConfirmedAndConflict, conflictIndex)
         .cast<Map<String, dynamic>>();
 
-    // print('Conflicting records: $conflictingRecords');
+    // debugPrint('Conflicting records: $conflictingRecords');
 
     final List<String> conflictingTimes = conflictingRecords
         .where((record) => record['finish_time'] != null && record['finish_time'] is String)
         .map((record) => record['finish_time'] as String)
         .where((time) => time != '' && time != 'TBD')
         .toList();
-    // print('startingIndex: $startingIndex, spaceBetweenConfirmedAndConflict: $spaceBetweenConfirmedAndConflict');
-    // print('_runnerRecords: $_runnerRecords');
+    // debugPrint('startingIndex: $startingIndex, spaceBetweenConfirmedAndConflict: $spaceBetweenConfirmedAndConflict');
+    // debugPrint('_runnerRecords: $_runnerRecords');
     final List<Map<String, dynamic>> conflictingRunners = List<Map<String, dynamic>>.from(
       _runnerRecords.sublist(startingIndex, startingIndex + spaceBetweenConfirmedAndConflict)
     );
@@ -340,7 +340,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
   }
 
   Future<Map<String, dynamic>> _resolveTooManyRunnerTimes(int conflictIndex) async {
-    print('_resolveTooManyRunnerTimes called');
+    debugPrint('_resolveTooManyRunnerTimes called');
     var records = (_timingData['records'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [];
     final bibData = _runnerRecords.map((runner) => runner['bib_number'].toString()).toList();
     final conflictRecord = records[conflictIndex];
@@ -357,13 +357,13 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
     final List<Map<String, dynamic>> conflictingRecords = records
         .sublist(lastConfirmedIndex + 1, conflictIndex)
         .cast<Map<String, dynamic>>();
-    print('Conflicting records: $conflictingRecords');
+    debugPrint('Conflicting records: $conflictingRecords');
 
     final firstConflictingRecordIndex = records.indexOf(conflictingRecords.first);
     if (firstConflictingRecordIndex == -1) return {};
 
     // final spaceBetweenConfirmedAndConflict = lastConfirmedIndex == -1 ? 1 : firstConflictingRecordIndex - lastConfirmedIndex;
-    // print('Space between confirmed and conflict: $spaceBetweenConfirmedAndConflict');
+    // debugPrint('Space between confirmed and conflict: $spaceBetweenConfirmedAndConflict');
 
     final List<String> conflictingTimes = conflictingRecords
         .where((record) => record['finish_time'] != null && record['finish_time'] is String)
@@ -377,7 +377,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
         conflictRecord['numTimes']
       )
     );
-    print('Conflicting runners: $conflictingRunners');
+    debugPrint('Conflicting runners: $conflictingRunners');
 
     return {
       'conflictingRunners': conflictingRunners,
@@ -412,7 +412,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
     final lastConfirmedRunnerPlace = resolveData['lastConfirmedPlace'] ?? 0;
     for (int i = 0; i < runners.length; i++) {
       final int currentPlace = (i + lastConfirmedRunnerPlace + 1).toInt();
-      print('Current place: $currentPlace');
+      debugPrint('Current place: $currentPlace');
       var record = records.firstWhere((element) => element['place'] == currentPlace, orElse: () => {}.cast<String, dynamic>());
       final bibNumber = bibData[record['place'].toInt() - 1];   
 
@@ -437,10 +437,10 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
         conflictRecord,
         lastConfirmedRunnerPlace + runners.length,
       );
-      print('');
-      print('updated conflict record: $conflictRecord');
-      print('updated records: ${_timingData['records']}');
-      print('');
+      debugPrint('');
+      debugPrint('updated conflict record: $conflictRecord');
+      debugPrint('updated records: ${_timingData['records']}');
+      debugPrint('');
     });
     _showSuccessMessage();
     await _createChunks();
@@ -450,8 +450,8 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
     Map<String, dynamic> chunk,
   ) async {
     final List<String> times = chunk['controllers']['timeControllers'].map((controller) => controller.text.toString()).toList().cast<String>();
-    print('times: $times');
-    print('records: ${chunk['controllers']}');
+    debugPrint('times: $times');
+    debugPrint('records: ${chunk['controllers']}');
     var records = chunk['records'] ?? [];
     final resolveData = chunk['resolve'] ?? [];
     // final bibData = resolveData['bibData'] ?? [];
@@ -460,7 +460,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
     final conflictRecord = resolveData['conflictRecord'] ?? {};
     final lastConfirmedIndex = resolveData['lastConfirmedIndex'] ?? -1;
     final lastConfirmedPlace = resolveData['lastConfirmedPlace'] ?? -1;
-    print('lastConfirmedPlace: $lastConfirmedPlace');
+    debugPrint('lastConfirmedPlace: $lastConfirmedPlace');
     // final spaceBetweenConfirmedAndConflict = resolveData['spaceBetweenConfirmedAndConflict'] ?? -1;
     var runners = resolveData['conflictingRunners'] ?? [];
 
@@ -476,13 +476,13 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
       DialogUtils.showErrorDialog(context, message: 'Please select a time for each runner.');
       return;
     }
-    print('Unused times: $unusedTimes');
+    debugPrint('Unused times: $unusedTimes');
     final List<Map<String, dynamic>> typedRecords = List<Map<String, dynamic>>.from(records);
     final unusedRecords = typedRecords.where((record) => unusedTimes.contains(record['finish_time']));
-    print('Unused records: $unusedRecords');
+    debugPrint('Unused records: $unusedRecords');
 
-    print('records: $records');
-    print('runners before: $runners');
+    debugPrint('records: $records');
+    debugPrint('runners before: $runners');
 
     setState(() {
       _timingData['records'] = ((_timingData['records'] as List<dynamic>?) ?? [])
@@ -494,13 +494,13 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
     records = _timingData['records'] ?? [];
 
     // final lastConfirmedRunnerPlace = lastConfirmedRecord.isEmpty ? 0 : lastConfirmedRecord['place'] as int;
-    print('runners: $runners');
+    debugPrint('runners: $runners');
     for (int i = 0; i < runners.length; i++) {
       final num currentPlace = i + lastConfirmedPlace + 1;
       var record = records[lastConfirmedIndex + 1 + i];
       final String bibNumber = runners[i]['bib_number'] as String;
 
-      print('currentPlace: $currentPlace');
+      debugPrint('currentPlace: $currentPlace');
 
       setState(() {
         record['finish_time'] = times[i];
@@ -569,12 +569,12 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
     final lastConflictIndex = records.indexOf(lastConflict);
     final runnersBeforeConflict = records.sublist(0, lastConflictIndex).where((r) => r['type'] == 'runner_time').toList();
     final offBy = lastConflict['offBy'];
-    print('off by: $offBy');
+    debugPrint('off by: $offBy');
 
     records = updateTextColor(null, records, confirmed: false, endIndex: lastConflictIndex);
     for (int i = 0; i < offBy; i++) {
       final record = runnersBeforeConflict[runnersBeforeConflict.length - 1 - i];
-      print('remove record: $record');
+      debugPrint('remove record: $record');
       setState(() {
         records.remove(record);
       });
@@ -585,7 +585,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
   }
 
   // void _deleteConfirmedRecordsBeforeIndexUntilConflict(int recordIndex) {
-  //   print(recordIndex);
+  //   debugPrint(recordIndex);
   //   final records = _timingData['records'] ?? [];
   //   if (recordIndex < 0 || recordIndex >= records.length) {
   //     return;
@@ -738,8 +738,8 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
     final timeRecord = joinedRecord[1];
     final hasConflict = chunk['resolve'] != null;
     final confirmedColor = AppColors.confirmRunnerColor;
-    final conflictColor = AppColors.primaryColor.withOpacity(0.9);
-    print('runner place: ${runner['place']}');
+    final conflictColor = AppColors.primaryColor.withAlpha((0.9 * 255).round());
+    debugPrint('runner place: ${runner['place']}');
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
@@ -803,7 +803,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
+        color: Colors.white.withAlpha((0.2 * 255).round()),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Text(
@@ -832,7 +832,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withAlpha((0.2 * 255).round()),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
@@ -847,7 +847,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
+                    color: Colors.white.withAlpha((0.2 * 255).round()),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
@@ -1013,10 +1013,10 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
       margin: const EdgeInsets.fromLTRB(8, 4, 8, 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.green.withOpacity(0.1),
+        color: Colors.green.withAlpha((0.1 * 255).round()),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: Colors.green.withOpacity(0.3),
+          color: Colors.green.withAlpha((0.3 * 255).round()),
           width: 1,
         ),
       ),
@@ -1052,7 +1052,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withAlpha((0.1 * 255).round()),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),

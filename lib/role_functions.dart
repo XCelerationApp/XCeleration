@@ -51,7 +51,7 @@ final List<RoleOption> profileOptions = [
   RoleOption(
     value: 'assistant',
     title: 'Assistant',
-    description: 'Assist the coach by timing or recording bib numbers',
+    description: 'Assist the coach by gathering race results',
     icon: Icons.person,
     screen: const RacesScreen(),
   ),

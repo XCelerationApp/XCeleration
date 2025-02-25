@@ -3,6 +3,7 @@ import 'package:flutter_nearby_connections/flutter_nearby_connections.dart';
 import 'data_package.dart';
 import 'dart:io';
 import 'utils/enums.dart';
+import 'package:flutter/foundation.dart';
 
 class DeviceConnectionService {
   NearbyService? nearbyService;
@@ -27,7 +28,7 @@ class DeviceConnectionService {
         testService.stopAdvertisingPeer();
         return true;
       } catch (e) {
-        print('Failed to initialize NearbyService: $e');
+        debugPrint('Failed to initialize NearbyService: $e');
         return false;
       }
     }
@@ -73,11 +74,11 @@ class DeviceConnectionService {
     deviceMonitorSubscription = nearbyService!.stateChangedSubscription(callback: (devicesList) async {
       for (var device in devicesList) {
         if (!deviceNames.contains(device.deviceName)) {
-          print("Device not in list of expected devices: ${device.deviceName}");
+          debugPrint('Device not in list of expected devices: ${device.deviceName}');
           continue; // Skip this device but continue processing others
         }
         
-        print("Processing device ${device.deviceName} with state ${device.state}");
+        debugPrint('Processing device ${device.deviceName} with state ${device.state}');
         
         if (device.state == SessionState.notConnected) {
           if (_connectedDevices.contains(device)) {
@@ -108,91 +109,91 @@ class DeviceConnectionService {
 
   Future<void> inviteDevice(Device device) async {
     if (device.state == SessionState.notConnected) {
-      print("Device found. Sending invite...");
+      debugPrint('Device found. Sending invite...');
       await nearbyService!.invitePeer(deviceID: device.deviceId, deviceName: device.deviceName);
     } else if (device.state == SessionState.connected) {
-      print("Device is already connected: ${device.deviceName}");
+      debugPrint('Device is already connected: ${device.deviceName}');
     } else {
-      print("Device is connecting, not sending invite: ${device.state}");
+      debugPrint('Device is connecting, not sending invite: ${device.state}');
     }
   }
 
   Future<void> disconnectDevice(Device device) async {
     if (device.state != SessionState.connected) {
-      print("Device not connected");
+      debugPrint('Device not connected');
       return;
     }
     await nearbyService!.disconnectPeer(deviceID: device.deviceId);
-    print("Disconnected from device");
+    debugPrint('Disconnected from device');
   }
 
 
   Future<void> sendMessageToDevice(Device device, Package package) async {
     if (nearbyService == null) {
-      print("ERROR: nearbyService is null");
-      throw Exception("NearbyService not initialized");
+      debugPrint('ERROR: nearbyService is null');
+      throw Exception('NearbyService not initialized');
     }
     
     if (device.state != SessionState.connected) {
-      print("Device not connected - Cannot send message");
+      debugPrint('Device not connected - Cannot send message');
       return;
     }
-    print("Sending message to device ${device.deviceName}}");
+    debugPrint('Sending message to device ${device.deviceName}}');
     try {
       await nearbyService!.sendMessage(device.deviceId, package.toString());
-      print("Message sent successfully to ${device.deviceName}");
+      debugPrint('Message sent successfully to ${device.deviceName}');
     } catch (e) {
-      print("Error sending message to ${device.deviceName}: $e");
+      debugPrint('Error sending message to ${device.deviceName}: $e');
       rethrow;
     }
   }
 
   void monitorMessageReceives(Device device, {required Function(Package, String) messageReceivedCallback}) {
-    print("Setting up message monitoring for device: ${device.deviceName}");
+    debugPrint('Setting up message monitoring for device: ${device.deviceName}');
     
     // Store the callback for this specific device
     _messageCallbacks[device.deviceId] = (Map<String, dynamic>? data) async {
       try {
-        print("Raw data received: $data");
+        debugPrint('Raw data received: $data');
         if (data == null || !data.containsKey('message') || !data.containsKey('senderDeviceId')) {
-          print('Received invalid data format: $data');
+          debugPrint('Received invalid data format: $data');
           return;
         }
 
         // Parse the message string into a Package object
         try {
-          print("Attempting to parse message: ${data['message']}");
+          debugPrint('Attempting to parse message: ${data['message']}');
           final String packageString = data['message'];
           
           final package = Package.fromString(packageString);
-          print("Successfully parsed package: ${package.type}");
+          debugPrint('Successfully parsed package: ${package.type}');
           await messageReceivedCallback(package, data['senderDeviceId']);
         } catch (e) {
-          print('Error parsing package: $e');
+          debugPrint('Error parsing package: $e');
         }
       } catch (e) {
-        print('Error processing received data: $e');
+        debugPrint('Error processing received data: $e');
       }
     };
 
     // Only set up the subscription once
     if (receivedDataSubscription == null) {
-      print("Creating new data subscription");
+      debugPrint('Creating new data subscription');
       receivedDataSubscription = nearbyService!.dataReceivedSubscription(callback: (data) async {
-        print("Data received in subscription: $data");
+        debugPrint('Data received in subscription: $data');
         try {
           final callback = _messageCallbacks[data['senderDeviceId']];
           if (callback != null) {
             await callback(data.cast<String, dynamic>());
           } else {
-            print("No callback found for device ID: ${data['senderDeviceId']}");
+            debugPrint('No callback found for device ID: ${data['senderDeviceId']}');
           }
         } catch (e) {
-          print('Error in data received subscription: $e');
+          debugPrint('Error in data received subscription: $e');
         }
       });
     } else {
-      print("Using existing data subscription");
+      debugPrint('Using existing data subscription');
     }
   }
 

@@ -38,10 +38,10 @@ class ConflictResolutionScreen extends StatefulWidget {
   }
 
   @override
-  _ConflictResolutionScreenState createState() => _ConflictResolutionScreenState();
+  ConflictResolutionScreenState createState() => ConflictResolutionScreenState();
 }
 
-class _ConflictResolutionScreenState extends State<ConflictResolutionScreen> {
+class ConflictResolutionScreenState extends State<ConflictResolutionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -177,7 +177,7 @@ class _ConflictResolutionScreenState extends State<ConflictResolutionScreen> {
                   widget.selectedTimes.remove(previousValue);
                 }
               });
-              print('Selected times: ${widget.selectedTimes}');
+              debugPrint('Selected times: ${widget.selectedTimes}');
             }
           },
           decoration: InputDecoration(hintText: 'Select Time'),

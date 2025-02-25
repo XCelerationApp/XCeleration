@@ -23,8 +23,8 @@ Widget buildDropdown({
           },
           child: Container(
             decoration: BoxDecoration(
-              color: error != null ? Colors.red.withOpacity(0.05) : Colors.grey.withOpacity(0.05),
-              border: Border.all(color: error != null ? Colors.red.withOpacity(0.5) : Colors.grey.withOpacity(0.5)),
+              color: error != null ? Colors.red.withAlpha((0.05 * 255).round()) : Colors.grey.withAlpha((0.05 * 255).round()),
+              border: Border.all(color: error != null ? Colors.red.withAlpha((0.5 * 255).round()) : Colors.grey.withAlpha((0.5 * 255).round())),
               borderRadius: BorderRadius.circular(borderRadius),
             ),
             child: DropdownButtonHideUnderline(
@@ -114,19 +114,19 @@ Widget buildTextField({
             vertical: contentPadding,
           ),
           filled: true,
-          fillColor: error != null ? Colors.red.withOpacity(0.05) : Colors.grey.withOpacity(0.05),
+          fillColor: error != null ? Colors.red.withAlpha((0.05 * 255).round()) : Colors.grey.withAlpha((0.05 * 255).round()),
           prefixIcon: prefixIcon,
           suffixIcon: suffixIcon,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(borderRadius),
             borderSide: BorderSide(
-              color: error != null ? Colors.red.withOpacity(0.5) : Colors.grey.withOpacity(0.5),
+              color: error != null ? Colors.red.withAlpha((0.5 * 255).round()) : Colors.grey.withAlpha((0.5 * 255).round()),
             ),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(borderRadius),
             borderSide: BorderSide(
-              color: error != null ? Colors.red.withOpacity(0.5) : Colors.grey.withOpacity(0.5),
+              color: error != null ? Colors.red.withAlpha((0.5 * 255).round()) : Colors.grey.withAlpha((0.5 * 255).round()),
             ),
           ),
           focusedBorder: OutlineInputBorder(

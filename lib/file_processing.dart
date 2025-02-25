@@ -2,6 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:csv/csv.dart';
 import 'package:excel/excel.dart';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 
 Future<List<Map<String, dynamic>>> processSpreadsheet(int raceId, bool isTeam) async {
   FilePickerResult? result = await FilePicker.platform.pickFiles(
@@ -46,10 +47,10 @@ Future<List<Map<String, dynamic>>> processSpreadsheet(int raceId, bool isTeam) a
               });
             } 
           } else {
-            print('Invalid data in row: $row');
+            debugPrint('Invalid data in row: $row');
           }
         } else {
-          print('Incomplete row: $row');
+          debugPrint('Incomplete row: $row');
         }
       }
 
@@ -89,20 +90,20 @@ Future<List<Map<String, dynamic>>> processSpreadsheet(int raceId, bool isTeam) a
                 });
               } 
             } else {
-              print('Invalid data in row: $row');
+              debugPrint('Invalid data in row: $row');
             }
           } else {
-            print('Incomplete row: $row');
+            debugPrint('Incomplete row: $row');
           }
         }
       }
 
     } else {
-      print('Unsupported file format: $extension');
+      debugPrint('Unsupported file format: $extension');
     }
     return runnerData;
   } else {
-    print('No file selected.');
+    debugPrint('No file selected.');
     return [];
   }
 }

@@ -21,6 +21,7 @@ class ShareUtils {
         final uri = Uri.parse(url);
         if (await canLaunchUrl(uri)) {
           await launchUrl(uri);
+          if (!context.mounted) return null;
           DialogUtils.showSuccessDialog(
             context, 
             message: 'Results exported to Google Sheets successfully'
@@ -28,6 +29,7 @@ class ShareUtils {
           return url;
         }
       }
+      if (!context.mounted) return null;
       DialogUtils.showErrorDialog(
         context,
         message: 'Failed to export to Google Sheets. Please try again.'
@@ -54,6 +56,7 @@ class ShareUtils {
         await Share.share(text);
       }
     } catch (e) {
+      if (!context.mounted) return;
       DialogUtils.showErrorDialog(context, message: 'Failed to share text: $e');
     }
   }

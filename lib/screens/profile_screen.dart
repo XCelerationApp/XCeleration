@@ -2,8 +2,19 @@ import 'package:flutter/material.dart';
 import '../utils/app_colors.dart';
 import '../utils/dialog_utils.dart';
 import '../utils/typography.dart';
+// import '../database_helper.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
+  const ProfileScreen({super.key});
+
+  @override
+  ProfileScreenState createState() => ProfileScreenState();
+}
+
+class ProfileScreenState extends State<ProfileScreen> {
+  List<String> profiles = ['Coach', 'Assistant'];
+  String selectedProfile = 'Coach';
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

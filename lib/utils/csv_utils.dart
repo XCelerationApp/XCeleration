@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:csv/csv.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 
 class CsvUtils {
   
@@ -66,10 +67,10 @@ class CsvUtils {
         // Create the file in the selected directory
         final file = File('$selectedDirectory/$filename');
         await file.writeAsString(csvContent);
-        print('File saved at: ${file.path}');
+        debugPrint('File saved at: ${file.path}');
         return file.path;
       } else {
-        print('Directory selection was canceled.');
+        debugPrint('Directory selection was canceled.');
         return '';
       }
     } catch (e) {

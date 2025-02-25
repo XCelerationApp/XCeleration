@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter/services.dart';
 import 'package:xcelerate/runner_time_functions.dart';
 import '../database_helper.dart';
 import '../models/race.dart';
@@ -31,10 +29,10 @@ class RaceScreen extends StatefulWidget {
   });
 
   @override
-  _RaceScreenState createState() => _RaceScreenState();
+  RaceScreenState createState() => RaceScreenState();
 }
 
-class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
+class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
   late String _name = '';
   late String _location = '';
   late String _date = '';
@@ -310,25 +308,29 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.sports_score, size: 80, color: AppColors.primaryColor),
-              const SizedBox(height: 24),
-              Text(
-                'Ready to Start!',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.darkColor,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Click Next once the race is finished to collect results.',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: AppColors.darkColor.withOpacity(0.7),
-                ),
-                textAlign: TextAlign.center,
-              ),
+              // Icon(
+              //   Icons.sports_score,
+              //   size: 80,
+              //   color: AppColors.primaryColor,
+              // ),
+              // const SizedBox(height: 24),
+              // Text(
+              //   'Ready to Start!',
+              //   style: TextStyle(
+              //     fontSize: 24,
+              //     fontWeight: FontWeight.bold,
+              //     color: AppColors.darkColor,
+              //   ),
+              // ),
+              // const SizedBox(height: 16),
+              // Text(
+              //   'Click Next once the race is finished to collect results.',
+              //   style: TextStyle(
+              //     fontSize: 16,
+              //     color: AppColors.darkColor.withOpacity(0.7),
+              //   ),
+              //   textAlign: TextAlign.center,
+              // ),
             ],
           ),
         ),
@@ -645,7 +647,7 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
       });
     }
     else {
-      print('raceData is null');
+      debugPrint('raceData is null');
     }
   }
 
@@ -1191,7 +1193,7 @@ class _RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
                 TextButton(
                   onPressed: _continueRaceFlow,
                   style: TextButton.styleFrom(
-                    backgroundColor: Colors.white.withOpacity(0.2),
+                    backgroundColor: Colors.white.withAlpha((0.2 * 255).round()),
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   ),
                   child: Text(

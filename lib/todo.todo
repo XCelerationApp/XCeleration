@@ -8,7 +8,7 @@ Functionality:
 - throw specific error messages for spreadsheet loading
 - make sure all possible errors are caught and handled
 - clean up code
-- make sure QR codes work before recording race results (either ask user to test or use a package)
+- make sure QR codes work before recording race results? (either ask user to test or use a package)
 - figure out what to do when the are more confirmed records than recorded bib numbers
 - add swiping to delete/edit for bib numbers, races, runners, and times
 - make a way to reset bib screen for new race (dont keep track of data for both recorder and timer screens?)
@@ -22,8 +22,6 @@ UI:
 - make things reload when database is updated (race creation (done), ...)
 - delete data when user switches out of timer or recorder, but ask for confirmation first
 - add popups that tell the user how the app works when they first install it
-- make it so that you can't swipe back to the welcome screen on the far left screen
-- create coach marks
 - put error text under text boxes (basically done)
 - make uniform padding (8 pixel standard)
 - fix races card: date on the right 3 letter date, maybe google maps box.
