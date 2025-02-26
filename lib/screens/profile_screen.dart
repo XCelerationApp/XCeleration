@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../utils/app_colors.dart';
 import '../utils/dialog_utils.dart';
+import '../utils/typography.dart';
 // import '../database_helper.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -18,53 +19,84 @@ class ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Profile'),
+        title: Text(
+          'Profile',
+          style: AppTypography.titleSemibold.copyWith(color: Colors.white),
+        ),
         backgroundColor: AppColors.primaryColor,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Select Profile:',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _buildSection(
+            'Personal Information',
+            [
+              _buildInfoTile('Name', 'John Doe'),
+              _buildInfoTile('Email', 'john.doe@example.com'),
+              _buildInfoTile('Role', 'Coach'),
+            ],
+          ),
+          const SizedBox(height: 24),
+          _buildSection(
+            'Preferences',
+            [
+              _buildSwitchTile('Dark Mode', true),
+              _buildSwitchTile('Notifications', true),
+            ],
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton(
+            onPressed: () {},
+            child: Text(
+              'Sign Out',
+              style: AppTypography.bodySemibold.copyWith(color: Colors.white),
             ),
-            SizedBox(height: 16),
-            DropdownButton<String>(
-              value: selectedProfile,
-              isExpanded: true,
-              onChanged: (String? newValue) {
-                if (newValue != null) {
-                  setState(() {
-                    selectedProfile = newValue;
-                  });
-                  _saveProfile(newValue);
-                }
-              },
-              items: profiles.map<DropdownMenuItem<String>>((String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(value),
-                );
-              }).toList(),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  void _saveProfile(String profile) async {
-    try {
-      // await DatabaseHelper.instance.saveUserProfile(profile);
-      DialogUtils.showSuccessDialog(
-        context,
-        message: 'Your profile has been updated to $profile.',
-        title: 'Profile Updated',
-      );
-    } catch (e) {
-      DialogUtils.showErrorDialog(context, message: 'Failed to update profile: $e');
-    }
+  Widget _buildSection(String title, List<Widget> children) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: AppTypography.titleSemibold,
+        ),
+        const SizedBox(height: 16),
+        ...children,
+      ],
+    );
+  }
+
+  Widget _buildInfoTile(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Text(
+            '$label: ',
+            style: AppTypography.bodySemibold,
+          ),
+          Text(
+            value,
+            style: AppTypography.bodyRegular,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSwitchTile(String label, bool value) {
+    return SwitchListTile(
+      title: Text(
+        label,
+        style: AppTypography.bodyRegular,
+      ),
+      value: value,
+      onChanged: (bool value) {},
+    );
   }
 }

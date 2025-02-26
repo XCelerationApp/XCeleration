@@ -2,10 +2,8 @@ import 'dart:async';
 import 'package:flutter_nearby_connections/flutter_nearby_connections.dart';
 import 'data_package.dart';
 import 'dart:io';
+import 'utils/enums.dart';
 import 'package:flutter/foundation.dart';
-
-enum DeviceType { browserDevice, advertiserDevice }
-
 
 class DeviceConnectionService {
   NearbyService? nearbyService;

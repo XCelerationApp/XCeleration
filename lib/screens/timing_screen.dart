@@ -14,6 +14,8 @@ import '../utils/button_utils.dart';
 import '../device_connection_service.dart';
 import '../role_functions.dart';
 import '../utils/tutorial_manager.dart';
+import '../utils/typography.dart';
+import '../utils/enums.dart';
 
 class TimingScreen extends StatefulWidget {
   const TimingScreen({super.key});
@@ -412,11 +414,8 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
           width: MediaQuery.of(context).size.width * 0.9,
           child: Text(
             formatDurationWithZeros(elapsed),
-            style: TextStyle(
+            style: AppTypography.displayLarge.copyWith(
               fontSize: MediaQuery.of(context).size.width * 0.135,
-              fontWeight: FontWeight.bold,
-              fontFamily: 'monospace',
-              height: 1.0,
             ),
           ),
         );
@@ -640,16 +639,16 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
               children: [
                 Text(
                   '${record['place']}',
-                  style: TextStyle(
-                    fontSize: MediaQuery.of(context).size.width * 0.05,
+                  style: AppTypography.bodySemibold.copyWith(
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: record['text_color'] != null ? AppColors.confirmRunnerColor : null,
                   ),
                 ),
                 Text(
                   '${record['finish_time']}',
-                  style: TextStyle(
-                    fontSize: MediaQuery.of(context).size.width * 0.05,
+                  style: AppTypography.bodySemibold.copyWith(
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: record['conflict'] == null
                         ? record['text_color']
@@ -683,11 +682,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
           //   onLongPress: () => _handleConfirmationLongPress(index),
             Text(
               'Confirmed: ${record['finish_time']}',
-              style: TextStyle(
-                fontSize: MediaQuery.of(context).size.width * 0.05,
-                fontWeight: FontWeight.bold,
-                color: record['text_color'],
-              ),
+              style: AppTypography.bodySemibold.copyWith(fontSize: 18),
             ),
           // ),
           const Divider(
@@ -714,11 +709,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
             record['type'] == 'missing_runner_time' 
               ? 'Missing Runner at ${record['finish_time']}'
               : 'Extra Runner at ${record['finish_time']}',
-            style: TextStyle(
-              fontSize: MediaQuery.of(context).size.width * 0.05,
-              fontWeight: FontWeight.bold,
-              color: record['text_color'],
-            ),
+            style: AppTypography.bodySemibold.copyWith(fontSize: 18),
           ),
           const Divider(
             thickness: 1,
@@ -739,7 +730,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
             icon: const Icon(Icons.check, size: 40, color: Colors.green),
             onPressed: _confirmRunnerNumber,
           ),
-          Text('|', style: TextStyle(fontSize: 25),),
+          Text('|', style: AppTypography.bodyRegular.copyWith(fontSize: 25),),
           _buildAdjustTimesButton(),
           if (_hasUndoableConflict())
             IconButton(
@@ -758,19 +749,22 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
         itemBuilder: (BuildContext context) => <PopupMenuEntry<void>>[
           PopupMenuItem<void>(
             onTap: () => _missingRunnerTime(),
-            child: const Text('+ (Add finish time)', style: TextStyle(fontSize: 17),),
+            child: Text(
+              '+ (Add finish time)',
+              style: AppTypography.bodyRegular.copyWith(fontSize: 17),
+            ),
           ),
           PopupMenuItem<void>(
             onTap: () => _extraRunnerTime(),
-            child: const Text('- (Remove finish time)', style: TextStyle(fontSize: 17),),
+            child: Text(
+              '- (Remove finish time)',
+              style: AppTypography.bodyRegular.copyWith(fontSize: 17),
+            ),
           ),
         ],
-        child: const Text(
+        child: Text(
           'Adjust # of times',
-          style: TextStyle(
-            fontSize: 20,
-            color: AppColors.darkColor,
-          ),
+          style: AppTypography.bodyRegular.copyWith(fontSize: 20),
         ),
       ),
     );

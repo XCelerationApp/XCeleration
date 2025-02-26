@@ -7,11 +7,13 @@ import '../utils/dialog_utils.dart';
 class ResolveBibNumberScreen extends StatefulWidget {
   final List<Map<String, dynamic>> records;
   final int raceId;
+  final Function(List<Map<String, dynamic>>) onComplete;
   
   const ResolveBibNumberScreen({
     super.key,
     required this.records,
-    required this.raceId
+    required this.raceId,
+    required this.onComplete,
   });
 
   @override
@@ -104,7 +106,7 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
         _showCreateNew = false;
       });
     } else {
-      Navigator.pop(context, widget.records);
+      widget.onComplete(widget.records);
     }
   }
 

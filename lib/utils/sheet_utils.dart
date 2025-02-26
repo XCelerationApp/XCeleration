@@ -67,7 +67,7 @@ Widget createBackArrow(BuildContext context, {VoidCallback? onBack}) {
 //   );
 // }
 
-Widget createSheetHeader(String title, {
+Widget createSheetHeader(String? title, {
   double titleSize = 24,
   bool backArrow = false,
   BuildContext? context,
@@ -77,30 +77,32 @@ Widget createSheetHeader(String title, {
     children: [
       createSheetHandle(height: 5, width: 50),
       const SizedBox(height: 8),
-      Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          backArrow && context != null
-              ? createBackArrow(context, onBack: onBack)
-              : const SizedBox.shrink(),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: titleSize,
-              fontWeight: FontWeight.w600,
-              color: AppColors.darkColor,
+      if (title != null) ...[
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            backArrow && context != null
+                ? createBackArrow(context, onBack: onBack)
+                : const SizedBox.shrink(),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: titleSize,
+                fontWeight: FontWeight.w600,
+                color: AppColors.darkColor,
+              ),
+              textAlign: TextAlign.center,
             ),
-            textAlign: TextAlign.center,
-          ),
-          backArrow ? const SizedBox(width: 24) : const SizedBox.shrink(),
-        ],
-      ),
+            backArrow ? const SizedBox(width: 24) : const SizedBox.shrink(),
+          ],
+        ),
+      ],
       const SizedBox(height: 16),
     ],
   );
 }
 
-Future<dynamic> sheet({required BuildContext context, required Widget body, required String title, double titleSize = 24, Widget? actionButtons, bool showHeader = true, bool takeUpScreen = false}) async {
+Future<dynamic> sheet({required BuildContext context, required Widget body, String? title, double titleSize = 24, Widget? action_buttons, bool showHeader = true, bool takeUpScreen = false}) async {
   return await showModalBottomSheet(
     backgroundColor: AppColors.backgroundColor,
     context: context,
@@ -128,7 +130,7 @@ Future<dynamic> sheet({required BuildContext context, required Widget body, requ
           children: [
             if (showHeader) createSheetHeader(title, titleSize: titleSize),
             Flexible(child: body),
-            if (actionButtons != null) actionButtons,
+            if (action_buttons != null) action_buttons,
           ],
         ),
       ),

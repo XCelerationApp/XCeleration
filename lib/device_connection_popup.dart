@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
-import 'dart:async';
 import 'package:flutter/services.dart';
+import 'dart:async';
+import 'package:flutter_nearby_connections/flutter_nearby_connections.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:barcode_scan2/barcode_scan2.dart';
 import 'device_connection_service.dart';
-import 'package:flutter_nearby_connections/flutter_nearby_connections.dart';
 import 'data_protocol.dart';
 import 'utils/dialog_utils.dart';
 import 'utils/sheet_utils.dart';
+import 'utils/enums.dart' show DeviceName, DeviceType, ConnectionStatus, WirelessConnectionError;
 
-Future<void> showDeviceConnectionPopup(BuildContext context, { required DeviceType deviceType, required DeviceName deviceName, required Map<DeviceName, Map<String, dynamic>> otherDevices}) async {
+Future<void> showDeviceConnectionPopup(BuildContext context, { 
+  required DeviceType deviceType,
+  required DeviceName deviceName,
+  required Map<DeviceName, Map<String, dynamic>> otherDevices
+}) async {
   // Create a completer to track when we're actually done
   final completer = Completer<void>();
 
@@ -68,10 +73,6 @@ Map<DeviceName, Map<String, dynamic>> createOtherDeviceList(DeviceName deviceNam
   return devices;
 }
 
-enum ConnectionStatus { connected, found, connecting, searching, finished, error, sending, receiving, timeout }
-enum DeviceName { coach, bibRecorder, raceTimer}
-enum PopupScreen { main, qr }
-
 class DeviceConnectionPopupContent extends StatefulWidget {
   final DeviceName deviceName;
   final DeviceType deviceType;
@@ -90,7 +91,7 @@ class DeviceConnectionPopupContent extends StatefulWidget {
 }
 
 class _DeviceConnectionPopupContentState extends State<DeviceConnectionPopupContent> with SingleTickerProviderStateMixin {
-  PopupScreen _popupScreen = PopupScreen.main;
+  String _popupScreen = 'main';
   late AnimationController _animationController;
   late DeviceName _oppositeDeviceName;
   late AudioPlayer _audioPlayer;
@@ -129,15 +130,15 @@ class _DeviceConnectionPopupContentState extends State<DeviceConnectionPopupCont
     super.dispose();
   }
 
-  Future<void> _handleScreenTransition(PopupScreen newScreen, {DeviceName? oppositeDeviceName}) async {
+  Future<void> _handleScreenTransition(String newScreen, {DeviceName? oppositeDeviceName}) async {
     if (oppositeDeviceName != null) {
       _oppositeDeviceName = oppositeDeviceName;
     } else {
-      if (newScreen == PopupScreen.qr) {
+      if (newScreen == 'qr') {
         throw Exception('Opposite device name must be provided for qr screen');
       }
     }
-    if (newScreen == PopupScreen.main) {
+    if (newScreen == 'main') {
       await _animationController.reverse();
       if (mounted) {
         setState(() {
@@ -173,7 +174,7 @@ class _DeviceConnectionPopupContentState extends State<DeviceConnectionPopupCont
             child: child,
           );
         },
-        child: _popupScreen == PopupScreen.main
+        child: _popupScreen == 'main'
             ? _buildMainScreen()
             : Container(
                 key: ValueKey(_popupScreen),
@@ -206,15 +207,16 @@ class _DeviceConnectionPopupContentState extends State<DeviceConnectionPopupCont
           //   ),
           // ),
           createSheetHeader(
-            widget.deviceType == DeviceType.advertiserDevice ? 'Wireless Sharing' : 'Wireless Receiving',
+            // widget.deviceType == DeviceType.advertiserDevice ? 'Wireless Sharing' : 'Wireless Receiving',
+            'Share QR Code',
             context: context,
           ),
           WirelessConnectionPopupContent(
             deviceName: widget.deviceName,
             deviceType: widget.deviceType,
             otherDevices: widget.otherDevices,
-            showQRCode: (DeviceName oppositeDeviceName) async { 
-              _handleScreenTransition(PopupScreen.qr, oppositeDeviceName: oppositeDeviceName);
+            showQRCode: (DeviceName deviceName) async { 
+              _handleScreenTransition('qr', oppositeDeviceName: deviceName);
             },
           ),
           // SizedBox(height: 20), // Add some bottom padding
@@ -229,10 +231,10 @@ class _DeviceConnectionPopupContentState extends State<DeviceConnectionPopupCont
         mainAxisSize: MainAxisSize.min,
         children: [
           createSheetHeader(
-            'QR Connection',
+            'Share QR',
             context: context,
             backArrow: true,
-            onBack: () => _handleScreenTransition(PopupScreen.main),
+            onBack: () => _handleScreenTransition('main'),
           ),
           // SizedBox(height: 10),
           // Row(
@@ -266,22 +268,43 @@ class _DeviceConnectionPopupContentState extends State<DeviceConnectionPopupCont
       ),
     );
   }
+
+  // Widget _buildBackButton() {
+  //   return Container(
+  //     height: 48,
+  //     alignment: Alignment.centerLeft,
+  //     child: IconButton(
+  //       icon: Icon(Icons.arrow_back, color: Colors.deepOrange),
+  //       onPressed: () => _handleScreenTransition('main'),
+  //     ),
+  //   );
+  // }
 }
 
-Map<DeviceName, String> _deviceNameStrings = {
+// import 'utils/enums.dart';
+
+const Map<DeviceName, String> deviceNameStrings = {
   DeviceName.coach: 'Coach',
   DeviceName.bibRecorder: 'Bib Recorder',
   DeviceName.raceTimer: 'Race Timer',
 };
 
-String _getDeviceNameString(DeviceName deviceName) {
-  return _deviceNameStrings[deviceName]!;
+String getDeviceNameString(DeviceName deviceName) {
+  return deviceNameStrings[deviceName] ?? deviceName.toString();
 }
 
-DeviceName _getDeviceNameFromString(String deviceName) {
-  return _deviceNameStrings.keys.firstWhere((name) => _getDeviceNameString(name) == deviceName);
+DeviceName getDeviceNameFromString(String deviceName) {
+  switch (deviceName.toLowerCase()) {
+    case 'coach':
+      return DeviceName.coach;
+    case 'bib recorder':
+      return DeviceName.bibRecorder;
+    case 'race timer':
+      return DeviceName.raceTimer;
+    default:
+      throw ArgumentError('Invalid device name: $deviceName');
+  }
 }
-
 
 class QRConnectionPopupContent extends StatefulWidget {
   final String data;
@@ -293,69 +316,29 @@ class QRConnectionPopupContent extends StatefulWidget {
     required this.deviceName,
     required this.oppositeDeviceName,
   });
+
   @override
   State<QRConnectionPopupContent> createState() => _QRCodePopupContentState();
 }
 
 class _QRCodePopupContentState extends State<QRConnectionPopupContent> {
-
-  @override
-  void initState() {
-    super.initState();
-  } 
-
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Center(
-                child: Text(
-                  'Show this QR code to ${_getDeviceNameString(widget.oppositeDeviceName)}',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.deepOrangeAccent,
-                  ),
-                ),
-              ),
-              SizedBox(height: 16),
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final size = constraints.maxWidth * 0.7;
-                  return Center(
-                    child: SizedBox(
-                      height: size,
-                      width: size,
-                      child: QrImageView(
-                        data: '${_getDeviceNameString(widget.deviceName)}:${widget.data}',
-                        version: QrVersions.auto,
-                        errorCorrectionLevel: QrErrorCorrectLevel.M,
-                        size: size,
-                      ),
-                    ),
-                  );
-                },
-              ),
-              SizedBox(height: 16),
-            ],
-          );
-        }
-      )
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          QrImageView(
+            data: widget.data,
+            version: QrVersions.auto,
+            size: 250.0,
+          ),
+        ],
+      ),
     );
   }
 }
-
-enum WirelessConnectionError { unavailable, unknown }
 
 class WirelessConnectionPopupContent extends StatefulWidget {
   final DeviceName deviceName;
@@ -381,14 +364,15 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
   @override
   void initState() {
     super.initState();
-    _deviceConnectionService = DeviceConnectionService();
-    _protocol = Protocol(deviceConnectionService: _deviceConnectionService);
     _init();
   }
 
   Future<void> _init() async {
+    _deviceConnectionService = DeviceConnectionService();
+    _protocol = Protocol(deviceConnectionService: _deviceConnectionService);
+
     try {
-      final bool isServiceAvailable = await _deviceConnectionService.checkIfNearbyConnectionsWorks();
+      final isServiceAvailable = await _deviceConnectionService.checkIfNearbyConnectionsWorks();
       if (!isServiceAvailable) {
         debugPrint('Device connection service is not available on this platform');
         setState(() {
@@ -398,7 +382,11 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
       }
 
       try {
-        await _deviceConnectionService.init('wirelessconn', _getDeviceNameString(widget.deviceName), widget.deviceType);
+        await _deviceConnectionService.init(
+          'wirelessconn',
+          getDeviceNameString(widget.deviceName),
+          widget.deviceType,
+        );
       } catch (e) {
         debugPrint('Error initializing device connection service: $e');
         rethrow;
@@ -420,16 +408,18 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
         }
       }
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          DialogUtils.showErrorDialog(context, message: 'An error occurred in the wireless connection process. Use QR codes instead');
-        }
+        DialogUtils.showErrorDialog(
+          context,
+          title: 'Error',
+          message: 'An error occurred while trying to connect. Please try again.',
+        );
       });
     }
   }
 
   Future<void> _connectAndTransferData() async {
     Future<void> deviceFoundCallback (device) async {
-      final deviceName = _getDeviceNameFromString(device.deviceName);
+      final deviceName = getDeviceNameFromString(device.deviceName);
       if (!widget.otherDevices.containsKey(deviceName) || 
           widget.otherDevices[deviceName]!['status'] == ConnectionStatus.finished) {
         debugPrint('Ignoring device because it is not in the list of other devices or finished: ${device.deviceName}');
@@ -447,16 +437,16 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
       return;
     }
     Future<void> deviceConnectingCallback (device) async {
-      if (widget.otherDevices[_getDeviceNameFromString(device.deviceName)]!['status'] == ConnectionStatus.finished) return;
+      if (widget.otherDevices[getDeviceNameFromString(device.deviceName)]!['status'] == ConnectionStatus.finished) return;
       setState(() {
-        widget.otherDevices[_getDeviceNameFromString(device.deviceName)]!['status'] = ConnectionStatus.connecting;
+        widget.otherDevices[getDeviceNameFromString(device.deviceName)]!['status'] = ConnectionStatus.connecting;
       });
     }
     Future<void> deviceConnectedCallback (Device device) async {
       if (widget.otherDevices[_getDeviceNameFromString(device.deviceName)]!['status'] == ConnectionStatus.finished) return;
       debugPrint('Connected to device: ${device.deviceName}');
       setState(() {
-        widget.otherDevices[_getDeviceNameFromString(device.deviceName)]!['status'] = ConnectionStatus.connected;
+        widget.otherDevices[getDeviceNameFromString(device.deviceName)]!['status'] = ConnectionStatus.connected;
       });
 
       try {
@@ -475,7 +465,7 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
         if (widget.deviceType == DeviceType.browserDevice) {
           debugPrint('Browser device: preparing to receive data');
           setState(() {
-            widget.otherDevices[_getDeviceNameFromString(device.deviceName)]!['status'] = ConnectionStatus.receiving;
+            widget.otherDevices[getDeviceNameFromString(device.deviceName)]!['status'] = ConnectionStatus.receiving;
           });
           
           try {
@@ -484,7 +474,7 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
             debugPrint('Received data: $results');
             widget.otherDevices[_getDeviceNameFromString(device.deviceName)]!['data'] = results;
             setState(() {
-              widget.otherDevices[_getDeviceNameFromString(device.deviceName)]!['status'] = ConnectionStatus.finished;
+              widget.otherDevices[getDeviceNameFromString(device.deviceName)]!['status'] = ConnectionStatus.finished;
             });
           } catch (e) {
             debugPrint('Error receiving data for device ${device.deviceName}: $e');
@@ -494,7 +484,7 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
           if (widget.otherDevices[_getDeviceNameFromString(device.deviceName)]!['data'] != null) {
             debugPrint('Advertiser device: preparing to send data');
             setState(() {
-              widget.otherDevices[_getDeviceNameFromString(device.deviceName)]!['status'] = ConnectionStatus.sending;
+              widget.otherDevices[getDeviceNameFromString(device.deviceName)]!['status'] = ConnectionStatus.sending;
             });
             
             try {
@@ -503,7 +493,7 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
               await _protocol.sendData(data, device.deviceId);
               debugPrint('Data sent successfully');
               setState(() {
-                widget.otherDevices[_getDeviceNameFromString(device.deviceName)]!['status'] = ConnectionStatus.finished;
+                widget.otherDevices[getDeviceNameFromString(device.deviceName)]!['status'] = ConnectionStatus.finished;
               });
               _deviceConnectionService.disconnectDevice(device);
             } catch (e) {
@@ -519,7 +509,7 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
       } catch (e) {
         debugPrint('Error in connection callback for device ${device.deviceName}: $e');
         _protocol.removeDevice(device.deviceId);
-        widget.otherDevices[_getDeviceNameFromString(device.deviceName)]!['status'] = ConnectionStatus.error;
+        widget.otherDevices[getDeviceNameFromString(device.deviceName)]!['status'] = ConnectionStatus.error;
         rethrow;
       }
     }
@@ -528,7 +518,7 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
       deviceNames: widget.otherDevices.keys
           .where((deviceName) =>
               widget.otherDevices[deviceName]!['status'] != ConnectionStatus.finished)
-          .map((deviceName) => _getDeviceNameString(deviceName)).toList(),
+          .map((deviceName) => getDeviceNameString(deviceName)).toList(),
       deviceFoundCallback: deviceFoundCallback,
       deviceLostCallback: deviceLostCallback,
       deviceConnectingCallback: deviceConnectingCallback,
@@ -545,48 +535,29 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
   }
 
   Future<void> _scanQrCode(BuildContext context, DeviceName scanDeviceName) async {
-    try {
-      final result = await BarcodeScanner.scan();
-      if (result.type == ResultType.Barcode) {
-        final parts = result.rawContent.split(':');
-        if (parts.isEmpty || parts[0] != _getDeviceNameString(scanDeviceName)) {
-          if (!context.mounted) return;
-          DialogUtils.showErrorDialog(context, message: 'Incorrect QR Code Scanned');
-          return;
-        }
-        setState(() {
-          widget.otherDevices[scanDeviceName]!['status'] = ConnectionStatus.finished;
-          widget.otherDevices[scanDeviceName]!['data'] = parts.sublist(1).join(':');
-        });
-        _protocol.removeDevice(_getDeviceNameString(scanDeviceName));
-      }
-    } on MissingPluginException {
-      if (!context.mounted) return;
-      DialogUtils.showErrorDialog(context, message: 'The QR code scanner is not available on this device.');
-    } catch (e) {
-      if (!context.mounted) return;
-      DialogUtils.showErrorDialog(context, message: 'An unknown error occurred: $e');
-    }
+    await sheet(
+      context: context,
+      title: 'Scan QR Code',
+      body: QRConnectionPopupContent(
+        deviceName: scanDeviceName,
+        oppositeDeviceName: scanDeviceName == DeviceName.coach ? DeviceName.bibRecorder : DeviceName.coach,
+        data: widget.otherDevices[scanDeviceName]!['data'],
+      ),
+    );
   }
 
   Widget _buildDeviceConnectionTracker(DeviceName deviceName, ConnectionStatus status, VoidCallback onPressed) {
-    String text = '';
-    if (_wirelessConnectionError == WirelessConnectionError.unavailable || _wirelessConnectionError == WirelessConnectionError.unknown) {
-      text = status == ConnectionStatus.finished ? 'Data Received' : 'Data not received';
-    }
-    else {
-      text = switch(status) {
-        ConnectionStatus.connected => 'Connected...',
-        ConnectionStatus.connecting => 'Connecting...',
-        ConnectionStatus.finished => widget.deviceType == DeviceType.browserDevice ? 'Data Received' : 'Data Sent',
-        ConnectionStatus.error => 'Error',
-        ConnectionStatus.sending => 'Sending...',
-        ConnectionStatus.receiving => 'Receiving...',
-        ConnectionStatus.timeout => 'Timed out',
-        ConnectionStatus.searching => 'Searching...',
-        ConnectionStatus.found => 'Found device...',
-      };
-    }
+    String text = switch(status) {
+      ConnectionStatus.connected => 'Connected...',
+      ConnectionStatus.connecting => 'Connecting...',
+      ConnectionStatus.finished => widget.deviceType == DeviceType.browserDevice ? 'Data Received' : 'Data Sent',
+      ConnectionStatus.error => 'Error',
+      ConnectionStatus.sending => 'Sending...',
+      ConnectionStatus.receiving => 'Receiving...',
+      ConnectionStatus.timeout => 'Timed out',
+      ConnectionStatus.searching => 'Searching...',
+      ConnectionStatus.found => 'Found device...',
+    };
     return Padding(
       padding: const EdgeInsets.only(bottom: 8, top: 8),
       child: Container(
@@ -610,7 +581,7 @@ class _WirelessConnectionPopupState extends State<WirelessConnectionPopupContent
               children: [
                 Center(
                   child: Text(
-                    _getDeviceNameString(deviceName),
+                    getDeviceNameString(deviceName),
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,

@@ -23,8 +23,9 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _createDB,
+      onUpgrade: _onUpgrade,
     );
   }
 
@@ -83,18 +84,39 @@ class DatabaseHelper {
       )
     ''');
 
-    // Create race_results table
+    // Create race results data table
     await db.execute('''
-      CREATE TABLE race_results_data(
+      CREATE TABLE race_results_data (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         race_id INTEGER NOT NULL,
-        results_data TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        FOREIGN KEY (race_id) REFERENCES races (race_id)
-          ON DELETE CASCADE
+        runner_id INTEGER NOT NULL,
+        finish_time INTEGER,
+        finish_position INTEGER,
+        team TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (race_id) REFERENCES races (race_id),
+        FOREIGN KEY (runner_id) REFERENCES team_runners (runner_id)
       )
     ''');
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      // Create race results data table if it doesn't exist
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS race_results_data (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          race_id INTEGER NOT NULL,
+          runner_id INTEGER NOT NULL,
+          finish_time INTEGER,
+          finish_position INTEGER,
+          team TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (race_id) REFERENCES races (race_id),
+          FOREIGN KEY (runner_id) REFERENCES team_runners (runner_id)
+        )
+      ''');
+    }
   }
 
   // Team Runners Methods
