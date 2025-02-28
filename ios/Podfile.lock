@@ -164,7 +164,7 @@ SPEC CHECKSUMS:
   Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
   flutter_native_splash: f71420956eb811e6d310720fee915f1d42852e7a
   flutter_nearby_connections: 68c6cb88dcbf781e74adac01f4e93b853a30ee34
-  geocoding_ios: d7460f56e80e118d57678efe5c2cdc888739ff18
+  geocoding_ios: a389ea40f6f548de6e63006a2e31bf66ff80769a
   geolocator_apple: 9bcea1918ff7f0062d98345d238ae12718acfbc1
   google_sign_in_ios: 07375bfbf2620bc93a602c0e27160d6afc6ead38
   GoogleSignIn: d4281ab6cf21542b1cfaff85c191f230b399d2db

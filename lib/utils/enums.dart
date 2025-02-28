@@ -30,3 +30,10 @@ enum DeviceType {
   advertiserDevice,
   browserDevice,
 }
+
+enum RecordType {
+  runnerTime,
+  confirmRunner,
+  missingRunner,
+  extraRunner,
+}

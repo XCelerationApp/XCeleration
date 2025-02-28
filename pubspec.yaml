@@ -59,6 +59,7 @@ dependencies:
   barcode_scan2: ^4.1.0
   flutter_lints: ^5.0.0
   collection: ^1.17.0
+  uuid: ^4.2.2
 
 dev_dependencies:
   flutter_test:

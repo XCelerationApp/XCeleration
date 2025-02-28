@@ -265,7 +265,6 @@ Future<bool> showFlow({
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primaryColor,
-                      disabledBackgroundColor: AppColors.primaryColor.withOpacity(0.5),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(6),
                       ),
