@@ -68,35 +68,29 @@ class FlowStepContent extends StatelessWidget {
   }
 }
 
-class SearchableButton extends StatefulWidget {
+class ActionButton extends StatefulWidget {
   final String label;
   final VoidCallback? onTap;
   final IconData? icon;
-  final ConnectionStatus? connectionStatus;
-  final bool showSearchingText;
-  final bool isQrCode;
 
-  const SearchableButton({
+  const ActionButton({
     super.key,
     required this.label,
     this.onTap,
     this.icon = Icons.person,
-    this.connectionStatus,
-    this.showSearchingText = true,
-    this.isQrCode = false,
   });
 
   @override
-  State<SearchableButton> createState() => _SearchableButtonState();
+  State<ActionButton> createState() => _ActionButtonState();
 }
 
-class _SearchableButtonState extends State<SearchableButton> {
+class _ActionButtonState extends State<ActionButton> {
   @override
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: widget.isQrCode || widget.connectionStatus != ConnectionStatus.searching ? widget.onTap : null,
+        onTap: widget.onTap,
         borderRadius: BorderRadius.circular(12),
         child: Container(
           width: double.infinity,
@@ -109,56 +103,18 @@ class _SearchableButtonState extends State<SearchableButton> {
           child: Row(
             children: [
               Icon(
-                widget.icon ?? Icons.person,
+                widget.icon,
                 color: Colors.black54,
                 size: 24,
               ),
-              if (widget.isQrCode) ...[
-                Expanded(
-                  child: Center(
-                    child: Text(
-                      widget.label,
-                      style: const TextStyle(
-                        fontSize: 17,
-                        color: Colors.black87,
-                      ),
-                    ),
-                  ),
+              const SizedBox(width: 16),
+              Text(
+                widget.label,
+                style: const TextStyle(
+                  fontSize: 17,
+                  color: Colors.black87,
                 ),
-              ] else ...[
-                const SizedBox(width: 16),
-                Text(
-                  widget.label,
-                  style: const TextStyle(
-                    fontSize: 17,
-                    color: Colors.black87,
-                  ),
-                ),
-                if (widget.showSearchingText && widget.connectionStatus == ConnectionStatus.searching) ...[
-                  const Spacer(),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.grey[400]!),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Searching',
-                        style: TextStyle(
-                          fontSize: 17,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ],
+              ),
             ],
           ),
         ),

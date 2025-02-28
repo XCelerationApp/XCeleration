@@ -19,7 +19,7 @@ class ShareSheetScreen extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
         children: [
-          SearchableButton(
+          ActionButton(
             label: 'Share via QR Code',
             icon: Icons.qr_code,
             onTap: () {
@@ -29,7 +29,7 @@ class ShareSheetScreen extends StatelessWidget {
           const SizedBox(height: 16),
           const Center(child: Text('or')),
           const SizedBox(height: 16),
-          SearchableButton(
+          ActionButton(
             label: 'Share via Bluetooth',
             icon: Icons.bluetooth,
             onTap: () {

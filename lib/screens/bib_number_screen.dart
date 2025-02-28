@@ -8,8 +8,8 @@ import '../utils/app_colors.dart';
 import '../utils/dialog_utils.dart';
 import '../utils/button_utils.dart';
 // import '../utils/time_formatter.dart';
-import '../device_connection_popup.dart';
-import '../device_connection_service.dart';
+import '../utils/device_connection_widget.dart';
+import '../utils/device_connection_service.dart';
 // import '../database_helper.dart';
 // import '../runner_time_functions.dart';
 // import 'race_screen.dart';
@@ -19,6 +19,7 @@ import '../utils/tutorial_manager.dart';
 import '../utils/coach_mark.dart';
 import '../utils/typography.dart';
 import '../utils/enums.dart';
+import '../utils/sheet_utils.dart';
 
 class BibNumberScreen extends StatefulWidget {
   // final Race? race;
@@ -80,12 +81,19 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                 TextButton(
                   child: const Text('Load Runners'),
                   onPressed: () async{
-                    await showDeviceConnectionPopup(
-                      context,
-                      deviceType: DeviceType.browserDevice,
-                      deviceName: DeviceName.bibRecorder,
-                      otherDevices: otherDevices,
+                    sheet(
+                      context: context,
+                      title: 'Load Runners',
+                      body: deviceConnectionWidget(
+                        DeviceName.coach,
+                        DeviceType.advertiserDevice,
+                        createOtherDeviceList(
+                          DeviceName.coach,
+                          DeviceType.advertiserDevice,
+                        ),
+                      ),
                     );
+                    await waitForDataTransferCompletion(otherDevices);
                     setState(() {
                       final data = otherDevices[DeviceName.coach]?['data'];
                       if (data != null) {
@@ -120,6 +128,24 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
         );
       });
     }
+  }
+
+  List<Map<String, dynamic>> decodeRunners(String encodedRunners) {
+    List<Map<String, dynamic>> runners = [];
+    for (var runner in encodedRunners.split(' ')) {
+      if (runner.isNotEmpty) {
+        List<String> runnerValues = runner.split(',');
+        if (runnerValues.length == 4) {
+          runners.add({
+            'bib_number': runnerValues[0],
+            'name': runnerValues[1],
+            'school': runnerValues[2],
+            'grade': runnerValues[3],
+          });
+        }
+      }
+    }
+    return runners;
   }
 
   Future<void> _validateBibNumber(int index, String bibNumber, List<double>? confidences) async {
@@ -369,14 +395,17 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
 
     final String bibData = _getEncodedBibData();
     if (!mounted) return;
-    await showDeviceConnectionPopup(
-      context,
-      deviceType: DeviceType.advertiserDevice,
-      deviceName: DeviceName.bibRecorder,
-      otherDevices: createOtherDeviceList(
+    sheet(
+      context: context,
+      title: 'Share Bib Numbers',
+      body: deviceConnectionWidget(
         DeviceName.bibRecorder,
         DeviceType.advertiserDevice,
-        data: bibData,
+        createOtherDeviceList(
+          DeviceName.bibRecorder,
+          DeviceType.advertiserDevice,
+          data: bibData,
+        ),
       ),
     );
 
