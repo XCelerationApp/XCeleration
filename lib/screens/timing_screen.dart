@@ -6,16 +6,18 @@ import 'package:audioplayers/audioplayers.dart';
 import '../models/timing_data.dart';
 import '../utils/time_formatter.dart';
 import '../utils/app_colors.dart';
-import '../device_connection_popup.dart';
+import '../utils/device_connection_widget.dart';
 import '../runner_time_functions.dart';
 import '../utils/timing_utils.dart';
 import '../utils/dialog_utils.dart';
 import '../utils/button_utils.dart';
-import '../device_connection_service.dart';
+import '../utils/device_connection_service.dart';
 import '../role_functions.dart';
 import '../utils/tutorial_manager.dart';
 import '../utils/typography.dart';
 import '../utils/enums.dart';
+import '../utils/sheet_utils.dart';
+
 
 class TimingScreen extends StatefulWidget {
   const TimingScreen({super.key});
@@ -451,16 +453,18 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
         child: LayoutBuilder(
           builder: (context, constraints) {
             return ElevatedButton(
-              onPressed: () => showDeviceConnectionPopup(
-                context,
-                deviceType: DeviceType.advertiserDevice,
-                deviceName: DeviceName.raceTimer,
-                otherDevices: createOtherDeviceList(
+              onPressed: () => sheet(
+                context: context,
+                title: 'Share Times',
+                body: deviceConnectionWidget(
                   DeviceName.raceTimer,
                   DeviceType.advertiserDevice,
-                  data: _timingData.encode(),
-                ),
-                
+                  createOtherDeviceList(
+                    DeviceName.raceTimer,
+                    DeviceType.advertiserDevice,
+                    data: _timingData.encode(),
+                  ),
+                )
               ),
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size(0, 78),

@@ -9,8 +9,8 @@ import '../utils/app_colors.dart';
 import '../utils/flow_components.dart';
 import '../utils/sheet_utils.dart';
 import '../utils/enums.dart';
-import '../device_connection_popup.dart';
-import '../device_connection_service.dart';
+import '../utils/device_connection_widget.dart';
+import '../utils/device_connection_service.dart';
 import 'dart:convert';
 import '../utils/encode_utils.dart';
 import 'merge_conflicts_screen.dart';
@@ -215,61 +215,16 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
       FlowStep(
         title: 'Share Runners',
         description: 'Share the runners with the bib recorders phone before starting the race.',
-        content: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            ValueListenableBuilder<ConnectionStatus>(
-              valueListenable: _connectionStatusNotifier,
-              builder: (context, status, child) {
-                return SearchableButton(
-                  label: 'Bib recorder',
-                  icon: Icons.person,
-                  connectionStatus: status,
-                  onTap: () async {
-                    final data = await _getEncodedRunnersData();
-                    _startDeviceConnection(
-                      context,
-                      deviceType: DeviceType.advertiserDevice,
-                      deviceName: DeviceName.coach,
-                      data: data,
-                    );
-                  },
-                  isQrCode: false,
-                );
-              },
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'or',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.black54,
-                height: 1.5,
-              ),
-            ),
-            const SizedBox(height: 24),
-            ValueListenableBuilder<ConnectionStatus>(
-              valueListenable: _qrConnectionStatusNotifier,
-              builder: (context, status, child) {
-                return SearchableButton(
-                  label: 'Share QR code',
-                  icon: Icons.qr_code,
-                  connectionStatus: status,
-                  showSearchingText: false,
-                  onTap: () async {
-                    final data = await _getEncodedRunnersData();
-                    _showQRCodeConnection(
-                      context,
-                      deviceType: DeviceType.advertiserDevice,
-                      deviceName: DeviceName.coach,
-                      data: data,
-                    );
-                  },
-                  isQrCode: true,
-                );
-              },
-            ),
-          ],
+        content: Center(
+          child: deviceConnectionWidget(
+            DeviceName.coach,
+            DeviceType.advertiserDevice,
+            createOtherDeviceList(
+              DeviceName.coach,
+              DeviceType.advertiserDevice,
+              data: await _getEncodedRunnersData()
+              )
+            )
         ),
         canProceed: () async => true,
       ),
@@ -372,29 +327,7 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
               mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
               children: [
-                ValueListenableBuilder<ConnectionStatus>(
-                  valueListenable: _bibRecorderStatusNotifier,
-                  builder: (context, status, child) {
-                    return SearchableButton(
-                      label: 'Bib Recorder',
-                      icon: Icons.person_outline,
-                      connectionStatus: status,
-                      showSearchingText: true,
-                    );
-                  }
-                ),
-                const SizedBox(height: 16),
-                ValueListenableBuilder<ConnectionStatus>(
-                  valueListenable: _raceTimerStatusNotifier,
-                  builder: (context, status, child) {
-                    return SearchableButton(
-                      label: 'Race Timer',
-                      icon: Icons.timer_outlined,
-                      connectionStatus: status,
-                      showSearchingText: true,
-                    );
-                  }
-                ),
+                deviceConnectionWidget(DeviceName.bibRecorder, DeviceType.advertiserDevice, createOtherDeviceList(DeviceName.bibRecorder, DeviceType.advertiserDevice)),
                 const SizedBox(height: 24),
                 if (_resultsLoaded) ...[
                   if (_hasBibConflicts) ...[
@@ -456,13 +389,7 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
                         DeviceType.browserDevice,
                       );
 
-                      await showDeviceConnectionPopup(
-                        context,
-                        deviceType: DeviceType.browserDevice,
-                        deviceName: DeviceName.coach,
-                        otherDevices: otherDevices,
-                      );
-
+                      await waitForDataTransferCompletion(otherDevices);
                       final encodedBibRecords = otherDevices[DeviceName.bibRecorder]?['data'] as String?;
                       final encodedFinishTimes = otherDevices[DeviceName.raceTimer]?['data'] as String?;
 
@@ -1290,52 +1217,5 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
       default:
         return 'Unknown';
     }
-  }
-
-  void _startDeviceConnection(
-    BuildContext context, {
-    required DeviceType deviceType,
-    required DeviceName deviceName,
-    required String data,
-  }) {
-    final otherDevices = createOtherDeviceList(deviceName, deviceType, data: data);
-  
-    showDeviceConnectionPopup(
-      context,
-      deviceType: deviceType,
-      deviceName: deviceName,
-      otherDevices: otherDevices,
-    ).then((_) {
-      // Reset status after connection is complete
-      _connectionStatusNotifier.value = ConnectionStatus.searching;
-    });
-
-    // Listen to status changes
-    for (var device in otherDevices.entries) {
-      if (device.value['status'] != null) {
-        _connectionStatusNotifier.value = device.value['status'];
-      }
-    }
-  }
-
-  void _showQRCodeConnection(
-    BuildContext context, {
-    required DeviceType deviceType,
-    required DeviceName deviceName,
-    required String data,
-  }) {
-    final otherDevices = createOtherDeviceList(deviceName, deviceType, data: data);
-  
-    _qrConnectionStatusNotifier.value = ConnectionStatus.connecting;
-  
-    showDeviceConnectionPopup(
-      context,
-      deviceType: deviceType,
-      deviceName: deviceName,
-      otherDevices: otherDevices,
-    ).then((_) {
-      // Reset status after connection is complete
-      _qrConnectionStatusNotifier.value = ConnectionStatus.searching;
-    });
   }
 }
