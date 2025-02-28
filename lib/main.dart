@@ -7,7 +7,7 @@ import 'utils/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'utils/typography.dart';
-import 'screens/initialization_screen.dart';
+import 'screens/splash_screen.dart';
 
 Process? _flaskProcess;
 
@@ -102,7 +102,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const InitializationScreen(),
+      home: const SplashScreen(),
     );
   }
 }
