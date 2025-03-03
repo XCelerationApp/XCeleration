@@ -4,36 +4,55 @@ import 'dialog_utils.dart';
 import '../runner_time_functions.dart';
 import 'package:flutter/material.dart';
 import '../database_helper.dart';
+import '../models/runner_record.dart';
+import '../utils/enums.dart';
+import 'package:uuid/uuid.dart';
+
+// Uuid _uuid = Uuid();
 
 decodeRaceTimesString(String encodedData) async {
   final decodedData = json.decode(encodedData);
   final startTime = null;
   final endTime = decodedData[1];
   final condensedRecords = decodedData[0];
-  List<Map<String, dynamic>> records = [];
+  List<RunnerRecord> records = [];
   int place = 0;
+  Uuid _uuid = Uuid();
   for (var recordString in condensedRecords) {
     if (loadDurationFromString(recordString) != null) {
       place++;
-      records.add({
-        'finish_time': recordString,
-        'type': 'runner_time',
-        'is_confirmed': false,
-        'place': place
-      });
+      records.add(RunnerRecord(
+        id: _uuid.v4(),
+        elapsedTime: recordString,
+        type: RecordType.runnerTime,
+        place: place
+      ));
+      // records.add({
+      //   'finish_time': recordString,
+      //   'type': 'runner_time',
+      //   'is_confirmed': false,
+      //   'place': place
+      // });
     }
     else {
-      final [type, offBy, finishTime] = recordString.split(' ');
+      final [type, offByString, finishTime] = recordString.split(' ');
+
+      int? offBy = int.tryParse(offByString);
+      if (offBy == null) {
+        debugPrint('Failed to parse offBy: $offByString');
+        continue;
+      }
+
       if (type == 'confirm_runner_number'){
         records = confirmRunnerNumber(records, place - 1, finishTime);
       }
       else if (type == 'missing_runner_time'){
-        records = await missingRunnerTime(int.tryParse(offBy), records, place, finishTime);
-        place += int.tryParse(offBy)!;
+        records = await missingRunnerTime(offBy!, records, place, finishTime);
+        place += offBy;
       }
       else if (type == 'extra_runner_time'){
-        records = await extraRunnerTime(int.tryParse(offBy), records, place, finishTime);
-        place -= int.tryParse(offBy)!;
+        records = await extraRunnerTime(offBy, records, place, finishTime);
+        place -= offBy;
       }
       else {
         debugPrint('Unknown type: $type, string: $recordString');

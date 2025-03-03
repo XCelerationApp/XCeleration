@@ -294,7 +294,7 @@ class RacesScreenState extends State<RacesScreen> {
                 .map((controller) => controller.text.trim())
                 .where((text) => text.isNotEmpty)
                 .toList()),
-            'team_colors': jsonEncode(_teamColors.map((color) => color.toARGB32()).toList()),
+            'team_colors': jsonEncode(_teamColors.map((color) => color.value).toList()),
           };
 
           if (isEditing && raceId != null) {

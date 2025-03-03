@@ -6,12 +6,16 @@ class CircularButton extends StatelessWidget {
   final String text;
   final Color color;
   final double fontSize;
+  final FontWeight? fontWeight;
+  final double elevation;
 
   const CircularButton({
     required this.onPressed,
     required this.text,
     required this.color,
     this.fontSize = 20,
+    this.fontWeight,
+    this.elevation = 0,
     super.key,
   });
 
@@ -32,6 +36,8 @@ class CircularButton extends StatelessWidget {
             BoxShadow(
               color: color,
               spreadRadius: 2,
+              blurRadius: elevation > 0 ? 4 : 0,
+              offset: elevation > 0 ? const Offset(0, 2) : Offset.zero,
             ),
           ],
         ),
@@ -48,6 +54,7 @@ class CircularButton extends StatelessWidget {
             style: TextStyle(
               color: Colors.white,
               fontSize: fontSize,
+              fontWeight: fontWeight ?? FontWeight.normal,
             ),
             maxLines: 1,
           ),

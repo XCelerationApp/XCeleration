@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../models/timing_data.dart';
+import '../models/runner_record.dart';
 import '../utils/time_formatter.dart';
 import '../utils/app_colors.dart';
 import '../utils/device_connection_widget.dart';
@@ -32,7 +33,8 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   bool _isAudioPlayerReady = false;
   late final TabController _tabController;
   late TimingData _timingData;
-  List<Map<String, dynamic>> get _records => _timingData.records;
+  List<RunnerRecord> get _records => _timingData.records;
+  RunnerRecord? _selectedRecord;
   final TutorialManager tutorialManager = TutorialManager();
 
   @override
@@ -79,11 +81,34 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   }
 
   void _startRace() {
-    if (_records.isNotEmpty) {
+    final endTime = _timingData.endTime;
+    final hasStoppedRace = endTime != null && _records.isNotEmpty;
+    
+    if (hasStoppedRace) {
+      // Continue the race instead of starting a new one
+      _continueRace();
+    } else if (_records.isNotEmpty) {
+      // Ask for confirmation before starting a new race
       _showStartRaceDialog();
     } else {
+      // Start a brand new race
       _initializeNewRace();
     }
+  }
+
+  void _continueRace() {
+    final endTime = _timingData.endTime;
+    if (endTime == null) return;
+    
+    // Calculate a new start time that maintains the same elapsed time
+    // when the race was stopped
+    final now = DateTime.now();
+    final newStartTime = now.subtract(endTime);
+    
+    setState(() {
+      _timingData.changeStartTime(newStartTime);
+      _timingData.changeEndTime(null);
+    });
   }
 
   Future<void> _showStartRaceDialog() async {
@@ -111,7 +136,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
 
   void _initializeNewRace() {
     setState(() {
-      _records.clear();
+      _timingData.clearRecords();
       _timingData.changeStartTime(DateTime.now());
       _timingData.changeEndTime(null);
     });
@@ -161,13 +186,10 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
 
     final difference = DateTime.now().difference(startTime);
     setState(() {
-      _timingData.addRecord({
-        'finish_time': formatDuration(difference),
-        'type': 'runner_time',
-        'is_confirmed': false,
-        'text_color': null,
-        'place': _getNumberOfTimes() + 1,
-      });
+      _timingData.addRecord(
+        formatDuration(difference),
+        place: getNumberOfTimes(_records) + 1,
+      );
       scrollToBottom(_scrollController);
     });
   }
@@ -183,21 +205,37 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   // }
 
   void _confirmRunnerNumber() {
-    final numTimes = _getNumberOfTimes();
+    final numTimes = getNumberOfTimes(_records);
     final difference = getCurrentDuration(_timingData.startTime, _timingData.endTime);
-
+    
+    final startTime = _timingData.startTime;
+    if (startTime == null) {
+      DialogUtils.showErrorDialog(context, message: 'Race must be started to confirm a runner number.');
+      return;
+    }
+    
+    // final now = DateTime.now();
     setState(() {
       _timingData.records = confirmRunnerNumber(_records, numTimes, formatDuration(difference));
       scrollToBottom(_scrollController);
     });
   }
+  
 
-  void _extraRunnerTime({int offBy = 1}) async {
-    final numTimes = _getNumberOfTimes();
+
+  void _extraRunnerTime({int offBy = 1}) {
+    final numTimes = getNumberOfTimes(_records);
     
     if (!_validateExtraRunnerTime(numTimes, offBy)) return;
     
+
     final difference = getCurrentDuration(_timingData.startTime, _timingData.endTime);
+    final startTime = _timingData.startTime;
+    if (startTime == null) {
+      DialogUtils.showErrorDialog(context, message: 'Race must be started to mark an extra runner time.');
+      return;
+    }
+    
     
     setState(() {
       _timingData.records = extraRunnerTime(offBy, _records, numTimes, formatDuration(difference));
@@ -207,7 +245,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
 
   bool _validateExtraRunnerTime(int numTimes, int offBy) {
     final previousRunner = _records.last;
-    if (previousRunner['type'] != 'runner_time') {
+    if (previousRunner.type != RecordType.runnerTime) {
       DialogUtils.showErrorDialog(
         context, 
         message: 'You must have an unconfirmed runner time before pressing this button.'
@@ -216,12 +254,14 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     }
 
     final lastConfirmedRecord = _records.lastWhere(
-      (r) => r['type'] == 'runner_time' && r['is_confirmed'] == true,
-      orElse: () => {},
+      (r) => r.type == RecordType.runnerTime && r.isConfirmed == true,
+      orElse: () => RunnerRecord(
+        id: '',
+        elapsedTime: '',
+        place: 0,
+      ),
     );
-    final recordPlace = lastConfirmedRecord.isEmpty || lastConfirmedRecord['place'] == null 
-        ? 0 
-        : lastConfirmedRecord['place'];
+    final recordPlace = lastConfirmedRecord.place ?? 0;
 
     if (numTimes - offBy == recordPlace) {
       _handleTimesDeletion(offBy);
@@ -246,109 +286,120 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     
     if (confirmed) {
       setState(() {
-        _records.removeRange(_records.length - offBy, _records.length);
+        // Get a list of ids to remove
+        final idsToRemove = _records
+            .reversed
+            .take(offBy)
+            .map((record) => record.id)
+            .toList();
+            
+        // Remove records with those ids
+        for (final id in idsToRemove) {
+          final index = _records.indexWhere((record) => record.id == id);
+          if (index >= 0) {
+            _timingData.removeRecord(id);
+          }
+        }
       });
     }
   }
 
   void _missingRunnerTime({int offBy = 1}) {
-    final numTimes = _getNumberOfTimes();
+    final numTimes = getNumberOfTimes(_records);
     final difference = getCurrentDuration(_timingData.startTime, _timingData.endTime);
+    
 
+    final startTime = _timingData.startTime;
+    
+    if (startTime == null) {
+      DialogUtils.showErrorDialog(context, message: 'Race must be started to mark a missing runner time.');
+      return;
+    }
+    
     setState(() {
       _timingData.records = missingRunnerTime(offBy, _records, numTimes, formatDuration(difference));
       scrollToBottom(_scrollController);
     });
   }
-  
-  int _getNumberOfTimes() {
-    return max(0, _records.fold<int>(0, (count, record) {
-        if (record['type'] == 'runner_time') return count + 1;
-        if (record['type'] == 'extra_runner_time') return count - 1;
-        return count;
-      }));
-  }
 
   void _undoLastConflict() {
-    final lastConflict = _records.reversed.firstWhere(
-      (r) => r['type'] != 'runner_time' && r['type'] != null && r['type'] != 'confirm_runner_number',
-      orElse: () => {},
+    final lastConflict = _records.lastWhere(
+      (r) => r.hasConflict() && !r.isResolved(),
+      orElse: () => throw Exception("No undoable conflict found"),
     );
-
-    if (lastConflict.isEmpty || lastConflict['type'] == null) return;
     
-    if (lastConflict['type'] == 'extra_runner_time') {
-      _undoTooManyRunners(lastConflict);
-    } else if (lastConflict['type'] == 'missing_runner_time') {
-      _undoTooFewRunners(lastConflict);
+    if (lastConflict.conflict?.type == RecordType.extraRunner) {
+       _timingData.records = _undoExtraRunnerConflict(lastConflict, _records);
+    } else if (lastConflict.conflict?.type == RecordType.missingRunner) {
+      _timingData.records = _undoMissingRunnerConflict(lastConflict, _records);
     }
   }
 
-  void _undoTooManyRunners(Map<String, dynamic> lastConflict) {
-    if (lastConflict.isEmpty) return;
-    
-    final lastConflictIndex = _records.indexOf(lastConflict);
-    final runnersBeforeConflict = _records
-        .sublist(0, lastConflictIndex)
-        .where((r) => r['type'] == 'runner_time')
-        .toList();
-    final offBy = lastConflict['offBy'];
+  List<RunnerRecord> _undoExtraRunnerConflict(RunnerRecord lastConflict, records) {
+    if (lastConflict.isResolved()) {
+      return records;
+    }
+    final lastConflictIndex = records.indexOf(lastConflict);
+    final runnersBeforeConflict = records.sublist(0, lastConflictIndex).where((r) => r.type == RecordType.runnerTime).toList();
+    final offBy = lastConflict.conflict?.data?['offBy'];
 
-    _updateTextColor(null, confirmed: false, endIndex: lastConflictIndex);
-    
+    records = updateTextColor(Colors.transparent, records, confirmed: false, endIndex: lastConflictIndex);
     for (int i = 0; i < offBy; i++) {
       final record = runnersBeforeConflict[runnersBeforeConflict.length - 1 - i];
       setState(() {
-        record['place'] = record['previous_place'];
+        print('preivous place: ${record.previousPlace}');
+        record.previousPlace = record.place;
+        // _timingData.updateRecord(record.id, place: record.previousPlace);
+        print('new place: ${record.place}');
       });
     }
-    
     setState(() {
-      _records.remove(lastConflict);
+      records.remove(lastConflict);
+      // _timingData.removeRecord(lastConflict.id);
     });
+    return records;
   }
 
-  void _undoTooFewRunners(Map<String, dynamic> lastConflict) {
-    if (lastConflict.isEmpty) return;
-    
-    final lastConflictIndex = _records.indexOf(lastConflict);
-    final runnersBeforeConflict = _records
-        .sublist(0, lastConflictIndex)
-        .where((r) => r['type'] == 'runner_time')
-        .toList();
-    final offBy = lastConflict['offBy'];
+  List<RunnerRecord> _undoMissingRunnerConflict(RunnerRecord lastConflict, records) {
+    if (lastConflict.isResolved()) {
+      return records;
+    }
+    final lastConflictIndex = records.indexOf(lastConflict);
+    final runnersBeforeConflict = records.sublist(0, lastConflictIndex).where((r) => r.type == RecordType.runnerTime).toList();
+    final offBy = lastConflict.conflict?.data?['offBy'];
+    print('off by: $offBy');
+    // final controllers = Provider.of<TimingData>(context, listen: false).c[raceId] ?? [];
 
-    _updateTextColor(null, confirmed: false, endIndex: lastConflictIndex);
-    
+    records = updateTextColor(Colors.transparent, records, confirmed: false, endIndex: lastConflictIndex);
     for (int i = 0; i < offBy; i++) {
       final record = runnersBeforeConflict[runnersBeforeConflict.length - 1 - i];
+      print('remove record: $record');
       setState(() {
-        _records.remove(record);
+        records.remove(record);
       });
     }
-    
     setState(() {
-      _records.remove(lastConflict);
+      records.remove(lastConflict);
     });
+    return records;
   }
 
-  void _updateTextColor(Color? color, {bool confirmed = false, String? conflict, int? endIndex}) {
-    var records = _records;
-    if (endIndex != null && endIndex < records.length) {
-      records = records.sublist(0, endIndex);
-    }
+  // void _updateTextColor(Color? color, {bool confirmed = false, Map<String, dynamic>? conflict, List<RunnerRecord>? records, int? endIndex}) {
+  //   records ??= _records;
+  //   endIndex ??= records.length;
+  //   endIndex = min(endIndex, records.length);
 
-    for (int i = records.length - 1; i >= 0; i--) {
-      final record = records[i];
-      if (record['type'] != 'runner_time') break;
+  //   for (int i = records.length - 1; i >= 0; i--) {
+  //     final record = records[i];
       
-      setState(() {
-        record['text_color'] = color;
-        record['is_confirmed'] = confirmed;
-        record['conflict'] = confirmed ? conflict : null;
-      });
-    }
-  }
+  //     setState(() {
+  //       _timingData.updateRecord(
+  //         record.id,
+  //         isConfirmed: confirmed,
+  //       );
+  //     });
+  //   }
+  // }
 
   void _clearRaceTimes() {
     showDialog<bool>(
@@ -391,10 +442,12 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               buildRoleBar(context, 'timer', tutorialManager),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
+              _buildRaceInfoHeader(),
+              const SizedBox(height: 8),
               _buildTimerDisplay(startTime, endTime),
               _buildControlButtons(startTime),
-              if (_records.isNotEmpty) const Divider(height: 30),
+              if (_records.isNotEmpty) const SizedBox(height: 30),
               Expanded(child: _buildRecordsList()),
               if (startTime != null && _records.isNotEmpty)
                 _buildBottomControls(),
@@ -405,6 +458,43 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     );
   }
 
+  Widget _buildRaceInfoHeader() {
+    final startTime = _timingData.startTime;
+    final endTime = _timingData.endTime;
+    final hasRace = startTime != null || (endTime != null && _records.isNotEmpty);
+    final isRaceFinished = startTime == null && endTime != null && _records.isNotEmpty;
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      decoration: BoxDecoration(
+        color: hasRace ? const Color(0xFFF5F5F5) : Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            isRaceFinished ? 'Race finished' : (hasRace ? 'Race in progress' : 'Ready to start'),
+            style: AppTypography.bodyRegular.copyWith(
+              fontSize: 16,
+              color: hasRace ? Colors.black87 : Colors.black54,
+              fontWeight: hasRace ? FontWeight.w500 : FontWeight.normal,
+            ),
+          ),
+          if (_records.isNotEmpty)
+            Text(
+              'Runners: ${_records.where((r) => r.type == RecordType.runnerTime).length}',
+              style: AppTypography.bodyRegular.copyWith(
+                fontSize: 16,
+                color: Colors.black87,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildTimerDisplay(DateTime? startTime, Duration? endTime) {
     return StreamBuilder(
       stream: Stream.periodic(const Duration(milliseconds: 10)),
@@ -412,12 +502,30 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
         final elapsed = _calculateElapsedTime(startTime, endTime);
         return Container(
           alignment: Alignment.centerLeft,
-          padding: const EdgeInsets.symmetric(vertical: 10),
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          margin: const EdgeInsets.symmetric(vertical: 8),
           width: MediaQuery.of(context).size.width * 0.9,
-          child: Text(
-            formatDurationWithZeros(elapsed),
-            style: AppTypography.displayLarge.copyWith(
-              fontSize: MediaQuery.of(context).size.width * 0.135,
+          decoration: BoxDecoration(
+            color: const Color(0xFFFAFAFA),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Text(
+              formatDurationWithZeros(elapsed),
+              style: TextStyle(
+                fontSize: MediaQuery.of(context).size.width * 0.135,
+                fontFamily: 'RobotoMono',
+                fontWeight: FontWeight.w600,
+                letterSpacing: -0.5,
+              ),
             ),
           ),
         );
@@ -438,10 +546,17 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   }
 
   Widget _buildRaceControlButton(DateTime? startTime) {
+    final endTime = _timingData.endTime;
+    final hasStoppedRace = startTime == null && endTime != null && _records.isNotEmpty;
+    
+    final buttonText = startTime != null ? 'Stop' : (hasStoppedRace ? 'Continue' : 'Start');
+    final buttonColor = startTime == null ? Colors.green : Colors.red;
+    
     return CircularButton(
-      text: startTime == null ? 'Start' : 'Stop',
-      color: startTime == null ? Colors.green : Colors.red,
-      fontSize: 20,
+      text: buttonText,
+      color: buttonColor,
+      fontSize: 18,
+      fontWeight: FontWeight.w600,
       onPressed: startTime == null ? _startRace : _stopRace,
     );
   }
@@ -469,14 +584,28 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size(0, 78),
                 padding: EdgeInsets.zero,
-              ),
-              child: const Text(
-                'Share Times',
-                style: TextStyle(
-                  fontSize: 20,
-                  color: AppColors.darkColor,
+                backgroundColor: Colors.white,
+                foregroundColor: AppColors.darkColor,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(39),
+                  side: BorderSide(color: Colors.grey.withOpacity(0.2)),
                 ),
-                maxLines: 1,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.share, size: 18),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Share Times',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.darkColor,
+                    ),
+                    maxLines: 1,
+                  ),
+                ],
               ),
             );
           },
@@ -488,8 +617,9 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   Widget _buildLogButton(DateTime? startTime) {
     return CircularButton(
       text: (_records.isEmpty || startTime != null) ? 'Log' : 'Clear',
-      color: const Color.fromARGB(255, 143, 143, 143),
-      fontSize: 20,
+      color: const Color(0xFF777777),
+      fontSize: 18,
+      fontWeight: FontWeight.w600,
       onPressed: (_records.isNotEmpty && startTime == null)
           ? _clearRaceTimes
           : (startTime != null ? _handleLogButtonPress : null),
@@ -497,12 +627,25 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   }
 
   Widget _buildRecordsList() {
-    return ListView.builder(
-      controller: _scrollController,
-      itemCount: _records.length,
-      itemBuilder: (context, index) {
-        final record = _records[index];
-        if (record['type'] == 'runner_time') {
+    if (_records.isEmpty) {
+      return const Center(
+        child: Text(
+          'No race times yet',
+          style: TextStyle(color: Colors.grey, fontSize: 16),
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        Expanded(
+          child: ListView.separated(
+            physics: const BouncingScrollPhysics(),
+            itemCount: _records.length,
+            separatorBuilder: (context, index) => const SizedBox(height: 1),
+            itemBuilder: (context, index) {
+              final record = _records[index];
+        if (record.type == RecordType.runnerTime) {
           return Dismissible(
             key: ValueKey(record),
             background: Container(
@@ -516,14 +659,14 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
             ),
             direction: DismissDirection.endToStart,
             confirmDismiss: (direction) async {
-              if (record['conflict'] != null) {
+              if (record.conflict != null) {
                 DialogUtils.showErrorDialog(
                   context,
                   message: 'Cannot delete a time that is part of a conflict.',
                 );
                 return false;
               }
-              if (record['is_confirmed'] == true) {
+              if (record.isConfirmed == true) {
                 DialogUtils.showErrorDialog(
                   context,
                   message: 'Cannot delete a confirmed time.',
@@ -538,11 +681,16 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
             },
             onDismissed: (direction) {
               setState(() {
-                _records.removeAt(index);
+                _timingData.removeRecord(record.id);
                 // Update places for subsequent records
                 for (var i = index; i < _records.length; i++) {
-                  if (_records[i]['type'] == 'runner_time') {
-                    _records[i]['place'] = _records[i]['place'] - 1;
+                  if (_records[i].type == RecordType.runnerTime) {
+                    if (_records[i].place != null) {
+                      _timingData.updateRecord(_records[i].id, place: _records[i].place! - 1);
+                    }
+                    else if (_records[i].previousPlace != null) {
+                       _timingData.updateRecord(_records[i].id, previousPlace: _records[i].previousPlace! - 1);
+                    }
                   }
                 }
                 scrollToBottom(_scrollController);
@@ -550,7 +698,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
             },
             child: _buildRunnerTimeRecord(record, index),
           );
-        } else if (record['type'] == 'confirm_runner_number') {
+        } else if (record.type == RecordType.confirmRunner) {
           return Dismissible(
             key: ValueKey(record),
             background: Container(
@@ -560,7 +708,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
               child: const Icon(
                 Icons.delete,
                 color: Colors.white,
-              ),
+                  ),
             ),
             direction: DismissDirection.endToStart,
             confirmDismiss: (direction) async {
@@ -579,14 +727,14 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
             },
             onDismissed: (direction) {
               setState(() {
-                _records.removeAt(index);
-                _updateTextColor(null);
+                _timingData.removeRecord(record.id);
+                _timingData.records = updateTextColor(Colors.transparent, _records, endIndex: index);
                 scrollToBottom(_scrollController);
               });
             },
             child: _buildConfirmationRecord(record, index),
           );
-        } else if (record['type'] == 'missing_runner_time' || record['type'] == 'extra_runner_time') {
+        } else if (record.type == RecordType.missingRunner || record.type == RecordType.extraRunner) {
           return Dismissible(
             key: ValueKey(record),
             background: Container(
@@ -624,100 +772,107 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
         }
         return const SizedBox.shrink();
       },
-    );
+    )
+      )
+      ]
+      );
   }
 
-  Widget _buildRunnerTimeRecord(Map<String, dynamic> record, int index) {
+  Widget _buildRunnerTimeRecord(RunnerRecord record, int index) {
+    final isEven = index % 2 == 0;
     return Container(
       margin: EdgeInsets.fromLTRB(
         MediaQuery.of(context).size.width * 0.02,
         0,
         MediaQuery.of(context).size.width * 0.01,
-        MediaQuery.of(context).size.width * 0.02,
+        0,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '${record['place']}',
-                  style: AppTypography.bodySemibold.copyWith(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: record['text_color'] != null ? AppColors.confirmRunnerColor : null,
-                  ),
-                ),
-                Text(
-                  '${record['finish_time']}',
-                  style: AppTypography.bodySemibold.copyWith(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: record['conflict'] == null
-                        ? record['text_color']
-                        : AppColors.redColor,
-                  ),
-                ),
-              ],
-            ),
-          const Divider(
-            thickness: 1,
-            color: Color.fromRGBO(128, 128, 128, 0.5),
-          ),
-        ],
+      decoration: BoxDecoration(
+        color: isEven ? const Color(0xFFF5F5F5) : Colors.white,
       ),
-    );
-  }
-
-  Widget _buildConfirmationRecord(Map<String, dynamic> record, int index) {
-    return Container(
-      margin: EdgeInsets.fromLTRB(
-        MediaQuery.of(context).size.width * 0.02,
-        MediaQuery.of(context).size.width * 0.01,
-        MediaQuery.of(context).size.width * 0.02,
-        MediaQuery.of(context).size.width * 0.02,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          // GestureDetector(
-          //   behavior: HitTestBehavior.opaque,
-          //   onLongPress: () => _handleConfirmationLongPress(index),
-            Text(
-              'Confirmed: ${record['finish_time']}',
-              style: AppTypography.bodySemibold.copyWith(fontSize: 18),
-            ),
-          // ),
-          const Divider(
-            thickness: 1,
-            color: Color.fromRGBO(128, 128, 128, 0.5),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildConflictRecord(Map<String, dynamic> record, int index) {
-    return Container(
-      margin: EdgeInsets.fromLTRB(
-        MediaQuery.of(context).size.width * 0.02,
-        MediaQuery.of(context).size.width * 0.01,
-        MediaQuery.of(context).size.width * 0.02,
-        MediaQuery.of(context).size.width * 0.02,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.end,
+      padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            record['type'] == 'missing_runner_time' 
-              ? 'Missing Runner at ${record['finish_time']}'
-              : 'Extra Runner at ${record['finish_time']}',
-            style: AppTypography.bodySemibold.copyWith(fontSize: 18),
+            '${record.place ?? ''}',
+            style: AppTypography.bodySemibold.copyWith(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: record.textColor != null ? AppColors.confirmRunnerColor : null,
+            ),
           ),
-          const Divider(
-            thickness: 1,
-            color: Color.fromRGBO(128, 128, 128, 0.5),
+          Text(
+            record.elapsedTime,
+            style: AppTypography.bodySemibold.copyWith(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: record.conflict == null
+                  ? (record.isConfirmed == true
+                      ? AppColors.confirmRunnerColor
+                      : null)
+                  : (record.conflict!.type != RecordType.confirmRunner
+                      ? AppColors.redColor
+                      : AppColors.confirmRunnerColor),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConfirmationRecord(RunnerRecord record, int index) {
+    final isEven = index % 2 == 0;
+    return Container(
+      margin: EdgeInsets.fromLTRB(
+        MediaQuery.of(context).size.width * 0.02,
+        0,
+        MediaQuery.of(context).size.width * 0.02,
+        0,
+      ),
+      decoration: BoxDecoration(
+        color: isEven ? const Color(0xFFF5F5F5) : Colors.white,
+      ),
+      padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Text(
+            'Confirmed: ${record.elapsedTime}',
+            style: AppTypography.bodySemibold.copyWith(
+              fontSize: 18, 
+              color: Colors.green[700],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConflictRecord(RunnerRecord record, int index) {
+    final isEven = index % 2 == 0;
+    return Container(
+      margin: EdgeInsets.fromLTRB(
+        MediaQuery.of(context).size.width * 0.02,
+        0,
+        MediaQuery.of(context).size.width * 0.02,
+        0,
+      ),
+      decoration: BoxDecoration(
+        color: isEven ? const Color(0xFFF5F5F5) : Colors.white,
+      ),
+      padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Text(
+            record.type == RecordType.missingRunner 
+              ? 'Missing Runner at ${record.elapsedTime}'
+              : 'Extra Runner at ${record.elapsedTime}',
+            style: AppTypography.bodySemibold.copyWith(
+              fontSize: 18,
+              color: AppColors.redColor,
+            ),
           ),
         ],
       ),
@@ -727,21 +882,62 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   Widget _buildBottomControls() {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8.0),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          IconButton(
-            icon: const Icon(Icons.check, size: 40, color: Colors.green),
-            onPressed: _confirmRunnerNumber,
+          _buildControlButton(
+            icon: Icons.check,
+            color: Colors.green,
+            onTap: _confirmRunnerNumber,
           ),
-          Text('|', style: AppTypography.bodyRegular.copyWith(fontSize: 25),),
+          Container(
+            height: 30,
+            width: 1,
+            color: Colors.grey.withOpacity(0.3),
+          ),
           _buildAdjustTimesButton(),
           if (_hasUndoableConflict())
-            IconButton(
-              icon: const Icon(Icons.undo, size: 40, color: AppColors.mediumColor),
-              onPressed: _undoLastConflict,
+            _buildControlButton(
+              icon: Icons.undo,
+              color: AppColors.mediumColor,
+              onTap: _undoLastConflict,
             ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildControlButton({
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(30),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          icon,
+          size: 30,
+          color: color,
+        ),
       ),
     );
   }
@@ -776,9 +972,8 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
 
   bool _hasUndoableConflict() {
     return _records.isNotEmpty &&
-      _records.last['type'] != 'runner_time' &&
-      _records.last['type'] != null &&
-      _records.last['type'] != 'confirm_runner_number';
+      _records.last.hasConflict() &&
+      !_records.last.isResolved();
   }
 
   Duration _calculateElapsedTime(DateTime? startTime, Duration? endTime) {

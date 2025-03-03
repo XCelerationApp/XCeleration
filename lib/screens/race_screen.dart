@@ -1,22 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:xcelerate/runner_time_functions.dart';
 import '../database_helper.dart';
 import '../models/race.dart';
-import 'runners_management_screen.dart';
-import 'results_screen.dart';
+// import '../models/runner.dart';
+// import '../models/team.dart';
+// import '../device_connection_popup.dart';
+// import '../device_connection_service.dart';
 import '../utils/UI_components.dart';
-import '../utils/app_colors.dart';
+// import '../utils/button_utils.dart';
+// import '../utils/encode_utils.dart';
 import '../utils/flow_components.dart';
 import '../utils/sheet_utils.dart';
 import '../utils/enums.dart';
 import '../utils/device_connection_widget.dart';
 import '../utils/device_connection_service.dart';
 import 'dart:convert';
-import '../utils/encode_utils.dart';
+import '../utils/typography.dart';
 import 'merge_conflicts_screen.dart';
 import 'resolve_bib_number_screen.dart';
 import 'edit_and_review_screen.dart';
-import '../utils/typography.dart';
+import 'runners_management_screen.dart';
+import 'results_screen.dart';
+import '../utils/app_colors.dart';
 
 class RaceScreen extends StatefulWidget {
   final int raceId;
@@ -255,34 +261,217 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
       ),
       FlowStep(
         title: 'Start Race',
-        description: 'The race is ready to begin. Once the race is finished, click Next to proceed with collecting results.',
+        description: 'The race is ready to begin.',
+        content: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.sports_score, size: 80, color: AppColors.primaryColor),
+              const SizedBox(height: 24),
+              Text(
+                'Ready to Start!',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.darkColor,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Click Next once the race is finished to collect results.',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: AppColors.darkColor.withAlpha((0.7 * 255).round()),
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+        canProceed: () async => true,
+      ),
+      FlowStep(
+        title: 'Load Results',
+        description: 'Load the results of the race from the assistant devices.',
+        content: Container(
+          constraints: const BoxConstraints(maxWidth: 600),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ValueListenableBuilder<ConnectionStatus>(
+                valueListenable: _bibRecorderStatusNotifier,
+                builder: (context, status, child) {
+                  return SearchableButton(
+                    label: 'Bib Recorder',
+                    icon: Icons.person_outline,
+                    connectionStatus: status,
+                    showSearchingText: true,
+                  );
+                }
+              ),
+              const SizedBox(height: 16),
+              ValueListenableBuilder<ConnectionStatus>(
+                valueListenable: _raceTimerStatusNotifier,
+                builder: (context, status, child) {
+                  return SearchableButton(
+                    label: 'Race Timer',
+                    icon: Icons.timer_outlined,
+                    connectionStatus: status,
+                    showSearchingText: true,
+                  );
+                }
+              ),
+              const SizedBox(height: 24),
+              if (_resultsLoaded) ...[
+                if (_hasBibConflicts) ...[
+                  _buildConflictButton(
+                    'Bib Number Conflicts',
+                    'Some runners have conflicting bib numbers. Please resolve these conflicts before proceeding.',
+                    () => _showBibConflictsSheet(context),
+                  ),
+                ]
+                else if (_hasTimingConflicts) ...[
+                  _buildConflictButton(
+                    'Timing Conflicts',
+                    'There are conflicts in the race timing data. Please review and resolve these conflicts.',
+                    () => _showTimingConflictsSheet(),
+                  ),
+                ],
+                if (!_hasBibConflicts && !_hasTimingConflicts) ...[
+                  Text(
+                    'Results Loaded Successfully',
+                    style: AppTypography.bodySemibold.copyWith(color: AppColors.primaryColor),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'You can proceed to review the results or load them again if needed.',
+                    style: AppTypography.bodyRegular.copyWith(color: AppColors.darkColor.withAlpha((0.7 * 255).round())),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+                const SizedBox(height: 16),
+              ],
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.zero,
+                child: SearchableButton(
+                  label: 'Scan QR code',
+                  icon: Icons.qr_code_scanner,
+                  onTap: () async {
+                    DialogUtils.showErrorDialog(context, message: "This feature is not yet implemented.");
+                    return;
+                  },
+                  isQrCode: true,
+                ),
+              ),
+            ],
+          ),
+        ),
+        canProceed: () async => _resultsLoaded && !_hasBibConflicts && !_hasTimingConflicts,
+      ),
+      FlowStep(
+        title: 'Review Results',
+        description: 'Review and verify the race results before saving them.',
         content: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Icon(
-              //   Icons.sports_score,
-              //   size: 80,
-              //   color: AppColors.primaryColor,
-              // ),
-              // const SizedBox(height: 24),
-              // Text(
-              //   'Ready to Start!',
-              //   style: TextStyle(
-              //     fontSize: 24,
-              //     fontWeight: FontWeight.bold,
-              //     color: AppColors.darkColor,
-              //   ),
-              // ),
-              // const SizedBox(height: 16),
-              // Text(
-              //   'Click Next once the race is finished to collect results.',
-              //   style: TextStyle(
-              //     fontSize: 16,
-              //     color: AppColors.darkColor.withOpacity(0.7),
-              //   ),
-              //   textAlign: TextAlign.center,
-              // ),
+              Icon(Icons.fact_check_outlined, size: 80, color: AppColors.primaryColor),
+              const SizedBox(height: 24),
+              Text(
+                'Review Race Results',
+                style: AppTypography.titleSemibold.copyWith(color: AppColors.darkColor),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Make sure all times and placements are correct.',
+                style: AppTypography.bodyRegular.copyWith(color: AppColors.darkColor.withOpacity(0.7)),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 32),
+              // Placeholder for results table
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey[300]!),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 1,
+                          child: Text('Place', 
+                            style: AppTypography.bodySemibold.copyWith(color: AppColors.darkColor),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 3,
+                          child: Text('Runner', 
+                            style: AppTypography.bodySemibold.copyWith(color: AppColors.darkColor),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Text('Time', 
+                            style: AppTypography.bodySemibold.copyWith(color: AppColors.darkColor),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    // Placeholder rows
+                    for (var i = 1; i <= 3; i++)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              flex: 1,
+                              child: Text(i.toString()),
+                            ),
+                            Expanded(
+                              flex: 3,
+                              child: Text('Runner $i'),
+                            ),
+                            Expanded(
+                              flex: 2,
+                              child: Text('${(i * 15.5).toStringAsFixed(2)}s'),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        canProceed: () async => true,
+      ),
+      FlowStep(
+        title: 'Save Results',
+        description: 'Save the final race results to complete the race.',
+        content: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.save_outlined, size: 80, color: AppColors.primaryColor),
+              const SizedBox(height: 24),
+              Text(
+                'Save Race Results',
+                style: AppTypography.titleSemibold.copyWith(color: AppColors.darkColor),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Click Next to save the results and complete the race.',
+                style: AppTypography.bodyRegular.copyWith(color: AppColors.darkColor.withOpacity(0.7)),
+                textAlign: TextAlign.center,
+              ),
             ],
           ),
         ),
@@ -297,11 +486,10 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
     );
 
     if (isCompleted) {
-      await DatabaseHelper.instance.updateRaceFlowState(raceId, 'post_race');
+      await DatabaseHelper.instance.updateRaceFlowState(raceId, 'finished');
       setState(() {
-        race = race!.copyWith(flowState: 'post_race');
+        race = race!.copyWith(flowState: 'finished');
       });
-      await _postRaceSetup(raceId);
     }
   }
 
@@ -327,7 +515,29 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
               mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
               children: [
-                deviceConnectionWidget(DeviceName.bibRecorder, DeviceType.advertiserDevice, createOtherDeviceList(DeviceName.bibRecorder, DeviceType.advertiserDevice)),
+                ValueListenableBuilder<ConnectionStatus>(
+                  valueListenable: _bibRecorderStatusNotifier,
+                  builder: (context, status, child) {
+                    return SearchableButton(
+                      label: 'Bib Recorder',
+                      icon: Icons.person_outline,
+                      connectionStatus: status,
+                      showSearchingText: true,
+                    );
+                  }
+                ),
+                const SizedBox(height: 16),
+                ValueListenableBuilder<ConnectionStatus>(
+                  valueListenable: _raceTimerStatusNotifier,
+                  builder: (context, status, child) {
+                    return SearchableButton(
+                      label: 'Race Timer',
+                      icon: Icons.timer_outlined,
+                      connectionStatus: status,
+                      showSearchingText: true,
+                    );
+                  }
+                ),
                 const SizedBox(height: 24),
                 if (_resultsLoaded) ...[
                   if (_hasBibConflicts) ...[
@@ -389,7 +599,13 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
                         DeviceType.browserDevice,
                       );
 
-                      await waitForDataTransferCompletion(otherDevices);
+                      await showDeviceConnectionPopup(
+                        context,
+                        deviceType: DeviceType.browserDevice,
+                        deviceName: DeviceName.coach,
+                        otherDevices: otherDevices,
+                      );
+
                       final encodedBibRecords = otherDevices[DeviceName.bibRecorder]?['data'] as String?;
                       final encodedFinishTimes = otherDevices[DeviceName.raceTimer]?['data'] as String?;
 
@@ -1217,5 +1433,52 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
       default:
         return 'Unknown';
     }
+  }
+
+  void _startDeviceConnection(
+    BuildContext context, {
+    required DeviceType deviceType,
+    required DeviceName deviceName,
+    required String data,
+  }) {
+    final otherDevices = createOtherDeviceList(deviceName, deviceType, data: data);
+  
+    showDeviceConnectionPopup(
+      context,
+      deviceType: deviceType,
+      deviceName: deviceName,
+      otherDevices: otherDevices,
+    ).then((_) {
+      // Reset status after connection is complete
+      _connectionStatusNotifier.value = ConnectionStatus.searching;
+    });
+
+    // Listen to status changes
+    for (var device in otherDevices.entries) {
+      if (device.value['status'] != null) {
+        _connectionStatusNotifier.value = device.value['status'];
+      }
+    }
+  }
+
+  void _showQRCodeConnection(
+    BuildContext context, {
+    required DeviceType deviceType,
+    required DeviceName deviceName,
+    required String data,
+  }) {
+    final otherDevices = createOtherDeviceList(deviceName, deviceType, data: data);
+  
+    _qrConnectionStatusNotifier.value = ConnectionStatus.connecting;
+  
+    showDeviceConnectionPopup(
+      context,
+      deviceType: deviceType,
+      deviceName: deviceName,
+      otherDevices: otherDevices,
+    ).then((_) {
+      // Reset status after connection is complete
+      _qrConnectionStatusNotifier.value = ConnectionStatus.searching;
+    });
   }
 }
