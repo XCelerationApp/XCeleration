@@ -13,7 +13,8 @@ class DeviceConnectionService {
   final List<Device> _connectedDevices = [];
   final Map<String, Function(Map<String, dynamic>)> _messageCallbacks = {};
 
-  Future<bool> checkIfNearbyConnectionsWorks() async {
+  Future<bool> checkIfNearbyConnectionsWorks({Duration timeout = const Duration(seconds: 5)}) async {
+    Completer<bool> completer = Completer<bool>();
     if (Platform.isAndroid || Platform.isIOS) {
       try {
         // Try to initialize NearbyService - this will fail if permissions are denied
@@ -22,11 +23,17 @@ class DeviceConnectionService {
           serviceType: 'test',
           deviceName: 'test',
           strategy: Strategy.P2P_STAR,
-          callback: (isRunning) {},
+          callback: (isRunning) {
+            completer.complete(isRunning);
+          },
         );
-        testService.stopBrowsingForPeers();
-        testService.stopAdvertisingPeer();
-        return true;
+        Timer(timeout, () {
+          if (!completer.isCompleted) {
+            completer.complete(false);
+          }
+        });
+        
+        return completer.future;
       } catch (e) {
         debugPrint('Failed to initialize NearbyService: $e');
         return false;

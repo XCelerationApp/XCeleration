@@ -7,16 +7,13 @@ Widget deviceConnectionWidget(DeviceName deviceName, DeviceType deviceType, Map<
   return Column(
     mainAxisSize: MainAxisSize.min,
     children: [
-      // Replace ListView.builder with Column of SearchableButtons
-      ...otherDevices.keys.map((deviceKey) {
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 8.0),
-          child: ConnectionButton(
-            deviceName: deviceKey,
-            connectionStatus: otherDevices[deviceKey]!['status'],
-          ),
-        );
-      }),
+        WirelessConnectionWidget(
+          deviceName: deviceName,
+          deviceType: deviceType,
+          otherDevices: otherDevices,
+        ),
+      
+      // Separator
       const SizedBox(height: 16),
       const Text(
         'or',
@@ -26,27 +23,30 @@ Widget deviceConnectionWidget(DeviceName deviceName, DeviceType deviceType, Map<
           height: 1.5,
         ),
       ),
-      const SizedBox(height: 24),
-      ConnectionButton(
-        deviceName: deviceName,
-        deviceType: deviceType,
-        icon: Icons.qr_code,
-        connectionStatus: otherDevices.values.first['status'],
-        isQrCode: true,
-      ),
+      const SizedBox(height: 16),
+      
+      // QR connection button
+        QRConnectionWidget(
+          deviceName: deviceName,
+          deviceType: deviceType,
+          otherDevices: otherDevices,
+        ),
     ],
   );
 }
 
-Future<void> waitForDataTransferCompletion( Map<DeviceName, Map<String, dynamic>> otherDevices) async {
-  Completer<void> completer = Completer<void>();
-  Future.wait(otherDevices.keys.map((deviceName) async {
-    while (otherDevices[deviceName]!['status'] != ConnectionStatus.finished) {
-      await Future.delayed(const Duration(milliseconds: 100));
+Future<bool> waitForDataTransferCompletion(Map<DeviceName, Map<String, dynamic>> otherDevices) async {
+  final completer = Completer<bool>();
+  
+  Timer.periodic(const Duration(milliseconds: 100), (timer) {
+    final allFinished = otherDevices.values
+        .every((device) => device['status'] == ConnectionStatus.finished);
+    if (allFinished) {
+      timer.cancel();
+      completer.complete(true);
     }
-  })).then((_) async {
-    completer.complete();
   });
+  
   return completer.future;
 }
 

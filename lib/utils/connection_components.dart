@@ -13,36 +13,235 @@ import 'dialog_utils.dart';
 import 'sheet_utils.dart';
 import 'enums.dart' show DeviceName, DeviceType, ConnectionStatus, WirelessConnectionError;
 
-
-class ConnectionButton extends StatefulWidget {
+class WirelessConnectionButton extends StatefulWidget {
   final DeviceName deviceName;
-  final DeviceType? deviceType;
   final IconData? icon;
   final ConnectionStatus connectionStatus;
-  final bool isQrCode;
+  final Function()? onRetry;
+  final String? errorMessage;
+  final bool isLoading;
 
-  const ConnectionButton({
+  const WirelessConnectionButton({
     super.key,
     required this.deviceName,
-    this.deviceType,
     this.icon = Icons.person,
     required this.connectionStatus,
-    this.isQrCode = false,
+    this.onRetry,
+    this.errorMessage,
+    this.isLoading = false,
+  });
+
+  WirelessConnectionButton get skeleton => WirelessConnectionButton(
+    deviceName: deviceName,
+    icon: icon,
+    connectionStatus: connectionStatus,
+    isLoading: true,
+  );
+
+  WirelessConnectionButton error(String message, {Function()? retryAction}) => WirelessConnectionButton(
+    deviceName: deviceName,
+    icon: Icons.error_outline,
+    connectionStatus: ConnectionStatus.error,
+    errorMessage: message,
+    onRetry: retryAction,
+  );
+
+  @override
+  State<WirelessConnectionButton> createState() => _WirelessConnectionButtonState();
+}
+
+class _WirelessConnectionButtonState extends State<WirelessConnectionButton> {
+  @override
+  Widget build(BuildContext context) {
+    if (widget.isLoading) {
+      return Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          border: Border.all(color: const Color(0xFFE0E0E0)),
+          borderRadius: BorderRadius.circular(12),
+          color: Colors.white,
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        child: Row(
+          children: [
+            Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Container(
+              width: 120,
+              height: 18,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+            const Spacer(),
+            Container(
+              width: 80,
+              height: 18,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (widget.connectionStatus == ConnectionStatus.error && widget.errorMessage != null) {
+      return Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          border: Border.all(color: const Color(0xFFE0E0E0)),
+          borderRadius: BorderRadius.circular(12),
+          color: Colors.white,
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        child: Row(
+          children: [
+            Icon(
+              Icons.error_outline,
+              color: Colors.red[400],
+              size: 24,
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Connection unavailable',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    widget.errorMessage ?? 'An error occurred',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (widget.onRetry != null)
+              TextButton(
+                onPressed: widget.onRetry,
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  minimumSize: Size.zero,
+                ),
+                child: const Text('Retry'),
+              ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        border: Border.all(color: const Color(0xFFE0E0E0)),
+        borderRadius: BorderRadius.circular(12),
+        color: Colors.white,
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            widget.icon ?? Icons.person,
+            color: Colors.black54,
+            size: 24,
+          ),
+          const SizedBox(width: 16),
+          Text(
+            getDeviceNameString(widget.deviceName),
+            style: const TextStyle(
+              fontSize: 17,
+              color: Colors.black87,
+            ),
+          ),
+          const Spacer(),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (widget.connectionStatus == ConnectionStatus.finished) ...[
+                Icon(
+                  Icons.check_circle_outline,
+                  color: Colors.green,
+                  size: 24,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Done',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.green,
+                  ),
+                ),
+              ] else ...[
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.grey[400]!),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Searching',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
+class QRConnectionButton extends StatefulWidget {
+  final DeviceName deviceName;
+  final DeviceType deviceType;
+  final ConnectionStatus connectionStatus;
+  final Function()? onRetry;
+  final String? errorMessage;
+  final bool isLoading;
+
+  const QRConnectionButton({
+    super.key,
+    required this.deviceName,
+    required this.deviceType,
+    required this.connectionStatus,
+    this.onRetry,
+    this.errorMessage,
+    this.isLoading = false,
   });
 
   @override
-  State<ConnectionButton> createState() => _ConnectionButtonState();
+  State<QRConnectionButton> createState() => _QRConnectionButtonState();
 }
 
-class _ConnectionButtonState extends State<ConnectionButton> {
-  @override
-  void initState() {
-    super.initState();
-    if (widget.isQrCode && widget.deviceType == null) {
-      throw Exception('Cannot show QR code for device type null');
-    }
-  }
-  
+class _QRConnectionButtonState extends State<QRConnectionButton> {
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -56,82 +255,28 @@ class _ConnectionButtonState extends State<ConnectionButton> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          if (widget.isQrCode) ...[
-            Expanded(
-              child: Center(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      widget.icon ?? Icons.person,
-                      color: Colors.black54,
-                      size: 24,
-                    ),
-                    const SizedBox(width: 16),
-                    Text(
-                      widget.deviceType == DeviceType.advertiserDevice ? 'Show QR Code' : 'Scan QR Code',
-                      style: const TextStyle(
+          Expanded(
+            child: Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.qr_code,
+                    color: Colors.black54,
+                    size: 24,
+                  ),
+                  const SizedBox(width: 16),
+                  Text(
+                    widget.deviceType == DeviceType.advertiserDevice ? 'Show QR Code' : 'Scan QR Code',
+                    style: const TextStyle(
                       fontSize: 17,
                       color: Colors.black87,
                     ),
-                  ),    
-                  ]
-                ),
-              ),
-            )
-          ] else ...[
-            Icon(
-              widget.icon ?? Icons.person,
-              color: Colors.black54,
-              size: 24,
-            ),
-            const SizedBox(width: 16),
-            Text(
-              getDeviceNameString(widget.deviceName),
-              style: const TextStyle(
-                fontSize: 17,
-                color: Colors.black87,
+                  )
+                ],    
               ),
             ),
-            const Spacer(),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (widget.connectionStatus == ConnectionStatus.finished) ...[
-                  Icon(
-                    Icons.check_circle_outline,
-                    color: Colors.green,
-                    size: 24,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Done',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.green,
-                    ),
-                  ),
-                ] else ...[
-                  SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.grey[400]!),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Searching',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ],
+          )
         ],
       ),
     );
@@ -140,13 +285,12 @@ class _ConnectionButtonState extends State<ConnectionButton> {
 
 
 class QRConnectionWidget extends StatefulWidget {
-  final Widget child;
   final DeviceName deviceName;
   final DeviceType deviceType;
   final Map<DeviceName, Map<String, dynamic>> otherDevices;
+  
   const QRConnectionWidget({
     super.key,
-    required this.child,
     required this.deviceName,
     required this.deviceType,
     required this.otherDevices,
@@ -157,7 +301,6 @@ class QRConnectionWidget extends StatefulWidget {
 }
 
 class _QRConnectionState extends State<QRConnectionWidget> {
-
   late AudioPlayer _audioPlayer;
 
   @override
@@ -218,24 +361,31 @@ class _QRConnectionState extends State<QRConnectionWidget> {
         });
       }
     } on MissingPluginException {
+      if (!mounted) return;
       DialogUtils.showErrorDialog(context, message: 'The QR code scanner is not available on this device.');
     } catch (e) {
+      if (!mounted) return;
       DialogUtils.showErrorDialog(context, message: 'An unknown error occurred: $e');
+    }
+  }
+
+  void _handleTap() {
+    if (widget.deviceType == DeviceType.advertiserDevice) {
+      _showQR(context, widget.otherDevices.keys.elementAt(0));
+    } else {
+      _scanQRCodes();
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        if (widget.deviceType == DeviceType.advertiserDevice) {
-          _showQR(context, widget.otherDevices.keys.elementAt(0));
-        }
-        else {
-          _scanQRCodes();
-        }
-      },
-      child: widget.child,
+      onTap: _handleTap,
+      child: QRConnectionButton(
+        deviceName: widget.deviceName,
+        deviceType: widget.deviceType,
+        connectionStatus: ConnectionStatus.searching,
+      ),
     );
   }
 
@@ -247,19 +397,17 @@ class _QRConnectionState extends State<QRConnectionWidget> {
 }
 
 class WirelessConnectionWidget extends StatefulWidget {
-  final Widget child;
   final DeviceName deviceName;
   final DeviceType deviceType;
   final Map<DeviceName, Map<String, dynamic>> otherDevices;
-  final Future<void> Function(DeviceName deviceName) showQRCode;
+  
   const WirelessConnectionWidget({
     super.key,
-    required this.child,
     required this.deviceName,
     required this.deviceType,
     required this.otherDevices,
-    required this.showQRCode,
   });
+  
   @override
   State<WirelessConnectionWidget> createState() => _WirelessConnectionState();
 }
@@ -269,23 +417,24 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
   late Protocol _protocol;
   WirelessConnectionError? _wirelessConnectionError;
   late AudioPlayer _audioPlayer;
+  bool _isInitialized = false;
 
   @override
   void initState() {
     super.initState();
-    _init();
+    _initialize();
   }
 
-  Future<void> _init() async {
+  Future<void> _initialize() async {
     _deviceConnectionService = DeviceConnectionService();
     _protocol = Protocol(deviceConnectionService: _deviceConnectionService);
 
     try {
       final isServiceAvailable = await _deviceConnectionService.checkIfNearbyConnectionsWorks();
       if (!isServiceAvailable) {
-        debugPrint('Device connection service is not available on this platform');
         setState(() {
           _wirelessConnectionError = WirelessConnectionError.unavailable;
+          _isInitialized = true;
         });
         return;
       }
@@ -297,152 +446,145 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
           getDeviceNameString(widget.deviceName),
           widget.deviceType,
         );
+        setState(() {
+          _isInitialized = true;
+        });
+        
+        _startConnectionProcess();
       } catch (e) {
-        debugPrint('Error initializing device connection service: $e');
-        rethrow;
-      }
-      try {
-        _connectAndTransferData();
-      } catch (e) {
-        debugPrint('Error connecting and transferring data: $e');
+        setState(() {
+          debugPrint('Error initializing connection service.');
+          _isInitialized = true;
+        });
         rethrow;
       }
     } catch (e) {
-      debugPrint('Error in device connection popup: $e');
       setState(() {
         _wirelessConnectionError = WirelessConnectionError.unknown;
+        _isInitialized = true;
       });
-      for (var deviceName in widget.otherDevices.keys) {
-        if (widget.otherDevices[deviceName]!['status'] != ConnectionStatus.finished) {
-          widget.otherDevices[deviceName]!['status'] = ConnectionStatus.searching;
-        }
-      }
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
+      if (mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
           DialogUtils.showErrorDialog(
             context,
             title: 'Error',
             message: 'An error occurred while trying to connect. Please try again.',
           );
-        }
-      });
+        });
+      }
     }
   }
 
-  Future<void> _connectAndTransferData() async {
-    Future<void> deviceFoundCallback (device) async {
-      final deviceName = getDeviceNameFromString(device.deviceName);
-      if (!widget.otherDevices.containsKey(deviceName) || 
-          widget.otherDevices[deviceName]!['status'] == ConnectionStatus.finished) {
-        debugPrint('Ignoring device because it is not in the list of other devices or finished: ${device.deviceName}');
-        return;
-      }
-      debugPrint('Found device: ${device.deviceName}');
-      setState(() {
-        widget.otherDevices[deviceName]!['status'] = ConnectionStatus.found;
-      });
-      if (widget.deviceType == DeviceType.advertiserDevice) return;
-      await _deviceConnectionService.inviteDevice(device);
-    }
-    Future<void> deviceLostCallback (device) async {
-      debugPrint('Lost device: ${device.deviceName}');
+  void _startConnectionProcess() {
+    // Setup device monitoring here
+    _deviceConnectionService.monitorDevicesConnectionStatus(
+      deviceNames: widget.otherDevices.keys
+          .map((deviceName) => getDeviceNameString(deviceName)).toList(),
+      deviceFoundCallback: _deviceFoundCallback,
+      deviceLostCallback: _deviceLostCallback,
+      deviceConnectingCallback: _deviceConnectingCallback,
+      deviceConnectedCallback: _deviceConnectedCallback,
+    );
+  }
+
+  Future<void> _deviceFoundCallback(Device device) async {
+    final deviceName = getDeviceNameFromString(device.deviceName);
+    if (!widget.otherDevices.containsKey(deviceName) || 
+        widget.otherDevices[deviceName]!['status'] == ConnectionStatus.finished) {
       return;
     }
-    Future<void> deviceConnectingCallback (device) async {
-      if (widget.otherDevices[getDeviceNameFromString(device.deviceName)]!['status'] == ConnectionStatus.finished) return;
-      setState(() {
-        widget.otherDevices[getDeviceNameFromString(device.deviceName)]!['status'] = ConnectionStatus.connecting;
-      });
-    }
-    Future<void> deviceConnectedCallback (Device device) async {
-      if (widget.otherDevices[getDeviceNameFromString(device.deviceName)]!['status'] == ConnectionStatus.finished) return;
-      debugPrint('Connected to device: ${device.deviceName}');
-      setState(() {
-        widget.otherDevices[getDeviceNameFromString(device.deviceName)]!['status'] = ConnectionStatus.connected;
-      });
+    
+    setState(() {
+      widget.otherDevices[deviceName]!['status'] = ConnectionStatus.found;
+    });
+    
+    if (widget.deviceType == DeviceType.advertiserDevice) return;
+    await _deviceConnectionService.inviteDevice(device);
+  }
 
-      try {
-        debugPrint('Adding device to protocol');
-        _protocol.addDevice(device);
+  Future<void> _deviceLostCallback(Device device) async {
+    // Handle device lost
+  }
+
+  Future<void> _deviceConnectingCallback(Device device) async {
+    final deviceName = getDeviceNameFromString(device.deviceName);
+    if (widget.otherDevices[deviceName]!['status'] == ConnectionStatus.finished) return;
+    
+    setState(() {
+      widget.otherDevices[deviceName]!['status'] = ConnectionStatus.connecting;
+    });
+  }
+
+  Future<void> _deviceConnectedCallback(Device device) async {
+    final deviceName = getDeviceNameFromString(device.deviceName);
+    if (widget.otherDevices[deviceName]!['status'] == ConnectionStatus.finished) return;
+    
+    setState(() {
+      widget.otherDevices[deviceName]!['status'] = ConnectionStatus.connected;
+    });
+
+    try {
+      _protocol.addDevice(device);
+      
+      _deviceConnectionService.monitorMessageReceives(
+        device,
+        messageReceivedCallback: (package, senderId) async {
+          await _protocol.handleMessage(package, senderId);
+        },
+      );
+
+      if (widget.deviceType == DeviceType.browserDevice) {
+        setState(() {
+          widget.otherDevices[deviceName]!['status'] = ConnectionStatus.receiving;
+        });
         
-        debugPrint('Setting up message monitoring');
-        _deviceConnectionService.monitorMessageReceives(
-          device,
-          messageReceivedCallback: (package, senderId) async {
-            debugPrint('Received package from $senderId: ${package.type}');
-            await _protocol.handleMessage(package, senderId);
-          },
-        );
-
-        if (widget.deviceType == DeviceType.browserDevice) {
-          debugPrint('Browser device: preparing to receive data');
+        try {
+          final results = await _protocol.receiveDataFromDevice(device.deviceId);
+          try {
+            await _audioPlayer.play(AssetSource('sounds/completed_ding.mp3'));
+          } catch (e) {
+            debugPrint('Error playing completion sound: $e');
+          }
+          widget.otherDevices[deviceName]!['data'] = results;
           setState(() {
-            widget.otherDevices[getDeviceNameFromString(device.deviceName)]!['status'] = ConnectionStatus.receiving;
+            widget.otherDevices[deviceName]!['status'] = ConnectionStatus.finished;
+          });
+        } catch (e) {
+          debugPrint('Error receiving data: $e');
+          rethrow;
+        }
+      } else {
+        if (widget.otherDevices[deviceName]!['data'] != null) {
+          setState(() {
+            widget.otherDevices[deviceName]!['status'] = ConnectionStatus.sending;
           });
           
           try {
-            debugPrint('Starting to receive data');
-            final results = await _protocol.receiveDataFromDevice(device.deviceId);
-            debugPrint('Received data: $results');
-            try {
-              await _audioPlayer.play(AssetSource('sounds/completed_ding.mp3'));
-            } catch (e) {
-              debugPrint('Error playing completion sound: $e');
-            }
-            widget.otherDevices[getDeviceNameFromString(device.deviceName)]!['data'] = results;
+            final data = widget.otherDevices[deviceName]!['data']!;
+            await _protocol.sendData(data, device.deviceId);
             setState(() {
-              widget.otherDevices[getDeviceNameFromString(device.deviceName)]!['status'] = ConnectionStatus.finished;
+              widget.otherDevices[deviceName]!['status'] = ConnectionStatus.finished;
             });
+            _deviceConnectionService.disconnectDevice(device);
           } catch (e) {
-            debugPrint('Error receiving data for device ${device.deviceName}: $e');
+            debugPrint('Error sending data: $e');
             rethrow;
           }
         } else {
-          if (widget.otherDevices[getDeviceNameFromString(device.deviceName)]!['data'] != null) {
-            debugPrint('Advertiser device: preparing to send data');
-            setState(() {
-              widget.otherDevices[getDeviceNameFromString(device.deviceName)]!['status'] = ConnectionStatus.sending;
-            });
-            
-            try {
-              final data = widget.otherDevices[getDeviceNameFromString(device.deviceName)]!['data']!;
-              debugPrint('Starting to send data: $data');
-              await _protocol.sendData(data, device.deviceId);
-              debugPrint('Data sent successfully');
-              setState(() {
-                widget.otherDevices[getDeviceNameFromString(device.deviceName)]!['status'] = ConnectionStatus.finished;
-              });
-              _deviceConnectionService.disconnectDevice(device);
-            } catch (e) {
-              debugPrint('Error sending data for device ${device.deviceName}: $e');
-              rethrow;
-            }
-          } else {
-            debugPrint('No data available for advertiser device to send');
-            throw Exception('No data for advertiser device ${device.deviceName} to send');
-          }
+          throw Exception('No data for advertiser device to send');
         }
-        _protocol.removeDevice(device.deviceId);
-      } catch (e) {
-        debugPrint('Error in connection callback for device ${device.deviceName}: $e');
-        _protocol.removeDevice(device.deviceId);
-        widget.otherDevices[getDeviceNameFromString(device.deviceName)]!['status'] = ConnectionStatus.error;
-        rethrow;
       }
+      _protocol.removeDevice(device.deviceId);
+    } catch (e) {
+      debugPrint('Error in connection: $e');
+      _protocol.removeDevice(device.deviceId);
+      setState(() {
+        widget.otherDevices[deviceName]!['status'] = ConnectionStatus.error;
+      });
+      rethrow;
     }
-
-    _deviceConnectionService.monitorDevicesConnectionStatus(
-      deviceNames: widget.otherDevices.keys
-          .where((deviceName) =>
-              widget.otherDevices[deviceName]!['status'] != ConnectionStatus.finished)
-          .map((deviceName) => getDeviceNameString(deviceName)).toList(),
-      deviceFoundCallback: deviceFoundCallback,
-      deviceLostCallback: deviceLostCallback,
-      deviceConnectingCallback: deviceConnectingCallback,
-      deviceConnectedCallback: deviceConnectedCallback,
-    );
-    debugPrint('Finished setting up device monitoring');
   }
+
 
   @override
   void dispose() {
@@ -453,9 +595,49 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
 
   @override
   Widget build(BuildContext context) {
-    if (_wirelessConnectionError == WirelessConnectionError.unavailable || _wirelessConnectionError == WirelessConnectionError.unknown) {
-      return Text('Wireless connection is unavailable');
-    }
-    return widget.child;
+    if (_wirelessConnectionError != null) {
+      // Show a single error button
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8.0),
+            child: WirelessConnectionButton(
+              deviceName: DeviceName.coach,
+              connectionStatus: ConnectionStatus.error,
+              errorMessage: _wirelessConnectionError == WirelessConnectionError.unavailable 
+                  ? 'Wireless connection is not available on this device.'
+                  : 'An unknown error occurred.',
+              onRetry: () {
+                setState(() {
+                  _wirelessConnectionError = null;
+                  _isInitialized = false;
+                });
+                _initialize();
+              }
+            )
+          ),
+        ],
+      );
+    } 
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var deviceName in widget.otherDevices.keys)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16.0),
+            child: !_isInitialized 
+              ? WirelessConnectionButton(
+                  deviceName: deviceName,
+                  connectionStatus: ConnectionStatus.searching,
+                ).skeleton
+              : WirelessConnectionButton(
+                  deviceName: deviceName,
+                  connectionStatus: widget.otherDevices[deviceName]!['status'],
+                ),
+          ),
+      ],
+    );
   }
 }

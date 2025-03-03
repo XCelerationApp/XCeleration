@@ -86,10 +86,10 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                       title: 'Load Runners',
                       body: deviceConnectionWidget(
                         DeviceName.coach,
-                        DeviceType.advertiserDevice,
+                        DeviceType.browserDevice,
                         createOtherDeviceList(
                           DeviceName.coach,
-                          DeviceType.advertiserDevice,
+                          DeviceType.browserDevice,
                         ),
                       ),
                     );
