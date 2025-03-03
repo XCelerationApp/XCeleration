@@ -42,6 +42,15 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
 
   final tutorialManager = TutorialManager();
 
+  // Store provider reference for safe disposal
+  late BibRecordsProvider _providerReference;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _providerReference = Provider.of<BibRecordsProvider>(context, listen: false);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -525,8 +534,8 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
   @override
   void dispose() {
     _scrollController.dispose();
-    final provider = Provider.of<BibRecordsProvider>(context, listen: false);
-    for (var node in provider.focusNodes) {
+    // Use the stored reference instead of accessing Provider in dispose
+    for (var node in _providerReference.focusNodes) {
       node.removeListener(() {});
     }
     super.dispose();

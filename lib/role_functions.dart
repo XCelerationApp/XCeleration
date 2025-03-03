@@ -6,6 +6,7 @@ import '../utils/app_colors.dart';
 import 'utils/sheet_utils.dart';
 import '../utils/tutorial_manager.dart';
 import '../utils/coach_mark.dart';
+import '../screens/role_screen.dart';
 
 class RoleOption {
   final String value;
@@ -53,7 +54,7 @@ final List<RoleOption> profileOptions = [
     title: 'Assistant',
     description: 'Assist the coach by gathering race results',
     icon: Icons.person,
-    screen: const RacesScreen(),
+    screen: const AssistantRoleScreen(),
   ),
 ];
 

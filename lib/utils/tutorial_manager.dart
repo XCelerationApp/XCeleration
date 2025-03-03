@@ -48,7 +48,11 @@ class TutorialManager extends ChangeNotifier {
     if (_activeCoachMark == null) return;
 
     await _markTutorialAsSeen(_activeCoachMark!);
-    _tutorialQueue.removeAt(0);
+    
+    // Check if the queue has items before removing
+    if (_tutorialQueue.isNotEmpty) {
+      _tutorialQueue.removeAt(0);
+    }
     
     // Always clear the target rect between tutorials
     _targetRect = null;
