@@ -202,6 +202,11 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
   }
 
   Future<void> _preRaceSetup(int raceId) async {
+    final otherDevices = createOtherDeviceList(
+      DeviceName.coach,
+      DeviceType.advertiserDevice,
+      data: '',
+    );
     final steps = [
       FlowStep(
         title: 'Review Runners',
@@ -212,7 +217,9 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
               raceId: raceId, 
               showHeader: false, 
               onBack: null, 
-              onContentChanged: () {},
+              onContentChanged: () {
+                otherDevices[DeviceName.coach]!['data'] = _getEncodedRunnersData();
+              },
             )
           ]
         ),
@@ -225,12 +232,8 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
           child: deviceConnectionWidget(
             DeviceName.coach,
             DeviceType.advertiserDevice,
-            createOtherDeviceList(
-              DeviceName.coach,
-              DeviceType.advertiserDevice,
-              data: await _getEncodedRunnersData()
-              )
-            )
+            otherDevices,
+          )
         ),
         canProceed: () async => true,
       ),
@@ -279,7 +282,7 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
               ),
               const SizedBox(height: 16),
               Text(
-                'Click Next once the race is finished to collect results.',
+                'Click Next once the race is finished to begin the post-race flow.',
                 style: TextStyle(
                   fontSize: 16,
                   color: AppColors.darkColor.withAlpha((0.7 * 255).round()),
@@ -291,206 +294,7 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
         ),
         canProceed: () async => true,
       ),
-      FlowStep(
-        title: 'Load Results',
-        description: 'Load the results of the race from the assistant devices.',
-        content: Container(
-          constraints: const BoxConstraints(maxWidth: 600),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ValueListenableBuilder<ConnectionStatus>(
-                valueListenable: _bibRecorderStatusNotifier,
-                builder: (context, status, child) {
-                  return SearchableButton(
-                    label: 'Bib Recorder',
-                    icon: Icons.person_outline,
-                    connectionStatus: status,
-                    showSearchingText: true,
-                  );
-                }
-              ),
-              const SizedBox(height: 16),
-              ValueListenableBuilder<ConnectionStatus>(
-                valueListenable: _raceTimerStatusNotifier,
-                builder: (context, status, child) {
-                  return SearchableButton(
-                    label: 'Race Timer',
-                    icon: Icons.timer_outlined,
-                    connectionStatus: status,
-                    showSearchingText: true,
-                  );
-                }
-              ),
-              const SizedBox(height: 24),
-              if (_resultsLoaded) ...[
-                if (_hasBibConflicts) ...[
-                  _buildConflictButton(
-                    'Bib Number Conflicts',
-                    'Some runners have conflicting bib numbers. Please resolve these conflicts before proceeding.',
-                    () => _showBibConflictsSheet(context),
-                  ),
-                ]
-                else if (_hasTimingConflicts) ...[
-                  _buildConflictButton(
-                    'Timing Conflicts',
-                    'There are conflicts in the race timing data. Please review and resolve these conflicts.',
-                    () => _showTimingConflictsSheet(),
-                  ),
-                ],
-                if (!_hasBibConflicts && !_hasTimingConflicts) ...[
-                  Text(
-                    'Results Loaded Successfully',
-                    style: AppTypography.bodySemibold.copyWith(color: AppColors.primaryColor),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'You can proceed to review the results or load them again if needed.',
-                    style: AppTypography.bodyRegular.copyWith(color: AppColors.darkColor.withAlpha((0.7 * 255).round())),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-                const SizedBox(height: 16),
-              ],
-              Container(
-                width: double.infinity,
-                padding: EdgeInsets.zero,
-                child: SearchableButton(
-                  label: 'Scan QR code',
-                  icon: Icons.qr_code_scanner,
-                  onTap: () async {
-                    DialogUtils.showErrorDialog(context, message: "This feature is not yet implemented.");
-                    return;
-                  },
-                  isQrCode: true,
-                ),
-              ),
-            ],
-          ),
-        ),
-        canProceed: () async => _resultsLoaded && !_hasBibConflicts && !_hasTimingConflicts,
-      ),
-      FlowStep(
-        title: 'Review Results',
-        description: 'Review and verify the race results before saving them.',
-        content: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.fact_check_outlined, size: 80, color: AppColors.primaryColor),
-              const SizedBox(height: 24),
-              Text(
-                'Review Race Results',
-                style: AppTypography.titleSemibold.copyWith(color: AppColors.darkColor),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Make sure all times and placements are correct.',
-                style: AppTypography.bodyRegular.copyWith(color: AppColors.darkColor.withOpacity(0.7)),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 32),
-              // Placeholder for results table
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey[300]!),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          flex: 1,
-                          child: Text('Place', 
-                            style: AppTypography.bodySemibold.copyWith(color: AppColors.darkColor),
-                          ),
-                        ),
-                        Expanded(
-                          flex: 3,
-                          child: Text('Runner', 
-                            style: AppTypography.bodySemibold.copyWith(color: AppColors.darkColor),
-                          ),
-                        ),
-                        Expanded(
-                          flex: 2,
-                          child: Text('Time', 
-                            style: AppTypography.bodySemibold.copyWith(color: AppColors.darkColor),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    // Placeholder rows
-                    for (var i = 1; i <= 3; i++)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              flex: 1,
-                              child: Text(i.toString()),
-                            ),
-                            Expanded(
-                              flex: 3,
-                              child: Text('Runner $i'),
-                            ),
-                            Expanded(
-                              flex: 2,
-                              child: Text('${(i * 15.5).toStringAsFixed(2)}s'),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        canProceed: () async => true,
-      ),
-      FlowStep(
-        title: 'Save Results',
-        description: 'Save the final race results to complete the race.',
-        content: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.save_outlined, size: 80, color: AppColors.primaryColor),
-              const SizedBox(height: 24),
-              Text(
-                'Save Race Results',
-                style: AppTypography.titleSemibold.copyWith(color: AppColors.darkColor),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Click Next to save the results and complete the race.',
-                style: AppTypography.bodyRegular.copyWith(color: AppColors.darkColor.withOpacity(0.7)),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-        canProceed: () async => true,
-      ),
     ];
-
-    final isCompleted = await showFlow(
-      context: context,
-      steps: steps,
-      // dismissible: false,
-    );
-
-    if (isCompleted) {
-      await DatabaseHelper.instance.updateRaceFlowState(raceId, 'finished');
-      setState(() {
-        race = race!.copyWith(flowState: 'finished');
-      });
-    }
   }
 
   Future<void> _postRaceSetup(int raceId) async {
@@ -502,6 +306,11 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
       _hasTimingConflicts = _resultsLoaded && _timingData != null && _containsTimingConflicts(_timingData!);
       // _hasTimingConflicts = false;
     });
+
+    Map<DeviceName, Map<String, dynamic>> otherDevices = createOtherDeviceList(
+      DeviceName.coach,
+      DeviceType.browserDevice,
+    );
 
     final steps = [
       FlowStep(
@@ -515,28 +324,12 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
               mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
               children: [
-                ValueListenableBuilder<ConnectionStatus>(
-                  valueListenable: _bibRecorderStatusNotifier,
-                  builder: (context, status, child) {
-                    return SearchableButton(
-                      label: 'Bib Recorder',
-                      icon: Icons.person_outline,
-                      connectionStatus: status,
-                      showSearchingText: true,
-                    );
-                  }
-                ),
-                const SizedBox(height: 16),
-                ValueListenableBuilder<ConnectionStatus>(
-                  valueListenable: _raceTimerStatusNotifier,
-                  builder: (context, status, child) {
-                    return SearchableButton(
-                      label: 'Race Timer',
-                      icon: Icons.timer_outlined,
-                      connectionStatus: status,
-                      showSearchingText: true,
-                    );
-                  }
+                Center(
+                  child: deviceConnectionWidget(
+                    DeviceName.coach,
+                    DeviceType.browserDevice,
+                    otherDevices,
+                  ),
                 ),
                 const SizedBox(height: 24),
                 if (_resultsLoaded) ...[
@@ -568,7 +361,8 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
                   ],
                   const SizedBox(height: 16),
                 ],
-                Container(
+
+                _resultsLoaded ? Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: ElevatedButton(
@@ -584,62 +378,19 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
                       children: [
                         Icon(Icons.download_sharp, color: Colors.white),
                         const SizedBox(width: 12),
-                        Text(
-                          _resultsLoaded ? 'Reload Results' : 'Load Results',
-                          style: AppTypography.bodySemibold.copyWith(color: Colors.white),
-                        ),
+                        Text('Reload Results', style: AppTypography.bodySemibold.copyWith(color: Colors.white)),
                       ],
                     ),
                     onPressed: () async {
-                      _bibRecorderStatusNotifier.value = ConnectionStatus.searching;
-                      _raceTimerStatusNotifier.value = ConnectionStatus.searching;
-                      
-                      final otherDevices = createOtherDeviceList(
-                        DeviceName.coach,
-                        DeviceType.browserDevice,
-                      );
-
-                      await showDeviceConnectionPopup(
-                        context,
-                        deviceType: DeviceType.browserDevice,
-                        deviceName: DeviceName.coach,
-                        otherDevices: otherDevices,
-                      );
-
-                      final encodedBibRecords = otherDevices[DeviceName.bibRecorder]?['data'] as String?;
-                      final encodedFinishTimes = otherDevices[DeviceName.raceTimer]?['data'] as String?;
-
-                      if (encodedBibRecords != null) {
-                        _bibRecorderStatusNotifier.value = ConnectionStatus.finished;
-                      }
-                      if (encodedFinishTimes != null) {
-                        _raceTimerStatusNotifier.value = ConnectionStatus.finished;
-                      }
-
-                      if (encodedBibRecords == null || encodedFinishTimes == null) {
-                        _bibRecorderStatusNotifier.value = ConnectionStatus.error;
-                        _raceTimerStatusNotifier.value = ConnectionStatus.error;
-                        return;
-                      }
-                      
-                      var runnerRecords = await processEncodedBibRecordsData(encodedBibRecords, context, raceId);
-                      final timingData = await processEncodedTimingData(encodedFinishTimes, context);
-                      
-                      if (runnerRecords.isNotEmpty && timingData != null) {
-                        timingData['records'] = await syncBibData(runnerRecords.length, timingData['records'], timingData['endTime'], context);
-                        setState(() {
-                          _runnerRecords = runnerRecords;
-                          _timingData = timingData;
-                          _resultsLoaded = true;
-                          _hasBibConflicts = _containsBibConflicts(runnerRecords);
-                          _hasTimingConflicts = _containsTimingConflicts(timingData);
-                        });
-                        
-                        await _saveRaceResults();
-                      }
+                      setState(() {
+                        _resultsLoaded = false;
+                        _hasBibConflicts = false;
+                        _hasTimingConflicts = false;
+                      });
+                      otherDevices = createOtherDeviceList(DeviceName.coach, DeviceType.browserDevice);
                     }
                   ),
-                ),
+                ) : const SizedBox.shrink(),
               ],
             ),
           ),
@@ -752,6 +503,25 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
         canProceed: () async => true,
       ),
     ];
+
+    // await waitForDataTransferCompletion(otherDevices);
+    // final encodedBibRecords = otherDevices[DeviceName.bibRecorder]?['data'] as String?;
+    // final encodedFinishTimes = otherDevices[DeviceName.raceTimer]?['data'] as String?;
+    
+    // var runnerRecords = await processEncodedBibRecordsData(encodedBibRecords, context, raceId);
+    // final timingData = await processEncodedTimingData(encodedFinishTimes, context);
+    
+    // if (runnerRecords.isNotEmpty && timingData != null) {
+    //   timingData['records'] = await syncBibData(runnerRecords.length, timingData['records'], timingData['endTime'], context);
+    //   setState(() {
+    //     _runnerRecords = runnerRecords;
+    //     _timingData = timingData;
+    //     _resultsLoaded = true;
+    //     _hasBibConflicts = _containsBibConflicts(runnerRecords);
+    //     _hasTimingConflicts = _containsTimingConflicts(timingData);
+    //   });
+      
+    //   await _saveRaceResults();
 
     final isCompleted = await showFlow(
       context: context,
@@ -1433,52 +1203,5 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
       default:
         return 'Unknown';
     }
-  }
-
-  void _startDeviceConnection(
-    BuildContext context, {
-    required DeviceType deviceType,
-    required DeviceName deviceName,
-    required String data,
-  }) {
-    final otherDevices = createOtherDeviceList(deviceName, deviceType, data: data);
-  
-    showDeviceConnectionPopup(
-      context,
-      deviceType: deviceType,
-      deviceName: deviceName,
-      otherDevices: otherDevices,
-    ).then((_) {
-      // Reset status after connection is complete
-      _connectionStatusNotifier.value = ConnectionStatus.searching;
-    });
-
-    // Listen to status changes
-    for (var device in otherDevices.entries) {
-      if (device.value['status'] != null) {
-        _connectionStatusNotifier.value = device.value['status'];
-      }
-    }
-  }
-
-  void _showQRCodeConnection(
-    BuildContext context, {
-    required DeviceType deviceType,
-    required DeviceName deviceName,
-    required String data,
-  }) {
-    final otherDevices = createOtherDeviceList(deviceName, deviceType, data: data);
-  
-    _qrConnectionStatusNotifier.value = ConnectionStatus.connecting;
-  
-    showDeviceConnectionPopup(
-      context,
-      deviceType: deviceType,
-      deviceName: deviceName,
-      otherDevices: otherDevices,
-    ).then((_) {
-      // Reset status after connection is complete
-      _qrConnectionStatusNotifier.value = ConnectionStatus.searching;
-    });
   }
 }
