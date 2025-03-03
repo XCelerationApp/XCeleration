@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../utils/app_colors.dart';
+import '../utils/app_loading.dart';
 import 'role_screen.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 
@@ -12,10 +13,8 @@ class SplashScreen extends StatefulWidget {
 
 class SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  late Animation<double> _logoSizeAnimation;
-  late Animation<double> _logoOpacityAnimation;
-  late Animation<double> _textOpacityAnimation;
-  late Animation<double> _backgroundOpacityAnimation;
+  late Animation<double> _fadeInAnimation;
+  late Animation<double> _scaleAnimation;
 
   @override
   void initState() {
@@ -23,157 +22,134 @@ class SplashScreenState extends State<SplashScreen> with SingleTickerProviderSta
     // Remove the native splash screen
     FlutterNativeSplash.remove();
     
+    // Set up animations
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 3000),
       vsync: this,
+      duration: const Duration(milliseconds: 1200),
     );
-
-    // Logo animation: starts at 0, grows to 1.0, then to 1.1 and back to 1.0
-    _logoSizeAnimation = TweenSequence<double>([
-      TweenSequenceItem(
-        tween: Tween<double>(begin: 0.0, end: 1.0)
-            .chain(CurveTween(curve: Curves.easeOut)),
-        weight: 40.0,
-      ),
-      TweenSequenceItem(
-        tween: Tween<double>(begin: 1.0, end: 1.1)
-            .chain(CurveTween(curve: Curves.easeInOut)),
-        weight: 30.0,
-      ),
-      TweenSequenceItem(
-        tween: Tween<double>(begin: 1.1, end: 1.0)
-            .chain(CurveTween(curve: Curves.easeInOut)),
-        weight: 30.0,
-      ),
-    ]).animate(_controller);
-
-    // Logo opacity: start invisible, become visible, remain visible
-    _logoOpacityAnimation = TweenSequence<double>([
-      TweenSequenceItem(
-        tween: Tween<double>(begin: 0.0, end: 1.0),
-        weight: 20.0,
-      ),
-      TweenSequenceItem(
-        tween: Tween<double>(begin: 1.0, end: 1.0),
-        weight: 80.0,
-      ),
-    ]).animate(_controller);
-
-    // Text opacity: start invisible, become visible after delay, remain visible
-    _textOpacityAnimation = TweenSequence<double>([
-      TweenSequenceItem(
-        tween: Tween<double>(begin: 0.0, end: 0.0),
-        weight: 40.0,
-      ),
-      TweenSequenceItem(
-        tween: Tween<double>(begin: 0.0, end: 1.0),
-        weight: 20.0,
-      ),
-      TweenSequenceItem(
-        tween: Tween<double>(begin: 1.0, end: 1.0),
-        weight: 40.0,
-      ),
-    ]).animate(_controller);
-
-    // Background animation: start at opacity 0, fade to 1
-    _backgroundOpacityAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(
+    
+    _fadeInAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: const Interval(0.0, 0.3, curve: Curves.easeIn),
+        curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
       ),
     );
-
-    // Start the animation and navigate after a delay
+    
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
+      ),
+    );
+    
+    // Start animation
     _controller.forward();
     
-    _controller.addStatusListener((status) {
-      if (status == AnimationStatus.completed) {
-        _navigateToNextScreen();
-      }
+    // Navigate after a delay
+    Future.delayed(const Duration(milliseconds: 2500), () {
+      _navigateToNextScreen();
     });
   }
 
   void _navigateToNextScreen() {
     Navigator.of(context).pushReplacement(
-      PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => FadeTransition(
-          opacity: animation,
-          child: const RoleScreen(),
-        ),
-        transitionDuration: const Duration(milliseconds: 800),
+      MaterialPageRoute(
+        builder: (context) => const RoleScreen(),
       ),
     );
   }
 
   @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        return Scaffold(
-          backgroundColor: AppColors.primaryColor,
-          body: Stack(
+    final size = MediaQuery.of(context).size;
+    
+    return Scaffold(
+      backgroundColor: AppColors.primaryColor,
+      body: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          return Stack(
+            fit: StackFit.expand,
             children: [
-              // Animated background
+              // Background
               Positioned.fill(
-                child: Opacity(
-                  opacity: _backgroundOpacityAnimation.value,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          AppColors.primaryColor,
-                          AppColors.primaryColor.withOpacity(0.8),
-                        ],
-                      ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        AppColors.primaryColor,
+                        AppColors.primaryColor.withOpacity(0.85),
+                      ],
                     ),
                   ),
                 ),
               ),
               
               // Content
-              Center(
+              SafeArea(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Animated logo
-                    Opacity(
-                      opacity: _logoOpacityAnimation.value,
-                      child: Transform.scale(
-                        scale: _logoSizeAnimation.value,
+                    const Spacer(flex: 2),
+                    
+                    // Logo with animation
+                    FadeTransition(
+                      opacity: _fadeInAnimation,
+                      child: ScaleTransition(
+                        scale: _scaleAnimation,
                         child: Container(
-                          width: 150,
-                          height: 150,
-                          padding: const EdgeInsets.all(12),
+                          width: size.width * 0.35,
+                          height: size.width * 0.35,
                           decoration: BoxDecoration(
                             color: Colors.white,
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
                                 color: Colors.black.withOpacity(0.2),
-                                blurRadius: 10,
-                                spreadRadius: 5,
+                                blurRadius: 15,
+                                spreadRadius: 1,
+                                offset: const Offset(0, 4),
                               ),
                             ],
                           ),
-                          child: Image.asset(
-                            'assets/icon/icon.png',
-                            fit: BoxFit.contain,
+                          child: Center(
+                            child: Container(
+                              width: size.width * 0.25,
+                              height: size.width * 0.25,
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryColor,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Center(
+                                child: Text(
+                                  'XC',
+                                  style: TextStyle(
+                                    fontSize: 48,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                    letterSpacing: -1,
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ),
                     ),
                     
-                    const SizedBox(height: 40),
+                    SizedBox(height: size.height * 0.05),
                     
-                    // Animated text
-                    Opacity(
-                      opacity: _textOpacityAnimation.value,
+                    // App name with animation
+                    FadeTransition(
+                      opacity: _fadeInAnimation,
                       child: Column(
                         children: [
                           Text(
@@ -186,13 +162,13 @@ class SplashScreenState extends State<SplashScreen> with SingleTickerProviderSta
                               shadows: [
                                 Shadow(
                                   blurRadius: 3.0,
-                                  color: Colors.black.withOpacity(0.3),
+                                  color: Colors.black.withOpacity(0.2),
                                   offset: const Offset(0, 2),
                                 ),
                               ],
                             ),
                           ),
-                          const SizedBox(height: 10),
+                          const SizedBox(height: 8),
                           Text(
                             'Race Timer',
                             style: TextStyle(
@@ -204,19 +180,25 @@ class SplashScreenState extends State<SplashScreen> with SingleTickerProviderSta
                         ],
                       ),
                     ),
+                    
+                    const Spacer(flex: 3),
+                    
+                    // Loading indicator - use a loading type that looks better on orange
+                    AppLoading(
+                      type: LoadingType.fadingCircle,
+                      message: 'Initializing...',
+                      color: Colors.white,
+                      size: 50,
+                    ),
+                    
+                    const Spacer(flex: 2),
                   ],
                 ),
               ),
             ],
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
   }
 }
