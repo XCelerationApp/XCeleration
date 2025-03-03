@@ -74,6 +74,10 @@ flutter_native_splash:
     image: assets/icon/icon.png
     icon_background_color: "#FF5722"
     
+  # Splash screen configuration
+  fullscreen: true
+  image_dark: assets/icon/icon.png
+  color_dark: "#FF5722"
   android: true
   ios: true
   web: false
