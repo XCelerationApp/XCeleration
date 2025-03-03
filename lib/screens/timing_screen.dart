@@ -465,10 +465,11 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     final isRaceFinished = startTime == null && endTime != null && _records.isNotEmpty;
     
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
       decoration: BoxDecoration(
         color: hasRace ? const Color(0xFFF5F5F5) : Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(10),
+        border: hasRace ? Border.all(color: Colors.grey.withOpacity(0.2)) : null,
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -477,8 +478,10 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
             isRaceFinished ? 'Race finished' : (hasRace ? 'Race in progress' : 'Ready to start'),
             style: AppTypography.bodyRegular.copyWith(
               fontSize: 16,
-              color: hasRace ? Colors.black87 : Colors.black54,
-              fontWeight: hasRace ? FontWeight.w500 : FontWeight.normal,
+              color: hasRace 
+                ? isRaceFinished ? Colors.green[700] : AppColors.primaryColor
+                : Colors.black54,
+              fontWeight: hasRace ? FontWeight.w600 : FontWeight.normal,
             ),
           ),
           if (_records.isNotEmpty)
@@ -486,8 +489,8 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
               'Runners: ${_records.where((r) => r.type == RecordType.runnerTime).length}',
               style: AppTypography.bodyRegular.copyWith(
                 fontSize: 16,
-                color: Colors.black87,
-                fontWeight: FontWeight.w500,
+                color: hasRace ? Colors.black87 : Colors.black54,
+                fontWeight: FontWeight.w600,
               ),
             ),
         ],
@@ -506,15 +509,9 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
           margin: const EdgeInsets.symmetric(vertical: 8),
           width: MediaQuery.of(context).size.width * 0.9,
           decoration: BoxDecoration(
-            color: const Color(0xFFFAFAFA),
+            color: Colors.white,
             borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
-              ),
-            ],
+            
           ),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -617,7 +614,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   Widget _buildLogButton(DateTime? startTime) {
     return CircularButton(
       text: (_records.isEmpty || startTime != null) ? 'Log' : 'Clear',
-      color: const Color(0xFF777777),
+      color: (_records.isEmpty && startTime == null) ? const Color.fromARGB(255, 201, 201, 201) : const Color(0xFF777777),
       fontSize: 18,
       fontWeight: FontWeight.w600,
       onPressed: (_records.isNotEmpty && startTime == null)
