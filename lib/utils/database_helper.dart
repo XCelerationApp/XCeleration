@@ -1,7 +1,7 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'dart:convert';
-import '../../models/race.dart';
+import '../../../shared/models/race.dart';
 import 'package:flutter/foundation.dart';
 
 class DatabaseHelper {

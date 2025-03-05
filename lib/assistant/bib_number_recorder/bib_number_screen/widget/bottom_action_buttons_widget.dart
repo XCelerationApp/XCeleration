@@ -1,0 +1,34 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../model/bib_data.dart';
+import '../../../../../core/theme/app_colors.dart';
+import '../../../../../utils/button_utils.dart';
+
+class BottomActionButtonsWidget extends StatelessWidget {
+  final VoidCallback onShareBibNumbers;
+
+  const BottomActionButtonsWidget({
+    Key? key,
+    required this.onShareBibNumbers,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final bibRecordsProvider = Provider.of<BibRecordsProvider>(context, listen: false);
+    final hasNonEmptyBibNumbers = bibRecordsProvider.bibRecords.any((record) => record.bibNumber.isNotEmpty);
+
+    if (!hasNonEmptyBibNumbers) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: RoundedRectangleButton(
+        text: 'Share Bib Numbers',
+        color: AppColors.navBarColor,
+        width: double.infinity,
+        height: 50,
+        fontSize: 18,
+        onPressed: onShareBibNumbers,
+      ),
+    );
+  }
+}

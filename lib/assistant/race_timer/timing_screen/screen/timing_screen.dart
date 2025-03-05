@@ -579,7 +579,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
                 body: deviceConnectionWidget(
                   DeviceName.raceTimer,
                   DeviceType.advertiserDevice,
-                  createOtherDeviceList(
+                  DeviceConnectionService.createOtherDeviceList(
                     DeviceName.raceTimer,
                     DeviceType.advertiserDevice,
                     data: _timingData.encode(),
