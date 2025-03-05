@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'models/timing_data.dart';
+import 'assistant/race_timer/timing_screen/model/timing_data.dart';
 import 'assistant/bib_number_recorder/bib_number_screen/model/bib_data.dart';
 import 'core/theme/app_colors.dart';
 import 'package:flutter/services.dart';

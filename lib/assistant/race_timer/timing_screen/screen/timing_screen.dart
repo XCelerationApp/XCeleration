@@ -429,32 +429,40 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
 
   @override
   Widget build(BuildContext context) {
-      _timingData = Provider.of<TimingData>(context, listen: false);
-    final startTime = _timingData.startTime;
-    final endTime = _timingData.endTime;
+    // Wrap the entire screen with a ChangeNotifierProvider for TimingData
+    return ChangeNotifierProvider(
+      create: (context) => TimingData(),
+      child: Consumer<TimingData>(
+        builder: (context, timingData, child) {
+          _timingData = timingData;
+          final startTime = _timingData.startTime;
+          final endTime = _timingData.endTime;
 
-    return TutorialRoot(
-      tutorialManager: tutorialManager,
-      child: Scaffold(
-        body: Padding(
-          padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              buildRoleBar(context, 'timer', tutorialManager),
-              const SizedBox(height: 8),
-              _buildRaceInfoHeader(),
-              const SizedBox(height: 8),
-              _buildTimerDisplay(startTime, endTime),
-              _buildControlButtons(startTime),
-              if (_records.isNotEmpty) const SizedBox(height: 30),
-              Expanded(child: _buildRecordsList()),
-              if (startTime != null && _records.isNotEmpty)
-                _buildBottomControls(),
-            ],
-          ),
-        ),
-      )
+          return TutorialRoot(
+            tutorialManager: tutorialManager,
+            child: Scaffold(
+              body: Padding(
+                padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    buildRoleBar(context, 'timer', tutorialManager),
+                    const SizedBox(height: 8),
+                    _buildRaceInfoHeader(),
+                    const SizedBox(height: 8),
+                    _buildTimerDisplay(startTime, endTime),
+                    _buildControlButtons(startTime),
+                    if (_records.isNotEmpty) const SizedBox(height: 30),
+                    Expanded(child: _buildRecordsList()),
+                    if (startTime != null && _records.isNotEmpty)
+                      _buildBottomControls(),
+                  ],
+                ),
+              ),
+            )
+          );
+        },
+      ),
     );
   }
 
