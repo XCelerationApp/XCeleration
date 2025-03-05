@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import '../model/bib_data.dart';
+import '../model/bib_record.dart';
+import '../model/bib_records_provider.dart';
 import '../../../../../core/theme/typography.dart';
-import '../../../../../core/theme/app_colors.dart';
 
 class BibInputWidget extends StatelessWidget {
   final int index;

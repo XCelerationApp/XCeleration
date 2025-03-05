@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'dart:convert';
-import '../model/bib_number_model.dart';
-import '../model/bib_data.dart';
+import '../model/bib_record.dart';
+import '../model/bib_records_provider.dart';
 import '../../../../../core/components/dialog_utils.dart';
-import '../../../../../shared/role_functions.dart';
 import '../../../../../utils/enums.dart';
 import 'package:provider/provider.dart';
 

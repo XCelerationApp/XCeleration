@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'bib_data.dart';
+import 'bib_records_provider.dart';
 import '../../../../../utils/enums.dart';
-import '../../../../../shared/role_functions.dart';
 import 'package:provider/provider.dart';
 import '../../../../../core/services/device_connection_service.dart';
 
