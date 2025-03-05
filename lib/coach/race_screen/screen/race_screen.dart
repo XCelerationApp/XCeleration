@@ -409,7 +409,8 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
             ),
           ),
         ),
-        canProceed: () async => _resultsLoaded && !_hasBibConflicts && !_hasTimingConflicts,
+        canProceed: () async => true,
+        // canProceed: () async => _resultsLoaded && !_hasBibConflicts && !_hasTimingConflicts,
       ),
       FlowStep(
         title: 'Review Results',

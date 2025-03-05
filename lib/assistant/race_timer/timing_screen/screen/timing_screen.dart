@@ -11,7 +11,7 @@ import '../../../../core/components/device_connection_widget.dart';
 import '../../../../utils/runner_time_functions.dart';
 import '../model/timing_utils.dart';
 import '../../../../core/components/dialog_utils.dart';
-import '../../../../utils/button_utils.dart';
+import '../../../../core/components/button_utils.dart';
 import '../../../../core/services/device_connection_service.dart';
 import '../../../../shared/role_functions.dart';
 import '../../../../core/services/tutorial_manager.dart';

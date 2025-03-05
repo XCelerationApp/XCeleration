@@ -5,9 +5,10 @@ import 'package:flutter/services.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/components/dialog_utils.dart';
 import '../../../utils/sheet_utils.dart';
-import '../../../utils/textfield_utils.dart';
+import '../../../core/components/textfield_utils.dart';
 import '../../../utils/database_helper.dart';
 import '../../../utils/file_processing.dart';
+import '../../../shared/models/race.dart';  // Explicit import for Race model
 
 // Models
 class Team {
@@ -237,60 +238,117 @@ class SearchBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: Row(
         children: [
           Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    spreadRadius: 1,
+                    blurRadius: 3,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
+              ),
               child: TextField(
                 controller: controller,
                 decoration: InputDecoration(
-              hintText: 'Search',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFF606060)),
+                  hintText: 'Search runners',
+                  hintStyle: TextStyle(color: AppColors.mediumColor.withOpacity(0.7)),
+                  prefixIcon: Icon(Icons.search, color: AppColors.primaryColor.withOpacity(0.8)),
+                  fillColor: Colors.white,
+                  filled: true,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppColors.lightColor),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppColors.primaryColor, width: 1.5),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppColors.lightColor),
+                  ),
+                ),
+                onChanged: onSearchChanged,
               ),
-              focusedBorder: OutlineInputBorder(
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: AppColors.primaryColor),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    spreadRadius: 1,
+                    blurRadius: 3,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
+                border: Border.all(color: AppColors.lightColor),
               ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: AppColors.navBarColor),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: searchAttribute,
+                    onChanged: onAttributeChanged,
+                    items: ['Bib Number', 'Name', 'Grade', 'School']
+                        .map((value) => DropdownMenuItem(
+                          value: value, 
+                          child: Text(value, 
+                            style: TextStyle(
+                              color: AppColors.darkColor,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ))
+                        .toList(),
+                    icon: const Icon(Icons.arrow_drop_down, color: AppColors.navBarColor),
+                    iconSize: 30,
+                    isExpanded: true,
+                    focusColor: AppColors.backgroundColor,
+                    style: TextStyle(color: AppColors.darkColor, fontSize: 14),
+                  ),
                 ),
               ),
-            onChanged: onSearchChanged,
             ),
           ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Container(
+          const SizedBox(width: 6),
+          Container(
+            height: 48,
+            width: 48,
             decoration: BoxDecoration(
-              border: Border.all(color: AppColors.navBarColor),
+              color: Colors.white,
               borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  spreadRadius: 1,
+                  blurRadius: 3,
+                  offset: const Offset(0, 1),
+                ),
+              ],
+              border: Border.all(color: AppColors.lightColor),
             ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: DropdownButton<String>(
-                value: searchAttribute,
-                onChanged: onAttributeChanged,
-                items: ['Bib Number', 'Name', 'Grade', 'School']
-                    .map((value) => DropdownMenuItem(value: value, child: Text(value)))
-                    .toList(),
-                icon: const Icon(Icons.arrow_drop_down, color: AppColors.navBarColor),
-                iconSize: 30,
-                isExpanded: true,
-                focusColor: AppColors.backgroundColor,
-                underline: const SizedBox(),
-                style: const TextStyle(color: AppColors.navBarColor, fontSize: 16),
-              ),
+            child: IconButton(
+              icon: Icon(Icons.delete_outline, color: AppColors.redColor),
+              tooltip: 'Delete All Runners',
+              onPressed: onDeleteAll,
             ),
-          ),
-        ),
-          IconButton(
-          icon: const Icon(Icons.delete),
-          tooltip: 'Delete All Runners',
-            onPressed: onDeleteAll,
           ),
         ],
+      ),
     );
   }
 }
@@ -523,36 +581,57 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
 
   // UI Building Methods
   Widget _buildActionButtons() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           _buildActionButton(
             'Add Runner',
+            icon: Icons.person_add_alt_1,
             onPressed: () => _showRunnerSheet(context: context, runner: null),
           ),
           _buildActionButton(
             'Load Spreadsheet',
+            icon: Icons.table_chart,
             onPressed: _handleSpreadsheetLoad,
           ),
         ],
+      ),
     );
   }
 
-  Widget _buildActionButton(String text, {required VoidCallback onPressed}) {
+  Widget _buildActionButton(String text, {required VoidCallback onPressed, IconData? icon}) {
     return ElevatedButton(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
-        fixedSize: const Size(115, 40),
-        padding: const EdgeInsets.symmetric(horizontal: 8),
+        fixedSize: const Size(160, 42),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
         backgroundColor: AppColors.primaryColor,
+        foregroundColor: Colors.white,
+        elevation: 2,
+        shadowColor: AppColors.primaryColor.withOpacity(0.5),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(10),
         ),
       ),
-      child: Text(
-        text,
-        style: const TextStyle(fontSize: 14, color: Colors.white),
-        textAlign: TextAlign.center,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 18, color: Colors.white),
+            const SizedBox(width: 6),
+          ],
+          Text(
+            text,
+            style: const TextStyle(
+              fontSize: 14, 
+              fontWeight: FontWeight.w500,
+              color: Colors.white,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }
@@ -574,16 +653,45 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
 
   Widget _buildRunnersList() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryColor),
+        ),
+      );
     }
 
     if (_filteredRunners.isEmpty) {
       return Center(
-        child: Text(
-          _searchController.text.isEmpty
-              ? 'No Runners'
-              : 'No runners found',
-          style: const TextStyle(fontSize: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.person_off_outlined,
+              size: 48,
+              color: AppColors.mediumColor.withOpacity(0.6),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _searchController.text.isEmpty
+                  ? 'No Runners Added'
+                  : 'No runners found',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w500,
+                color: AppColors.mediumColor,
+              ),
+            ),
+            if (_searchController.text.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Try adjusting your search',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: AppColors.mediumColor.withOpacity(0.7),
+                ),
+              ),
+            ],
+          ],
         ),
       );
     }
@@ -600,39 +708,81 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
     // Sort schools alphabetically
     final sortedSchools = groupedRunners.keys.toList()..sort();
 
-    return ListView.builder(
-      shrinkWrap: true,
-      itemCount: sortedSchools.length,
-      itemBuilder: (context, index) {
-        final school = sortedSchools[index];
-        final schoolRunners = groupedRunners[school]!;
-        final team = _teams.firstWhereOrNull((team) => team.name == school);
-        final schoolColor = team != null ? team.color : Colors.blueGrey[300];
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 300),
+      child: ListView.builder(
+        shrinkWrap: true,
+        physics: const BouncingScrollPhysics(),
+        itemCount: sortedSchools.length,
+        itemBuilder: (context, index) {
+          final school = sortedSchools[index];
+          final schoolRunners = groupedRunners[school]!;
+          final team = _teams.firstWhereOrNull((team) => team.name == school);
+          final schoolColor = team != null ? team.color : Colors.blueGrey[400];
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Divider(height: 1, thickness: 1, color: Colors.grey),
-            Container(
-              color: schoolColor?.withAlpha((0.1 * 255).round()) ?? Colors.grey.withAlpha((0.1 * 255).round()),
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              child: Text(
-                school,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: schoolColor,
+          return AnimatedOpacity(
+            opacity: 1.0,
+            duration: Duration(milliseconds: 300 + (index * 50)),
+            curve: Curves.easeInOut,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Divider(height: 1, thickness: 1, color: Colors.grey),
+                Container(
+                  decoration: BoxDecoration(
+                    color: schoolColor?.withAlpha((0.12 * 255).round()) ?? Colors.grey.withAlpha((0.12 * 255).round()),
+                    borderRadius: const BorderRadius.only(
+                      topRight: Radius.circular(12),
+                      bottomRight: Radius.circular(12),
+                    ),
+                  ),
+                  margin: const EdgeInsets.only(right: 16.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.school,
+                        size: 18,
+                        color: schoolColor,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        school,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: schoolColor,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: schoolColor?.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '${schoolRunners.length}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: schoolColor,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+                ...schoolRunners.map((runner) => RunnerListItem(
+                  runner: runner,
+                  teamData: _teams,
+                  onActionSelected: (action) => _handleRunnerAction(action, runner),
+                )),
+              ],
             ),
-            ...schoolRunners.map((runner) => RunnerListItem(
-              runner: runner,
-              teamData: _teams,
-              onActionSelected: (action) => _handleRunnerAction(action, runner),
-            )),
-          ],
-        );
-      },
+          );
+        },
+      ),
     );
   }
   // Dialog and Action Methods
