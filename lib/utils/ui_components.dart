@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'app_colors.dart';
-import 'sheet_utils.dart';
-import 'typography.dart';
+import '../core/theme/app_colors.dart';
+import '../utils/sheet_utils.dart';
+import '../core/theme/typography.dart';
 import 'dart:async';
 import 'package:flutter_svg/flutter_svg.dart';
 

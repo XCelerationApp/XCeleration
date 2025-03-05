@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'typography.dart';
-import 'app_colors.dart';
-import 'enums.dart';
+import '../core/theme/typography.dart';
+import '../core/theme/app_colors.dart';
 
 class FlowStepContent extends StatelessWidget {
   final String title;

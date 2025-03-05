@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'app_colors.dart';
+import '../core/theme/app_colors.dart';
 
 Widget createSheetHandle({double height = 10.0, double width = 50.0}) {
   return Container(

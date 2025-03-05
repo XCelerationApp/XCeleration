@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'dialog_utils.dart';
+import '../core/components/dialog_utils.dart';
 import 'google_sheets_utils.dart';
 
 class ShareUtils {

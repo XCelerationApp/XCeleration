@@ -2,12 +2,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'models/timing_data.dart';
-import 'models/bib_data.dart';
-import 'utils/app_colors.dart';
+import 'assistant/bib_number_recorder/bib_number_screen/model/bib_data.dart';
+import 'core/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
-import 'utils/typography.dart';
-import 'screens/splash_screen.dart';
+import 'core/theme/typography.dart';
+import 'core/services/splash_screen.dart';
 
 Process? _flaskProcess;
 

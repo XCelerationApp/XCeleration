@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'time_formatter.dart';
-import 'dialog_utils.dart';
-import '../runner_time_functions.dart';
+import '../core/components/dialog_utils.dart';
+import 'runner_time_functions.dart';
 import 'package:flutter/material.dart';
-import '../database_helper.dart';
-import '../models/runner_record.dart';
+import 'database_helper.dart';
+import '../assistant/race_timer/timing_screen/model/runner_record.dart';
 import '../utils/enums.dart';
 import 'package:uuid/uuid.dart';
 
