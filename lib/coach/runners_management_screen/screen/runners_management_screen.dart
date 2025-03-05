@@ -926,47 +926,140 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
   Future<bool?> _showSpreadsheetLoadSheet(BuildContext context) async {
     return await sheet(
       context: context,
-      title: 'Load Runners from Spreadsheet',
-      titleSize: 20,
-      body:  Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      title: 'Import Runners',
+      titleSize: 24,
+      body: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const SizedBox(height: 8),
+            // Icon
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: AppColors.primaryColor.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.file_upload_outlined,
+                size: 40,
+                color: AppColors.primaryColor,
+              ),
+            ),
+            const SizedBox(height: 24), // Adjusted spacing for balance
+            
+            // Description text
+            Text(
+              'Import your runners from a CSV or Excel spreadsheet to quickly set up your race.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey[700],
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 24), // Adjusted spacing for balance
+            
+            // See Example button - with rounded corners and shadow
             ElevatedButton(
               onPressed: () async => await _showSampleSpreadsheet(),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryColor,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                fixedSize: const Size(225, 75),
+                backgroundColor: Colors.white,
+                foregroundColor: AppColors.primaryColor,
+                elevation: 0,
+                // shadowColor: Colors.black.withOpacity(0.1),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                  side: BorderSide(
+                    color: AppColors.primaryColor,
+                    width: 1,
+                  ),
+                ),
+                minimumSize: const Size(double.infinity, 56), // Full width button
               ),
-              child: const Text('See Example', style: TextStyle(fontSize: 24)),  
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.description_outlined, size: 24, color: AppColors.primaryColor), // Ensuring color consistency
+                  const SizedBox(width: 12),
+                  Text(
+                    'See Example Format',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primaryColor, // Ensuring color consistency
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 24), // Adjusted spacing for balance
+            
+            // Action Buttons
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text(
-                    'Cancel',
-                    style: TextStyle(
-                      color: AppColors.primaryColor,
-                      fontSize: 24,
+                // Cancel Button
+                Expanded(
+                  child: TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                        side: BorderSide(
+                          color: Colors.grey[600]!, // Adding subtle border
+                          width: 1,
+                        ),
+                      ),
+                      minimumSize: const Size(double.infinity, 56), // Full width button
+                    ),
+                    child: Text(
+                      'Cancel',
+                      style: TextStyle(
+                        color: Colors.grey[700],
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),
-                ElevatedButton(
-                  onPressed: () => Navigator.of(context).pop(true),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryColor,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                    fixedSize: const Size(175, 50),
+                const SizedBox(width: 16),
+                
+                // Import Button
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryColor,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      minimumSize: const Size(double.infinity, 56), // Full width button
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.cloud_upload_outlined, size: 20, color: Colors.white), // Ensuring color consistency
+                        const SizedBox(width: 8),
+                        Text(
+                          'Import Now',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white, // Ensuring color consistency
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  child: const Text('Load', style: TextStyle(fontSize: 24)),  
                 ),
               ],
             ),

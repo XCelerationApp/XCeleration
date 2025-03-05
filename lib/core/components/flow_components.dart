@@ -11,13 +11,13 @@ class FlowStepContent extends StatelessWidget {
   final int totalSteps;
 
   const FlowStepContent({
-    Key? key,
+    super.key,
     required this.title,
     required this.description,
     required this.content,
     required this.currentStep,
     required this.totalSteps,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -129,11 +129,11 @@ class FlowActionButton extends StatelessWidget {
   final bool isEnabled;
 
   const FlowActionButton({
-    Key? key,
+    super.key,
     required this.label,
     required this.onPressed,
     this.isEnabled = true,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

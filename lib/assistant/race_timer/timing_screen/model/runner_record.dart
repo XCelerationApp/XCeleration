@@ -49,7 +49,7 @@ class RunnerRecord {
     int? previousPlace,
     Color? textColor,
   }) {
-    print("text color 2: $textColor");
+    print('text color 2: $textColor');
     print(textColor == Colors.transparent ? null : (textColor ?? this.textColor));
     return RunnerRecord(
       id: id ?? this.id,

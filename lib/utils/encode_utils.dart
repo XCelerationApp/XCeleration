@@ -17,12 +17,12 @@ decodeRaceTimesString(String encodedData) async {
   final condensedRecords = decodedData[0];
   List<RunnerRecord> records = [];
   int place = 0;
-  Uuid _uuid = Uuid();
+  Uuid uuid = Uuid();
   for (var recordString in condensedRecords) {
     if (loadDurationFromString(recordString) != null) {
       place++;
       records.add(RunnerRecord(
-        id: _uuid.v4(),
+        id: uuid.v4(),
         elapsedTime: recordString,
         type: RecordType.runnerTime,
         place: place
@@ -47,11 +47,11 @@ decodeRaceTimesString(String encodedData) async {
         records = confirmRunnerNumber(records, place - 1, finishTime);
       }
       else if (type == 'missing_runner_time'){
-        records = await missingRunnerTime(offBy!, records, place, finishTime);
+        records = await missingRunnerTime(offBy, records, place, finishTime);
         place += offBy;
       }
       else if (type == 'extra_runner_time'){
-        records = await extraRunnerTime(offBy, records, place, finishTime);
+        records = extraRunnerTime(offBy, records, place, finishTime);
         place -= offBy;
       }
       else {

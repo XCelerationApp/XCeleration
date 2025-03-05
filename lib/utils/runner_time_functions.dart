@@ -180,7 +180,7 @@ Future<List<RunnerRecord>> syncBibData(int runnerRecordsLength, List<RunnerRecor
     await _handleTimingDiscrepancy(runnerRecordsLength, records, numberOfRunnerTimes, finishTime, context);
   } else {
     debugPrint('Runner records length: $runnerRecordsLength, Number of runner times: $numberOfRunnerTimes');
-    records = await confirmRunnerNumber(records, numberOfRunnerTimes, finishTime);
+    records = confirmRunnerNumber(records, numberOfRunnerTimes, finishTime);
   }
   debugPrint('');
   debugPrint(records.toString());

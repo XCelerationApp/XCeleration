@@ -54,8 +54,8 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
   bool _showResults = false;
   Race? race;
   bool _raceSetup = false;
-  bool _preRaceFinished = false;
-  bool _postRaceFinished = false;
+  final bool _preRaceFinished = false;
+  final bool _postRaceFinished = false;
   bool _resultsLoaded = false;
   List<Map<String, dynamic>>? _runnerRecords;
   Map<String, dynamic>? _timingData;
@@ -838,62 +838,228 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        createSheetHeader('Race Information', backArrow: true, context: context, onBack: _goBackToMainRaceScreen),
-        Padding(
-          padding: const EdgeInsets.all(16.0),
+        // Modern header with gradient background
+        Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                AppColors.primaryColor,
+                AppColors.primaryColor.withOpacity(0.8),
+              ],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+          width: double.infinity,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(_name, 
-                style: AppTypography.titleSemibold,
-              ),
-              const SizedBox(height: 24),
-              Text('Teams', 
-                style: AppTypography.bodySemibold,
-              ),
-              const SizedBox(height: 12),
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: _teamNames.length,
-                separatorBuilder: (context, index) => const SizedBox(height: 8),
-                itemBuilder: (context, index) => Row(
-                  children: [
-                    Container(
-                      width: 24,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        color: _teamColors[index],
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Colors.black12,
-                          width: 1,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+                    onPressed: _goBackToMainRaceScreen,
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(_getStatusIcon(race?.flowState ?? 'setup'), 
+                          color: Colors.white, 
+                          size: 16
                         ),
-                      ),
+                        const SizedBox(width: 6),
+                        Text(
+                          _getStatusText(race?.flowState ?? 'setup'),
+                          style: AppTypography.bodySmall.copyWith(color: Colors.white),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    Text(
-                      _teamNames[index],
-                      style: AppTypography.bodyRegular,
-                    ),
-                  ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                _name,
+                style: AppTypography.titleLarge.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 28,
                 ),
               ),
-              const SizedBox(height: 24),
-              _buildInfoRow(
-                Icons.location_on_outlined,
-                _location,
-                maxLines: 2,
+            ],
+          ),
+        ),
+        
+        // Content area with card design
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Race Details Card
+                _buildCard(
+                  'Race Details',
+                  Column(
+                    children: [
+                      _buildDetailItem(
+                        'Date',
+                        _date.substring(0, 10),
+                        Icons.calendar_today_rounded,
+                      ),
+                      const Divider(height: 24),
+                      _buildDetailItem(
+                        'Location',
+                        _location,
+                        Icons.location_on_rounded,
+                        isMultiLine: true,
+                      ),
+                      const Divider(height: 24),
+                      _buildDetailItem(
+                        'Distance',
+                        '$_distance $_distanceUnit',
+                        Icons.straighten_rounded,
+                      ),
+                    ],
+                  ),
+                ),
+                
+                const SizedBox(height: 20),
+                
+                // Teams Card
+                _buildCard(
+                  'Teams',
+                  Column(
+                    children: [
+                      for (int i = 0; i < _teamNames.length; i++) ... [
+                        if (i > 0) const Divider(height: 24),
+                        _buildTeamItem(_teamNames[i], _teamColors[i]),
+                      ],
+                    ],
+                  ),
+                ),
+                
+                const SizedBox(height: 32),
+                
+                // Continue Button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _goBackToMainRaceScreen,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryColor,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      'Continue',
+                      style: AppTypography.bodyMedium.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCard(String title, Widget content) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+            child: Text(
+              title,
+              style: AppTypography.bodySemibold.copyWith(
+                fontSize: 18,
+                color: AppColors.darkColor,
               ),
-              const SizedBox(height: 16),
-              _buildInfoRow(
-                Icons.calendar_today,
-                _date.substring(0, 10),
+            ),
+          ),
+          Divider(height: 1, thickness: 1, color: Colors.grey.withOpacity(0.1)),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: content,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailItem(String label, String value, IconData icon, {bool isMultiLine = false}) {
+    return Row(
+      crossAxisAlignment: isMultiLine ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+      children: [
+        Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: AppColors.primaryColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(
+            icon,
+            color: AppColors.primaryColor,
+            size: 20,
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: AppTypography.bodySmall.copyWith(
+                  color: Colors.grey[600],
+                ),
               ),
-              const SizedBox(height: 16),
-              _buildInfoRow(
-                Icons.straighten,
-                '$_distance $_distanceUnit',
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: AppTypography.bodyMedium.copyWith(
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.darkColor,
+                ),
+                maxLines: isMultiLine ? 2 : 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
@@ -902,22 +1068,37 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String text, {int maxLines = 1}) {
+  Widget _buildTeamItem(String teamName, Color teamColor) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(
-          icon,
-          size: 20,
-          color: Colors.black54,
+        Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: teamColor.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Center(
+            child: Container(
+              width: 20,
+              height: 20,
+              decoration: BoxDecoration(
+                color: teamColor,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.white,
+                  width: 2,
+                ),
+              ),
+            ),
+          ),
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            text,
-            style: AppTypography.bodyRegular,
-            maxLines: maxLines,
-            overflow: TextOverflow.ellipsis,
+        const SizedBox(width: 16),
+        Text(
+          teamName,
+          style: AppTypography.bodyMedium.copyWith(
+            fontWeight: FontWeight.w500,
+            color: AppColors.darkColor,
           ),
         ),
       ],
@@ -1076,66 +1257,234 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          race!.race_name,
-          style: AppTypography.titleSemibold.copyWith(color: Colors.white),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-      ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Race status banner
+          // Rounded header with gradient background
           Container(
-            color: _getStatusColor(race!.flowState),
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+            constraints: const BoxConstraints(
+              minHeight: 50, // Reduced height
+              maxHeight: 70, // Reduced max height
+            ),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  AppColors.primaryColor,
+                  AppColors.primaryColor,
+                ],
+              ),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(30)), // Increased rounding
+            ),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0), // Reduced padding
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Sheet handle at the top
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 8), // Reduced margin
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.7),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                // Race name
+                Text(
+                  race!.race_name,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 22, // Reduced font size
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+          
+          // Action button area - updated color
+          Container(
+            color: AppColors.primaryColor, // Using primary color instead of blue
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16), // Reduced padding
             child: Row(
               children: [
-                Icon(
-                  _getStatusIcon(race!.flowState),
-                  color: Colors.white,
+                Container(
+                  padding: const EdgeInsets.all(4), // Reduced padding
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.settings,
+                    color: Colors.white,
+                    size: 14, // Reduced icon size
+                  ),
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  _getStatusText(race!.flowState),
-                  style: AppTypography.bodySemibold.copyWith(color: Colors.white),
+                const SizedBox(width: 8), // Reduced spacing
+                const Text(
+                  'Setting Up',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 14, // Reduced font size
+                  ),
                 ),
                 const Spacer(),
-                TextButton(
-                  onPressed: _continueRaceFlow,
-                  style: TextButton.styleFrom(
-                    backgroundColor: Colors.white.withAlpha((0.2 * 255).round()),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16), // Reduced radius
                   ),
-                  child: Text(
-                    'Continue',
-                    style: AppTypography.bodySemibold.copyWith(color: Colors.white),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16), // Reduced radius
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: _continueRaceFlow,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), // Reduced padding
+                          child: Text(
+                            'Continue',
+                            style: TextStyle(
+                              color: AppColors.primaryColor, // Match primary color
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13, // Reduced font size
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-          // Race details
+          
+          // Race details content
           Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Color(0xFFF7F7F7),
+              ),
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(16), // Reduced padding
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Race Details',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18, // Reduced font size
+                          color: Color(0xFF333333),
+                        ),
+                      ),
+                      const SizedBox(height: 16), // Reduced spacing
+                      _buildDetailCard(
+                        'Date',
+                        race!.race_date.toString().split(' ')[0],
+                        Icons.calendar_today_rounded,
+                        Color(0xFFFFECE8), // Lighter background
+                        AppColors.primaryColor, // New icon color
+                      ),
+                      const SizedBox(height: 16),
+                      _buildDetailCard(
+                        'Location',
+                        race!.location,
+                        Icons.location_on_rounded,
+                        Color(0xFFFFECE8), // Lighter background
+                        AppColors.primaryColor, // New icon color
+                        isMultiLine: true,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildDetailCard(
+                        'Distance',
+                        '${race!.distance} ${race!.distanceUnit}',
+                        Icons.straighten_rounded,
+                        Color(0xFFFFECE8), // Lighter background
+                        AppColors.primaryColor, // New icon color
+                      ),
+                      const SizedBox(height: 16),
+                      _buildDetailCard(
+                        'Teams',
+                        race!.teams.join(', '),
+                        Icons.group_rounded,
+                        Color(0xFFFFECE8), // Lighter background
+                        AppColors.primaryColor, // New icon color
+                      ),
+                      // Status section removed
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailCard(String label, String value, IconData icon, Color bgColor, Color iconColor, {bool isMultiLine = false}) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: 60,
+            height: 60,
+            margin: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: bgColor,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              icon,
+              color: iconColor,
+              size: 24,
+            ),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(right: 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Race Details',
-                    style: AppTypography.titleSemibold,
+                    label,
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 14,
+                    ),
                   ),
-                  const SizedBox(height: 16),
-                  _buildDetailRow('Date', race!.race_date.toString().split(' ')[0]),
-                  _buildDetailRow('Location', race!.location),
-                  _buildDetailRow('Distance', '${race!.distance} ${race!.distanceUnit}'),
-                  _buildDetailRow('Teams', race!.teams.join(', ')),
-                  _buildDetailRow('Status', _getStatusText(race!.flowState)),
+                  const SizedBox(height: 4),
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF333333),
+                    ),
+                    maxLines: isMultiLine ? 2 : 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ],
               ),
             ),
@@ -1145,16 +1494,60 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          Text(
-            '$label: ',
-            style: AppTypography.bodySemibold,
+  Widget _buildModernDetailRow(String label, String value, IconData icon, {bool isMultiLine = false}) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
-          Text(value),
+        ],
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        crossAxisAlignment: isMultiLine ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: AppColors.primaryColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              icon,
+              color: AppColors.primaryColor,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: AppTypography.bodySmall.copyWith(
+                    color: Colors.grey[600],
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: AppTypography.bodyMedium.copyWith(
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.darkColor,
+                  ),
+                  maxLines: isMultiLine ? 2 : 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );

@@ -325,7 +325,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   void _undoLastConflict() {
     final lastConflict = _records.lastWhere(
       (r) => r.hasConflict() && !r.isResolved(),
-      orElse: () => throw Exception("No undoable conflict found"),
+      orElse: () => throw Exception('No undoable conflict found'),
     );
     
     if (lastConflict.conflict?.type == RecordType.extraRunner) {

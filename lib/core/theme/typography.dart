@@ -36,6 +36,18 @@ class AppTypography {
     height: 1.4, // 28px line height
   );
 
+  static const TextStyle titleLarge = TextStyle(
+    fontSize: 24,
+    fontWeight: FontWeight.w600,
+    height: 1.3, // 31.2px line height
+  );
+
+  static const TextStyle titleMedium = TextStyle(
+    fontSize: 18,
+    fontWeight: FontWeight.w600,
+    height: 1.3, // 23.4px line height
+  );
+
   // Header styles
   static const TextStyle headerRegular = TextStyle(
     fontSize: 18,
@@ -62,6 +74,18 @@ class AppTypography {
     height: 1.5, // 24px line height
   );
 
+  static const TextStyle bodyMedium = TextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.w400,
+    height: 1.5, // 24px line height
+  );
+
+  static const TextStyle bodySmall = TextStyle(
+    fontSize: 13,
+    fontWeight: FontWeight.w400,
+    height: 1.38, // 18px line height
+  );
+
   // Small body styles
   static const TextStyle smallBodyRegular = TextStyle(
     fontSize: 14,
@@ -73,5 +97,12 @@ class AppTypography {
     fontSize: 14,
     fontWeight: FontWeight.w600,
     height: 1.43, // 20px line height
+  );
+
+  // Button text
+  static const TextStyle buttonText = TextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.w600,
+    height: 1.4, // 22.4px line height
   );
 }

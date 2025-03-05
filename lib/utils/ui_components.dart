@@ -115,7 +115,7 @@ class EnhancedFlowIndicator extends StatelessWidget {
   final int currentStep;
   final VoidCallback? onBack;
 
-  const EnhancedFlowIndicator({
+  const EnhancedFlowIndicator({super.key, 
     required this.totalSteps,
     required this.currentStep,
     this.onBack,

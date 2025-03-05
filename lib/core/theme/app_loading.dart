@@ -44,12 +44,12 @@ class AppLoading extends StatelessWidget {
   
   /// Creates a loading indicator
   const AppLoading({
-    Key? key,
+    super.key,
     this.type = LoadingType.fadingCircle,
     this.color,
     this.size = 50.0,
     this.message,
-  }) : super(key: key);
+  });
   
   @override
   Widget build(BuildContext context) {
@@ -149,14 +149,14 @@ class AppLoadingOverlay extends StatelessWidget {
   
   /// Creates a loading overlay
   const AppLoadingOverlay({
-    Key? key,
+    super.key,
     required this.isLoading,
     required this.child,
     this.type = LoadingType.fadingCircle,
     this.color,
     this.size = 50.0,
     this.backgroundColor,
-  }) : super(key: key);
+  });
   
   @override
   Widget build(BuildContext context) {

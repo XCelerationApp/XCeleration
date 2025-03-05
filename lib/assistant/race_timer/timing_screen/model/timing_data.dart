@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:uuid/uuid.dart';
 import '../../../../utils/enums.dart';
 
-import '../../../../utils/time_formatter.dart';
 import 'runner_record.dart';
 
 class TimingData with ChangeNotifier {
