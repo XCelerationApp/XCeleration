@@ -76,11 +76,13 @@ flutter_native_splash:
   android_12:
     image: assets/icon/icon.png
     icon_background_color: "#FF5722"
-    
-  # Splash screen configuration
+  
+  # Splash screen configuration with better styling
+  android_gravity: center
+  ios_content_mode: center
   fullscreen: true
-  image_dark: assets/icon/icon.png
-  color_dark: "#FF5722"
+  
+  # Keep splash screen longer to ensure smooth transition
   android: true
   ios: true
   web: false

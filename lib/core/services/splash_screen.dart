@@ -19,8 +19,6 @@ class SplashScreenState extends State<SplashScreen> with SingleTickerProviderSta
   @override
   void initState() {
     super.initState();
-    // Remove the native splash screen
-    FlutterNativeSplash.remove();
     
     // Set up animations
     _controller = AnimationController(
@@ -41,13 +39,19 @@ class SplashScreenState extends State<SplashScreen> with SingleTickerProviderSta
         curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
       ),
     );
-    
-    // Start animation
-    _controller.forward();
-    
-    // Navigate after a delay
-    Future.delayed(const Duration(milliseconds: 2500), () {
-      _navigateToNextScreen();
+
+    // Wait until first frame is drawn, then remove the native splash screen
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Remove the native splash screen only after the first frame is rendered
+      FlutterNativeSplash.remove();
+      
+      // Start animation
+      _controller.forward();
+      
+      // Navigate after a delay
+      Future.delayed(const Duration(milliseconds: 2500), () {
+        _navigateToNextScreen();
+      });
     });
   }
 

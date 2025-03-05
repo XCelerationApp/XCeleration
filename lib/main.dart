@@ -12,13 +12,18 @@ import 'core/services/splash_screen.dart';
 Process? _flaskProcess;
 
 void main() async {
+  // This is important to ensure the native splash screen works correctly
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  
+  // Preserve the native splash screen until the app is ready
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+  
   // Lock the orientation to portrait mode
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
+  
   runApp(
     MultiProvider(
       providers: [

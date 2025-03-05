@@ -160,7 +160,7 @@ class EnhancedFlowIndicator extends StatelessWidget {
                         right: index < totalSteps - 1 ? 4 : 0,
                       ),
                       decoration: BoxDecoration(
-                        color: isCompleted || isCurrentStep ? AppColors.darkColor : AppColors.lightColor,
+                        color: isCompleted || isCurrentStep ? AppColors.mediumColor : AppColors.lightColor,
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
