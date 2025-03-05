@@ -218,7 +218,7 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
               showHeader: false, 
               onBack: null, 
               onContentChanged: () {
-                otherDevices[DeviceName.coach]!['data'] = _getEncodedRunnersData();
+                otherDevices[DeviceName.bibRecorder]!['data'] = _getEncodedRunnersData();
               },
             )
           ]
@@ -295,6 +295,20 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
         canProceed: () async => true,
       ),
     ];
+
+    final isCompleted = await showFlow(
+      context: context,
+      steps: steps,
+      // dismissible: false,
+    );
+
+    if (isCompleted) {
+      await DatabaseHelper.instance.updateRaceFlowState(raceId, 'post_race');
+      setState(() {
+        race = race!.copyWith(flowState: 'post_race');
+      });
+      await _postRaceSetup(raceId);
+    }
   }
 
   Future<void> _postRaceSetup(int raceId) async {
