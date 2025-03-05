@@ -49,6 +49,7 @@ Timing screen:
 - add notes to each time? (maybe)
 - disable start until cleared? or continue?
 - fix error where time pauses slightly when new time is logged
+- fix log count (doesnt account for adjustments)
 
 Conflicts screen:
 - allow editing?
