@@ -211,8 +211,8 @@ Future<bool> showFlow({
                       currentStep.title,
                       style: const TextStyle(
                         fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
                       ),
                     ),
                     const SizedBox(height: 8),
