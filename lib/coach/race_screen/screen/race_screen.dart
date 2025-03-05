@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:xcelerate/utils/runner_time_functions.dart';
 import '../../../utils/database_helper.dart';
-import '../../../models/race.dart';
+import '../../../shared/models/race.dart';
 // import '../models/runner.dart';
 // import '../models/team.dart';
 // import '../device_connection_popup.dart';
@@ -202,7 +202,7 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
   }
 
   Future<void> _preRaceSetup(int raceId) async {
-    final otherDevices = createOtherDeviceList(
+    final otherDevices = DeviceConnectionService.createOtherDeviceList(
       DeviceName.coach,
       DeviceType.advertiserDevice,
       data: '',
@@ -321,7 +321,7 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
       // _hasTimingConflicts = false;
     });
 
-    Map<DeviceName, Map<String, dynamic>> otherDevices = createOtherDeviceList(
+    Map<DeviceName, Map<String, dynamic>> otherDevices = DeviceConnectionService.createOtherDeviceList(
       DeviceName.coach,
       DeviceType.browserDevice,
     );
@@ -401,7 +401,7 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
                         _hasBibConflicts = false;
                         _hasTimingConflicts = false;
                       });
-                      otherDevices = createOtherDeviceList(DeviceName.coach, DeviceType.browserDevice);
+                      otherDevices = DeviceConnectionService.createOtherDeviceList(DeviceName.coach, DeviceType.browserDevice);
                     }
                   ),
                 ) : const SizedBox.shrink(),

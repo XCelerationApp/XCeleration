@@ -3,7 +3,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import '../../race_screen/screen/race_screen.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
-import '../../../models/race.dart';
+import '../../../shared/models/race.dart';
 import '../../../utils/database_helper.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/components/ui_components.dart';

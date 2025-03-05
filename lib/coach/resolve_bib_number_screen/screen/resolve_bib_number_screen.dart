@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../utils/database_helper.dart';
-import '../../../models/runner.dart';
+import '../../../shared/models/runner.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/components/dialog_utils.dart';
 
