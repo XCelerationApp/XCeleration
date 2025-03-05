@@ -21,14 +21,12 @@ UI:
 - make app initializer look better
 - make things reload when database is updated (race creation (done), ...)
 - delete data when user switches out of timer or recorder, but ask for confirmation first
-- add popups that tell the user how the app works when they first install it
 - put error text under text boxes (basically done)
 - make uniform padding (8 pixel standard)
 - fix races card: date on the right 3 letter date, maybe google maps box.
 - better font
 - race buttons:
   - left align text
-split wireless (default) from QR
 - add QR code scanning UI - show the progress of each in the scanner and allow multiple scans
 - make padding 24px (8 rule)
 - fade content when back arrow is clicked
@@ -50,6 +48,7 @@ Timing screen:
 - change the color of the top divider
 - add notes to each time? (maybe)
 - disable start until cleared? or continue?
+- fix error where time pauses slightly when new time is logged
 
 Conflicts screen:
 - allow editing?
