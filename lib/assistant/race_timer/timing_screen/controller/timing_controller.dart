@@ -131,13 +131,18 @@ class TimingController extends ChangeNotifier {
   }
 
   Future<void> handleLogButtonPress() async {
+    // Log the time first
     logTime();
-    await HapticFeedback.vibrate();
-    await HapticFeedback.lightImpact();
+    
+    // Execute haptic feedback and audio playback without blocking the UI
+    HapticFeedback.vibrate();
+    HapticFeedback.lightImpact();
     
     if (isAudioPlayerReady) {
-      await audioPlayer.stop();
-      await audioPlayer.play(AssetSource('sounds/click.mp3'));
+      // Play audio without awaiting
+      audioPlayer.stop().then((_) {
+        audioPlayer.play(AssetSource('sounds/click.mp3'));
+      });
     }
   }
 
