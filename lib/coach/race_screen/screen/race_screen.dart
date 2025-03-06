@@ -10,7 +10,7 @@ import '../../../shared/models/race.dart';
 // import '../../../utils/UI_components.dart';
 import '../../../core/components/ui_components.dart';
 // import '../utils/button_utils.dart';
-// import '../utils/encode_utils.dart';
+import '../../../utils/encode_utils.dart';
 import '../../../core/components/flow_components.dart';
 import '../../../utils/sheet_utils.dart';
 import '../../../utils/enums.dart';
@@ -62,12 +62,7 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
   Map<String, dynamic>? _timingData;
   bool _hasBibConflicts = false;
   bool _hasTimingConflicts = false;
-
-  final ValueNotifier<ConnectionStatus> _connectionStatusNotifier = ValueNotifier<ConnectionStatus>(ConnectionStatus.searching);
-  final ValueNotifier<ConnectionStatus> _qrConnectionStatusNotifier = ValueNotifier<ConnectionStatus>(ConnectionStatus.searching);
-  final ValueNotifier<ConnectionStatus> _bibRecorderStatusNotifier = ValueNotifier<ConnectionStatus>(ConnectionStatus.searching);
-  final ValueNotifier<ConnectionStatus> _raceTimerStatusNotifier = ValueNotifier<ConnectionStatus>(ConnectionStatus.searching);
-
+  
   @override
   void initState() {
     super.initState();
@@ -344,6 +339,30 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
                     DeviceName.coach,
                     DeviceType.browserDevice,
                     otherDevices,
+                    // callback: () async {
+                    //   final encodedBibRecords = otherDevices[DeviceName.bibRecorder]?['data'] as String?;
+                    //   final encodedFinishTimes = otherDevices[DeviceName.raceTimer]?['data'] as String?;
+
+                    //   if (encodedBibRecords == null || encodedFinishTimes == null) {
+                    //     return;
+                    //   }
+                      
+                    //   var runnerRecords = await processEncodedBibRecordsData(encodedBibRecords, context, raceId);
+                    //   final timingData = await processEncodedTimingData(encodedFinishTimes, context);
+                      
+                    //   if (runnerRecords.isNotEmpty && timingData != null) {
+                    //     timingData['records'] = await syncBibData(runnerRecords.length, timingData['records'], timingData['endTime'], context);
+                    //     setState(() {
+                    //       _runnerRecords = runnerRecords;
+                    //       _timingData = timingData;
+                    //       _resultsLoaded = true;
+                    //       _hasBibConflicts = _containsBibConflicts(runnerRecords);
+                    //       _hasTimingConflicts = _containsTimingConflicts(timingData);
+                    //     });
+                        
+                    //     await _saveRaceResults();
+                    //   }
+                    // }
                   ),
                 ),
                 const SizedBox(height: 24),
