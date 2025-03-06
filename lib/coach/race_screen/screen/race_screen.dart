@@ -7,15 +7,16 @@ import '../../../shared/models/race.dart';
 // import '../models/team.dart';
 // import '../device_connection_popup.dart';
 // import '../device_connection_service.dart';
-import '../../../utils/UI_components.dart';
+// import '../../../utils/UI_components.dart';
+import '../../../core/components/ui_components.dart';
 // import '../utils/button_utils.dart';
 // import '../utils/encode_utils.dart';
-import '../../../utils/flow_components.dart';
+import '../../../core/components/flow_components.dart';
 import '../../../utils/sheet_utils.dart';
 import '../../../utils/enums.dart';
 import '../../../core/components/device_connection_widget.dart';
 import '../../../core/services/device_connection_service.dart';
-import 'dart:convert';
+// import 'dart:convert';
 import '../../../core/theme/typography.dart';
 import '../../merge_conflicts_screen/screen/merge_conflicts_screen.dart';
 import '../../resolve_bib_number_screen/screen/resolve_bib_number_screen.dart';
@@ -409,7 +410,8 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
             ),
           ),
         ),
-        canProceed: () async => _resultsLoaded && !_hasBibConflicts && !_hasTimingConflicts,
+        canProceed: () async => true,
+        // canProceed: () async => _resultsLoaded && !_hasBibConflicts && !_hasTimingConflicts,
       ),
       FlowStep(
         title: 'Review Results',

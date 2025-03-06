@@ -104,16 +104,17 @@ Widget createSheetHeader(String? title, {
 
 Future<dynamic> sheet({required BuildContext context, required Widget body, String? title, double titleSize = 24, Widget? action_buttons, bool showHeader = true, bool takeUpScreen = false}) async {
   return await showModalBottomSheet(
-    backgroundColor: AppColors.backgroundColor,
+    backgroundColor: Colors.transparent,
     context: context,
     isScrollControlled: true,
     enableDrag: true,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(
-        top: Radius.circular(16),
+    builder: (context) => Container(
+      decoration: BoxDecoration(
+        color: AppColors.backgroundColor,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(16),
+        ),
       ),
-    ),
-    builder: (context) => ConstrainedBox(
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.92,
         minHeight: takeUpScreen ? MediaQuery.of(context).size.height * 0.92 : 0,

@@ -124,8 +124,8 @@ class EnhancedFlowIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 32,
-      margin: const EdgeInsets.only(top: 8),
+      height: 16,
+      // margin: const EdgeInsets.only(top: 8),
       child: Stack(
         fit: StackFit.expand,
         children: [
@@ -203,7 +203,7 @@ Future<bool> showFlow({
                   onBack: controller.canGoBack ? controller.goBack : null,
                 ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(0, 16, 0, 16),
+                padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [

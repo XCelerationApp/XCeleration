@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../model/bib_records_provider.dart';
 import '../../../../../core/theme/app_colors.dart';
-import '../../../../../utils/button_utils.dart';
+import '../../../../../core/components/button_utils.dart';
 
 class BottomActionButtonsWidget extends StatelessWidget {
   final VoidCallback onShareBibNumbers;
