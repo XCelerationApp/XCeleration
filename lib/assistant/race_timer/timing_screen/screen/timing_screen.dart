@@ -48,14 +48,11 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     // Set the context in the controller for dialog management
     _controller.setContext(context);
     
-    // Wrap the entire screen with a ChangeNotifierProvider for TimingData
-    return ChangeNotifierProvider(
-      create: (context) => TimingData(),
+    // Use the existing TimingData in the controller
+    return ChangeNotifierProvider.value(
+      value: _controller.timingData,
       child: Consumer<TimingData>(
         builder: (context, timingData, child) {
-          // Update the controller with the latest timing data
-          _controller.timingData = timingData;
-
           return TutorialRoot(
             tutorialManager: tutorialManager,
             child: Scaffold(
@@ -88,7 +85,6 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     return RaceInfoHeaderWidget(
       startTime: _controller.timingData.startTime,
       endTime: _controller.timingData.endTime,
-      records: _controller.records,
     );
   }
 
