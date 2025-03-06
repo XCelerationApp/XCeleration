@@ -194,6 +194,12 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
         });
         await _preRaceSetup(raceId);
       }
+      else {
+        debugPrint('No runners loaded');
+      }
+    }
+    else {
+      debugPrint('Setup incomplete');
     }
   }
 
