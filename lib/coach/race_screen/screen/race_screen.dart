@@ -240,60 +240,9 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
         canProceed: () async => true,
       ),
       FlowStep(
-        title: 'Setup Complete',
-        description: 'You\'re ready to start timing the race!',
-        content: FlowStepContent(
-          title: 'Setup Complete',
-          description: 'You\'re ready to start timing the race!',
-          currentStep: 1,
-          totalSteps: 2,
-          content: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              children: [
-                const Spacer(),
-                FlowActionButton(
-                  label: 'Start Race',
-                  onPressed: () {
-                    // Handle race start
-                  },
-                ),
-              ],
-            ),
-          ),
-        ),
-        canProceed: () async => true,
-      ),
-      FlowStep(
-        title: 'Start Race',
-        description: 'The race is ready to begin.',
-        content: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.sports_score, size: 80, color: AppColors.primaryColor),
-              const SizedBox(height: 24),
-              Text(
-                'Ready to Start!',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.darkColor,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Click Next once the race is finished to begin the post-race flow.',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: AppColors.darkColor.withAlpha((0.7 * 255).round()),
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
+        title: 'Ready to Start!',
+        description: 'The race is ready to begin. Click Next once the race is finished to begin the post-race flow.',
+        content: SizedBox.shrink(),
         canProceed: () async => true,
       ),
     ];
