@@ -314,7 +314,19 @@ class _QRConnectionState extends State<QRConnectionWidget> {
     _audioPlayer = AudioPlayer();
   }
 
-  void _showQR(BuildContext context, DeviceName device) {
+  Future<void> _showQR(BuildContext context, DeviceName device) async {
+    // Get the data and handle the case where it might be a Future
+    dynamic rawData = widget.otherDevices[device]!['data'];
+    String qrData;
+    
+    if (rawData is Future<String>) {
+      // If it's a Future<String>, await it
+      qrData = await rawData;
+    } else {
+      // Otherwise, use it directly
+      qrData = rawData.toString();
+    }
+    
     sheet(
       context: context,
       title: 'QR Code',
@@ -322,7 +334,7 @@ class _QRConnectionState extends State<QRConnectionWidget> {
         mainAxisSize: MainAxisSize.min,
         children: [
           QrImageView(
-            data: widget.otherDevices[device]!['data'],
+            data: qrData,
             version: QrVersions.auto,
             size: 250.0,
           ),
@@ -376,9 +388,9 @@ class _QRConnectionState extends State<QRConnectionWidget> {
     }
   }
 
-  void _handleTap() {
+  Future<void> _handleTap() async {
     if (widget.deviceType == DeviceType.advertiserDevice) {
-      _showQR(context, widget.otherDevices.keys.elementAt(0));
+      await _showQR(context, widget.otherDevices.keys.elementAt(0));
     } else {
       _scanQRCodes();
     }
@@ -387,7 +399,9 @@ class _QRConnectionState extends State<QRConnectionWidget> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: _handleTap,
+      onTap: () async {
+        await _handleTap();
+      },
       child: QRConnectionButton(
         deviceName: widget.deviceName,
         deviceType: widget.deviceType,
