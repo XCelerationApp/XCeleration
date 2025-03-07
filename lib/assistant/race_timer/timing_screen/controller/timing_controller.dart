@@ -310,13 +310,14 @@ class TimingController extends ChangeNotifier {
     final runnersBeforeConflict = records.sublist(0, lastConflictIndex).where((r) => r.type == RecordType.runnerTime).toList();
     final offBy = lastConflict.conflict?.data?['offBy'];
 
-    records = runner_functions.updateTextColor(Colors.transparent, records, confirmed: false, endIndex: lastConflictIndex);
+    records = runner_functions.updateTextColor(null, records, confirmed: false, endIndex: lastConflictIndex, clearConflictColor: true);
     for (int i = 0; i < offBy; i++) {
       final record = runnersBeforeConflict[runnersBeforeConflict.length - 1 - i];
       record.previousPlace = record.place;
+      print('Record: $record');
     }
     
-    records.remove(lastConflict);
+    records.removeWhere((record) => record.id == lastConflict.id);
     return records;
   }
 
@@ -328,13 +329,25 @@ class TimingController extends ChangeNotifier {
     final runnersBeforeConflict = records.sublist(0, lastConflictIndex).where((r) => r.type == RecordType.runnerTime).toList();
     final offBy = lastConflict.conflict?.data?['offBy'];
 
-    records = runner_functions.updateTextColor(Colors.transparent, records, confirmed: false, endIndex: lastConflictIndex);
+    records = runner_functions.updateTextColor(null, records, confirmed: false, endIndex: lastConflictIndex, clearConflictColor: true);
+    
+    // Store the IDs of records to remove
+    final recordIdsToRemove = <String>[];
+    
     for (int i = 0; i < offBy; i++) {
       final record = runnersBeforeConflict[runnersBeforeConflict.length - 1 - i];
-      records.remove(record);
+      recordIdsToRemove.add(record.id);
+      print('Adding record ID to remove: ${record.id}');
     }
+
+    recordIdsToRemove.add(lastConflict.id);
+    // Remove records by ID
+    records.removeWhere((record) => recordIdsToRemove.contains(record.id));
     
-    records.remove(lastConflict);
+    if (records.isNotEmpty) {
+      print('Last record after removals: ${records.last.toMap()}');
+    }
+
     return records;
   }
 
@@ -456,7 +469,7 @@ class TimingController extends ChangeNotifier {
 
   void onDismissConfirmationRecord(RunnerRecord record, int index) {
     timingData.removeRecord(record.id);
-    timingData.records = runner_functions.updateTextColor(Colors.transparent, records, endIndex: index);
+    timingData.records = runner_functions.updateTextColor(null, records, endIndex: index);
     scrollToBottom(scrollController);
     notifyListeners();
   }

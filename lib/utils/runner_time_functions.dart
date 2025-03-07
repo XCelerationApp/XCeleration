@@ -8,7 +8,7 @@ import 'package:uuid/uuid.dart';
 
 Uuid _uuid = Uuid();
 
-List<RunnerRecord> updateTextColor(Color? color, List<RunnerRecord> records, {bool confirmed = false, ConflictDetails? conflict, endIndex}) {
+List<RunnerRecord> updateTextColor(Color? color, List<RunnerRecord> records, {bool confirmed = false, ConflictDetails? conflict, int? endIndex, bool clearConflictColor = false}) {
   if (endIndex != null && endIndex < records.length && records.isNotEmpty) {
     records = records.sublist(0, endIndex);
   }
@@ -16,14 +16,32 @@ List<RunnerRecord> updateTextColor(Color? color, List<RunnerRecord> records, {bo
     if (records[i].type != RecordType.runnerTime) {
       break;
     }
+    
+    // Directly set the textColor field for immediate visual update
     records[i].textColor = color;
+    
+    // Determine if we need to clear the text color (when null is passed)
+    bool shouldClearTextColor = color == null;
+
+    bool shouldClearConflict = clearConflictColor && conflict == null;
+    
     if (confirmed == true) {
-      // records[i].isConfirmed = true;
-      // records[i].conflict = conflict;
-      records[i] = records[i].copyWith(conflict: conflict, isConfirmed: true, textColor: color);
+      records[i] = records[i].copyWith(
+        conflict: conflict,
+        isConfirmed: true,
+        textColor: color,
+        clearTextColor: shouldClearTextColor,
+        clearConflict: shouldClearConflict,
+      );
     }
     else {
-      records[i] = records[i].copyWith(conflict: null, isConfirmed: false, textColor: color);
+      records[i] = records[i].copyWith(
+        conflict: null,
+        isConfirmed: false,
+        textColor: color,
+        clearTextColor: shouldClearTextColor,
+        clearConflict: shouldClearConflict,
+      );
     }
   }
   return records;

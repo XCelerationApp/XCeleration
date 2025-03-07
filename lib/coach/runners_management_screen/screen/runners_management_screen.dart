@@ -239,7 +239,7 @@ class SearchBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      padding: EdgeInsets.zero,
       child: Row(
         children: [
           Expanded(
@@ -258,7 +258,7 @@ class SearchBar extends StatelessWidget {
               child: TextField(
                 controller: controller,
                 decoration: InputDecoration(
-                  hintText: 'Search runners',
+                  hintText: 'Search',
                   hintStyle: TextStyle(color: AppColors.mediumColor.withOpacity(0.7)),
                   prefixIcon: Icon(Icons.search, color: AppColors.primaryColor.withOpacity(0.8)),
                   fillColor: Colors.white,
@@ -592,7 +592,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
             onPressed: () => _showRunnerSheet(context: context, runner: null),
           ),
           _buildActionButton(
-            'Load Spreadsheet',
+            'Load Runners',
             icon: Icons.table_chart,
             onPressed: _handleSpreadsheetLoad,
           ),
@@ -605,7 +605,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
     return ElevatedButton(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
-        fixedSize: const Size(160, 42),
+        fixedSize: const Size(160, 48),
         padding: const EdgeInsets.symmetric(horizontal: 12),
         backgroundColor: AppColors.primaryColor,
         foregroundColor: Colors.white,

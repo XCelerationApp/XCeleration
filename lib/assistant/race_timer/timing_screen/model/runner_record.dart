@@ -48,19 +48,19 @@ class RunnerRecord {
     int? place,
     int? previousPlace,
     Color? textColor,
+    bool clearTextColor = false,
+    bool clearConflict = false,
   }) {
-    // print('text color 2: $textColor');
-    // print(textColor == Colors.transparent ? null : (textColor ?? this.textColor));
     return RunnerRecord(
       id: id ?? this.id,
       elapsedTime: elapsedTime ?? this.elapsedTime,
       runnerNumber: runnerNumber ?? this.runnerNumber,
       isConfirmed: isConfirmed ?? this.isConfirmed,
-      conflict: conflict ?? this.conflict,
+      conflict: clearConflict ? null : (conflict ?? this.conflict),
       type: type ?? this.type,
       place: place ?? this.place,
       previousPlace: previousPlace ?? this.previousPlace,
-      textColor: textColor == Colors.transparent ? null : (textColor ?? this.textColor), 
+      textColor: clearTextColor ? null : (textColor ?? this.textColor), 
     );
   }
 
