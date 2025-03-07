@@ -288,12 +288,14 @@ class QRConnectionWidget extends StatefulWidget {
   final DeviceName deviceName;
   final DeviceType deviceType;
   final Map<DeviceName, Map<String, dynamic>> otherDevices;
+  final Function? callback;
   
   const QRConnectionWidget({
     super.key,
     required this.deviceName,
     required this.deviceType,
     required this.otherDevices,
+    this.callback,
   });
 
   @override
@@ -359,6 +361,11 @@ class _QRConnectionState extends State<QRConnectionWidget> {
           widget.otherDevices[scannedDeviceName]!['status'] = ConnectionStatus.finished;
           widget.otherDevices[scannedDeviceName]!['data'] = parts.sublist(1).join(':');
         });
+        
+        // Call the callback function if provided
+        if (widget.callback != null && widget.otherDevices.values.every((device) => device['status'] == ConnectionStatus.finished)) {
+          widget.callback!();
+        }
       }
     } on MissingPluginException {
       if (!mounted) return;
@@ -400,12 +407,14 @@ class WirelessConnectionWidget extends StatefulWidget {
   final DeviceName deviceName;
   final DeviceType deviceType;
   final Map<DeviceName, Map<String, dynamic>> otherDevices;
+  final Function? callback;
   
   const WirelessConnectionWidget({
     super.key,
     required this.deviceName,
     required this.deviceType,
     required this.otherDevices,
+    this.callback,
   });
   
   @override
@@ -549,6 +558,16 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
           setState(() {
             widget.otherDevices[deviceName]!['status'] = ConnectionStatus.finished;
           });
+          
+          // Check if all devices have finished loading data
+          bool allDevicesFinished = widget.otherDevices.entries.every(
+            (entry) => entry.value['status'] == ConnectionStatus.finished
+          );
+          
+          // Call the callback if all devices are finished and callback is provided
+          if (allDevicesFinished && widget.callback != null) {
+            widget.callback!();
+          }
         } catch (e) {
           debugPrint('Error receiving data: $e');
           rethrow;
@@ -565,6 +584,17 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
             setState(() {
               widget.otherDevices[deviceName]!['status'] = ConnectionStatus.finished;
             });
+            
+            // Check if all devices have finished loading data
+            bool allDevicesFinished = widget.otherDevices.entries.every(
+              (entry) => entry.value['status'] == ConnectionStatus.finished
+            );
+            
+            // Call the callback if all devices are finished and callback is provided
+            if (allDevicesFinished && widget.callback != null) {
+              widget.callback!();
+            }
+            
             _deviceConnectionService.disconnectDevice(device);
           } catch (e) {
             debugPrint('Error sending data: $e');

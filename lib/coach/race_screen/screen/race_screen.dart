@@ -345,30 +345,30 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
                     DeviceName.coach,
                     DeviceType.browserDevice,
                     otherDevices,
-                    // callback: () async {
-                    //   final encodedBibRecords = otherDevices[DeviceName.bibRecorder]?['data'] as String?;
-                    //   final encodedFinishTimes = otherDevices[DeviceName.raceTimer]?['data'] as String?;
+                    callback: () async {
+                      final encodedBibRecords = otherDevices[DeviceName.bibRecorder]?['data'] as String?;
+                      final encodedFinishTimes = otherDevices[DeviceName.raceTimer]?['data'] as String?;
 
-                    //   if (encodedBibRecords == null || encodedFinishTimes == null) {
-                    //     return;
-                    //   }
+                      if (encodedBibRecords == null || encodedFinishTimes == null) {
+                        return;
+                      }
                       
-                    //   var runnerRecords = await processEncodedBibRecordsData(encodedBibRecords, context, raceId);
-                    //   final timingData = await processEncodedTimingData(encodedFinishTimes, context);
+                      var runnerRecords = await processEncodedBibRecordsData(encodedBibRecords, context, raceId);
+                      final timingData = await processEncodedTimingData(encodedFinishTimes, context);
                       
-                    //   if (runnerRecords.isNotEmpty && timingData != null) {
-                    //     timingData['records'] = await syncBibData(runnerRecords.length, timingData['records'], timingData['endTime'], context);
-                    //     setState(() {
-                    //       _runnerRecords = runnerRecords;
-                    //       _timingData = timingData;
-                    //       _resultsLoaded = true;
-                    //       _hasBibConflicts = _containsBibConflicts(runnerRecords);
-                    //       _hasTimingConflicts = _containsTimingConflicts(timingData);
-                    //     });
+                      if (runnerRecords.isNotEmpty && timingData != null) {
+                        timingData['records'] = await syncBibData(runnerRecords.length, timingData['records'], timingData['endTime'], context);
+                        setState(() {
+                          _runnerRecords = runnerRecords;
+                          _timingData = timingData;
+                          _resultsLoaded = true;
+                          _hasBibConflicts = _containsBibConflicts(runnerRecords);
+                          _hasTimingConflicts = _containsTimingConflicts(timingData);
+                        });
                         
-                    //     await _saveRaceResults();
-                    //   }
-                    // }
+                        await _saveRaceResults();
+                      }
+                    }
                   ),
                 ),
                 const SizedBox(height: 24),

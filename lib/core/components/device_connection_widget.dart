@@ -3,7 +3,12 @@ import 'connection_components.dart';
 import '../../utils/enums.dart';
 import 'dart:async';
 
-Widget deviceConnectionWidget(DeviceName deviceName, DeviceType deviceType, Map<DeviceName, Map<String, dynamic>> otherDevices) {
+Widget deviceConnectionWidget(
+  DeviceName deviceName, 
+  DeviceType deviceType, 
+  Map<DeviceName, Map<String, dynamic>> otherDevices, 
+  {Function? callback}
+) {
   return Column(
     mainAxisSize: MainAxisSize.min,
     children: [
@@ -11,6 +16,7 @@ Widget deviceConnectionWidget(DeviceName deviceName, DeviceType deviceType, Map<
           deviceName: deviceName,
           deviceType: deviceType,
           otherDevices: otherDevices,
+          callback: callback,
         ),
       
       // Separator
@@ -30,6 +36,7 @@ Widget deviceConnectionWidget(DeviceName deviceName, DeviceType deviceType, Map<
           deviceName: deviceName,
           deviceType: deviceType,
           otherDevices: otherDevices,
+          callback: callback,
         ),
     ],
   );
