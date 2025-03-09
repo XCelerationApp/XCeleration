@@ -288,12 +288,14 @@ class QRConnectionWidget extends StatefulWidget {
   final DeviceName deviceName;
   final DeviceType deviceType;
   final Map<DeviceName, Map<String, dynamic>> otherDevices;
+  final Function? callback;
   
   const QRConnectionWidget({
     super.key,
     required this.deviceName,
     required this.deviceType,
     required this.otherDevices,
+    this.callback,
   });
 
   @override
@@ -312,7 +314,19 @@ class _QRConnectionState extends State<QRConnectionWidget> {
     _audioPlayer = AudioPlayer();
   }
 
-  void _showQR(BuildContext context, DeviceName device) {
+  Future<void> _showQR(BuildContext context, DeviceName device) async {
+    // Get the data and handle the case where it might be a Future
+    dynamic rawData = widget.otherDevices[device]!['data'];
+    String qrData;
+    
+    if (rawData is Future<String>) {
+      // If it's a Future<String>, await it
+      qrData = await rawData;
+    } else {
+      // Otherwise, use it directly
+      qrData = rawData.toString();
+    }
+    
     sheet(
       context: context,
       title: 'QR Code',
@@ -320,7 +334,7 @@ class _QRConnectionState extends State<QRConnectionWidget> {
         mainAxisSize: MainAxisSize.min,
         children: [
           QrImageView(
-            data: widget.otherDevices[device]!['data'],
+            data: qrData,
             version: QrVersions.auto,
             size: 250.0,
           ),
@@ -359,6 +373,11 @@ class _QRConnectionState extends State<QRConnectionWidget> {
           widget.otherDevices[scannedDeviceName]!['status'] = ConnectionStatus.finished;
           widget.otherDevices[scannedDeviceName]!['data'] = parts.sublist(1).join(':');
         });
+        
+        // Call the callback function if provided
+        if (widget.callback != null && widget.otherDevices.values.every((device) => device['status'] == ConnectionStatus.finished)) {
+          widget.callback!();
+        }
       }
     } on MissingPluginException {
       if (!mounted) return;
@@ -369,9 +388,9 @@ class _QRConnectionState extends State<QRConnectionWidget> {
     }
   }
 
-  void _handleTap() {
+  Future<void> _handleTap() async {
     if (widget.deviceType == DeviceType.advertiserDevice) {
-      _showQR(context, widget.otherDevices.keys.elementAt(0));
+      await _showQR(context, widget.otherDevices.keys.elementAt(0));
     } else {
       _scanQRCodes();
     }
@@ -380,7 +399,9 @@ class _QRConnectionState extends State<QRConnectionWidget> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: _handleTap,
+      onTap: () async {
+        await _handleTap();
+      },
       child: QRConnectionButton(
         deviceName: widget.deviceName,
         deviceType: widget.deviceType,
@@ -400,12 +421,14 @@ class WirelessConnectionWidget extends StatefulWidget {
   final DeviceName deviceName;
   final DeviceType deviceType;
   final Map<DeviceName, Map<String, dynamic>> otherDevices;
+  final Function? callback;
   
   const WirelessConnectionWidget({
     super.key,
     required this.deviceName,
     required this.deviceType,
     required this.otherDevices,
+    this.callback,
   });
   
   @override
@@ -549,6 +572,16 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
           setState(() {
             widget.otherDevices[deviceName]!['status'] = ConnectionStatus.finished;
           });
+          
+          // Check if all devices have finished loading data
+          bool allDevicesFinished = widget.otherDevices.entries.every(
+            (entry) => entry.value['status'] == ConnectionStatus.finished
+          );
+          
+          // Call the callback if all devices are finished and callback is provided
+          if (allDevicesFinished && widget.callback != null) {
+            widget.callback!();
+          }
         } catch (e) {
           debugPrint('Error receiving data: $e');
           rethrow;
@@ -565,6 +598,17 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
             setState(() {
               widget.otherDevices[deviceName]!['status'] = ConnectionStatus.finished;
             });
+            
+            // Check if all devices have finished loading data
+            bool allDevicesFinished = widget.otherDevices.entries.every(
+              (entry) => entry.value['status'] == ConnectionStatus.finished
+            );
+            
+            // Call the callback if all devices are finished and callback is provided
+            if (allDevicesFinished && widget.callback != null) {
+              widget.callback!();
+            }
+            
             _deviceConnectionService.disconnectDevice(device);
           } catch (e) {
             debugPrint('Error sending data: $e');

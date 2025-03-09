@@ -162,24 +162,25 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
                   onDismissed: (direction) => _controller.onDismissConfirmationRecord(record, index),
                   child: _buildConfirmationRecord(record, index),
                 );
-              } else if (record.type == RecordType.missingRunner || record.type == RecordType.extraRunner) {
-                return Dismissible(
-                  key: ValueKey(record),
-                  background: Container(
-                    color: Colors.red,
-                    alignment: Alignment.centerRight,
-                    padding: const EdgeInsets.only(right: 16.0),
-                    child: const Icon(
-                      Icons.delete,
-                      color: Colors.white,
-                    ),
-                  ),
-                  direction: DismissDirection.endToStart,
-                  confirmDismiss: (direction) => _controller.confirmRecordDismiss(record),
-                  onDismissed: (direction) => _controller.onDismissConflictRecord(record),
-                  child: _buildConflictRecord(record, index),
-                );
               }
+              // } else if (record.type == RecordType.missingRunner || record.type == RecordType.extraRunner) {
+              //   return Dismissible(
+              //     key: ValueKey(record),
+              //     background: Container(
+              //       color: Colors.red,
+              //       alignment: Alignment.centerRight,
+              //       padding: const EdgeInsets.only(right: 16.0),
+              //       child: const Icon(
+              //         Icons.delete,
+              //         color: Colors.white,
+              //       ),
+              //     ),
+              //     direction: DismissDirection.endToStart,
+              //     confirmDismiss: (direction) => _controller.confirmRecordDismiss(record),
+              //     onDismissed: (direction) => _controller.onDismissConflictRecord(record),
+              //     child: _buildConflictRecord(record, index),
+              //   );
+              // }
               return const SizedBox.shrink();
             },
           )
