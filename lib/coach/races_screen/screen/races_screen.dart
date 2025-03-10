@@ -6,7 +6,8 @@ import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import '../../../shared/models/race.dart';
 import '../../../utils/database_helper.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/components/ui_components.dart';
+import '../../flows/model/flow_model.dart';
+import '../../flows/widgets/flow_section_header.dart';
 import '../../../core/components/textfield_utils.dart';
 import '../../../core/components/dialog_utils.dart';
 import '../../../core/theme/typography.dart';
@@ -993,15 +994,15 @@ class RacesScreenState extends State<RacesScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             if (raceInProgress.isNotEmpty) ...[
-                              buildSectionHeader('In Progress'),
+                              FlowSectionHeader(title: 'In Progress'),
                               ...raceInProgress.map((raceInfo) => _buildRaceCard(raceInfo['race'] as Race, raceInfo['state'] as String)),
                             ],
                             if (upcomingRaces.isNotEmpty) ...[
-                              buildSectionHeader('Upcoming'),
+                              FlowSectionHeader(title: 'Upcoming'),
                               ...upcomingRaces.map((raceInfo) => _buildRaceCard(raceInfo['race'] as Race, raceInfo['state'] as String)),
                             ],
                             if (finishedRaces.isNotEmpty) ...[
-                              buildSectionHeader('Finished'),
+                              FlowSectionHeader(title: 'Finished'),
                               ...finishedRaces.map((raceInfo) => _buildRaceCard(raceInfo['race'] as Race, raceInfo['state'] as String)),
                             ],
                           ],
