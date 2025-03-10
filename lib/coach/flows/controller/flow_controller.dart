@@ -31,18 +31,4 @@ class FlowController {
       steps: steps,
     );
   }
-  
-  /// Generic method to show any type of flow
-  /// Provides a unified interface for all flow types with customizable options
-  static Future<bool> showGenericFlow(
-    BuildContext context, 
-    List<FlowStep> steps, {
-    bool showProgressIndicator = false,
-  }) async {
-    return await showFlow(
-      context: context,
-      steps: steps,
-      showProgressIndicator: showProgressIndicator,
-    );
-  }
 }
