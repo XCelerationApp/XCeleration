@@ -2,11 +2,9 @@ import 'package:flutter/material.dart';
 import '../../../utils/database_helper.dart';
 import '../../../shared/models/race.dart';
 import '../../../utils/runner_time_functions.dart';
-import '../../../utils/encode_utils.dart';
 import '../../../utils/enums.dart';
 import '../../../core/services/device_connection_service.dart';
-import '../../flows/model/flow_model.dart';
-import '../../../coach/flows/controller/flow_controller.dart' as flows;
+import '../../../coach/flows/controller/flow_controller.dart';
 
 /// Controller class for the RaceScreen that handles all business logic
 class RaceScreenController with ChangeNotifier {
@@ -14,11 +12,13 @@ class RaceScreenController with ChangeNotifier {
   Race? race;
   int raceId;
   bool isRaceSetup = false;
-  bool resultsLoaded = false;
-  List<Map<String, dynamic>>? runnerRecords;
-  Map<String, dynamic>? timingData;
-  bool hasBibConflicts = false;
-  bool hasTimingConflicts = false;
+  // bool resultsLoaded = false;
+  // List<Map<String, dynamic>>? runnerRecords;
+  // Map<String, dynamic>? timingData;
+  // bool hasBibConflicts = false;
+  // bool hasTimingConflicts = false;
+
+  late MasterFlowController flowController;
   
   // Flow state
   String get flowState => race?.flowState ?? 'setup';
@@ -28,6 +28,7 @@ class RaceScreenController with ChangeNotifier {
   
   // Constructor
   RaceScreenController({required this.raceId}) {
+    flowController = MasterFlowController(raceId: raceId);
     loadRace();
   }
   
@@ -39,18 +40,6 @@ class RaceScreenController with ChangeNotifier {
     
     isRaceSetup = await DatabaseHelper.instance.checkIfRaceRunnersAreLoaded(raceId);
     
-    // Load saved results if they exist
-    final savedResults = await DatabaseHelper.instance.getRaceResultsData(raceId);
-    if (savedResults != null) {
-      runnerRecords = savedResults['runnerRecords'];
-      timingData = savedResults['timingData'];
-      resultsLoaded = true;
-      
-      // Check for conflicts in the loaded data
-      hasBibConflicts = runnerRecords != null && containsBibConflicts(runnerRecords!);
-      hasTimingConflicts = timingData != null && containsTimingConflicts(timingData!);
-      notifyListeners();
-    }
     
     continueRaceFlow();
   }
@@ -63,18 +52,6 @@ class RaceScreenController with ChangeNotifier {
     notifyListeners();
   }
   
-  /// Save race results to the database
-  Future<void> saveRaceResults() async {
-    if (runnerRecords != null && timingData != null) {
-      await DatabaseHelper.instance.saveRaceResults(
-        raceId,
-        {
-          'runnerRecords': runnerRecords,
-          'timingData': timingData,
-        },
-      );
-    }
-  }
   
   /// Update the race flow state
   Future<void> updateRaceFlowState(String newState) async {
@@ -82,68 +59,15 @@ class RaceScreenController with ChangeNotifier {
     race = race?.copyWith(flowState: newState);
     notifyListeners();
   }
-  
-  /// Check if runners are loaded and each team has minimum required runners
-  Future<bool> checkIfRunnersAreLoaded() async {
-    final currentRace = await DatabaseHelper.instance.getRaceById(raceId);
-    final raceRunners = await DatabaseHelper.instance.getRaceRunners(raceId);
-    
-    // Check if we have any runners at all
-    if (raceRunners.isEmpty) {
-      return false;
-    }
 
-    // Check if each team has at least minimum runners for a race
-    final teamRunnerCounts = <String, int>{};
-    for (final runner in raceRunners) {
-      final team = runner['school'] as String;
-      teamRunnerCounts[team] = (teamRunnerCounts[team] ?? 0) + 1;
-    }
-
-    // Verify each team in the race has enough runners (minimum 5)
-    for (final teamName in currentRace!.teams) {
-      final runnerCount = teamRunnerCounts[teamName] ?? 0;
-      if (runnerCount < 5) {
-        return false;
-      }
-    }
-
-    return true;
-  }
   
-  /// Get encoded runners data for sharing
-  Future<String> getEncodedRunnersData() async {
-    final runners = await getRunnersData();
-    return runners.map((runner) => [
-      runner['bib_number'],
-      runner['name'],
-      runner['school'],
-      runner['grade']
-    ].join(',')).join(' ');
-  }
-  
-  /// Get the list of runners for the race
-  Future<List<dynamic>> getRunnersData() async {
-    return await DatabaseHelper.instance.getRaceRunners(raceId);
-  }
-  
-  /// Reset results loading state
-  void resetResultsLoading() {
-    resultsLoaded = false;
-    hasBibConflicts = false;
-    hasTimingConflicts = false;
-    notifyListeners();
-  }
-  
-  /// Check if there are timing conflicts in the data
-  bool containsTimingConflicts(Map<String, dynamic> data) {
-    return getConflictingRecords(data['records'], data['records'].length).isNotEmpty;
-  }
-  
-  /// Check if there are bib conflicts in the runner records
-  bool containsBibConflicts(List<dynamic> records) {
-    return records.any((record) => record['error'] != null);
-  }
+  // /// Reset results loading state
+  // void resetResultsLoading() {
+  //   resultsLoaded = false;
+  //   hasBibConflicts = false;
+  //   hasTimingConflicts = false;
+  //   notifyListeners();
+  // }
   
   /// Create device connections list for communication
   Map<DeviceName, Map<String, dynamic>> createDeviceConnectionList(
@@ -156,50 +80,22 @@ class RaceScreenController with ChangeNotifier {
       data: data,
     );
   }
-  
-  /// Process received data from other devices
-  Future<void> processReceivedData(String? bibRecordsData, String? finishTimesData, BuildContext context) async {
-    if (bibRecordsData == null || finishTimesData == null) {
-      return;
-    }
-    
-    var processedRunnerRecords = await processEncodedBibRecordsData(bibRecordsData, context, raceId);
-    final processedTimingData = await processEncodedTimingData(finishTimesData, context);
-    
-    if (processedRunnerRecords.isNotEmpty && processedTimingData != null) {
-      processedTimingData['records'] = await syncBibData(
-        processedRunnerRecords.length, 
-        processedTimingData['records'], 
-        processedTimingData['endTime'], 
-        context
-      );
-      
-      runnerRecords = processedRunnerRecords;
-      timingData = processedTimingData;
-      resultsLoaded = true;
-      hasBibConflicts = containsBibConflicts(processedRunnerRecords);
-      hasTimingConflicts = containsTimingConflicts(processedTimingData);
-      
-      await saveRaceResults();
-      notifyListeners();
-    }
-  }
 
   /// Setup the race with runners
   /// Delegates to FlowController for flow management
-  Future<bool> setupRace(BuildContext context, List<FlowStep> steps) async {
-    return await flows.FlowController.setupFlow(context, steps);
+  Future<bool> setupRace(BuildContext context) async {
+    return await flowController.setupFlow(context);
   }
 
   /// Pre-race setup flow
   /// Delegates to FlowController for flow management
-  Future<bool> preRaceSetup(BuildContext context, List<FlowStep> steps) async {
-    return await flows.FlowController.preRaceFlow(context, steps);
+  Future<bool> preRaceSetup(BuildContext context) async {
+    return await flowController.preRaceFlow(context);
   }
 
   /// Post-race setup flow
   /// Delegates to FlowController for flow management
-  Future<bool> postRaceSetup(BuildContext context, List<FlowStep> steps) async {
-    return await flows.FlowController.postRaceFlow(context, steps);
+  Future<bool> postRaceSetup(BuildContext context) async {
+    return await flowController.postRaceFlow(context);
   }
 }

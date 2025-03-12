@@ -8,7 +8,6 @@ import '../../../utils/sheet_utils.dart';
 import '../../../core/components/textfield_utils.dart';
 import '../../../utils/database_helper.dart';
 import '../../../utils/file_processing.dart';
-import '../../../shared/models/race.dart';  // Explicit import for Race model
 
 // Models
 class Team {
@@ -359,6 +358,21 @@ class RunnersManagementScreen extends StatefulWidget {
   final VoidCallback? onBack;
   final VoidCallback? onContentChanged;
   final bool? showHeader;
+
+  // Add a static method that can be called from outside
+  static Future<bool> checkMinimumRunnersLoaded(int raceId) async {
+    final runners = await DatabaseHelper.instance.getRaceRunners(raceId);
+    final teamRunners = <String, int>{};
+    
+    // Count runners per team
+    for (final runner in runners) {
+      final team = runner['school'] as String;
+      teamRunners[team] = (teamRunners[team] ?? 0) + 1;
+    }
+    
+    // Check if each team has more than 5 runners
+    return teamRunners.values.every((count) => count >= 5);
+  }
 
   const RunnersManagementScreen({
     super.key,

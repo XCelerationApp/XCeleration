@@ -238,6 +238,16 @@ class DatabaseHelper {
     );
   }
 
+  Future<String> getEncodedRunnersData(int raceId) async {
+    final runners = await getRaceRunners(raceId);
+    return runners.map((runner) => [
+      runner['bib_number'],
+      runner['name'],
+      runner['school'],
+      runner['grade']
+    ].join(',')).join(' ');
+  }
+
   Future<Map<String, dynamic>?> getRaceRunnerByBib(int raceId, String bibNumber) async {
     final db = await instance.database;
     final results = await db.query(
