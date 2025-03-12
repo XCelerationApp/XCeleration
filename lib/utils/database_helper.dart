@@ -4,6 +4,9 @@ import 'dart:convert';
 import '../../../shared/models/race.dart';
 import 'package:flutter/foundation.dart';
 
+import '../coach/race_screen/widgets/runner_record.dart' show RunnerRecord;
+import '../coach/race_screen/model/race_result.dart';
+
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
   static Database? _database;
@@ -31,16 +34,16 @@ class DatabaseHelper {
 
   Future<void> _createDB(Database db, int version) async {
     // Create team runners table
-    await db.execute('''
-      CREATE TABLE team_runners (
-        runner_id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        school TEXT,
-        grade INTEGER,
-        bib_number TEXT NOT NULL UNIQUE,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    ''');
+    // await db.execute('''
+    //   CREATE TABLE team_runners (
+    //     runner_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    //     name TEXT NOT NULL,
+    //     school TEXT,
+    //     grade INTEGER,
+    //     bib_number TEXT NOT NULL UNIQUE,
+    //     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    //   )
+    // ''');
 
     // Create races table
     await db.execute('''
@@ -61,7 +64,7 @@ class DatabaseHelper {
     // Create race runners table with updated structure
     await db.execute('''
       CREATE TABLE race_runners (
-        race_runner_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        runner_id INTEGER PRIMARY KEY AUTOINCREMENT,
         race_id INTEGER NOT NULL,
         bib_number TEXT NOT NULL,
         name TEXT NOT NULL,
@@ -77,7 +80,7 @@ class DatabaseHelper {
       CREATE TABLE race_results (
         result_id INTEGER PRIMARY KEY AUTOINCREMENT,
         race_id INTEGER NOT NULL,
-        race_runner_id INTEGER NOT NULL,
+        runner_id INTEGER NOT NULL,
         place INTEGER,
         finish_time TEXT,
         FOREIGN KEY (race_id) REFERENCES races(race_id)
@@ -219,36 +222,37 @@ class DatabaseHelper {
   }
 
   // Race Runners Methods
-  Future<int> insertRaceRunner(Map<String, dynamic> runner) async {
+  Future<int> insertRaceRunner(RunnerRecord runner) async {
     final db = await instance.database;
     return await db.insert(
       'race_runners',
-      runner,
+      runner.toMap(),
       conflictAlgorithm: ConflictAlgorithm.replace, // Replace if bib number exists in race
     );
   }
 
-  Future<List<Map<String, dynamic>>> getRaceRunners(int raceId) async {
+  Future<List<RunnerRecord>> getRaceRunners(int raceId) async {
     final db = await instance.database;
-    return await db.query(
+    final List<Map<String, dynamic>> maps = await db.query(
       'race_runners',
       where: 'race_id = ?',
       whereArgs: [raceId],
       orderBy: 'bib_number',
     );
+    return maps.map((map) => RunnerRecord.fromMap(map)).toList();
   }
 
   Future<String> getEncodedRunnersData(int raceId) async {
     final runners = await getRaceRunners(raceId);
     return runners.map((runner) => [
-      runner['bib_number'],
-      runner['name'],
-      runner['school'],
-      runner['grade']
+      runner.bib,
+      runner.name,
+      runner.school,
+      runner.grade
     ].join(',')).join(' ');
   }
 
-  Future<Map<String, dynamic>?> getRaceRunnerByBib(int raceId, String bibNumber) async {
+  Future<RunnerRecord?> getRaceRunnerByBib(int raceId, String bibNumber) async {
     final db = await instance.database;
     final results = await db.query(
       'race_runners',
@@ -257,11 +261,11 @@ class DatabaseHelper {
     );
 
     final Map<String, dynamic>? runner = results.isNotEmpty ? results.first : null;
-    return runner;
+    return runner == null ? null : RunnerRecord.fromMap(runner);
   }
 
-  Future<List<Map<String, dynamic>>> getRaceRunnersByBibs(int raceId, List<String> bibNumbers) async {
-    List<Map<String, dynamic>> results = [];
+  Future<List<RunnerRecord>> getRaceRunnersByBibs(int raceId, List<String> bibNumbers) async {
+    List<RunnerRecord> results = [];
     for (int i = 0; i < bibNumbers.length; i++) {
       final runner = await getRaceRunnerByBib(raceId, bibNumbers[i]);
       if (runner == null) {
@@ -273,13 +277,13 @@ class DatabaseHelper {
   }
 
 
-  Future<void> updateRaceRunner(Map<String, dynamic> runner) async {
+  Future<void> updateRaceRunner(RunnerRecord runner) async {
     final db = await instance.database;
     await db.update(
       'race_runners',
-      runner,
-      where: 'race_runner_id = ?',
-      whereArgs: [runner['race_runner_id']],
+      runner.toMap(),
+      where: 'runner_id = ?',
+      whereArgs: [runner.runnerId],
     );
   }
 
@@ -292,7 +296,7 @@ class DatabaseHelper {
     );
   }
 
-  Future<List<Map<String, dynamic>>> searchRaceRunners(int raceId, String query, [String searchParameter = 'all']) async {
+  Future<List<RunnerRecord>> searchRaceRunners(int raceId, String query, [String searchParameter = 'all']) async {
     final db = await instance.database;
     String whereClause;
     List<dynamic> whereArgs = [raceId, '%$query%'];
@@ -308,18 +312,18 @@ class DatabaseHelper {
       where: whereClause,
       whereArgs: whereArgs,
     );
-    return results;
+    return results.map((map) => RunnerRecord.fromMap(map)).toList();
   }
 
 
-  Future<void> insertRaceResult(Map<String, dynamic> result) async {
+  Future<void> insertRaceResult(RunnerRecord result) async {
     // Check if the runner exists in team runners or race runners
-    bool runnerExists = await _runnerExists(result['race_runner_id']);
+    bool runnerExists = result.runnerId == null ? false : await _runnerExists(result.runnerId!);
     final db = await instance.database;
 
     if (runnerExists) {
       // Insert into race_results
-      await db.insert('race_results', result);
+      await db.insert('race_results', result.toMap());
     } else {
       throw Exception('Runner does not exist in either database.');
     }
@@ -329,7 +333,7 @@ class DatabaseHelper {
     final db = await instance.database;
     // Check in race runners
     final raceRunnerCheck = await db.query('race_runners',
-        where: 'race_runner_id = ?', whereArgs: [raceRunnerId]);
+        where: 'runner_id = ?', whereArgs: [raceRunnerId]);
 
     // Check in team runners
     final teamRunnerCheck = await db.query('team_runners',
@@ -338,12 +342,28 @@ class DatabaseHelper {
     return raceRunnerCheck.isNotEmpty || teamRunnerCheck.isNotEmpty;
   }
 
-  Future<void> insertRaceResults(List<Map<String, dynamic>> results) async {
+  // Future<void> insertRaceResults(List<RunnerRecord> results) async {
+  //   final db = await instance.database;
+  //   final batch = db.batch();
+  //   for (var result in results) {
+  //     debugPrint(result.toString());
+  //     batch.insert('race_results', result.toMap());
+  //   }
+  //   await batch.commit();
+  //   return;
+  // }
+
+  Future<void> insertRaceResults(List<RaceResult> results) async {
     final db = await instance.database;
     final batch = db.batch();
     for (var result in results) {
-      debugPrint(result.toString());
-      batch.insert('race_results', result);
+      batch.insert('race_results', {
+        'race_id': result.raceId,
+        'runner_id': result.runnerId,
+        'place': result.place,
+        'finish_time': result.finishTime,
+        'created_at': DateTime.now().toIso8601String(),
+      });
     }
     await batch.commit();
     return;
@@ -353,7 +373,7 @@ class DatabaseHelper {
     final db = await instance.database;
     final raceRunners = await db.rawQuery('''
       SELECT 
-        rr.race_runner_id AS runner_id, 
+        rr.runner_id AS runner_id, 
         rr.bib_number, 
         rr.name, 
         rr.school, 
@@ -361,7 +381,7 @@ class DatabaseHelper {
         r.place, 
         r.finish_time
       FROM race_results r
-      LEFT JOIN race_runners rr ON rr.race_runner_id = r.race_runner_id
+      LEFT JOIN race_runners rr ON rr.runner_id = r.runner_id
       WHERE rr.race_id = ?
     ''', [raceId]);
 
@@ -375,7 +395,7 @@ class DatabaseHelper {
         r.place, 
         r.finish_time
       FROM race_results r
-      LEFT JOIN team_runners sr ON sr.runner_id = r.race_runner_id
+      LEFT JOIN team_runners sr ON sr.runner_id = r.runner_id
       WHERE r.race_id = ?
     ''', [raceId]);
 
@@ -419,7 +439,7 @@ class DatabaseHelper {
     // Check if each team has at least 2 runners (minimum for a race)
     final teamRunnerCounts = <String, int>{};
     for (final runner in raceRunners) {
-      final team = runner['school'] as String;
+      final team = runner.school;
       teamRunnerCounts[team] = (teamRunnerCounts[team] ?? 0) + 1;
     }
 

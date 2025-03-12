@@ -651,7 +651,7 @@ class RacesScreenState extends State<RacesScreen> {
     // Check if each team has at least 2 runners (minimum for a race)
     final teamRunnerCounts = <String, int>{};
     for (final runner in raceRunners) {
-      final team = runner['school'] as String;
+      final team = runner.school;
       teamRunnerCounts[team] = (teamRunnerCounts[team] ?? 0) + 1;
     }
 

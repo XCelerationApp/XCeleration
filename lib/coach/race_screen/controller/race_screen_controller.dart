@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:xcelerate/coach/merge_conflicts_screen/model/timing_data.dart';
+import 'package:xcelerate/coach/race_screen/widgets/runner_record.dart' show RunnerRecord;
 import '../../../utils/database_helper.dart';
 import '../../../shared/models/race.dart';
 import '../../../utils/runner_time_functions.dart';

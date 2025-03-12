@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../model/timing_data.dart';
-import '../model/runner_record.dart';
+import '../model/timing_record.dart';
 import '../../../../utils/time_formatter.dart' as time_formatter;
 import '../../../../utils/runner_time_functions.dart' as runner_functions;
 import '../../../../core/components/dialog_utils.dart';
@@ -22,7 +22,7 @@ class TimingController extends ChangeNotifier {
   }
 
   // Getter for records
-  List<RunnerRecord> get records => timingData.records;
+  List<TimingRecord> get records => timingData.records;
 
   void setContext(BuildContext context) {
     _context = context;
@@ -215,7 +215,7 @@ class TimingController extends ChangeNotifier {
 
     final lastConfirmedRecord = records.lastWhere(
       (r) => r.type == RecordType.runnerTime && r.isConfirmed == true,
-      orElse: () => RunnerRecord(
+      orElse: () => TimingRecord(
         id: '',
         elapsedTime: '',
         place: 0,
@@ -302,7 +302,7 @@ class TimingController extends ChangeNotifier {
     }
   }
 
-  List<RunnerRecord> _undoExtraRunnerConflict(RunnerRecord lastConflict, List<RunnerRecord> records) {
+  List<TimingRecord> _undoExtraRunnerConflict(TimingRecord lastConflict, List<TimingRecord> records) {
     if (lastConflict.isResolved()) {
       return records;
     }
@@ -321,7 +321,7 @@ class TimingController extends ChangeNotifier {
     return records;
   }
 
-  List<RunnerRecord> _undoMissingRunnerConflict(RunnerRecord lastConflict, List<RunnerRecord> records) {
+  List<TimingRecord> _undoMissingRunnerConflict(TimingRecord lastConflict, List<TimingRecord> records) {
     if (lastConflict.isResolved()) {
       return records;
     }
@@ -391,7 +391,7 @@ class TimingController extends ChangeNotifier {
       !records.last.isResolved();
   }
 
-  Future<bool> confirmRecordDismiss(RunnerRecord record) async {
+  Future<bool> confirmRecordDismiss(TimingRecord record) async {
     if (_context == null) return false;
     
     if (record.type == RecordType.runnerTime) {
@@ -449,7 +449,7 @@ class TimingController extends ChangeNotifier {
     return false;
   }
 
-  void onDismissRunnerTimeRecord(RunnerRecord record, int index) {
+  void onDismissRunnerTimeRecord(TimingRecord record, int index) {
     timingData.removeRecord(record.id);
     
     // Update places for subsequent records
@@ -467,14 +467,14 @@ class TimingController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void onDismissConfirmationRecord(RunnerRecord record, int index) {
+  void onDismissConfirmationRecord(TimingRecord record, int index) {
     timingData.removeRecord(record.id);
     timingData.records = runner_functions.updateTextColor(null, records, endIndex: index);
     scrollToBottom(scrollController);
     notifyListeners();
   }
 
-  void onDismissConflictRecord(RunnerRecord record) {
+  void onDismissConflictRecord(TimingRecord record) {
     undoLastConflict();
     scrollToBottom(scrollController);
     notifyListeners();

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../model/timing_data.dart';
-import '../model/runner_record.dart';
+import '../model/timing_record.dart';
 import '../../../../shared/role_functions.dart';
 import '../../../../core/services/tutorial_manager.dart';
 import '../../../../utils/enums.dart';
@@ -189,7 +189,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     );
   }
 
-  Widget _buildRunnerTimeRecord(RunnerRecord record, int index) {
+  Widget _buildRunnerTimeRecord(TimingRecord record, int index) {
     return RunnerTimeRecordItem(
       record: record,
       index: index,
@@ -197,7 +197,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     );
   }
 
-  Widget _buildConfirmationRecord(RunnerRecord record, int index) {
+  Widget _buildConfirmationRecord(TimingRecord record, int index) {
     return ConfirmationRecordItem(
       record: record,
       index: index,
@@ -205,13 +205,13 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     );
   }
 
-  Widget _buildConflictRecord(RunnerRecord record, int index) {
-    return ConflictRecordItem(
-      record: record,
-      index: index,
-      context: context,
-    );
-  }
+  // Widget _buildConflictRecord(TimingRecord record, int index) {
+  //   return ConflictRecordItem(
+  //     record: record,
+  //     index: index,
+  //     context: context,
+  //   );
+  // }
 
   Widget _buildBottomControls() {
     return BottomControlsWidget(

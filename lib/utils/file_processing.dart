@@ -3,8 +3,9 @@ import 'package:csv/csv.dart';
 import 'package:excel/excel.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:xcelerate/coach/race_screen/widgets/runner_record.dart';
 
-Future<List<Map<String, dynamic>>> processSpreadsheet(int raceId, bool isTeam) async {
+Future<List<RunnerRecord>> processSpreadsheet(int raceId, bool isTeam) async {
   FilePickerResult? result = await FilePicker.platform.pickFiles(
     type: FileType.custom,
     allowedExtensions: ['csv', 'xlsx'],
@@ -13,7 +14,7 @@ Future<List<Map<String, dynamic>>> processSpreadsheet(int raceId, bool isTeam) a
   if (result != null) {
     final file = File(result.files.first.path!);
     final extension = result.files.first.extension;
-    final List<Map<String, dynamic>> runnerData = [];
+    final List<RunnerRecord> runnerData = [];
 
     if (extension == 'csv') {
       // Process CSV file
@@ -31,20 +32,23 @@ Future<List<Map<String, dynamic>>> processSpreadsheet(int raceId, bool isTeam) a
 
           if (name.isNotEmpty && grade > 0 && school.isNotEmpty && bibNumber.isNotEmpty && bibNumberInt >= 0) {
             if (isTeam == true) {
-              runnerData.add({
-                'name': name,
-                'school': school,
-                'grade': grade,
-                'bib_number': bibNumber,
-              });
+              runnerData.add(RunnerRecord(
+                name: name,
+                school: school,
+                grade: grade,
+                bib: bibNumber,
+                runnerId: -1,
+                raceId: raceId,
+              ));
             } else {
-              runnerData.add({
-                'name': name,
-                'school': school,
-                'grade': grade,
-                'bib_number': bibNumber,
-                'race_id': raceId,
-              });
+              runnerData.add(RunnerRecord(
+                name: name,
+                school: school,
+                grade: grade,
+                bib: bibNumber,
+                raceId: raceId,
+                runnerId: -1,
+              ));
             } 
           } else {
             debugPrint('Invalid data in row: $row');
@@ -75,19 +79,23 @@ Future<List<Map<String, dynamic>>> processSpreadsheet(int raceId, bool isTeam) a
             if (name.isNotEmpty && grade > 0 && school.isNotEmpty && bibNumberInt >= 0 && bibNumber.isNotEmpty) {
               // Insert into the database
               if (isTeam == true) {
-                runnerData.add({
-                  'name': name,
-                  'school': school,
-                  'grade': grade,
-                  'bib_number': bibNumber,
-                });
+                runnerData.add(RunnerRecord(
+                  name: name,
+                  school: school,
+                  grade: grade,
+                  bib: bibNumber,
+                  runnerId: -1,
+                  raceId: raceId,
+                ));
               } else {
-                runnerData.add({
-                  'name': name,
-                  'school': school,
-                  'grade': grade,
-                  'bib_number': bibNumber,
-                });
+                runnerData.add(RunnerRecord(
+                  name: name,
+                  school: school,
+                  grade: grade,
+                  bib: bibNumber,
+                  runnerId: -1,
+                  raceId: raceId,
+                ));
               } 
             } else {
               debugPrint('Invalid data in row: $row');

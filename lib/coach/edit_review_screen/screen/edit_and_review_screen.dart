@@ -1,15 +1,21 @@
-import 'package:flutter/material.dart';
-import '../../../../utils/time_formatter.dart';
 import 'dart:math';
-import '../../../../utils/database_helper.dart';
+
+import 'package:flutter/material.dart';
+import 'package:xcelerate/assistant/race_timer/timing_screen/model/timing_record.dart';
+import 'package:xcelerate/coach/merge_conflicts_screen/model/timing_data.dart';
+// import 'package:xcelerate/coach/race_screen/model/race_result.dart';
+import 'package:xcelerate/utils/database_helper.dart';
+import 'package:xcelerate/utils/enums.dart';
+import '../../../../utils/time_formatter.dart';
 import '../../results_screen/screen/results_screen.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../core/components/dialog_utils.dart';
 import '../../../../utils/runner_time_functions.dart';
 import '../../../../core/theme/typography.dart';
 
+
 class EditAndReviewScreen extends StatefulWidget {
-  final Map<String, dynamic> timingData;
+  final TimingData timingData;
   final int raceId;
 
   const EditAndReviewScreen({
@@ -25,44 +31,28 @@ class EditAndReviewScreen extends StatefulWidget {
 class _EditAndReviewScreenState extends State<EditAndReviewScreen> {
   // State variables
   late final ScrollController _scrollController;
-  late final Map<int, TextEditingController> _finishTimeControllers;
-  late final List<TextEditingController> _controllers;
-  late final Map<String, dynamic> _timingData;
+  late final TimingData _timingData;
   late final int _raceId;
 
   @override
   void initState() {
     super.initState();
     _initializeState();
+    _scrollController = ScrollController();
   }
 
   void _initializeState() {
-    _scrollController = ScrollController();
     _timingData = widget.timingData;
     _raceId = widget.raceId;
-    _finishTimeControllers = _initializeFinishTimeControllers();
-    _controllers = List.generate(getNumberOfTimes(_timingData['records'] ?? []), (index) => TextEditingController());
-    // _fetchRunners();
-  }
-
-  Map<int, TextEditingController> _initializeFinishTimeControllers() {
-    final controllers = <int, TextEditingController>{};
-    for (var record in _timingData['records']) {
-      if (record['type'] == 'runner_time' && record['conflict'] == null) {
-        controllers[record['place']] = TextEditingController(text: record['finish_time']);
-      }
-    }
-    return controllers;
   }
 
   @override
-  void didChangeDependencies() async {
+  void didChangeDependencies() {
     super.didChangeDependencies();
   }
 
-
   Future<void> _saveResults() async {
-    final records = _timingData['records'] ?? [];
+    final records = _timingData.records;
     if (!_validateRunnerInfo(records)) {
       DialogUtils.showErrorDialog(context, message: 'All runners must have a bib number assigned before proceeding.');
       return;
@@ -72,22 +62,18 @@ class _EditAndReviewScreenState extends State<EditAndReviewScreen> {
     _showResultsSavedSnackBar();
   }
 
-  bool _validateRunnerInfo(List<dynamic> records) {
+  bool _validateRunnerInfo(List<TimingRecord> records) {
     return records.every((runner) => 
-      runner['bib_number'] != null && 
-      runner['name'] != null && 
-      runner['grade'] != null && 
-      runner['school'] != null
+      runner.bib != '' && 
+      runner.name != '' && 
+      runner.grade != null &&
+      runner.grade! > 0 && 
+      runner.school != ''
     );
   }
 
-  Future<void> _processAndSaveRecords(List<dynamic> records) async {
-    final processedRecords = records.where((record) => record['type'] == 'runner_time').map((record) {
-      final cleanRecord = Map<String, dynamic>.from(record);
-      ['bib_number', 'name', 'grade', 'school', 'text_color', 'is_confirmed', 
-       'type', 'conflict'].forEach(cleanRecord.remove);
-      return cleanRecord;
-    }).toList();
+  Future<void> _processAndSaveRecords(List<TimingRecord> records) async {
+    final processedRecords = _timingData.raceResults;
 
     await DatabaseHelper.instance.insertRaceResults(processedRecords);
   }
@@ -107,7 +93,7 @@ class _EditAndReviewScreenState extends State<EditAndReviewScreen> {
     );
   }
 
-  bool _timeIsValid(String newValue, int index, List<dynamic> timeRecords) {
+  bool _timeIsValid(String newValue, int index, List<TimingRecord> timeRecords) {
     Duration? parsedTime = loadDurationFromString(newValue);
     if (parsedTime == null || parsedTime < Duration.zero) {
       DialogUtils.showErrorDialog(context, message: 'Invalid time entered. Should be in HH:mm:ss.ms format');
@@ -118,12 +104,12 @@ class _EditAndReviewScreenState extends State<EditAndReviewScreen> {
       return false;
     }
 
-    if (index > 0 && loadDurationFromString(timeRecords[index - 1]['finish_time'])! > parsedTime) {
+    if (index > 0 && loadDurationFromString(timeRecords[index - 1].elapsedTime)! > parsedTime) {
       DialogUtils.showErrorDialog(context, message: 'Time must be greater than the previous time');
       return false;
     }
 
-    if (index < timeRecords.length - 1 && loadDurationFromString(timeRecords[index + 1]['finish_time'])! < parsedTime) {
+    if (index < timeRecords.length - 1 && loadDurationFromString(timeRecords[index + 1].elapsedTime)! < parsedTime) {
       DialogUtils.showErrorDialog(context, message: 'Time must be less than the next time');
       return false;
     }
@@ -132,33 +118,32 @@ class _EditAndReviewScreenState extends State<EditAndReviewScreen> {
   }
 
   int getRunnerIndex(int recordIndex) {
-    final records = _timingData['records'] ?? [];
-    final runnerRecords = records.where((record) => record['type'] == 'runner_time').toList();
+    final records = _timingData.records;
+    final runnerRecords = records.where((r) => r.type == RecordType.runnerTime).toList();
     return runnerRecords.indexOf(records[recordIndex]);
   }
 
+
   Future<bool> _confirmDeleteLastRecord(int recordIndex) async {
-    final records = _timingData['records'] ?? [];
+    final records = _timingData.records;
     final record = records[recordIndex];
-    if (record['type'] == 'runner_time' && record['is_confirmed'] == false && record['conflict'] == null) {
+    if (record.type == RecordType.runnerTime && !record.isConfirmed && record.conflict == null) {
       return await DialogUtils.showConfirmationDialog(context, title: 'Confirm Deletion', content: 'Are you sure you want to delete this runner?');
     }
     return false;
   }
 
+
   @override
   void dispose() {
-    // Dispose all controllers
-    for (var controller in _finishTimeControllers.values) {
-      controller.dispose();
-    }
+    _scrollController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final startTime = _timingData['startTime'];
-    final timeRecords = _timingData['records'] ?? [];
+    final startTime = _timingData.startTime;
+    final timeRecords = _timingData.records;
 
     return Scaffold(
       body: Padding(
@@ -204,13 +189,13 @@ class _EditAndReviewScreenState extends State<EditAndReviewScreen> {
         padding: const EdgeInsets.all(8.0),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            return ElevatedButton(
-              onPressed: onPressed,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryColor,
-              ),
-              child: Text(
-                text,
+    return ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppColors.primaryColor,
+      ),
+      child: Text(
+        text,
                 style: TextStyle(fontSize: constraints.maxWidth * 0.12, color: AppColors.unselectedRoleColor),
               ),
             );
@@ -220,7 +205,7 @@ class _EditAndReviewScreenState extends State<EditAndReviewScreen> {
     );
   }
 
-  Widget _buildRecordsList(List<dynamic> timeRecords) {
+  Widget _buildRecordsList(List<TimingRecord> timeRecords) {
     if (timeRecords.isEmpty) return const Expanded(child: SizedBox.shrink());
 
     return Expanded(
@@ -239,24 +224,21 @@ class _EditAndReviewScreenState extends State<EditAndReviewScreen> {
     );
   }
 
-  Widget _buildRecordItem(BuildContext context, int index, List<dynamic> timeRecords) {
-    final timeRecord = timeRecords[index];
-    if (_finishTimeControllers[index] == null) {
-      _finishTimeControllers[index] = TextEditingController(text: timeRecord['finish_time']);
-    }
+  Widget _buildRecordItem(BuildContext context, int index, List<TimingRecord> timeRecords) {
+    final record = timeRecords[index];
+    // Convert TimingRecord to map for easier access
+    // final Map<String, dynamic> recordMap = record.toMap();
 
-    switch (timeRecord['type']) {
-      case 'runner_time':
-        return _buildRunnerTimeRecord(context, index, timeRecord);
-      case 'confirm_runner_number':
-        return _buildConfirmationRecord(context, index, timeRecord);
-      default:
-        return const SizedBox.shrink();
+    if (record.type == RecordType.confirmRunner) {
+      return _buildConfirmationRecord(context, index, record);
+    } else if (record.type == RecordType.runnerTime) {
+      return _buildRunnerTimeRecord(context, index, record);
     }
+    return const SizedBox.shrink();
   }
 
-  Widget _buildConfirmationRecord(BuildContext context, int index, Map<String, dynamic> timeRecord) {
-    final isLastRecord = index == _timingData['records'].length - 1;
+  Widget _buildConfirmationRecord(BuildContext context, int index, TimingRecord timeRecord) {
+    final isLastRecord = index == _timingData.records.length - 1;
     
     return Container(
       margin: EdgeInsets.fromLTRB(
@@ -274,10 +256,10 @@ class _EditAndReviewScreenState extends State<EditAndReviewScreen> {
               ? () => _handleConfirmationDeletion(index)
               : null,
             child: Text(
-              'Confirmed: ${timeRecord['finish_time']}',
+              'Confirmed: ${timeRecord.elapsedTime}',
               style: TextStyle(
                 fontSize: MediaQuery.of(context).size.width * 0.05,
-                fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.bold,
                 color: AppColors.darkColor,
               ),
             ),
@@ -290,20 +272,20 @@ class _EditAndReviewScreenState extends State<EditAndReviewScreen> {
 
   _handleConfirmationDeletion(int index) async {
     setState(() {
-      _timingData['records'].removeAt(index);
-      _timingData['records'] = updateTextColor(null, _timingData['records']);
+      _timingData.records.removeAt(index);
+      _timingData.records = updateTextColor(null, _timingData.records);
     });
   }
 
   Widget _buildRunnerInfoRow(
     BuildContext context, 
-    Map<String, dynamic> timeRecord, 
+    TimingRecord timeRecord, 
     int index
   ) {
     final textStyle = TextStyle(
       fontSize: MediaQuery.of(context).size.width * 0.05,
       fontWeight: FontWeight.bold,
-      color: timeRecord['text_color'] ?? AppColors.navBarTextColor,
+      color: timeRecord.textColor ?? AppColors.navBarTextColor,
     );
 
     return Row(
@@ -311,10 +293,8 @@ class _EditAndReviewScreenState extends State<EditAndReviewScreen> {
       children: [
         // Place number
         Text(
-          '${timeRecord['place']}',
-          style: textStyle.copyWith(
-            color: AppColors.darkColor,
-          ),
+          'Time: ${timeRecord.elapsedTime}',
+          style: textStyle,
         ),
 
         // Runner information
@@ -324,32 +304,32 @@ class _EditAndReviewScreenState extends State<EditAndReviewScreen> {
         ),
 
         // Finish time input
-        if (timeRecord['finish_time'] != null)
+        if (timeRecord.elapsedTime != '')
           _buildFinishTimeField(timeRecord, index, textStyle),
       ],
     );
   }
 
-  String _formatRunnerInfo(Map<String, dynamic> record) {
+  String _formatRunnerInfo(TimingRecord record) {
     return [
-      if (record['name'] != null) record['name'],
-      if (record['grade'] != null) ' ${record['grade']}',
-      if (record['school'] != null) ' ${record['school']}    ',
+      if (record.name != null) record.name,
+      if (record.grade != null) ' ${record.grade}',
+      if (record.school != null) ' ${record.school}    ',
     ].join();
   }
 
   Widget _buildFinishTimeField(
-    Map<String, dynamic> timeRecord, 
+    TimingRecord timeRecord, 
     int index,
     TextStyle textStyle
   ) {
-    final isEnabled = timeRecord['finish_time'] != 'tbd' && 
-                     timeRecord['finish_time'] != 'TBD';
+    final isEnabled = timeRecord.elapsedTime != '' && 
+                     timeRecord.elapsedTime != 'TBD';
 
     return SizedBox(
       width: 100,
       child: TextField(
-        controller: _finishTimeControllers[index],
+        controller: null,
         decoration: InputDecoration(
           hintText: 'Finish Time',
           border: OutlineInputBorder(
@@ -390,16 +370,16 @@ class _EditAndReviewScreenState extends State<EditAndReviewScreen> {
     );
   }
 
-  void _handleTimeSubmission(String newValue, int index, Map<String, dynamic> timeRecord) {
-    if (newValue.isNotEmpty && _timeIsValid(newValue, index, _timingData['records'])) {
-      timeRecord['finish_time'] = newValue;
+  void _handleTimeSubmission(String newValue, int index, TimingRecord timeRecord) {
+    if (newValue.isNotEmpty && _timeIsValid(newValue, index, _timingData.records)) {
+      timeRecord.elapsedTime = newValue;
     } else {
       // Reset to previous value
-      _finishTimeControllers[index]?.text = timeRecord['finish_time'];
+      // _finishTimeControllers[index]?.text = timeRecord['finish_time'];
     }
   }
 
-  Widget _buildRunnerTimeRecord(BuildContext context, int index, Map<String, dynamic> timeRecord) {
+  Widget _buildRunnerTimeRecord(BuildContext context, int index, TimingRecord timeRecord) {
     return Container(
       margin: EdgeInsets.fromLTRB(
         MediaQuery.of(context).size.width * 0.02,
@@ -416,8 +396,8 @@ class _EditAndReviewScreenState extends State<EditAndReviewScreen> {
               final confirmed = await _confirmDeleteLastRecord(index);
               if (confirmed ) {
                 setState(() {
-                  _controllers.removeAt(getNumberOfTimes(_timingData['records'] ?? []) - 1);
-                  _timingData['records']?.removeAt(index);
+                  // _controllers.removeAt(getNumberOfTimes(_timingData.records) - 1);
+                  _timingData.records.removeAt(index);
                   _scrollController.animateTo(
                     max(_scrollController.position.maxScrollExtent, 0),
                     duration: const Duration(milliseconds: 300),

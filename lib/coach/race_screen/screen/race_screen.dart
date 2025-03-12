@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
+import 'package:xcelerate/assistant/race_timer/timing_screen/model/timing_record.dart' show TimingRecord;
 import 'package:xcelerate/utils/runner_time_functions.dart';
 import '../../../utils/database_helper.dart';
 import '../../flows/model/flow_model.dart';
@@ -14,6 +16,11 @@ import '../widgets/bib_conflicts_sheet.dart';
 import '../widgets/timing_conflicts_sheet.dart';
 import '../controller/race_screen_controller.dart';
 import '../../flows/controller/flow_controller.dart';
+import '../../merge_conflicts_screen/model/timing_data.dart';
+// import '../../../edit_review_screen/model/timing_data.dart';
+import '../widgets/runner_record.dart';
+
+
 
 class RaceScreen extends StatefulWidget {
   final int raceId;
@@ -180,7 +187,7 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
     }
   }
 
-  Future<void> _goToEditScreen(context, runnerRecords, timingData) async {
+  Future<void> _goToEditScreen(context, timingRecords, timingData) async {
     Navigator.push(
       context,
       MaterialPageRoute(

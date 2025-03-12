@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../merge_conflicts_screen/screen/merge_conflicts_screen.dart';
+import '../../merge_conflicts_screen/model/timing_data.dart';
+// import '../../../assistant/race_timer/timing_screen/model/timing_record.dart';
+import '../widgets/runner_record.dart';
 
 class TimingConflictsSheet extends StatelessWidget {
-  final List<Map<String, dynamic>> conflictingRecords;
-  final Map<String, dynamic> timingData;
-  final List<Map<String, dynamic>> runnerRecords;
+  final List<RunnerRecord> conflictingRecords;
+  final TimingData timingData;
+  final List<RunnerRecord> runnerRecords;
   final int raceId;
 
   const TimingConflictsSheet({
@@ -61,7 +64,7 @@ class TimingConflictsSheet extends StatelessWidget {
                         controller: scrollController,
                         itemCount: conflictingRecords.length,
                         itemBuilder: (context, index) {
-                          final record = conflictingRecords[index];
+                          final RunnerRecord record = conflictingRecords[index];
                           return Card(
                             margin: const EdgeInsets.only(bottom: 8),
                             child: Padding(
@@ -73,7 +76,7 @@ class TimingConflictsSheet extends StatelessWidget {
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
-                                        'Bib #${record['bib']}',
+                                        'Bib #${record.bib}',
                                         style: AppTypography.bodySemibold,
                                       ),
                                       Container(
@@ -94,11 +97,11 @@ class TimingConflictsSheet extends StatelessWidget {
                                     'Multiple times recorded',
                                     style: AppTypography.bodyRegular,
                                   ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'Times: ${record['times'].join(', ')}',
-                                    style: AppTypography.bodyRegular.copyWith(color: AppColors.darkColor.withOpacity(0.7)),
-                                  ),
+                                  // const SizedBox(height: 8),
+                                  // Text(
+                                  //   'Times: ${record.times.join(', ')}',
+                                  //   style: AppTypography.bodyRegular.copyWith(color: AppColors.darkColor.withOpacity(0.7)),
+                                  // ),
                                 ],
                               ),
                             ),
