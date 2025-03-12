@@ -367,7 +367,7 @@ class RunnersManagementScreen extends StatefulWidget {
     
     // Count runners per team
     for (final runner in runners) {
-      final team = runner['school'] as String;
+      final team = runner.school;
       teamRunners[team] = (teamRunners[team] ?? 0) + 1;
     }
     

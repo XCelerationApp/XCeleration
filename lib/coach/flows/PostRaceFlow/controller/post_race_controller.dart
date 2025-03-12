@@ -1,4 +1,5 @@
 import 'package:xcelerate/coach/race_screen/widgets/bib_conflicts_sheet.dart';
+import 'package:xcelerate/coach/race_screen/widgets/runner_record.dart';
 import 'package:xcelerate/coach/race_screen/widgets/timing_conflicts_sheet.dart';
 import '../../controller/flow_controller.dart';
 import '../../model/flow_model.dart';
@@ -12,6 +13,7 @@ import '../../../../core/theme/typography.dart';
 import '../../../race_screen/widgets/conflict_button.dart';
 import '../../../../utils/runner_time_functions.dart';
 import '../../../../utils/encode_utils.dart';
+import '../../../merge_conflicts_screen/model/timing_data.dart';
 
 class PostRaceController {
   final int raceId;
@@ -54,15 +56,16 @@ class PostRaceController {
     final processedTimingData = await processEncodedTimingData(finishTimesData, context);
     
     if (processedRunnerRecords.isNotEmpty && processedTimingData != null) {
-      processedTimingData['records'] = await syncBibData(
+      processedTimingData.records = await syncBibData(
         processedRunnerRecords.length, 
-        processedTimingData['records'], 
-        processedTimingData['endTime'], 
+        processedTimingData.records, 
+        processedTimingData.endTime, 
         context
       );
       
       runnerRecords = processedRunnerRecords;
       timingData = processedTimingData;
+      
       resultsLoaded = true;
       
       await saveRaceResults();
@@ -76,8 +79,8 @@ class PostRaceController {
   bool hasBibConflicts = false;
   bool hasTimingConflicts = false;
   bool resultsLoaded = false;
-  List<Map<String, dynamic>>? runnerRecords;
-  Map<String, dynamic>? timingData;
+  List<RunnerRecord>? runnerRecords;
+  TimingData? timingData;
 
   
   Future<bool> showPostRaceFlow(BuildContext context, bool showProgressIndicator) {
@@ -96,12 +99,12 @@ class PostRaceController {
     );
   }
 
-  bool containsBibConflicts(List<dynamic> records) {
-    return records.any((record) => record['error'] != null);
+  bool containsBibConflicts(List<RunnerRecord> records) {
+    return records.any((record) => record.error != null);
   }
 
-  bool containsTimingConflicts(Map<String, dynamic> data) {
-    return getConflictingRecords(data['records'], data['records'].length).isNotEmpty;
+  bool containsTimingConflicts(TimingData data) {
+    return getConflictingRecords(data.records, data.records.length).isNotEmpty;
   }
 
   Future<void> showBibConflictsSheet(BuildContext context) async {
@@ -114,13 +117,13 @@ class PostRaceController {
   }
 
   Future<void> showTimingConflictsSheet(BuildContext context) async {
-    final conflictingRecords = getConflictingRecords(timingData!['records'], timingData!['records'].length);
+    final conflictingRecords = getConflictingRecords(timingData!.records, timingData!.records.length);
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => TimingConflictsSheet(
-        conflictingRecords: conflictingRecords.cast<Map<String, dynamic>>(),
+        conflictingRecords: conflictingRecords,
         timingData: timingData!,
         runnerRecords: runnerRecords!,
         raceId: raceId,
