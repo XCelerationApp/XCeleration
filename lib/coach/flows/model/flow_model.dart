@@ -6,7 +6,7 @@ import '../../../core/theme/typography.dart';
 import 'dart:async';
 import '../../flows/widgets/flow_indicator.dart';
 
-// FlowStep and FlowController remain largely unchanged but are reused effectively
+
 class FlowStep {
   final String title;
   final String description;

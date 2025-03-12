@@ -1,6 +1,47 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/typography.dart';
-import '../../../core/theme/app_colors.dart';
+
+class FlowActionButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onPressed;
+  final bool isEnabled;
+
+  const FlowActionButton({
+    super.key,
+    required this.label,
+    required this.onPressed,
+    this.isEnabled = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 56,
+      child: ElevatedButton(
+        onPressed: isEnabled ? onPressed : null,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFFFF5722),
+          disabledBackgroundColor: const Color(0xFFFF5722).withOpacity(0.5),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28),
+          ),
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+        ),
+        child: Text(
+          label,
+          style: AppTypography.bodySemibold.copyWith(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 
 class ActionButton extends StatefulWidget {
   final String label;
@@ -50,47 +91,6 @@ class _ActionButtonState extends State<ActionButton> {
                 ),
               ),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class FlowActionButton extends StatelessWidget {
-  final String label;
-  final VoidCallback onPressed;
-  final bool isEnabled;
-
-  const FlowActionButton({
-    super.key,
-    required this.label,
-    required this.onPressed,
-    this.isEnabled = true,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 56,
-      child: ElevatedButton(
-        onPressed: isEnabled ? onPressed : null,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFFFF5722),
-          disabledBackgroundColor: const Color(0xFFFF5722).withOpacity(0.5),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(28),
-          ),
-          elevation: 0,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-        ),
-        child: Text(
-          label,
-          style: AppTypography.bodySemibold.copyWith(
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
           ),
         ),
       ),
