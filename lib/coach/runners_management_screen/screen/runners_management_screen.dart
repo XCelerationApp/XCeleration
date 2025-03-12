@@ -2,6 +2,7 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:flutter/services.dart';
+import 'package:xcelerate/coach/race_screen/widgets/runner_record.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/components/dialog_utils.dart';
 import '../../../utils/sheet_utils.dart';
@@ -18,57 +19,57 @@ class Team {
   Team({required this.name, required this.color});
 }
 
-class Runner {
-  final String name;
-  final int grade;
-  final String school;
-  final String bibNumber;
-  final int? runnerId;
-  final int? raceRunnerId;
+// class Runner {
+//   final String name;
+//   final int grade;
+//   final String school;
+//   final String bibNumber;
+//   final int? runnerId;
+//   final int? raceRunnerId;
 
-  Runner({
-    required this.name,
-    required this.grade,
-    required this.school,
-    required this.bibNumber,
-    this.runnerId,
-    this.raceRunnerId,
-  });
+//   Runner({
+//     required this.name,
+//     required this.grade,
+//     required this.school,
+//     required this.bibNumber,
+//     this.runnerId,
+//     this.raceRunnerId,
+//   });
 
-  Map<String, dynamic> toMap() => {
-    'name': name,
-    'grade': grade,
-    'school': school,
-    'bib_number': bibNumber,
-    if (runnerId != null) 'runner_id': runnerId,
-    if (raceRunnerId != null) 'race_runner_id': raceRunnerId,
-  };
+//   Map<String, dynamic> toMap() => {
+//     'name': name,
+//     'grade': grade,
+//     'school': school,
+//     'bib_number': bibNumber,
+//     if (runnerId != null) 'runner_id': runnerId,
+//     if (raceRunnerId != null) 'runner_id': raceRunnerId,
+//   };
 
-  factory Runner.fromMap(Map<String, dynamic> map) => Runner(
-    name: map['name'],
-    grade: map['grade'],
-    school: map['school'],
-    bibNumber: map['bib_number'],
-    runnerId: map['runner_id'],
-    raceRunnerId: map['race_runner_id'],
-  );
+//   factory Runner.fromMap(Map<String, dynamic> map) => Runner(
+//     name: map['name'],
+//     grade: map['grade'],
+//     school: map['school'],
+//     bibNumber: map['bib_number'],
+//     runnerId: map['runner_id'],
+//     raceRunnerId: map['runner_id'],
+//   );
 
-  Runner copyWith({
-    String? name,
-    int? grade,
-    String? school,
-    String? bibNumber,
-  }) {
-    return Runner(
-      name: name ?? this.name,
-      grade: grade ?? this.grade,
-      school: school ?? this.school,
-      bibNumber: bibNumber ?? this.bibNumber,
-      runnerId: runnerId,
-      raceRunnerId: raceRunnerId,
-    );
-  }
-}
+//   Runner copyWith({
+//     String? name,
+//     int? grade,
+//     String? school,
+//     String? bibNumber,
+//   }) {
+//     return Runner(
+//       name: name ?? this.name,
+//       grade: grade ?? this.grade,
+//       school: school ?? this.school,
+//       bibNumber: bibNumber ?? this.bibNumber,
+//       runnerId: runnerId,
+//       raceRunnerId: raceRunnerId,
+//     );
+//   }
+// }
 
 // Components
 class RunnerTextField extends StatelessWidget {
@@ -110,7 +111,7 @@ class RunnerTextField extends StatelessWidget {
 }
 
 class RunnerListItem extends StatefulWidget {
-  final Runner runner;
+  final RunnerRecord runner;
   final Function(String) onActionSelected;
   final List<Team> teamData;
 
@@ -132,7 +133,7 @@ class _RunnerListItemState extends State<RunnerListItem> {
     final bibColor = team != null ? team.color : AppColors.mediumColor;
     
     return Slidable(
-      key: Key(widget.runner.bibNumber),
+      key: Key(widget.runner.bib),
       endActionPane: ActionPane(
         motion: const ScrollMotion(),
         children: [
@@ -199,7 +200,7 @@ class _RunnerListItemState extends State<RunnerListItem> {
                       flex: 2,
                       child: Center(
                         child: Text(
-                          widget.runner.bibNumber,
+                          widget.runner.bib,
                           style: TextStyle(
                             color: bibColor,
                             fontSize: 16,
@@ -373,8 +374,8 @@ class RunnersManagementScreen extends StatefulWidget {
 }
 
 class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
-  List<Runner> _runners = [];
-  List<Runner> _filteredRunners = [];
+  List<RunnerRecord> _runners = [];
+  List<RunnerRecord> _filteredRunners = [];
   final List<Team> _teams = [];
   bool _isLoading = true;
   bool _showHeader = true;
@@ -445,7 +446,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
   Future<void> _loadRunners() async {
     final runners = await DatabaseHelper.instance.getRaceRunners(widget.raceId);
     setState(() {
-      _runners = runners.map(Runner.fromMap).toList();
+      _runners = runners;
       _filteredRunners = _runners;
       _sortRunners();
     });
@@ -467,7 +468,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
       } else {
         _filteredRunners = _runners.where((runner) {
           final value = switch (_searchAttribute) {
-            'Bib Number' => runner.bibNumber,
+            'Bib Number' => runner.bib,
             'Name' => runner.name.toLowerCase(),
             'Grade' => runner.grade.toString(),
             'School' => runner.school.toLowerCase(),
@@ -478,7 +479,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
     }});
   }
 
-  Future<void> _handleRunnerAction(String action, Runner runner) async {
+  Future<void> _handleRunnerAction(String action, RunnerRecord runner) async {
     switch (action) {
       case 'Edit':
         await _showRunnerSheet(
@@ -500,8 +501,8 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
     }
   }
 
-  Future<void> _deleteRunner(Runner runner) async {
-    await DatabaseHelper.instance.deleteRaceRunner(widget.raceId, runner.bibNumber);
+  Future<void> _deleteRunner(RunnerRecord runner) async {
+    await DatabaseHelper.instance.deleteRaceRunner(widget.raceId, runner.bib);
     await _loadRunners();
   }
 
@@ -697,7 +698,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
     }
 
     // Group runners by school
-    final groupedRunners = <String, List<Runner>>{};
+    final groupedRunners = <String, List<RunnerRecord>>{};
     for (var runner in _filteredRunners) {
       if (!groupedRunners.containsKey(runner.school)) {
         groupedRunners[runner.school] = [];
@@ -788,7 +789,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
   // Dialog and Action Methods
   Future<void> _showRunnerSheet({
     required BuildContext context,
-    Runner? runner,
+    RunnerRecord? runner,
   }) async {
     final title = runner == null ? 'Add Runner' : 'Edit Runner';
     String? nameError;
@@ -803,7 +804,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
       _nameController?.text = runner.name;
       _gradeController?.text = runner.grade.toString();
       _schoolController?.text = runner.school;
-      _bibController?.text = runner.bibNumber;
+      _bibController?.text = runner.bib;
     }
 
     try {
@@ -932,13 +933,13 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
                 onPressed: () async {
                   if (schoolError != null || bibError != null || gradeError != null || nameError != null || _nameController!.text.isEmpty || _gradeController!.text.isEmpty || _schoolController!.text.isEmpty || _bibController!.text.isEmpty) return;
                   try {
-                    final newRunner = Runner(
+                    final newRunner = RunnerRecord(
                       name: _nameController!.text,
                       grade: int.tryParse(_gradeController!.text) ?? 0,
                       school: _schoolController!.text,
-                      bibNumber: _bibController!.text,
-                      runnerId: runner?.runnerId,
-                      raceRunnerId: runner?.raceRunnerId,
+                      bib: _bibController!.text,
+                      runnerId: runner?.runnerId as int,
+                      raceId: runner?.raceId as int,
                     );
 
                     await _handleRunnerSubmission(newRunner);
@@ -976,14 +977,14 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
     }
   }
 
-  Future<void> _handleRunnerSubmission(Runner runner) async {
+  Future<void> _handleRunnerSubmission(RunnerRecord runner) async {
     try {
       dynamic existingRunner;
-      existingRunner = await DatabaseHelper.instance.getRaceRunnerByBib(widget.raceId, runner.bibNumber);
+      existingRunner = await DatabaseHelper.instance.getRaceRunnerByBib(widget.raceId, runner.bib);
 
       if (existingRunner != null) {
         // If we're updating the same runner (same ID), just update
-        if (existingRunner['race_runner_id'] == runner.raceRunnerId) {
+        if (existingRunner['runner_id'] == runner.runnerId) {
           await _updateRunner(runner);
         } else {
           if (!mounted) return;
@@ -991,12 +992,12 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
           final shouldOverwrite = await DialogUtils.showConfirmationDialog(
           context,
           title: 'Overwrite Runner',
-          content: 'A runner with bib number ${runner.bibNumber} already exists. Do you want to overwrite it?',
+          content: 'A runner with bib number ${runner.bib} already exists. Do you want to overwrite it?',
         );
         
         if (!shouldOverwrite) return;
         
-        await DatabaseHelper.instance.deleteRaceRunner(widget.raceId, runner.bibNumber);
+        await DatabaseHelper.instance.deleteRaceRunner(widget.raceId, runner.bib);
         await _insertRunner(runner);
         }
       } else {
@@ -1012,19 +1013,12 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
     }
   }
 
-  Future<void> _insertRunner(Runner runner) async {
-    final map = runner.toMap()..['race_id'] = widget.raceId;
-    await DatabaseHelper.instance.insertRaceRunner(map);
-    // }
+  Future<void> _insertRunner(RunnerRecord runner) async {
+    await DatabaseHelper.instance.insertRaceRunner(runner);
   }
 
-  Future<void> _updateRunner(Runner runner) async {
-    // if (widget.isTeam) {
-    //   await DatabaseHelper.instance.updateTeamRunner(runner.toMap());
-    // } else {
-      final map = runner.toMap()..['race_id'] = widget.raceId;
-      await DatabaseHelper.instance.updateRaceRunner(map);
-    // }
+  Future<void> _updateRunner(RunnerRecord runner) async {
+    await DatabaseHelper.instance.updateRaceRunner(runner);
   }
 
   Future<void> _confirmDeleteAllRunners(BuildContext context) async {
@@ -1222,12 +1216,12 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
   Future<void> _handleSpreadsheetLoad() async {
     final confirmed = await _showSpreadsheetLoadSheet(context);
     if (confirmed == null || !confirmed) return;
-    final runnerData = await processSpreadsheet(widget.raceId, false);
+    final List<RunnerRecord> runnerData = await processSpreadsheet(widget.raceId, false);
     final overwriteRunners = [];
     for (final runner in runnerData) {
       dynamic existingRunner;
-      existingRunner = await DatabaseHelper.instance.getRaceRunnerByBib(widget.raceId, runner['bib_number']);
-      if (existingRunner != null && runner['bib_number'] == existingRunner['bib_number'] && runner['name'] == existingRunner['name'] && runner['school'] == existingRunner['school'] && runner['grade'] == existingRunner['grade']) continue;
+      existingRunner = await DatabaseHelper.instance.getRaceRunnerByBib(widget.raceId, runner.bib);
+      if (existingRunner != null && runner.bib == existingRunner.bib && runner.name == existingRunner.name && runner.school == existingRunner.school && runner.grade == existingRunner.grade) continue;
 
       if (existingRunner != null) {
         overwriteRunners.add(runner);

@@ -1,27 +1,30 @@
 import 'dart:convert';
+import 'package:xcelerate/coach/merge_conflicts_screen/model/timing_data.dart';
+
+import '../coach/race_screen/widgets/runner_record.dart';
 import 'time_formatter.dart';
 import '../core/components/dialog_utils.dart';
 import 'runner_time_functions.dart';
 import 'package:flutter/material.dart';
 import 'database_helper.dart';
-import '../assistant/race_timer/timing_screen/model/runner_record.dart';
+import '../assistant/race_timer/timing_screen/model/timing_record.dart';
 import '../utils/enums.dart';
 import 'package:uuid/uuid.dart';
 
-// Uuid _uuid = Uuid();
+Uuid _uuid = Uuid();
 
 decodeRaceTimesString(String encodedData) async {
   final decodedData = json.decode(encodedData);
   final startTime = null;
   final endTime = decodedData[1];
   final condensedRecords = decodedData[0];
-  List<RunnerRecord> records = [];
+  List<TimingRecord> records = [];
   int place = 0;
   Uuid uuid = Uuid();
   for (var recordString in condensedRecords) {
     if (loadDurationFromString(recordString) != null) {
       place++;
-      records.add(RunnerRecord(
+      records.add(TimingRecord(
         id: uuid.v4(),
         elapsedTime: recordString,
         type: RecordType.runnerTime,
@@ -59,10 +62,14 @@ decodeRaceTimesString(String encodedData) async {
       }
     }
   }
-  return {'endTime': endTime, 'records': records, 'startTime': startTime};
+  return TimingData(
+    endTime: endTime,
+    records: records,
+    startTime: startTime
+  );
 }
 
-Future<Map<String, dynamic>?> processEncodedTimingData(String data, BuildContext context) async {
+Future<TimingData?> processEncodedTimingData(String data, BuildContext context) async {
   try {
     final timingData = await decodeRaceTimesString(data);
     debugPrint(timingData);
@@ -82,32 +89,37 @@ Future<Map<String, dynamic>?> processEncodedTimingData(String data, BuildContext
   }
 }
 
-bool isValidTimingData(Map<String, dynamic> data) {
-  return data.isNotEmpty &&
-    data.containsKey('records') &&
-    data.containsKey('endTime') &&
-    data['records'].isNotEmpty &&
-    data['endTime'] != null;
+bool isValidTimingData(TimingData data) {
+  return data.records.isNotEmpty &&
+    data.endTime != '';
 }
 
-Future<List<Map<String, dynamic>>> decodeBibRecordsString(String encodedBibRecords, int raceId) async {
+Future<List<RunnerRecord>> decodeBibRecordsString(String encodedBibRecords, int raceId) async {
   final List<String> bibNumbers = encodedBibRecords.split(' ');
-  List<Map<String, dynamic>> bibRecords = [];
+  List<RunnerRecord> bibRecords = [];
   for (var bibNumber in bibNumbers) {
     if (bibNumber.isNotEmpty) {
       final runner = await DatabaseHelper.instance.getRaceRunnerByBib(raceId, bibNumber);
       if (runner == null) {
-        bibRecords.add({'bib_number': bibNumber, 'name': 'Unknown', 'grade': 'Unknown', 'school': 'Unknown', 'error': 'Runner not found'});
+        bibRecords.add(RunnerRecord(
+          runnerId: -1,
+          raceId: -1,
+          bib: bibNumber,
+          name: 'Unknown',
+          grade: 0,
+          school: 'Unknown',
+          error: 'Runner not found'
+        ));
       }
       else {
-        bibRecords.add({'bib_number': bibNumber, 'name': runner['name'], 'grade': runner['grade'], 'school': runner['school'], 'error': null});
+        bibRecords.add(runner);
       }
     }
   }
   return bibRecords;
 }
 
-Future<List<Map<String, dynamic>>> processEncodedBibRecordsData(String data, BuildContext context, int raceId) async {
+Future<List<RunnerRecord>> processEncodedBibRecordsData(String data, BuildContext context, int raceId) async {
   try {
     final bibData = await decodeBibRecordsString(data, raceId);
     debugPrint(bibData.toString());
@@ -127,18 +139,9 @@ Future<List<Map<String, dynamic>>> processEncodedBibRecordsData(String data, Bui
   }
 }
 
-bool isValidBibData(Map<String, dynamic> data) {
-  return data.isNotEmpty &&
-    data.containsKey('bib_number') &&
-    data.containsKey('name') &&
-    data.containsKey('grade') &&
-    data.containsKey('school') &&
-    data['bib_number'] != null &&
-    data['bib_number'].isNotEmpty &&
-    data['name'] != null &&
-    data['name'].isNotEmpty &&
-    data['grade'] != null &&
-    (data['grade'] == 'Unknown' || (data['grade'] is int && data['grade'] > 0)) &&
-    data['school'] != null &&
-    data['school'].isNotEmpty;
+bool isValidBibData(RunnerRecord data) {
+  return data.bib.isNotEmpty &&
+    data.name.isNotEmpty &&
+    data.grade > 0 &&
+    data.school.isNotEmpty;
 }

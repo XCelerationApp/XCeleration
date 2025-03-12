@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
+import 'package:xcelerate/assistant/race_timer/timing_screen/model/timing_record.dart' show TimingRecord;
 import 'package:xcelerate/utils/runner_time_functions.dart';
 import '../../../utils/database_helper.dart';
 import '../../../shared/models/race.dart';
@@ -32,6 +33,11 @@ import '../widgets/race_status_indicator.dart';
 import '../widgets/bib_conflicts_sheet.dart';
 import '../widgets/timing_conflicts_sheet.dart';
 import '../controller/race_screen_controller.dart';
+import '../../merge_conflicts_screen/model/timing_data.dart';
+// import '../../../edit_review_screen/model/timing_data.dart';
+import '../widgets/runner_record.dart';
+
+
 
 class RaceScreen extends StatefulWidget {
   final int raceId;
@@ -68,8 +74,8 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
   final bool _postRaceFinished = false;
   bool _raceSetup = false;
   bool _resultsLoaded = false;
-  List<Map<String, dynamic>>? _runnerRecords;
-  Map<String, dynamic>? _timingData;
+  List<Map<String, dynamic>>? _timingRecords;
+  TimingData? _timingData;
   bool _hasBibConflicts = false;
   bool _hasTimingConflicts = false;
   
@@ -106,7 +112,7 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
     setState(() {
       _raceSetup = _controller.raceSetup;
       _resultsLoaded = _controller.resultsLoaded;
-      _runnerRecords = _controller.runnerRecords;
+      _timingRecords = _controller.timingRecords;
       _timingData = _controller.timingData;
       _hasBibConflicts = _controller.hasBibConflicts;
       _hasTimingConflicts = _controller.hasTimingConflicts;
@@ -270,9 +276,9 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
     print('_postRaceSetup');
     setState(() {
       _resultsLoaded = _controller.resultsLoaded;
-      _runnerRecords = _controller.runnerRecords;
+      _timingRecords = _controller.timingRecords;
       _timingData = _controller.timingData;
-      _hasBibConflicts = _resultsLoaded && _runnerRecords != null && _controller.containsBibConflicts(_runnerRecords!);
+      _hasBibConflicts = _resultsLoaded && _timingRecords != null && _controller.containsBibConflicts(_timingRecords!);
       _hasTimingConflicts = _resultsLoaded && _timingData != null && _controller.containsTimingConflicts(_timingData!);
     });
 
@@ -305,16 +311,16 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
                     //     return;
                     //   }
                       
-                    //   var runnerRecords = await processEncodedBibRecordsData(encodedBibRecords, context, raceId);
+                    //   var timingRecords = await processEncodedBibRecordsData(encodedBibRecords, context, raceId);
                     //   final timingData = await processEncodedTimingData(encodedFinishTimes, context);
                       
-                    //   if (runnerRecords.isNotEmpty && timingData != null) {
-                    //     timingData['records'] = await syncBibData(runnerRecords.length, timingData['records'], timingData['endTime'], context);
+                    //   if (timingRecords.isNotEmpty && timingData != null) {
+                    //     timingData['records'] = await syncBibData(timingRecords.length, timingData['records'], timingData['endTime'], context);
                     //     setState(() {
-                    //       _runnerRecords = runnerRecords;
+                    //       _timingRecords = timingRecords;
                     //       _timingData = timingData;
                     //       _resultsLoaded = true;
-                    //       _hasBibConflicts = _containsBibConflicts(runnerRecords);
+                    //       _hasBibConflicts = _containsBibConflicts(timingRecords);
                     //       _hasTimingConflicts = _containsTimingConflicts(timingData);
                     //     });
                         
@@ -501,16 +507,16 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
     // final encodedBibRecords = otherDevices[DeviceName.bibRecorder]?['data'] as String?;
     // final encodedFinishTimes = otherDevices[DeviceName.raceTimer]?['data'] as String?;
     
-    // var runnerRecords = await processEncodedBibRecordsData(encodedBibRecords, context, raceId);
+    // var timingRecords = await processEncodedBibRecordsData(encodedBibRecords, context, raceId);
     // final timingData = await processEncodedTimingData(encodedFinishTimes, context);
     
-    // if (runnerRecords.isNotEmpty && timingData != null) {
-    //   timingData['records'] = await syncBibData(runnerRecords.length, timingData['records'], timingData['endTime'], context);
+    // if (timingRecords.isNotEmpty && timingData != null) {
+    //   timingData['records'] = await syncBibData(timingRecords.length, timingData['records'], timingData['endTime'], context);
     //   setState(() {
-    //     _runnerRecords = runnerRecords;
+    //     _timingRecords = timingRecords;
     //     _timingData = timingData;
     //     _resultsLoaded = true;
-    //     _hasBibConflicts = _containsBibConflicts(runnerRecords);
+    //     _hasBibConflicts = _containsBibConflicts(timingRecords);
     //     _hasTimingConflicts = _containsTimingConflicts(timingData);
     //   });
       
@@ -559,11 +565,11 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
     return await _controller.getEncodedRunnersData();
   }
 
-  bool _containsTimingConflicts(Map<String, dynamic> timingData) {
+  bool _containsTimingConflicts(TimingData timingData) {
     return _controller.containsTimingConflicts(timingData);
   }
 
-  bool _containsBibConflicts(List<dynamic> runnerRecords) {
+  bool _containsBibConflicts(List<RunnerRecord> runnerRecords) {
     return _controller.containsBibConflicts(runnerRecords);
   }
 
@@ -602,7 +608,7 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
   Future<void> _handleReceivedData(String? bibRecordsData, String? finishTimesData) async {
     await _controller.processReceivedData(bibRecordsData, finishTimesData, context);
     setState(() {
-      _runnerRecords = _controller.runnerRecords;
+      _timingRecords = _controller.timingRecords;
       _timingData = _controller.timingData;
       _resultsLoaded = _controller.resultsLoaded;
       _hasBibConflicts = _controller.hasBibConflicts;
@@ -615,26 +621,26 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => BibConflictsSheet(runnerRecords: _runnerRecords!),
+      builder: (context) => BibConflictsSheet(runnerRecords: _timingData!.runnerRecords),
     );
   }
 
   Future<void> _showTimingConflictsSheet() async {
-    final conflictingRecords = getConflictingRecords(_timingData!['records'], _timingData!['records'].length);
+    final List<RunnerRecord> conflictingRecords = getConflictingRecords(_timingData!.records, _timingData!.records.length);
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => TimingConflictsSheet(
-        conflictingRecords: conflictingRecords.cast<Map<String, dynamic>>(),
+        conflictingRecords: conflictingRecords,
         timingData: _timingData!,
-        runnerRecords: _runnerRecords!,
+        runnerRecords: _timingData!.runnerRecords,
         raceId: widget.raceId,
       ),
     );
   }
 
-  Future<void> _goToEditScreen(context, runnerRecords, timingData) async {
+  Future<void> _goToEditScreen(context, timingRecords, timingData) async {
     Navigator.push(
       context,
       MaterialPageRoute(

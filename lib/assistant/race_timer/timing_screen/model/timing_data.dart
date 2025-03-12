@@ -3,24 +3,24 @@ import 'dart:convert';
 import 'package:uuid/uuid.dart';
 import '../../../../utils/enums.dart';
 
-import 'runner_record.dart';
+import 'timing_record.dart';
 
 class TimingData with ChangeNotifier {
-  List<RunnerRecord> _records = [];
+  List<TimingRecord> _records = [];
   DateTime? _startTime;
   Duration? _endTime;
   final _uuid = const Uuid();
 
-  List<RunnerRecord> get records => _records;
-  set records(List<RunnerRecord> value) {
+  List<TimingRecord> get records => _records;
+  set records(List<TimingRecord> value) {
     _records = value;
     notifyListeners();
   }
   DateTime? get startTime => _startTime;
   Duration? get endTime => _endTime;
 
-  void addRecord(String elapsedTime, {int? runnerNumber, bool isConfirmed = false, ConflictDetails? conflict, RecordType type = RecordType.runnerTime, int place = 0, Color? textColor}) {
-    _records.add(RunnerRecord(
+  void addRecord(String elapsedTime, {String? runnerNumber, bool isConfirmed = false, ConflictDetails? conflict, RecordType type = RecordType.runnerTime, int place = 0, Color? textColor}) {
+    _records.add(TimingRecord(
       id: _uuid.v4(),
       elapsedTime: elapsedTime,
       runnerNumber: runnerNumber,
@@ -33,7 +33,7 @@ class TimingData with ChangeNotifier {
     notifyListeners();
   }
 
-  void updateRecord(String id, {int? runnerNumber, bool? isConfirmed, ConflictDetails? conflict, RecordType? type, int? place, int? previousPlace, Color? textColor}) {
+  void updateRecord(String id, {String? runnerNumber, bool? isConfirmed, ConflictDetails? conflict, RecordType? type, int? place, int? previousPlace, Color? textColor}) {
     final index = _records.indexWhere((record) => record.id == id);
     if (index >= 0) {
       _records[index] = _records[index].copyWith(
@@ -77,7 +77,7 @@ class TimingData with ChangeNotifier {
     
     if (data.containsKey('records') && data['records'] is List) {
       _records = (data['records'] as List)
-          .map((recordMap) => RunnerRecord.fromMap(recordMap))
+          .map((recordMap) => TimingRecord.fromMap(recordMap))
           .toList();
     }
     

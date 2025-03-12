@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import '../../../utils/database_helper.dart';
-import '../../../shared/models/runner.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/components/dialog_utils.dart';
+import '../../race_screen/widgets/runner_record.dart';
 
 class ResolveBibNumberScreen extends StatefulWidget {
-  final List<Map<String, dynamic>> records;
+  final List<RunnerRecord> records;
   final int raceId;
-  final Function(List<Map<String, dynamic>>) onComplete;
+  final Function(List<RunnerRecord>) onComplete;
   
   const ResolveBibNumberScreen({
     super.key,
@@ -22,8 +22,8 @@ class ResolveBibNumberScreen extends StatefulWidget {
 
 class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
   final DatabaseHelper _databaseHelper = DatabaseHelper.instance;
-  List<Map<String, dynamic>> _errorRecords = [];
-  List<Map<String, dynamic>> _searchResults = [];
+  List<RunnerRecord> _errorRecords = [];
+  List<RunnerRecord> _searchResults = [];
   int _currentIndex = 0;
   final _searchController = TextEditingController();
   final _nameController = TextEditingController();
@@ -31,7 +31,7 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
   final _schoolController = TextEditingController();
   bool _showCreateNew = false;
   late int _raceId;
-  late List<Map<String, dynamic>> _records;
+  late List<RunnerRecord> _records;
   String _currentBibNumber = '';
   
   @override
@@ -39,9 +39,9 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
     super.initState();
     _raceId = widget.raceId;
     _records = widget.records;
-    _errorRecords = _records.where((record) => record['error'] != null).toList();
+    _errorRecords = _records.where((record) => record.error != null).toList();
     if (_errorRecords.isNotEmpty) {
-      _currentBibNumber = _errorRecords[0]['bib_number'].toString();
+      _currentBibNumber = _errorRecords[0].bib.toString();
       _searchRunners('');
     }
   }
@@ -67,28 +67,28 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
       return;
     }
 
-    final runner = Runner(
+    final runner = RunnerRecord(
       name: _nameController.text,
-      bibNumber: _currentBibNumber,
+      bib: _currentBibNumber,
       raceId: _raceId,
-      grade: _gradeController.text,
+      grade: int.parse(_gradeController.text),
       school: _schoolController.text,
     );
 
-    await _databaseHelper.insertRaceRunner(runner.toMap());
-    _errorRecords[_currentIndex]['error'] = null;
+    await _databaseHelper.insertRaceRunner(runner);
+    _errorRecords[_currentIndex].error = null;
     await _moveToNext();
   }
 
-  Future<void> _assignExistingRunner(Map<String, dynamic> runner) async {
-    if (_records.any((record) => record['bib_number'] == runner['bib_number'])) {
+  Future<void> _assignExistingRunner(RunnerRecord runner) async {
+    if (_records.any((record) => record.bib == runner.bib)) {
       DialogUtils.showErrorDialog(context, message: 'This bib number is already assigned to another runner');
       return;
     }
-    final confirmed = await DialogUtils.showConfirmationDialog(context, title: 'Assign Runner', content: 'Are you sure this is the correct runner? \nName: ${runner['name']} \nGrade: ${runner['grade']} \nSchool: ${runner['school']} \nBib Number: ${runner['bib_number']}');
+    final confirmed = await DialogUtils.showConfirmationDialog(context, title: 'Assign Runner', content: 'Are you sure this is the correct runner? \nName: ${runner.name} \nGrade: ${runner.grade} \nSchool: ${runner.school} \nBib Number: ${runner.bib}');
     if (!confirmed) return;
-    _errorRecords[_currentIndex]['bib_number'] = runner['bib_number'];
-    _errorRecords[_currentIndex]['error'] = null;
+    _errorRecords[_currentIndex].bib = runner.bib;
+    _errorRecords[_currentIndex].error = null;
     await _moveToNext();
   }
 
@@ -97,7 +97,7 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
       final runners = await _databaseHelper.getRaceRunners(_raceId);
       setState(() {
         _currentIndex++;
-        _currentBibNumber = _errorRecords[_currentIndex]['bib_number'].toString();
+        _currentBibNumber = _errorRecords[_currentIndex].bib;
         _searchController.clear();
         _nameController.clear();
         _gradeController.clear();
@@ -130,7 +130,7 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
               child: ListTile(
                 contentPadding: const EdgeInsets.all(16),
                 title: Text(
-                  runner['name'] ?? '',
+                  runner.name,
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
@@ -143,20 +143,20 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
                     Row(
                       children: [
                         _buildInfoChip(
-                          'Bib ${runner['bib_number']}',
+                          'Bib ${runner.bib}',
                           AppColors.primaryColor,
                         ),
                         const SizedBox(width: 8),
-                        if (runner['grade'] != null)
+                        if (runner.grade > 0)
                           _buildInfoChip(
-                            'Grade ${runner['grade']}',
+                            'Grade ${runner.grade}',
                             AppColors.mediumColor,
                           ),
                         const SizedBox(width: 8),
-                        if (runner['school'] != null)
+                        if (runner.school != '')
                           Expanded(
                             child: _buildInfoChip(
-                              runner['school'],
+                              runner.school,
                               AppColors.mediumColor,
                             ),
                           ),

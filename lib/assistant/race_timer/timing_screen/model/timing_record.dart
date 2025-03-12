@@ -1,57 +1,79 @@
-import 'package:flutter/foundation.dart';
-import '../../../../utils/enums.dart';
-import 'package:flutter/material.dart';
+import 'package:xcelerate/coach/race_screen/widgets/runner_record.dart';
+import 'package:xcelerate/utils/enums.dart';
 
 /// Represents a record of a runner's time in a race.
-class RunnerRecord {
+class TimingRecord {
   /// Unique identifier for the record
   final String id;
   
   /// The time the runner finished the race, as a Duration from the race start time
-  final String elapsedTime;
+  String elapsedTime;
   
   /// The runner's assigned number, if known
-  final int? runnerNumber;
+  final String? runnerNumber;
   
   /// Whether this record has been confirmed
-  final bool isConfirmed;
+  bool isConfirmed;
   
   /// Details about any conflicts with other records
-  final ConflictDetails? conflict;
+  ConflictDetails? conflict;
 
   RecordType type;
   int? place;
   int? previousPlace;
-  Color? textColor;
+  dynamic textColor;
   
-  /// Constructor for RunnerRecord
-  RunnerRecord({
+  // Runner properties
+  int? runnerId;
+  int? raceId;
+  String? name;
+  String? school;
+  int? grade;
+  String? bib;
+  String? error;
+
+  /// Constructor for TimingRecord
+  TimingRecord({
     required this.id,
     required this.elapsedTime,
     this.runnerNumber,
     this.isConfirmed = false,
     this.conflict,
     this.type = RecordType.runnerTime,
-    required this.place,
+    this.place,
     this.previousPlace,
     this.textColor,
+    this.runnerId,
+    this.raceId,
+    this.name,
+    this.school,
+    this.grade,
+    this.bib,
+    this.error,
   });
   
   /// Creates a copy of this record with the given fields replaced
-  RunnerRecord copyWith({
+  TimingRecord copyWith({
     String? id,
     String? elapsedTime,
-    int? runnerNumber,
+    String? runnerNumber,
     bool? isConfirmed,
     ConflictDetails? conflict,
     RecordType? type,
     int? place,
     int? previousPlace,
-    Color? textColor,
+    dynamic textColor,
+    int? runnerId,
+    int? raceId,
+    String? name,
+    String? school,
+    int? grade,
+    String? bib,
+    String? error,
     bool clearTextColor = false,
     bool clearConflict = false,
   }) {
-    return RunnerRecord(
+    return TimingRecord(
       id: id ?? this.id,
       elapsedTime: elapsedTime ?? this.elapsedTime,
       runnerNumber: runnerNumber ?? this.runnerNumber,
@@ -61,6 +83,13 @@ class RunnerRecord {
       place: place ?? this.place,
       previousPlace: previousPlace ?? this.previousPlace,
       textColor: clearTextColor ? null : (textColor ?? this.textColor), 
+      runnerId: runnerId ?? this.runnerId,
+      raceId: raceId ?? this.raceId,
+      name: name ?? this.name,
+      school: school ?? this.school,
+      grade: grade ?? this.grade,
+      bib: bib ?? this.bib,
+      error: error ?? this.error,
     );
   }
 
@@ -70,6 +99,22 @@ class RunnerRecord {
   
   /// Checks if this record's conflict has been resolved
   bool isResolved() => conflict?.isResolved ?? true;
+
+  /// Converts this TimingRecord to a RunnerRecord
+  RunnerRecord? get runnerRecord {
+    if (raceId == null || name == null || school == null || grade == null || bib == null) {
+      return null;
+    }
+    return RunnerRecord(
+      runnerId: runnerId,
+      raceId: raceId!,
+      name: name!,
+      school: school!,
+      grade: grade!,
+      bib: bib!,
+      error: error,
+    );
+  }
   
   /// Converts record to a Map for serialization
   Map<String, dynamic> toMap() {
@@ -83,12 +128,19 @@ class RunnerRecord {
       'place': place,
       'previous_place': previousPlace,
       'text_color': textColor,
+      'runner_id': runnerId,
+      'race_id': raceId,
+      'name': name,
+      'school': school,
+      'grade': grade,
+      'bib': bib,
+      'error': error,
     };
   }
   
-  /// Creates a RunnerRecord from a Map
-  factory RunnerRecord.fromMap(Map<String, dynamic> map) {
-    return RunnerRecord(
+  /// Creates a TimingRecord from a Map
+  factory TimingRecord.fromMap(Map<String, dynamic> map) {
+    return TimingRecord(
       id: map['id'],
       elapsedTime: map['elapsed_time'],
       runnerNumber: map['runner_number'],
@@ -100,11 +152,18 @@ class RunnerRecord {
       place: map['place'],
       previousPlace: map['previous_place'],
       textColor: map['text_color'],
+      runnerId: map['runner_id'],
+      raceId: map['race_id'],
+      name: map['name'],
+      school: map['school'],
+      grade: map['grade'],
+      bib: map['bib'],
+      error: map['error'],
     );
   }
 }
 
-/// Represents details about a conflict between runner records
+/// Represents a conflict between records
 class ConflictDetails {
   /// Type of conflict (e.g., 'missing_runner', 'extra_runner')
   final RecordType type;

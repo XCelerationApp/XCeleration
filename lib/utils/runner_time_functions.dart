@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:xcelerate/coach/race_screen/widgets/runner_record.dart' show RunnerRecord;
 import 'dart:math';
 import '../core/theme/app_colors.dart';
 import '../core/components/dialog_utils.dart';
 import 'enums.dart';
-import '../assistant/race_timer/timing_screen/model/runner_record.dart';
+import '../assistant/race_timer/timing_screen/model/timing_record.dart';
 import 'package:uuid/uuid.dart';
 
 Uuid _uuid = Uuid();
 
-List<RunnerRecord> updateTextColor(Color? color, List<RunnerRecord> records, {bool confirmed = false, ConflictDetails? conflict, int? endIndex, bool clearConflictColor = false}) {
+List<TimingRecord> updateTextColor(Color? color, List<TimingRecord> records, {bool confirmed = false, ConflictDetails? conflict, int? endIndex, bool clearConflictColor = false}) {
   if (endIndex != null && endIndex < records.length && records.isNotEmpty) {
     records = records.sublist(0, endIndex);
   }
@@ -47,13 +48,13 @@ List<RunnerRecord> updateTextColor(Color? color, List<RunnerRecord> records, {bo
   return records;
 }
 
-List<RunnerRecord> confirmRunnerNumber(records, numTimes, String finishTime) {
+List<TimingRecord> confirmRunnerNumber(List<TimingRecord> records, int numTimes, String finishTime) {
   final color = Colors.green;
   records = updateTextColor(color, records,confirmed: true);
 
   records = deleteConfirmedRecordsBeforeIndexUntilConflict(records, records.length - 1);
 
-  records.add(RunnerRecord(
+  records.add(TimingRecord(
       id: _uuid.v4(),
       elapsedTime: finishTime,
       type: RecordType.confirmRunner,
@@ -64,7 +65,7 @@ List<RunnerRecord> confirmRunnerNumber(records, numTimes, String finishTime) {
   return records;
 }
 
-List<RunnerRecord> deleteConfirmedRecordsBeforeIndexUntilConflict(List<RunnerRecord> records, int recordIndex) {
+List<TimingRecord> deleteConfirmedRecordsBeforeIndexUntilConflict(List<TimingRecord> records, int recordIndex) {
   debugPrint(recordIndex.toString());
   if (recordIndex < 0 || recordIndex >= records.length) {
     return [];
@@ -78,10 +79,10 @@ List<RunnerRecord> deleteConfirmedRecordsBeforeIndexUntilConflict(List<RunnerRec
       records.removeAt(i);
     }
   }
-  return records;
+  return trimmedRecords;
 }
 
-List<RunnerRecord> extraRunnerTime(int offBy, List<RunnerRecord> records, int numTimes, String finishTime) {
+List<TimingRecord> extraRunnerTime(int offBy, List<TimingRecord> records, int numTimes, String finishTime) {
   if (offBy < 1) {
     offBy = 1;
   }
@@ -98,7 +99,7 @@ List<RunnerRecord> extraRunnerTime(int offBy, List<RunnerRecord> records, int nu
   final color = AppColors.redColor;
   records = updateTextColor(color, records, conflict: ConflictDetails(type: RecordType.extraRunner, isResolved: false), confirmed: true);
 
-  records.add(RunnerRecord(
+  records.add(TimingRecord(
     id: _uuid.v4(),
     elapsedTime: finishTime,
     type: RecordType.extraRunner,
@@ -123,14 +124,14 @@ List<RunnerRecord> extraRunnerTime(int offBy, List<RunnerRecord> records, int nu
   return records;
 }
 
-dynamic missingRunnerTime(offBy, records, numTimes, String finishTime) {
+List<TimingRecord> missingRunnerTime(int offBy, List<TimingRecord> records, int numTimes, String finishTime) {
   int correcttedNumTimes = numTimes + offBy; // Placeholder for actual length input
   
   final color = AppColors.redColor;
   records = updateTextColor(color, records, conflict: ConflictDetails(type: RecordType.missingRunner, isResolved: false), confirmed: true);
 
     for (int i = 1; i <= offBy; i++) {
-      records.add(RunnerRecord(
+      records.add(TimingRecord(
         id: _uuid.v4(),
         elapsedTime: 'TBD',
         type: RecordType.runnerTime,
@@ -159,7 +160,7 @@ dynamic missingRunnerTime(offBy, records, numTimes, String finishTime) {
     //   'numTimes': correcttedNumTimes,
     //   'offBy': offBy,
     // });
-    records.add(RunnerRecord(
+    records.add(TimingRecord(
       id: _uuid.v4(),
       elapsedTime: finishTime,
       type: RecordType.missingRunner,
@@ -177,20 +178,20 @@ dynamic missingRunnerTime(offBy, records, numTimes, String finishTime) {
   return records;
 }
 
-List<dynamic> getConflictingRecords(
-  List<dynamic> records,
+List<RunnerRecord> getConflictingRecords(
+  List<TimingRecord> records,
   int conflictIndex,
 ) {
   final firstConflictIndex = records.sublist(0, conflictIndex).indexWhere(
-      (record) => record['type'] == RecordType.runnerTime.toString() && record['conflict'] != null,
+      (record) => record.type == RecordType.runnerTime && record.conflict != null,
     );
   
   return firstConflictIndex == -1 ? [] : 
-    records.sublist(firstConflictIndex, conflictIndex);
+    records.sublist(firstConflictIndex, conflictIndex).where((record) => record.runnerRecord != null).map((record) => record.runnerRecord!).toList();
 }
 
 // Timing Operations
-Future<List<RunnerRecord>> syncBibData(int runnerRecordsLength, List<RunnerRecord> records, String finishTime, BuildContext context) async {
+Future<List<TimingRecord>> syncBibData(int runnerRecordsLength, List<TimingRecord> records, String finishTime, BuildContext context) async {
   final numberOfRunnerTimes = getNumberOfTimes(records);
   debugPrint('Number of runner times: $numberOfRunnerTimes');
   if (numberOfRunnerTimes != runnerRecordsLength) {
@@ -206,7 +207,7 @@ Future<List<RunnerRecord>> syncBibData(int runnerRecordsLength, List<RunnerRecor
   return records;
 }
 
-Future<void> _handleTimingDiscrepancy(int runnerRecordsLength, List<RunnerRecord> records, int numberOfRunnerTimes, String finishTime, BuildContext context) async {
+Future<void> _handleTimingDiscrepancy(int runnerRecordsLength, List<TimingRecord> records, int numberOfRunnerTimes, String finishTime, BuildContext context) async {
   final difference = runnerRecordsLength - numberOfRunnerTimes;
   if (difference > 0) {
     missingRunnerTime(difference, records, numberOfRunnerTimes, finishTime);

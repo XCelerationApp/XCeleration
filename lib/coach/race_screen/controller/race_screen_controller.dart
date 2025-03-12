@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:xcelerate/coach/merge_conflicts_screen/model/timing_data.dart';
+import 'package:xcelerate/coach/race_screen/widgets/runner_record.dart' show RunnerRecord;
 import '../../../utils/database_helper.dart';
 import '../../../shared/models/race.dart';
 import '../../../utils/runner_time_functions.dart';
@@ -15,8 +17,8 @@ class RaceScreenController with ChangeNotifier {
   int raceId;
   bool isRaceSetup = false;
   bool resultsLoaded = false;
-  List<Map<String, dynamic>>? runnerRecords;
-  Map<String, dynamic>? timingData;
+  List<RunnerRecord>? runnerRecords;
+  TimingData? timingData;
   bool hasBibConflicts = false;
   bool hasTimingConflicts = false;
   
@@ -96,7 +98,7 @@ class RaceScreenController with ChangeNotifier {
     // Check if each team has at least minimum runners for a race
     final teamRunnerCounts = <String, int>{};
     for (final runner in raceRunners) {
-      final team = runner['school'] as String;
+      final team = runner.school;
       teamRunnerCounts[team] = (teamRunnerCounts[team] ?? 0) + 1;
     }
 
@@ -113,17 +115,17 @@ class RaceScreenController with ChangeNotifier {
   
   /// Get encoded runners data for sharing
   Future<String> getEncodedRunnersData() async {
-    final runners = await getRunnersData();
+    final List<RunnerRecord> runners = await getRunnersData();
     return runners.map((runner) => [
-      runner['bib_number'],
-      runner['name'],
-      runner['school'],
-      runner['grade']
+      runner.bib,
+      runner.name,
+      runner.school,
+      runner.grade
     ].join(',')).join(' ');
   }
   
   /// Get the list of runners for the race
-  Future<List<dynamic>> getRunnersData() async {
+  Future<List<RunnerRecord>> getRunnersData() async {
     return await DatabaseHelper.instance.getRaceRunners(raceId);
   }
   
@@ -136,13 +138,13 @@ class RaceScreenController with ChangeNotifier {
   }
   
   /// Check if there are timing conflicts in the data
-  bool containsTimingConflicts(Map<String, dynamic> data) {
-    return getConflictingRecords(data['records'], data['records'].length).isNotEmpty;
+  bool containsTimingConflicts(TimingData data) {
+    return getConflictingRecords(data.records, data.records.length).isNotEmpty;
   }
   
   /// Check if there are bib conflicts in the runner records
-  bool containsBibConflicts(List<dynamic> records) {
-    return records.any((record) => record['error'] != null);
+  bool containsBibConflicts(List<RunnerRecord> records) {
+    return records.any((record) => record.error != null);
   }
   
   /// Create device connections list for communication
@@ -167,10 +169,10 @@ class RaceScreenController with ChangeNotifier {
     final processedTimingData = await processEncodedTimingData(finishTimesData, context);
     
     if (processedRunnerRecords.isNotEmpty && processedTimingData != null) {
-      processedTimingData['records'] = await syncBibData(
+      processedTimingData.records = await syncBibData(
         processedRunnerRecords.length, 
-        processedTimingData['records'], 
-        processedTimingData['endTime'], 
+        processedTimingData.records, 
+        processedTimingData.endTime, 
         context
       );
       

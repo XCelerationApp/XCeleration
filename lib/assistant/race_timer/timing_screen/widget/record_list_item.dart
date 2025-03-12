@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import '../model/runner_record.dart';
+import '../model/timing_record.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/typography.dart';
 import '../../../../utils/enums.dart';
 
 class RunnerTimeRecordItem extends StatelessWidget {
-  final RunnerRecord record;
+  final TimingRecord record;
   final int index;
   final BuildContext context;
 
@@ -62,7 +62,7 @@ class RunnerTimeRecordItem extends StatelessWidget {
 }
 
 class ConfirmationRecordItem extends StatelessWidget {
-  final RunnerRecord record;
+  final TimingRecord record;
   final int index;
   final BuildContext context;
 
@@ -104,7 +104,7 @@ class ConfirmationRecordItem extends StatelessWidget {
 }
 
 class ConflictRecordItem extends StatelessWidget {
-  final RunnerRecord record;
+  final TimingRecord record;
   final int index;
   final BuildContext context;
 
