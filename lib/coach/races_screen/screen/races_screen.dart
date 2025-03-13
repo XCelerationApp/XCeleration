@@ -695,9 +695,6 @@ class RacesScreenState extends State<RacesScreen> {
       'finished': 'Completed',
     }[race.flowState] ?? 'Setup Required';
 
-    print('flowState: ${race.flowState}!!!');
-    print('state: $state!!!');
-
     final flowStateColor = {
       'setup': Colors.orange,
       'pre-race': Colors.blue,

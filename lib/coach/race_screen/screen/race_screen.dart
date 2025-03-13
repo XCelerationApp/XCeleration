@@ -39,7 +39,6 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
   }
 
   String _getStatusText(String flowState) {
-    print('flowState: $flowState!!!');
     switch (flowState) {
       case 'setup':
         return 'Setup';
