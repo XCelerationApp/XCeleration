@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:xcelerate/coach/merge_conflicts_screen/model/timing_data.dart';
-import 'package:xcelerate/coach/race_screen/widgets/runner_record.dart' show RunnerRecord;
 import '../../../utils/database_helper.dart';
 import '../../../shared/models/race.dart';
-import '../../../utils/runner_time_functions.dart';
 import '../../../utils/enums.dart';
 import '../../../core/services/device_connection_service.dart';
 import '../../../coach/flows/controller/flow_controller.dart';
@@ -25,35 +22,25 @@ class RaceScreenController with ChangeNotifier {
   // Flow state
   String get flowState => race?.flowState ?? 'setup';
 
-  // Getters for UI
-  bool get raceSetup => isRaceSetup;
+
   
   // Constructor
-  RaceScreenController({required this.raceId}) {
-    flowController = MasterFlowController(raceId: raceId);
-    loadRace();
+  RaceScreenController({required this.raceId});
+
+  Future<void> init(BuildContext context) async {
+    race = await loadRace();
+    if (race == null) throw Exception('Race not found');
+
+    flowController = MasterFlowController(raceId: raceId, race: race!);
+    await continueRaceFlow(context);
   }
   
   /// Load the race data and any saved results
-  Future<void> loadRace() async {
+  Future<Race?> loadRace() async {
     final loadedRace = await DatabaseHelper.instance.getRaceById(raceId);
-    race = loadedRace;
     notifyListeners();
-    
-    isRaceSetup = await DatabaseHelper.instance.checkIfRaceRunnersAreLoaded(raceId);
-    
-    
-    continueRaceFlow();
+    return loadedRace;
   }
-  
-  /// Continue the race flow based on the current state
-  Future<void> continueRaceFlow() async {
-    if (race == null) return;
-    
-    // Handle different flow states (no implementation here, UI will use this information)
-    notifyListeners();
-  }
-  
   
   /// Update the race flow state
   Future<void> updateRaceFlowState(String newState) async {
@@ -62,6 +49,10 @@ class RaceScreenController with ChangeNotifier {
     notifyListeners();
   }
 
+  /// Continue the race flow based on the current state
+  Future<void> continueRaceFlow(BuildContext context) async {
+    await flowController.continueRaceFlow(context);
+  }
   
   // /// Reset results loading state
   // void resetResultsLoading() {
@@ -81,23 +72,5 @@ class RaceScreenController with ChangeNotifier {
       deviceType,
       data: data,
     );
-  }
-
-  /// Setup the race with runners
-  /// Delegates to FlowController for flow management
-  Future<bool> setupRace(BuildContext context) async {
-    return await flowController.setupFlow(context);
-  }
-
-  /// Pre-race setup flow
-  /// Delegates to FlowController for flow management
-  Future<bool> preRaceSetup(BuildContext context) async {
-    return await flowController.preRaceFlow(context);
-  }
-
-  /// Post-race setup flow
-  /// Delegates to FlowController for flow management
-  Future<bool> postRaceSetup(BuildContext context) async {
-    return await flowController.postRaceFlow(context);
   }
 }

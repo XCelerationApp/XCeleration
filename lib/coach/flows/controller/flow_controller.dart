@@ -8,38 +8,70 @@ import '../../flows/widgets/flow_indicator.dart';
 import '../SetupFlow/controller/setup_controller.dart';
 import '../PreRaceFlow/controller/pre_race_controller.dart';
 import '../PostRaceFlow/controller/post_race_controller.dart';
-
+import '../../../shared/models/race.dart';
 import 'dart:async';
+import '../../../utils/database_helper.dart';
 
 /// Controller class for handling all flow-related operations
 class MasterFlowController {
   final int raceId;
+  Race race;
   late SetupController setupController;
   late PreRaceController preRaceController;
   late PostRaceController postRaceController;
 
-  MasterFlowController({required this.raceId}) {
+  MasterFlowController({required this.raceId, required this.race}) {
     setupController = SetupController(raceId: raceId);
     preRaceController = PreRaceController(raceId: raceId);
     postRaceController = PostRaceController(raceId: raceId);
   }
-  
+
+  /// Continue the race flow based on the current state
+  Future<void> continueRaceFlow(BuildContext context) async {
+    switch (race.flowState) {
+      case 'setup':
+        await _setupFlow(context);
+        break;
+      case 'pre-race':
+        await _preRaceFlow(context);
+        break;
+      case 'post-race':
+        await _postRaceFlow(context);
+        break;
+    }
+  }
+
+    /// Update the race flow state
+  Future<void> updateRaceFlowState(String newState) async {
+    await DatabaseHelper.instance.updateRaceFlowState(raceId, newState);
+    race = race.copyWith(flowState: newState);
+  }
+
   /// Setup the race with runners
   /// Shows a flow with the provided steps and handles user progression
-  Future<bool> setupFlow(BuildContext context) async {
-    return await setupController.showSetupFlow(context, true);
+  Future<bool> _setupFlow(BuildContext context) async {
+    final bool completed = await setupController.showSetupFlow(context, true);
+    if (!completed) return false;
+    await updateRaceFlowState('pre-race');
+    return _preRaceFlow(context);
   }
 
   /// Pre-race setup flow
   /// Shows a flow for pre-race setup and coordination
-  Future<bool> preRaceFlow(BuildContext context) async {
-    return await preRaceController.showPreRaceFlow(context, true);
+  Future<bool> _preRaceFlow(BuildContext context) async {
+    final bool completed = await preRaceController.showPreRaceFlow(context, true);
+    if (!completed) return false;
+    await updateRaceFlowState('post-race');
+    return _postRaceFlow(context);
   }
 
   /// Post-race setup flow
   /// Shows a flow for post-race data collection and result processing
-  Future<bool> postRaceFlow(BuildContext context) async {
-    return await postRaceController.showPostRaceFlow(context, true);
+  Future<bool> _postRaceFlow(BuildContext context) async {
+    final bool completed = await postRaceController.showPostRaceFlow(context, true);
+    if (!completed) return false;
+    await updateRaceFlowState('completed');
+    return true;
   }
 
 }

@@ -54,18 +54,17 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
   // UI state
   final bool _preRaceFinished = false;
   final bool _postRaceFinished = false;
-  bool _raceSetup = false;
   
   @override
   void initState() {
     super.initState();
     _controller = RaceScreenController(raceId: widget.raceId);
+    _controller.init(context);
     _controller.addListener(_updateUI);
     _slideController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
-    _loadRace();
   }
 
   void _updateUI() {
@@ -81,83 +80,6 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
         _teamNames = _controller.race!.teams;
       }
     });
-  }
-
-  Future<void> _loadRace() async {
-    await _controller.loadRace();
-    setState(() {
-      _raceSetup = _controller.raceSetup;
-    });
-    _continueRaceFlow();
-  }
-
-  Future<void> _continueRaceFlow() async {
-    if (_controller.race == null) return;
-
-    switch (_controller.race!.flowState) {
-      case 'setup':
-        await _setupRace(_controller.raceId);
-        break;
-      case 'pre_race':
-        await _preRaceSetup(_controller.raceId);
-        break;
-      case 'post_race':
-        await _postRaceSetup(_controller.raceId);
-        break;
-      case 'finished':
-        // Show completed state or results
-        break;
-      default:
-        await _setupRace(_controller.raceId);
-    }
-  }
-
-  Future<void> _checkAndStartFlow() async {
-    if (_controller.race == null) return;
-    
-    switch (_controller.race!.flowState) {
-      case 'setup':
-        await _setupRace(_controller.raceId);
-        break;
-      case 'pre_race':
-        await _preRaceSetup(_controller.raceId);
-        break;
-      case 'post_race':
-        await _postRaceSetup(_controller.raceId);
-        break;
-      default:
-        break;
-    }
-  }
-
-  Future<void> _setupRace(int raceId) async {
-    final isCompleted = await _controller.setupRace(context);
-
-    if (isCompleted) {
-      await _controller.updateRaceFlowState('pre_race');
-      await _preRaceSetup(raceId);
-    }
-    else {
-      debugPrint('Setup incomplete');
-    }
-  }
-
-  Future<void> _preRaceSetup(int raceId) async {
-    final isCompleted = await _controller.preRaceSetup(context);
-
-    if (isCompleted) {
-      await _controller.updateRaceFlowState('post_race');
-      await _postRaceSetup(raceId);
-    }
-  }
-
-  Future<void> _postRaceSetup(int raceId) async {
-    debugPrint('_postRaceSetup');
-    final isCompleted = await _controller.postRaceSetup(context);
-
-    if (isCompleted) {
-      await _controller.updateRaceFlowState('finished');
-    }
   }
 
 
@@ -369,7 +291,7 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
                     child: Material(
                       color: Colors.transparent,
                       child: InkWell(
-                        onTap: _continueRaceFlow,
+                        onTap: () => _controller.continueRaceFlow(context),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), // Reduced padding
                           child: Text(
