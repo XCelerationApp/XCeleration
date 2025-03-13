@@ -1,24 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
-import 'package:xcelerate/assistant/race_timer/timing_screen/model/timing_record.dart' show TimingRecord;
-import 'package:xcelerate/utils/runner_time_functions.dart';
-import '../../../utils/database_helper.dart';
-import '../../flows/model/flow_model.dart';
-import '../../../utils/enums.dart';
-import '../../../core/components/device_connection_widget.dart';
-import '../../../core/theme/typography.dart';
-import '../../edit_review_screen/screen/edit_and_review_screen.dart';
-import '../../runners_management_screen/screen/runners_management_screen.dart';
 import '../../../core/theme/app_colors.dart';
 import '../widgets/modern_detail_row.dart';
 import '../widgets/race_status_indicator.dart';
-import '../widgets/bib_conflicts_sheet.dart';
-import '../widgets/timing_conflicts_sheet.dart';
 import '../controller/race_screen_controller.dart';
-import '../../flows/controller/flow_controller.dart';
-import '../../merge_conflicts_screen/model/timing_data.dart';
-// import '../../../edit_review_screen/model/timing_data.dart';
-import '../widgets/runner_record.dart';
 
 
 
@@ -34,55 +18,15 @@ class RaceScreen extends StatefulWidget {
 }
 
 class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
-  late String _name = '';
-  late String _location = '';
-  late String _date = '';
-  late double _distance = 0.0;
-  late final String _distanceUnit = 'miles';
-  late List<Color> _teamColors = [];
-  late List<String> _teamNames = [];
-  late TextEditingController _nameController;
-  late TextEditingController _locationController;
-  late TextEditingController _dateController;
-  late TextEditingController _distanceController;
-  late AnimationController _slideController;
-  bool _showDetails = false;
-  bool _showRunners = false;
-  bool _showResults = false;
   // Controller
   late RaceScreenController _controller;
-  // UI state
-  final bool _preRaceFinished = false;
-  final bool _postRaceFinished = false;
   
   @override
   void initState() {
     super.initState();
     _controller = RaceScreenController(raceId: widget.raceId);
     _controller.init(context);
-    _controller.addListener(_updateUI);
-    _slideController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    );
   }
-
-  void _updateUI() {
-    if (!mounted) return;
-    setState(() {
-      // Update UI variables from controller if needed
-      if (_controller.race != null) {
-        _name = _controller.race!.race_name;
-        _location = _controller.race!.location;
-        _date = _controller.race!.race_date.toString();
-        _distance = _controller.race!.distance;
-        _teamColors = _controller.race!.teamColors;
-        _teamNames = _controller.race!.teams;
-      }
-    });
-  }
-
-
 
 
   Widget _buildModernDetailRow(String label, String value, IconData icon, {bool isMultiLine = false}) {
@@ -108,58 +52,6 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
         return 'Unknown';
     }
   }
-
-  Future<void> _goToEditScreen(context, timingRecords, timingData) async {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => EditAndReviewScreen(timingData: timingData, raceId: _controller.raceId),
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    _slideController.dispose();
-    _nameController.dispose();
-    _locationController.dispose();
-    _dateController.dispose();
-    _distanceController.dispose();
-    _controller.removeListener(_updateUI);
-    super.dispose();
-  }
-
-  void _goToDetailsScreen(BuildContext context) {
-    setState(() {
-      _showDetails = true;
-    });
-    _slideController.forward();
-  }
-
-  void _goToRunnersScreen(BuildContext context) {
-    setState(() {
-      _showRunners = true;
-    });
-    _slideController.forward();
-  }
-
-  void _goToResultsScreen(BuildContext context) {
-    setState(() {
-      _showResults = true;
-    });
-    _slideController.forward();
-  }
-
-  void _goBackToMainRaceScreen() {
-    _slideController.reverse().then((_) {
-      setState(() {
-        _showRunners = false;
-        _showResults = false;
-        _showDetails = false;
-      });
-    });
-  }
-
   Color _getStatusColor(String flowState) {
     switch (flowState) {
       case 'setup':
