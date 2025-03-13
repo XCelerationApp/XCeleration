@@ -945,6 +945,15 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
                   ),
                 ),
                 onPressed: () async {
+                  print('pressed');
+                  print('schoolError: $schoolError');
+                  print('bibError: $bibError');
+                  print('gradeError: $gradeError');
+                  print('nameError: $nameError');
+                  print('_nameController!.text: ${_nameController!.text}');
+                  print('_gradeController!.text: ${_gradeController!.text}');
+                  print('_schoolController!.text: ${_schoolController!.text}');
+                  print('_bibController!.text: ${_bibController!.text}');
                   if (schoolError != null || bibError != null || gradeError != null || nameError != null || _nameController!.text.isEmpty || _gradeController!.text.isEmpty || _schoolController!.text.isEmpty || _bibController!.text.isEmpty) return;
                   try {
                     final newRunner = RunnerRecord(
@@ -952,9 +961,9 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
                       grade: int.tryParse(_gradeController!.text) ?? 0,
                       school: _schoolController!.text,
                       bib: _bibController!.text,
-                      runnerId: runner?.runnerId as int,
-                      raceId: runner?.raceId as int,
+                      raceId: widget.raceId,
                     );
+                    print('newRunner: ${newRunner.toMap()}');
 
                     await _handleRunnerSubmission(newRunner);
                     if (context.mounted) {
@@ -995,6 +1004,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
     try {
       dynamic existingRunner;
       existingRunner = await DatabaseHelper.instance.getRaceRunnerByBib(widget.raceId, runner.bib);
+      print('existingRunner: $existingRunner');
 
       if (existingRunner != null) {
         // If we're updating the same runner (same ID), just update
@@ -1004,15 +1014,15 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
           if (!mounted) return;
           // If a different runner exists with this bib, ask for confirmation
           final shouldOverwrite = await DialogUtils.showConfirmationDialog(
-          context,
-          title: 'Overwrite Runner',
-          content: 'A runner with bib number ${runner.bib} already exists. Do you want to overwrite it?',
-        );
-        
-        if (!shouldOverwrite) return;
-        
-        await DatabaseHelper.instance.deleteRaceRunner(widget.raceId, runner.bib);
-        await _insertRunner(runner);
+            context,
+            title: 'Overwrite Runner',
+            content: 'A runner with bib number ${runner.bib} already exists. Do you want to overwrite it?',
+          );
+
+          if (!shouldOverwrite) return;
+          
+          await DatabaseHelper.instance.deleteRaceRunner(widget.raceId, runner.bib);
+          await _insertRunner(runner);
         }
       } else {
         await _insertRunner(runner);
@@ -1028,6 +1038,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
   }
 
   Future<void> _insertRunner(RunnerRecord runner) async {
+    print('Inserting runner: ${runner.toMap()}');
     await DatabaseHelper.instance.insertRaceRunner(runner);
   }
 

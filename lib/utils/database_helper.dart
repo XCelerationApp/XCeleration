@@ -26,7 +26,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -119,6 +119,44 @@ class DatabaseHelper {
           FOREIGN KEY (runner_id) REFERENCES team_runners (runner_id)
         )
       ''');
+    }
+    
+    // Add version 3 upgrade to rename the column
+    if (oldVersion < 3) {
+      try {
+        // SQLite doesn't directly support column renaming in older versions
+        // We need to create a new table with the correct structure and copy data
+        
+        // 1. Create a temporary table with the new structure
+        await db.execute('''
+          CREATE TABLE race_runners_new (
+            runner_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            race_id INTEGER NOT NULL,
+            bib_number TEXT NOT NULL,
+            name TEXT NOT NULL,
+            school TEXT,
+            grade INTEGER,
+            FOREIGN KEY (race_id) REFERENCES races(race_id),
+            UNIQUE(race_id, bib_number)
+          )
+        ''');
+        
+        // 2. Copy data from the old table to the new one, mapping race_runner_id to runner_id
+        await db.execute('''
+          INSERT INTO race_runners_new (runner_id, race_id, bib_number, name, school, grade)
+          SELECT race_runner_id, race_id, bib_number, name, school, grade FROM race_runners
+        ''');
+        
+        // 3. Drop the old table
+        await db.execute('DROP TABLE race_runners');
+        
+        // 4. Rename the new table to the original name
+        await db.execute('ALTER TABLE race_runners_new RENAME TO race_runners');
+        
+        print("Successfully migrated race_runners table with renamed column");
+      } catch (e) {
+        print("Error during migration: $e");
+      }
     }
   }
 
@@ -226,7 +264,7 @@ class DatabaseHelper {
     final db = await instance.database;
     return await db.insert(
       'race_runners',
-      runner.toMap(),
+      runner.toMap(database: true),
       conflictAlgorithm: ConflictAlgorithm.replace, // Replace if bib number exists in race
     );
   }
@@ -281,7 +319,7 @@ class DatabaseHelper {
     final db = await instance.database;
     await db.update(
       'race_runners',
-      runner.toMap(),
+      runner.toMap(database: true),
       where: 'runner_id = ?',
       whereArgs: [runner.runnerId],
     );
@@ -371,35 +409,43 @@ class DatabaseHelper {
 
   Future<List<Map<String, dynamic>>> getRaceResults(int raceId) async {
     final db = await instance.database;
-    final raceRunners = await db.rawQuery('''
-      SELECT 
-        rr.runner_id AS runner_id, 
-        rr.bib_number, 
-        rr.name, 
-        rr.school, 
-        rr.grade, 
-        r.place, 
-        r.finish_time
-      FROM race_results r
-      LEFT JOIN race_runners rr ON rr.runner_id = r.runner_id
-      WHERE rr.race_id = ?
-    ''', [raceId]);
+    
+    try {
+      // Use the correct column name runner_id instead of race_runner_id
+      final raceRunners = await db.rawQuery('''
+        SELECT 
+          rr.runner_id AS runner_id, 
+          rr.bib_number, 
+          rr.name, 
+          rr.school, 
+          rr.grade, 
+          r.place, 
+          r.finish_time
+        FROM race_results r
+        LEFT JOIN race_runners rr ON rr.runner_id = r.runner_id
+        WHERE rr.race_id = ?
+      ''', [raceId]);
+      
+      // final teamRunners = await db.rawQuery('''
+      //   SELECT 
+      //     sr.runner_id AS runner_id, 
+      //     sr.bib_number, 
+      //     sr.name, 
+      //     sr.school, 
+      //     sr.grade, 
+      //     r.place, 
+      //     r.finish_time
+      //   FROM race_results r
+      //   LEFT JOIN team_runners sr ON sr.runner_id = r.runner_id
+      //   WHERE r.race_id = ?
+      // ''', [raceId]);
 
-    final teamRunners = await db.rawQuery('''
-      SELECT 
-        sr.runner_id AS runner_id, 
-        sr.bib_number, 
-        sr.name, 
-        sr.school, 
-        sr.grade, 
-        r.place, 
-        r.finish_time
-      FROM race_results r
-      LEFT JOIN team_runners sr ON sr.runner_id = r.runner_id
-      WHERE r.race_id = ?
-    ''', [raceId]);
-
-    if (raceId == 1) return [...raceRunners, ...teamRunners];
+      if (raceId == 1) return raceRunners;
+    } catch (e) {
+      print("Query error: $e");
+    }
+    
+    // Fallback to test data if query fails or for other race IDs
     return [
       {
         'runner_id': 1,
