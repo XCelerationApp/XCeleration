@@ -39,7 +39,6 @@ class RaceScreenController with ChangeNotifier {
   /// Load the race data and any saved results
   Future<Race?> loadRace() async {
     final loadedRace = await DatabaseHelper.instance.getRaceById(raceId);
-    notifyListeners();
     return loadedRace;
   }
   
