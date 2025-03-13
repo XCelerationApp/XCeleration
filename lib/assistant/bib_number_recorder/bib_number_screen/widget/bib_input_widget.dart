@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import '../model/bib_record.dart';
+import 'package:xcelerate/coach/race_screen/widgets/runner_record.dart';
 import '../model/bib_records_provider.dart';
 import '../../../../../core/theme/typography.dart';
 
 class BibInputWidget extends StatelessWidget {
   final int index;
-  final BibRecord record;
+  final RunnerRecord record;
   final Function(String, {List<double>? confidences, int? index}) onBibNumberChanged;
   final Function() onSubmitted;
 
@@ -86,7 +86,7 @@ class BibInputWidget extends StatelessWidget {
   }
 
   Widget _buildRunnerInfo() {
-    if (record.flags['not_in_database'] == false && record.bibNumber.isNotEmpty) {
+    if (record.flags.notInDatabase == false && record.bib.isNotEmpty) {
       return Text(
         '${record.name}, ${record.school}',
         textAlign: TextAlign.center,
@@ -98,15 +98,17 @@ class BibInputWidget extends StatelessWidget {
 
   Widget _buildErrorText() {
     final errors = <String>[];
-    if (record.flags['duplicate_bib_number']!) errors.add('Duplicate Bib Number');
-    if (record.flags['not_in_database']!) errors.add('Runner not found');
-    if (record.flags['low_confidence_score']!) errors.add('Low Confidence Score');
+    if (record.flags.duplicateBibNumber) errors.add('Duplicate Bib Number');
+    if (record.flags.notInDatabase) errors.add('Runner not found');
+    if (record.flags.lowConfidenceScore) errors.add('Low Confidence Score');
 
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Icon(Icons.error_outline, size: 16, color: Colors.red),
-        const SizedBox(width: 8),
+        if (errors.isNotEmpty)
+          Icon(Icons.error_outline, color: Colors.red, size: 16),
+        if (errors.isNotEmpty)
+          const SizedBox(width: 4),
         Text(
           errors.join(' • '),
           style: AppTypography.bodyRegular.copyWith(

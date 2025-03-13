@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:xcelerate/coach/race_screen/widgets/runner_record.dart';
 import '../model/bib_record.dart';
 import '../model/bib_records_provider.dart';
 import '../../../../../core/components/dialog_utils.dart';
@@ -7,7 +8,7 @@ import 'package:provider/provider.dart';
 
 class BibNumberController {
   final BuildContext context;
-  final List<dynamic> runners;
+  final List<RunnerRecord> runners;
   final ScrollController scrollController;
   final Map<DeviceName, Map<String, dynamic>> otherDevices;
   
@@ -19,29 +20,36 @@ class BibNumberController {
   });
 
   // Runner management methods
-  dynamic getRunnerByBib(String bibNumber) {
+  RunnerRecord? getRunnerByBib(String bibNumber) {
     try {
-      return runners.firstWhere(
-        (runner) => runner['bib_number'] == bibNumber,
-        orElse: () => null,
+      final runner = runners.firstWhere(
+        (runner) => runner.bib == bibNumber,
+        orElse: () => RunnerRecord(bib: '', name: '', raceId: -1, grade: -1, school: ''),
       );
+      return (runner.raceId != -1) ? runner : null;
     } catch (e) {
       return null;
     }
   }
 
-  List<Map<String, dynamic>> decodeRunners(String encodedRunners) {
-    List<Map<String, dynamic>> decodedRunners = [];
+  List<RunnerRecord> decodeRunners(String encodedRunners, int raceId) {
+    List<RunnerRecord> decodedRunners = [];
     for (var runner in encodedRunners.split(' ')) {
       if (runner.isNotEmpty) {
         List<String> runnerValues = runner.split(',');
         if (runnerValues.length == 4) {
-          decodedRunners.add({
-            'bib_number': runnerValues[0],
-            'name': runnerValues[1],
-            'school': runnerValues[2],
-            'grade': runnerValues[3],
-          });
+          decodedRunners.add(RunnerRecord(
+            raceId: raceId,
+            bib: runnerValues[0],
+            name: runnerValues[1],
+            grade: int.parse(runnerValues[3]),
+            school: runnerValues[2],
+          ));
+          //   'bib_number': runnerValues[0],
+          //   'name': runnerValues[1],
+          //   'school': runnerValues[2],
+          //   'grade': runnerValues[3],
+          // });
         }
       }
     }
@@ -53,10 +61,12 @@ class BibNumberController {
     final provider = Provider.of<BibRecordsProvider>(context, listen: false);
     final record = provider.bibRecords[index];
 
-    // Reset all flags first
-    record.flags['low_confidence_score'] = false;
-    record.flags['not_in_database'] = false;
-    record.flags['duplicate_bib_number'] = false;
+    // Reset all flags by creating a new RunnerRecordFlags object
+    record.flags = const RunnerRecordFlags(
+      lowConfidenceScore: false,
+      notInDatabase: false,
+      duplicateBibNumber: false,
+    );
     record.name = '';
     record.school = '';
 
@@ -65,33 +75,43 @@ class BibNumberController {
       return;
     }
 
+    bool lowConfidence = false;
+    bool notInDb = false;
+    bool duplicateBib = false;
+
     // Check confidence scores
     if (confidences?.any((score) => score < 0.9) ?? false) {
-      record.flags['low_confidence_score'] = true;
+      lowConfidence = true;
     }
 
     // Check database
     final runner = getRunnerByBib(bibNumber);
     if (runner == null) {
-      record.flags['not_in_database'] = true;
+      notInDb = true;
     } else {
-      record.name = runner['name'];
-      record.school = runner['school'];
-      record.flags['not_in_database'] = false;
+      record.name = runner.name;
+      record.school = runner.school;
     }
 
     // Check duplicates
     final duplicateIndexes = provider.bibRecords
       .asMap()
       .entries
-      .where((e) => e.value.bibNumber == bibNumber && e.value.bibNumber.isNotEmpty)
+      .where((e) => e.value.bib == bibNumber && e.value.bib.isNotEmpty)
       .map((e) => e.key)
       .toList();
 
     if (duplicateIndexes.length > 1) {
       // Mark as duplicate if this is not the first occurrence
-      record.flags['duplicate_bib_number'] = duplicateIndexes.indexOf(index) > 0;
+      duplicateBib = duplicateIndexes.indexOf(index) > 0;
     }
+
+    // Set all flags at once with a new object
+    record.flags = RunnerRecordFlags(
+      lowConfidenceScore: lowConfidence,
+      notInDatabase: notInDb,
+      duplicateBibNumber: duplicateBib,
+    );
   }
 
   void onBibRecordRemoved(int index) {
@@ -100,7 +120,7 @@ class BibNumberController {
 
     // Revalidate all remaining bib numbers to update duplicate flags
     for (var i = 0; i < provider.bibRecords.length; i++) {
-      validateBibNumber(i, provider.bibRecords[i].bibNumber, null);
+      validateBibNumber(i, provider.bibRecords[i].bib, null);
     }
   }
 
@@ -114,9 +134,17 @@ class BibNumberController {
       await validateBibNumber(index, bibNumber, confidences);
       provider.updateBibRecord(index, bibNumber);
     } else {
-      provider.addBibRecord(BibRecord(
-        bibNumber: bibNumber,
-        confidences: confidences ?? [],
+      provider.addBibRecord(RunnerRecord(
+        bib: bibNumber,
+        name: '',
+        raceId: -1,
+        grade: -1,
+        school: '',
+        flags: const RunnerRecordFlags(
+          notInDatabase: false,
+          duplicateBibNumber: false,
+          lowConfidenceScore: false,
+        ),
       ));
       // Scroll to bottom when adding new bib
       WidgetsBinding.instance.addPostFrameCallback((_) => scrollToBottom());
@@ -124,7 +152,7 @@ class BibNumberController {
 
     // Validate all bib numbers to update duplicate states
     for (var i = 0; i < provider.bibRecords.length; i++) {
-      await validateBibNumber(i, provider.bibRecords[i].bibNumber, 
+      await validateBibNumber(i, provider.bibRecords[i].bib, 
         i == index ? confidences : null);
     }
 
@@ -148,7 +176,7 @@ class BibNumberController {
   // Sharing and data validation methods
   String getEncodedBibData() {
     final bibRecordsProvider = Provider.of<BibRecordsProvider>(context, listen: false);
-    return bibRecordsProvider.bibRecords.map((record) => record.bibNumber).toList().join(' ');
+    return bibRecordsProvider.bibRecords.map((record) => record.bib).toList().join(' ');
   }
 
   void restoreFocusability() {
@@ -160,7 +188,7 @@ class BibNumberController {
 
   Future<bool> cleanEmptyRecords() async {
     final provider = Provider.of<BibRecordsProvider>(context, listen: false);
-    final emptyRecords = provider.bibRecords.where((bib) => bib.bibNumber.isEmpty).length;
+    final emptyRecords = provider.bibRecords.where((bib) => bib.bib.isEmpty).length;
     
     if (emptyRecords > 0) {
       final confirmed = await DialogUtils.showConfirmationDialog(
@@ -170,7 +198,7 @@ class BibNumberController {
       );
       
       if (confirmed) {
-        provider.bibRecords.removeWhere((bib) => bib.bibNumber.isEmpty);
+        provider.bibRecords.removeWhere((bib) => bib.bib.isEmpty);
       }
       return confirmed;
     }
@@ -179,7 +207,7 @@ class BibNumberController {
 
   Future<bool> checkDuplicateRecords() async {
     final provider = Provider.of<BibRecordsProvider>(context, listen: false);
-    final duplicateRecords = provider.bibRecords.where((bib) => bib.flags['duplicate_bib_number'] == true).length;
+    final duplicateRecords = provider.bibRecords.where((bib) => bib.flags.duplicateBibNumber).length;
     
     if (duplicateRecords > 0) {
       final confirmed = await DialogUtils.showConfirmationDialog(
@@ -194,7 +222,7 @@ class BibNumberController {
 
   Future<bool> checkUnknownRecords() async {
     final provider = Provider.of<BibRecordsProvider>(context, listen: false);
-    final unknownRecords = provider.bibRecords.where((bib) => bib.flags['not_in_database'] == true).length;
+    final unknownRecords = provider.bibRecords.where((bib) => bib.flags.notInDatabase).length;
     
     if (unknownRecords > 0) {
       final confirmed = await DialogUtils.showConfirmationDialog(

@@ -55,7 +55,6 @@ List<TimingRecord> confirmRunnerNumber(List<TimingRecord> records, int numTimes,
   records = deleteConfirmedRecordsBeforeIndexUntilConflict(records, records.length - 1);
 
   records.add(TimingRecord(
-      id: _uuid.v4(),
       elapsedTime: finishTime,
       type: RecordType.confirmRunner,
       textColor: color,
@@ -100,7 +99,6 @@ List<TimingRecord> extraRunnerTime(int offBy, List<TimingRecord> records, int nu
   records = updateTextColor(color, records, conflict: ConflictDetails(type: RecordType.extraRunner, isResolved: false), confirmed: true);
 
   records.add(TimingRecord(
-    id: _uuid.v4(),
     elapsedTime: finishTime,
     type: RecordType.extraRunner,
     textColor: color,
@@ -132,7 +130,6 @@ List<TimingRecord> missingRunnerTime(int offBy, List<TimingRecord> records, int 
 
     for (int i = 1; i <= offBy; i++) {
       records.add(TimingRecord(
-        id: _uuid.v4(),
         elapsedTime: 'TBD',
         type: RecordType.runnerTime,
         textColor: color,
@@ -161,7 +158,6 @@ List<TimingRecord> missingRunnerTime(int offBy, List<TimingRecord> records, int 
     //   'offBy': offBy,
     // });
     records.add(TimingRecord(
-      id: _uuid.v4(),
       elapsedTime: finishTime,
       type: RecordType.missingRunner,
       textColor: color,

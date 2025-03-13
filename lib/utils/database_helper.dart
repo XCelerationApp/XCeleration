@@ -1,5 +1,9 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:uuid/uuid.dart';
+import 'package:xcelerate/coach/merge_conflicts_screen/model/timing_data.dart';
+import 'package:xcelerate/assistant/race_timer/timing_screen/model/timing_record.dart';
+import 'package:xcelerate/utils/enums.dart' show RecordType;
 import 'dart:convert';
 import '../../../shared/models/race.dart';
 import 'package:flutter/foundation.dart';
@@ -84,42 +88,43 @@ class DatabaseHelper {
         place INTEGER,
         finish_time TEXT,
         FOREIGN KEY (race_id) REFERENCES races(race_id)
+        FOREIGN KEY (runner_id) REFERENCES race_runners (runner_id)
       )
     ''');
 
-    // Create race results data table
-    await db.execute('''
-      CREATE TABLE race_results_data (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        race_id INTEGER NOT NULL,
-        runner_id INTEGER NOT NULL,
-        finish_time INTEGER,
-        finish_position INTEGER,
-        team TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (race_id) REFERENCES races (race_id),
-        FOREIGN KEY (runner_id) REFERENCES team_runners (runner_id)
-      )
-    ''');
+    // // Create race results data table
+    // await db.execute('''
+    //   CREATE TABLE race_results_data (
+    //     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    //     race_id INTEGER NOT NULL,
+    //     runner_id INTEGER NOT NULL,
+    //     finish_time INTEGER,
+    //     finish_position INTEGER,
+    //     team TEXT,
+    //     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    //     FOREIGN KEY (race_id) REFERENCES races (race_id),
+    //     FOREIGN KEY (runner_id) REFERENCES team_runners (runner_id)
+    //   )
+    // ''');
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < 2) {
-      // Create race results data table if it doesn't exist
-      await db.execute('''
-        CREATE TABLE IF NOT EXISTS race_results_data (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          race_id INTEGER NOT NULL,
-          runner_id INTEGER NOT NULL,
-          finish_time INTEGER,
-          finish_position INTEGER,
-          team TEXT,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (race_id) REFERENCES races (race_id),
-          FOREIGN KEY (runner_id) REFERENCES team_runners (runner_id)
-        )
-      ''');
-    }
+    // if (oldVersion < 2) {
+    //   // Create race results data table if it doesn't exist
+    //   await db.execute('''
+    //     CREATE TABLE IF NOT EXISTS race_results_data (
+    //       id INTEGER PRIMARY KEY AUTOINCREMENT,
+    //       race_id INTEGER NOT NULL,
+    //       runner_id INTEGER NOT NULL,
+    //       finish_time INTEGER,
+    //       finish_position INTEGER,
+    //       team TEXT,
+    //       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    //       FOREIGN KEY (race_id) REFERENCES races (race_id),
+    //       FOREIGN KEY (runner_id) REFERENCES team_runners (runner_id)
+    //     )
+    //   ''');
+    // }
     
     // Add version 3 upgrade to rename the column
     if (oldVersion < 3) {
@@ -518,56 +523,65 @@ class DatabaseHelper {
   }
 
   // Save race results
-  Future<void> saveRaceResults(int raceId, Map<String, dynamic> results) async {
+  Future<void> saveRaceResults(int raceId, TimingData timingData) async {
     final db = await instance.database;
-    
-    // Convert results to JSON string for storage
-    final jsonResults = json.encode(results);
-    
-    // Check if results already exist
-    final existing = await db.query(
-      'race_results_data',
-      where: 'race_id = ?',
-      whereArgs: [raceId],
-    );
-    
-    if (existing.isEmpty) {
-      // Insert new results
-      await db.insert('race_results_data', {
-        'race_id': raceId,
-        'results_data': jsonResults,
-        'created_at': DateTime.now().toIso8601String(),
-        'updated_at': DateTime.now().toIso8601String(),
-      });
-    } else {
-      // Update existing results
-      await db.update(
-        'race_results_data',
-        {
-          'results_data': jsonResults,
-          'updated_at': DateTime.now().toIso8601String(),
-        },
+
+    try {
+      // First, delete existing results for this race
+      await db.delete(
+        'race_results',
         where: 'race_id = ?',
         whereArgs: [raceId],
       );
+      
+      // Then insert all the new results
+      final batch = db.batch();
+      for (final result in timingData.raceResults) {
+        batch.insert('race_results', result.toMap());
+      }
+      await batch.commit();
+      
+      print("Successfully saved ${timingData.raceResults.length} race results for race $raceId");
+    } catch (e) {
+      print("Error saving race results: $e");
+      rethrow;
     }
   }
 
   // Get race results
-  Future<Map<String, dynamic>?> getRaceResultsData(int raceId) async {
+  Future<TimingData?> getRaceResultsData(int raceId) async {
     final db = await instance.database;
     
     final results = await db.query(
-      'race_results_data',
+      'race_results',
       where: 'race_id = ?',
       whereArgs: [raceId],
     );
     
     if (results.isEmpty) return null;
     
-    // Parse JSON string back to Map
-    final jsonResults = results.first['results_data'] as String;
-    return json.decode(jsonResults) as Map<String, dynamic>;
+    final race_results = results.map((r) => RaceResult.fromMap(r)).toList();
+    final runnerRecords = await getRaceRunners(raceId);
+    final endTime = race_results.last.finishTime;
+    final timingData = TimingData(
+      records: [],
+      startTime: null,
+      endTime: endTime,
+    );
+
+    for (final result in race_results) {
+      final runner = runnerRecords.firstWhere((r) => r.runnerId == result.runnerId);
+      
+      timingData.mergeRunnerData(TimingRecord(
+        elapsedTime: result.finishTime,
+        isConfirmed: true,
+        conflict: null,
+        type: RecordType.runnerTime,
+        place: result.place,
+        textColor: null,
+      ), runner);
+    }
+    return timingData;
   }
 
   // Cleanup Methods

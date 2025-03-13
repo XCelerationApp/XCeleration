@@ -134,7 +134,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
     for (int i = 0; i < _runnerRecords.length; i++) {
       final record = _timingData.records.firstWhere(
         (r) => r.type == RecordType.runnerTime && r.place == i + 1 && r.isConfirmed == true,
-        orElse: () => TimingRecord(id: '', elapsedTime: '', isConfirmed: false, conflict: null, type: RecordType.runnerTime, place: null, previousPlace: null, textColor: null),
+        orElse: () => TimingRecord(elapsedTime: '', isConfirmed: false, conflict: null, type: RecordType.runnerTime, place: null, previousPlace: null, textColor: null),
       );
       if (record.place == null) continue;
       final runner = _runnerRecords[i];
@@ -142,7 +142,6 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
         setState(() {
           final int index = _timingData.records.indexOf(record);
           _timingData.records[index] = TimingRecord(
-            id: record.id,
             elapsedTime: record.elapsedTime,
             runnerNumber: runner.bib,
             isConfirmed: record.isConfirmed,
@@ -209,9 +208,9 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
     final conflict = records.firstWhere(
       (record) => record.type != RecordType.runnerTime && 
                   record.type != RecordType.confirmRunner,
-      orElse: () => TimingRecord(id: '', elapsedTime: '', runnerNumber: null, isConfirmed: false, conflict: null, type: RecordType.runnerTime, place: null, previousPlace: null, textColor: null),
+      orElse: () => TimingRecord(elapsedTime: '', runnerNumber: null, isConfirmed: false, conflict: null, type: RecordType.runnerTime, place: null, previousPlace: null, textColor: null),
     );
-    return conflict.id != '' ? [conflict.type, records.indexOf(conflict)] : [null, -1];
+    return conflict.elapsedTime != '' ? [conflict.type, records.indexOf(conflict)] : [null, -1];
   }
 
   bool _validateTimes(List<String> times, BuildContext context, List<dynamic> runners, dynamic lastConfirmed, Map<String, dynamic> conflictRecord) {
@@ -423,7 +422,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
     for (int i = 0; i < runners.length; i++) {
       final int currentPlace = (i + lastConfirmedRunnerPlace + 1).toInt();
       debugPrint('Current place: $currentPlace');
-      var record = records.firstWhere((element) => element.place == currentPlace, orElse: () => TimingRecord(id: '', elapsedTime: '', isConfirmed: false, conflict: null, type: RecordType.runnerTime, place: null, previousPlace: null, textColor: null));
+      var record = records.firstWhere((element) => element.place == currentPlace, orElse: () => TimingRecord(elapsedTime: '', isConfirmed: false, conflict: null, type: RecordType.runnerTime, place: null, previousPlace: null, textColor: null));
       // final bibNumber = bibData[record.place! - 1];   
 
       setState(() {

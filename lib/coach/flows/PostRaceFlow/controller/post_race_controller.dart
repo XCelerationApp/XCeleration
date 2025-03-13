@@ -1,3 +1,4 @@
+import 'package:xcelerate/assistant/race_timer/timing_screen/model/timing_record.dart' show TimingRecord;
 import 'package:xcelerate/coach/race_screen/widgets/bib_conflicts_sheet.dart';
 import 'package:xcelerate/coach/race_screen/widgets/runner_record.dart';
 import 'package:xcelerate/coach/race_screen/widgets/timing_conflicts_sheet.dart';
@@ -22,26 +23,22 @@ class PostRaceController {
   }
 
   Future<void> loadResults() async {
-    final savedResults = await DatabaseHelper.instance.getRaceResultsData(raceId);
+    final TimingData? savedResults = await DatabaseHelper.instance.getRaceResultsData(raceId);
     if (savedResults != null) {
-      runnerRecords = savedResults['runnerRecords'];
-      timingData = savedResults['timingData'];
+      timingData = savedResults;
       resultsLoaded = true;
       
       // Check for conflicts in the loaded data
-      hasBibConflicts = runnerRecords != null && containsBibConflicts(runnerRecords!);
+      hasBibConflicts = timingData != null && containsBibConflicts(timingData!.runnerRecords);
       hasTimingConflicts = timingData != null && containsTimingConflicts(timingData!);
     }
   }
   /// Save race results to the database
   Future<void> saveRaceResults() async {
-    if (runnerRecords != null && timingData != null) {
+    if (timingData != null) {
       await DatabaseHelper.instance.saveRaceResults(
         raceId,
-        {
-          'runnerRecords': runnerRecords,
-          'timingData': timingData,
-        },
+        timingData!,
       );
     }
   }
@@ -63,7 +60,7 @@ class PostRaceController {
         context
       );
       
-      runnerRecords = processedRunnerRecords;
+      // timingData!.runnerRecords = processedRunnerRecords;
       timingData = processedTimingData;
       
       resultsLoaded = true;
@@ -79,7 +76,7 @@ class PostRaceController {
   bool hasBibConflicts = false;
   bool hasTimingConflicts = false;
   bool resultsLoaded = false;
-  List<RunnerRecord>? runnerRecords;
+  // List<TimingRecord>? timingRecords;
   TimingData? timingData;
 
   
@@ -112,7 +109,7 @@ class PostRaceController {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => BibConflictsSheet(runnerRecords: runnerRecords!),
+      builder: (context) => BibConflictsSheet(runnerRecords: timingData!.runnerRecords),
     );
   }
 
@@ -125,7 +122,7 @@ class PostRaceController {
       builder: (context) => TimingConflictsSheet(
         conflictingRecords: conflictingRecords,
         timingData: timingData!,
-        runnerRecords: runnerRecords!,
+        runnerRecords: timingData!.runnerRecords,
         raceId: raceId,
       ),
     );

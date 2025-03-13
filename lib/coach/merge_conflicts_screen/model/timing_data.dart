@@ -20,7 +20,6 @@ class TimingData {
     } else if (record is RunnerRecord) {
       // Convert RunnerRecord to TimingRecord
       records.add(TimingRecord(
-        id: record.runnerId?.toString() ?? '',
         elapsedTime: '',
         isConfirmed: false,
         conflict: null,
@@ -38,7 +37,7 @@ class TimingData {
 
   // Helper method to merge runner data into a timing record
   void mergeRunnerData(TimingRecord timingRecord, RunnerRecord runnerRecord) {
-    final index = records.indexWhere((record) => record.id == timingRecord.id);
+    final index = records.indexWhere((record) => record.runnerId == runnerRecord.runnerId);
     if (index != -1) {
       records[index] = timingRecord.copyWith(
         runnerId: runnerRecord.runnerId,
@@ -52,15 +51,15 @@ class TimingData {
     }
   }
 
-  void updateRecord(String id, TimingRecord updatedRecord) {
-    final index = records.indexWhere((record) => record.id == id);
+  void updateRecord(int runnerId, TimingRecord updatedRecord) {
+    final index = records.indexWhere((record) => record.runnerId == runnerId);
     if (index != -1) {
       records[index] = updatedRecord;
     }
   }
 
-  void removeRecord(String id) {
-    records.removeWhere((record) => record.id == id);
+  void removeRecord(int runnerId) {
+    records.removeWhere((record) => record.runnerId == runnerId);
   }
 
   void clearRecords() {

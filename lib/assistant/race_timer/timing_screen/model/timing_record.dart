@@ -3,9 +3,6 @@ import 'package:xcelerate/utils/enums.dart';
 
 /// Represents a record of a runner's time in a race.
 class TimingRecord {
-  /// Unique identifier for the record
-  final String id;
-  
   /// The time the runner finished the race, as a Duration from the race start time
   String elapsedTime;
   
@@ -34,7 +31,6 @@ class TimingRecord {
 
   /// Constructor for TimingRecord
   TimingRecord({
-    required this.id,
     required this.elapsedTime,
     this.runnerNumber,
     this.isConfirmed = false,
@@ -74,7 +70,6 @@ class TimingRecord {
     bool clearConflict = false,
   }) {
     return TimingRecord(
-      id: id ?? this.id,
       elapsedTime: elapsedTime ?? this.elapsedTime,
       runnerNumber: runnerNumber ?? this.runnerNumber,
       isConfirmed: isConfirmed ?? this.isConfirmed,
@@ -119,7 +114,6 @@ class TimingRecord {
   /// Converts record to a Map for serialization
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
       'elapsed_time': elapsedTime,
       'runner_number': runnerNumber,
       'is_confirmed': isConfirmed,
@@ -141,7 +135,6 @@ class TimingRecord {
   /// Creates a TimingRecord from a Map
   factory TimingRecord.fromMap(Map<String, dynamic> map) {
     return TimingRecord(
-      id: map['id'],
       elapsedTime: map['elapsed_time'],
       runnerNumber: map['runner_number'],
       isConfirmed: map['is_confirmed'] ?? false,
