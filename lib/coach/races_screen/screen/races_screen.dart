@@ -690,15 +690,18 @@ class RacesScreenState extends State<RacesScreen> {
   Widget _buildRaceCard(Race race, String state) {
     final flowStateText = {
       'setup': 'Setup Required',
-      'pre_race': 'Pre-Race Setup',
-      'post_race': 'Post-Race',
+      'pre-race': 'Pre-Race Setup',
+      'post-race': 'Post-Race',
       'finished': 'Completed',
     }[race.flowState] ?? 'Setup Required';
 
+    print('flowState: ${race.flowState}!!!');
+    print('state: $state!!!');
+
     final flowStateColor = {
       'setup': Colors.orange,
-      'pre_race': Colors.blue,
-      'post_race': Colors.purple,
+      'pre-race': Colors.blue,
+      'post-race': Colors.purple,
       'finished': Colors.green,
     }[race.flowState] ?? Colors.orange;
 
