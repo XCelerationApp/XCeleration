@@ -21,7 +21,6 @@ class TimingData with ChangeNotifier {
 
   void addRecord(String elapsedTime, {String? runnerNumber, bool isConfirmed = false, ConflictDetails? conflict, RecordType type = RecordType.runnerTime, int place = 0, Color? textColor}) {
     _records.add(TimingRecord(
-      id: _uuid.v4(),
       elapsedTime: elapsedTime,
       runnerNumber: runnerNumber,
       isConfirmed: isConfirmed,
@@ -33,8 +32,8 @@ class TimingData with ChangeNotifier {
     notifyListeners();
   }
 
-  void updateRecord(String id, {String? runnerNumber, bool? isConfirmed, ConflictDetails? conflict, RecordType? type, int? place, int? previousPlace, Color? textColor}) {
-    final index = _records.indexWhere((record) => record.id == id);
+  void updateRecord(int runnerId, {String? runnerNumber, bool? isConfirmed, ConflictDetails? conflict, RecordType? type, int? place, int? previousPlace, Color? textColor}) {
+    final index = _records.indexWhere((record) => record.runnerId == runnerId);
     if (index >= 0) {
       _records[index] = _records[index].copyWith(
         runnerNumber: runnerNumber,
@@ -49,8 +48,8 @@ class TimingData with ChangeNotifier {
     }
   }
 
-  void removeRecord(String id) {
-    _records.removeWhere((record) => record.id == id);
+  void removeRecord(int runnerId) {
+    _records.removeWhere((record) => record.runnerId == runnerId);
     notifyListeners();
   }
 

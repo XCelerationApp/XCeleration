@@ -216,7 +216,6 @@ class TimingController extends ChangeNotifier {
     final lastConfirmedRecord = records.lastWhere(
       (r) => r.type == RecordType.runnerTime && r.isConfirmed == true,
       orElse: () => TimingRecord(
-        id: '',
         elapsedTime: '',
         place: 0,
       ),
@@ -251,14 +250,14 @@ class TimingController extends ChangeNotifier {
       final idsToRemove = records
           .reversed
           .take(offBy)
-          .map((record) => record.id)
+          .map((record) => record.runnerId!)
           .toList();
           
       // Remove records with those ids
-      for (final id in idsToRemove) {
-        final index = records.indexWhere((record) => record.id == id);
+      for (final runnerId in idsToRemove) {
+        final index = records.indexWhere((record) => record.runnerId == runnerId);
         if (index >= 0) {
-          timingData.removeRecord(id);
+          timingData.removeRecord(runnerId);
         }
       }
       notifyListeners();
@@ -317,7 +316,7 @@ class TimingController extends ChangeNotifier {
       print('Record: $record');
     }
     
-    records.removeWhere((record) => record.id == lastConflict.id);
+    records.removeWhere((record) => record.runnerId == lastConflict.runnerId);
     return records;
   }
 
@@ -332,17 +331,17 @@ class TimingController extends ChangeNotifier {
     records = runner_functions.updateTextColor(null, records, confirmed: false, endIndex: lastConflictIndex, clearConflictColor: true);
     
     // Store the IDs of records to remove
-    final recordIdsToRemove = <String>[];
+    final recordIdsToRemove = <int>[];
     
     for (int i = 0; i < offBy; i++) {
       final record = runnersBeforeConflict[runnersBeforeConflict.length - 1 - i];
-      recordIdsToRemove.add(record.id);
-      print('Adding record ID to remove: ${record.id}');
+      recordIdsToRemove.add(record.runnerId!);
+      print('Adding record ID to remove: ${record.runnerId}');
     }
 
-    recordIdsToRemove.add(lastConflict.id);
+    recordIdsToRemove.add(lastConflict.runnerId!);
     // Remove records by ID
-    records.removeWhere((record) => recordIdsToRemove.contains(record.id));
+    records.removeWhere((record) => recordIdsToRemove.contains(record.runnerId));
     
     if (records.isNotEmpty) {
       print('Last record after removals: ${records.last.toMap()}');
@@ -450,16 +449,16 @@ class TimingController extends ChangeNotifier {
   }
 
   void onDismissRunnerTimeRecord(TimingRecord record, int index) {
-    timingData.removeRecord(record.id);
+    timingData.removeRecord(record.runnerId!);
     
     // Update places for subsequent records
     for (var i = index; i < records.length; i++) {
       if (records[i].type == RecordType.runnerTime) {
         if (records[i].place != null) {
-          timingData.updateRecord(records[i].id, place: records[i].place! - 1);
+          timingData.updateRecord(records[i].runnerId!, place: records[i].place! - 1);
         }
         else if (records[i].previousPlace != null) {
-           timingData.updateRecord(records[i].id, previousPlace: records[i].previousPlace! - 1);
+           timingData.updateRecord(records[i].runnerId!, previousPlace: records[i].previousPlace! - 1);
         }
       }
     }
@@ -468,7 +467,7 @@ class TimingController extends ChangeNotifier {
   }
 
   void onDismissConfirmationRecord(TimingRecord record, int index) {
-    timingData.removeRecord(record.id);
+    timingData.removeRecord(record.runnerId!);
     timingData.records = runner_functions.updateTextColor(null, records, endIndex: index);
     scrollToBottom(scrollController);
     notifyListeners();

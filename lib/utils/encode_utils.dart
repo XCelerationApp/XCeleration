@@ -9,9 +9,6 @@ import 'package:flutter/material.dart';
 import 'database_helper.dart';
 import '../assistant/race_timer/timing_screen/model/timing_record.dart';
 import '../utils/enums.dart';
-import 'package:uuid/uuid.dart';
-
-Uuid _uuid = Uuid();
 
 decodeRaceTimesString(String encodedData) async {
   final decodedData = json.decode(encodedData);
@@ -20,12 +17,10 @@ decodeRaceTimesString(String encodedData) async {
   final condensedRecords = decodedData[0];
   List<TimingRecord> records = [];
   int place = 0;
-  Uuid uuid = Uuid();
   for (var recordString in condensedRecords) {
     if (loadDurationFromString(recordString) != null) {
       place++;
       records.add(TimingRecord(
-        id: uuid.v4(),
         elapsedTime: recordString,
         type: RecordType.runnerTime,
         place: place
