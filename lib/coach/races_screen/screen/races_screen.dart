@@ -639,32 +639,32 @@ class RacesScreenState extends State<RacesScreen> {
     );
   }
 
-  Future<bool> _checkIfRunnersAreLoaded(int raceId) async {
-    final race = races.firstWhere((race) => race.race_id == raceId);
-    final raceRunners = await DatabaseHelper.instance.getRaceRunners(raceId);
+  // Future<bool> _checkIfRunnersAreLoaded(int raceId) async {
+  //   final race = races.firstWhere((race) => race.race_id == raceId);
+  //   final raceRunners = await DatabaseHelper.instance.getRaceRunners(raceId);
     
-    // Check if we have any runners at all
-    if (raceRunners.isEmpty) {
-      return false;
-    }
+  //   // Check if we have any runners at all
+  //   if (raceRunners.isEmpty) {
+  //     return false;
+  //   }
 
-    // Check if each team has at least 2 runners (minimum for a race)
-    final teamRunnerCounts = <String, int>{};
-    for (final runner in raceRunners) {
-      final team = runner.school;
-      teamRunnerCounts[team] = (teamRunnerCounts[team] ?? 0) + 1;
-    }
+  //   // Check if each team has at least 2 runners (minimum for a race)
+  //   final teamRunnerCounts = <String, int>{};
+  //   for (final runner in raceRunners) {
+  //     final team = runner.school;
+  //     teamRunnerCounts[team] = (teamRunnerCounts[team] ?? 0) + 1;
+  //   }
 
-    // Verify each team in the race has enough runners
-    for (final teamName in race.teams) {
-      final runnerCount = teamRunnerCounts[teamName] ?? 0;
-      if (runnerCount < 5) {
-        return false;
-      }
-    }
+  //   // Verify each team in the race has enough runners
+  //   for (final teamName in race.teams) {
+  //     final runnerCount = teamRunnerCounts[teamName] ?? 0;
+  //     if (runnerCount < 5) {
+  //       return false;
+  //     }
+  //   }
 
-    return true;
-  }
+  //   return true;
+  // }
 
   void _showRaceScreen(int raceId) {
     showModalBottomSheet(

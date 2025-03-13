@@ -372,7 +372,7 @@ class RunnersManagementScreen extends StatefulWidget {
     }
     
     // Check if each team has more than 5 runners
-    return teamRunners.values.every((count) => count >= 5);
+    return teamRunners.values.every((count) => count >= 1);
   }
 
   const RunnersManagementScreen({

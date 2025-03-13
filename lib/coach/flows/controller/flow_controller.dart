@@ -15,12 +15,12 @@ import '../../../utils/database_helper.dart';
 /// Controller class for handling all flow-related operations
 class MasterFlowController {
   final int raceId;
-  Race race;
+  Race? race;
   late SetupController setupController;
   late PreRaceController preRaceController;
   late PostRaceController postRaceController;
 
-  MasterFlowController({required this.raceId, required this.race}) {
+  MasterFlowController({required this.raceId, Race? race}) : race = race {
     setupController = SetupController(raceId: raceId);
     preRaceController = PreRaceController(raceId: raceId);
     postRaceController = PostRaceController(raceId: raceId);
@@ -28,7 +28,16 @@ class MasterFlowController {
 
   /// Continue the race flow based on the current state
   Future<void> continueRaceFlow(BuildContext context) async {
-    switch (race.flowState) {
+    if (race == null) {
+      // If race is null, try to load it
+      race = await DatabaseHelper.instance.getRaceById(raceId);
+      if (race == null) {
+        debugPrint('Error: Race not found');
+        return;
+      }
+    }
+    
+    switch (race!.flowState) {
       case 'setup':
         await _setupFlow(context);
         break;
@@ -41,10 +50,12 @@ class MasterFlowController {
     }
   }
 
-    /// Update the race flow state
+  /// Update the race flow state
   Future<void> updateRaceFlowState(String newState) async {
     await DatabaseHelper.instance.updateRaceFlowState(raceId, newState);
-    race = race.copyWith(flowState: newState);
+    if (race != null) {
+      race = race!.copyWith(flowState: newState);
+    }
   }
 
   /// Setup the race with runners
