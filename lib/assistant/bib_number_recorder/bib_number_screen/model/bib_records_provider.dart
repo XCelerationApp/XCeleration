@@ -1,20 +1,21 @@
 import 'package:flutter/material.dart';
+import '../../../../coach/race_screen/widgets/runner_record.dart';
 import 'bib_record.dart';
 
 class BibRecordsProvider with ChangeNotifier {
-  final List<BibRecord> _bibRecords = [];
+  final List<RunnerRecord> _bibRecords = [];
   final List<TextEditingController> _controllers = [];
   final List<FocusNode> _focusNodes = [];
   bool _isKeyboardVisible = false;
 
-  List<BibRecord> get bibRecords => _bibRecords;
+  List<RunnerRecord> get bibRecords => _bibRecords;
   List<TextEditingController> get controllers => _controllers;
   List<FocusNode> get focusNodes => _focusNodes;
   bool get isKeyboardVisible => _isKeyboardVisible;
 
-  void addBibRecord(BibRecord record) {
+  void addBibRecord(RunnerRecord record) {
     _bibRecords.add(record);
-    final controller = TextEditingController(text: record.bibNumber);
+    final controller = TextEditingController(text: record.bib);
     _controllers.add(controller);
     
     final focusNode = FocusNode();
@@ -30,7 +31,7 @@ class BibRecordsProvider with ChangeNotifier {
   }
 
   void updateBibRecord(int index, String bibNumber) {
-    _bibRecords[index].bibNumber = bibNumber;
+    _bibRecords[index].bib = bibNumber;
     notifyListeners();
   }
 

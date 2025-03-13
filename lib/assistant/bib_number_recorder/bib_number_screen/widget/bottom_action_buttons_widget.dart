@@ -15,7 +15,7 @@ class BottomActionButtonsWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bibRecordsProvider = Provider.of<BibRecordsProvider>(context, listen: false);
-    final hasNonEmptyBibNumbers = bibRecordsProvider.bibRecords.any((record) => record.bibNumber.isNotEmpty);
+    final hasNonEmptyBibNumbers = bibRecordsProvider.bibRecords.any((record) => record.bib.isNotEmpty);
 
     if (!hasNonEmptyBibNumbers) return const SizedBox.shrink();
 

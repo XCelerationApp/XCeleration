@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:xcelerate/coach/race_screen/widgets/runner_record.dart' show RunnerRecord;
 import 'dart:convert';
 import 'dart:io';
 import '../model/bib_number_model.dart';
@@ -26,7 +27,7 @@ class BibNumberScreen extends StatefulWidget {
 }
 
 class _BibNumberScreenState extends State<BibNumberScreen> {
-  final List<dynamic> _runners = [];
+  final List<RunnerRecord> _runners = [];
   final Map<DeviceName, Map<String, dynamic>> otherDevices = DeviceConnectionService.createOtherDeviceList(
     DeviceName.bibRecorder,
     DeviceType.browserDevice,

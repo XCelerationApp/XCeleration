@@ -52,10 +52,8 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
   // Controller
   late RaceScreenController _controller;
   // UI state
-  final bool _preRaceFinished = false;
-  final bool _postRaceFinished = false;
   bool _raceSetup = false;
-  
+
   @override
   void initState() {
     super.initState();
@@ -87,8 +85,7 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
     await _controller.loadRace();
     setState(() {
       _raceSetup = _controller.raceSetup;
-    });
-    _continueRaceFlow();
+    });    _continueRaceFlow();
   }
 
   Future<void> _continueRaceFlow() async {
