@@ -34,17 +34,18 @@ class RaceScreen extends StatefulWidget {
 }
 
 class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
-  late String _name = '';
-  late String _location = '';
-  late String _date = '';
-  late double _distance = 0.0;
-  late final String _distanceUnit = 'miles';
-  late List<Color> _teamColors = [];
-  late List<String> _teamNames = [];
-  late TextEditingController _nameController;
-  late TextEditingController _locationController;
-  late TextEditingController _dateController;
-  late TextEditingController _distanceController;
+  String _name = '';
+  String _location = '';
+  String _date = '';
+  double _distance = 0.0;
+  final String _distanceUnit = 'miles';
+  List<Color> _teamColors = [];
+  List<String> _teamNames = [];
+  // Initialize controllers with default values to avoid LateInitializationError
+  TextEditingController _nameController = TextEditingController();
+  TextEditingController _locationController = TextEditingController();
+  TextEditingController _dateController = TextEditingController();
+  TextEditingController _distanceController = TextEditingController();
   late AnimationController _slideController;
   bool _showDetails = false;
   bool _showRunners = false;
