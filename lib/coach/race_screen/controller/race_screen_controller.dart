@@ -29,6 +29,7 @@ class RaceScreenController with ChangeNotifier {
 
   Future<void> init(BuildContext context) async {
     race = await loadRace();
+    notifyListeners();
     if (race == null) throw Exception('Race not found');
 
     flowController = MasterFlowController(raceId: raceId, race: race!);
