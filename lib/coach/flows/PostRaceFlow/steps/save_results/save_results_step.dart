@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:xcelerate/coach/flows/model/flow_model.dart';
-import 'package:xcelerate/coach/flows/PostRaceFlow/widgets/save_results_widget.dart';
+import 'widgets/save_results_widget.dart';
 
 /// A FlowStep implementation for the save results step in the post-race flow
 class SaveResultsStep extends FlowStep {

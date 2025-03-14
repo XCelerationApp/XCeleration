@@ -3,7 +3,7 @@ import 'package:xcelerate/core/theme/app_colors.dart';
 import 'package:xcelerate/core/theme/typography.dart';
 import 'package:xcelerate/core/components/device_connection_widget.dart';
 import 'package:xcelerate/utils/enums.dart';
-import 'package:xcelerate/coach/flows/PostRaceFlow/widgets/conflict_button.dart';
+import 'conflict_button.dart';
 
 class ResultsLoaderWidget extends StatelessWidget {
   final bool resultsLoaded;

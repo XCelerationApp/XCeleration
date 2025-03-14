@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:xcelerate/coach/flows/model/flow_model.dart';
-import 'package:xcelerate/coach/flows/PostRaceFlow/widgets/results_loader_widget.dart';
+import 'widgets/results_loader_widget.dart';
 import 'package:xcelerate/utils/enums.dart';
 
 /// A FlowStep implementation for the load results step in the post-race flow

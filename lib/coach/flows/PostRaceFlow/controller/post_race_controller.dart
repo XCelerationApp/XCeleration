@@ -10,9 +10,9 @@ import '../../../../utils/runner_time_functions.dart';
 import '../../../../utils/encode_utils.dart';
 import '../../../merge_conflicts_screen/model/timing_data.dart';
 import 'package:xcelerate/coach/race_screen/widgets/runner_record.dart';
-import '../steps/load_results_step.dart';
-import '../steps/review_results_step.dart';
-import '../steps/save_results_step.dart';
+import '../steps/load_results/load_results_step.dart';
+import '../steps/review_results/review_results_step.dart';
+import '../steps/save_results/save_results_step.dart';
 
 class PostRaceController {
   final int raceId;
