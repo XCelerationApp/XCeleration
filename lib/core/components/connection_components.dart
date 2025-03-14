@@ -517,9 +517,11 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
       return;
     }
     
-    setState(() {
-      widget.otherDevices[deviceName]!['status'] = ConnectionStatus.found;
-    });
+    if (mounted) {
+      setState(() {
+        widget.otherDevices[deviceName]!['status'] = ConnectionStatus.found;
+      });
+    }
     
     if (widget.deviceType == DeviceType.advertiserDevice) return;
     await _deviceConnectionService.inviteDevice(device);
@@ -527,24 +529,34 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
 
   Future<void> _deviceLostCallback(Device device) async {
     // Handle device lost
+    final deviceName = getDeviceNameFromString(device.deviceName);
+    if (mounted && widget.otherDevices.containsKey(deviceName)) {
+      setState(() {
+        widget.otherDevices[deviceName]!['status'] = ConnectionStatus.error;
+      });
+    }
   }
 
   Future<void> _deviceConnectingCallback(Device device) async {
     final deviceName = getDeviceNameFromString(device.deviceName);
     if (widget.otherDevices[deviceName]!['status'] == ConnectionStatus.finished) return;
     
-    setState(() {
-      widget.otherDevices[deviceName]!['status'] = ConnectionStatus.connecting;
-    });
+    if (mounted) {
+      setState(() {
+        widget.otherDevices[deviceName]!['status'] = ConnectionStatus.connecting;
+      });
+    }
   }
 
   Future<void> _deviceConnectedCallback(Device device) async {
     final deviceName = getDeviceNameFromString(device.deviceName);
     if (widget.otherDevices[deviceName]!['status'] == ConnectionStatus.finished) return;
     
-    setState(() {
-      widget.otherDevices[deviceName]!['status'] = ConnectionStatus.connected;
-    });
+    if (mounted) {
+      setState(() {
+        widget.otherDevices[deviceName]!['status'] = ConnectionStatus.connected;
+      });
+    }
 
     try {
       _protocol.addDevice(device);
@@ -557,9 +569,11 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
       );
 
       if (widget.deviceType == DeviceType.browserDevice) {
-        setState(() {
-          widget.otherDevices[deviceName]!['status'] = ConnectionStatus.receiving;
-        });
+        if (mounted) {
+          setState(() {
+            widget.otherDevices[deviceName]!['status'] = ConnectionStatus.receiving;
+          });
+        }
         
         try {
           final results = await _protocol.receiveDataFromDevice(device.deviceId);
@@ -569,9 +583,11 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
             debugPrint('Error playing completion sound: $e');
           }
           widget.otherDevices[deviceName]!['data'] = results;
-          setState(() {
-            widget.otherDevices[deviceName]!['status'] = ConnectionStatus.finished;
-          });
+          if (mounted) {
+            setState(() {
+              widget.otherDevices[deviceName]!['status'] = ConnectionStatus.finished;
+            });
+          }
           
           // Check if all devices have finished loading data
           bool allDevicesFinished = widget.otherDevices.entries.every(
@@ -588,16 +604,20 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
         }
       } else {
         if (widget.otherDevices[deviceName]!['data'] != null) {
-          setState(() {
-            widget.otherDevices[deviceName]!['status'] = ConnectionStatus.sending;
-          });
+          if (mounted) {
+            setState(() {
+              widget.otherDevices[deviceName]!['status'] = ConnectionStatus.sending;
+            });
+          }
           
           try {
             final data = widget.otherDevices[deviceName]!['data']!;
             await _protocol.sendData(data, device.deviceId);
-            setState(() {
-              widget.otherDevices[deviceName]!['status'] = ConnectionStatus.finished;
-            });
+            if (mounted) {
+              setState(() {
+                widget.otherDevices[deviceName]!['status'] = ConnectionStatus.finished;
+              });
+            }
             
             // Check if all devices have finished loading data
             bool allDevicesFinished = widget.otherDevices.entries.every(
@@ -622,9 +642,11 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
     } catch (e) {
       debugPrint('Error in connection: $e');
       _protocol.removeDevice(device.deviceId);
-      setState(() {
-        widget.otherDevices[deviceName]!['status'] = ConnectionStatus.error;
-      });
+      if (mounted) {
+        setState(() {
+          widget.otherDevices[deviceName]!['status'] = ConnectionStatus.error;
+        });
+      }
       rethrow;
     }
   }

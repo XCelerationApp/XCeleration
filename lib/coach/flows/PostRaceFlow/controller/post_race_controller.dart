@@ -290,27 +290,36 @@ class PostRaceController {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    // Placeholder rows
-                    for (var i = 1; i <= 3; i++)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              flex: 1,
-                              child: Text(i.toString()),
-                            ),
-                            Expanded(
-                              flex: 3,
-                              child: Text('Runner $i'),
-                            ),
-                            Expanded(
-                              flex: 2,
-                              child: Text('${(i * 15.5).toStringAsFixed(2)}s'),
-                            ),
-                          ],
+                    // Display actual runner data
+                    if (timingData != null && timingData!.records.isNotEmpty) ...[
+                      // Sort records by place or elapsed time (if place not available)
+                      for (var i = 0; i < timingData!.records.length; i++)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                flex: 1,
+                                child: Text(timingData!.records[i].place?.toString() ?? (i + 1).toString()),
+                              ),
+                              Expanded(
+                                flex: 3,
+                                child: Text(timingData!.records[i].name ?? 'Runner ${timingData!.records[i].bib ?? i + 1}'),
+                              ),
+                              Expanded(
+                                flex: 2,
+                                child: Text(timingData!.records[i].elapsedTime),
+                              ),
+                            ],
+                          ),
                         ),
+                    ] else ...[
+                      // Fallback for when no timing data is available
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8),
+                        child: Text('No runner data available'),
                       ),
+                    ],
                   ],
                 ),
               ),
@@ -348,7 +357,7 @@ class PostRaceController {
     // await waitForDataTransferCompletion(otherDevices);
     // final encodedBibRecords = otherDevices[DeviceName.bibRecorder]?['data'] as String?;
     // final encodedFinishTimes = otherDevices[DeviceName.raceTimer]?['data'] as String?;
-    
+
     // var runnerRecords = await processEncodedBibRecordsData(encodedBibRecords, context, raceId);
     // final timingData = await processEncodedTimingData(encodedFinishTimes, context);
     

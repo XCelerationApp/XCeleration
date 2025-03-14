@@ -20,14 +20,23 @@ class RaceScreen extends StatefulWidget {
 class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
   // Controller
   late RaceScreenController _controller;
+  bool _isLoading = true;
   
   @override
   void initState() {
     super.initState();
     _controller = RaceScreenController(raceId: widget.raceId);
-    _controller.init(context);
+    _loadRaceData();
   }
-
+  
+  Future<void> _loadRaceData() async {
+    await _controller.init(context);
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   Widget _buildModernDetailRow(String label, String value, IconData icon, {bool isMultiLine = false}) {
     return ModernDetailRow(
@@ -85,7 +94,7 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    if (_controller.race == null) {
+    if (_isLoading || _controller.race == null) {
       return const Center(
         child: CircularProgressIndicator(),
       );
