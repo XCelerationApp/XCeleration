@@ -36,7 +36,15 @@ class RaceResult {
   }
   
   /// Converts this race result to a map for database storage
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toMap({bool database = false}) {
+    if (database) {
+      return {
+        'race_id': raceId,
+        'runner_id': runnerId,
+        'place': place,
+        'finish_time': finishTime,
+      };
+    }
     return {
       'race_id': raceId,
       'place': place,

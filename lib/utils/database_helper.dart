@@ -1,10 +1,8 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
-import 'package:uuid/uuid.dart';
 import 'package:xcelerate/coach/merge_conflicts_screen/model/timing_data.dart';
 import 'package:xcelerate/assistant/race_timer/timing_screen/model/timing_record.dart';
 import 'package:xcelerate/utils/enums.dart' show RecordType;
-import 'dart:convert';
 import '../../../shared/models/race.dart';
 import 'package:flutter/foundation.dart';
 
@@ -166,36 +164,39 @@ class DatabaseHelper {
   }
 
   // Team Runners Methods
-  Future<int> insertTeamRunner(Map<String, dynamic> runner) async {
+  Future<int> insertTeamRunner(RunnerRecord runner) async {
     final db = await instance.database;
-    return await db.insert('team_runners', runner);
+    return await db.insert('team_runners', runner.toMap(database: true));
   }
 
   // Update a team runner
-  Future<int> updateTeamRunner(Map<String, dynamic> runner) async {
+  Future<int> updateTeamRunner(RunnerRecord runner) async {
     final db = await instance.database;
     return await db.update(
       'team_runners',
-      runner,
+      runner.toMap(database: true),
       where: 'runner_id = ?',
-      whereArgs: [runner['runner_id']],
+      whereArgs: [runner.runnerId],
     );
   }
 
 
-  Future<List<Map<String, dynamic>>> getAllTeamRunners() async {
+  Future<List<RunnerRecord>> getAllTeamRunners() async {
     final db = await instance.database;
-    return await db.query('team_runners');
+    final List<Map<String, dynamic>> maps = await db.query('team_runners');
+    return List.generate(maps.length, (i) {
+      return RunnerRecord.fromMap(maps[i]);
+    });
   }
 
-  Future<Map<String, dynamic>?> getTeamRunnerByBib(String bib) async {
+  Future<RunnerRecord?> getTeamRunnerByBib(String bib) async {
     final db = await instance.database;
     final results = await db.query(
       'team_runners',
       where: 'bib_number = ?',
       whereArgs: [bib],
     );
-    return results.isNotEmpty ? results.first : null;
+    return results.isNotEmpty ? RunnerRecord.fromMap(results.first) : null;
   }
 
   
@@ -211,41 +212,32 @@ class DatabaseHelper {
 
 
   // Races Methods
-  Future<int> insertRace(Map<String, dynamic> race) async {
+  Future<int> insertRace(Race race) async {
     final db = await instance.database;
-    return await db.insert('races', race);
+    return await db.insert('races', race.toMap(database: true));
   }
   
-  Future<int> updateRace(Map<String, dynamic> race) async {
+  Future<int> updateRace(Race race) async {
     final db = await instance.database;
     return await db.update(
       'races',
-      race,
+      race.toMap(database: true),
       where: 'race_id = ?',
-      whereArgs: [race['race_id']],
+      whereArgs: [race.raceId],
     );
   }
 
-  Future<List<dynamic>> getAllRaces({bool getState = true}) async {
+  Future<List<Race>> getAllRaces() async {
     final db = await instance.database;
     final List<Map<String, dynamic>> maps = await db.query(
       'races',
       orderBy: 'race_date DESC',
     );
 
-    List<dynamic> result = [];
+    List<Race> result = [];
     
     for (var map in maps) {
-      if (!getState) {
-        result.add(Race.fromJson(map));
-      } else {
-        final raceState = await getRaceState(map['race_id']);
-        result.add({
-          ...map,
-          'race': Race.fromJson(map),
-          'state': raceState,
-        });
-      }
+      result.add(Race.fromJson(map));
     }
 
     return result;
@@ -400,19 +392,13 @@ class DatabaseHelper {
     final db = await instance.database;
     final batch = db.batch();
     for (var result in results) {
-      batch.insert('race_results', {
-        'race_id': result.raceId,
-        'runner_id': result.runnerId,
-        'place': result.place,
-        'finish_time': result.finishTime,
-        'created_at': DateTime.now().toIso8601String(),
-      });
+      batch.insert('race_results', result.toMap(database: true));
     }
     await batch.commit();
     return;
   }
 
-  Future<List<Map<String, dynamic>>> getRaceResults(int raceId) async {
+  Future<List<TimingRecord>> getRaceResults(int raceId) async {
     final db = await instance.database;
     
     try {
@@ -445,37 +431,38 @@ class DatabaseHelper {
       //   WHERE r.race_id = ?
       // ''', [raceId]);
 
-      if (raceId == 1) return raceRunners;
+      if (raceId == 1) return raceRunners.map((r) => TimingRecord.fromMap(r, database: true)).toList();
     } catch (e) {
       print("Query error: $e");
     }
     
     // Fallback to test data if query fails or for other race IDs
     return [
-      {
-        'runner_id': 1,
-        'bib_number': '1001',
-        'name': 'John Doe',
-        'school': 'Test School',
-        'grade': '5',
-        'place': 1,
-        'finish_time': '5.00',
-      },
-      {
-        'runner_id': 2,
-        'bib_number': '1002',
-        'name': 'Jane Doe',
-        'school': 'Test School',
-        'grade': '5',
-        'place': 2,
-        'finish_time': '6.00',
-      },
+      TimingRecord(
+        runnerId: 1,
+        bib: '1001',
+        name: 'John Doe',
+        school: 'Test School',
+        grade: 5,
+        place: 1,
+        elapsedTime: '5.00',
+      ),
+      TimingRecord(
+        runnerId: 2,
+        bib: '1002',
+        name: 'Jane Doe',
+        school: 'Test School',
+        grade: 5,
+        place: 2,
+        elapsedTime: '6.00',
+      ),
     ];
   }
 
-  Future<List<Map<String, dynamic>>> getAllResults() async {
+  Future<List<TimingRecord>> getAllResults() async {
     final db = await instance.database;
-    return await db.query('race_results');
+    final results = await db.query('race_results');
+    return results.map((r) => TimingRecord.fromMap(r, database: true)).toList();
   }
 
   Future<bool> checkIfRaceRunnersAreLoaded(int raceId, {race}) async {

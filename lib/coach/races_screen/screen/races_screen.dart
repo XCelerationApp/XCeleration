@@ -197,9 +197,9 @@ class RacesScreenState extends State<RacesScreen> {
   }
 
   Future<void> _loadRaces() async {
-    final races = await DatabaseHelper.instance.getAllRaces(getState: false);
+    final races = await DatabaseHelper.instance.getAllRaces();
     setState(() {
-      this.races = races.cast<Race>();
+      this.races = races;
     });
   }
 
@@ -285,22 +285,24 @@ class RacesScreenState extends State<RacesScreen> {
             return;
           }
 
-          final race = {
-            'race_name': nameController.text,
-            'location': locationController.text,
-            'race_date': dateController.text,
-            'distance': double.parse(distanceController.text),
-            'distance_unit': unitController.text,
-            'teams': jsonEncode(_teamControllers
+          final race = Race(
+            raceId: isEditing && raceId != null ? raceId : 0,
+            raceName: nameController.text,
+            location: locationController.text,
+            raceDate: DateTime.parse(dateController.text),
+            distance: double.parse(distanceController.text),
+            distanceUnit: unitController.text,
+            teams: _teamControllers
                 .map((controller) => controller.text.trim())
                 .where((text) => text.isNotEmpty)
-                .toList()),
-            'team_colors': jsonEncode(_teamColors.map((color) => color.value).toList()),
-          };
+                .toList(),
+            teamColors: _teamColors,
+            flowState: 'setup',
+          );
 
           if (isEditing && raceId != null) {
-            race['race_id'] = raceId;
-            await DatabaseHelper.instance.updateRace(race);
+            final flowState = (await DatabaseHelper.instance.getRaceById(raceId))!.flowState;
+            await DatabaseHelper.instance.updateRace(race.copyWith(flowState: flowState));
           } else {
             await DatabaseHelper.instance.insertRace(race);
           }
@@ -687,7 +689,7 @@ class RacesScreenState extends State<RacesScreen> {
     );
   }
 
-  Widget _buildRaceCard(Race race, String state) {
+  Widget _buildRaceCard(Race race, String flowState) {
     final flowStateText = {
       'setup': 'Setup Required',
       'pre-race': 'Pre-Race Setup',
@@ -970,7 +972,7 @@ class RacesScreenState extends State<RacesScreen> {
                   ],
                 ),
                 _buildSwipeTutorial(
-                  FutureBuilder<List<dynamic>>(
+                  FutureBuilder<List<Race>>(
                     future: DatabaseHelper.instance.getAllRaces(),
                     builder: (context, snapshot){
                       if (snapshot.connectionState == ConnectionState.waiting) {
@@ -982,10 +984,10 @@ class RacesScreenState extends State<RacesScreen> {
                         return Center(child: Text('No races found.', style: AppTypography.bodyRegular));
                       }
 
-                      final raceData = snapshot.data ?? [];
-                      final finishedRaces = raceData.where((race) => race['state'] == 'finished').toList();
-                      final raceInProgress = raceData.where((race) => race['state'] == 'in_progress').toList();
-                      final upcomingRaces = raceData.where((race) => race['state'] == 'upcoming').toList();
+                      final List<Race> raceData = snapshot.data ?? [];
+                      final finishedRaces = raceData.where((race) => race.flowState == 'finished').toList();
+                      final raceInProgress = raceData.where((race) => race.flowState == 'post-race' || race.flowState == 'pre-race').toList();
+                      final upcomingRaces = raceData.where((race) => race.flowState == 'setup').toList();
                       return SingleChildScrollView(
                         controller: ScrollController(),
                         // shrinkWrap: true,
@@ -995,15 +997,15 @@ class RacesScreenState extends State<RacesScreen> {
                           children: [
                             if (raceInProgress.isNotEmpty) ...[
                               FlowSectionHeader(title: 'In Progress'),
-                              ...raceInProgress.map((raceInfo) => _buildRaceCard(raceInfo['race'] as Race, raceInfo['state'] as String)),
+                              ...raceInProgress.map((race) => _buildRaceCard(race, race.flowState)),
                             ],
                             if (upcomingRaces.isNotEmpty) ...[
                               FlowSectionHeader(title: 'Upcoming'),
-                              ...upcomingRaces.map((raceInfo) => _buildRaceCard(raceInfo['race'] as Race, raceInfo['state'] as String)),
+                              ...upcomingRaces.map((race) => _buildRaceCard(race, race.flowState)),
                             ],
                             if (finishedRaces.isNotEmpty) ...[
                               FlowSectionHeader(title: 'Finished'),
-                              ...finishedRaces.map((raceInfo) => _buildRaceCard(raceInfo['race'] as Race, raceInfo['state'] as String)),
+                              ...finishedRaces.map((race) => _buildRaceCard(race, race.flowState)),
                             ],
                           ],
                         ),

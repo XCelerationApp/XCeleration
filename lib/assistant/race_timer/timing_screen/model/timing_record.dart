@@ -133,9 +133,9 @@ class TimingRecord {
   }
   
   /// Creates a TimingRecord from a Map
-  factory TimingRecord.fromMap(Map<String, dynamic> map) {
+  factory TimingRecord.fromMap(Map<String, dynamic> map, {bool database = false}) {
     return TimingRecord(
-      elapsedTime: map['elapsed_time'],
+      elapsedTime: database ? map['finish_time'] : map['elapsed_time'],
       runnerNumber: map['runner_number'],
       isConfirmed: map['is_confirmed'] ?? false,
       conflict: map['conflict'] != null 
@@ -150,7 +150,7 @@ class TimingRecord {
       name: map['name'],
       school: map['school'],
       grade: map['grade'],
-      bib: map['bib'],
+      bib: database ? map['bib_number'] : map['bib'],
       error: map['error'],
     );
   }

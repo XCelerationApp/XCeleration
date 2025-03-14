@@ -81,7 +81,7 @@ class MasterFlowController {
   Future<bool> _postRaceFlow(BuildContext context) async {
     final bool completed = await postRaceController.showPostRaceFlow(context, true);
     if (!completed) return false;
-    await updateRaceFlowState('completed');
+    await updateRaceFlowState('finished');
     return true;
   }
 

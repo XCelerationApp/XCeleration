@@ -43,7 +43,19 @@ class Race {
   }
 
   // Convert a Race into a Map
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toMap({bool database = false}) {
+    if (database) {
+      return {
+        'race_name': raceName,
+        'race_date': raceDate.toIso8601String(),
+        'location': location,
+        'distance': distance,
+        'distance_unit': distanceUnit,
+        'team_colors': jsonEncode(teamColors.map((c) => c.value).toList()),
+        'teams': jsonEncode(teams),
+        'flow_state': flowState,
+      };
+    }
     return {
       'race_id': raceId,
       'race_name': raceName,

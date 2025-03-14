@@ -1,6 +1,8 @@
 import 'dart:math';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
+import 'package:xcelerate/assistant/race_timer/timing_screen/model/timing_record.dart' show TimingRecord;
+import 'package:xcelerate/coach/race_screen/widgets/runner_record.dart';
 import '../../../utils/time_formatter.dart';
 import '../../../utils/csv_utils.dart';
 import '../../../core/components/dialog_utils.dart';
@@ -26,8 +28,8 @@ class ResultsScreen extends StatefulWidget {
 
 class ResultsScreenState extends State<ResultsScreen> {
   bool _isHeadToHead = false;
-  List<Map<String, dynamic>> _results = [];
-  List<Map<String, dynamic>> _runners = [];
+  List<TimingRecord> _results = [];
+  List<RunnerRecord> _runners = [];
 
   @override
   void initState() {
@@ -36,11 +38,11 @@ class ResultsScreenState extends State<ResultsScreen> {
   }
 
   Future<void> _loadResults() async {
-    final results = await DatabaseHelper.instance.getRaceResults(widget.raceId);
-    final runners = await DatabaseHelper.instance.getRaceRunners(widget.raceId);
+    final List<TimingRecord> results = await DatabaseHelper.instance.getRaceResults(widget.raceId);
+    final List<RunnerRecord> runners = await DatabaseHelper.instance.getRaceRunners(widget.raceId);
     setState(() {
-      _results = List<Map<String, dynamic>>.from(results);
-      _runners = List<Map<String, dynamic>>.from(runners);
+      _results = results;
+      _runners = runners;
     });
   }
 
@@ -371,19 +373,19 @@ class ResultsScreenState extends State<ResultsScreen> {
 
   List<Map<String, dynamic>> _calculateOverallTeamResults() {
     // Normal team scoring logic (all teams considered together)
-    return _calculateTeamResults(_runners);
+    return _calculateTeamResults(_results);
   }
 
   List<Map<String, dynamic>> _calculateHeadToHeadTeamResults() {
-    final schools = _runners.map((r) => r['school']).toSet().toList();
+    final schools = _results.map((r) => r.school!).toSet().toList();
     final headToHeadResults = <Map<String, dynamic>>[];
 
     for (int i = 0; i < schools.length; i++) {
       for (int j = i + 1; j < schools.length; j++) {
         final schoolA = schools[i];
         final schoolB = schools[j];
-        final filteredRunners = _runners
-            .where((r) => r['school'] == schoolA || r['school'] == schoolB)
+        final filteredRunners = _results
+            .where((r) => r.school == schoolA || r.school == schoolB)
             .toList();
 
         final teamResults = _calculateTeamResults(filteredRunners);
@@ -403,11 +405,11 @@ class ResultsScreenState extends State<ResultsScreen> {
 
   // Get the names of the scoring teams (teams with 5 or more runners)
   // and non-scoring teams
-  List<List<String>> _getTeamInfo(List<Map<String, dynamic>> allRunners) {
+  List<List<String>> _getTeamInfo(List<TimingRecord> allRunners) {
     final scoringTeams = <String>[];
     final nonScoringTeams = <String>[];
 
-    final teams = groupBy(allRunners, (runner) => runner['school']);
+    final teams = groupBy(allRunners, (runner) => runner.school!);
 
     teams.forEach((school, runners) {
       if (runners.length >= 5) {
@@ -421,16 +423,16 @@ class ResultsScreenState extends State<ResultsScreen> {
   }
 
   // Get the runners corresponding to a given team
-  List<Map<String, dynamic>> _getRunnersForTeam(List<Map<String, dynamic>> allRunners, String teamName) {
-    return allRunners.where((runner) => runner['school'] == teamName).toList();
+  List<TimingRecord> _getRunnersForTeam(List<TimingRecord> allRunners, String teamName) {
+    return allRunners.where((runner) => runner.school == teamName).toList();
   }
 
   // Get the runners corresponding to a list of teams
-  List<Map<String, dynamic>> _getRunnersForTeams(List<Map<String, dynamic>> allRunners, List<String> teams) {
-    return allRunners.where((runner) => teams.contains(runner['school'])).toList();
+  List<TimingRecord> _getRunnersForTeams(List<TimingRecord> allRunners, List<String> teams) {
+    return allRunners.where((runner) => teams.contains(runner.school)).toList();
   }
 
-  List<Map<String, dynamic>> _calculateTeamResults(List<Map<String, dynamic>> allRunners) {
+  List<Map<String, dynamic>> _calculateTeamResults(List<TimingRecord> allRunners) {
     final List<List<String>> teamInfo = _getTeamInfo(allRunners);
 
     final scoringTeams = teamInfo[0];
@@ -447,7 +449,7 @@ class ResultsScreenState extends State<ResultsScreen> {
       final schoolRunners = _getRunnersForTeam(allRunners, school);
 
       // Sort runners by time
-      schoolRunners.sort((a, b) => a['finishTimeAsDuration'].compareTo(b['finishTimeAsDuration']));
+      schoolRunners.sort((a, b) => loadDurationFromString(a.elapsedTime)!.compareTo(loadDurationFromString(b.elapsedTime)!));
 
       // Calculate team score and other stats
       final top5 = schoolRunners.take(5).toList();
@@ -456,9 +458,9 @@ class ResultsScreenState extends State<ResultsScreen> {
       final score = top5.fold<int>(0, (sum, runner) => sum + scoringRunners.indexOf(runner) + 1); // Calculate position based on time
       final scorers = '${top5.map((runner) => '${scoringRunners.indexOf(runner) + 1}').join('+')} ${sixthRunner != null ? '($sixthRunner' : ''}${seventhRunner != null ? '+$seventhRunner' : ''}${sixthRunner != null || seventhRunner != null ? ')' : ''}';
 
-      final split = top5.last['finishTimeAsDuration'] - top5.first['finishTimeAsDuration'];
+      final split = loadDurationFromString(top5.last.elapsedTime)! - loadDurationFromString(top5.first.elapsedTime)!;
       final formattedSplit = formatDuration(split);
-      final avgTime = top5.fold(Duration.zero, (sum, runner) => sum + runner['finishTimeAsDuration']) ~/ 5;
+      final avgTime = top5.fold(Duration.zero, (sum, runner) => sum + loadDurationFromString(runner.elapsedTime)!) ~/ 5;
       String formattedAverage = formatDuration(avgTime);
 
       teamScores.add({
