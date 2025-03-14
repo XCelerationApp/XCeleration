@@ -1,31 +1,47 @@
 import 'package:flutter/material.dart';
-import 'package:xcelerate/core/theme/app_colors.dart';
-import 'package:xcelerate/core/theme/typography.dart';
-import 'package:xcelerate/core/components/device_connection_widget.dart';
 import 'package:xcelerate/utils/enums.dart';
+import 'package:xcelerate/core/components/device_connection_widget.dart';
 import 'conflict_button.dart';
+import 'success_message.dart';
+import 'reload_button.dart';
 
+/// Widget that handles loading and displaying race results
 class ResultsLoaderWidget extends StatelessWidget {
+  /// Whether race results have been loaded
   final bool resultsLoaded;
-  final Function(BuildContext context) onResultsLoaded;
+  
+  /// Whether there are bib conflicts in the loaded results
   final bool hasBibConflicts;
+  
+  /// Whether there are timing conflicts in the loaded results  
   final bool hasTimingConflicts;
+  
+  /// Map of connected devices and their data
   final Map<DeviceName, Map<String, dynamic>> otherDevices;
+  
+  /// Function to call when reload button is pressed
   final VoidCallback onReloadPressed;
-  final Function(BuildContext context) onBibConflictsPressed;
-  final Function(BuildContext context) onTimingConflictsPressed;
+  
+  /// Function to call when bib conflicts button is pressed
+  final Function(BuildContext) onBibConflictsPressed;
+  
+  /// Function to call when timing conflicts button is pressed
+  final Function(BuildContext) onTimingConflictsPressed;
+  
+  /// Function to call when results are loaded from devices
+  final Function(BuildContext) onResultsLoaded;
 
   const ResultsLoaderWidget({
-    Key? key,
+    super.key,
     required this.resultsLoaded,
-    required this.onResultsLoaded,
     required this.hasBibConflicts,
     required this.hasTimingConflicts,
     required this.otherDevices,
     required this.onReloadPressed,
     required this.onBibConflictsPressed,
     required this.onTimingConflictsPressed,
-  }) : super(key: key);
+    required this.onResultsLoaded,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -61,42 +77,15 @@ class ResultsLoaderWidget extends StatelessWidget {
               ),
             ],
             if (!hasBibConflicts && !hasTimingConflicts) ...[
-              Text(
-                'Results Loaded Successfully',
-                style: AppTypography.bodySemibold.copyWith(color: AppColors.primaryColor),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'You can proceed to review the results or load them again if needed.',
-                style: AppTypography.bodyRegular.copyWith(color: AppColors.darkColor.withOpacity(0.7)),
-                textAlign: TextAlign.center,
-              ),
+              const SuccessMessage(),
             ],
             const SizedBox(height: 16),
           ],
 
-          resultsLoaded ? Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryColor,
-                minimumSize: const Size(240, 56),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(28),
-                ),
-              ),
-              onPressed: onReloadPressed,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.download_sharp, color: Colors.white),
-                  const SizedBox(width: 12),
-                  Text('Reload Results', style: AppTypography.bodySemibold.copyWith(color: Colors.white)),
-                ],
-              ),
-            ),
-          ) : const SizedBox.shrink(),
+          if (resultsLoaded) 
+            ReloadButton(onPressed: onReloadPressed)
+          else 
+            const SizedBox.shrink(),
         ],
       ),
     );
