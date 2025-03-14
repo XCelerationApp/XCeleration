@@ -74,7 +74,7 @@ class ResultsReviewWidget extends StatelessWidget {
           
           if (timingData != null && timingData!.runnerRecords.isNotEmpty) ...[
             // Show actual race results when available
-            ...timingData!.runnerRecords.take(10).map((runner) {
+            ...timingData!.runnerRecords.map((runner) {
               final record = _getRunnerRecord(runner);
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4),

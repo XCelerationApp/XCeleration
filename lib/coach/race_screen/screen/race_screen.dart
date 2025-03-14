@@ -20,14 +20,23 @@ class RaceScreen extends StatefulWidget {
 class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
   // Controller
   late RaceScreenController _controller;
+  bool _isLoading = true;
   
   @override
   void initState() {
     super.initState();
     _controller = RaceScreenController(raceId: widget.raceId);
-    _controller.init(context);
+    _loadRaceData();
   }
-
+  
+  Future<void> _loadRaceData() async {
+    await _controller.init(context);
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   Widget _buildModernDetailRow(String label, String value, IconData icon, {bool isMultiLine = false}) {
     return ModernDetailRow(
@@ -42,9 +51,9 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
     switch (flowState) {
       case 'setup':
         return 'Setup';
-      case 'pre_race':
+      case 'pre-race':
         return 'Pre-Race';
-      case 'post_race':
+      case 'post-race':
         return 'Post-Race';
       case 'finished':
         return 'Finished';
@@ -56,9 +65,9 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
     switch (flowState) {
       case 'setup':
         return Colors.amber;
-      case 'pre_race':
+      case 'pre-race':
         return Colors.blue;
-      case 'post_race':
+      case 'post-race':
         return Colors.purple;
       case 'finished':
         return Colors.green;
@@ -71,9 +80,9 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
     switch (flowState) {
       case 'setup':
         return Icons.settings;
-      case 'pre_race':
+      case 'pre-race':
         return Icons.timer;
-      case 'post_race':
+      case 'post-race':
         return Icons.flag;
       case 'finished':
         return Icons.check_circle;
@@ -85,7 +94,7 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    if (_controller.race == null) {
+    if (_isLoading || _controller.race == null) {
       return const Center(
         child: CircularProgressIndicator(),
       );

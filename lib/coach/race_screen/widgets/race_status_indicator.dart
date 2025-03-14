@@ -14,9 +14,9 @@ class RaceStatusIndicator extends StatelessWidget {
     switch (flowState) {
       case 'setup':
         return Colors.amber;
-      case 'pre_race':
+      case 'pre-race':
         return Colors.blue;
-      case 'post_race':
+      case 'post-race':
         return Colors.purple;
       case 'finished':
         return Colors.green;
@@ -29,9 +29,9 @@ class RaceStatusIndicator extends StatelessWidget {
     switch (flowState) {
       case 'setup':
         return Icons.settings;
-      case 'pre_race':
+      case 'pre-race':
         return Icons.timer;
-      case 'post_race':
+      case 'post-race':
         return Icons.flag;
       case 'finished':
         return Icons.check_circle;
@@ -44,9 +44,9 @@ class RaceStatusIndicator extends StatelessWidget {
     switch (flowState) {
       case 'setup':
         return 'Setup';
-      case 'pre_race':
+      case 'pre-race':
         return 'Pre-Race';
-      case 'post_race':
+      case 'post-race':
         return 'Post-Race';
       case 'finished':
         return 'Finished';
