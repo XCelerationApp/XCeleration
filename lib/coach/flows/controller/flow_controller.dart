@@ -20,7 +20,8 @@ class MasterFlowController {
   late PreRaceController preRaceController;
   late PostRaceController postRaceController;
 
-  MasterFlowController({required this.raceId, Race? race}) : race = race {
+  MasterFlowController({required this.raceId, Race? race}) {
+    race = race;
     setupController = SetupController(raceId: raceId);
     preRaceController = PreRaceController(raceId: raceId);
     postRaceController = PostRaceController(raceId: raceId);
