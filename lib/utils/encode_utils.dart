@@ -140,3 +140,28 @@ bool isValidBibData(RunnerRecord data) {
     data.grade > 0 &&
     data.school.isNotEmpty;
 }
+
+Future<List<RunnerRecord>?> decodeEncodedRunners(String data, BuildContext context) async {
+  try {
+    final List<String> encodedRunners = data.split(' ');
+    List<RunnerRecord> decodedRunners = [];
+    for (var runner in encodedRunners) {
+      if (runner.isNotEmpty) {
+        List<String> runnerValues = runner.split(',');
+        if (runnerValues.length == 4) {
+          decodedRunners.add(RunnerRecord(
+            raceId: -1,
+            bib: runnerValues[0],
+            name: runnerValues[1],
+            grade: int.parse(runnerValues[3]),
+            school: runnerValues[2],
+          ));
+        }
+      }
+    }
+    return decodedRunners;
+  } catch (e) {
+    DialogUtils.showErrorDialog(context, message: 'Error processing data: $e');
+    return null;
+  }
+}

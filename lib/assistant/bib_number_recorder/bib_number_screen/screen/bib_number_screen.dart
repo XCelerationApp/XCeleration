@@ -18,6 +18,8 @@ import '../../../../core/theme/typography.dart';
 import '../../../../utils/enums.dart';
 import '../../../../utils/sheet_utils.dart';
 import '../../../../shared/role_functions.dart';
+import '../../../../utils/encode_utils.dart';
+
 
 class BibNumberScreen extends StatefulWidget {
   const BibNumberScreen({super.key});
@@ -110,18 +112,20 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                       ),
                     );
                     await DeviceConnectionService.waitForDataTransferCompletion(otherDevices);
-                    setState(() {
+                    setState(() async {
                       final data = otherDevices[DeviceName.coach]?['data'];
                       if (data != null) {
-                        final runners = jsonDecode(data);
-                        if (runners.runtimeType != List || runners.isEmpty) {
+                        final runners = await decodeEncodedRunners(data, context);
+                        if (runners == null || runners.isEmpty) {
                           DialogUtils.showErrorDialog(context, 
                             message: 'Invalid data received from bib recorder. Please try again.');
+                          return;
                         }
-                        final runnerInCorrectFormat = runners.every((runner) => runner.containsKey('bib_number') && runner.containsKey('name') && runner.containsKey('school') && runner.containsKey('grade'));
+                        final runnerInCorrectFormat = runners.every((runner) => runner.bib.isNotEmpty && runner.name.isNotEmpty && runner.school.isNotEmpty && runner.grade > 0);
                         if (!runnerInCorrectFormat) {
                           DialogUtils.showErrorDialog(context, 
                             message: 'Invalid data received from bib recorder. Please try again.');
+                          return;
                         }
 
                         if (_runners.isNotEmpty) _runners.clear();

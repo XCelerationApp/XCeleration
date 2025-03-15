@@ -7,6 +7,7 @@ import '../utils/sheet_utils.dart';
 import '../core/services/tutorial_manager.dart';
 import '../core/components/coach_mark.dart';
 import 'role_screen.dart';
+import 'settings_screen.dart';
 
 class RoleOption {
   final String value;
@@ -175,6 +176,7 @@ Widget buildRoleBar(BuildContext context, String currentRole, TutorialManager tu
           mainAxisAlignment: MainAxisAlignment.end,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            // Role button
             CoachMark(
               id: 'role_bar_tutorial',
               tutorialManager: tutorialManager,
@@ -189,6 +191,18 @@ Widget buildRoleBar(BuildContext context, String currentRole, TutorialManager tu
                 elevation: 12,
               ),
               child: buildRoleButton(context, currentRole)
+            ),
+            const SizedBox(width: 8),
+            // Settings button
+            IconButton(
+              icon: Icon(Icons.settings, color: AppColors.darkColor, size: 36),
+              onPressed: () {
+                final role = (currentRole == 'coach') ? 'Coach' : 'Assistant';
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (context) => SettingsScreen(currentRole: role)),
+                );
+              },
+              padding: const EdgeInsets.symmetric(horizontal: 8),
             ),
           ],
         ),
