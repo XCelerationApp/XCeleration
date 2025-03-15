@@ -18,7 +18,7 @@ decodeRaceTimesString(String encodedData) async {
   List<TimingRecord> records = [];
   int place = 0;
   for (var recordString in condensedRecords) {
-    if (loadDurationFromString(recordString) != null) {
+    if (loadDurationFromString(recordString) != null || recordString == 'TBD') {
       place++;
       records.add(TimingRecord(
         elapsedTime: recordString,
@@ -67,9 +67,9 @@ decodeRaceTimesString(String encodedData) async {
 Future<TimingData?> processEncodedTimingData(String data, BuildContext context) async {
   try {
     final timingData = await decodeRaceTimesString(data);
-    debugPrint(timingData);
-    for (var record in timingData['records']) {
-      debugPrint(record);
+    debugPrint(timingData.toString());
+    for (var record in timingData!.records) {
+      debugPrint(record.toString());
     }
     if (!context.mounted) return null;
     if (isValidTimingData(timingData)) {
