@@ -41,14 +41,14 @@ decodeRaceTimesString(String encodedData) async {
         continue;
       }
 
-      if (type == 'confirm_runner_number'){
+      if (type == RecordType.confirmRunner.toString()){
         records = confirmRunnerNumber(records, place - 1, finishTime);
       }
-      else if (type == 'missing_runner_time'){
+      else if (type == RecordType.missingRunner.toString()){
         records = await missingRunnerTime(offBy, records, place, finishTime);
         place += offBy;
       }
-      else if (type == 'extra_runner_time'){
+      else if (type == RecordType.extraRunner.toString()){
         records = extraRunnerTime(offBy, records, place, finishTime);
         place -= offBy;
       }
