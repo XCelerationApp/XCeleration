@@ -317,14 +317,14 @@ class _QRConnectionState extends State<QRConnectionWidget> {
   Future<void> _showQR(BuildContext context, DeviceName device) async {
     // Get the data and handle the case where it might be a Future
     dynamic rawData = widget.otherDevices[device]!['data'];
-    String qrData;
+    String qrData = '${getDeviceNameString(device)}:';
     
     if (rawData is Future<String>) {
       // If it's a Future<String>, await it
-      qrData = await rawData;
+      qrData += await rawData;
     } else {
       // Otherwise, use it directly
-      qrData = rawData.toString();
+      qrData += rawData.toString();
     }
     
     sheet(
