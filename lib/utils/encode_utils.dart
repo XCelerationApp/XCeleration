@@ -11,10 +11,10 @@ import '../assistant/race_timer/timing_screen/model/timing_record.dart';
 import '../utils/enums.dart';
 
 decodeRaceTimesString(String encodedData) async {
-  final decodedData = json.decode(encodedData);
-  final startTime = null;
-  final endTime = decodedData[1];
-  final condensedRecords = decodedData[0];
+  // final decodedData = encodedData.split(',');
+  // final startTime = null;
+  // final endTime = decodedData[1];
+  final condensedRecords = encodedData.split(',');
   List<TimingRecord> records = [];
   int place = 0;
   for (var recordString in condensedRecords) {
@@ -58,9 +58,9 @@ decodeRaceTimesString(String encodedData) async {
     }
   }
   return TimingData(
-    endTime: endTime,
+    endTime: records.last.elapsedTime,
     records: records,
-    startTime: startTime
+    startTime: null
   );
 }
 

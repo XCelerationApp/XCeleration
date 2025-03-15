@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:uuid/uuid.dart';
 import '../../../../utils/enums.dart';
-
 import 'timing_record.dart';
 
 class TimingData with ChangeNotifier {
@@ -64,11 +63,9 @@ class TimingData with ChangeNotifier {
   }
 
   String encode() {
-    List<Map<String, dynamic>> recordMaps = _records.map((record) => record.toMap()).toList();
-    return jsonEncode({
-      'records': recordMaps,
-      'end_time': _endTime?.inMilliseconds,
-    });
+    // final String encodedRecords = encodeTimingRecords();
+    List<String> recordMaps = _records.map((record) => (record.type == RecordType.runnerTime) ? record.elapsedTime : '${record.type.toString()} ${record.conflict?.data?["offBy"]} ${record.elapsedTime}').toList();
+    return recordMaps.join(',');
   }
 
   void decode(String jsonString) {
