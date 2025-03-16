@@ -113,6 +113,9 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
     
     // Call the onComplete callback with the resolved data
     widget.onComplete(resolvedTimingData);
+    
+    // Ensure we exit with the resolved data
+    Navigator.of(context).pop(resolvedTimingData);
   }
 
   void _showResultsSavedSnackBar() {

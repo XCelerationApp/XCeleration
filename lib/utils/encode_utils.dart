@@ -10,7 +10,7 @@ import 'database_helper.dart';
 import '../assistant/race_timer/timing_screen/model/timing_record.dart';
 import '../utils/enums.dart';
 
-decodeRaceTimesString(String encodedData) async {
+Future<TimingData> decodeRaceTimesString(String encodedData) async {
   // final decodedData = encodedData.split(',');
   // final startTime = null;
   // final endTime = decodedData[1];
@@ -66,9 +66,9 @@ decodeRaceTimesString(String encodedData) async {
 
 Future<TimingData?> processEncodedTimingData(String data, BuildContext context) async {
   try {
-    final timingData = await decodeRaceTimesString(data);
+    final TimingData timingData = await decodeRaceTimesString(data);
     debugPrint(timingData.toString());
-    for (var record in timingData!.records) {
+    for (var record in timingData.records) {
       debugPrint(record.toString());
     }
     if (!context.mounted) return null;
@@ -83,6 +83,16 @@ Future<TimingData?> processEncodedTimingData(String data, BuildContext context) 
     rethrow;
   }
 }
+
+// Future<TimingData> combineRunnerRecordsWithTimingData(TimingData timingData, List<RunnerRecord> runnerRecords) async {
+//   for (var runnerRecord in runnerRecords) {
+//     timingData.mergeRunnerData(
+//       runnerRecord,
+      
+//     );
+//   }
+//   return timingData;
+// }
 
 bool isValidTimingData(TimingData data) {
   return data.records.isNotEmpty &&
@@ -135,7 +145,9 @@ Future<List<RunnerRecord>> processEncodedBibRecordsData(String data, BuildContex
 }
 
 bool isValidBibData(RunnerRecord data) {
-  return data.bib.isNotEmpty &&
+  print(data.toMap());
+  return data.error == 'Runner not found' ||
+    data.bib.isNotEmpty &&
     data.name.isNotEmpty &&
     data.grade > 0 &&
     data.school.isNotEmpty;
