@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:xcelerate/coach/merge_conflicts_screen/model/timing_data.dart';
+import '../../../../../race_screen/widgets/runner_record.dart' show RunnerRecord;
 import 'review_header.dart';
 import 'results_table.dart';
 
 class ResultsReviewWidget extends StatelessWidget {
   final TimingData? timingData;
+  final List<RunnerRecord>? runnerRecords;
 
   const ResultsReviewWidget({
     Key? key,
     required this.timingData,
+    required this.runnerRecords,
   }) : super(key: key);
 
   @override
@@ -19,8 +22,7 @@ class ResultsReviewWidget extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const ReviewHeader(),
-            ResultsTable(timingData: timingData),
-          ],
+            ResultsTable(timingData: timingData),          ],
         ),
       ),
     );

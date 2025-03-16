@@ -76,24 +76,27 @@ class PostRaceController {
     String? bibRecordsData = otherDevices[DeviceName.bibRecorder]?['data'];
     String? finishTimesData = otherDevices[DeviceName.raceTimer]?['data'];
     if (bibRecordsData != null && finishTimesData != null) {
-      await processEncodedBibRecordsData(
+      final List<RunnerRecord> runnerRecords = await processEncodedBibRecordsData(
         bibRecordsData,
         context,
         raceId
       );
       
-      final processedTimingData = await processEncodedTimingData(
+      final TimingData? processedTimingData = await processEncodedTimingData(
         finishTimesData,
         context
       );
       
       _reviewResultsStep.timingData = processedTimingData;
+      _reviewResultsStep.runnerRecords = runnerRecords;
       
       _loadResultsStep.resultsLoaded = true;
-      _loadResultsStep.hasBibConflicts = containsBibConflicts(processedTimingData!.runnerRecords);
-      _loadResultsStep.hasTimingConflicts = containsTimingConflicts(processedTimingData);
+      _loadResultsStep.hasBibConflicts = containsBibConflicts(runnerRecords);
+      _loadResultsStep.hasTimingConflicts = containsTimingConflicts(processedTimingData!);
       
-      await saveRaceResults();
+      if (!_loadResultsStep.hasBibConflicts && !_loadResultsStep.hasTimingConflicts) {
+        await saveRaceResults();
+      }
     }
   }
   
@@ -109,31 +112,57 @@ class PostRaceController {
   }
 
   Future<void> showBibConflictsSheet(BuildContext context) async {
-    if (_reviewResultsStep.timingData == null) return;
+    if (_reviewResultsStep.runnerRecords == null) return;
     
-    showModalBottomSheet(
+    final updatedRunnerRecords = await showModalBottomSheet<List<RunnerRecord>>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => BibConflictsSheet(runnerRecords: _reviewResultsStep.timingData!.runnerRecords),
+      builder: (context) => BibConflictsSheet(runnerRecords: _reviewResultsStep.runnerRecords!),
     );
+    
+    // Update runner records if a result was returned
+    if (updatedRunnerRecords != null) {
+      _reviewResultsStep.runnerRecords = updatedRunnerRecords;
+      
+      // Check if conflicts have been resolved
+      _loadResultsStep.hasBibConflicts = containsBibConflicts(updatedRunnerRecords);
+      
+      // If all conflicts resolved, save results
+      if (!_loadResultsStep.hasBibConflicts && !_loadResultsStep.hasTimingConflicts) {
+        await saveRaceResults();
+      }
+    }
   }
 
   Future<void> showTimingConflictsSheet(BuildContext context) async {
     if (_reviewResultsStep.timingData == null) return;
     
     final conflictingRecords = getConflictingRecords(_reviewResultsStep.timingData!.records, _reviewResultsStep.timingData!.records.length);
-    showModalBottomSheet(
+    final updatedTimingData = await showModalBottomSheet<TimingData>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => TimingConflictsSheet(
         conflictingRecords: conflictingRecords,
         timingData: _reviewResultsStep.timingData!,
-        runnerRecords: _reviewResultsStep.timingData!.runnerRecords,
+        runnerRecords: _reviewResultsStep.runnerRecords!,
         raceId: raceId,
       ),
     );
+    
+    // Update timing data if a result was returned
+    if (updatedTimingData != null) {
+      _reviewResultsStep.timingData = updatedTimingData;
+      
+      // Check if conflicts have been resolved
+      _loadResultsStep.hasTimingConflicts = containsTimingConflicts(updatedTimingData);
+      
+      // If all conflicts resolved, save results
+      if (!_loadResultsStep.hasBibConflicts && !_loadResultsStep.hasTimingConflicts) {
+        await saveRaceResults();
+      }
+    }
   }
 
   List<FlowStep> _getSteps() {

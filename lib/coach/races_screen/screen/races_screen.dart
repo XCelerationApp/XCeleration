@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:xcelerate/shared/settings_screen.dart';
 import '../../race_screen/screen/race_screen.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import '../../../shared/models/race.dart';
@@ -949,25 +950,51 @@ class RacesScreenState extends State<RacesScreen> {
                       'Races',
                       style: AppTypography.titleSemibold,
                     ),
-                    CoachMark(
-                      id: 'role_bar_tutorial',
-                      tutorialManager: tutorialManager,
-                      config: const CoachMarkConfig(
-                        title: 'Switch Roles',
-                        alignmentX: AlignmentX.left,
-                        alignmentY: AlignmentY.bottom,
-                        description: 'Click here to switch between Coach and Assistant roles',
-                        icon: Icons.touch_app,
-                        type: CoachMarkType.targeted,
-                        backgroundColor: Color(0xFF1976D2),
-                        elevation: 12,
-                      ),
-                      child: GestureDetector(
-                        onTap: () {
-                          changeProfile(context, 'coach');
-                        },
-                        child: Icon(Icons.person_outline, color: AppColors.darkColor, size: 56)
-                      ),
+                    Row(
+                      children: [
+                        CoachMark(
+                          id: 'role_bar_tutorial',
+                          tutorialManager: tutorialManager,
+                          config: const CoachMarkConfig(
+                            title: 'Switch Roles',
+                            alignmentX: AlignmentX.left,
+                            alignmentY: AlignmentY.bottom,
+                            description: 'Click here to switch between Coach and Assistant roles',
+                            icon: Icons.touch_app,
+                            type: CoachMarkType.targeted,
+                            backgroundColor: Color(0xFF1976D2),
+                            elevation: 12,
+                          ),
+                          child: GestureDetector(
+                            onTap: () {
+                              changeProfile(context, 'coach');
+                            },
+                            child: Icon(Icons.person_outline, color: AppColors.darkColor, size: 56)
+                          ),
+                        ),
+                        CoachMark(
+                          id: 'settings_button_tutorial',
+                          tutorialManager: tutorialManager,
+                          config: const CoachMarkConfig(
+                            title: 'Settings',
+                            alignmentX: AlignmentX.left,
+                            alignmentY: AlignmentY.bottom,
+                            description: 'Click here to open settings',
+                            icon: Icons.settings,
+                            type: CoachMarkType.targeted,
+                            backgroundColor: Color(0xFF1976D2),
+                            elevation: 12,
+                          ),
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(builder: (context) => SettingsScreen(currentRole: 'coach')),
+                              );
+                            },
+                            child: Icon(Icons.settings, color: AppColors.darkColor, size: 36)
+                          ),
+                        )
+                      ]
                     ),
                   ],
                 ),

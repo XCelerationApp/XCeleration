@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:xcelerate/coach/flows/model/flow_model.dart';
+import '../../../../race_screen/widgets/runner_record.dart';
 import 'widgets/results_review_widget.dart';
 import 'package:xcelerate/coach/merge_conflicts_screen/model/timing_data.dart';
 
@@ -8,11 +9,22 @@ class ReviewResultsStep extends FlowStep {
   // Private field to store timing data
   TimingData? _timingData;
   
+  // Private field to store runner records
+  List<RunnerRecord>? _runnerRecords;
+  
   // Getter and setter for timing data
   TimingData? get timingData => _timingData;
+
+  // Getter and setter for runner records
+  List<RunnerRecord>? get runnerRecords => _runnerRecords;
   
   set timingData(TimingData? value) {
     _timingData = value;
+    notifyContentChanged();
+  }
+
+  set runnerRecords(List<RunnerRecord>? value) {
+    _runnerRecords = value;
     notifyContentChanged();
   }
 
@@ -22,7 +34,7 @@ class ReviewResultsStep extends FlowStep {
       title: 'Review Results',
       description: 'Review and verify the race results before saving them.',
       content: SingleChildScrollView(
-        child: ResultsReviewWidget(timingData: null),
+        child: ResultsReviewWidget(timingData: null, runnerRecords: null),
       ),
       canProceed: () async => true,
     );
@@ -31,7 +43,7 @@ class ReviewResultsStep extends FlowStep {
   @override
   Widget get content {
     return SingleChildScrollView(
-      child: ResultsReviewWidget(timingData: _timingData),
+      child: ResultsReviewWidget(timingData: _timingData, runnerRecords: _runnerRecords),
     );
   }
 }

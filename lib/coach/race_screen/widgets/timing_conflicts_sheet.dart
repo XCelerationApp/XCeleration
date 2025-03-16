@@ -40,7 +40,7 @@ class TimingConflictsSheet extends StatelessWidget {
               ),
               leading: IconButton(
                 icon: const Icon(Icons.close),
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => Navigator.pop(context, timingData),
               ),
             ),
             Expanded(
@@ -122,15 +122,15 @@ class TimingConflictsSheet extends StatelessWidget {
                         ),
                         onPressed: () {
                           // Navigate to detailed conflict resolution page
-                          Navigator.pop(context);
-                          Navigator.push(
-                            context,
+                          Navigator.of(context).push(
                             MaterialPageRoute(
                               builder: (context) => MergeConflictsScreen(
                                 raceId: raceId,
                                 timingData: timingData,
                                 runnerRecords: runnerRecords,
                                 onComplete: (resolvedData) {
+                                  Navigator.pop(context);
+                                  // Return the resolved data to the bottom sheet's caller
                                   Navigator.pop(context, resolvedData);
                                 },
                               ),
