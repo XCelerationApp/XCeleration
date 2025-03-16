@@ -308,7 +308,8 @@ class _QRConnectionState extends State<QRConnectionWidget> {
   Future<void> _showQR(BuildContext context, DeviceName device) async {
     // Get the data and handle the case where it might be a Future
     String rawData = widget.devices.getDevice(device)!.data!;
-    String qrData = '${getDeviceNameString(device)}:$rawData';
+    print('Raw data: $rawData');
+    String qrData = '${getDeviceNameString(widget.devices.currentDeviceName)}:$rawData';
     
     sheet(
       context: context,
@@ -365,7 +366,7 @@ class _QRConnectionState extends State<QRConnectionWidget> {
 
   Future<void> _handleTap() async {
     if (widget.devices.currentDeviceType == DeviceType.advertiserDevice) {
-      await _showQR(context, widget.devices.currentDeviceName);
+      await _showQR(context, widget.devices.otherDevices.first.name);
     } else {
       _scanQRCodes();
     }

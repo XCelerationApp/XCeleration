@@ -11,7 +11,7 @@ class BibNumberController {
   final BuildContext context;
   final List<RunnerRecord> runners;
   final ScrollController scrollController;
-  final DevicesManager devices;
+  DevicesManager devices;
   
   BibNumberController({
     required this.context,

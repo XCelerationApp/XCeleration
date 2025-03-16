@@ -29,7 +29,7 @@ class BibNumberScreen extends StatefulWidget {
 
 class _BibNumberScreenState extends State<BibNumberScreen> {
   final List<RunnerRecord> _runners = [];
-  final DevicesManager devices = DeviceConnectionService.createDevices(
+  DevicesManager devices = DeviceConnectionService.createDevices(
     DeviceName.bibRecorder,
     DeviceType.browserDevice,
   );
@@ -63,7 +63,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
       devices: devices,
     );
     
-    // _checkForRunners();
+    _checkForRunners();
   }
 
   void _setupTutorials() {
@@ -160,6 +160,12 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) _setupTutorials();
           });
+
+          _controller.devices = DeviceConnectionService.createDevices(
+            DeviceName.bibRecorder,
+            DeviceType.advertiserDevice,
+            data: '',
+          );
           
           // Reset the bib number field
           _controller.handleBibNumber('');
@@ -203,6 +209,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     }
 
     final String bibData = _controller.getEncodedBibData();
+    _controller.devices.coach?.data = bibData;
     if (!mounted) return;
     sheet(
       context: context,
