@@ -11,7 +11,7 @@ class PreRaceController {
   final int raceId;
   PreRaceController({required this.raceId});
 
-  Map<DeviceName, Map<String, dynamic>> otherDevices = DeviceConnectionService.createOtherDeviceList(
+  DevicesManager devices = DeviceConnectionService.createDevices(
       DeviceName.coach,
       DeviceType.advertiserDevice,
       data: '',
@@ -21,10 +21,10 @@ class PreRaceController {
     return showFlow(
       context: context,
       showProgressIndicator: showProgressIndicator,
-      steps: _getSteps(),
+      steps: _getSteps(context),
     );
   }
-  List<FlowStep> _getSteps() {
+  List<FlowStep> _getSteps(BuildContext context) {
     return [
       FlowStep(
         title: 'Review Runners',
@@ -41,7 +41,7 @@ class PreRaceController {
         canProceed: () async => true,
         onNext: () async {
           final encoded = await DatabaseHelper.instance.getEncodedRunnersData(raceId);
-          otherDevices[DeviceName.bibRecorder]!['data'] = encoded;
+          devices.bibRecorder!.data = encoded;
         },
       ),
       FlowStep(
@@ -49,9 +49,8 @@ class PreRaceController {
         description: 'Share the runners with the bib recorders phone before starting the race.',
         content: Center(
           child: deviceConnectionWidget(
-            DeviceName.coach,
-            DeviceType.advertiserDevice,
-            otherDevices,
+            context,
+            devices,
           )
         ),
         canProceed: () async => true,

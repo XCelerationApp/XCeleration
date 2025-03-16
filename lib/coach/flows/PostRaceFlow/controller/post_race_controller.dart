@@ -18,7 +18,7 @@ class PostRaceController {
   final int raceId;
   
   // Controller state
-  Map<DeviceName, Map<String, dynamic>> otherDevices = {};
+  late DevicesManager devices;
   
   // Flow steps
   late LoadResultsStep _loadResultsStep;
@@ -27,7 +27,7 @@ class PostRaceController {
   
   // Constructor
   PostRaceController({required this.raceId}) {
-    otherDevices = DeviceConnectionService.createOtherDeviceList(
+    devices = DeviceConnectionService.createDevices(
       DeviceName.coach,
       DeviceType.browserDevice,
     );
@@ -38,7 +38,7 @@ class PostRaceController {
   // Initialize the flow steps
   void _initializeSteps() {
     _loadResultsStep = LoadResultsStep(
-      otherDevices: otherDevices,
+      devices: devices,
       reloadDevices: () => loadResults(),
       onResultsLoaded: (context) => processReceivedData(context),
       showBibConflictsSheet: (context) => showBibConflictsSheet(context),
@@ -73,8 +73,8 @@ class PostRaceController {
   }
   
   Future<void> processReceivedData(BuildContext context) async {
-    String? bibRecordsData = otherDevices[DeviceName.bibRecorder]?['data'];
-    String? finishTimesData = otherDevices[DeviceName.raceTimer]?['data'];
+    String? bibRecordsData = devices.bibRecorder?.data;
+    String? finishTimesData = devices.raceTimer?.data;
     if (bibRecordsData != null && finishTimesData != null) {
       await processEncodedBibRecordsData(
         bibRecordsData,

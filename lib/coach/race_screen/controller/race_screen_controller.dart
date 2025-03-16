@@ -63,11 +63,11 @@ class RaceScreenController with ChangeNotifier {
   // }
   
   /// Create device connections list for communication
-  Map<DeviceName, Map<String, dynamic>> createDeviceConnectionList(
+  DevicesManager createDevices(
     DeviceType deviceType, 
     {DeviceName deviceName = DeviceName.coach, String data = ''}
   ) {
-    return DeviceConnectionService.createOtherDeviceList(
+    return DeviceConnectionService.createDevices(
       deviceName,
       deviceType,
       data: data,

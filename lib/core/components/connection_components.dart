@@ -285,17 +285,13 @@ class _QRConnectionButtonState extends State<QRConnectionButton> {
 
 
 class QRConnectionWidget extends StatefulWidget {
-  final DeviceName deviceName;
-  final DeviceType deviceType;
-  final Map<DeviceName, Map<String, dynamic>> otherDevices;
-  final Function? callback;
-  
+  final DevicesManager devices;
+  final Function callback;
+
   const QRConnectionWidget({
     super.key,
-    required this.deviceName,
-    required this.deviceType,
-    required this.otherDevices,
-    this.callback,
+    required this.devices,
+    required this.callback,
   });
 
   @override
@@ -303,29 +299,16 @@ class QRConnectionWidget extends StatefulWidget {
 }
 
 class _QRConnectionState extends State<QRConnectionWidget> {
-  late AudioPlayer _audioPlayer;
 
   @override
   void initState() {
     super.initState();
-    if (widget.deviceType == DeviceType.advertiserDevice && widget.otherDevices.length != 1) {
-      throw Exception('Can only show data for one device');
-    }
-    _audioPlayer = AudioPlayer();
   }
 
   Future<void> _showQR(BuildContext context, DeviceName device) async {
     // Get the data and handle the case where it might be a Future
-    dynamic rawData = widget.otherDevices[device]!['data'];
-    String qrData = '${getDeviceNameString(device)}:';
-    
-    if (rawData is Future<String>) {
-      // If it's a Future<String>, await it
-      qrData += await rawData;
-    } else {
-      // Otherwise, use it directly
-      qrData += rawData.toString();
-    }
+    String rawData = widget.devices.getDevice(device)!.data!;
+    String qrData = '${getDeviceNameString(device)}:$rawData';
     
     sheet(
       context: context,
@@ -353,30 +336,22 @@ class _QRConnectionState extends State<QRConnectionWidget> {
         
         DeviceName? scannedDeviceName;
         try {
-          scannedDeviceName = widget.otherDevices.keys.firstWhere(
-            (element) => getDeviceNameString(element) == parts[0]
-          );
+          scannedDeviceName = widget.devices.getDevice(getDeviceNameFromString(parts[0]))?.name;
         } catch (e) {
-          // No match found, scanDeviceName remains null
+          // No match found, scannedDeviceName remains null
         }
         
         if (parts.isEmpty || scannedDeviceName == null) {
           DialogUtils.showErrorDialog(context, message: 'Incorrect QR Code Scanned');
           return;
         }
-        try {
-          await _audioPlayer.play(AssetSource('sounds/completed_ding.mp3'));
-        } catch (e) {
-          debugPrint('Error playing completion sound: $e');
-        }
-        setState(() {
-          widget.otherDevices[scannedDeviceName]!['status'] = ConnectionStatus.finished;
-          widget.otherDevices[scannedDeviceName]!['data'] = parts.sublist(1).join(':');
-        });
+        
+        widget.devices.getDevice(scannedDeviceName)!.status = ConnectionStatus.finished;
+        widget.devices.getDevice(scannedDeviceName)!.data = parts.sublist(1).join(':');
         
         // Call the callback function if provided
-        if (widget.callback != null && widget.otherDevices.values.every((device) => device['status'] == ConnectionStatus.finished)) {
-          widget.callback!();
+        if (widget.devices.allDevicesFinished()) {
+          widget.callback();
         }
       }
     } on MissingPluginException {
@@ -389,8 +364,8 @@ class _QRConnectionState extends State<QRConnectionWidget> {
   }
 
   Future<void> _handleTap() async {
-    if (widget.deviceType == DeviceType.advertiserDevice) {
-      await _showQR(context, widget.otherDevices.keys.elementAt(0));
+    if (widget.devices.currentDeviceType == DeviceType.advertiserDevice) {
+      await _showQR(context, widget.devices.currentDeviceName);
     } else {
       _scanQRCodes();
     }
@@ -403,8 +378,8 @@ class _QRConnectionState extends State<QRConnectionWidget> {
         await _handleTap();
       },
       child: QRConnectionButton(
-        deviceName: widget.deviceName,
-        deviceType: widget.deviceType,
+        deviceName: widget.devices.currentDeviceName,
+        deviceType: widget.devices.currentDeviceType,
         connectionStatus: ConnectionStatus.searching,
       ),
     );
@@ -412,25 +387,20 @@ class _QRConnectionState extends State<QRConnectionWidget> {
 
   @override
   void dispose() {
-    _audioPlayer.dispose();
     super.dispose();
   }
 }
 
 class WirelessConnectionWidget extends StatefulWidget {
-  final DeviceName deviceName;
-  final DeviceType deviceType;
-  final Map<DeviceName, Map<String, dynamic>> otherDevices;
-  final Function? callback;
-  
+  final DevicesManager devices;
+  final Function callback;
+
   const WirelessConnectionWidget({
     super.key,
-    required this.deviceName,
-    required this.deviceType,
-    required this.otherDevices,
-    this.callback,
+    required this.devices,
+    required this.callback,
   });
-  
+
   @override
   State<WirelessConnectionWidget> createState() => _WirelessConnectionState();
 }
@@ -439,7 +409,6 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
   late DeviceConnectionService _deviceConnectionService;
   late Protocol _protocol;
   WirelessConnectionError? _wirelessConnectionError;
-  late AudioPlayer _audioPlayer;
   bool _isInitialized = false;
 
   @override
@@ -461,13 +430,12 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
         });
         return;
       }
-      _audioPlayer = AudioPlayer();
 
       try {
         await _deviceConnectionService.init(
           'wirelessconn',
-          getDeviceNameString(widget.deviceName),
-          widget.deviceType,
+          getDeviceNameString(widget.devices.currentDeviceName),
+          widget.devices.currentDeviceType,
         );
         setState(() {
           _isInitialized = true;
@@ -501,8 +469,7 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
   void _startConnectionProcess() {
     // Setup device monitoring here
     _deviceConnectionService.monitorDevicesConnectionStatus(
-      deviceNames: widget.otherDevices.keys
-          .map((deviceName) => getDeviceNameString(deviceName)).toList(),
+      deviceNames: widget.devices.otherDevices.map((device) => getDeviceNameString(device.name)).toList(),
       deviceFoundCallback: _deviceFoundCallback,
       deviceLostCallback: _deviceLostCallback,
       deviceConnectingCallback: _deviceConnectingCallback,
@@ -512,49 +479,48 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
 
   Future<void> _deviceFoundCallback(Device device) async {
     final deviceName = getDeviceNameFromString(device.deviceName);
-    if (!widget.otherDevices.containsKey(deviceName) || 
-        widget.otherDevices[deviceName]!['status'] == ConnectionStatus.finished) {
+    if (!widget.devices.hasDevice(deviceName) || widget.devices.getDevice(deviceName)!.isFinished) {
       return;
     }
     
     if (mounted) {
       setState(() {
-        widget.otherDevices[deviceName]!['status'] = ConnectionStatus.found;
+        widget.devices.getDevice(deviceName)!.status = ConnectionStatus.found;
       });
     }
     
-    if (widget.deviceType == DeviceType.advertiserDevice) return;
+    if (widget.devices.currentDeviceType == DeviceType.advertiserDevice) return;
     await _deviceConnectionService.inviteDevice(device);
   }
 
   Future<void> _deviceLostCallback(Device device) async {
     // Handle device lost
     final deviceName = getDeviceNameFromString(device.deviceName);
-    if (mounted && widget.otherDevices.containsKey(deviceName)) {
+    if (mounted && widget.devices.hasDevice(deviceName)) {
       setState(() {
-        widget.otherDevices[deviceName]!['status'] = ConnectionStatus.error;
+        widget.devices.getDevice(deviceName)!.status = ConnectionStatus.error;
       });
     }
   }
 
   Future<void> _deviceConnectingCallback(Device device) async {
     final deviceName = getDeviceNameFromString(device.deviceName);
-    if (widget.otherDevices[deviceName]!['status'] == ConnectionStatus.finished) return;
+    if (widget.devices.getDevice(deviceName)!.isFinished) return;
     
     if (mounted) {
       setState(() {
-        widget.otherDevices[deviceName]!['status'] = ConnectionStatus.connecting;
+        widget.devices.getDevice(deviceName)!.status = ConnectionStatus.connecting;
       });
     }
   }
 
   Future<void> _deviceConnectedCallback(Device device) async {
     final deviceName = getDeviceNameFromString(device.deviceName);
-    if (widget.otherDevices[deviceName]!['status'] == ConnectionStatus.finished) return;
+    if (widget.devices.getDevice(deviceName)!.isFinished) return;
     
     if (mounted) {
       setState(() {
-        widget.otherDevices[deviceName]!['status'] = ConnectionStatus.connected;
+        widget.devices.getDevice(deviceName)!.status = ConnectionStatus.connected;
       });
     }
 
@@ -568,65 +534,57 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
         },
       );
 
-      if (widget.deviceType == DeviceType.browserDevice) {
+      if (widget.devices.currentDeviceType == DeviceType.browserDevice) {
         if (mounted) {
           setState(() {
-            widget.otherDevices[deviceName]!['status'] = ConnectionStatus.receiving;
+            widget.devices.getDevice(deviceName)!.status = ConnectionStatus.receiving;
           });
         }
         
         try {
           final results = await _protocol.receiveDataFromDevice(device.deviceId);
-          try {
-            await _audioPlayer.play(AssetSource('sounds/completed_ding.mp3'));
-          } catch (e) {
-            debugPrint('Error playing completion sound: $e');
-          }
-          widget.otherDevices[deviceName]!['data'] = results;
+          
           if (mounted) {
             setState(() {
-              widget.otherDevices[deviceName]!['status'] = ConnectionStatus.finished;
+              widget.devices.getDevice(deviceName)!.data = results;
+              widget.devices.getDevice(deviceName)!.status = ConnectionStatus.finished;
             });
           }
           
           // Check if all devices have finished loading data
-          bool allDevicesFinished = widget.otherDevices.entries.every(
-            (entry) => entry.value['status'] == ConnectionStatus.finished
-          );
+          bool allDevicesFinished = widget.devices.allDevicesFinished();
           
           // Call the callback if all devices are finished and callback is provided
-          if (allDevicesFinished && widget.callback != null) {
-            widget.callback!();
+          if (allDevicesFinished) {
+            widget.callback();
           }
         } catch (e) {
           debugPrint('Error receiving data: $e');
           rethrow;
         }
       } else {
-        if (widget.otherDevices[deviceName]!['data'] != null) {
+        if (widget.devices.getDevice(deviceName)!.data != null) {
           if (mounted) {
             setState(() {
-              widget.otherDevices[deviceName]!['status'] = ConnectionStatus.sending;
+              widget.devices.getDevice(deviceName)!.status = ConnectionStatus.sending;
             });
           }
           
           try {
-            final data = widget.otherDevices[deviceName]!['data']!;
+            final data = widget.devices.getDevice(deviceName)!.data!;
             await _protocol.sendData(data, device.deviceId);
             if (mounted) {
               setState(() {
-                widget.otherDevices[deviceName]!['status'] = ConnectionStatus.finished;
+                widget.devices.getDevice(deviceName)!.status = ConnectionStatus.finished;
               });
             }
             
             // Check if all devices have finished loading data
-            bool allDevicesFinished = widget.otherDevices.entries.every(
-              (entry) => entry.value['status'] == ConnectionStatus.finished
-            );
+            bool allDevicesFinished = widget.devices.allDevicesFinished();
             
-            // Call the callback if all devices are finished and callback is provided
-            if (allDevicesFinished && widget.callback != null) {
-              widget.callback!();
+            // Call the callback if all devices are finished
+            if (allDevicesFinished) {
+              widget.callback();
             }
             
             _deviceConnectionService.disconnectDevice(device);
@@ -644,7 +602,7 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
       _protocol.removeDevice(device.deviceId);
       if (mounted) {
         setState(() {
-          widget.otherDevices[deviceName]!['status'] = ConnectionStatus.error;
+          widget.devices.getDevice(deviceName)!.status = ConnectionStatus.error;
         });
       }
       rethrow;
@@ -669,7 +627,7 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
           Padding(
             padding: const EdgeInsets.only(bottom: 8.0),
             child: WirelessConnectionButton(
-              deviceName: DeviceName.coach,
+              deviceName: widget.devices.currentDeviceName,
               connectionStatus: ConnectionStatus.error,
               errorMessage: _wirelessConnectionError == WirelessConnectionError.unavailable 
                   ? 'Wireless connection is not available on this device.'
@@ -690,17 +648,17 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        for (var deviceName in widget.otherDevices.keys)
+        for (var device in widget.devices.otherDevices)
           Padding(
             padding: const EdgeInsets.only(bottom: 16.0),
             child: !_isInitialized 
               ? WirelessConnectionButton(
-                  deviceName: deviceName,
+                  deviceName: device.name,
                   connectionStatus: ConnectionStatus.searching,
                 ).skeleton
               : WirelessConnectionButton(
-                  deviceName: deviceName,
-                  connectionStatus: widget.otherDevices[deviceName]!['status'],
+                  deviceName: device.name,
+                  connectionStatus: device.status,
                 ),
           ),
       ],

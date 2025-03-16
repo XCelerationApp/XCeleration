@@ -1,23 +1,37 @@
 import 'package:flutter/material.dart';
 import 'connection_components.dart';
-import '../../utils/enums.dart';
 import 'dart:async';
+import 'package:audioplayers/audioplayers.dart';
+import '../services/device_connection_service.dart';
 
 Widget deviceConnectionWidget(
-  DeviceName deviceName, 
-  DeviceType deviceType, 
-  Map<DeviceName, Map<String, dynamic>> otherDevices, 
+  BuildContext context,
+  DevicesManager devices,
   {Function? callback}
 ) {
+  void handleCallback() async {
+    if (callback != null) {
+      await callback();
+    }
+    try {
+      final player = AudioPlayer();
+      await player.play(AssetSource('sounds/completed_ding.mp3'));
+    } catch (e) {
+      debugPrint('Error playing completion sound: $e');
+    }
+
+    Future.delayed(const Duration(seconds: 1), () {
+      Navigator.pop(context);
+    });
+  }
+  
   return Column(
     mainAxisSize: MainAxisSize.min,
     children: [
-        WirelessConnectionWidget(
-          deviceName: deviceName,
-          deviceType: deviceType,
-          otherDevices: otherDevices,
-          callback: callback,
-        ),
+      WirelessConnectionWidget(
+        devices: devices,
+        callback: handleCallback,
+      ),
       
       // Separator
       const SizedBox(height: 16),
@@ -29,15 +43,14 @@ Widget deviceConnectionWidget(
           height: 1.5,
         ),
       ),
+      
       const SizedBox(height: 16),
       
       // QR connection button
-        QRConnectionWidget(
-          deviceName: deviceName,
-          deviceType: deviceType,
-          otherDevices: otherDevices,
-          callback: callback,
-        ),
+      QRConnectionWidget(
+        devices: devices,
+        callback: handleCallback,
+      ),
     ],
   );
 }

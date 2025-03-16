@@ -5,6 +5,131 @@ import 'dart:io';
 import '../../utils/enums.dart';
 import 'package:flutter/foundation.dart';
 
+/// Represents a connected device with its properties
+class ConnectedDevice {
+  final DeviceName _deviceName;
+  ConnectionStatus _status;
+  String? _data;
+  
+  ConnectedDevice(this._deviceName, {String? data}) : 
+    _status = ConnectionStatus.searching,
+    _data = data;
+  
+  /// The name of the device
+  DeviceName get name => _deviceName;
+  
+  /// The current connection status
+  ConnectionStatus get status => _status;
+  set status(ConnectionStatus value) {
+    _status = value;
+  }
+  
+  /// Data associated with this device
+  String? get data => _data;
+  set data(String? value) {
+    _data = value;
+  }
+  
+  /// Check if the device is finished
+  bool get isFinished => _status == ConnectionStatus.finished;
+  
+  /// Check if the device is in error state
+  bool get isError => _status == ConnectionStatus.error;
+
+  void reset() {
+    _status = ConnectionStatus.searching;
+    _data = null;
+  }
+  
+  @override
+  String toString() => 'ConnectedDevice(name: $_deviceName, status: $_status, hasData: ${_data != null})';
+}
+
+/// Class to manage device connections and lists
+class DevicesManager {
+  final DeviceName _currentDeviceName;
+  final DeviceType _currentDeviceType;
+  final String? _data;
+
+  ConnectedDevice? _coach;
+  ConnectedDevice? _bibRecorder;
+  ConnectedDevice? _raceTimer;
+  
+  /// Creates a device manager for the current device name and type
+  /// 
+  /// If the device is an advertiser, data must be provided
+  DevicesManager(this._currentDeviceName, this._currentDeviceType, {String? data}) : _data = data {
+    _initializeDevices();
+  }
+  
+  void _initializeDevices() {
+    if (_currentDeviceType == DeviceType.advertiserDevice) {
+      if (_data == null) {
+        throw Exception('Data to transfer must be provided for advertiser devices');
+      }
+      
+      if (_currentDeviceName == DeviceName.coach) {
+        _coach = ConnectedDevice(DeviceName.coach);
+        _bibRecorder = ConnectedDevice(DeviceName.bibRecorder, data: _data);
+      } else {
+        _bibRecorder = ConnectedDevice(DeviceName.bibRecorder);
+        _coach = ConnectedDevice(DeviceName.coach, data: _data);
+      }
+    } else {
+      if (_currentDeviceName == DeviceName.coach) {
+        _coach = ConnectedDevice(DeviceName.coach);
+        _bibRecorder = ConnectedDevice(DeviceName.bibRecorder);
+        _raceTimer = ConnectedDevice(DeviceName.raceTimer);
+      } else {
+        _bibRecorder = ConnectedDevice(DeviceName.bibRecorder);
+        _coach = ConnectedDevice(DeviceName.coach);
+      }
+    }
+  }
+  
+  /// Get the current device name
+  DeviceName get currentDeviceName => _currentDeviceName;
+  
+  /// Get the current device type
+  DeviceType get currentDeviceType => _currentDeviceType;
+  
+  /// Get the coach device if available
+  ConnectedDevice? get coach => _coach;
+  
+  /// Get the bib recorder device if available
+  ConnectedDevice? get bibRecorder => _bibRecorder;
+  
+  /// Get the race timer device if available
+  ConnectedDevice? get raceTimer => _raceTimer;
+
+  /// Get all connected devices (non-null only)
+  List<ConnectedDevice> get devices => [
+    if (_coach != null) _coach!,
+    if (_bibRecorder != null) _bibRecorder!,
+    if (_raceTimer != null) _raceTimer!,
+  ];
+
+  List<ConnectedDevice> get otherDevices => devices.where((device) => device.name != _currentDeviceName).toList();
+  
+  /// Check if a specific device exists
+  bool hasDevice(DeviceName name) => otherDevices.any((device) => device.name == name);
+
+  /// Get a specific device by name
+  ConnectedDevice? getDevice(DeviceName name) {
+    try {
+      return devices.firstWhere((device) => device.name == name);
+    } catch (e) {
+      return null;
+    }
+  }
+  
+  /// Check if all managed devices have finished connecting
+  bool allDevicesFinished() => otherDevices.every((device) => device.isFinished);
+
+
+}
+
+/// Service to manage device connections
 class DeviceConnectionService {
   NearbyService? nearbyService;
 
@@ -217,49 +342,20 @@ class DeviceConnectionService {
     _connectedDevices.clear();
   }
 
-  static Map<DeviceName, Map<String, dynamic>> createOtherDeviceList(DeviceName deviceName, DeviceType deviceType, {String? data}) {
-    Map<DeviceName, Map<String, dynamic>> devices = {}; 
-    if (deviceType == DeviceType.advertiserDevice) {
-      if (data == null) {
-        throw Exception('Data to transfer must be provided for advertiser devices');
-      }
-      if (deviceName == DeviceName.coach) {
-        devices[DeviceName.bibRecorder] = {
-          'status': ConnectionStatus.searching,
-          'data': data,
-        };
-      }
-      else {
-        devices[DeviceName.coach] = {
-          'status': ConnectionStatus.searching,
-          'data': data,
-        };
-      }
-    }
-    else {
-      if (deviceName == DeviceName.coach) {
-        devices[DeviceName.bibRecorder] = {
-          'status': ConnectionStatus.searching,
-        };
-        devices[DeviceName.raceTimer] = {
-          'status': ConnectionStatus.searching,
-        };
-      }
-      else {
-        devices[DeviceName.coach] = {
-          'status': ConnectionStatus.searching,
-        };
-      }
-    }
-    return devices;
+  /// Creates a device manager for the specified device name and type
+  static DevicesManager createDevices(
+      DeviceName deviceName, 
+      DeviceType deviceType, 
+      {String? data}
+  ) {
+    return DevicesManager(deviceName, deviceType, data: data);
   }
-  static Future<bool> waitForDataTransferCompletion(Map<DeviceName, Map<String, dynamic>> otherDevices) async {
+
+  static Future<bool> waitForDataTransferCompletion(DevicesManager devices) async {
     final completer = Completer<bool>();
     
     Timer.periodic(const Duration(milliseconds: 100), (timer) {
-      final allFinished = otherDevices.values
-          .every((device) => device['status'] == ConnectionStatus.finished);
-      if (allFinished) {
+      if (devices.allDevicesFinished()) {
         timer.cancel();
         completer.complete(true);
       }

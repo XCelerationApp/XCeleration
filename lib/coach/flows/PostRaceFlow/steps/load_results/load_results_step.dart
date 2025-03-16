@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:xcelerate/coach/flows/model/flow_model.dart';
 import 'widgets/results_loader_widget.dart';
 import 'package:xcelerate/utils/enums.dart';
+import 'package:xcelerate/core/services/device_connection_service.dart';
 
 /// A FlowStep implementation for the load results step in the post-race flow
 class LoadResultsStep extends FlowStep {
@@ -9,7 +10,7 @@ class LoadResultsStep extends FlowStep {
   bool _resultsLoaded;
   bool _hasBibConflicts;
   bool _hasTimingConflicts;
-  final Map<DeviceName, Map<String, dynamic>> _otherDevices;
+  final DevicesManager _devices;
   final Function() _reloadDevices;
   final Function(BuildContext context) _onResultsLoaded;
   final Function(BuildContext context) _showBibConflictsSheet;
@@ -38,7 +39,7 @@ class LoadResultsStep extends FlowStep {
 
   /// Creates a new instance of LoadResultsStep
   LoadResultsStep({
-    required Map<DeviceName, Map<String, dynamic>> otherDevices,
+    required DevicesManager devices,
     required Function() reloadDevices,
     required Function(BuildContext context) onResultsLoaded,
     required Function(BuildContext context) showBibConflictsSheet,
@@ -47,7 +48,7 @@ class LoadResultsStep extends FlowStep {
     _resultsLoaded = false,
     _hasBibConflicts = false,
     _hasTimingConflicts = false,
-    _otherDevices = otherDevices,
+    _devices = devices,
     _reloadDevices = reloadDevices,
     _onResultsLoaded = onResultsLoaded,
     _showBibConflictsSheet = showBibConflictsSheet,
@@ -61,7 +62,7 @@ class LoadResultsStep extends FlowStep {
           onResultsLoaded: onResultsLoaded,
           hasBibConflicts: false,
           hasTimingConflicts: false,
-          otherDevices: otherDevices,
+          devices: devices,
           onReloadPressed: () {},
           onBibConflictsPressed: (context) {},
           onTimingConflictsPressed: (context) {},
@@ -79,7 +80,7 @@ class LoadResultsStep extends FlowStep {
         onResultsLoaded: _onResultsLoaded,
         hasBibConflicts: _hasBibConflicts,
         hasTimingConflicts: _hasTimingConflicts,
-        otherDevices: _otherDevices,
+        devices: _devices,
         onReloadPressed: _reloadDevices,
         onBibConflictsPressed: _showBibConflictsSheet,
         onTimingConflictsPressed: _showTimingConflictsSheet,

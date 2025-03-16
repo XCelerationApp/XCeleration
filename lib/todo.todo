@@ -1,5 +1,7 @@
 Functionality:
+- move encoding logic from database helper to encoder utils
 - error proof wireless connection
+- make wireless connection process each device separately
 - add downloading of race results if QR and wireless dont work
 - non local database
 - share/save results
@@ -37,6 +39,7 @@ Runners Management screen:
 
 Bib Number screen:
 - make bib number count look better
+- move more logic to the controller
 
 Races screen:
 - put error text under text boxes

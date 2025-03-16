@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:xcelerate/coach/race_screen/widgets/runner_record.dart';
+import 'package:xcelerate/core/services/device_connection_service.dart';
 import '../model/bib_record.dart';
 import '../model/bib_records_provider.dart';
 import '../../../../../core/components/dialog_utils.dart';
@@ -10,13 +11,13 @@ class BibNumberController {
   final BuildContext context;
   final List<RunnerRecord> runners;
   final ScrollController scrollController;
-  final Map<DeviceName, Map<String, dynamic>> otherDevices;
+  final DevicesManager devices;
   
   BibNumberController({
     required this.context,
     required this.runners,
     required this.scrollController,
-    required this.otherDevices,
+    required this.devices,
   });
 
   // Runner management methods

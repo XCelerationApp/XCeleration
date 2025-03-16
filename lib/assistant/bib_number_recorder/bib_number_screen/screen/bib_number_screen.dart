@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:xcelerate/coach/race_screen/widgets/runner_record.dart' show RunnerRecord;
-import 'dart:convert';
 import 'dart:io';
 import '../model/bib_number_model.dart';
 import '../model/bib_records_provider.dart';
@@ -30,7 +29,7 @@ class BibNumberScreen extends StatefulWidget {
 
 class _BibNumberScreenState extends State<BibNumberScreen> {
   final List<RunnerRecord> _runners = [];
-  final Map<DeviceName, Map<String, dynamic>> otherDevices = DeviceConnectionService.createOtherDeviceList(
+  final DevicesManager devices = DeviceConnectionService.createDevices(
     DeviceName.bibRecorder,
     DeviceType.browserDevice,
   );
@@ -54,21 +53,17 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     super.initState();
     _model = BibNumberModel(
       initialRunners: _runners, 
-      initialOtherDevices: otherDevices
+      initialDevices: devices
     );
     
     _controller = BibNumberController(
       context: context,
       runners: _runners,
       scrollController: _scrollController,
-      otherDevices: otherDevices,
+      devices: devices,
     );
     
-    _checkForRunners();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      _setupTutorials();
-    });
+    // _checkForRunners();
   }
 
   void _setupTutorials() {
@@ -103,43 +98,15 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                       context: context,
                       title: 'Load Runners',
                       body: deviceConnectionWidget(
-                        DeviceName.coach,
-                        DeviceType.browserDevice,
-                        DeviceConnectionService.createOtherDeviceList(
-                          DeviceName.coach,
-                          DeviceType.browserDevice,
-                        ),
+                        context,
+                        _controller.devices,
+                        callback: () {
+                          Navigator.pop(context);
+                          print('popped sheet');
+                          loadRunners();
+                        },
                       ),
                     );
-                    await DeviceConnectionService.waitForDataTransferCompletion(otherDevices);
-                    setState(() async {
-                      final data = otherDevices[DeviceName.coach]?['data'];
-                      if (data != null) {
-                        final runners = await decodeEncodedRunners(data, context);
-                        if (runners == null || runners.isEmpty) {
-                          DialogUtils.showErrorDialog(context, 
-                            message: 'Invalid data received from bib recorder. Please try again.');
-                          return;
-                        }
-                        final runnerInCorrectFormat = runners.every((runner) => runner.bib.isNotEmpty && runner.name.isNotEmpty && runner.school.isNotEmpty && runner.grade > 0);
-                        if (!runnerInCorrectFormat) {
-                          DialogUtils.showErrorDialog(context, 
-                            message: 'Invalid data received from bib recorder. Please try again.');
-                          return;
-                        }
-
-                        if (_runners.isNotEmpty) _runners.clear();
-                        debugPrint('Runners loaded: $runners');
-                        _runners.addAll(runners);
-                      }
-                    });
-                    if (_runners.isNotEmpty && context.mounted) {
-                      Navigator.pop(context);  
-                      _controller.handleBibNumber('');
-                    }
-                    else {
-                      debugPrint('No runners loaded');
-                    }
                   },
                 ),
               ],
@@ -147,6 +114,64 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
           },
         );
       });
+    }
+  }
+
+  Future<void> loadRunners() async {
+    final data = devices.coach?.data;
+    
+    if (data != null) {
+      try {
+        // Process data outside of setState
+        final runners = await decodeEncodedRunners(data, context);
+        
+        if (runners == null || runners.isEmpty) {
+          DialogUtils.showErrorDialog(context, 
+            message: 'Invalid data received from bib recorder. Please try again.');
+          return;
+        }
+        
+        final runnerInCorrectFormat = runners.every((runner) => 
+          runner.bib.isNotEmpty && 
+          runner.name.isNotEmpty && 
+          runner.school.isNotEmpty && 
+          runner.grade > 0);
+        
+        if (!runnerInCorrectFormat) {
+          DialogUtils.showErrorDialog(context, 
+            message: 'Invalid data format received from bib recorder. Please try again.');
+          return;
+        }
+
+        // Update state after async operations are complete
+        setState(() {
+          if (_runners.isNotEmpty) _runners.clear();
+          _runners.addAll(runners);
+        });
+        
+        debugPrint('Runners loaded: $_runners');
+        
+        // Close dialog and handle UI updates after state is set
+        if (_runners.isNotEmpty && mounted) {
+          // Close the "No Runners Loaded" dialog
+          Navigator.of(context).pop();
+          
+          // Setup tutorials after UI has settled
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _setupTutorials();
+          });
+          
+          // Reset the bib number field
+          _controller.handleBibNumber('');
+        }
+      } catch (e) {
+        debugPrint('Error loading runners: $e');
+        DialogUtils.showErrorDialog(context, 
+          message: 'Error processing runner data: $e');
+      }
+    } else {
+      DialogUtils.showErrorDialog(context, 
+        message: 'No data received from bib recorder. Please try again.');
     }
   }
 
@@ -183,13 +208,8 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
       context: context,
       title: 'Share Bib Numbers',
       body: deviceConnectionWidget(
-        DeviceName.bibRecorder,
-        DeviceType.advertiserDevice,
-        DeviceConnectionService.createOtherDeviceList(
-          DeviceName.bibRecorder,
-          DeviceType.advertiserDevice,
-          data: bibData,
-        ),
+        context,
+        _controller.devices,
       ),
     );
 

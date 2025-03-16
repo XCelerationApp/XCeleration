@@ -5,11 +5,11 @@ import '../model/timing_record.dart';
 import '../../../../shared/role_functions.dart';
 import '../../../../core/services/tutorial_manager.dart';
 import '../../../../utils/enums.dart';
-import '../widget/timer_display_widget.dart';
-import '../widget/race_controls_widget.dart';
-import '../widget/record_list_item.dart';
-import '../widget/race_info_header_widget.dart';
-import '../widget/bottom_controls_widget.dart';
+import '../widgets/timer_display_widget.dart';
+import '../widgets/race_controls_widget.dart';
+import '../widgets/record_list_item.dart';
+import '../widgets/race_info_header_widget.dart';
+import '../widgets/bottom_controls_widget.dart';
 import '../controller/timing_controller.dart';
 
 class TimingScreen extends StatefulWidget {

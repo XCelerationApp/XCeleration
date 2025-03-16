@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:xcelerate/utils/enums.dart';
 import 'package:xcelerate/core/components/device_connection_widget.dart';
+import 'package:xcelerate/core/services/device_connection_service.dart';
 import 'conflict_button.dart';
 import 'success_message.dart';
 import 'reload_button.dart';
@@ -17,7 +18,7 @@ class ResultsLoaderWidget extends StatelessWidget {
   final bool hasTimingConflicts;
   
   /// Map of connected devices and their data
-  final Map<DeviceName, Map<String, dynamic>> otherDevices;
+  final DevicesManager devices;
   
   /// Function to call when reload button is pressed
   final VoidCallback onReloadPressed;
@@ -36,7 +37,7 @@ class ResultsLoaderWidget extends StatelessWidget {
     required this.resultsLoaded,
     required this.hasBibConflicts,
     required this.hasTimingConflicts,
-    required this.otherDevices,
+    required this.devices,
     required this.onReloadPressed,
     required this.onBibConflictsPressed,
     required this.onTimingConflictsPressed,
@@ -54,9 +55,8 @@ class ResultsLoaderWidget extends StatelessWidget {
         children: [
           Center(
             child: deviceConnectionWidget(
-              DeviceName.coach,
-              DeviceType.browserDevice,
-              otherDevices,
+              context,
+              devices,
               callback: () => onResultsLoaded(context),
             ),
           ),

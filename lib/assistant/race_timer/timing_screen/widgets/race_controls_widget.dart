@@ -7,6 +7,7 @@ import '../../../../core/components/device_connection_widget.dart';
 import '../../../../core/services/device_connection_service.dart';
 import '../model/timing_data.dart';
 import '../../../../utils/enums.dart';
+
 class RaceControlsWidget extends StatelessWidget {
   final DateTime? startTime;
   final TimingData timingData;
@@ -69,14 +70,13 @@ class RaceControlsWidget extends StatelessWidget {
                 context: context,
                 title: 'Share Times',
                 body: deviceConnectionWidget(
-                  DeviceName.raceTimer,
-                  DeviceType.advertiserDevice,
-                  DeviceConnectionService.createOtherDeviceList(
+                  context,
+                  DeviceConnectionService.createDevices(
                     DeviceName.raceTimer,
                     DeviceType.advertiserDevice,
                     data: timingData.encode(),
                   ),
-                )
+                ),
               ),
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size(0, 78),

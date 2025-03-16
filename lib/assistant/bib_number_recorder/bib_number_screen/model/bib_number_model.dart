@@ -7,14 +7,14 @@ import '../../../../../core/services/device_connection_service.dart';
 
 class BibNumberModel {
   final List<RunnerRecord> runners;
-  final Map<DeviceName, Map<String, dynamic>> otherDevices;
+  final DevicesManager devices;
   
   BibNumberModel({
     List<RunnerRecord>? initialRunners,
-    Map<DeviceName, Map<String, dynamic>>? initialOtherDevices,
+    DevicesManager? initialDevices,
   }) : 
     runners = initialRunners ?? [],
-    otherDevices = initialOtherDevices ?? DeviceConnectionService.createOtherDeviceList(
+    devices = initialDevices ?? DeviceConnectionService.createDevices(
       DeviceName.bibRecorder,
       DeviceType.browserDevice,
     );
