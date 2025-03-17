@@ -93,7 +93,7 @@ class RoleScreen extends StatelessWidget {
                 text: 'Assistant',
                 onPressed: () {
                   Navigator.of(context).push(
-                    CustomPageRoute(child: const AssistantRoleScreen()),
+                    CustomPageRoute(child: const AssistantRoleScreen(showBackArrow: false)),
                   );
                 },
               ),
@@ -106,7 +106,9 @@ class RoleScreen extends StatelessWidget {
 }
 
 class AssistantRoleScreen extends StatelessWidget {
-  const AssistantRoleScreen({super.key});
+  const AssistantRoleScreen({super.key, this.showBackArrow = true});
+
+  final bool showBackArrow;
 
   @override
   Widget build(BuildContext context) {
@@ -115,14 +117,7 @@ class AssistantRoleScreen extends StatelessWidget {
         children: [
           Container(
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  AppColors.primaryColor,
-                  AppColors.primaryColor.withAlpha((0.9 * 255).round()),
-                ],
-              ),
+              color: AppColors.primaryColor,
             ),
             child: SafeArea(
               child: Column(
@@ -165,15 +160,16 @@ class AssistantRoleScreen extends StatelessWidget {
               ),
             ),
           ),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.only(left: 8.0, top: 8.0),
-              child: IconButton(
-                icon: Icon(Icons.arrow_back_ios, color: Colors.white),
-                onPressed: () => Navigator.of(context).pop(),
+          if (showBackArrow)
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.only(left: 8.0, top: 8.0),
+                child: IconButton(
+                  icon: Icon(Icons.arrow_back_ios, color: Colors.white),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
               ),
             ),
-          ),
         ],
       ),
     );

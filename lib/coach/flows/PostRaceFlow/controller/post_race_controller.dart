@@ -127,7 +127,8 @@ class PostRaceController {
       
       // Check if conflicts have been resolved
       _loadResultsStep.hasBibConflicts = containsBibConflicts(updatedRunnerRecords);
-      
+      _loadResultsStep.hasTimingConflicts = containsTimingConflicts(_reviewResultsStep.timingData!);
+    
       // If all conflicts resolved, save results
       if (!_loadResultsStep.hasBibConflicts && !_loadResultsStep.hasTimingConflicts) {
         await saveRaceResults();
@@ -138,7 +139,7 @@ class PostRaceController {
   Future<void> showTimingConflictsSheet(BuildContext context) async {
     if (_reviewResultsStep.timingData == null) return;
     
-    final conflictingRecords = getConflictingRecords(_reviewResultsStep.timingData!.records, _reviewResultsStep.timingData!.records.length);
+    final conflictingRecords = getConflictingRecords(_reviewResultsStep.timingData!.records, _reviewResultsStep.runnerRecords!);
     final updatedTimingData = await showModalBottomSheet<TimingData>(
       context: context,
       isScrollControlled: true,
@@ -178,6 +179,6 @@ class PostRaceController {
   }
 
   bool containsTimingConflicts(TimingData data) {
-    return getConflictingRecords(data.records, data.records.length).isNotEmpty;
+    return data.records.any((record) => record.conflict != null);
   }
 }

@@ -45,7 +45,7 @@ Future<TimingData> decodeRaceTimesString(String encodedData) async {
         records = confirmRunnerNumber(records, place - 1, finishTime);
       }
       else if (type == RecordType.missingRunner.toString()){
-        records = await missingRunnerTime(offBy, records, place, finishTime);
+        records = missingRunnerTime(offBy, records, place, finishTime);
         place += offBy;
       }
       else if (type == RecordType.extraRunner.toString()){
@@ -68,6 +68,7 @@ Future<TimingData?> processEncodedTimingData(String data, BuildContext context) 
   try {
     final TimingData timingData = await decodeRaceTimesString(data);
     debugPrint(timingData.toString());
+    debugPrint('Has conflicts: ${timingData.records.any((record) => record.conflict != null)}');
     for (var record in timingData.records) {
       debugPrint(record.toString());
     }
