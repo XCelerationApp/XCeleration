@@ -30,7 +30,7 @@ Widget deviceConnectionWidget(
     children: [
       WirelessConnectionWidget(
         devices: devices,
-        callback: handleCallback,
+        callback: callback!,
       ),
       
       // Separator

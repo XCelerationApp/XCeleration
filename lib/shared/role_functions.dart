@@ -197,7 +197,7 @@ Widget buildRoleBar(BuildContext context, String currentRole, TutorialManager tu
             IconButton(
               icon: Icon(Icons.settings, color: AppColors.darkColor, size: 36),
               onPressed: () {
-                final role = (currentRole == 'coach') ? 'Coach' : 'Assistant';
+                final role = (currentRole == 'coach') ? 'coach' : 'assistant';
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (context) => SettingsScreen(currentRole: role)),
                 );

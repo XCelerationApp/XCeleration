@@ -33,22 +33,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
       DialogUtils.showSuccessDialog(context, message: 'Role changed successfully');
     });
     
-    // Navigate to appropriate screen based on role after showing success message
-    Future.delayed(const Duration(milliseconds: 1500), () {
-      if (mounted) {
-        if (role == 'coach') {
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (context) => const RacesScreen()),
-            (route) => false,
-          );
-        } else if (role == 'assistant') {
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (context) => const AssistantRoleScreen()),
-            (route) => false,
-          );
-        }
+    if (mounted) {
+      if (role == 'coach') {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const RacesScreen()),
+          (route) => false,
+        );
+      } else if (role == 'assistant') {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const AssistantRoleScreen(showBackArrow: false)),
+          (route) => false,
+        );
       }
-    });
+    }
   }
 
   @override

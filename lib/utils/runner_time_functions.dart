@@ -176,14 +176,19 @@ List<TimingRecord> missingRunnerTime(int offBy, List<TimingRecord> records, int 
 
 List<RunnerRecord> getConflictingRecords(
   List<TimingRecord> records,
-  int conflictIndex,
+  List<RunnerRecord> runnerRecords,
 ) {
-  final firstConflictIndex = records.sublist(0, conflictIndex).indexWhere(
-      (record) => record.type == RecordType.runnerTime && record.conflict != null,
-    );
-  
-  return firstConflictIndex == -1 ? [] : 
-    records.sublist(firstConflictIndex, conflictIndex).where((record) => record.runnerRecord != null).map((record) => record.runnerRecord!).toList();
+  int lastConfirmedIndexBeforeConflict = -1;
+  for (int i = 0; i < records.length; i++) {
+    final record = records[i];
+    if ((record.type != RecordType.runnerTime && record.conflict == null) || record.conflict != null) {
+      lastConfirmedIndexBeforeConflict = i - 1;
+      break;
+    }
+  }
+  final lastConfirmedPlaceBeforeConflict = lastConfirmedIndexBeforeConflict == -1 ? 0 : records[lastConfirmedIndexBeforeConflict].place ?? 0;
+  final lastConflict = records.lastWhere((record) => record.conflict != null, orElse: () => records.last);
+  return runnerRecords.sublist(lastConfirmedPlaceBeforeConflict, lastConflict.conflict!.data!['numTimes'] - 1 ?? runnerRecords.length);
 }
 
 // Timing Operations
