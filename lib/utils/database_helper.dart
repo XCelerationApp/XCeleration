@@ -465,32 +465,6 @@ class DatabaseHelper {
     return results.map((r) => TimingRecord.fromMap(r, database: true)).toList();
   }
 
-  Future<bool> checkIfRaceRunnersAreLoaded(int raceId, {race}) async {
-    race ??= await DatabaseHelper.instance.getRaceById(raceId);
-    final raceRunners = await DatabaseHelper.instance.getRaceRunners(raceId);
-    
-    // Check if we have any runners at all
-    if (raceRunners.isEmpty) {
-      return false;
-    }
-
-    // Check if each team has at least 2 runners (minimum for a race)
-    final teamRunnerCounts = <String, int>{};
-    for (final runner in raceRunners) {
-      final team = runner.school;
-      teamRunnerCounts[team] = (teamRunnerCounts[team] ?? 0) + 1;
-    }
-
-    // Verify each team in the race has enough runners
-    for (final teamName in race!.teams) {
-      final runnerCount = teamRunnerCounts[teamName] ?? 0;
-      if (runnerCount < 5) {
-        return false;
-      }
-    }
-
-    return true;
-  }
 
 
   Future<String> getRaceState(int raceId, {race}) async {

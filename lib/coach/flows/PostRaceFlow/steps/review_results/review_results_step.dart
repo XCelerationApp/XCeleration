@@ -36,7 +36,7 @@ class ReviewResultsStep extends FlowStep {
       content: SingleChildScrollView(
         child: ResultsReviewWidget(timingData: null, runnerRecords: null),
       ),
-      canProceed: () async => true,
+      canProceed: () => true,
     );
   
   // Override to rebuild the content with current timing data

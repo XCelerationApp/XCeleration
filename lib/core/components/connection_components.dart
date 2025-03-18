@@ -4,7 +4,6 @@ import '../../utils/enums.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
 import 'package:flutter_nearby_connections/flutter_nearby_connections.dart';
-import 'package:audioplayers/audioplayers.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:barcode_scan2/barcode_scan2.dart';
 import '../services/device_connection_service.dart';

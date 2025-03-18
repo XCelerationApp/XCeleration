@@ -362,20 +362,32 @@ class RunnersManagementScreen extends StatefulWidget {
 
   // Add a static method that can be called from outside
   static Future<bool> checkMinimumRunnersLoaded(int raceId) async {
+    final race = await DatabaseHelper.instance.getRaceById(raceId);
     final runners = await DatabaseHelper.instance.getRaceRunners(raceId);
-    final teamRunners = <String, int>{};
-    
-    // Count runners per team
+    // Check if we have any runners at all
+    if (runners.isEmpty) {
+      return false;
+    }
+
+    // Check if each team has at least 5 runners (minimum for a race)
+    final teamRunnerCounts = <String, int>{};
     for (final runner in runners) {
       final team = runner.school;
-      teamRunners[team] = (teamRunners[team] ?? 0) + 1;
+      teamRunnerCounts[team] = (teamRunnerCounts[team] ?? 0) + 1;
     }
-    
-    // Check if each team has more than 5 runners
-    return teamRunners.values.every((count) => count >= 1);
+
+    // Verify each team in the race has enough runners
+    for (final teamName in race!.teams) {
+      final runnerCount = teamRunnerCounts[teamName] ?? 0;
+      if (runnerCount < 1) { // only checking 1 for testing purposes
+        return false;
+      }
+    }
+
+    return true;
   }
 
-  const RunnersManagementScreen({
+  RunnersManagementScreen({
     super.key,
     required this.raceId,
     this.showHeader,

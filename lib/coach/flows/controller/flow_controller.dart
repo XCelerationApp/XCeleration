@@ -105,28 +105,18 @@ class FlowController extends ChangeNotifier {
   }
 
   int get currentIndex => _currentIndex;
+  bool get isLastStep => _currentIndex == steps.length - 1;
   bool get canGoBack => _currentIndex > 0;
-  bool get canGoForward => _currentIndex < steps.length - 1;
+  bool get canProceed => currentStep.canProceed == null || currentStep.canProceed!();
+  bool get canGoForward => canProceed && !isLastStep;
 
   FlowStep get currentStep => steps[_currentIndex];
 
-  Future<bool> canProceedToNextStep() async {
-    if (currentStep.canProceed == null) return true;
-    try {
-      return await currentStep.canProceed!();
-    } catch (e) {
-      print('Error in canProceed: $e');
-      return false; // Handle errors gracefully
-    }
-  }
-
   Future<void> goToNext() async {
-    if (canGoForward && await canProceedToNextStep()) {
-      currentStep.onNext?.call();
-      _currentIndex++;
-      _subscribeToCurrentStep();
-      notifyListeners();
-    }
+    currentStep.onNext?.call();
+    _currentIndex++;
+    _subscribeToCurrentStep();
+    notifyListeners();
   }
 
   void goBack() {
@@ -231,13 +221,13 @@ Future<bool> showFlow({
                     onPressed: () async {
                       if (controller.canGoForward) {
                         await controller.goToNext();
-                      } else {
+                      } else if (controller.isLastStep) {
                         Navigator.pop(context);
                         completed = true;
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryColor,
+                      backgroundColor: controller.canProceed ? AppColors.primaryColor : Colors.grey,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(6),
                       ),

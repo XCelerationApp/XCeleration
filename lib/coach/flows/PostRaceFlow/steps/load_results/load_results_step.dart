@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:xcelerate/coach/flows/model/flow_model.dart';
 import 'widgets/results_loader_widget.dart';
-import 'package:xcelerate/utils/enums.dart';
 import 'package:xcelerate/core/services/device_connection_service.dart';
 
 /// A FlowStep implementation for the load results step in the post-race flow
@@ -57,7 +56,7 @@ class LoadResultsStep extends FlowStep {
       title: 'Load Results',
       description: 'Load the results of the race from the assistant devices.',
       content: SingleChildScrollView(
-        child: ResultsLoaderWidget(
+        child: LoadResultsWidget(
           resultsLoaded: false,
           onResultsLoaded: onResultsLoaded,
           hasBibConflicts: false,
@@ -68,14 +67,14 @@ class LoadResultsStep extends FlowStep {
           onTimingConflictsPressed: (context) {},
         ),
       ),
-      canProceed: () async => true,
+      canProceed: () => true,
     );
   
   // Override to rebuild the content with current state
   @override
   Widget get content {
     return SingleChildScrollView(
-      child: ResultsLoaderWidget(
+      child: LoadResultsWidget(
         resultsLoaded: _resultsLoaded,
         onResultsLoaded: _onResultsLoaded,
         hasBibConflicts: _hasBibConflicts,

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:xcelerate/utils/enums.dart';
 import 'package:xcelerate/core/components/device_connection_widget.dart';
 import 'package:xcelerate/core/services/device_connection_service.dart';
 import 'conflict_button.dart';
@@ -7,7 +6,7 @@ import 'success_message.dart';
 import 'reload_button.dart';
 
 /// Widget that handles loading and displaying race results
-class ResultsLoaderWidget extends StatelessWidget {
+class LoadResultsWidget extends StatelessWidget {
   /// Whether race results have been loaded
   final bool resultsLoaded;
   
@@ -32,7 +31,7 @@ class ResultsLoaderWidget extends StatelessWidget {
   /// Function to call when results are loaded from devices
   final Function(BuildContext) onResultsLoaded;
 
-  const ResultsLoaderWidget({
+  const LoadResultsWidget({
     super.key,
     required this.resultsLoaded,
     required this.hasBibConflicts,

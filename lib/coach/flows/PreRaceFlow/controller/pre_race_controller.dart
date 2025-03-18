@@ -1,21 +1,34 @@
 import '../../controller/flow_controller.dart';
 import '../../model/flow_model.dart';
 import 'package:flutter/material.dart';
-import '../../../runners_management_screen/screen/runners_management_screen.dart';
 import '../../../../utils/enums.dart';
 import '../../../../core/services/device_connection_service.dart';
-import '../../../../core/components/device_connection_widget.dart';
 import '../../../../utils/database_helper.dart';
+import '../steps/review_runners/review_runners_step.dart';
+import '../steps/share_runners/share_runners_step.dart';
 
 class PreRaceController {
   final int raceId;
-  PreRaceController({required this.raceId});
+  late ReviewRunnersStep _reviewRunnersStep;
+  late ShareRunnersStep _shareRunnersStep;
 
   DevicesManager devices = DeviceConnectionService.createDevices(
-      DeviceName.coach,
-      DeviceType.advertiserDevice,
-      data: '',
-    );
+    DeviceName.coach,
+    DeviceType.advertiserDevice,
+    data: '',
+  );
+
+  PreRaceController({required this.raceId}) {
+    _initializeSteps();
+  }
+
+  void _initializeSteps() {
+    _reviewRunnersStep = ReviewRunnersStep(raceId, () async {
+      final encoded = await DatabaseHelper.instance.getEncodedRunnersData(raceId);
+      devices.bibRecorder!.data = encoded;
+    });
+    _shareRunnersStep = ShareRunnersStep(devices: devices);
+  }
 
   Future<bool> showPreRaceFlow(BuildContext context, bool showProgressIndicator) {
     return showFlow(
@@ -24,43 +37,11 @@ class PreRaceController {
       steps: _getSteps(context),
     );
   }
+
   List<FlowStep> _getSteps(BuildContext context) {
     return [
-      FlowStep(
-        title: 'Review Runners',
-        description: 'Make sure all runner information is correct before the race starts. You can make any last-minute changes here.',
-        content: Column(
-          children: [
-            RunnersManagementScreen(
-              raceId: raceId, 
-              showHeader: false, 
-              onBack: null, 
-            )
-          ]
-        ),
-        canProceed: () async => true,
-        onNext: () async {
-          final encoded = await DatabaseHelper.instance.getEncodedRunnersData(raceId);
-          devices.bibRecorder!.data = encoded;
-        },
-      ),
-      FlowStep(
-        title: 'Share Runners',
-        description: 'Share the runners with the bib recorders phone before starting the race.',
-        content: Center(
-          child: deviceConnectionWidget(
-            context,
-            devices,
-          )
-        ),
-        canProceed: () async => true,
-      ),
-      FlowStep(
-        title: 'Ready to Start!',
-        description: 'The race is ready to begin. Click Next once the race is finished to begin the post-race flow.',
-        content: SizedBox.shrink(),
-        canProceed: () async => true,
-      ),
+      _reviewRunnersStep,
+      _shareRunnersStep,
     ];
   }
 }

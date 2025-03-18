@@ -5,7 +5,7 @@ class FlowStep {
   final String title;
   final String description;
   final Widget content;
-  final Future<bool> Function()? canProceed;
+  final bool Function()? canProceed;
   final VoidCallback? onNext;
   final VoidCallback? onBack;
   final StreamController<void> _contentChangeController;

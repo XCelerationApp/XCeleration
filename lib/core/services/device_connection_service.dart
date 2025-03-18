@@ -71,8 +71,11 @@ class DevicesManager {
       if (_currentDeviceName == DeviceName.coach) {
         _coach = ConnectedDevice(DeviceName.coach);
         _bibRecorder = ConnectedDevice(DeviceName.bibRecorder, data: _data);
-      } else {
+      } else if (_currentDeviceName == DeviceName.bibRecorder) {
         _bibRecorder = ConnectedDevice(DeviceName.bibRecorder);
+        _coach = ConnectedDevice(DeviceName.coach, data: _data);
+      } else {
+        _raceTimer = ConnectedDevice(DeviceName.raceTimer);
         _coach = ConnectedDevice(DeviceName.coach, data: _data);
       }
     } else {
