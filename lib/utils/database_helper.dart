@@ -156,9 +156,9 @@ class DatabaseHelper {
         // 4. Rename the new table to the original name
         await db.execute('ALTER TABLE race_runners_new RENAME TO race_runners');
         
-        print("Successfully migrated race_runners table with renamed column");
+        print('Successfully migrated race_runners table with renamed column');
       } catch (e) {
-        print("Error during migration: $e");
+        print('Error during migration: $e');
       }
     }
   }
@@ -433,7 +433,7 @@ class DatabaseHelper {
 
       if (raceId == 1) return raceRunners.map((r) => TimingRecord.fromMap(r, database: true)).toList();
     } catch (e) {
-      print("Query error: $e");
+      print('Query error: $e');
     }
     
     // Fallback to test data if query fails or for other race IDs
@@ -502,9 +502,9 @@ class DatabaseHelper {
       }
       await batch.commit();
       
-      print("Successfully saved ${timingData.raceResults.length} race results for race $raceId");
+      print('Successfully saved ${timingData.raceResults.length} race results for race $raceId');
     } catch (e) {
-      print("Error saving race results: $e");
+      print('Error saving race results: $e');
       rethrow;
     }
   }
@@ -521,16 +521,16 @@ class DatabaseHelper {
     
     if (results.isEmpty) return null;
     
-    final race_results = results.map((r) => RaceResult.fromMap(r)).toList();
+    final raceResults = results.map((r) => RaceResult.fromMap(r)).toList();
     final runnerRecords = await getRaceRunners(raceId);
-    final endTime = race_results.last.finishTime;
+    final endTime = raceResults.last.finishTime;
     final timingData = TimingData(
       records: [],
       startTime: null,
       endTime: endTime,
     );
 
-    for (final result in race_results) {
+    for (final result in raceResults) {
       final runner = runnerRecords.firstWhere((r) => r.runnerId == result.runnerId);
       
       timingData.mergeRunnerData(TimingRecord(

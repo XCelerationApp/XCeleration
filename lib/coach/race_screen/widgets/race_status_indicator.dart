@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/typography.dart';
-import '../../../core/theme/app_colors.dart';
 
 class RaceStatusIndicator extends StatelessWidget {
   final String flowState;

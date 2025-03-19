@@ -7,9 +7,9 @@ class KeyboardAccessoryBar extends StatelessWidget {
   final VoidCallback onDone;
 
   const KeyboardAccessoryBar({
-    Key? key,
+    super.key,
     required this.onDone,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

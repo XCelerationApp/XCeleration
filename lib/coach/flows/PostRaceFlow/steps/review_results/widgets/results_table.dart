@@ -44,7 +44,7 @@ class ResultsTable extends StatelessWidget {
                 timingRecord: record,
                 formatTimeDisplay: _formatTimeDisplay,
               );
-            }).toList(),
+            }),
             
             if (timingData!.runnerRecords.length > maxVisibleRows) ...[
               _buildRemainingRunnersMessage(timingData!.runnerRecords.length - maxVisibleRows),
@@ -78,9 +78,9 @@ class ResultsTable extends StatelessWidget {
     if (elapsedTime is String) {
       return elapsedTime;
     } else if (elapsedTime is double) {
-      return elapsedTime.toStringAsFixed(2) + 's';
+      return '${elapsedTime.toStringAsFixed(2)}s';
     } else if (elapsedTime is int) {
-      return elapsedTime.toString() + 's';
+      return '${elapsedTime}s';
     } else {
       return '--';
     }

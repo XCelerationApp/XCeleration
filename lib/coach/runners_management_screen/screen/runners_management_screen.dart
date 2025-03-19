@@ -387,7 +387,7 @@ class RunnersManagementScreen extends StatefulWidget {
     return true;
   }
 
-  RunnersManagementScreen({
+  const RunnersManagementScreen({
     super.key,
     required this.raceId,
     this.showHeader,

@@ -3,7 +3,7 @@ import 'package:xcelerate/core/theme/app_colors.dart';
 import 'package:xcelerate/core/theme/typography.dart';
 
 class SaveResultsWidget extends StatelessWidget {
-  const SaveResultsWidget({Key? key}) : super(key: key);
+  const SaveResultsWidget({super.key});
 
   @override
   Widget build(BuildContext context) {

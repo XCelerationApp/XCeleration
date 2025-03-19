@@ -8,11 +8,11 @@ class ConflictButton extends StatelessWidget {
   final VoidCallback onPressed;
 
   const ConflictButton({
-    Key? key,
+    super.key,
     required this.title,
     required this.description,
     required this.onPressed,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
