@@ -6,11 +6,13 @@ import '../../../../core/services/device_connection_service.dart';
 import '../../../../utils/database_helper.dart';
 import '../steps/review_runners/review_runners_step.dart';
 import '../steps/share_runners/share_runners_step.dart';
+import '../steps/flow_complete/pre_race_flow_complete.dart';
 
 class PreRaceController {
   final int raceId;
   late ReviewRunnersStep _reviewRunnersStep;
   late ShareRunnersStep _shareRunnersStep;
+  late PreRaceFlowCompleteStep _preRaceFlowCompleteStep;
 
   DevicesManager devices = DeviceConnectionService.createDevices(
     DeviceName.coach,
@@ -28,6 +30,7 @@ class PreRaceController {
       devices.bibRecorder!.data = encoded;
     });
     _shareRunnersStep = ShareRunnersStep(devices: devices);
+    _preRaceFlowCompleteStep = PreRaceFlowCompleteStep();
   }
 
   Future<bool> showPreRaceFlow(BuildContext context, bool showProgressIndicator) {
@@ -42,6 +45,7 @@ class PreRaceController {
     return [
       _reviewRunnersStep,
       _shareRunnersStep,
+      _preRaceFlowCompleteStep,
     ];
   }
 }

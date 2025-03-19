@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:xcelerate/coach/flows/model/flow_model.dart';
-import 'widgets/results_loader_widget.dart';
+import 'widgets/load_results_widget.dart';
 import 'package:xcelerate/core/services/device_connection_service.dart';
 
 /// A FlowStep implementation for the load results step in the post-race flow

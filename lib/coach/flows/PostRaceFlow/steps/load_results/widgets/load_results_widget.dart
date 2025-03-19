@@ -57,6 +57,7 @@ class LoadResultsWidget extends StatelessWidget {
               context,
               devices,
               callback: () => onResultsLoaded(context),
+              inSheet: false
             ),
           ),
           const SizedBox(height: 24),
