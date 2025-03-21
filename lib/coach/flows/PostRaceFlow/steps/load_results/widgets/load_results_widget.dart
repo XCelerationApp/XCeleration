@@ -6,7 +6,7 @@ import 'success_message.dart';
 import 'reload_button.dart';
 
 /// Widget that handles loading and displaying race results
-class LoadResultsWidget extends StatelessWidget {
+class LoadResultsWidget extends StatefulWidget {
   /// Whether race results have been loaded
   final bool resultsLoaded;
   
@@ -30,6 +30,9 @@ class LoadResultsWidget extends StatelessWidget {
   
   /// Function to call when results are loaded from devices
   final Function(BuildContext) onResultsLoaded;
+  
+  /// Whether to immediately load test data (for development/testing)
+  final bool testMode;
 
   const LoadResultsWidget({
     super.key,
@@ -41,7 +44,29 @@ class LoadResultsWidget extends StatelessWidget {
     required this.onBibConflictsPressed,
     required this.onTimingConflictsPressed,
     required this.onResultsLoaded,
+    this.testMode = false,
   });
+
+  @override
+  State<LoadResultsWidget> createState() => _LoadResultsWidgetState();
+}
+
+class _LoadResultsWidgetState extends State<LoadResultsWidget> {
+  @override
+  void initState() {
+    super.initState();
+    
+    // Automatically load test data if in test mode
+    if (widget.testMode && !widget.resultsLoaded) {
+      // Use a small delay to ensure the widget is fully built
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          print('Loading test data...');
+          widget.onResultsLoaded(context);
+        }
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -52,38 +77,50 @@ class LoadResultsWidget extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Center(
-            child: deviceConnectionWidget(
-              context,
-              devices,
-              callback: () => onResultsLoaded(context),
-              inSheet: false
+          if (!widget.testMode)
+            Center(
+              child: deviceConnectionWidget(
+                context,
+                widget.devices,
+                callback: () => widget.onResultsLoaded(context),
+              ),
+            )
+          else if (!widget.resultsLoaded)
+            Center(
+              child: Column(
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 16),
+                  Text('Loading test data...', 
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                ],
+              ),
             ),
-          ),
           const SizedBox(height: 24),
-          if (resultsLoaded) ...[
-            if (hasBibConflicts) ...[
+          if (widget.resultsLoaded) ...[
+            if (widget.hasBibConflicts) ...[
               ConflictButton(
                 title: 'Bib Number Conflicts',
                 description: 'Some runners have conflicting bib numbers. Please resolve these conflicts before proceeding.',
-                onPressed: () => onBibConflictsPressed(context),
+                onPressed: () => widget.onBibConflictsPressed(context),
               ),
             ]
-            else if (hasTimingConflicts) ...[
+            else if (widget.hasTimingConflicts) ...[
               ConflictButton(
                 title: 'Timing Conflicts',
                 description: 'There are conflicts in the race timing data. Please review and resolve these conflicts.',
-                onPressed: () => onTimingConflictsPressed(context),
+                onPressed: () => widget.onTimingConflictsPressed(context),
               ),
             ],
-            if (!hasBibConflicts && !hasTimingConflicts) ...[
+            if (!widget.hasBibConflicts && !widget.hasTimingConflicts) ...[
               const SuccessMessage(),
             ],
             const SizedBox(height: 16),
           ],
 
-          if (resultsLoaded) 
-            ReloadButton(onPressed: onReloadPressed)
+          if (widget.resultsLoaded) 
+            ReloadButton(onPressed: widget.onReloadPressed)
           else 
             const SizedBox.shrink(),
         ],

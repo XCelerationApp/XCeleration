@@ -42,8 +42,10 @@ class ReviewResultsStep extends FlowStep {
   // Override to rebuild the content with current timing data
   @override
   Widget get content {
+    debugPrint('Timing Data: $_timingData');
+    debugPrint('Runner Records: ${_timingData?.runnerRecords}');
     return SingleChildScrollView(
-      child: ResultsReviewWidget(timingData: _timingData, runnerRecords: _runnerRecords),
+      child: ResultsReviewWidget(timingData: _timingData, runnerRecords: _timingData?.runnerRecords),
     );
   }
 }
