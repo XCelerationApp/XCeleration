@@ -1,9 +1,8 @@
-// import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:xcelerate/coach/flows/model/flow_model.dart';
 import 'package:xcelerate/coach/flows/PostRaceFlow/steps/load_results/load_results_step.dart';
 import 'package:xcelerate/coach/flows/PostRaceFlow/steps/review_results/review_results_step.dart';
-import 'package:xcelerate/coach/flows/PostRaceFlow/steps/save_results/save_results_step.dart';
+import 'package:xcelerate/coach/flows/PostRaceFlow/steps/share_results/share_results_step.dart';
 import 'package:xcelerate/coach/merge_conflicts_screen/screen/merge_conflicts_screen.dart';
 import 'package:xcelerate/coach/race_screen/widgets/bib_conflicts_sheet.dart';
 // import 'package:xcelerate/coach/race_screen/widgets/timing_conflicts_sheet.dart';
@@ -27,7 +26,7 @@ class PostRaceController {
   // Flow steps
   late LoadResultsStep _loadResultsStep;
   late ReviewResultsStep _reviewResultsStep;
-  late SaveResultsStep _saveResultsStep;
+  late ShareResultsStep _shareResultsStep;
   
   // Constructor
   PostRaceController({required this.raceId, bool useTestData = false}) {
@@ -51,7 +50,7 @@ class PostRaceController {
     
     _reviewResultsStep = ReviewResultsStep();
     
-    _saveResultsStep = SaveResultsStep();
+    _shareResultsStep = ShareResultsStep();
   }
 
   Future<void> loadResults() async {
@@ -277,7 +276,7 @@ class PostRaceController {
     return [
       _loadResultsStep,
       _reviewResultsStep,
-      _saveResultsStep,
+      _shareResultsStep,
     ];
   }
 

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:xcelerate/coach/flows/model/flow_model.dart';
 
-/// A FlowStep implementation for the save results step in the post-race flow
-class SaveResultsStep extends FlowStep {
-  /// Creates a new instance of SaveResultsStep
-  SaveResultsStep() : super(
+/// A FlowStep implementation for the share results step in the post-race flow
+class ShareResultsStep extends FlowStep {
+  /// Creates a new instance of ShareResultsStep
+  ShareResultsStep() : super(
     title: 'Share Results',
     description: 'Click Next to share the race results with your team.',
     content: Container(
