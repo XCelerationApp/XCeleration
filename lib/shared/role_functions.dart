@@ -55,7 +55,7 @@ final List<RoleOption> profileOptions = [
     title: 'Assistant',
     description: 'Assist the coach by gathering race results',
     icon: Icons.person,
-    screen: const AssistantRoleScreen(),
+    screen: const AssistantRoleScreen(showBackArrow: false),
   ),
 ];
 

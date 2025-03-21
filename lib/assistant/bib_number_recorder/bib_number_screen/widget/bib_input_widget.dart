@@ -12,12 +12,12 @@ class BibInputWidget extends StatelessWidget {
   final Function() onSubmitted;
 
   const BibInputWidget({
-    Key? key,
+    super.key,
     required this.index,
     required this.record,
     required this.onBibNumberChanged,
     required this.onSubmitted,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

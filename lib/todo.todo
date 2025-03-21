@@ -16,6 +16,7 @@ Functionality:
 - asks imediately if user wants to use nearby connections, try to delay it?
 
 UI:
+- change initializer screen
 - make the popups and error messages look better
 - make buttons that havent been redesigned look better
 - go over the UI with others

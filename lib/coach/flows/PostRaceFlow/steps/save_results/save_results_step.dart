@@ -11,7 +11,7 @@ class SaveResultsStep extends FlowStep {
     content: const SingleChildScrollView(
       child: SaveResultsWidget(),
     ),
-    canProceed: () async => true,
+    canProceed: () => true,
   );
   
   // No additional state needed for this step

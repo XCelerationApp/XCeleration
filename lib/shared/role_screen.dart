@@ -51,14 +51,7 @@ class RoleScreen extends StatelessWidget {
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              AppColors.primaryColor,
-              AppColors.primaryColor.withAlpha((0.9 * 255).round()),
-            ],
-          ),
+          color: AppColors.primaryColor,
         ),
         child: SafeArea(
           child: Column(
@@ -93,7 +86,7 @@ class RoleScreen extends StatelessWidget {
                 text: 'Assistant',
                 onPressed: () {
                   Navigator.of(context).push(
-                    CustomPageRoute(child: const AssistantRoleScreen(showBackArrow: false)),
+                    CustomPageRoute(child: const AssistantRoleScreen()),
                   );
                 },
               ),

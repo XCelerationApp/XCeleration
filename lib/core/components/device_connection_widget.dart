@@ -7,7 +7,10 @@ import '../services/device_connection_service.dart';
 Widget deviceConnectionWidget(
   BuildContext context,
   DevicesManager devices,
-  {Function? callback}
+  {
+    Function? callback,
+    bool inSheet = true
+  }
 ) {
   void handleCallback() async {
     if (callback != null) {
@@ -19,10 +22,11 @@ Widget deviceConnectionWidget(
     } catch (e) {
       debugPrint('Error playing completion sound: $e');
     }
-
-    Future.delayed(const Duration(seconds: 1), () {
-      Navigator.pop(context);
-    });
+    if (inSheet) {
+      Future.delayed(const Duration(seconds: 1), () {
+        Navigator.pop(context);
+      });
+    }
   }
   
   return Column(
@@ -30,7 +34,7 @@ Widget deviceConnectionWidget(
     children: [
       WirelessConnectionWidget(
         devices: devices,
-        callback: callback!,
+        callback: handleCallback,
       ),
       
       // Separator

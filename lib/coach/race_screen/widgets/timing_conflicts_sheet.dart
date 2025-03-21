@@ -13,12 +13,12 @@ class TimingConflictsSheet extends StatelessWidget {
   final int raceId;
 
   const TimingConflictsSheet({
-    Key? key, 
+    super.key, 
     required this.conflictingRecords,
     required this.timingData,
     required this.runnerRecords,
     required this.raceId,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

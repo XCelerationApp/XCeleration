@@ -8,9 +8,9 @@ class BottomActionButtonsWidget extends StatelessWidget {
   final VoidCallback onShareBibNumbers;
 
   const BottomActionButtonsWidget({
-    Key? key,
+    super.key,
     required this.onShareBibNumbers,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

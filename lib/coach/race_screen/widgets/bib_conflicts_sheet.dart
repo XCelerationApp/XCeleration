@@ -9,10 +9,10 @@ class BibConflictsSheet extends StatelessWidget {
   final int raceId;
 
   const BibConflictsSheet({
-    Key? key,
+    super.key,
     required this.runnerRecords,
     required this.raceId,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

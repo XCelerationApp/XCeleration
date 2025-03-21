@@ -160,13 +160,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) _setupTutorials();
           });
-
-          _controller.devices = DeviceConnectionService.createDevices(
-            DeviceName.bibRecorder,
-            DeviceType.advertiserDevice,
-            data: '',
-          );
-          
+            
           // Reset the bib number field
           _controller.handleBibNumber('');
         }
@@ -208,15 +202,17 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
       return;
     }
 
-    final String bibData = _controller.getEncodedBibData();
-    _controller.devices.coach?.data = bibData;
     if (!mounted) return;
     sheet(
       context: context,
       title: 'Share Bib Numbers',
       body: deviceConnectionWidget(
         context,
-        _controller.devices,
+        DeviceConnectionService.createDevices(
+          DeviceName.bibRecorder,
+          DeviceType.advertiserDevice,
+          data: _controller.getEncodedBibData(),
+        ),
       ),
     );
 

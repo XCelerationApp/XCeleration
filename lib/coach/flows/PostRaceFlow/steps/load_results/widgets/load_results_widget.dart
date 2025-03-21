@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:xcelerate/utils/enums.dart';
 import 'package:xcelerate/core/components/device_connection_widget.dart';
 import 'package:xcelerate/core/services/device_connection_service.dart';
 import 'conflict_button.dart';
@@ -7,7 +6,7 @@ import 'success_message.dart';
 import 'reload_button.dart';
 
 /// Widget that handles loading and displaying race results
-class ResultsLoaderWidget extends StatefulWidget {
+class LoadResultsWidget extends StatefulWidget {
   /// Whether race results have been loaded
   final bool resultsLoaded;
   
@@ -35,7 +34,7 @@ class ResultsLoaderWidget extends StatefulWidget {
   /// Whether to immediately load test data (for development/testing)
   final bool testMode;
 
-  const ResultsLoaderWidget({
+  const LoadResultsWidget({
     super.key,
     required this.resultsLoaded,
     required this.hasBibConflicts,
@@ -49,10 +48,10 @@ class ResultsLoaderWidget extends StatefulWidget {
   });
 
   @override
-  State<ResultsLoaderWidget> createState() => _ResultsLoaderWidgetState();
+  State<LoadResultsWidget> createState() => _LoadResultsWidgetState();
 }
 
-class _ResultsLoaderWidgetState extends State<ResultsLoaderWidget> {
+class _LoadResultsWidgetState extends State<LoadResultsWidget> {
   @override
   void initState() {
     super.initState();

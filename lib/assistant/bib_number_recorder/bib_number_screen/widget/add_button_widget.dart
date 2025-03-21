@@ -8,10 +8,10 @@ class AddButtonWidget extends StatelessWidget {
   final VoidCallback onTap;
 
   const AddButtonWidget({
-    Key? key,
+    super.key,
     required this.tutorialManager,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:xcelerate/coach/flows/model/flow_model.dart';
-import 'widgets/results_loader_widget.dart';
-import 'package:xcelerate/utils/enums.dart';
+import 'widgets/load_results_widget.dart';
 import 'package:xcelerate/core/services/device_connection_service.dart';
 
 /// A FlowStep implementation for the load results step in the post-race flow
@@ -61,35 +60,39 @@ class LoadResultsStep extends FlowStep {
     _showTimingConflictsSheet = showTimingConflictsSheet,
     _testMode = testMode,
     super(
-      title: 'Load Race Results',
-      description: 'Load race results from your devices.',
-      content: ResultsLoaderWidget(
-        resultsLoaded: false,
-        onResultsLoaded: onResultsLoaded,
-        hasBibConflicts: false,
-        hasTimingConflicts: false,
-        devices: devices,
-        onReloadPressed: () {},
-        onBibConflictsPressed: (context) {},
-        onTimingConflictsPressed: (context) {},
-        testMode: testMode,
+      title: 'Load Results',
+      description: 'Load the results of the race from the assistant devices.',
+      content: SingleChildScrollView(
+        child: LoadResultsWidget(
+          resultsLoaded: false,
+          onResultsLoaded: onResultsLoaded,
+          hasBibConflicts: false,
+          hasTimingConflicts: false,
+          devices: devices,
+          onReloadPressed: () {},
+          onBibConflictsPressed: (context) {},
+          onTimingConflictsPressed: (context) {},
+          testMode: testMode,
+        ),
       ),
-      canProceed: () async => true,
+      canProceed: () => true,
     );
   
   // Override to rebuild the content with current state
   @override
   Widget get content {
-    return ResultsLoaderWidget(
-      resultsLoaded: _resultsLoaded,
-      onResultsLoaded: _onResultsLoaded,
-      hasBibConflicts: _hasBibConflicts,
-      hasTimingConflicts: _hasTimingConflicts,
-      devices: _devices,
-      onReloadPressed: _reloadDevices,
-      onBibConflictsPressed: _showBibConflictsSheet,
-      onTimingConflictsPressed: _showTimingConflictsSheet,
-      testMode: _testMode,
+    return SingleChildScrollView(
+      child: LoadResultsWidget(
+        resultsLoaded: _resultsLoaded,
+        onResultsLoaded: _onResultsLoaded,
+        hasBibConflicts: _hasBibConflicts,
+        hasTimingConflicts: _hasTimingConflicts,
+        devices: _devices,
+        onReloadPressed: _reloadDevices,
+        onBibConflictsPressed: _showBibConflictsSheet,
+        onTimingConflictsPressed: _showTimingConflictsSheet,
+        testMode: _testMode,
+      ),
     );
   }
 }

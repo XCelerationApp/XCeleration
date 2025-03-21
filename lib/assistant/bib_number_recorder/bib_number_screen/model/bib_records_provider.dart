@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../../coach/race_screen/widgets/runner_record.dart';
-import 'bib_record.dart';
 
 class BibRecordsProvider with ChangeNotifier {
   final List<RunnerRecord> _bibRecords = [];
