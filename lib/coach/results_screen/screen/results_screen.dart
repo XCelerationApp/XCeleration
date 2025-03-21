@@ -10,7 +10,7 @@ import '../../../utils/sheet_utils.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../../utils/database_helper.dart';
-import '../../share_sheet_screen/screen/share_sheet_screen.dart';
+import '../../share_race/controller/share_race_controller.dart';
 
 class ResultsScreen extends StatefulWidget {
   final int raceId;
@@ -122,15 +122,12 @@ class ResultsScreenState extends State<ResultsScreen> {
                                 ),
                                 ElevatedButton.icon(
                                   onPressed: () async {
-                                    await sheet(
+                                    ShareRaceController.showShareRaceSheet(
                                       context: context,
-                                      title: 'Share Results',
-                                      body: ShareSheetScreen(
-                                        teamResults: _isHeadToHead
-                                          ? _calculateHeadToHeadTeamResults()
-                                          : _calculateOverallTeamResults(),
-                                        individualResults: _calculateIndividualResults(),
-                                      ),
+                                      teamResults: _isHeadToHead
+                                        ? _calculateHeadToHeadTeamResults()
+                                        : _calculateOverallTeamResults(),
+                                      individualResults: _calculateIndividualResults(),
                                     );
                                   },
                                   icon: const Icon(Icons.share),

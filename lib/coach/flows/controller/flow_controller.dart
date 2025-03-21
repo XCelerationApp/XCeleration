@@ -11,6 +11,10 @@ import '../PostRaceFlow/controller/post_race_controller.dart';
 import '../../../shared/models/race.dart';
 import 'dart:async';
 import '../../../utils/database_helper.dart';
+import '../../share_race/controller/share_race_controller.dart';
+import '../../../utils/time_formatter.dart';
+import '../../race_screen/widgets/runner_record.dart';
+import '../../../assistant/race_timer/timing_screen/model/timing_record.dart';
 
 /// Controller class for handling all flow-related operations
 class MasterFlowController {
@@ -83,9 +87,117 @@ class MasterFlowController {
     final bool completed = await postRaceController.showPostRaceFlow(context, true);
     if (!completed) return false;
     await updateRaceFlowState('finished');
+    if (context.mounted) {
+      // Get the race results before showing the share sheet
+      final List<RunnerRecord> runners = await DatabaseHelper.instance.getRaceRunners(raceId);
+      final List<TimingRecord> results = await DatabaseHelper.instance.getRaceResults(raceId);
+      
+      // Convert to the format needed by ShareRaceScreen
+      final List<Map<String, dynamic>> individualResults = _convertRunnersToMapFormat(runners, results);
+      final List<Map<String, dynamic>> teamResults = _calculateTeamResults(individualResults);
+      
+      ShareRaceController.showShareRaceSheet(
+        context: context,
+        teamResults: teamResults,
+        individualResults: individualResults,
+      );
+    }
     return true;
   }
 
+  List<Map<String, dynamic>> _convertRunnersToMapFormat(List<RunnerRecord> runners, List<TimingRecord> results) {
+    final List<Map<String, dynamic>> individualResults = [];
+    
+    // Merge runner data with timing data
+    for (int i = 0; i < runners.length; i++) {
+      final runner = runners[i];
+      final timingRecord = results.firstWhere(
+        (result) => result.bib == runner.bib,
+        orElse: () => TimingRecord(bib: runner.bib, elapsedTime: ""),
+      );
+      
+      individualResults.add({
+        'place': i + 1,
+        'name': runner.name,
+        'school': runner.school,
+        'grade': runner.grade,
+        'bib_number': runner.bib,
+        'finish_time': timingRecord.elapsedTime,
+        'finishTimeAsDuration': loadDurationFromString(timingRecord.elapsedTime) ?? Duration.zero,
+      });
+    }
+    
+    // Sort by finish time
+    individualResults.sort((a, b) => a['finishTimeAsDuration'].compareTo(b['finishTimeAsDuration']));
+    
+    // Update places after sorting
+    for (int i = 0; i < individualResults.length; i++) {
+      individualResults[i]['place'] = i + 1;
+    }
+    
+    return individualResults;
+  }
+
+  List<Map<String, dynamic>> _calculateTeamResults(List<Map<String, dynamic>> individualResults) {
+    // Group runners by school
+    final Map<String, List<Map<String, dynamic>>> schoolRunners = {};
+    for (final runner in individualResults) {
+      final school = runner['school'] as String;
+      if (!schoolRunners.containsKey(school)) {
+        schoolRunners[school] = [];
+      }
+      schoolRunners[school]!.add(runner);
+    }
+    
+    // Calculate team scores
+    final List<Map<String, dynamic>> teamResults = [];
+    int place = 1;
+    
+    schoolRunners.forEach((school, runners) {
+      if (runners.length >= 5) {
+        // Sort by finish time (already sorted from individualResults)
+        final top5 = runners.take(5).toList();
+        final score = top5.fold<int>(0, (sum, runner) => sum + runner['place'] as int);
+        final split = top5.last['finishTimeAsDuration'] - top5.first['finishTimeAsDuration'];
+        final avgTime = top5.fold<Duration>(Duration.zero, (sum, runner) => sum + runner['finishTimeAsDuration']) ~/ 5;
+        
+        teamResults.add({
+          'place': place++,
+          'school': school,
+          'score': score,
+          'split': formatDuration(split),
+          'averageTime': formatDuration(avgTime),
+          'scorers': top5.map((r) => r['place']).join('+'),
+          'times': '${formatDuration(split)} 1-5 Split | ${formatDuration(avgTime)} Avg',
+        });
+      } else {
+        teamResults.add({
+          'school': school,
+          'score': 'N/A',
+          'split': 'N/A',
+          'averageTime': 'N/A',
+          'scorers': 'N/A',
+          'times': 'N/A',
+        });
+      }
+    });
+    
+    // Sort by score
+    teamResults.sort((a, b) {
+      if (a['score'] == 'N/A') return 1;
+      if (b['score'] == 'N/A') return -1;
+      return (a['score'] as int).compareTo(b['score'] as int);
+    });
+    
+    // Update places after sorting
+    for (int i = 0; i < teamResults.length; i++) {
+      if (teamResults[i]['score'] != 'N/A') {
+        teamResults[i]['place'] = i + 1;
+      }
+    }
+    
+    return teamResults;
+  }
 }
 
 class FlowController extends ChangeNotifier {
