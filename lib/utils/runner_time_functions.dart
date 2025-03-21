@@ -5,9 +5,6 @@ import '../core/theme/app_colors.dart';
 import '../core/components/dialog_utils.dart';
 import 'enums.dart';
 import '../assistant/race_timer/timing_screen/model/timing_record.dart';
-import 'package:uuid/uuid.dart';
-
-Uuid _uuid = Uuid();
 
 List<TimingRecord> updateTextColor(Color? color, List<TimingRecord> records, {bool confirmed = false, ConflictDetails? conflict, int? endIndex, bool clearConflictColor = false}) {
   if (endIndex != null && endIndex < records.length && records.isNotEmpty) {
