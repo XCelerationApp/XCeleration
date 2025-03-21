@@ -42,10 +42,10 @@ Future<TimingData> decodeRaceTimesString(String encodedData) async {
       }
 
       if (type == RecordType.confirmRunner.toString()){
-        records = confirmRunnerNumber(records, place - 1, finishTime);
+        records = confirmRunnerNumber(records, place, finishTime);
       }
       else if (type == RecordType.missingRunner.toString()){
-        records = missingRunnerTime(offBy, records, place, finishTime);
+        records = missingRunnerTime(offBy, records, place, finishTime, addMissingRunner: false);
         place += offBy;
       }
       else if (type == RecordType.extraRunner.toString()){

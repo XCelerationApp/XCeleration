@@ -128,11 +128,11 @@ class TimingConflictsSheet extends StatelessWidget {
                                 raceId: raceId,
                                 timingData: timingData,
                                 runnerRecords: runnerRecords,
-                                onComplete: (resolvedData) {
-                                  Navigator.pop(context);
-                                  // Return the resolved data to the bottom sheet's caller
-                                  Navigator.pop(context, resolvedData);
-                                },
+                                // onComplete: (resolvedData) {
+                                //   Navigator.pop(context);
+                                //   // Return the resolved data to the bottom sheet's caller
+                                //   Navigator.pop(context, resolvedData);
+                                // },
                               ),
                             ),
                           );

@@ -1,18 +1,22 @@
+// import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
-import 'package:xcelerate/coach/race_screen/widgets/bib_conflicts_sheet.dart';
-import 'package:xcelerate/coach/race_screen/widgets/timing_conflicts_sheet.dart';
-import 'package:xcelerate/core/services/device_connection_service.dart';
-import 'package:xcelerate/coach/flows/controller/flow_controller.dart';
 import 'package:xcelerate/coach/flows/model/flow_model.dart';
-import 'package:xcelerate/utils/enums.dart';
-import '../../../../utils/database_helper.dart';
-import '../../../../utils/runner_time_functions.dart';
-import '../../../../utils/encode_utils.dart';
-import '../../../merge_conflicts_screen/model/timing_data.dart';
+import 'package:xcelerate/coach/flows/PostRaceFlow/steps/load_results/load_results_step.dart';
+import 'package:xcelerate/coach/flows/PostRaceFlow/steps/review_results/review_results_step.dart';
+import 'package:xcelerate/coach/flows/PostRaceFlow/steps/save_results/save_results_step.dart';
+import 'package:xcelerate/coach/merge_conflicts_screen/screen/merge_conflicts_screen.dart';
+import 'package:xcelerate/coach/race_screen/widgets/bib_conflicts_sheet.dart';
+// import 'package:xcelerate/coach/race_screen/widgets/timing_conflicts_sheet.dart';
 import 'package:xcelerate/coach/race_screen/widgets/runner_record.dart';
-import '../steps/load_results/load_results_step.dart';
-import '../steps/review_results/review_results_step.dart';
-import '../steps/save_results/save_results_step.dart';
+import 'package:xcelerate/coach/merge_conflicts_screen/model/timing_data.dart';
+import 'package:xcelerate/core/services/device_connection_service.dart';
+// import 'package:xcelerate/utils/runner_time_functions.dart';
+import 'package:xcelerate/utils/encode_utils.dart';
+import 'package:xcelerate/utils/enums.dart';
+import 'package:xcelerate/assistant/race_timer/timing_screen/model/timing_record.dart';
+import 'package:xcelerate/utils/sheet_utils.dart';
+import '../../../../utils/database_helper.dart';
+import '../../controller/flow_controller.dart';
 
 class PostRaceController {
   final int raceId;
@@ -26,30 +30,29 @@ class PostRaceController {
   late SaveResultsStep _saveResultsStep;
   
   // Constructor
-  PostRaceController({required this.raceId}) {
+  PostRaceController({required this.raceId, bool useTestData = false}) {
     devices = DeviceConnectionService.createDevices(
       DeviceName.coach,
       DeviceType.browserDevice,
     );
-    
-    _initializeSteps();
+    _initializeSteps(useTestData);
   }
   
   // Initialize the flow steps
-  void _initializeSteps() {
+  void _initializeSteps([bool useTestData = false]) {
     _loadResultsStep = LoadResultsStep(
       devices: devices,
       reloadDevices: () => loadResults(),
-      onResultsLoaded: (context) => processReceivedData(context),
+      onResultsLoaded: (context) => useTestData ? _loadTestData(context) : processReceivedData(context),
       showBibConflictsSheet: (context) => showBibConflictsSheet(context),
       showTimingConflictsSheet: (context) => showTimingConflictsSheet(context),
+      testMode: useTestData,
     );
     
     _reviewResultsStep = ReviewResultsStep();
     
     _saveResultsStep = SaveResultsStep();
   }
-
 
   Future<void> loadResults() async {
     final TimingData? savedResults = await DatabaseHelper.instance.getRaceResultsData(raceId);
@@ -95,15 +98,106 @@ class PostRaceController {
       _loadResultsStep.hasTimingConflicts = containsTimingConflicts(processedTimingData!);
       
       if (!_loadResultsStep.hasBibConflicts && !_loadResultsStep.hasTimingConflicts) {
+        _reviewResultsStep.timingData = await _mergeRunnerRecordsWithTimingData(processedTimingData, runnerRecords);
         await saveRaceResults();
       }
     }
   }
+
+  Future<TimingData> _mergeRunnerRecordsWithTimingData(TimingData timingData, List<RunnerRecord> runnerRecords) async {
+    // TimingData newTimingData = TimingData(records: [], endTime: timingData.endTime);
+    final List<TimingRecord> records = timingData.records.where((record) => record.type == RecordType.runnerTime).toList();
+    // print('records length: ${records.length}');
+    // print('runnerRecords length: ${runnerRecords.length}');
+    for (var i = 0; i < records.length; i++) {
+      final runnerRecord = runnerRecords.length > i ? runnerRecords[i] : null;
+      final timingRecord = records[i];
+      // print('\nrunnerRecord: ${runnerRecord?.toMap()}');
+      // print('timingRecord: ${timingRecord.toMap()}\n');
+      if (runnerRecord == null) {
+        throw Exception('Runner record is null');
+      }
+      timingData.mergeRunnerData(
+        timingRecord,
+        runnerRecord,
+        index: i,
+      );
+    }
+    // print('timingData: ${timingData}');
+    // print('runnerRecords: ${timingData.runnerRecords}');
+    return timingData;
+  }
   
+  Future<void> _loadTestData(BuildContext context) async {
+    debugPrint('Loading test data...');
+    // Fake encoded data strings
+    final fakeBibRecordsData = '1 2 3 101';
+    final fakeFinishTimesData = TimingData(records: [
+      TimingRecord(
+        elapsedTime: '1.0',
+        isConfirmed: true,
+        conflict: null,
+        type: RecordType.runnerTime,
+        place: 1,
+      ),
+      TimingRecord(
+        elapsedTime: '2.0',
+        isConfirmed: true,
+        conflict: null,
+        type: RecordType.runnerTime,
+        place: 2,
+      ),
+      TimingRecord(
+        elapsedTime: '3.0',
+        isConfirmed: true,
+        conflict: null,
+        type: RecordType.runnerTime,
+        place: 3,
+      ),
+      TimingRecord(
+        elapsedTime: '3.5',
+        isConfirmed: true,
+        conflict: null,
+        place: 3,
+        type: RecordType.confirmRunner,
+      ),
+      TimingRecord(
+        elapsedTime: 'TBD',
+        isConfirmed: false,
+        conflict: ConflictDetails(
+          type: RecordType.missingRunner,
+          isResolved: false,
+          data: {'numTimes': 4, 'offBy': 1},
+        ),
+        place: 4,
+        type: RecordType.runnerTime,
+      ),
+      TimingRecord(
+        elapsedTime: '4.0',
+        isConfirmed: false,
+        conflict: ConflictDetails(
+          type: RecordType.missingRunner,
+          isResolved: false,
+          data: {'numTimes': 4, 'offBy': 1},
+        ),
+        place: 4,
+        type: RecordType.missingRunner,
+      ),
+    ], endTime: '13.7');
+    
+    // Inject fake data into the devices 
+    devices.bibRecorder?.data = fakeBibRecordsData;
+    devices.raceTimer?.data = fakeFinishTimesData.encode();
+    
+    // Process the fake data
+    await processReceivedData(context);
+  }
+
   Future<bool> showPostRaceFlow(BuildContext context, bool dismissible) async {
     // Get steps
     final steps = _getSteps();
     
+    // Show the flow
     return await showFlow(
       context: context,
       steps: steps,
@@ -118,8 +212,13 @@ class PostRaceController {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => BibConflictsSheet(runnerRecords: _reviewResultsStep.runnerRecords!),
+      builder: (context) => BibConflictsSheet(
+        runnerRecords: _reviewResultsStep.runnerRecords!,
+        raceId: raceId,
+      ),
     );
+
+    debugPrint('Updated runner records: ${updatedRunnerRecords?[1].toMap()}!!!');
     
     // Update runner records if a result was returned
     if (updatedRunnerRecords != null) {
@@ -131,6 +230,7 @@ class PostRaceController {
     
       // If all conflicts resolved, save results
       if (!_loadResultsStep.hasBibConflicts && !_loadResultsStep.hasTimingConflicts) {
+        _reviewResultsStep.timingData = await _mergeRunnerRecordsWithTimingData(_reviewResultsStep.timingData!, _reviewResultsStep.runnerRecords!);
         await saveRaceResults();
       }
     }
@@ -139,16 +239,22 @@ class PostRaceController {
   Future<void> showTimingConflictsSheet(BuildContext context) async {
     if (_reviewResultsStep.timingData == null) return;
     
-    final conflictingRecords = getConflictingRecords(_reviewResultsStep.timingData!.records, _reviewResultsStep.runnerRecords!);
-    final updatedTimingData = await showModalBottomSheet<TimingData>(
+    // final conflictingRecords = getConflictingRecords(_reviewResultsStep.timingData!.records, _reviewResultsStep.runnerRecords!);
+    final updatedTimingData = await sheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => TimingConflictsSheet(
-        conflictingRecords: conflictingRecords,
+      title: 'Merge Conflicts',
+      body: MergeConflictsScreen(
+        raceId: raceId,
         timingData: _reviewResultsStep.timingData!,
         runnerRecords: _reviewResultsStep.runnerRecords!,
-        raceId: raceId,
+        // onComplete: (TimingData timingData) async {
+        //   _reviewResultsStep.timingData = timingData;
+        //   _loadResultsStep.hasTimingConflicts = containsTimingConflicts(timingData);
+        //   if (!_loadResultsStep.hasBibConflicts && !_loadResultsStep.hasTimingConflicts) {
+        //     _reviewResultsStep.timingData = await _mergeRunnerRecordsWithTimingData(_reviewResultsStep.timingData!, _reviewResultsStep.runnerRecords!);
+        //     await saveRaceResults();
+        //   }
+        // },
       ),
     );
     
@@ -161,6 +267,7 @@ class PostRaceController {
       
       // If all conflicts resolved, save results
       if (!_loadResultsStep.hasBibConflicts && !_loadResultsStep.hasTimingConflicts) {
+        _reviewResultsStep.timingData = await _mergeRunnerRecordsWithTimingData(_reviewResultsStep.timingData!, _reviewResultsStep.runnerRecords!);
         await saveRaceResults();
       }
     }

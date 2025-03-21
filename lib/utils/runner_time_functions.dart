@@ -122,12 +122,13 @@ List<TimingRecord> extraRunnerTime(int offBy, List<TimingRecord> records, int nu
   return records;
 }
 
-List<TimingRecord> missingRunnerTime(int offBy, List<TimingRecord> records, int numTimes, String finishTime) {
+List<TimingRecord> missingRunnerTime(int offBy, List<TimingRecord> records, int numTimes, String finishTime, {bool addMissingRunner = true}) {
   int correcttedNumTimes = numTimes + offBy; // Placeholder for actual length input
   
   final color = AppColors.redColor;
   records = updateTextColor(color, records, conflict: ConflictDetails(type: RecordType.missingRunner, isResolved: false), confirmed: true);
 
+  if (addMissingRunner) {
     for (int i = 1; i <= offBy; i++) {
       records.add(TimingRecord(
         elapsedTime: 'TBD',
@@ -139,38 +140,26 @@ List<TimingRecord> missingRunnerTime(int offBy, List<TimingRecord> records, int 
           isResolved: false,
         ),
       ));
-      // records.add({
-      //   'finish_time': 'TBD',
-      //   'bib_number': null,
-      //   'type': RecordType.runnerTime.toString(),
-      //   'is_confirmed': true,
-      //   'conflict': 'missing_runner_time',
-      //   'text_color': color,
-      //   'place': numTimes + i,
-      // });
     }
+  }
+  else {
+    correcttedNumTimes -= offBy;
+  }
 
-    // records.add({
-    //   'finish_time': finishTime,
-    //   'type': RecordType.missingRunner.toString(),
-    //   'text_color': color,
-    //   'numTimes': correcttedNumTimes,
-    //   'offBy': offBy,
-    // });
-    records.add(TimingRecord(
-      elapsedTime: finishTime,
+  records.add(TimingRecord(
+    elapsedTime: finishTime,
+    type: RecordType.missingRunner,
+    textColor: color,
+    place: correcttedNumTimes,
+    conflict: ConflictDetails(
       type: RecordType.missingRunner,
-      textColor: color,
-      place: correcttedNumTimes,
-      conflict: ConflictDetails(
-        type: RecordType.missingRunner,
-        isResolved: false,
-        data: {
-          'offBy': offBy,
-          'numTimes': correcttedNumTimes,
-        },
-      ),
-    ));
+      isResolved: false,
+      data: {
+        'offBy': offBy,
+        'numTimes': correcttedNumTimes,
+      },
+    ),
+  ));
   return records;
 }
 

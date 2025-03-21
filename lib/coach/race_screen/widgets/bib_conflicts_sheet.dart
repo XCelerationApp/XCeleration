@@ -6,10 +6,12 @@ import 'runner_record.dart';
 
 class BibConflictsSheet extends StatelessWidget {
   final List<RunnerRecord> runnerRecords;
+  final int raceId;
 
   const BibConflictsSheet({
     Key? key,
     required this.runnerRecords,
+    required this.raceId,
   }) : super(key: key);
 
   @override
@@ -37,7 +39,7 @@ class BibConflictsSheet extends StatelessWidget {
             ),
             Expanded(
               child: ResolveBibNumberScreen(
-                raceId: -1, // This will be provided by the parent
+                raceId: raceId, // This will be provided by the parent
                 records: runnerRecords,
                 onComplete: (resolvedRecords) {
                   Navigator.pop(context, resolvedRecords);

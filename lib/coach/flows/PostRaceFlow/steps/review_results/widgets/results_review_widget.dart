@@ -9,10 +9,10 @@ class ResultsReviewWidget extends StatelessWidget {
   final List<RunnerRecord>? runnerRecords;
 
   const ResultsReviewWidget({
-    Key? key,
+    super.key,
     required this.timingData,
     required this.runnerRecords,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -15,26 +15,31 @@ class LoadResultsStep extends FlowStep {
   final Function(BuildContext context) _onResultsLoaded;
   final Function(BuildContext context) _showBibConflictsSheet;
   final Function(BuildContext context) _showTimingConflictsSheet;
+  final bool _testMode;
 
   // Getters for the state
   bool get resultsLoaded => _resultsLoaded;
-  bool get hasBibConflicts => _hasBibConflicts;
-  bool get hasTimingConflicts => _hasTimingConflicts;
-  
-  // Setters for the state
   set resultsLoaded(bool value) {
-    _resultsLoaded = value;
-    notifyContentChanged();
+    if (_resultsLoaded != value) {
+      _resultsLoaded = value;
+      notifyContentChanged();
+    }
   }
   
+  bool get hasBibConflicts => _hasBibConflicts;
   set hasBibConflicts(bool value) {
-    _hasBibConflicts = value;
-    notifyContentChanged();
+    if (_hasBibConflicts != value) {
+      _hasBibConflicts = value;
+      notifyContentChanged();
+    }
   }
   
+  bool get hasTimingConflicts => _hasTimingConflicts;
   set hasTimingConflicts(bool value) {
-    _hasTimingConflicts = value;
-    notifyContentChanged();
+    if (_hasTimingConflicts != value) {
+      _hasTimingConflicts = value;
+      notifyContentChanged();
+    }
   }
 
   /// Creates a new instance of LoadResultsStep
@@ -44,6 +49,7 @@ class LoadResultsStep extends FlowStep {
     required Function(BuildContext context) onResultsLoaded,
     required Function(BuildContext context) showBibConflictsSheet,
     required Function(BuildContext context) showTimingConflictsSheet,
+    bool testMode = false,
   }) :
     _resultsLoaded = false,
     _hasBibConflicts = false,
@@ -53,20 +59,20 @@ class LoadResultsStep extends FlowStep {
     _onResultsLoaded = onResultsLoaded,
     _showBibConflictsSheet = showBibConflictsSheet,
     _showTimingConflictsSheet = showTimingConflictsSheet,
+    _testMode = testMode,
     super(
-      title: 'Load Results',
-      description: 'Load the results of the race from the assistant devices.',
-      content: SingleChildScrollView(
-        child: ResultsLoaderWidget(
-          resultsLoaded: false,
-          onResultsLoaded: onResultsLoaded,
-          hasBibConflicts: false,
-          hasTimingConflicts: false,
-          devices: devices,
-          onReloadPressed: () {},
-          onBibConflictsPressed: (context) {},
-          onTimingConflictsPressed: (context) {},
-        ),
+      title: 'Load Race Results',
+      description: 'Load race results from your devices.',
+      content: ResultsLoaderWidget(
+        resultsLoaded: false,
+        onResultsLoaded: onResultsLoaded,
+        hasBibConflicts: false,
+        hasTimingConflicts: false,
+        devices: devices,
+        onReloadPressed: () {},
+        onBibConflictsPressed: (context) {},
+        onTimingConflictsPressed: (context) {},
+        testMode: testMode,
       ),
       canProceed: () async => true,
     );
@@ -74,17 +80,16 @@ class LoadResultsStep extends FlowStep {
   // Override to rebuild the content with current state
   @override
   Widget get content {
-    return SingleChildScrollView(
-      child: ResultsLoaderWidget(
-        resultsLoaded: _resultsLoaded,
-        onResultsLoaded: _onResultsLoaded,
-        hasBibConflicts: _hasBibConflicts,
-        hasTimingConflicts: _hasTimingConflicts,
-        devices: _devices,
-        onReloadPressed: _reloadDevices,
-        onBibConflictsPressed: _showBibConflictsSheet,
-        onTimingConflictsPressed: _showTimingConflictsSheet,
-      ),
+    return ResultsLoaderWidget(
+      resultsLoaded: _resultsLoaded,
+      onResultsLoaded: _onResultsLoaded,
+      hasBibConflicts: _hasBibConflicts,
+      hasTimingConflicts: _hasTimingConflicts,
+      devices: _devices,
+      onReloadPressed: _reloadDevices,
+      onBibConflictsPressed: _showBibConflictsSheet,
+      onTimingConflictsPressed: _showTimingConflictsSheet,
+      testMode: _testMode,
     );
   }
 }

@@ -3,8 +3,8 @@ import 'package:xcelerate/coach/race_screen/widgets/runner_record.dart';
 import '../../../utils/time_formatter.dart';
 import '../../../core/theme/typography.dart';
 // import 'dart:math';
-import '../../../utils/database_helper.dart';
-import '../../races_screen/screen/races_screen.dart';
+// import '../../../utils/database_helper.dart';
+// import '../../races_screen/screen/races_screen.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/components/dialog_utils.dart';
 import '../../../utils/runner_time_functions.dart';
@@ -12,20 +12,20 @@ import '../../../utils/runner_time_functions.dart';
 import '../../../utils/enums.dart';
 import '../model/timing_data.dart';
 import '../../../assistant/race_timer/timing_screen/model/timing_record.dart';
-import '../../race_screen/model/race_result.dart';
+// import '../../race_screen/model/race_result.dart';
 
 class MergeConflictsScreen extends StatefulWidget {
   final int raceId;
   final TimingData timingData;
   final List<RunnerRecord> runnerRecords;
-  final Function(TimingData) onComplete;
+  // final Function(TimingData) onComplete;
 
   const MergeConflictsScreen({
     super.key, 
     required this.raceId,
     required this.timingData,
     required this.runnerRecords,
-    required this.onComplete,
+    // required this.onComplete,
   });
 
   @override
@@ -71,67 +71,72 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
       return;
     }
 
-    final records = _timingData.records;
+    // final records = _timingData.records;
     if (!_validateRunnerInfo(_runnerRecords)) {
       DialogUtils.showErrorDialog(context, message: 'All runners must have a bib number assigned before proceeding.');
       return;
     }
 
-    await _processAndSaveRecords(records);
-    _showResultsSavedSnackBar();
-  }
-
-  bool _validateRunnerInfo(List<dynamic> records) {
-    return records.every((runner) => 
-      runner['bib_number'] != null && 
-      runner['name'] != null && 
-      runner['grade'] != null && 
-      runner['school'] != null
-    );
-  }
-
-  Future<void> _processAndSaveRecords(List<TimingRecord> records) async {
-    final List<RaceResult> processedRecords = await Future.wait(records
-      .where((record) => record.type == RecordType.runnerTime)
-      .map((record) async {
-        final recordIndex = record.place! - 1;
-        final RunnerRecord? raceRunner = await DatabaseHelper.instance.getRaceRunnerByBib(_raceId, _runnerRecords[recordIndex].bib);
-        return RaceResult(
-          raceId: _raceId,
-          place: record.place,
-          runnerId: raceRunner?.runnerId,
-          finishTime: record.elapsedTime,
-        );
-      })
-      .toList());
-
-    await DatabaseHelper.instance.insertRaceResults(processedRecords);
-    
-    // Update the timing data with resolved records
-    final resolvedTimingData = _timingData;
-    resolvedTimingData.records = records;
-    
+    // await _processAndSaveRecords(records);
     // Call the onComplete callback with the resolved data
-    widget.onComplete(resolvedTimingData);
+    // widget.onComplete(_timingData);
     
     // Ensure we exit with the resolved data
-    Navigator.of(context).pop(resolvedTimingData);
+    Navigator.of(context).pop(_timingData);
+    // _showResultsSavedSnackBar();
   }
 
-  void _showResultsSavedSnackBar() {
-    _navigateToResultsScreen();
-    DialogUtils.showSuccessDialog(context, message: 'Results saved successfully.');
-  }
-
-  void _navigateToResultsScreen() {
-    DialogUtils.showErrorDialog(context, message: 'Results saved successfully. Results screen not yet implemented.');
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => RacesScreen(),
-      ),
+  bool _validateRunnerInfo(List<RunnerRecord> records) {
+    return records.every((runner) => 
+      runner.bib.isNotEmpty && 
+      runner.name.isNotEmpty && 
+      runner.grade > 0 && 
+      runner.school.isNotEmpty
     );
   }
+
+  // Future<void> _processAndSaveRecords(List<TimingRecord> records) async {
+  //   final List<RaceResult> processedRecords = await Future.wait(records
+  //     .where((record) => record.type == RecordType.runnerTime)
+  //     .map((record) async {
+  //       final recordIndex = record.place! - 1;
+  //       final RunnerRecord? raceRunner = await DatabaseHelper.instance.getRaceRunnerByBib(_raceId, _runnerRecords[recordIndex].bib);
+  //       return RaceResult(
+  //         raceId: _raceId,
+  //         place: record.place,
+  //         runnerId: raceRunner?.runnerId,
+  //         finishTime: record.elapsedTime,
+  //       );
+  //     })
+  //     .toList());
+
+  //   await DatabaseHelper.instance.insertRaceResults(processedRecords);
+    
+  //   // Update the timing data with resolved records
+  //   final resolvedTimingData = _timingData;
+  //   resolvedTimingData.records = records;
+    
+  //   // Call the onComplete callback with the resolved data
+  //   widget.onComplete(resolvedTimingData);
+    
+  //   // Ensure we exit with the resolved data
+  //   Navigator.of(context).pop(resolvedTimingData);
+  // }
+
+  // void _showResultsSavedSnackBar() {
+  //   _navigateToResultsScreen();
+  //   DialogUtils.showSuccessDialog(context, message: 'Results saved successfully.');
+  // }
+
+  // void _navigateToResultsScreen() {
+  //   DialogUtils.showErrorDialog(context, message: 'Results saved successfully. Results screen not yet implemented.');
+  //   Navigator.pushReplacement(
+  //     context,
+  //     MaterialPageRoute(
+  //       builder: (context) => RacesScreen(),
+  //     ),
+  //   );
+  // }
 
   Future<void> _updateRunnerInfo() async {
     for (int i = 0; i < _runnerRecords.length; i++) {
@@ -162,20 +167,25 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
   Future<void> _createChunks() async {
     _selectedTimes = {};
     final records = _timingData.records;
+    debugPrint('Records: ${records.map((r) => r.toMap()).join('\n\n')}');
     final chunks = <Map<String, dynamic>>[];
     var startIndex = 0;
     var place = 1;
+    // for (final record in records) {
+    //   print('\n\nRecord: ${record.toMap()}');
+    // }
+
     for (int i = 0; i < records.length; i += 1) {
       if (i >= records.length - 1 || records[i].type != RecordType.runnerTime) {
+        // print('startIndex: $startIndex, i: $i, place: $place, conflict: ${records[i].conflict}, numTimes: ${records[i].conflict?.data?['numTimes']}, place: ${records[i].place}');
         chunks.add({
           'records': records.sublist(startIndex, i + 1),
           'type': records[i].type,
           'runners': _runnerRecords.sublist(place - 1, (records[i].conflict?.data?['numTimes'] ?? records[i].place)),
           'conflictIndex': i,
         });
-        debugPrint('records[i][\'numTimes\']: ${records[i].conflict?.data?['numTimes']}');
         startIndex = i + 1;
-        place = records[i].conflict!.data!['numTimes'] + 1;
+        place = records[i].conflict?.data?['numTimes'] ?? records[i].place! + 1;
       }
     }
 
@@ -192,11 +202,11 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
         (j) => [runners[j], records[j]],
       );
       chunks[i]['controllers'] = {'timeControllers': List.generate(runners.length, (j) => TextEditingController()), 'manualControllers': List.generate(runners.length, (j) => TextEditingController())};
-      if (chunks[i]['type'] == 'extra_runner_time') {
+      if (chunks[i]['type'] == RecordType.extraRunner) {
         chunks[i]['resolve'] = await _resolveTooManyRunnerTimes(chunks[i]['conflictIndex']);
         // debugPrint('Resolved: ${chunks[i]['resolve']}');
       }
-      else if (chunks[i]['type'] == 'missing_runner_time') {
+      else if (chunks[i]['type'] == RecordType.missingRunner) {
         chunks[i]['resolve'] = await _resolveTooFewRunnerTimes(chunks[i]['conflictIndex']);
         // debugPrint('Resolved: ${chunks[i]['resolve']}');
       }
@@ -204,6 +214,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
 
  
     setState(() => _chunks = chunks);
+    debugPrint('Bib number of second runner: ${_runnerRecords[1].bib}');
   }
 
   List<dynamic> _getFirstConflict() {
@@ -216,8 +227,8 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
     return conflict.elapsedTime != '' ? [conflict.type, records.indexOf(conflict)] : [null, -1];
   }
 
-  bool _validateTimes(List<String> times, BuildContext context, List<dynamic> runners, dynamic lastConfirmed, Map<String, dynamic> conflictRecord) {
-    Duration? lastConfirmedTime = lastConfirmed?.isEmpty ? Duration.zero : loadDurationFromString(lastConfirmed['finish_time']);
+  bool _validateTimes(List<String> times, BuildContext context, List<RunnerRecord> runners, TimingRecord lastConfirmed, TimingRecord conflictRecord) {
+    Duration? lastConfirmedTime = lastConfirmed.elapsedTime == '' ? Duration.zero : loadDurationFromString(lastConfirmed.elapsedTime);
     lastConfirmedTime ??= Duration.zero;
 
     // debugPrint('\n\ntimes: $times');
@@ -230,17 +241,17 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
       debugPrint('time: $time');
 
       if (time == null) {
-        DialogUtils.showErrorDialog(context, message: 'Enter a valid time for ${runner['name']}');
+        DialogUtils.showErrorDialog(context, message: 'Enter a valid time for ${runner.bib}');
         return false;
       }
       
       if (time <= lastConfirmedTime) {
-        DialogUtils.showErrorDialog(context, message: 'Time for ${runner['name']} must be after ${lastConfirmed['finish_time']}');
+        DialogUtils.showErrorDialog(context, message: 'Time for ${runner.name} must be after ${lastConfirmed.elapsedTime}');
         return false;
       }
 
-      if (time >= (loadDurationFromString(conflictRecord['finish_time']) ?? Duration.zero)) {
-        DialogUtils.showErrorDialog(context, message: 'Time for ${runner['name']} must be before ${conflictRecord['finish_time']}');
+      if (time >= (loadDurationFromString(conflictRecord.elapsedTime) ?? Duration.zero)) {
+        DialogUtils.showErrorDialog(context, message: 'Time for ${runner.name} must be before ${conflictRecord.elapsedTime}');
         return false;
       }
       
@@ -283,7 +294,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
     // if (conflictIndex == -1) return {};
     
     // final lastConfirmedRecord = lastConfirmedIndex == -1 ? {} : records[lastConfirmedIndex];
-    final lastConfirmedPlace = lastConfirmedIndex == -1 ? 0 : records[lastConfirmedIndex].conflict?.data?['numTimes'];
+    final lastConfirmedPlace = lastConfirmedIndex == -1 ? 0 : records[lastConfirmedIndex].place;
     // debugPrint('Last confirmed record: $lastConfirmedPlace');
     // final nextConfirmedRecord = records.sublist(conflictIndex + 1)
     //     .firstWhere((record) => record['is_confirmed'] == true, orElse: () => {}.cast<String, dynamic>());
@@ -291,7 +302,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
     final firstConflictingRecordIndex = records.sublist(lastConfirmedIndex + 1, conflictIndex).indexWhere((record) => record.conflict != null) + lastConfirmedIndex + 1;
     if (firstConflictingRecordIndex == -1) return {};
 
-    final startingIndex = lastConfirmedPlace as int;
+    final startingIndex = lastConfirmedPlace ?? 0;
     // debugPrint('Starting index: $startingIndex');
 
     final spaceBetweenConfirmedAndConflict = lastConfirmedIndex == -1 ? 1 : firstConflictingRecordIndex - lastConfirmedIndex;
@@ -301,20 +312,19 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
     // debugPrint('');
     // debugPrint('Space between confirmed and conflict: $spaceBetweenConfirmedAndConflict');
 
-    final List<Map<String, dynamic>> conflictingRecords = records
-        .sublist(lastConfirmedIndex + spaceBetweenConfirmedAndConflict, conflictIndex)
-        .cast<Map<String, dynamic>>();
+    final List<TimingRecord> conflictingRecords = records
+        .sublist(lastConfirmedIndex + spaceBetweenConfirmedAndConflict, conflictIndex);
 
     // debugPrint('Conflicting records: $conflictingRecords');
 
     final List<String> conflictingTimes = conflictingRecords
-        .where((record) => record['finish_time'] != null && record['finish_time'] is String)
-        .map((record) => record['finish_time'] as String)
+        .where((record) => record.elapsedTime != '')
+        .map((record) => record.elapsedTime)
         .where((time) => time != '' && time != 'TBD')
         .toList();
     // debugPrint('startingIndex: $startingIndex, spaceBetweenConfirmedAndConflict: $spaceBetweenConfirmedAndConflict');
     // debugPrint('_TimingRecords: $_TimingRecords');
-    final List<Map<String, dynamic>> conflictingRunners = List<Map<String, dynamic>>.from(
+    final List<RunnerRecord> conflictingRunners = List<RunnerRecord>.from(
       _runnerRecords.sublist(startingIndex, startingIndex + spaceBetweenConfirmedAndConflict)
     );
 
@@ -363,7 +373,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
     // if (conflictIndex == -1) return {};
     
     // final lastConfirmedRecord = lastConfirmedIndex == -1 ? {} : records[lastConfirmedIndex];
-    final lastConfirmedPlace = lastConfirmedIndex == -1 ? 0 : records[lastConfirmedIndex].conflict?.data?['numTimes'];
+    final lastConfirmedPlace = lastConfirmedIndex == -1 ? 0 : records[lastConfirmedIndex].place ?? 0;
     // final nextConfirmedRecord = records.sublist(conflictIndex + 1)
     //     .firstWhere((record) => record['type'] == 'runner_time', orElse: () => {}.cast<String, dynamic>());
 
@@ -409,7 +419,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
     Map<String, dynamic> chunk,
   ) async {
     final resolveData = chunk['resolve'] ?? {};
-    final bibData = resolveData['bibData'];
+    // final bibData = resolveData['bibData'];
     final runners = chunk['runners'];
     final List<String> times = chunk['controllers']['timeControllers'].map((controller) => controller.text.toString()).toList().cast<String>();
 
@@ -464,17 +474,17 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
     final List<String> times = chunk['controllers']['timeControllers'].map((controller) => controller.text.toString()).toList().cast<String>();
     debugPrint('times: $times');
     debugPrint('records: ${chunk['controllers']}');
-    var records = chunk['records'] ?? [];
+    List<TimingRecord> records = chunk['records'] ?? [];
     final resolveData = chunk['resolve'] ?? [];
     // final bibData = resolveData['bibData'] ?? [];
     final availableTimes = resolveData['availableTimes'] ?? [];
     // final lastConfirmedRecord = resolveData['lastConfirmedRecord'] ?? {};
-    final conflictRecord = resolveData['conflictRecord'] ?? {};
+    final TimingRecord conflictRecord = resolveData['conflictRecord'] ?? {};
     final lastConfirmedIndex = resolveData['lastConfirmedIndex'] ?? -1;
     final lastConfirmedPlace = resolveData['lastConfirmedPlace'] ?? -1;
     debugPrint('lastConfirmedPlace: $lastConfirmedPlace');
     // final spaceBetweenConfirmedAndConflict = resolveData['spaceBetweenConfirmedAndConflict'] ?? -1;
-    var runners = resolveData['conflictingRunners'] ?? [];
+    List<RunnerRecord> runners = resolveData['conflictingRunners'] ?? [];
 
     if (!_validateTimes(times, context, runners, resolveData['lastConfirmedRecord'], conflictRecord)) {
       return;
@@ -489,8 +499,8 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
       return;
     }
     debugPrint('Unused times: $unusedTimes');
-    final List<Map<String, dynamic>> typedRecords = List<Map<String, dynamic>>.from(records);
-    final unusedRecords = typedRecords.where((record) => unusedTimes.contains(record['finish_time']));
+    // final List<Map<String, dynamic>> typedRecords = List<Map<String, dynamic>>.from(records);
+    final List<TimingRecord> unusedRecords = records.where((record) => unusedTimes.contains(record.elapsedTime)).toList();
     debugPrint('Unused records: $unusedRecords');
 
     debugPrint('records: $records');
@@ -500,8 +510,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
       _timingData.records = _timingData.records
           .where((record) => !unusedTimes.contains(record.elapsedTime))
           .toList();
-      final List<TimingRecord> typedRunners = List<TimingRecord>.from(runners);
-      runners = typedRunners.where((TimingRecord runner) => !unusedTimes.contains(runner.elapsedTime)).toList();
+      // runners = runners.where((runner) => !unusedTimes.contains(runner.elapsedTime)).toList();
     });
     records = _timingData.records;
 
@@ -510,23 +519,23 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
     for (int i = 0; i < runners.length; i++) {
       final num currentPlace = i + lastConfirmedPlace + 1;
       var record = records[lastConfirmedIndex + 1 + i];
-      final String bibNumber = runners[i]['bib_number'] as String;
+      final String bibNumber = runners[i].bib;
 
       debugPrint('currentPlace: $currentPlace');
 
       setState(() {
-        record['finish_time'] = times[i];
-        record['bib_number'] = bibNumber;
-        record['type'] = 'runner_time';
-        record['place'] = currentPlace as int;
-        record['is_confirmed'] = true;
-        record['conflict'] = null;
-        record['name'] = runners[i]['name'];
-        record['grade'] = runners[i]['grade'];
-        record['school'] = runners[i]['school'];
-        record['runner_id'] = runners[i]['runner_id'] ?? runners[i]['runner_id'];
-        record['race_id'] = _raceId;
-        record['text_color'] = AppColors.navBarTextColor;
+        record.elapsedTime = times[i];
+        record.bib = bibNumber;
+        record.type = RecordType.runnerTime;
+        record.place = currentPlace.toInt();
+        record.isConfirmed = true;
+        record.conflict = null;
+        record.name = runners[i].name;
+        record.grade = runners[i].grade;
+        record.school = runners[i].school;
+        record.runnerId = runners[i].runnerId;
+        record.raceId = _raceId;
+        record.textColor = AppColors.navBarTextColor;
       });
     }
 
@@ -542,10 +551,14 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
   }
 
 
-  void _updateConflictRecord(Map<String, dynamic> record, int numTimes) {
+  void _updateConflictRecord(TimingRecord record, int numTimes) {
     // record['numTimes'] = numTimes;
-    record['type'] = 'confirm_runner_number';
-    record['text_color'] = Colors.green;
+    record.type = RecordType.confirmRunner;
+    record.place = numTimes;
+    record.textColor = Colors.green;
+    record.isConfirmed = true;
+    record.conflict = null;
+    record.previousPlace = null;
   }
 
   void _showSuccessMessage() {
@@ -554,19 +567,19 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
     );
   }
 
-  void undoTooManyRunners(Map lastConflict, records) {
-    if (lastConflict.isEmpty) {
+  void undoTooManyRunners(TimingRecord lastConflict, List<TimingRecord> records) {
+    if (lastConflict.conflict?.data?['offBy'] == null) {
       return;
     }
     final lastConflictIndex = records.indexOf(lastConflict);
-    final runnersBeforeConflict = records.sublist(0, lastConflictIndex).where((r) => r['type'] == 'runner_time').toList();
-    final offBy = lastConflict['offBy'];
+    final runnersBeforeConflict = records.sublist(0, lastConflictIndex).where((r) => r.type == RecordType.runnerTime).toList();
+    final offBy = lastConflict.conflict!.data!['offBy'] as int? ?? 0;
 
     updateTextColor(null, records, confirmed: false, endIndex: lastConflictIndex);
     for (int i = 0; i < offBy; i++) {
       final record = runnersBeforeConflict[runnersBeforeConflict.length - 1 - i];
       setState(() {
-        record['place'] = record['previous_place'];
+        record.place = record.previousPlace;
       });
     }
     setState(() {
@@ -574,13 +587,13 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
     });
   }
 
-  void undoTooFewRunners(Map lastConflict, records) {
-    if (lastConflict.isEmpty) {
+  void undoTooFewRunners(TimingRecord lastConflict, List<TimingRecord> records) {
+    if (lastConflict.conflict?.data?['offBy'] == null) {
       return;
     }
     final lastConflictIndex = records.indexOf(lastConflict);
-    final runnersBeforeConflict = records.sublist(0, lastConflictIndex).where((r) => r['type'] == 'runner_time').toList();
-    final offBy = lastConflict['offBy'];
+    final runnersBeforeConflict = records.sublist(0, lastConflictIndex).where((r) => r.type == RecordType.runnerTime).toList();
+    final offBy = lastConflict.conflict!.data!['offBy'] as int? ?? 0;
     debugPrint('off by: $offBy');
 
     records = updateTextColor(null, records, confirmed: false, endIndex: lastConflictIndex);
@@ -617,8 +630,8 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
 
   int getRunnerIndex(int recordIndex) {
     final records = _timingData.records;
-    final TimingRecords = records.where((record) => record.type == RecordType.runnerTime).toList();
-    return TimingRecords.indexOf(records[recordIndex]);
+    final List<TimingRecord> timingRecords = records.where((record) => record.type == RecordType.runnerTime).toList();
+    return timingRecords.indexOf(records[recordIndex]);
   }
 
   // Future<bool> _confirmDeleteLastRecord(int recordIndex) async {
@@ -640,16 +653,16 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
     final timeRecords = _timingData.records;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Review Race Results', 
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w500
-          )
-        ),
-        backgroundColor: AppColors.primaryColor,
-        elevation: 0,
-      ),
+      // appBar: AppBar(
+      //   title: Text('Review Race Results', 
+      //     style: TextStyle(
+      //       color: Colors.white,
+      //       fontWeight: FontWeight.w500
+      //     )
+      //   ),
+      //   backgroundColor: AppColors.primaryColor,
+      //   elevation: 0,
+      // ),
       body: Container(
         color: AppColors.backgroundColor,
         child: Column(
@@ -678,7 +691,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
           fixedSize: const Size.fromHeight(50),
         ),
         child: const Text(
-          'Save Race Results',
+          'Finished Merging Conflicts',
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500, color: Colors.white),
         ),
       ),
@@ -691,7 +704,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
     }
 
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(vertical: 16),
       children: [
         _buildInstructionsCard(),
         const SizedBox(height: 16),
@@ -746,12 +759,12 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
   }
 
   Widget _buildRunnerTimeRecord(BuildContext context, int index, List<dynamic> joinedRecord, Color color, Map<String, dynamic> chunk) {
-    final runner = joinedRecord[0];
-    final timeRecord = joinedRecord[1];
+    final RunnerRecord runner = joinedRecord[0];
+    final TimingRecord timeRecord = joinedRecord[1];
     final hasConflict = chunk['resolve'] != null;
     final confirmedColor = AppColors.confirmRunnerColor;
     final conflictColor = AppColors.primaryColor.withAlpha((0.9 * 255).round());
-    debugPrint('runner place: ${runner['place']}');
+    debugPrint('runner place: ${timeRecord.place}');
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
@@ -771,7 +784,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
                 padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
-                    _buildPlaceNumber(timeRecord['place']),
+                    _buildPlaceNumber(timeRecord.place!),
                     const SizedBox(width: 6),
                     Expanded(
                       child: _buildRunnerInfo(runner),
@@ -800,9 +813,9 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
                       chunk['controllers']['manualControllers'][index],
                       chunk['resolve']['availableTimes'],
                       chunk['conflictIndex'],
-                      manual: chunk['type'] != 'extra_runner_time',
+                      manual: chunk['type'] != RecordType.extraRunner,
                     )
-                  : _buildConfirmedTime(timeRecord['finish_time']),
+                  : _buildConfirmedTime(timeRecord.elapsedTime),
               ),
             ),
           ],
@@ -828,19 +841,19 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
     );
   }
 
-  Widget _buildRunnerInfo(Map<String, dynamic> runner) {
+  Widget _buildRunnerInfo(RunnerRecord runner) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          runner['name'] ?? '',
+          runner.name,
           style: AppTypography.bodySemibold,
         ),
         const SizedBox(height: 4),
         Row(
           children: [
-            if (runner['grade'] != null) ...[
+            if (runner.bib.isNotEmpty) ...[
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
@@ -848,13 +861,13 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  'Grade ${runner["grade"]}',
+                  'Bib ${runner.bib}',
                   style: AppTypography.bodyRegular,
                 ),
               ),
               const SizedBox(width: 4),
             ],
-            if (runner['school'] != null)
+            if (runner.school.isNotEmpty)
               // Expanded(
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -863,12 +876,11 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    runner['school'],
+                    runner.school,
                     style: AppTypography.bodyRegular,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-              // ),
           ],
         ),
       ],
@@ -981,21 +993,28 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
   }
 
   Widget _buildChunkItem(BuildContext context, int index, Map<String, dynamic> chunk) {
+    // print(chunk);
+    // print(chunk['joined_records']);
+    // print(chunk['type']);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         ...chunk['joined_records'].map<Widget>((joinedRecord) {
-          if (joinedRecord[1]['type'] == 'runner_time') {
+          // print('\n');
+          // print(joinedRecord[0].toMap());
+          // print(joinedRecord[1].toMap());
+          // print('\n');
+          if (joinedRecord[1].type == RecordType.runnerTime) {
             return _buildRunnerTimeRecord(
               context,
               chunk['joined_records'].indexOf(joinedRecord),
               joinedRecord,
-              chunk['type'] == 'runner_time' || chunk['type'] == 'confirm_runner_number'
+              chunk['type'] == RecordType.runnerTime || chunk['type'] == RecordType.confirmRunner
                   ? Colors.green
                   : AppColors.primaryColor,
               chunk,
             );
-          } else if (joinedRecord[1]['type'] == 'confirm_runner_number') {
+          } else if (joinedRecord[1].type == RecordType.confirmRunner) {
             return _buildConfirmationRecord(
               context,
               chunk['joined_records'].indexOf(joinedRecord),
@@ -1004,12 +1023,12 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
           }
           return SizedBox.shrink();
         }).toList(),
-        if (chunk['type'] == 'extra_runner_time' || chunk['type'] == 'missing_runner_time')
+        if (chunk['type'] == RecordType.extraRunner || chunk['type'] == RecordType.missingRunner)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 16.0),
             child: _buildActionButton(
               'Resolve Conflict',
-              () => chunk['type'] == 'extra_runner_time'
+              () => chunk['type'] == RecordType.extraRunner
                   ? _handleTooManyTimesResolution(chunk)
                   : _handleTooFewTimesResolution(chunk),
             ),

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
-import 'package:uuid/uuid.dart';
 import '../../../../utils/enums.dart';
 import 'timing_record.dart';
 
@@ -8,7 +7,6 @@ class TimingData with ChangeNotifier {
   List<TimingRecord> _records = [];
   DateTime? _startTime;
   Duration? _endTime;
-  final _uuid = const Uuid();
 
   List<TimingRecord> get records => _records;
   set records(List<TimingRecord> value) {

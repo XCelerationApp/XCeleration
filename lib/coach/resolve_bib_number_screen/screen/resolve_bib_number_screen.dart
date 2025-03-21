@@ -47,11 +47,15 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
   }
 
   Future<void> _searchRunners(String query) async {
+    print('Searching runners...');
+    print('Query: $query');
+    print('Race ID: $_raceId');
     if (query.isEmpty) {
       final results = await _databaseHelper.getRaceRunners(_raceId);
       setState(() {
         _searchResults = results;
       });
+      print('Search results: ${_searchResults.map((r) => r.bib).join(', ')}');
       return;
     }
 
@@ -59,6 +63,7 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
     setState(() {
       _searchResults = results;
     });
+    print('Search results: ${_searchResults.map((r) => r.bib).join(', ')}');
   }
 
   Future<void> _createNewRunner() async {
@@ -89,6 +94,13 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
     if (!confirmed) return;
     _errorRecords[_currentIndex].bib = runner.bib;
     _errorRecords[_currentIndex].error = null;
+    _errorRecords[_currentIndex].name = runner.name;
+    _errorRecords[_currentIndex].grade = runner.grade;
+    _errorRecords[_currentIndex].school = runner.school;
+    _errorRecords[_currentIndex].runnerId = runner.runnerId;
+    _errorRecords[_currentIndex].flags = runner.flags;
+    _errorRecords[_currentIndex].raceId = runner.raceId;
+
     await _moveToNext();
   }
 

@@ -36,8 +36,8 @@ class TimingData {
   }
 
   // Helper method to merge runner data into a timing record
-  void mergeRunnerData(TimingRecord timingRecord, RunnerRecord runnerRecord) {
-    final index = records.indexWhere((record) => record.runnerId == runnerRecord.runnerId);
+  void mergeRunnerData(TimingRecord timingRecord, RunnerRecord runnerRecord, {int? index}) {
+    index ??= records.indexWhere((record) => record.runnerId == runnerRecord.runnerId);
     if (index != -1) {
       records[index] = timingRecord.copyWith(
         runnerId: runnerRecord.runnerId,
@@ -108,5 +108,11 @@ class TimingData {
           .toList() ?? [],
       endTime: json['end_time'] != null ? json['end_time'] as String : '',
     );
+  }
+
+  String encode() {
+    // final String encodedRecords = encodeTimingRecords();
+    List<String> recordMaps = records.map((record) => (record.type == RecordType.runnerTime) ? record.elapsedTime : (record.type == RecordType.confirmRunner) ? '${record.type.toString()} ${record.place} ${record.elapsedTime}' : '${record.type.toString()} ${record.conflict?.data?["offBy"]} ${record.elapsedTime}').toList();
+    return recordMaps.join(',');
   }
 }
