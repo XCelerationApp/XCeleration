@@ -4,10 +4,12 @@ import 'package:xcelerate/coach/flows/PostRaceFlow/steps/load_results/load_resul
 import 'package:xcelerate/coach/flows/PostRaceFlow/steps/review_results/review_results_step.dart';
 import 'package:xcelerate/coach/flows/PostRaceFlow/steps/share_results/share_results_step.dart';
 import 'package:xcelerate/coach/merge_conflicts_screen/screen/merge_conflicts_screen.dart';
-import 'package:xcelerate/coach/race_screen/widgets/bib_conflicts_sheet.dart';
+// import 'package:xcelerate/coach/race_screen/widgets/bib_conflicts_sheet.dart';
 // import 'package:xcelerate/coach/race_screen/widgets/timing_conflicts_sheet.dart';
 import 'package:xcelerate/coach/race_screen/widgets/runner_record.dart';
 import 'package:xcelerate/coach/merge_conflicts_screen/model/timing_data.dart';
+// import 'package:xcelerate/coach/resolve_bib_number_screen/screen/resolve_bib_number_screen.dart';
+import 'package:xcelerate/coach/resolve_bib_number_screen/widgets/bib_conflicts_overview.dart';
 import 'package:xcelerate/core/services/device_connection_service.dart';
 // import 'package:xcelerate/utils/runner_time_functions.dart';
 import 'package:xcelerate/utils/encode_utils.dart';
@@ -130,7 +132,7 @@ class PostRaceController {
   Future<void> _loadTestData(BuildContext context) async {
     debugPrint('Loading test data...');
     // Fake encoded data strings
-    final fakeBibRecordsData = '1 2 3 101';
+    final fakeBibRecordsData = '1 2 30 101';
     final fakeFinishTimesData = TimingData(records: [
       TimingRecord(
         elapsedTime: '1.0',
@@ -207,13 +209,15 @@ class PostRaceController {
   Future<void> showBibConflictsSheet(BuildContext context) async {
     if (_reviewResultsStep.runnerRecords == null) return;
     
-    final updatedRunnerRecords = await showModalBottomSheet<List<RunnerRecord>>(
+    final List<RunnerRecord>? updatedRunnerRecords = await sheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => BibConflictsSheet(
-        runnerRecords: _reviewResultsStep.runnerRecords!,
+      title: 'Resolve Bib Numbers',
+      body: BibConflictsOverview(
+        records: _reviewResultsStep.runnerRecords!,
         raceId: raceId,
+        onConflictSelected: (records) {
+          Navigator.pop(context, records);
+        },
       ),
     );
 

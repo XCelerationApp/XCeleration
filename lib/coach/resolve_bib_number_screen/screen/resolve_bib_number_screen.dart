@@ -7,13 +7,15 @@ import '../../race_screen/widgets/runner_record.dart';
 class ResolveBibNumberScreen extends StatefulWidget {
   final List<RunnerRecord> records;
   final int raceId;
-  final Function(List<RunnerRecord>) onComplete;
+  final Function(RunnerRecord) onComplete;
+  final RunnerRecord record;
   
   const ResolveBibNumberScreen({
     super.key,
     required this.records,
     required this.raceId,
     required this.onComplete,
+    required this.record,
   });
 
   @override
@@ -22,9 +24,9 @@ class ResolveBibNumberScreen extends StatefulWidget {
 
 class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
   final DatabaseHelper _databaseHelper = DatabaseHelper.instance;
-  List<RunnerRecord> _errorRecords = [];
+  // List<RunnerRecord> _errorRecords = [];
   List<RunnerRecord> _searchResults = [];
-  int _currentIndex = 0;
+  // int _currentIndex = 0;
   final _searchController = TextEditingController();
   final _nameController = TextEditingController();
   final _gradeController = TextEditingController();
@@ -32,18 +34,20 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
   bool _showCreateNew = false;
   late int _raceId;
   late List<RunnerRecord> _records;
-  String _currentBibNumber = '';
+  // String _currentBibNumber = '';
+  late RunnerRecord _record;
   
   @override
   void initState() {
     super.initState();
     _raceId = widget.raceId;
     _records = widget.records;
-    _errorRecords = _records.where((record) => record.error != null).toList();
-    if (_errorRecords.isNotEmpty) {
-      _currentBibNumber = _errorRecords[0].bib.toString();
-      _searchRunners('');
-    }
+    // _errorRecords = _records.where((record) => record.error != null).toList();
+    // if (_errorRecords.isNotEmpty) {
+    //   _currentBibNumber = _errorRecords[0].bib.toString();
+    _record = widget.record;
+    _searchRunners('');
+    // }
   }
 
   Future<void> _searchRunners(String query) async {
@@ -74,52 +78,44 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
 
     final runner = RunnerRecord(
       name: _nameController.text,
-      bib: _currentBibNumber,
+      bib: _record.bib,
       raceId: _raceId,
       grade: int.parse(_gradeController.text),
       school: _schoolController.text,
     );
 
     await _databaseHelper.insertRaceRunner(runner);
-    _errorRecords[_currentIndex].error = null;
-    await _moveToNext();
+    _record.error = null;
+    
+    // Update the current record with the new runner information
+    _record.name = runner.name;
+    _record.grade = runner.grade;
+    _record.school = runner.school;
+    
+    // Return the updated records immediately
+    widget.onComplete(_record);
   }
 
   Future<void> _assignExistingRunner(RunnerRecord runner) async {
-    if (_records.any((record) => record.bib == runner.bib)) {
+    if (_records.any((record) => record.bib == runner.bib && record != _record)) {
       DialogUtils.showErrorDialog(context, message: 'This bib number is already assigned to another runner');
       return;
     }
     final confirmed = await DialogUtils.showConfirmationDialog(context, title: 'Assign Runner', content: 'Are you sure this is the correct runner? \nName: ${runner.name} \nGrade: ${runner.grade} \nSchool: ${runner.school} \nBib Number: ${runner.bib}');
     if (!confirmed) return;
-    _errorRecords[_currentIndex].bib = runner.bib;
-    _errorRecords[_currentIndex].error = null;
-    _errorRecords[_currentIndex].name = runner.name;
-    _errorRecords[_currentIndex].grade = runner.grade;
-    _errorRecords[_currentIndex].school = runner.school;
-    _errorRecords[_currentIndex].runnerId = runner.runnerId;
-    _errorRecords[_currentIndex].flags = runner.flags;
-    _errorRecords[_currentIndex].raceId = runner.raceId;
+    
+    // Update all fields from the selected runner
+    _record.bib = runner.bib;
+    _record.error = null;
+    _record.name = runner.name;
+    _record.grade = runner.grade;
+    _record.school = runner.school;
+    _record.runnerId = runner.runnerId;
+    _record.flags = runner.flags;
+    _record.raceId = runner.raceId;
 
-    await _moveToNext();
-  }
-
-  Future<void> _moveToNext() async {
-    if (_currentIndex < _errorRecords.length - 1) {
-      final runners = await _databaseHelper.getRaceRunners(_raceId);
-      setState(() {
-        _currentIndex++;
-        _currentBibNumber = _errorRecords[_currentIndex].bib;
-        _searchController.clear();
-        _nameController.clear();
-        _gradeController.clear();
-        _schoolController.clear();
-        _searchResults = runners;
-        _showCreateNew = false;
-      });
-    } else {
-      widget.onComplete(widget.records);
-    }
+    // Return the updated records immediately
+    widget.onComplete(_record);
   }
 
   Widget _buildSearchResults() {
@@ -311,60 +307,60 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_errorRecords.isEmpty) {
+    if (_record.error == null) {
       return const Scaffold(
         body: Center(child: Text('No records to resolve')),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Resolve Bib Numbers'),
-        elevation: 0,
-        backgroundColor: AppColors.primaryColor,
-      ),
+      // appBar: AppBar(
+      //   title: const Text('Resolve Bib Numbers'),
+      //   elevation: 0,
+      //   backgroundColor: AppColors.primaryColor,
+      // ),
       body: Container(
         color: AppColors.backgroundColor,
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.symmetric(vertical: 16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withAlpha((0.05 * 255).round()),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      'Unknown Bib Number ${_currentIndex + 1} of ${_errorRecords.length}',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.primaryColor,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'A runner with bib number $_currentBibNumber does not exist',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
+              // Container(
+              //   padding: const EdgeInsets.symmetric(vertical: 16.0),
+              //   decoration: BoxDecoration(
+              //     color: Colors.white,
+              //     borderRadius: BorderRadius.circular(12),
+              //     boxShadow: [
+              //       BoxShadow(
+              //         color: Colors.black.withAlpha((0.05 * 255).round()),
+              //         blurRadius: 8,
+              //         offset: const Offset(0, 2),
+              //       ),
+              //     ],
+              //   ),
+                // child: Column(
+                //   children: [
+              //       Text(
+              //         'Unknown Bib Number ${_currentIndex + 1} of ${_errorRecords.length}',
+              //         style: const TextStyle(
+              //           fontSize: 20,
+              //           fontWeight: FontWeight.w600,
+              //           color: AppColors.primaryColor,
+              //         ),
+              //       ),
+              //       const SizedBox(height: 8),
+              //       Text(
+              //         'A runner with bib number $_currentBibNumber does not exist',
+              //         style: TextStyle(
+              //           fontSize: 16,
+              //           color: Colors.grey[600],
+              //         ),
+              //       ),
+              //     ],
+              //   ),
+              // ),
+              // const SizedBox(height: 24),
               Row(
                 children: [
                   Expanded(
@@ -417,10 +413,14 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
     return ElevatedButton(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
-        backgroundColor: isSelected ? AppColors.primaryColor : Colors.grey[300],
+        backgroundColor: isSelected ? AppColors.primaryColor : Colors.white,
         padding: const EdgeInsets.symmetric(vertical: 16),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
+          side: BorderSide(
+            color: AppColors.primaryColor.withAlpha((0.2 * 255).round()),
+            width: 1,
+          ),
         ),
         elevation: isSelected ? 3 : 1,
       ),
@@ -429,17 +429,18 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: isSelected ? Colors.white : Colors.grey[700]),
+            Icon(icon, color: isSelected ? Colors.white : AppColors.primaryColor),
             const SizedBox(width: 8),
             Flexible(
               child: Text(
                 label,
                 style: TextStyle(
-                  color: isSelected ? Colors.white : Colors.grey[700],
+                  color: isSelected ? Colors.white : AppColors.primaryColor,
                   fontWeight: FontWeight.w600,
                   fontSize: 12,
                 ),
                 maxLines: null,
+                textAlign: TextAlign.center,
               ),
             ),
           ],

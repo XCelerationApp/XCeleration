@@ -71,8 +71,8 @@ class _LoadResultsWidgetState extends State<LoadResultsWidget> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: const BoxConstraints(maxWidth: 600),
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      // constraints: const BoxConstraints(maxWidth: 600),
+      padding: const EdgeInsets.symmetric(vertical: 16),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
