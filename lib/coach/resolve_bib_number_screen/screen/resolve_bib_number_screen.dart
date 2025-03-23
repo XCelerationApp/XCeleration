@@ -3,6 +3,7 @@ import '../../../utils/database_helper.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/components/dialog_utils.dart';
 import '../../race_screen/widgets/runner_record.dart';
+import '../../../core/components/instruction_card.dart';
 
 class ResolveBibNumberScreen extends StatefulWidget {
   final List<RunnerRecord> records;
@@ -322,45 +323,13 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
       body: Container(
         color: AppColors.backgroundColor,
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16.0),
+          // padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0),
+          padding: EdgeInsets.all(0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Container(
-              //   padding: const EdgeInsets.symmetric(vertical: 16.0),
-              //   decoration: BoxDecoration(
-              //     color: Colors.white,
-              //     borderRadius: BorderRadius.circular(12),
-              //     boxShadow: [
-              //       BoxShadow(
-              //         color: Colors.black.withAlpha((0.05 * 255).round()),
-              //         blurRadius: 8,
-              //         offset: const Offset(0, 2),
-              //       ),
-              //     ],
-              //   ),
-                // child: Column(
-                //   children: [
-              //       Text(
-              //         'Unknown Bib Number ${_currentIndex + 1} of ${_errorRecords.length}',
-              //         style: const TextStyle(
-              //           fontSize: 20,
-              //           fontWeight: FontWeight.w600,
-              //           color: AppColors.primaryColor,
-              //         ),
-              //       ),
-              //       const SizedBox(height: 8),
-              //       Text(
-              //         'A runner with bib number $_currentBibNumber does not exist',
-              //         style: TextStyle(
-              //           fontSize: 16,
-              //           color: Colors.grey[600],
-              //         ),
-              //       ),
-              //     ],
-              //   ),
-              // ),
-              // const SizedBox(height: 24),
+              _buildInstructionsCard(),
+              const SizedBox(height: 24),
               Row(
                 children: [
                   Expanded(
@@ -406,6 +375,18 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildInstructionsCard() {
+    return InstructionCard(
+      title: 'Resolve Bib Number',
+      instructions: [
+        InstructionItem(number: '1', text: 'Choose an existing runner or create a new one to assign to bib #${_record.bib}'),
+        const InstructionItem(number: '2', text: 'For existing runners, search by name, school, or bib number'),
+        const InstructionItem(number: '3', text: 'For new runners, enter all required information'),
+      ],
+      initiallyExpanded: true,
     );
   }
 

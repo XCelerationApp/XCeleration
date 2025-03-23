@@ -191,20 +191,20 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Unknown Runner', 
-                      style: AppTypography.bodySemibold.copyWith(
+                      record.error ?? 'Bib number not found', 
+                      style: AppTypography.bodyRegular.copyWith(
                         letterSpacing: 0.1,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      record.error ?? 'Bib number not found',
-                      style: AppTypography.bodyRegular.copyWith(
-                        color: AppColors.mediumColor,
-                        fontSize: 12,
-                        height: 1.4,
-                      ),
-                    ),
+                    // const SizedBox(height: 4),
+                    // Text(
+                    //   record.error ?? 'Bib number not found',
+                    //   style: AppTypography.bodyRegular.copyWith(
+                    //     color: AppColors.mediumColor,
+                    //     fontSize: 12,
+                    //     height: 1.4,
+                    //   ),
+                    // ),
                   ],
                 ),
               ),
