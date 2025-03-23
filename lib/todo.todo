@@ -14,6 +14,7 @@ Functionality:
 - add swiping to delete/edit for bib numbers, races, runners, and times
 - make a way to reset bib screen for new race (dont keep track of data for both recorder and timer screens?)
 - asks imediately if user wants to use nearby connections, try to delay it?
+- fix the reload results button
 
 UI:
 - change initializer screen
