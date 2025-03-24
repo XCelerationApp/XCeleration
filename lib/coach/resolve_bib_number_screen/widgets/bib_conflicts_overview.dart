@@ -65,7 +65,7 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
             ),
             const SizedBox(height: 24),
             Text(
-              'No Bib Number Conflicts', 
+              'No Unfound Bib Numbers', 
               style: AppTypography.titleSemibold,
             ),
             const SizedBox(height: 12),
@@ -90,14 +90,14 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '${errorRecords.length} Bib Number Conflicts', 
+                '${errorRecords.length} Unfound Bib Numbers', 
                 style: AppTypography.headerSemibold.copyWith(
                   color: AppColors.darkColor,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
-                'Select a conflict to resolve',
+                'Select a bib number to resolve',
                 style: AppTypography.bodyRegular.copyWith(
                   color: AppColors.mediumColor,
                 ),
