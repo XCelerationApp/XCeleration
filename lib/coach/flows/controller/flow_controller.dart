@@ -113,7 +113,7 @@ class MasterFlowController {
       final runner = runners[i];
       final timingRecord = results.firstWhere(
         (result) => result.bib == runner.bib,
-        orElse: () => TimingRecord(bib: runner.bib, elapsedTime: ""),
+        orElse: () => TimingRecord(bib: runner.bib, elapsedTime: ''),
       );
       
       individualResults.add({

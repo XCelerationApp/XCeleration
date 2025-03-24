@@ -20,7 +20,7 @@ class ShareSheetScreen extends StatefulWidget {
   final List<Map<String, dynamic>> individualResults;
   final ShareRaceController controller;
 
-  ShareSheetScreen({
+  const ShareSheetScreen({
     super.key,
     required this.teamResults,
     required this.individualResults,

@@ -1021,15 +1021,21 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
   }
 
   Widget _buildChunkItem(BuildContext context, int index, Map<String, dynamic> chunk) {
+    final chunkType = chunk['type'] as RecordType;
+    final record = chunk['records'].last as TimingRecord;
+    final previousChunk = index > 0 ? _chunks[index - 1] : null;
+    final previousChunkEndTime = previousChunk != null ? previousChunk['records'].last.elapsedTime : '0.0';
+    
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (chunk['type'] == RecordType.extraRunner || chunk['type'] == RecordType.missingRunner)
-            _buildConflictHeader(chunk['type'] as RecordType, chunk['records'].last as TimingRecord),
-          if (chunk['type'] == RecordType.confirmRunner)
-            _buildConfirmHeader(chunk['records'].last as TimingRecord),
+          if (chunkType == RecordType.extraRunner || chunkType == RecordType.missingRunner)
+            _buildConflictHeader(chunkType, record, previousChunkEndTime, record.elapsedTime),
+          if (chunkType == RecordType.confirmRunner)
+            _buildConfirmHeader(record),
           const SizedBox(height: 8),
           ...chunk['joined_records'].map<Widget>((joinedRecord) {
             if (joinedRecord[1].type == RecordType.runnerTime) {
@@ -1037,7 +1043,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
                 context,
                 chunk['joined_records'].indexOf(joinedRecord),
                 joinedRecord,
-                chunk['type'] == RecordType.runnerTime || chunk['type'] == RecordType.confirmRunner
+                chunkType == RecordType.runnerTime || chunkType == RecordType.confirmRunner
                     ? Colors.green
                     : AppColors.primaryColor,
                 chunk,
@@ -1051,12 +1057,12 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
             }
             return const SizedBox.shrink();
           }).toList(),
-          if (chunk['type'] == RecordType.extraRunner || chunk['type'] == RecordType.missingRunner)
+          if (chunkType == RecordType.extraRunner || chunkType == RecordType.missingRunner)
             Padding(
               padding: const EdgeInsets.only(top: 16.0),
               child: _buildActionButton(
                 'Resolve Conflict',
-                () => chunk['type'] == RecordType.extraRunner
+                () => chunkType == RecordType.extraRunner
                     ? _handleTooManyTimesResolution(chunk)
                     : _handleTooFewTimesResolution(chunk),
               ),
@@ -1066,13 +1072,13 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
     );
   }
 
-  Widget _buildConflictHeader(RecordType type, TimingRecord conflictRecord) {
+  Widget _buildConflictHeader(RecordType type, TimingRecord conflictRecord, String startTime, String endTime) {
     final String title = type == RecordType.extraRunner
         ? 'Too Many Runner Times'
         : 'Missing Runner Times';
-    final String description = type == RecordType.extraRunner
-        ? 'There are more timing records than runners'
-        : 'There are more runners than timing records';
+    final String description = '${type == RecordType.extraRunner
+        ? 'There are more times recorded by the timing assistant than runners'
+        : 'There are more runners than times recorded by the timing assistant'}. Please select or enter appropriate times between $startTime and $endTime to resolve the discrepancy between recorded times and runners.';
     final IconData icon = type == RecordType.extraRunner
         ? Icons.group_add
         : Icons.person_search;
