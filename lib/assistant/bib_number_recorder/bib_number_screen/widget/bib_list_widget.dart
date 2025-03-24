@@ -13,11 +13,11 @@ class BibListWidget extends StatelessWidget {
   final TutorialManager tutorialManager;
 
   const BibListWidget({
-    Key? key,
+    super.key,
     required this.scrollController,
     required this.controller,
     required this.tutorialManager,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
