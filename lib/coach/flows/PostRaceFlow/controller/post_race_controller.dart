@@ -43,7 +43,10 @@ class PostRaceController {
   void _initializeSteps([bool useTestData = false]) {
     _loadResultsStep = LoadResultsStep(
       devices: devices,
-      reloadDevices: () => loadResults(),
+      reloadDevices: () => {
+        _resetDevices(),
+        // loadResults()
+      },
       onResultsLoaded: (context) => useTestData ? _loadTestData(context) : processReceivedData(context),
       showBibConflictsSheet: (context) => showBibConflictsSheet(context),
       showTimingConflictsSheet: (context) => showTimingConflictsSheet(context),
@@ -54,7 +57,11 @@ class PostRaceController {
     
     _shareResultsStep = ShareResultsStep();
   }
-
+  
+  void _resetDevices() {
+    devices.reset();
+  }
+  
   Future<void> loadResults() async {
     final TimingData? savedResults = await DatabaseHelper.instance.getRaceResultsData(raceId);
     if (savedResults != null) {
