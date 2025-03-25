@@ -5,20 +5,18 @@ import 'dart:io';
 import '../model/bib_number_model.dart';
 import '../model/bib_records_provider.dart';
 import '../controller/bib_number_controller.dart';
-import '../widget/bib_input_widget.dart';
-import '../widget/add_button_widget.dart';
 import '../widget/bottom_action_buttons_widget.dart';
 import '../widget/keyboard_accessory_bar.dart';
+import '../widget/stats_header_widget.dart';
+import '../widget/bib_list_widget.dart';
 import '../../../../core/components/dialog_utils.dart';
 import '../../../../core/components/device_connection_widget.dart';
 import '../../../../core/services/device_connection_service.dart';
 import '../../../../core/services/tutorial_manager.dart';
-import '../../../../core/theme/typography.dart';
 import '../../../../utils/enums.dart';
 import '../../../../utils/sheet_utils.dart';
 import '../../../../shared/role_functions.dart';
 import '../../../../utils/encode_utils.dart';
-
 
 class BibNumberScreen extends StatefulWidget {
   const BibNumberScreen({super.key});
@@ -75,6 +73,8 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
   }
 
   Future<void> _checkForRunners() async {
+    // debugPrint('Checking for runners');
+    // return;
     if (_runners.isEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         showDialog(
@@ -219,6 +219,22 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     _controller.restoreFocusability();
   }
 
+  void _resetLoadedRunners() async {
+    bool confirmed = await DialogUtils.showConfirmationDialog(
+      context,
+      title: 'Reset Loaded Runners',
+      content: 'Are you sure you want to reset all loaded runners?',
+    );
+    if (confirmed && mounted) {
+      setState(() {
+        _runners.clear();
+        // Reset related bib data
+        Provider.of<BibRecordsProvider>(context, listen: false).clearBibRecords();
+        _checkForRunners();
+      });
+    }
+  }
+
   @override
   void dispose() {
     _scrollController.dispose();
@@ -242,74 +258,24 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
             child: Column(
               children: [
                 buildRoleBar(context, 'bib recorder', tutorialManager),
-                const SizedBox(height: 16),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                  child: Consumer<BibRecordsProvider>(
-                    builder: (context, provider, _) {
-                      return Text(
-                        'Bib Number Count: ${_model.countNonEmptyBibNumbers(context)}',
-                        style: AppTypography.bodyRegular
-                      );
-                    }
-                  )
+                
+                // Stats header with bib count and runner stats
+                StatsHeaderWidget(
+                  runners: _runners,
+                  model: _model,
+                  onReset: _resetLoadedRunners,
                 ),
+                
+                // Bib input list section
                 Expanded(
-                  child: Consumer<BibRecordsProvider>(
-                    builder: (context, provider, child) {
-                      return ListView.builder(
-                        controller: _scrollController,
-                        itemCount: provider.bibRecords.length + 1,
-                        itemBuilder: (context, index) {
-                          if (index < provider.bibRecords.length) {
-                            return Dismissible(
-                              key: ValueKey(provider.bibRecords[index]),
-                              background: Container(
-                                color: Colors.red,
-                                alignment: Alignment.centerRight,
-                                padding: const EdgeInsets.only(right: 16.0),
-                                child: const Icon(
-                                  Icons.delete,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              direction: DismissDirection.endToStart,
-                              confirmDismiss: (direction) async {
-                                for (var node in provider.focusNodes) {
-                                  node.unfocus();
-                                  // Disable focus restoration for this node
-                                  node.canRequestFocus = false;
-                                }
-                                bool delete = await DialogUtils.showConfirmationDialog(
-                                  context,
-                                  title: 'Confirm Deletion',
-                                  content: 'Are you sure you want to delete this bib number?',
-                                );
-                                _controller.restoreFocusability();
-                                return delete;
-                              },
-                              onDismissed: (direction) {
-                                setState(() {
-                                  _controller.onBibRecordRemoved(index);
-                                });
-                              },
-                              child: BibInputWidget(
-                                index: index,
-                                record: provider.bibRecords[index],
-                                onBibNumberChanged: _controller.handleBibNumber,
-                                onSubmitted: () => _controller.handleBibNumber(''),
-                              ),
-                            );
-                          }
-                          return AddButtonWidget(
-                            tutorialManager: tutorialManager,
-                            onTap: () => _controller.handleBibNumber(''),
-                          );
-                        },
-                      );
-                    },
+                  child: BibListWidget(
+                    scrollController: _scrollController,
+                    controller: _controller,
+                    tutorialManager: tutorialManager,
                   ),
                 ),
+                
+                // Action buttons at the bottom
                 Consumer<BibRecordsProvider>(
                   builder: (context, provider, _) {
                     return provider.isKeyboardVisible 
@@ -319,6 +285,8 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                         );
                   },
                 ),
+                
+                // Keyboard accessory bar for mobile devices
                 Consumer<BibRecordsProvider>(
                   builder: (context, provider, _) {
                     if (!(Platform.isIOS || Platform.isAndroid) || !provider.isKeyboardVisible || provider.bibRecords.isEmpty) {

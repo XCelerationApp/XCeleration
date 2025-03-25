@@ -14,9 +14,8 @@ class ReloadButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SizedBox(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 24),
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primaryColor,
@@ -29,9 +28,9 @@ class ReloadButton extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.download_sharp, color: Colors.white),
-            const SizedBox(width: 12),
-            Text('Reload Results', style: AppTypography.bodySemibold.copyWith(color: Colors.white)),
+            const Icon(Icons.download_sharp, color: Colors.white, size: 18),
+            const SizedBox(width: 16),
+            Text('Reload Results', style: AppTypography.headerSemibold.copyWith(color: Colors.white)),
           ],
         ),
       ),

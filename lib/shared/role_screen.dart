@@ -3,6 +3,7 @@ import '../coach/races_screen/screen/races_screen.dart';
 import '../assistant/race_timer/timing_screen/screen/timing_screen.dart';
 import '../assistant/bib_number_recorder/bib_number_screen/screen/bib_number_screen.dart';
 import '../core/theme/app_colors.dart';
+import '../core/theme/typography.dart';
 
 class CustomPageRoute extends PageRouteBuilder {
   final Widget child;
@@ -34,10 +35,15 @@ Widget buildRoleButton({
       style: ElevatedButton.styleFrom(
         padding: const EdgeInsets.all(20.0),
         fixedSize: const Size(300, 75),
+        elevation: 5,
+        shadowColor: Colors.black,
       ),
       child: Text(
         text,
-        style: TextStyle(fontSize: 30, color: AppColors.selectedRoleTextColor),
+        style: AppTypography.displaySmall.copyWith(
+          fontWeight: FontWeight.w400,
+          color: AppColors.selectedRoleTextColor,
+        ),
       ),
     ),
   );
@@ -60,7 +66,7 @@ class RoleScreen extends StatelessWidget {
               const SizedBox(height: 20),
               Text(
                 'Welcome to XCelerate',
-                style: TextStyle(
+                style: AppTypography.displayLarge.copyWith(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,

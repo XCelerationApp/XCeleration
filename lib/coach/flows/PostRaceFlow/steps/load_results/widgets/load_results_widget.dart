@@ -71,8 +71,8 @@ class _LoadResultsWidgetState extends State<LoadResultsWidget> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: const BoxConstraints(maxWidth: 600),
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      // constraints: const BoxConstraints(maxWidth: 600),
+      padding: const EdgeInsets.symmetric(vertical: 16),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
@@ -101,15 +101,17 @@ class _LoadResultsWidgetState extends State<LoadResultsWidget> {
           if (widget.resultsLoaded) ...[
             if (widget.hasBibConflicts) ...[
               ConflictButton(
-                title: 'Bib Number Conflicts',
-                description: 'Some runners have conflicting bib numbers. Please resolve these conflicts before proceeding.',
+                title: 'Bib Numbers Not Found',
+                description: 'Some runners have unfound bib numbers. Please resolve these conflicts before proceeding.',
+                buttonText: 'Resolve Bib Numbers',
                 onPressed: () => widget.onBibConflictsPressed(context),
               ),
             ]
             else if (widget.hasTimingConflicts) ...[
               ConflictButton(
-                title: 'Timing Conflicts',
+                title: 'Timing Cofnflicts',
                 description: 'There are conflicts in the race timing data. Please review and resolve these conflicts.',
+                buttonText: 'Resolve Timing Conflicts',
                 onPressed: () => widget.onTimingConflictsPressed(context),
               ),
             ],

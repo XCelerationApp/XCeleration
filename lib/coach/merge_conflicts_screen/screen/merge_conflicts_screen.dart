@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:xcelerate/coach/merge_conflicts_screen/model/chunk.dart';
+import 'package:xcelerate/coach/merge_conflicts_screen/model/resolve_information.dart';
 import 'package:xcelerate/coach/race_screen/widgets/runner_record.dart';
 import '../../../utils/time_formatter.dart';
 import '../../../core/theme/typography.dart';
@@ -7,11 +9,13 @@ import '../../../core/theme/typography.dart';
 // import '../../races_screen/screen/races_screen.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/components/dialog_utils.dart';
-import '../../../utils/runner_time_functions.dart';
+// import '../../../utils/runner_time_functions.dart';
 // import '../utils/timing_utils.dart';
 import '../../../utils/enums.dart';
 import '../model/timing_data.dart';
+import '../model/joined_record.dart';
 import '../../../assistant/race_timer/timing_screen/model/timing_record.dart';
+import '../../../core/components/instruction_card.dart';
 // import '../../race_screen/model/race_result.dart';
 
 class MergeConflictsScreen extends StatefulWidget {
@@ -41,7 +45,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
   late final TimingData _timingData;
   // late List<Map<String, dynamic>> _runners;
   late List<RunnerRecord> _runnerRecords;
-  List<dynamic> _chunks = [];
+  List<Chunk> _chunks = [];
   Map<int, dynamic> _selectedTimes = {};
 
   @override
@@ -167,8 +171,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
   Future<void> _createChunks() async {
     _selectedTimes = {};
     final records = _timingData.records;
-    debugPrint('Records: ${records.map((r) => r.toMap()).join('\n\n')}');
-    final chunks = <Map<String, dynamic>>[];
+    final chunks = <Chunk>[];
     var startIndex = 0;
     var place = 1;
     // for (final record in records) {
@@ -178,38 +181,31 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
     for (int i = 0; i < records.length; i += 1) {
       if (i >= records.length - 1 || records[i].type != RecordType.runnerTime) {
         // print('startIndex: $startIndex, i: $i, place: $place, conflict: ${records[i].conflict}, numTimes: ${records[i].conflict?.data?['numTimes']}, place: ${records[i].place}');
-        chunks.add({
-          'records': records.sublist(startIndex, i + 1),
-          'type': records[i].type,
-          'runners': _runnerRecords.sublist(place - 1, (records[i].conflict?.data?['numTimes'] ?? records[i].place)),
-          'conflictIndex': i,
-        });
+        chunks.add(Chunk(
+          records: records.sublist(startIndex, i + 1),
+          type: records[i].type,
+          runners: _runnerRecords.sublist(place - 1, (records[i].conflict?.data?['numTimes'] ?? records[i].place)),
+          conflictIndex: i,
+        ));
         startIndex = i + 1;
         place = records[i].conflict?.data?['numTimes'] ?? records[i].place! + 1;
       }
     }
 
     for (int i = 0; i < chunks.length; i += 1) {
-      _selectedTimes[chunks[i]['conflictIndex']] = [];
-      final runners = chunks[i]['runners'] ?? [];
-      final records = chunks[i]['records'] ?? [];
-      debugPrint('chunk ${i + 1}: ${chunks[i]}');
-      debugPrint('-----------------------------');
-      debugPrint('runners length: ${runners.length}');
-      debugPrint('records length: ${records.length}');
-      chunks[i]['joined_records'] = List.generate(
-        runners.length,
-        (j) => [runners[j], records[j]],
-      );
-      chunks[i]['controllers'] = {'timeControllers': List.generate(runners.length, (j) => TextEditingController()), 'manualControllers': List.generate(runners.length, (j) => TextEditingController())};
-      if (chunks[i]['type'] == RecordType.extraRunner) {
-        chunks[i]['resolve'] = await _resolveTooManyRunnerTimes(chunks[i]['conflictIndex']);
-        // debugPrint('Resolved: ${chunks[i]['resolve']}');
-      }
-      else if (chunks[i]['type'] == RecordType.missingRunner) {
-        chunks[i]['resolve'] = await _resolveTooFewRunnerTimes(chunks[i]['conflictIndex']);
-        // debugPrint('Resolved: ${chunks[i]['resolve']}');
-      }
+      _selectedTimes[chunks[i].conflictIndex] = [];
+      // final runners = chunks[i].runners;
+      // final records = chunks[i].records;
+      // debugPrint('chunk ${i + 1}: ${chunks[i]}');
+      // debugPrint('-----------------------------');
+      // debugPrint('runners length: ${runners.length}');
+      // debugPrint('records length: ${records.length}');
+      // chunks[i].joinedRecords = List.generate(
+      //   runners.length,
+      //   (j) => [runners[j], records[j]],
+      // );
+      // chunks[i].controllers = {'timeControllers': List.generate(runners.length, (j) => TextEditingController()), 'manualControllers': List.generate(runners.length, (j) => TextEditingController())};
+      await chunks[i].setResolveInformation(_resolveTooManyRunnerTimes, _resolveTooFewRunnerTimes);
     }
 
  
@@ -245,15 +241,15 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
         return false;
       }
       
-      if (time <= lastConfirmedTime) {
-        DialogUtils.showErrorDialog(context, message: 'Time for ${runner.name} must be after ${lastConfirmed.elapsedTime}');
+      if (time <= lastConfirmedTime || time >= (loadDurationFromString(conflictRecord.elapsedTime) ?? Duration.zero)) {
+        DialogUtils.showErrorDialog(context, message: 'Time for ${runner.name} must be after ${lastConfirmed.elapsedTime} and before ${conflictRecord.elapsedTime}');
         return false;
       }
 
-      if (time >= (loadDurationFromString(conflictRecord.elapsedTime) ?? Duration.zero)) {
-        DialogUtils.showErrorDialog(context, message: 'Time for ${runner.name} must be before ${conflictRecord.elapsedTime}');
-        return false;
-      }
+      // if (time >= (loadDurationFromString(conflictRecord.elapsedTime) ?? Duration.zero)) {
+      //   DialogUtils.showErrorDialog(context, message: 'Time for ${runner.name} must be before ${conflictRecord.elapsedTime}');
+      //   return false;
+      // }
       
     }
 
@@ -279,7 +275,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
   //   );
   // }
 
-  Future<Map<String, dynamic>> _resolveTooFewRunnerTimes(int conflictIndex) async {
+  Future<ResolveInformation> _resolveTooFewRunnerTimes(int conflictIndex) async {
     var records = _timingData.records;
     final bibData = _runnerRecords.map((runner) => runner.bib.toString()).toList();
     final conflictRecord = records[conflictIndex];
@@ -300,7 +296,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
     //     .firstWhere((record) => record['is_confirmed'] == true, orElse: () => {}.cast<String, dynamic>());
 
     final firstConflictingRecordIndex = records.sublist(lastConfirmedIndex + 1, conflictIndex).indexWhere((record) => record.conflict != null) + lastConfirmedIndex + 1;
-    if (firstConflictingRecordIndex == -1) return {};
+    if (firstConflictingRecordIndex == -1) throw Exception('No conflicting records found');
 
     final startingIndex = lastConfirmedPlace ?? 0;
     // debugPrint('Starting index: $startingIndex');
@@ -322,47 +318,26 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
         .map((record) => record.elapsedTime)
         .where((time) => time != '' && time != 'TBD')
         .toList();
-    // debugPrint('startingIndex: $startingIndex, spaceBetweenConfirmedAndConflict: $spaceBetweenConfirmedAndConflict');
-    // debugPrint('_TimingRecords: $_TimingRecords');
     final List<RunnerRecord> conflictingRunners = List<RunnerRecord>.from(
-      _runnerRecords.sublist(startingIndex, startingIndex + spaceBetweenConfirmedAndConflict)
+      _runnerRecords.sublist(
+        startingIndex,
+        startingIndex + spaceBetweenConfirmedAndConflict
+      )
     );
 
-    return {
-      'conflictingRunners': conflictingRunners,
-      'lastConfirmedPlace': lastConfirmedPlace,
-      // 'nextConfirmedRecord': nextConfirmedRecord,
-      'availableTimes': conflictingTimes,
-      'allowManualEntry': true,
-      'conflictRecord': conflictRecord,
-      'selectedTimes': [],
-      'lastConfirmedRecord': records[lastConfirmedIndex],
-      'bibData': bibData,
-    };
-    // await showDialog(
-    //   context: context,
-    //   barrierDismissible: true,
-    //   builder: (context) => ConflictResolutionScreen(
-    //     conflictingRunners: conflictingRunners,
-    //     lastConfirmedRecord: lastConfirmedRecord,
-    //     nextConfirmedRecord: nextConfirmedRecord,
-    //     availableTimes: conflictingTimes,
-    //     allowManualEntry: true,
-    //     conflictRecord: conflictRecord,
-    //     selectedTimes: [],
-    //     onResolve: (formattedTimes) async => await _handleTooFewTimesResolution(
-    //       formattedTimes,
-    //       conflictingRunners,
-    //       lastConfirmedRecord,
-    //       conflictRecord,
-    //       lastConfirmedIndex,
-    //       bibData,
-    //     ),
-    //   ),
-    // );
+    return ResolveInformation(
+      conflictingRunners: conflictingRunners,
+      lastConfirmedPlace: lastConfirmedPlace ?? 0,
+      availableTimes: conflictingTimes,
+      allowManualEntry: true,
+      conflictRecord: conflictRecord,
+      // selectedTimes: [],
+      lastConfirmedRecord: records[lastConfirmedIndex],
+      bibData: bibData,
+    );
   }
 
-  Future<Map<String, dynamic>> _resolveTooManyRunnerTimes(int conflictIndex) async {
+  Future<ResolveInformation> _resolveTooManyRunnerTimes(int conflictIndex) async {
     debugPrint('_resolveTooManyRunnerTimes called');
     var records = (_timingData.records as List<TimingRecord>?) ?? [];
     final bibData = _runnerRecords.map((runner) => runner.bib).toList();
@@ -379,59 +354,48 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
 
     final List<TimingRecord> conflictingRecords = records
         .sublist(lastConfirmedIndex + 1, conflictIndex);
-    debugPrint('Conflicting records: $conflictingRecords');
 
-    final firstConflictingRecordIndex = records.indexOf(conflictingRecords.first);
-    if (firstConflictingRecordIndex == -1) return {};
-
-    // final spaceBetweenConfirmedAndConflict = lastConfirmedIndex == -1 ? 1 : firstConflictingRecordIndex - lastConfirmedIndex;
-    // debugPrint('Space between confirmed and conflict: $spaceBetweenConfirmedAndConflict');
+    // debugPrint('Conflicting records: $conflictingRecords');
 
     final List<String> conflictingTimes = conflictingRecords
         .where((record) => record.elapsedTime != '')
         .map((record) => record.elapsedTime)
         .where((time) => time != '' && time != 'TBD')
         .toList();
-
-    final List<Map<String, dynamic>> conflictingRunners = List<Map<String, dynamic>>.from(
-      _runnerRecords.sublist(
-        lastConfirmedPlace,
-        conflictRecord.conflict?.data?['numTimes']
-      )
+    final List<RunnerRecord> conflictingRunners = _runnerRecords.sublist(
+      lastConfirmedPlace,
+      conflictRecord.conflict?.data?['numTimes']
     );
     debugPrint('Conflicting runners: $conflictingRunners');
 
-    return {
-      'conflictingRunners': conflictingRunners,
-      'conflictingTimes': conflictingTimes,
-      // 'spaceBetweenConfirmedAndConflict': spaceBetweenConfirmedAndConflict,
-      'lastConfirmedPlace': lastConfirmedPlace,
-      // 'nextConfirmedRecord': nextConfirmedRecord,
-      'lastConfirmedRecord': records[lastConfirmedIndex],
-      'lastConfirmedIndex': lastConfirmedIndex,
-      'conflictRecord': conflictRecord,
-      'availableTimes': conflictingTimes,
-      'bibData': bibData,
-    };
+    return ResolveInformation(
+      conflictingRunners: conflictingRunners,
+      conflictingTimes: conflictingTimes,
+      lastConfirmedPlace: lastConfirmedPlace,
+      lastConfirmedRecord: records[lastConfirmedIndex],
+      lastConfirmedIndex: lastConfirmedIndex,
+      conflictRecord: conflictRecord,
+      availableTimes: conflictingTimes,
+      bibData: bibData,
+    );
   }
 
   Future<void> _handleTooFewTimesResolution(
-    Map<String, dynamic> chunk,
+    Chunk chunk,
   ) async {
-    final resolveData = chunk['resolve'] ?? {};
+    final resolveData = chunk.resolve;
+    if (resolveData == null) throw Exception('No resolve data found');
     // final bibData = resolveData['bibData'];
-    final runners = chunk['runners'];
-    final List<String> times = chunk['controllers']['timeControllers'].map((controller) => controller.text.toString()).toList().cast<String>();
+    final runners = chunk.runners;
+    final List<String> times = chunk.controllers['timeControllers']!.map((controller) => controller.text.toString()).toList().cast<String>();
 
-    // final lastConfirmedRecord = resolveData['lastConfirmedRecord'];
-    
-    final conflictRecord = resolveData['conflictRecord'];
+    final conflictRecord = resolveData.conflictRecord;
 
-    if (!_validateTimes(times, context, runners, resolveData['lastConfirmedRecord'], conflictRecord)) {
+    if (!_validateTimes(times, context, runners, resolveData.lastConfirmedRecord, conflictRecord)) {
       return;
     }
     final records = _timingData.records;
-    final lastConfirmedRunnerPlace = resolveData['lastConfirmedPlace'] ?? 0;
+    final lastConfirmedRunnerPlace = resolveData.lastConfirmedPlace;
     for (int i = 0; i < runners.length; i++) {
       final int currentPlace = (i + lastConfirmedRunnerPlace + 1).toInt();
       debugPrint('Current place: $currentPlace');
@@ -464,29 +428,39 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
       debugPrint('updated records: ${_timingData.records}');
       debugPrint('');
     });
+    
+    // Delete all records with type confirm_runner between the conflict record and the last conflict
+    int conflictIndex = records.indexOf(conflictRecord);
+    int lastConflictIndex = records.lastIndexWhere((record) => record.conflict != null && records.indexOf(record) < conflictIndex);
+    _timingData.records.removeWhere((record) =>
+        record.type == RecordType.confirmRunner &&
+        records.indexOf(record) > lastConflictIndex &&
+        records.indexOf(record) < conflictIndex);
+
     _showSuccessMessage();
     await _createChunks();
   }
 
   Future<void> _handleTooManyTimesResolution(
-    Map<String, dynamic> chunk,
+    Chunk chunk,
   ) async {
-    final List<String> times = chunk['controllers']['timeControllers'].map((controller) => controller.text.toString()).toList().cast<String>();
+    final List<String> times = chunk.controllers['timeControllers']!.map((controller) => controller.text.toString()).toList().cast<String>();
     debugPrint('times: $times');
-    debugPrint('records: ${chunk['controllers']}');
-    List<TimingRecord> records = chunk['records'] ?? [];
-    final resolveData = chunk['resolve'] ?? [];
+    debugPrint('records: ${chunk.records}');
+    List<TimingRecord> records = chunk.records;
+    final resolveData = chunk.resolve;
+    if (resolveData == null) throw Exception('No resolve data found');
     // final bibData = resolveData['bibData'] ?? [];
-    final availableTimes = resolveData['availableTimes'] ?? [];
+    final availableTimes = resolveData.availableTimes;
     // final lastConfirmedRecord = resolveData['lastConfirmedRecord'] ?? {};
-    final TimingRecord conflictRecord = resolveData['conflictRecord'] ?? {};
-    final lastConfirmedIndex = resolveData['lastConfirmedIndex'] ?? -1;
-    final lastConfirmedPlace = resolveData['lastConfirmedPlace'] ?? -1;
+    final TimingRecord conflictRecord = resolveData.conflictRecord;
+    final lastConfirmedIndex = resolveData.lastConfirmedIndex ?? -1;
+    final lastConfirmedPlace = resolveData.lastConfirmedPlace;
     debugPrint('lastConfirmedPlace: $lastConfirmedPlace');
     // final spaceBetweenConfirmedAndConflict = resolveData['spaceBetweenConfirmedAndConflict'] ?? -1;
-    List<RunnerRecord> runners = resolveData['conflictingRunners'] ?? [];
+    List<RunnerRecord> runners = resolveData.conflictingRunners;
 
-    if (!_validateTimes(times, context, runners, resolveData['lastConfirmedRecord'], conflictRecord)) {
+    if (!_validateTimes(times, context, runners, resolveData.lastConfirmedRecord, conflictRecord)) {
       return;
     }
 
@@ -545,11 +519,19 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
         lastConfirmedPlace + runners.length,
       );
     });
+
+    // Delete all records with type confirm_runner between the conflict record and the last conflict
+    int conflictIndex = records.indexOf(conflictRecord);
+    int lastConflictIndex = records.lastIndexWhere((record) => record.conflict != null && records.indexOf(record) < conflictIndex);
+    _timingData.records.removeWhere((record) =>
+        record.type == RecordType.confirmRunner &&
+        records.indexOf(record) > lastConflictIndex &&
+        records.indexOf(record) < conflictIndex);
+
     // Navigator.pop(context);
     _showSuccessMessage();
     await _createChunks();
   }
-
 
   void _updateConflictRecord(TimingRecord record, int numTimes) {
     // record['numTimes'] = numTimes;
@@ -567,85 +549,71 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
     );
   }
 
-  void undoTooManyRunners(TimingRecord lastConflict, List<TimingRecord> records) {
-    if (lastConflict.conflict?.data?['offBy'] == null) {
-      return;
-    }
-    final lastConflictIndex = records.indexOf(lastConflict);
-    final runnersBeforeConflict = records.sublist(0, lastConflictIndex).where((r) => r.type == RecordType.runnerTime).toList();
-    final offBy = lastConflict.conflict!.data!['offBy'] as int? ?? 0;
-
-    updateTextColor(null, records, confirmed: false, endIndex: lastConflictIndex);
-    for (int i = 0; i < offBy; i++) {
-      final record = runnersBeforeConflict[runnersBeforeConflict.length - 1 - i];
-      setState(() {
-        record.place = record.previousPlace;
-      });
-    }
-    setState(() {
-      records.remove(lastConflict);
-    });
-  }
-
-  void undoTooFewRunners(TimingRecord lastConflict, List<TimingRecord> records) {
-    if (lastConflict.conflict?.data?['offBy'] == null) {
-      return;
-    }
-    final lastConflictIndex = records.indexOf(lastConflict);
-    final runnersBeforeConflict = records.sublist(0, lastConflictIndex).where((r) => r.type == RecordType.runnerTime).toList();
-    final offBy = lastConflict.conflict!.data!['offBy'] as int? ?? 0;
-    debugPrint('off by: $offBy');
-
-    records = updateTextColor(null, records, confirmed: false, endIndex: lastConflictIndex);
-    for (int i = 0; i < offBy; i++) {
-      final record = runnersBeforeConflict[runnersBeforeConflict.length - 1 - i];
-      debugPrint('remove record: $record');
-      setState(() {
-        records.remove(record);
-      });
-    }
-    setState(() {
-      records.remove(lastConflict);
-    });
-  }
-
-  // void _deleteConfirmedRecordsBeforeIndexUntilConflict(int recordIndex) {
-  //   debugPrint(recordIndex);
-  //   final records = _timingData['records'] ?? [];
-  //   if (recordIndex < 0 || recordIndex >= records.length) {
-  //     return;
-  //   }
-  //   final trimmedRecords = records.sublist(0, recordIndex + 1);
-  //   for (int i = trimmedRecords.length - 1; i >= 0; i--) {
-  //     if (trimmedRecords[i]['type'] != 'runner_time' && trimmedRecords[i]['type'] != 'confirm_runner_number') {
-  //       break;
-  //     }
-  //     if (trimmedRecords[i]['type'] != 'runner_time' && trimmedRecords[i]['type'] == 'confirm_runner_number') {
-  //       setState(() {
-  //         records.removeAt(i);
-  //       });
-  //     }
-  //   }
-  // }
-
-  int getRunnerIndex(int recordIndex) {
-    final records = _timingData.records;
-    final List<TimingRecord> timingRecords = records.where((record) => record.type == RecordType.runnerTime).toList();
-    return timingRecords.indexOf(records[recordIndex]);
-  }
-
-  // Future<bool> _confirmDeleteLastRecord(int recordIndex) async {
-  //   final records = _timingData['records'] ?? [];
-  //   final record = records[recordIndex];
-  //   if (record['type'] == 'runner_time' && record['is_confirmed'] == false && record['conflict'] == null) {
-  //     return await DialogUtils.showConfirmationDialog(context, title: 'Confirm Deletion', content: 'Are you sure you want to delete this runner?');
-  //   }
-  //   return false;
-  // }
-
-  @override
-  void dispose() {
-    super.dispose();
+  Widget _buildConfirmationRecord(BuildContext context, int index, TimingRecord timeRecord) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(8, 4, 8, 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.green.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.green.withOpacity(0.5),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(
+                  Icons.check_circle,
+                  color: Colors.green,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Confirmed',
+                style: TextStyle(
+                  color: Colors.green[700],
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Text(
+              timeRecord.elapsedTime,
+              style: TextStyle(
+                color: AppColors.darkColor,
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -653,27 +621,19 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
     final timeRecords = _timingData.records;
 
     return Scaffold(
-      // appBar: AppBar(
-      //   title: Text('Review Race Results', 
-      //     style: TextStyle(
-      //       color: Colors.white,
-      //       fontWeight: FontWeight.w500
-      //     )
-      //   ),
-      //   backgroundColor: AppColors.primaryColor,
-      //   elevation: 0,
-      // ),
       body: Container(
         color: AppColors.backgroundColor,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (_getFirstConflict()[0] == null)
-              _buildSaveButton(),
-            Expanded(
-              child: _buildInstructionsAndList(timeRecords),
-            ),
-          ],
+        child: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (_getFirstConflict()[0] == null)
+                _buildSaveButton(),
+              Expanded(
+                child: _buildInstructionsAndList(timeRecords),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -681,18 +641,26 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
 
   Widget _buildSaveButton() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: ElevatedButton(
         onPressed: _saveResults,
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primaryColor,
+          foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          fixedSize: const Size.fromHeight(50),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          elevation: 2,
         ),
-        child: const Text(
-          'Finished Merging Conflicts',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500, color: Colors.white),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.check_circle, size: 20),
+            const SizedBox(width: 8),
+            const Text(
+              'Finished Merging Conflicts',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+          ],
         ),
       ),
     );
@@ -700,52 +668,59 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
 
   Widget _buildInstructionsAndList(List<dynamic> timeRecords) {
     if (timeRecords.isEmpty) {
-      return const Center(child: Text('No race results to review'));
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.hourglass_empty, size: 64, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(
+              'No race results to review',
+              style: AppTypography.titleSemibold.copyWith(color: Colors.grey[600]),
+            ),
+          ],
+        ),
+      );
     }
 
     return ListView(
-      padding: const EdgeInsets.symmetric(vertical: 16),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       children: [
-        _buildInstructionsCard(),
+        _buildHeader(),
         const SizedBox(height: 16),
         _buildResultsList(timeRecords),
       ],
     );
   }
 
+  Widget _buildHeader() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // const SizedBox(height: 16),
+        // Container(
+        //   padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+        //   child: Text(
+        //     'Merge Conflicts',
+        //     style: AppTypography.displayLarge.copyWith(
+        //       color: AppColors.darkColor,
+        //       fontSize: 28,
+        //     ),
+        //   ),
+        // ),
+        _buildInstructionsCard(),
+      ],
+    );
+  }
+
   Widget _buildInstructionsCard() {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      child: Theme(
-        data: Theme.of(context).copyWith(
-          hoverColor: Colors.grey[200],
-        ),
-        child: ExpansionTile(
-          initiallyExpanded: true,
-          title: Text(
-            'Review Race Results',
-            style: AppTypography.titleSemibold,
-          ),
-          trailing: const Icon(Icons.arrow_drop_down),
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '1. Check each runner\'s information is correct\n'
-                    '2. Verify or adjust finish times as needed\n'
-                    '3. Resolve any conflicts shown in orange\n'
-                    '4. Save when all results are confirmed',
-                    style: AppTypography.bodyRegular,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+    return InstructionCard(
+      title: 'Review Race Results',
+      instructions: [
+        InstructionItem(number: '1', text: 'Find the runners with the unknown times (orange)'),
+        InstructionItem(number: '2', text: 'Update times as needed'),
+        InstructionItem(number: '3', text: 'Save when all results are confirmed'),
+      ],
     );
   }
 
@@ -758,62 +733,68 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
     );
   }
 
-  Widget _buildRunnerTimeRecord(BuildContext context, int index, List<dynamic> joinedRecord, Color color, Map<String, dynamic> chunk) {
-    final RunnerRecord runner = joinedRecord[0];
-    final TimingRecord timeRecord = joinedRecord[1];
-    final hasConflict = chunk['resolve'] != null;
-    final confirmedColor = AppColors.confirmRunnerColor;
-    final conflictColor = AppColors.primaryColor.withAlpha((0.9 * 255).round());
-    debugPrint('runner place: ${timeRecord.place}');
-
+  Widget _buildRunnerTimeRecord(BuildContext context, int index, JoinedRecord joinedRecord, Color color, Chunk chunk) {
+    final RunnerRecord runner = joinedRecord.runner;
+    final TimingRecord timeRecord = joinedRecord.timeRecord;
+    final hasConflict = chunk.resolve != null;
+    
+    final Color conflictColor = hasConflict ? AppColors.primaryColor : Colors.green;
+    final Color bgColor = conflictColor.withOpacity(0.05);
+    final Color borderColor = conflictColor.withOpacity(0.5);
+    
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
-      elevation: 1,
+      elevation: 0.3,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: BorderSide(color: borderColor, width: 0.5),
+      ),
       child: IntrinsicHeight(
         child: Row(
           children: [
             Expanded(
+              flex: 3,
               child: Container(
                 decoration: BoxDecoration(
-                  color: confirmedColor,
+                  color: bgColor,
                   borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(4),
-                    bottomLeft: Radius.circular(4),
+                    topLeft: Radius.circular(10),
+                    bottomLeft: Radius.circular(10),
                   ),
                 ),
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    _buildPlaceNumber(timeRecord.place!),
-                    const SizedBox(width: 6),
+                    _buildPlaceNumber(timeRecord.place!, conflictColor),
+                    const SizedBox(width: 10),
                     Expanded(
-                      child: _buildRunnerInfo(runner),
+                      child: _buildRunnerInfo(runner, conflictColor),
                     ),
                   ],
                 ),
               ),
             ),
-            Container(
-              width: 1,
-              color: hasConflict ? Colors.orange.shade200 : Colors.green.shade200,
-            ),
+            Container(width: 0.5, color: borderColor),
             Expanded(
+              flex: 2,
               child: Container(
                 decoration: BoxDecoration(
-                  color: hasConflict ? conflictColor : confirmedColor,
+                  color: bgColor,
                   borderRadius: const BorderRadius.only(
-                    topRight: Radius.circular(4),
-                    bottomRight: Radius.circular(4),
+                    topRight: Radius.circular(10),
+                    bottomRight: Radius.circular(10),
                   ),
                 ),
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
                 child: hasConflict
                   ? _buildTimeSelector(
-                      chunk['controllers']['timeControllers'][index],
-                      chunk['controllers']['manualControllers'][index],
-                      chunk['resolve']['availableTimes'],
-                      chunk['conflictIndex'],
-                      manual: chunk['type'] != RecordType.extraRunner,
+                      chunk.controllers['timeControllers']![index],
+                      chunk.controllers['manualControllers']![index],
+                      chunk.resolve!.availableTimes,
+                      chunk.conflictIndex,
+                      manual: chunk.type != RecordType.extraRunner,
                     )
                   : _buildConfirmedTime(timeRecord.elapsedTime),
               ),
@@ -824,83 +805,94 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
     );
   }
 
-  Widget _buildPlaceNumber(int place) {
+  Widget _buildPlaceNumber(int place, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+      width: 26,
+      height: 26,
       decoration: BoxDecoration(
-        color: Colors.white.withAlpha((0.2 * 255).round()),
-        borderRadius: BorderRadius.circular(16),
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(
+          color: color.withOpacity(0.4),
+          width: 0.5,
+        ),
       ),
-      child: Text(
-        '#$place',
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
+      child: Center(
+        child: Text(
+          '#$place',
+          style: TextStyle(
+            color: color.withOpacity(0.9),
+            fontWeight: FontWeight.w600,
+            fontSize: 11,
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildRunnerInfo(RunnerRecord runner) {
+  Widget _buildRunnerInfo(RunnerRecord runner, Color accentColor) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           runner.name,
-          style: AppTypography.bodySemibold,
+          style: AppTypography.bodySemibold.copyWith(
+            color: AppColors.darkColor,
+            fontSize: 14,
+            letterSpacing: -0.1,
+          ),
+          overflow: TextOverflow.ellipsis,
         ),
         const SizedBox(height: 4),
-        Row(
+        Wrap(
+          spacing: 6,
+          runSpacing: 4,
           children: [
-            if (runner.bib.isNotEmpty) ...[
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.white.withAlpha((0.2 * 255).round()),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  'Bib ${runner.bib}',
-                  style: AppTypography.bodyRegular,
-                ),
-              ),
-              const SizedBox(width: 4),
-            ],
+            if (runner.bib.isNotEmpty)
+              _buildInfoChip('Bib ${runner.bib}', accentColor),
             if (runner.school.isNotEmpty)
-              // Expanded(
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withAlpha((0.2 * 255).round()),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    runner.school,
-                    style: AppTypography.bodyRegular,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
+              _buildInfoChip(runner.school, AppColors.mediumColor.withOpacity(0.8)),
           ],
         ),
       ],
     );
   }
 
+  Widget _buildInfoChip(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.w500,
+          fontSize: 11,
+          letterSpacing: -0.1,
+        ),
+        overflow: TextOverflow.ellipsis,
+      ),
+    );
+  }
+
   Widget _buildConfirmedTime(String time) {
-    return Center(
+    return Container(
+      alignment: Alignment.center,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
-            Icons.timer,
-            size: 18,
-            color: Colors.white,
-          ),
-          const SizedBox(width: 8),
           Text(
             time,
-            style: AppTypography.bodySemibold,
+            style: TextStyle(
+              color: AppColors.darkColor,
+              fontWeight: FontWeight.w700,
+              fontSize: 15,
+              letterSpacing: -0.2,
+            ),
           ),
         ],
       ),
@@ -918,159 +910,272 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
       time == timeController.text || !_selectedTimes[conflictIndex].contains(time)
     ).toList();
 
-    return DropdownButtonHideUnderline(
-      child: DropdownButton<String>(
-        value: availableOptions.contains(timeController.text) ? timeController.text : null,
-        hint: Text(
-          timeController.text.isEmpty ? 'Select Time' : timeController.text,
-          style: AppTypography.bodySemibold,
-        ),
-        items: [
-          if (manual) 
-            DropdownMenuItem<String>(
-              value: 'manual_entry',
-              child: SizedBox(
-                width: MediaQuery.of(context).size.width * 0.25,
-                child: TextField(
-                  controller: manualController,
-                  style: AppTypography.bodySemibold,
-                  cursorColor: Colors.white,
-                  decoration: const InputDecoration(
-                    hintText: 'Enter time',
-                    hintStyle: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 18,
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: availableOptions.contains(timeController.text) ? timeController.text : null,
+          hint: Text(
+            timeController.text.isEmpty ? 'Select Time' : timeController.text,
+            style: TextStyle(
+              color: AppColors.darkColor,
+              fontWeight: FontWeight.w500,
+              fontSize: 15,
+            ),
+          ),
+          items: [
+            if (manual) 
+              DropdownMenuItem<String>(
+                value: 'manual_entry',
+                child: SizedBox(
+                  width: MediaQuery.of(context).size.width * 0.25,
+                  child: TextField(
+                    controller: manualController,
+                    style: TextStyle(
+                      color: AppColors.darkColor,
                       fontWeight: FontWeight.w500,
                     ),
-                    border: InputBorder.none,
+                    cursorColor: AppColors.primaryColor,
+                    decoration: InputDecoration(
+                      hintText: 'Enter time',
+                      hintStyle: TextStyle(
+                        color: Colors.grey[500],
+                        fontSize: 15,
+                      ),
+                      border: InputBorder.none,
+                    ),
+                    onChanged: (value) {
+                      if (value.isNotEmpty) {
+                        setState(() {
+                          timeController.text = value;
+                          if (_selectedTimes[conflictIndex].contains(timeController.text)) {
+                            _selectedTimes[conflictIndex].remove(timeController.text);
+                          }
+                        });
+                      }
+                    },
                   ),
-                  onChanged: (value) {
-                    if (value.isNotEmpty) {
-                      setState(() {
-                        timeController.text = value;
-                        if (_selectedTimes[conflictIndex].contains(timeController.text)) {
-                          _selectedTimes[conflictIndex].remove(timeController.text);
-                        }
-                      });
-                    }
-                  },
                 ),
               ),
-            ),
-          ...availableOptions.map((time) => DropdownMenuItem<String>(
-            value: time,
-            child: Text(
-              time,
-              style: AppTypography.bodySemibold,
-            ),
-          )),
-        ],
-        onChanged: (value) {
-          if (value == null) return;
-          if (value == 'manual_entry') return;
-          
-          final previousValue = timeController.text;
-          setState(() {
-            timeController.text = value;
-            _selectedTimes[conflictIndex].add(value);
-            if (previousValue != value && previousValue.isNotEmpty) {
-              _selectedTimes[conflictIndex].remove(previousValue);
-            }
-            if (manualController != null) {
-              manualController.clear();
-            }
-          });
-        },
-        dropdownColor: AppColors.primaryColor,
-        icon: const Icon(
-          Icons.arrow_drop_down,
-          color: Colors.white,
-          size: 28,
+            ...availableOptions.map((time) => DropdownMenuItem<String>(
+              value: time,
+              child: Text(
+                time,
+                style: TextStyle(
+                  color: AppColors.darkColor,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 15,
+                ),
+              ),
+            )),
+          ],
+          onChanged: (value) {
+            if (value == null) return;
+            if (value == 'manual_entry') return;
+            
+            final previousValue = timeController.text;
+            setState(() {
+              timeController.text = value;
+              _selectedTimes[conflictIndex].add(value);
+              if (previousValue != value && previousValue.isNotEmpty) {
+                _selectedTimes[conflictIndex].remove(previousValue);
+              }
+              if (manualController != null) {
+                manualController.clear();
+              }
+            });
+          },
+          dropdownColor: Colors.white,
+          icon: Icon(
+            Icons.arrow_drop_down,
+            color: AppColors.primaryColor,
+            size: 28,
+          ),
+          isExpanded: true,
+          borderRadius: BorderRadius.circular(8),
         ),
-        isExpanded: true,
       ),
     );
   }
 
-  Widget _buildChunkItem(BuildContext context, int index, Map<String, dynamic> chunk) {
-    // print(chunk);
-    // print(chunk['joined_records']);
-    // print(chunk['type']);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        ...chunk['joined_records'].map<Widget>((joinedRecord) {
-          // print('\n');
-          // print(joinedRecord[0].toMap());
-          // print(joinedRecord[1].toMap());
-          // print('\n');
-          if (joinedRecord[1].type == RecordType.runnerTime) {
-            return _buildRunnerTimeRecord(
-              context,
-              chunk['joined_records'].indexOf(joinedRecord),
-              joinedRecord,
-              chunk['type'] == RecordType.runnerTime || chunk['type'] == RecordType.confirmRunner
-                  ? Colors.green
-                  : AppColors.primaryColor,
-              chunk,
-            );
-          } else if (joinedRecord[1].type == RecordType.confirmRunner) {
-            return _buildConfirmationRecord(
-              context,
-              chunk['joined_records'].indexOf(joinedRecord),
-              joinedRecord[1],
-            );
-          }
-          return SizedBox.shrink();
-        }).toList(),
-        if (chunk['type'] == RecordType.extraRunner || chunk['type'] == RecordType.missingRunner)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16.0),
-            child: _buildActionButton(
-              'Resolve Conflict',
-              () => chunk['type'] == RecordType.extraRunner
-                  ? _handleTooManyTimesResolution(chunk)
-                  : _handleTooFewTimesResolution(chunk),
+  Widget _buildChunkItem(BuildContext context, int index, Chunk chunk) {
+    final chunkType = chunk.type;
+    final record = chunk.records.last;
+    final previousChunk = index > 0 ? _chunks[index - 1] : null;
+    final previousChunkEndTime = previousChunk != null ? previousChunk.records.last.elapsedTime : '0.0';
+    
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (chunkType == RecordType.extraRunner || chunkType == RecordType.missingRunner)
+            _buildConflictHeader(chunkType, record, previousChunkEndTime, record.elapsedTime),
+          if (chunkType == RecordType.confirmRunner)
+            _buildConfirmHeader(record),
+          const SizedBox(height: 8),
+          ...chunk.joinedRecords.map<Widget>((joinedRecord) {
+            if (joinedRecord.timeRecord.type == RecordType.runnerTime) {
+              return _buildRunnerTimeRecord(
+                context,
+                chunk.joinedRecords.indexOf(joinedRecord),
+                joinedRecord,
+                chunkType == RecordType.runnerTime || chunkType == RecordType.confirmRunner
+                    ? Colors.green
+                    : AppColors.primaryColor,
+                chunk,
+              );
+            } else if (joinedRecord.timeRecord.type == RecordType.confirmRunner) {
+              return _buildConfirmationRecord(
+                context,
+                chunk.joinedRecords.indexOf(joinedRecord),
+                joinedRecord.timeRecord,
+              );
+            }
+            return const SizedBox.shrink();
+          }),
+          if (chunkType == RecordType.extraRunner || chunkType == RecordType.missingRunner)
+            Padding(
+              padding: const EdgeInsets.only(top: 16.0),
+              child: _buildActionButton(
+                'Resolve Conflict',
+                () => chunk.handleResolve(
+                  _handleTooManyTimesResolution,
+                  _handleTooFewTimesResolution,
+                ),
+              ),
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 
-  Widget _buildConfirmationRecord(BuildContext context, int index, Map<String, dynamic> timeRecord) {
-    // final isLastRecord = index == _timingData['records'].length - 1;
-    
+  Widget _buildConflictHeader(RecordType type, TimingRecord conflictRecord, String startTime, String endTime) {
+    final String title = type == RecordType.extraRunner
+        ? 'Too Many Runner Times'
+        : 'Missing Runner Times';
+    final String description = '${type == RecordType.extraRunner
+        ? 'There are more times recorded by the timing assistant than runners'
+        : 'There are more runners than times recorded by the timing assistant'}. Please select or enter appropriate times between $startTime and $endTime to resolve the discrepancy between recorded times and runners.';
+    final IconData icon = type == RecordType.extraRunner
+        ? Icons.group_add
+        : Icons.person_search;
+        
     return Container(
-      margin: const EdgeInsets.fromLTRB(8, 4, 8, 8),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.green.withAlpha((0.1 * 255).round()),
-        borderRadius: BorderRadius.circular(8),
+        color: AppColors.primaryColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Colors.green.withAlpha((0.3 * 255).round()),
+          color: AppColors.primaryColor.withOpacity(0.5),
           width: 1,
         ),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              const Icon(
-                Icons.check_circle,
-                color: Colors.green,
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Confirmed',
-                style: AppTypography.bodyRegular,
-              ),
-            ],
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: AppColors.primaryColor.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Icon(
+              icon,
+              color: AppColors.primaryColor,
+              size: 24,
+            ),
           ),
-          Text(
-            timeRecord['finish_time'] ?? '',
-            style: AppTypography.bodySemibold,
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$title at ${conflictRecord.elapsedTime}',
+                  style: TextStyle(
+                    color: AppColors.primaryColor,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: TextStyle(
+                    color: AppColors.primaryColor.withOpacity(0.8),
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConfirmHeader(TimingRecord confirmRecord) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.green.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.green.withOpacity(0.5),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: Colors.green.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Icon(
+              Icons.check_circle_outline,
+              color: Colors.green,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Confirmed Results at ${confirmRecord.elapsedTime}',
+                  style: TextStyle(
+                    color: Colors.green,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'These runner results have been confirmed',
+                  style: TextStyle(
+                    color: Colors.green.withOpacity(0.8),
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -1080,10 +1185,10 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
   Widget _buildActionButton(String text, VoidCallback onPressed) {
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha((0.1 * 255).round()),
+            color: Colors.black.withOpacity(0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -1093,16 +1198,32 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primaryColor,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
           ),
+          elevation: 0,
         ),
-        child: Text(
-          text,
-          style: AppTypography.bodySemibold.copyWith(color: Colors.white),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.sync_problem, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              text,
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+              ),
+            ),
+          ],
         ),
       ),
     );
+  }
+  @override
+  void dispose() {
+    super.dispose();
   }
 }

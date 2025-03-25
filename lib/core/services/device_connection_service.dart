@@ -90,6 +90,11 @@ class DevicesManager {
     }
   }
   
+  void reset() {
+    debugPrint('Resetting devices');
+    _initializeDevices();
+  }
+  
   /// Get the current device name
   DeviceName get currentDeviceName => _currentDeviceName;
   
