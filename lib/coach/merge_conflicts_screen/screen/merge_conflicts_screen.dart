@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:xcelerate/coach/merge_conflicts_screen/model/chunk.dart';
+import 'package:xcelerate/coach/merge_conflicts_screen/model/resolve_information.dart';
 import 'package:xcelerate/coach/race_screen/widgets/runner_record.dart';
 import '../../../utils/time_formatter.dart';
 import '../../../core/theme/typography.dart';
@@ -11,6 +13,7 @@ import '../../../core/components/dialog_utils.dart';
 // import '../utils/timing_utils.dart';
 import '../../../utils/enums.dart';
 import '../model/timing_data.dart';
+import '../model/joined_record.dart';
 import '../../../assistant/race_timer/timing_screen/model/timing_record.dart';
 import '../../../core/components/instruction_card.dart';
 // import '../../race_screen/model/race_result.dart';
@@ -42,7 +45,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
   late final TimingData _timingData;
   // late List<Map<String, dynamic>> _runners;
   late List<RunnerRecord> _runnerRecords;
-  List<dynamic> _chunks = [];
+  List<Chunk> _chunks = [];
   Map<int, dynamic> _selectedTimes = {};
 
   @override
@@ -168,7 +171,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
   Future<void> _createChunks() async {
     _selectedTimes = {};
     final records = _timingData.records;
-    final chunks = <Map<String, dynamic>>[];
+    final chunks = <Chunk>[];
     var startIndex = 0;
     var place = 1;
     // for (final record in records) {
@@ -178,38 +181,31 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
     for (int i = 0; i < records.length; i += 1) {
       if (i >= records.length - 1 || records[i].type != RecordType.runnerTime) {
         // print('startIndex: $startIndex, i: $i, place: $place, conflict: ${records[i].conflict}, numTimes: ${records[i].conflict?.data?['numTimes']}, place: ${records[i].place}');
-        chunks.add({
-          'records': records.sublist(startIndex, i + 1),
-          'type': records[i].type,
-          'runners': _runnerRecords.sublist(place - 1, (records[i].conflict?.data?['numTimes'] ?? records[i].place)),
-          'conflictIndex': i,
-        });
+        chunks.add(Chunk(
+          records: records.sublist(startIndex, i + 1),
+          type: records[i].type,
+          runners: _runnerRecords.sublist(place - 1, (records[i].conflict?.data?['numTimes'] ?? records[i].place)),
+          conflictIndex: i,
+        ));
         startIndex = i + 1;
         place = records[i].conflict?.data?['numTimes'] ?? records[i].place! + 1;
       }
     }
 
     for (int i = 0; i < chunks.length; i += 1) {
-      _selectedTimes[chunks[i]['conflictIndex']] = [];
-      final runners = chunks[i]['runners'] ?? [];
-      final records = chunks[i]['records'] ?? [];
-      debugPrint('chunk ${i + 1}: ${chunks[i]}');
-      debugPrint('-----------------------------');
-      debugPrint('runners length: ${runners.length}');
-      debugPrint('records length: ${records.length}');
-      chunks[i]['joined_records'] = List.generate(
-        runners.length,
-        (j) => [runners[j], records[j]],
-      );
-      chunks[i]['controllers'] = {'timeControllers': List.generate(runners.length, (j) => TextEditingController()), 'manualControllers': List.generate(runners.length, (j) => TextEditingController())};
-      if (chunks[i]['type'] == RecordType.extraRunner) {
-        chunks[i]['resolve'] = await _resolveTooManyRunnerTimes(chunks[i]['conflictIndex']);
-        // debugPrint('Resolved: ${chunks[i]['resolve']}');
-      }
-      else if (chunks[i]['type'] == RecordType.missingRunner) {
-        chunks[i]['resolve'] = await _resolveTooFewRunnerTimes(chunks[i]['conflictIndex']);
-        // debugPrint('Resolved: ${chunks[i]['resolve']}');
-      }
+      _selectedTimes[chunks[i].conflictIndex] = [];
+      // final runners = chunks[i].runners;
+      // final records = chunks[i].records;
+      // debugPrint('chunk ${i + 1}: ${chunks[i]}');
+      // debugPrint('-----------------------------');
+      // debugPrint('runners length: ${runners.length}');
+      // debugPrint('records length: ${records.length}');
+      // chunks[i].joinedRecords = List.generate(
+      //   runners.length,
+      //   (j) => [runners[j], records[j]],
+      // );
+      // chunks[i].controllers = {'timeControllers': List.generate(runners.length, (j) => TextEditingController()), 'manualControllers': List.generate(runners.length, (j) => TextEditingController())};
+      await chunks[i].setResolveInformation(_resolveTooManyRunnerTimes, _resolveTooFewRunnerTimes);
     }
 
  
@@ -279,7 +275,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
   //   );
   // }
 
-  Future<Map<String, dynamic>> _resolveTooFewRunnerTimes(int conflictIndex) async {
+  Future<ResolveInformation> _resolveTooFewRunnerTimes(int conflictIndex) async {
     var records = _timingData.records;
     final bibData = _runnerRecords.map((runner) => runner.bib.toString()).toList();
     final conflictRecord = records[conflictIndex];
@@ -300,7 +296,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
     //     .firstWhere((record) => record['is_confirmed'] == true, orElse: () => {}.cast<String, dynamic>());
 
     final firstConflictingRecordIndex = records.sublist(lastConfirmedIndex + 1, conflictIndex).indexWhere((record) => record.conflict != null) + lastConfirmedIndex + 1;
-    if (firstConflictingRecordIndex == -1) return {};
+    if (firstConflictingRecordIndex == -1) throw Exception('No conflicting records found');
 
     final startingIndex = lastConfirmedPlace ?? 0;
     // debugPrint('Starting index: $startingIndex');
@@ -329,20 +325,19 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
       )
     );
 
-    return {
-      'conflictingRunners': conflictingRunners,
-      'lastConfirmedPlace': lastConfirmedPlace,
-      // 'nextConfirmedRecord': nextConfirmedRecord,
-      'availableTimes': conflictingTimes,
-      'allowManualEntry': true,
-      'conflictRecord': conflictRecord,
-      'selectedTimes': [],
-      'lastConfirmedRecord': records[lastConfirmedIndex],
-      'bibData': bibData,
-    };
+    return ResolveInformation(
+      conflictingRunners: conflictingRunners,
+      lastConfirmedPlace: lastConfirmedPlace ?? 0,
+      availableTimes: conflictingTimes,
+      allowManualEntry: true,
+      conflictRecord: conflictRecord,
+      // selectedTimes: [],
+      lastConfirmedRecord: records[lastConfirmedIndex],
+      bibData: bibData,
+    );
   }
 
-  Future<Map<String, dynamic>> _resolveTooManyRunnerTimes(int conflictIndex) async {
+  Future<ResolveInformation> _resolveTooManyRunnerTimes(int conflictIndex) async {
     debugPrint('_resolveTooManyRunnerTimes called');
     var records = (_timingData.records as List<TimingRecord>?) ?? [];
     final bibData = _runnerRecords.map((runner) => runner.bib).toList();
@@ -367,45 +362,40 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
         .map((record) => record.elapsedTime)
         .where((time) => time != '' && time != 'TBD')
         .toList();
-    final List<Map<String, dynamic>> conflictingRunners = List<Map<String, dynamic>>.from(
-      _runnerRecords.sublist(
-        lastConfirmedPlace,
-        conflictRecord.conflict?.data?['numTimes']
-      )
+    final List<RunnerRecord> conflictingRunners = _runnerRecords.sublist(
+      lastConfirmedPlace,
+      conflictRecord.conflict?.data?['numTimes']
     );
     debugPrint('Conflicting runners: $conflictingRunners');
 
-    return {
-      'conflictingRunners': conflictingRunners,
-      'conflictingTimes': conflictingTimes,
-      // 'spaceBetweenConfirmedAndConflict': spaceBetweenConfirmedAndConflict,
-      'lastConfirmedPlace': lastConfirmedPlace,
-      // 'nextConfirmedRecord': nextConfirmedRecord,
-      'lastConfirmedRecord': records[lastConfirmedIndex],
-      'lastConfirmedIndex': lastConfirmedIndex,
-      'conflictRecord': conflictRecord,
-      'availableTimes': conflictingTimes,
-      'bibData': bibData,
-    };
+    return ResolveInformation(
+      conflictingRunners: conflictingRunners,
+      conflictingTimes: conflictingTimes,
+      lastConfirmedPlace: lastConfirmedPlace,
+      lastConfirmedRecord: records[lastConfirmedIndex],
+      lastConfirmedIndex: lastConfirmedIndex,
+      conflictRecord: conflictRecord,
+      availableTimes: conflictingTimes,
+      bibData: bibData,
+    );
   }
 
   Future<void> _handleTooFewTimesResolution(
-    Map<String, dynamic> chunk,
+    Chunk chunk,
   ) async {
-    final resolveData = chunk['resolve'] ?? {};
+    final resolveData = chunk.resolve;
+    if (resolveData == null) throw Exception('No resolve data found');
     // final bibData = resolveData['bibData'];
-    final runners = chunk['runners'];
-    final List<String> times = chunk['controllers']['timeControllers'].map((controller) => controller.text.toString()).toList().cast<String>();
+    final runners = chunk.runners;
+    final List<String> times = chunk.controllers['timeControllers']!.map((controller) => controller.text.toString()).toList().cast<String>();
 
-    // final lastConfirmedRecord = resolveData['lastConfirmedRecord'];
-    
-    final conflictRecord = resolveData['conflictRecord'];
+    final conflictRecord = resolveData.conflictRecord;
 
-    if (!_validateTimes(times, context, runners, resolveData['lastConfirmedRecord'], conflictRecord)) {
+    if (!_validateTimes(times, context, runners, resolveData.lastConfirmedRecord, conflictRecord)) {
       return;
     }
     final records = _timingData.records;
-    final lastConfirmedRunnerPlace = resolveData['lastConfirmedPlace'] ?? 0;
+    final lastConfirmedRunnerPlace = resolveData.lastConfirmedPlace;
     for (int i = 0; i < runners.length; i++) {
       final int currentPlace = (i + lastConfirmedRunnerPlace + 1).toInt();
       debugPrint('Current place: $currentPlace');
@@ -452,24 +442,25 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
   }
 
   Future<void> _handleTooManyTimesResolution(
-    Map<String, dynamic> chunk,
+    Chunk chunk,
   ) async {
-    final List<String> times = chunk['controllers']['timeControllers'].map((controller) => controller.text.toString()).toList().cast<String>();
+    final List<String> times = chunk.controllers['timeControllers']!.map((controller) => controller.text.toString()).toList().cast<String>();
     debugPrint('times: $times');
-    debugPrint('records: ${chunk['controllers']}');
-    List<TimingRecord> records = chunk['records'] ?? [];
-    final resolveData = chunk['resolve'] ?? [];
+    debugPrint('records: ${chunk.records}');
+    List<TimingRecord> records = chunk.records;
+    final resolveData = chunk.resolve;
+    if (resolveData == null) throw Exception('No resolve data found');
     // final bibData = resolveData['bibData'] ?? [];
-    final availableTimes = resolveData['availableTimes'] ?? [];
+    final availableTimes = resolveData.availableTimes;
     // final lastConfirmedRecord = resolveData['lastConfirmedRecord'] ?? {};
-    final TimingRecord conflictRecord = resolveData['conflictRecord'] ?? {};
-    final lastConfirmedIndex = resolveData['lastConfirmedIndex'] ?? -1;
-    final lastConfirmedPlace = resolveData['lastConfirmedPlace'] ?? -1;
+    final TimingRecord conflictRecord = resolveData.conflictRecord;
+    final lastConfirmedIndex = resolveData.lastConfirmedIndex ?? -1;
+    final lastConfirmedPlace = resolveData.lastConfirmedPlace;
     debugPrint('lastConfirmedPlace: $lastConfirmedPlace');
     // final spaceBetweenConfirmedAndConflict = resolveData['spaceBetweenConfirmedAndConflict'] ?? -1;
-    List<RunnerRecord> runners = resolveData['conflictingRunners'] ?? [];
+    List<RunnerRecord> runners = resolveData.conflictingRunners;
 
-    if (!_validateTimes(times, context, runners, resolveData['lastConfirmedRecord'], conflictRecord)) {
+    if (!_validateTimes(times, context, runners, resolveData.lastConfirmedRecord, conflictRecord)) {
       return;
     }
 
@@ -558,9 +549,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
     );
   }
 
-  Widget _buildConfirmationRecord(BuildContext context, int index, List<dynamic> joinedRecord) {
-    final TimingRecord timeRecord = joinedRecord[1];
-    
+  Widget _buildConfirmationRecord(BuildContext context, int index, TimingRecord timeRecord) {
     return Container(
       margin: const EdgeInsets.fromLTRB(8, 4, 8, 8),
       padding: const EdgeInsets.all(16),
@@ -744,10 +733,10 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
     );
   }
 
-  Widget _buildRunnerTimeRecord(BuildContext context, int index, List<dynamic> joinedRecord, Color color, Map<String, dynamic> chunk) {
-    final RunnerRecord runner = joinedRecord[0];
-    final TimingRecord timeRecord = joinedRecord[1];
-    final hasConflict = chunk['resolve'] != null;
+  Widget _buildRunnerTimeRecord(BuildContext context, int index, JoinedRecord joinedRecord, Color color, Chunk chunk) {
+    final RunnerRecord runner = joinedRecord.runner;
+    final TimingRecord timeRecord = joinedRecord.timeRecord;
+    final hasConflict = chunk.resolve != null;
     
     final Color conflictColor = hasConflict ? AppColors.primaryColor : Colors.green;
     final Color bgColor = conflictColor.withOpacity(0.05);
@@ -801,11 +790,11 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
                 child: hasConflict
                   ? _buildTimeSelector(
-                      chunk['controllers']['timeControllers'][index],
-                      chunk['controllers']['manualControllers'][index],
-                      chunk['resolve']['availableTimes'],
-                      chunk['conflictIndex'],
-                      manual: chunk['type'] != RecordType.extraRunner,
+                      chunk.controllers['timeControllers']![index],
+                      chunk.controllers['manualControllers']![index],
+                      chunk.resolve!.availableTimes,
+                      chunk.conflictIndex,
+                      manual: chunk.type != RecordType.extraRunner,
                     )
                   : _buildConfirmedTime(timeRecord.elapsedTime),
               ),
@@ -1020,11 +1009,11 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
     );
   }
 
-  Widget _buildChunkItem(BuildContext context, int index, Map<String, dynamic> chunk) {
-    final chunkType = chunk['type'] as RecordType;
-    final record = chunk['records'].last as TimingRecord;
+  Widget _buildChunkItem(BuildContext context, int index, Chunk chunk) {
+    final chunkType = chunk.type;
+    final record = chunk.records.last;
     final previousChunk = index > 0 ? _chunks[index - 1] : null;
-    final previousChunkEndTime = previousChunk != null ? previousChunk['records'].last.elapsedTime : '0.0';
+    final previousChunkEndTime = previousChunk != null ? previousChunk.records.last.elapsedTime : '0.0';
     
 
     return Padding(
@@ -1037,34 +1026,35 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
           if (chunkType == RecordType.confirmRunner)
             _buildConfirmHeader(record),
           const SizedBox(height: 8),
-          ...chunk['joined_records'].map<Widget>((joinedRecord) {
-            if (joinedRecord[1].type == RecordType.runnerTime) {
+          ...chunk.joinedRecords.map<Widget>((joinedRecord) {
+            if (joinedRecord.timeRecord.type == RecordType.runnerTime) {
               return _buildRunnerTimeRecord(
                 context,
-                chunk['joined_records'].indexOf(joinedRecord),
+                chunk.joinedRecords.indexOf(joinedRecord),
                 joinedRecord,
                 chunkType == RecordType.runnerTime || chunkType == RecordType.confirmRunner
                     ? Colors.green
                     : AppColors.primaryColor,
                 chunk,
               );
-            } else if (joinedRecord[1].type == RecordType.confirmRunner) {
+            } else if (joinedRecord.timeRecord.type == RecordType.confirmRunner) {
               return _buildConfirmationRecord(
                 context,
-                chunk['joined_records'].indexOf(joinedRecord),
-                joinedRecord,
+                chunk.joinedRecords.indexOf(joinedRecord),
+                joinedRecord.timeRecord,
               );
             }
             return const SizedBox.shrink();
-          }).toList(),
+          }),
           if (chunkType == RecordType.extraRunner || chunkType == RecordType.missingRunner)
             Padding(
               padding: const EdgeInsets.only(top: 16.0),
               child: _buildActionButton(
                 'Resolve Conflict',
-                () => chunkType == RecordType.extraRunner
-                    ? _handleTooManyTimesResolution(chunk)
-                    : _handleTooFewTimesResolution(chunk),
+                () => chunk.handleResolve(
+                  _handleTooManyTimesResolution,
+                  _handleTooFewTimesResolution,
+                ),
               ),
             ),
         ],
