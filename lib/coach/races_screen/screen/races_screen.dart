@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:xcelerate/shared/settings_screen.dart';
-import '../../race_screen/screen/race_screen.dart';
+import '../../race_screen/controller/race_screen_controller.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import '../../../shared/models/race.dart';
 import '../../../utils/database_helper.dart';
@@ -667,26 +667,7 @@ class RacesScreenState extends State<RacesScreen> {
   //   return true;
   // }
 
-  void _showRaceScreen(int raceId) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      isDismissible: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.75,
-        minChildSize: 0.5,
-        maxChildSize: 0.95,
-        builder: (context, scrollController) => Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).scaffoldBackgroundColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: RaceScreen(raceId: raceId),
-        ),
-      ),
-    );
-  }
+  
 
   Widget _buildRaceCard(Race race, String flowState) {
     final flowStateText = {
@@ -764,7 +745,7 @@ class RacesScreenState extends State<RacesScreen> {
             borderRadius: BorderRadius.circular(12),
           ),
           child: InkWell(
-            onTap: () => _showRaceScreen(race.race_id),
+            onTap: () => RaceScreenController.showRaceScreen(context, race.race_id),
             borderRadius: BorderRadius.circular(12),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),

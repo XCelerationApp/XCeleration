@@ -12,6 +12,8 @@ import '../../../../../utils/sheet_utils.dart';
 import '../../../../../utils/share_utils.dart';
 import '../../../../../core/components/dialog_utils.dart';
 import '../screen/share_race_screen.dart';
+import '../../results_screen/model/results_record.dart';
+import '../../results_screen/model/team_record.dart';
 
 /// Controller class responsible for all sharing logic in the app
 class ShareRaceController {
@@ -21,14 +23,16 @@ class ShareRaceController {
   /// Show the share race bottom sheet
   static Future<dynamic> showShareRaceSheet({
     required BuildContext context,
-    required List<Map<String, dynamic>> teamResults,
-    required List<Map<String, dynamic>> individualResults,
+    required List<List<TeamRecord>> headToHeadTeamResults,
+    required List<TeamRecord> overallTeamResults,
+    required List<ResultsRecord> individualResults,
   }) {
     return sheet(
       context: context,
       title: 'Share Race',
       body: ShareSheetScreen(
-        teamResults: teamResults,
+        headToHeadTeamResults: headToHeadTeamResults,
+        overallTeamResults: overallTeamResults,
         individualResults: individualResults,
         controller: ShareRaceController(),
       ),

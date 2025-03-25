@@ -7,6 +7,8 @@ import 'package:pdf/widgets.dart' as pw;
 // Local imports
 import '../../../core/theme/app_colors.dart';
 import '../controller/share_race_controller.dart';
+import '../../results_screen/model/results_record.dart';
+import '../../results_screen/model/team_record.dart';
 
 /// Enum defining the available formats for exporting results
 enum ResultFormat {
@@ -16,13 +18,15 @@ enum ResultFormat {
 }
 
 class ShareSheetScreen extends StatefulWidget {
-  final List<Map<String, dynamic>> teamResults;
-  final List<Map<String, dynamic>> individualResults;
+  final List<List<TeamRecord>> headToHeadTeamResults;
+  final List<TeamRecord> overallTeamResults;
+  final List<ResultsRecord> individualResults;
   final ShareRaceController controller;
 
-  ShareSheetScreen({
+  const ShareSheetScreen({
     super.key,
-    required this.teamResults,
+    required this.headToHeadTeamResults,
+    required this.overallTeamResults,
     required this.individualResults,
     required this.controller,
   });
@@ -41,10 +45,10 @@ class _ShareSheetScreenState extends State<ShareSheetScreen> {
     // Team Results Section
     buffer.writeln('Team Results');
     buffer.writeln('Rank\tSchool\tScore\tSplit Time\tAverage Time');
-    for (final team in widget.teamResults) {
+    for (final team in widget.overallTeamResults) {
       buffer.writeln(
-        '${team['place']}\t${team['school']}\t${team['score']}\t'
-        '${team['split']}\t${team['averageTime']}'
+        '${team.place}\t${team.school}\t${team.score}\t'
+        '${team.split}\t${team.avgTime}'
       );
     }
     
@@ -53,8 +57,8 @@ class _ShareSheetScreenState extends State<ShareSheetScreen> {
     buffer.writeln('Place\tName\tSchool\tTime');
     for (final runner in widget.individualResults) {
       buffer.writeln(
-        '${runner['place']}\t${runner['name']}\t${runner['school']}\t'
-        '${runner['finish_time']}'
+        '${runner.place}\t${runner.name}\t${runner.school}\t'
+        '${runner.finishTime}'
       );
     }
     
@@ -67,12 +71,12 @@ class _ShareSheetScreenState extends State<ShareSheetScreen> {
       // Team Results Section
       ['Team Results'],
       ['Rank', 'School', 'Score', 'Split Time', 'Average Time'],
-      ...widget.teamResults.map((team) => [
-        team['place'],
-        team['school'],
-        team['score'],
-        team['split'],
-        team['averageTime'],
+      ...widget.overallTeamResults.map((team) => [
+        team.place,
+        team.school,
+        team.score,
+        team.split,
+        team.avgTime,
       ]),
       
       // Spacing
@@ -82,10 +86,10 @@ class _ShareSheetScreenState extends State<ShareSheetScreen> {
       ['Individual Results'],
       ['Place', 'Name', 'School', 'Time'],
       ...widget.individualResults.map((runner) => [
-        runner['place'],
-        runner['name'],
-        runner['school'],
-        runner['finish_time'],
+        runner.place,
+        runner.name,
+        runner.school,
+        runner.finishTime,
       ]),
     ];
 
@@ -108,12 +112,12 @@ class _ShareSheetScreenState extends State<ShareSheetScreen> {
           pw.Header(level: 1, child: pw.Text('Team Results')),
           pw.TableHelper.fromTextArray(
             headers: ['Rank', 'School', 'Score', 'Split Time', 'Average Time'],
-            data: widget.teamResults.map((team) => [
-              team['place'].toString(),
-              team['school'].toString(),
-              team['score'].toString(),
-              team['split'].toString(),
-              team['averageTime'].toString(),
+            data: widget.overallTeamResults.map((team) => [
+              team.place.toString(),
+              team.school.toString(),
+              team.score.toString(),
+              team.split.toString(),
+              team.avgTime.toString(),
             ]).toList(),
           ),
           
@@ -124,10 +128,10 @@ class _ShareSheetScreenState extends State<ShareSheetScreen> {
           pw.TableHelper.fromTextArray(
             headers: ['Place', 'Name', 'School', 'Time'],
             data: widget.individualResults.map((runner) => [
-              runner['place'].toString(),
-              runner['name'].toString(),
-              runner['school'].toString(),
-              runner['finish_time'].toString(),
+              runner.place.toString(),
+              runner.name.toString(),
+              runner.school.toString(),
+              runner.finishTime.toString(),
             ]).toList(),
           ),
         ],

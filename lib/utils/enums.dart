@@ -37,3 +37,8 @@ enum RecordType {
   missingRunner,
   extraRunner,
 }
+
+enum RaceScreenPage {
+  main,
+  results,
+}

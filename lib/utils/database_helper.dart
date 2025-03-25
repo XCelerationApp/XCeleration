@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart';
 
 import '../coach/race_screen/widgets/runner_record.dart' show RunnerRecord;
 import '../coach/race_screen/model/race_result.dart';
+import '../coach/results_screen/model/results_record.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
@@ -398,12 +399,13 @@ class DatabaseHelper {
     return;
   }
 
-  Future<List<TimingRecord>> getRaceResults(int raceId) async {
+  Future<List<ResultsRecord>> getRaceResults(int raceId) async {
     final db = await instance.database;
+    late final List<Map<String, dynamic>>? rawResults;
     
     try {
       // Use the correct column name runner_id instead of race_runner_id
-      final raceRunners = await db.rawQuery('''
+      rawResults = await db.rawQuery('''
         SELECT 
           rr.runner_id AS runner_id, 
           rr.bib_number, 
@@ -415,46 +417,32 @@ class DatabaseHelper {
         FROM race_results r
         LEFT JOIN race_runners rr ON rr.runner_id = r.runner_id
         WHERE rr.race_id = ?
-      ''', [raceId]);
-      
-      // final teamRunners = await db.rawQuery('''
-      //   SELECT 
-      //     sr.runner_id AS runner_id, 
-      //     sr.bib_number, 
-      //     sr.name, 
-      //     sr.school, 
-      //     sr.grade, 
-      //     r.place, 
-      //     r.finish_time
-      //   FROM race_results r
-      //   LEFT JOIN team_runners sr ON sr.runner_id = r.runner_id
-      //   WHERE r.race_id = ?
-      // ''', [raceId]);
-
-      if (raceId == 1) return raceRunners.map((r) => TimingRecord.fromMap(r, database: true)).toList();
+      ''', [raceId]); 
     } catch (e) {
       print('Query error: $e');
     }
-    
+    if (rawResults != null && rawResults.isNotEmpty) {
+      final results = rawResults.map((r) => ResultsRecord.fromMap(r)).toList();
+      results.sort((a, b) => a.finishTime.compareTo(b.finishTime));
+      return results;
+    }
     // Fallback to test data if query fails or for other race IDs
     return [
-      TimingRecord(
-        runnerId: 1,
+      ResultsRecord(
         bib: '1001',
         name: 'John Doe',
         school: 'Test School',
         grade: 5,
         place: 1,
-        elapsedTime: '5.00',
+        finishTime: Duration(seconds: 5),
       ),
-      TimingRecord(
-        runnerId: 2,
+      ResultsRecord(
         bib: '1002',
         name: 'Jane Doe',
         school: 'Test School',
         grade: 5,
         place: 2,
-        elapsedTime: '6.00',
+        finishTime: Duration(seconds: 6),
       ),
     ];
   }

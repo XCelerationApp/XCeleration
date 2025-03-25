@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:xcelerate/coach/race_screen/screen/race_screen.dart';
+import 'package:xcelerate/utils/sheet_utils.dart' show sheet;
+import '../../../utils/enums.dart';
 import '../../../utils/database_helper.dart';
 import '../../../shared/models/race.dart';
-import '../../../utils/enums.dart';
 import '../../../core/services/device_connection_service.dart';
 import '../../../coach/flows/controller/flow_controller.dart';
 
@@ -11,6 +13,7 @@ class RaceScreenController with ChangeNotifier {
   Race? race;
   int raceId;
   bool isRaceSetup = false;
+  late TabController tabController;
   // bool resultsLoaded = false;
   // List<Map<String, dynamic>>? runnerRecords;
   // Map<String, dynamic>? timingData;
@@ -26,6 +29,16 @@ class RaceScreenController with ChangeNotifier {
   
   // Constructor
   RaceScreenController({required this.raceId});
+
+  static void showRaceScreen(BuildContext context, int raceId, {RaceScreenPage page = RaceScreenPage.main}) {
+    sheet(
+      context: context,
+      body: RaceScreen(
+        raceId: raceId, 
+        page: page,
+      ),
+    );
+  }
 
   Future<void> init(BuildContext context) async {
     race = await loadRace();
