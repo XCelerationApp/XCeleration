@@ -41,7 +41,7 @@ class BibInputWidget extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             SizedBox(
-              width: 60,
+              width: 80,
               child: _buildBibTextField(context),
             ),
             Expanded(

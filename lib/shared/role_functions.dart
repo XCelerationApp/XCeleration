@@ -195,7 +195,7 @@ Widget buildRoleBar(BuildContext context, String currentRole, TutorialManager tu
             const SizedBox(width: 8),
             // Settings button
             IconButton(
-              icon: Icon(Icons.settings, color: AppColors.darkColor, size: 36),
+              icon: Icon(Icons.settings, color: AppColors.darkColor, size: 48),
               onPressed: () {
                 final role = (currentRole == 'coach') ? 'coach' : 'assistant';
                 Navigator.of(context).push(
@@ -216,20 +216,41 @@ Widget buildTopUnusableSpaceSpacing(BuildContext context) {
 }
 
 Widget buildRoleButton(BuildContext context, String currentRole) {
-  return TextButton(
-    onPressed: () => changeRole(context, currentRole),
-    child: Row(
-      children: [
-        Text(
-          '${currentRole[0].toUpperCase()}${currentRole.substring(1)}',
-          style: TextStyle(fontSize: 20, color: AppColors.navBarTextColor),
-        ),
-        Icon(
-          Icons.keyboard_arrow_down,
-          size: 30,
-          color: AppColors.navBarTextColor,
-        ),
-      ],
-    ), 
+  final TutorialManager tutorialManager = TutorialManager();
+  return CoachMark(
+    id: 'role_bar_tutorial',
+    tutorialManager: tutorialManager,
+    config: const CoachMarkConfig(
+      title: 'Switch Roles',
+      alignmentX: AlignmentX.left,
+      alignmentY: AlignmentY.bottom,
+      description: 'Click here to switch between Coach and Assistant roles',
+      icon: Icons.touch_app,
+      type: CoachMarkType.targeted,
+      backgroundColor: Color(0xFF1976D2),
+      elevation: 12,
+    ),
+    child: GestureDetector(
+      onTap: () {
+        changeRole(context, currentRole);
+      },
+      child: Icon(Icons.person_outline, color: AppColors.darkColor, size: 48)
+    ),
   );
+  // return TextButton(
+  //   onPressed: () => changeRole(context, currentRole),
+  //   child: Row(
+  //     children: [
+  //       Text(
+  //         '${currentRole[0].toUpperCase()}${currentRole.substring(1)}',
+  //         style: TextStyle(fontSize: 20, color: AppColors.navBarTextColor),
+  //       ),
+  //       Icon(
+  //         Icons.keyboard_arrow_down,
+  //         size: 30,
+  //         color: AppColors.navBarTextColor,
+  //       ),
+  //     ],
+  //   ), 
+  // );
 }

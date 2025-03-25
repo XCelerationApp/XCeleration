@@ -73,8 +73,8 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
   }
 
   Future<void> _checkForRunners() async {
-    debugPrint('Checking for runners');
-    return;
+    // debugPrint('Checking for runners');
+    // return;
     if (_runners.isEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         showDialog(

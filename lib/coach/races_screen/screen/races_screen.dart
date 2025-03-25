@@ -950,26 +950,26 @@ class RacesScreenState extends State<RacesScreen> {
                     ),
                     Row(
                       children: [
-                        CoachMark(
-                          id: 'role_bar_tutorial',
-                          tutorialManager: tutorialManager,
-                          config: const CoachMarkConfig(
-                            title: 'Switch Roles',
-                            alignmentX: AlignmentX.left,
-                            alignmentY: AlignmentY.bottom,
-                            description: 'Click here to switch between Coach and Assistant roles',
-                            icon: Icons.touch_app,
-                            type: CoachMarkType.targeted,
-                            backgroundColor: Color(0xFF1976D2),
-                            elevation: 12,
-                          ),
-                          child: GestureDetector(
-                            onTap: () {
-                              changeProfile(context, 'coach');
-                            },
-                            child: Icon(Icons.person_outline, color: AppColors.darkColor, size: 56)
-                          ),
-                        ),
+                        // CoachMark(
+                        //   id: 'role_bar_tutorial',
+                        //   tutorialManager: tutorialManager,
+                        //   config: const CoachMarkConfig(
+                        //     title: 'Switch Roles',
+                        //     alignmentX: AlignmentX.left,
+                        //     alignmentY: AlignmentY.bottom,
+                        //     description: 'Click here to switch between Coach and Assistant roles',
+                        //     icon: Icons.touch_app,
+                        //     type: CoachMarkType.targeted,
+                        //     backgroundColor: Color(0xFF1976D2),
+                        //     elevation: 12,
+                        //   ),
+                        //   child: GestureDetector(
+                        //     onTap: () {
+                        //       changeProfile(context, 'coach');
+                        //     },
+                        //     child: Icon(Icons.person_outline, color: AppColors.darkColor, size: 56)
+                        //   ),
+                        // ),
                         CoachMark(
                           id: 'settings_button_tutorial',
                           tutorialManager: tutorialManager,
