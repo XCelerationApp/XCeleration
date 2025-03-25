@@ -757,7 +757,7 @@ class RacesScreenState extends State<RacesScreen> {
                       Expanded(
                         child: Text(
                           race.raceName,
-                          style: AppTypography.titleSemibold,
+                          style: AppTypography.headerSemibold,
                         ),
                       ),
                       Container(
@@ -926,7 +926,7 @@ class RacesScreenState extends State<RacesScreen> {
                   children: [
                     Text(
                       'Races',
-                      style: AppTypography.titleSemibold,
+                      style: AppTypography.displaySmall,
                     ),
                     Row(
                       children: [

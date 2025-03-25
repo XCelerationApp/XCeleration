@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
+// import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
 
 // Utility widget for section headers
@@ -9,12 +9,10 @@ class FlowSectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12.0),
+      padding: const EdgeInsets.symmetric(vertical: 12.0),
       child: Text(
         title,
-        style: AppTypography.titleSemibold.copyWith(
-          color: AppColors.primaryColor,
-        ),
+        style: AppTypography.titleSemibold,
       ),
     );
   }
