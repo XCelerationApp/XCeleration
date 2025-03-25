@@ -22,7 +22,7 @@ class InstructionCard extends StatelessWidget {
     final color = accentColor ?? AppColors.primaryColor;
     
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
+      padding: const EdgeInsets.symmetric(vertical: 0),
       child: Card(
         elevation: 0,
         shape: RoundedRectangleBorder(

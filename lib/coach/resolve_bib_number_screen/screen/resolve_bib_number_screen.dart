@@ -329,7 +329,7 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _buildInstructionsCard(),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
               Row(
                 children: [
                   Expanded(

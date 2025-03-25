@@ -708,17 +708,17 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SizedBox(height: 16),
-        Container(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-          child: Text(
-            'Merge Conflicts',
-            style: AppTypography.displayLarge.copyWith(
-              color: AppColors.darkColor,
-              fontSize: 28,
-            ),
-          ),
-        ),
+        // const SizedBox(height: 16),
+        // Container(
+        //   padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+        //   child: Text(
+        //     'Merge Conflicts',
+        //     style: AppTypography.displayLarge.copyWith(
+        //       color: AppColors.darkColor,
+        //       fontSize: 28,
+        //     ),
+        //   ),
+        // ),
         _buildInstructionsCard(),
       ],
     );
