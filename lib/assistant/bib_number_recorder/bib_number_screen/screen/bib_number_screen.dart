@@ -254,61 +254,70 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return TutorialRoot(
-      tutorialManager: tutorialManager,
-      child: GestureDetector(
-        onTap: () => FocusScope.of(context).unfocus(),
-        child: Scaffold(
-          resizeToAvoidBottomInset: true,
-          body: Padding(
-            padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
-            child: Column(
-              children: [
-                buildRoleBar(context, 'bib recorder', tutorialManager),
-                
-                // Stats header with bib count and runner stats
-                StatsHeaderWidget(
-                  runners: _runners,
-                  model: _model,
-                  onReset: _resetLoadedRunners,
-                ),
-                
-                // Bib input list section
-                Expanded(
-                  child: BibListWidget(
-                    scrollController: _scrollController,
-                    controller: _controller,
-                    tutorialManager: tutorialManager,
+    return WillPopScope(
+      onWillPop: () async {
+        // Show confirmation dialog
+        bool shouldPop = await DialogUtils.showConfirmationDialog(
+          context,
+          title: 'Leave Bib Number Screen?',
+          content: 'All bib numbers will be lost if you leave this screen. Do you want to continue?',
+          confirmText: 'Continue',
+          cancelText: 'Stay',
+        );
+        return shouldPop;
+      },
+      child: TutorialRoot(
+        tutorialManager: tutorialManager,
+        child: GestureDetector(
+          onTap: () => FocusScope.of(context).unfocus(),
+          child: Scaffold(
+            resizeToAvoidBottomInset: true,
+            body: Padding(
+              padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
+              child: Column(
+                children: [
+                  buildRoleBar(context, 'bib recorder', tutorialManager),
+                  // Stats header with bib count and runner stats
+                  StatsHeaderWidget(
+                    runners: _runners,
+                    model: _model,
+                    onReset: _resetLoadedRunners,
                   ),
-                ),
-                
-                // Action buttons at the bottom
-                Consumer<BibRecordsProvider>(
-                  builder: (context, provider, _) {
-                    return provider.isKeyboardVisible 
-                      ? const SizedBox.shrink() 
-                      : BottomActionButtonsWidget(
-                          onShareBibNumbers: _showShareBibNumbersPopup,
-                        );
-                  },
-                ),
-                
-                // Keyboard accessory bar for mobile devices
-                Consumer<BibRecordsProvider>(
-                  builder: (context, provider, _) {
-                    if (!(Platform.isIOS || Platform.isAndroid) || !provider.isKeyboardVisible || provider.bibRecords.isEmpty) {
-                      return const SizedBox.shrink();
-                    }
-                    return KeyboardAccessoryBar(
-                      onDone: () => FocusScope.of(context).unfocus(),
-                    );
-                  },
-                ),
-              ],
+                  // Bib input list section
+                  Expanded(
+                    child: BibListWidget(
+                      scrollController: _scrollController,
+                      controller: _controller,
+                      tutorialManager: tutorialManager,
+                    ),
+                  ),
+                  // Action buttons at the bottom
+                  Consumer<BibRecordsProvider>(
+                    builder: (context, provider, _) {
+                      return provider.isKeyboardVisible 
+                        ? const SizedBox.shrink() 
+                        : BottomActionButtonsWidget(
+                            onShareBibNumbers: _showShareBibNumbersPopup,
+                          );
+                    },
+                  ),
+                  // Keyboard accessory bar for mobile devices
+                  Consumer<BibRecordsProvider>(
+                    builder: (context, provider, _) {
+                      if (!(Platform.isIOS || Platform.isAndroid) || !provider.isKeyboardVisible || provider.bibRecords.isEmpty) {
+                        return const SizedBox.shrink();
+                      }
+                      return KeyboardAccessoryBar(
+                        onDone: () => FocusScope.of(context).unfocus(),
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
         ),
-      )
+      ),
     );
   }
 }

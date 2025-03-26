@@ -3,6 +3,7 @@ import '../coach/races_screen/screen/races_screen.dart';
 import '../assistant/race_timer/timing_screen/screen/timing_screen.dart';
 import '../assistant/bib_number_recorder/bib_number_screen/screen/bib_number_screen.dart';
 import '../core/theme/app_colors.dart';
+import '../core/components/dialog_utils.dart';
 import '../utils/sheet_utils.dart';
 import '../core/services/tutorial_manager.dart';
 import '../core/components/coach_mark.dart';
@@ -106,15 +107,46 @@ Widget _buildRoleListTile(BuildContext context, RoleOption role, String currentR
     child: RadioListTile<String>(
       value: role.value,
       groupValue: currentRole,
-      onChanged: (value) {
+      onChanged: (value) async {
+        // Close the role selection sheet first
         Navigator.pop(context);
+        
+        // Skip confirmation if user selects the current role
         if (value == currentRole) return;
-        Navigator.push(
-          context,
-          PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) => role.screen,
-          ),
-        );
+        
+        // Add confirmation for leaving bib number screen or timing screen
+        bool shouldProceed = true;
+        
+        // Show confirmation dialog when leaving bib number screen
+        if (currentRole == 'bib recorder') {
+          shouldProceed = await DialogUtils.showConfirmationDialog(
+            context,
+            title: 'Leave Bib Number Screen?',
+            content: 'All bib numbers will be lost if you leave this screen. Do you want to continue?',
+            confirmText: 'Continue',
+            cancelText: 'Stay',
+          );
+        } 
+        // Show confirmation dialog when leaving timing screen
+        else if (currentRole == 'timer') {
+          shouldProceed = await DialogUtils.showConfirmationDialog(
+            context,
+            title: 'Leave Timing Screen?',
+            content: 'All race times will be lost if you leave this screen. Do you want to continue?',
+            confirmText: 'Continue',
+            cancelText: 'Stay',
+          );
+        }
+        
+        // Only navigate if user confirms
+        if (shouldProceed && context.mounted) {
+          Navigator.push(
+            context,
+            PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) => role.screen,
+            ),
+          );
+        }
       },
       controlAffinity: ListTileControlAffinity.trailing,
       tileColor: currentRole == role.value

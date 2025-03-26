@@ -5,6 +5,7 @@ import '../model/timing_record.dart';
 import '../../../../shared/role_functions.dart';
 import '../../../../core/services/tutorial_manager.dart';
 import '../../../../utils/enums.dart';
+import '../../../../core/components/dialog_utils.dart';
 import '../widgets/timer_display_widget.dart';
 import '../widgets/race_controls_widget.dart';
 import '../widgets/record_list_item.dart';
@@ -53,28 +54,41 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
       value: _controller.timingData,
       child: Consumer<TimingData>(
         builder: (context, timingData, child) {
-          return TutorialRoot(
-            tutorialManager: tutorialManager,
-            child: Scaffold(
-              body: Padding(
-                padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    buildRoleBar(context, 'timer', tutorialManager),
-                    const SizedBox(height: 8),
-                    _buildRaceInfoHeader(),
-                    const SizedBox(height: 8),
-                    _buildTimerDisplay(),
-                    _buildControlButtons(),
-                    if (_controller.records.isNotEmpty) const SizedBox(height: 30),
-                    Expanded(child: _buildRecordsList()),
-                    if (_controller.timingData.startTime != null && _controller.records.isNotEmpty)
-                      _buildBottomControls(),
-                  ],
+          return WillPopScope(
+            onWillPop: () async {
+              // Show confirmation dialog
+              bool shouldPop = await DialogUtils.showConfirmationDialog(
+                context,
+                title: 'Leave Timing Screen?',
+                content: 'All race times will be lost if you leave this screen. Do you want to continue?',
+                confirmText: 'Continue',
+                cancelText: 'Stay',
+              );
+              return shouldPop;
+            },
+            child: TutorialRoot(
+              tutorialManager: tutorialManager,
+              child: Scaffold(
+                body: Padding(
+                  padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      buildRoleBar(context, 'timer', tutorialManager),
+                      const SizedBox(height: 8),
+                      _buildRaceInfoHeader(),
+                      const SizedBox(height: 8),
+                      _buildTimerDisplay(),
+                      _buildControlButtons(),
+                      if (_controller.records.isNotEmpty) const SizedBox(height: 30),
+                      Expanded(child: _buildRecordsList()),
+                      if (_controller.timingData.startTime != null && _controller.records.isNotEmpty)
+                        _buildBottomControls(),
+                    ],
+                  ),
                 ),
-              ),
-            )
+              )
+            ),
           );
         },
       ),
