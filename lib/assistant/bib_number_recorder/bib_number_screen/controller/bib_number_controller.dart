@@ -25,6 +25,7 @@ class BibNumberController {
         (runner) => runner.bib == bibNumber,
         orElse: () => RunnerRecord(bib: '', name: '', raceId: -1, grade: -1, school: ''),
       );
+      print('Runner found: ${runner.toMap()}');
       return (runner.raceId != -1) ? runner : null;
     } catch (e) {
       return null;

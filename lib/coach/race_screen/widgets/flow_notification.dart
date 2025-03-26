@@ -42,7 +42,7 @@ class FlowNotification extends StatelessWidget {
                 fontSize: 16, 
               ),
             ),
-            const SizedBox(width: 16),
+            const Spacer(),
             // Container(
             //   decoration: BoxDecoration(
             //     color: Colors.white,
@@ -70,7 +70,7 @@ class FlowNotification extends StatelessWidget {
             //   ),
             // ),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
               decoration: BoxDecoration(
                 color: color.withAlpha((0.1 * 255).round()),
                 borderRadius: BorderRadius.circular(16),

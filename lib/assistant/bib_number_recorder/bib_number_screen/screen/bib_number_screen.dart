@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:xcelerate/coach/race_screen/widgets/runner_record.dart' show RunnerRecord;
+import 'package:xcelerate/utils/database_helper.dart';
 import 'dart:io';
 import '../model/bib_number_model.dart';
 import '../model/bib_records_provider.dart';
@@ -73,8 +74,14 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
   }
 
   Future<void> _checkForRunners() async {
-    // debugPrint('Checking for runners');
-    // return;
+    debugPrint('Checking for runners');
+    debugPrint('Checking for runners');
+    debugPrint((await DatabaseHelper.instance.getAllRaces()).map((race) => race.raceId).toString());
+    _runners.addAll(await DatabaseHelper.instance.getRaceRunners(3));
+    _runners.addAll(await DatabaseHelper.instance.getRaceRunners(2));
+    _runners.addAll(await DatabaseHelper.instance.getRaceRunners(1));
+    setState(() {});
+    return;
     if (_runners.isEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         showDialog(
