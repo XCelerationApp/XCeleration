@@ -42,3 +42,9 @@ enum RaceScreenPage {
   main,
   results,
 }
+
+enum ResultFormat {
+  plainText,
+  googleSheet,
+  pdf,
+}
