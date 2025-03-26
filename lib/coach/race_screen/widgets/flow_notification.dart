@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
+// import '../../../core/theme/app_colors.dart';
 
 class FlowNotification extends StatelessWidget {
   final String flowState;
@@ -12,28 +12,28 @@ class FlowNotification extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Container( 
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(6),
-          color: AppColors.primaryColor,
-        ),
+        // decoration: BoxDecoration(
+        //   borderRadius: BorderRadius.circular(6),
+        //   color: AppColors.primaryColor,
+        // ),
         child: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(4), 
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                icon,
-                color: color,
-                size: 14, 
-              ),
-            ),
-            const SizedBox(width: 8), 
+            // Container(
+            //   padding: const EdgeInsets.all(4), 
+            //   // decoration: BoxDecoration(
+            //   //   color: Colors.white.withOpacity(0.2),
+            //   //   borderRadius: BorderRadius.circular(8),
+            //   // ),
+            //   child: Icon(
+            //     icon,
+            //     color: color,
+            //     size: 14, 
+            //   ),
+            // ),
+            // const SizedBox(width: 8), 
             Text(
               '$flowState Not Completed',
               style: TextStyle(
@@ -42,33 +42,55 @@ class FlowNotification extends StatelessWidget {
                 fontSize: 16, 
               ),
             ),
-            const Spacer(),
+            const SizedBox(width: 16),
+            // Container(
+            //   decoration: BoxDecoration(
+            //     color: Colors.white,
+            //     borderRadius: BorderRadius.circular(16), 
+            //   ),
+            //   child: ClipRRect(
+            //     borderRadius: BorderRadius.circular(16), 
+            //     child: Material(
+            //       color: Colors.transparent,
+            //       child: InkWell(
+            //         onTap: continueAction,
+            //         child: Padding(
+            //           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), 
+            //           child: Text(
+            //             'Continue',
+            //             style: TextStyle(
+            //               color: AppColors.primaryColor, 
+            //               fontWeight: FontWeight.bold,
+            //               fontSize: 13, 
+            //             ),
+            //           ),
+            //         ),
+            //       ),
+            //     ),
+            //   ),
+            // ),
             Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16), 
+                color: color.withAlpha((0.1 * 255).round()),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: color.withAlpha((0.5 * 255).round()),
+                  width: 1,
+                ),
               ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16), 
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: continueAction,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), 
-                      child: Text(
-                        'Continue',
-                        style: TextStyle(
-                          color: AppColors.primaryColor, 
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13, 
-                        ),
-                      ),
-                    ),
+              child: InkWell(
+                onTap: continueAction,
+                child: Text(
+                  'Continue',
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ),
-            ),
+            )
           ],
         ),
       ),

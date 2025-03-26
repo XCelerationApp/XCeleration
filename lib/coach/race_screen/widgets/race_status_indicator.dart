@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/typography.dart';
+// import '../../../core/theme/typography.dart';
 
 class RaceStatusIndicator extends StatelessWidget {
   final String flowState;
@@ -24,20 +24,20 @@ class RaceStatusIndicator extends StatelessWidget {
     }
   }
 
-  IconData _getStatusIcon(String flowState) {
-    switch (flowState) {
-      case 'setup':
-        return Icons.settings;
-      case 'pre-race':
-        return Icons.timer;
-      case 'post-race':
-        return Icons.flag;
-      case 'finished':
-        return Icons.check_circle;
-      default:
-        return Icons.help;
-    }
-  }
+  // IconData _getStatusIcon(String flowState) {
+  //   switch (flowState) {
+  //     case 'setup':
+  //       return Icons.settings;
+  //     case 'pre-race':
+  //       return Icons.timer;
+  //     case 'post-race':
+  //       return Icons.flag;
+  //     case 'finished':
+  //       return Icons.check_circle;
+  //     default:
+  //       return Icons.help;
+  //   }
+  // }
 
   String _getStatusText(String flowState) {
     switch (flowState) {
@@ -56,30 +56,27 @@ class RaceStatusIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final statusColor = _getStatusColor(flowState);
-    final statusIcon = _getStatusIcon(flowState);
-    final statusText = _getStatusText(flowState);
+    final flowStateColor = _getStatusColor(flowState);
+    // final flowStateIcon = _getStatusIcon(flowState);
+    final flowStateText = _getStatusText(flowState);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: statusColor.withOpacity(0.1),
+        color: flowStateColor.withAlpha((0.1 * 255).round()),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: statusColor.withOpacity(0.3), width: 1),
+        border: Border.all(
+          color: flowStateColor.withAlpha((0.5 * 255).round()),
+          width: 1,
+        ),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(statusIcon, size: 16, color: statusColor),
-          const SizedBox(width: 6),
-          Text(
-            statusText,
-            style: AppTypography.bodySmall.copyWith(
-              color: statusColor,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
+      child: Text(
+        flowStateText,
+        style: TextStyle(
+          color: flowStateColor,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+        ),
       ),
     );
   }
