@@ -2,14 +2,14 @@ import 'results_record.dart';
 
 
 class TeamRecord {
-  late final int score;
+  late int score;
   final String school;
   late final List<ResultsRecord> scorers;
   late final List<ResultsRecord> nonScorers;
   final List<ResultsRecord> runners;
   int? place;
-  late final Duration split;
-  late final Duration avgTime;
+  late Duration split;
+  late Duration avgTime;
 
   TeamRecord({
     required this.school,
