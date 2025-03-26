@@ -18,7 +18,7 @@ import '../../results_screen/model/results_record.dart';
 import '../../results_screen/model/team_record.dart';
 
 /// Controller class responsible for all sharing logic in the app
-class ShareRaceController {
+class ShareRaceController extends ChangeNotifier {
   late final List<List<TeamRecord>> _headToHeadTeamResults;
   late final List<TeamRecord> _overallTeamResults;
   late final List<ResultsRecord> _individualResults;
@@ -42,7 +42,14 @@ class ShareRaceController {
     _formattedPdf = _getPdfDocument();
   }
 
-  ResultFormat selectedFormat = ResultFormat.plainText;
+  ResultFormat _selectedFormat = ResultFormat.plainText;
+  
+  ResultFormat get selectedFormat => _selectedFormat;
+  
+  set selectedFormat(ResultFormat format) {
+    _selectedFormat = format;
+    notifyListeners();
+  }
 
   /// Show the share race bottom sheet
   static Future<dynamic> showShareRaceSheet({
