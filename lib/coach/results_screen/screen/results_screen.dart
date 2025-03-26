@@ -1,17 +1,12 @@
-import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:xcelerate/coach/share_race/controller/share_race_controller.dart';
-import '../../../utils/csv_utils.dart';
-import '../../../core/components/dialog_utils.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
-import '../../../utils/database_helper.dart';
 import '../widgets/share_button.dart';
 import '../widgets/individual_results_widget.dart';
 import '../widgets/head_to_head_results.dart';
 import '../widgets/overall_team_results.dart';
-import '../model/results_record.dart';
-import '../model/team_record.dart';
+import '../controller/results_screen_controller.dart';
 
 class ResultsScreen extends StatefulWidget {
   final int raceId;
@@ -26,86 +21,11 @@ class ResultsScreen extends StatefulWidget {
 }
 
 class ResultsScreenState extends State<ResultsScreen> {
-  bool _isHeadToHead = false;
-  bool _isLoading = true;
-  List<ResultsRecord> _individualResults = [];
-  List<TeamRecord> _overallTeamResults = [];
-  List<TeamRecord> _individualTeamResults = [];
-  List<List<TeamRecord>> _headToHeadTeamResults = [];
-
+  late final ResultsScreenController _controller;
   @override
   void initState() {
     super.initState();
-    _calculateResults();
-  }
-
-  Future<void> _calculateResults() async {
-    final List<ResultsRecord> results = await DatabaseHelper.instance.getRaceResults(widget.raceId);
-    updateResultsPlaces(results);
-    setState(() {
-      _individualResults = List.from(results);
-    });
-
-    final List<TeamRecord> teamResults = _calculateTeams(results);
-    setState(() {
-      _overallTeamResults = List.from(teamResults);
-      sortAndPlaceTeams(_overallTeamResults);
-    });
-
-    final List<TeamRecord> individualTeamResults = List.from(teamResults);
-    for (var team in individualTeamResults) {
-      updateResultsPlaces(team.runners);
-    }
-
-    setState(() {
-      _individualTeamResults = individualTeamResults;
-    });
-
-    final List<List<TeamRecord>> headToHeadResults = [];
-    for (var i = 0; i < teamResults.length; i++) {
-      for (var j = i + 1; j < teamResults.length; j++) {
-        final teamA = TeamRecord.from(teamResults[i]);
-        final teamB = TeamRecord.from(teamResults[j]);
-        final filteredRunners = [...teamA.runners, ...teamB.runners];
-        filteredRunners.sort((a, b) => b.finishTime.compareTo(a.finishTime));
-        updateResultsPlaces(filteredRunners);
-        teamA.updateStats();
-        teamB.updateStats();
-        final matchup = [teamA, teamB];
-        sortAndPlaceTeams(matchup);
-        headToHeadResults.add(matchup);
-      }
-    }
-
-    setState(() {
-      _headToHeadTeamResults = headToHeadResults;
-      _isLoading = false;
-    });
-  }
-
-  List<TeamRecord> _calculateTeams(List<ResultsRecord> allResults) {
-    final List<TeamRecord> teams = [];
-    for (var team in groupBy(allResults, (result) => result.school).entries) {
-      final teamRecord = TeamRecord(
-        school: team.key,
-        runners: team.value,
-      );
-      teams.add(teamRecord);
-    }
-    return teams;
-  }
-
-  void updateResultsPlaces(List<ResultsRecord> results) {
-    for (int i = 0; i < results.length; i++) {
-      results[i].place = i + 1;
-    }
-  }
-
-  void sortAndPlaceTeams(List<TeamRecord> teams) {
-    teams.sort((a, b) => b.score - a.score);
-    for (int i = 0; i < teams.length; i++) {
-      teams[i].place = i + 1;
-    }
+    _controller = ResultsScreenController(raceId: widget.raceId);
   }
 
   @override
@@ -114,14 +34,14 @@ class ResultsScreenState extends State<ResultsScreen> {
       color: AppColors.backgroundColor,
       child: Stack(
         children: [
-          if (_isLoading) ...[
+          if (_controller.isLoading) ...[
             const Center(
               child: CircularProgressIndicator(),
             ),
           ] else ...[
             Column(
               children: [
-                if (_individualResults.isEmpty) ...[
+                if (_controller.individualResults.isEmpty) ...[
                   const Expanded(
                     child: Center(
                       child: Text(
@@ -173,13 +93,13 @@ class ResultsScreenState extends State<ResultsScreen> {
                                                   child: GestureDetector(
                                                     onTap: () {
                                                       setState(() {
-                                                        _isHeadToHead = false;
+                                                        _controller.isHeadToHead = false;
                                                       });
                                                     },
                                                     child: Container(
                                                       padding: const EdgeInsets.symmetric(vertical: 8),
                                                       decoration: BoxDecoration(
-                                                        color: !_isHeadToHead
+                                                        color: !_controller.isHeadToHead
                                                             ? AppColors.primaryColor
                                                             : Colors.transparent,
                                                         borderRadius:
@@ -189,7 +109,7 @@ class ResultsScreenState extends State<ResultsScreen> {
                                                         child: Text(
                                                           'Overall',
                                                           style: AppTypography.bodySemibold.copyWith(
-                                                            color: !_isHeadToHead ? Colors.white : Colors.black54,
+                                                            color: !_controller.isHeadToHead ? Colors.white : Colors.black54,
                                                           ),
                                                         ),
                                                       ),
@@ -200,13 +120,13 @@ class ResultsScreenState extends State<ResultsScreen> {
                                                   child: GestureDetector(
                                                     onTap: () {
                                                       setState(() {
-                                                        _isHeadToHead = true;
+                                                        _controller.isHeadToHead = true;
                                                       });
                                                     },
                                                     child: Container(
                                                       padding: const EdgeInsets.symmetric(vertical: 8),
                                                       decoration: BoxDecoration(
-                                                        color: _isHeadToHead
+                                                        color: _controller.isHeadToHead
                                                             ? AppColors.primaryColor
                                                             : Colors.transparent,
                                                         borderRadius:
@@ -216,7 +136,7 @@ class ResultsScreenState extends State<ResultsScreen> {
                                                         child: Text(
                                                           'Head to Head',
                                                           style: AppTypography.bodySemibold.copyWith(
-                                                            color: _isHeadToHead ? Colors.white : Colors.black54,
+                                                            color: _controller.isHeadToHead ? Colors.white : Colors.black54,
                                                           ),
                                                         ),
                                                       ),
@@ -239,19 +159,19 @@ class ResultsScreenState extends State<ResultsScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                if (!_isHeadToHead) ...[
+                                if (!_controller.isHeadToHead) ...[
                                   OverallTeamResultsWidget(
-                                    overallTeamResults: _overallTeamResults,
+                                    overallTeamResults: _controller.overallTeamResults,
                                   ),
                                 ] else ...[
                                   HeadToHeadResults(
-                                    headToHeadTeamResults: _headToHeadTeamResults,
+                                    headToHeadTeamResults: _controller.headToHeadTeamResults,
                                   ),
                                 ],
                                 const Divider(),
                                 // Individual Results Section
                                 IndividualResultsWidget(
-                                  individualResults: _individualResults,
+                                  individualResults: _controller.individualResults,
                                 ),
                                 // Add bottom padding for scrolling
                                 const SizedBox(height: 20),
@@ -273,41 +193,14 @@ class ResultsScreenState extends State<ResultsScreen> {
             child: ShareButton(onPressed: () {
               ShareRaceController.showShareRaceSheet(
                 context: context,
-                headToHeadTeamResults: _headToHeadTeamResults,
-                overallTeamResults: _overallTeamResults,
-                individualResults: _individualResults,
+                headToHeadTeamResults: _controller.headToHeadTeamResults,
+                overallTeamResults: _controller.overallTeamResults,
+                individualResults: _controller.individualResults,
               );
             }),
           ),
         ],
       ),
     );
-  }
-
-  Future<void> downloadCsv(List<Map<String, dynamic>> teamResults, List<Map<String, dynamic>> individualResults) async {
-    try {
-      // Generate CSV content
-      final csvContent = CsvUtils.generateCsvContent(
-        isHeadToHead: _isHeadToHead,
-        teamResults: teamResults,
-        individualResults: individualResults
-      );
-
-      // Define the filename
-      final filename = 'race_results.csv';
-
-      // Save CSV file
-      final filepath = await CsvUtils.saveCsvWithFileSaver(filename, csvContent);
-      if (!mounted) return;
-      if (filepath != '') {
-        DialogUtils.showSuccessDialog(context, message: 'CSV saved at $filepath');
-      }
-      else {
-        DialogUtils.showErrorDialog(context, message: 'No location selected for download');
-      }
-
-    } catch (e) {
-      DialogUtils.showErrorDialog(context, message: 'Failed to download CSV: $e');
-    }
   }
 }
