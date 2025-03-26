@@ -64,6 +64,7 @@ class LoadResultsStep extends FlowStep {
       description: 'Load the results of the race from the assistant devices.',
       content: SingleChildScrollView(
         child: LoadResultsWidget(
+          closeWhenDone: false,
           resultsLoaded: false,
           onResultsLoaded: onResultsLoaded,
           hasBibConflicts: false,

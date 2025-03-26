@@ -220,15 +220,10 @@ class RacesScreenState extends State<RacesScreen> {
 
     sheet(context: context, title: 'Create New Race', body: StatefulBuilder(
         builder: (BuildContext context, StateSetter setSheetState) {
-          return Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
-            ),
-            child: SizedBox(
-              height: MediaQuery.of(context).size.height * 0.92,
-              child: _buildCreateRaceSheetContent(
-                setSheetState,
-              ),
+          return SizedBox(
+            height: MediaQuery.of(context).size.height * 0.92,
+            child: _buildCreateRaceSheetContent(
+              setSheetState,
             ),
           );
         },
@@ -854,17 +849,12 @@ class RacesScreenState extends State<RacesScreen> {
       title: 'Edit Race',
       body: StatefulBuilder(
         builder: (BuildContext context, StateSetter setSheetState) {
-          return Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
-            ),
-            child: SizedBox(
-              height: MediaQuery.of(context).size.height * 0.92,
-              child: _buildCreateRaceSheetContent(
-                setSheetState,
-                isEditing: true,
-                raceId: race.raceId,
-              ),
+          return SizedBox(
+            height: MediaQuery.of(context).size.height * 0.92,
+            child: _buildCreateRaceSheetContent(
+              setSheetState,
+              isEditing: true,
+              raceId: race.raceId,
             ),
           );
         },

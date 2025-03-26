@@ -60,6 +60,11 @@ class PostRaceController {
   
   void _resetDevices() {
     devices.reset();
+    _loadResultsStep.resultsLoaded = false;
+    _loadResultsStep.hasBibConflicts = false;
+    _loadResultsStep.hasTimingConflicts = false;
+    _reviewResultsStep.timingData = null;
+    _reviewResultsStep.runnerRecords = null;
   }
   
   Future<void> loadResults() async {

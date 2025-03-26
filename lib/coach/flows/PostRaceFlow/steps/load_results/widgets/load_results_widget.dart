@@ -34,6 +34,9 @@ class LoadResultsWidget extends StatefulWidget {
   /// Whether to immediately load test data (for development/testing)
   final bool testMode;
 
+  /// Whether to close the flow when results are loaded
+  final bool closeWhenDone;
+
   const LoadResultsWidget({
     super.key,
     required this.resultsLoaded,
@@ -44,6 +47,7 @@ class LoadResultsWidget extends StatefulWidget {
     required this.onBibConflictsPressed,
     required this.onTimingConflictsPressed,
     required this.onResultsLoaded,
+    this.closeWhenDone = false,
     this.testMode = false,
   });
 
@@ -83,6 +87,7 @@ class _LoadResultsWidgetState extends State<LoadResultsWidget> {
                 context,
                 widget.devices,
                 callback: () => widget.onResultsLoaded(context),
+                inSheet: widget.closeWhenDone,
               ),
             )
           else if (!widget.resultsLoaded)
