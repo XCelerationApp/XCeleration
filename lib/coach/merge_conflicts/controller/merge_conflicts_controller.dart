@@ -462,4 +462,18 @@ class MergeConflictsController with ChangeNotifier {
       SnackBar(content: Text('Successfully resolved conflict')),
     );
   }
+
+  void updateSelectedTime(int conflictIndex, String newValue, String? previousValue) {
+    if (selectedTimes[conflictIndex] == null) {
+      selectedTimes[conflictIndex] = <String>[];
+    }
+    
+    selectedTimes[conflictIndex].add(newValue);
+    
+    if (previousValue != null && previousValue.isNotEmpty && previousValue != newValue) {
+      selectedTimes[conflictIndex].remove(previousValue);
+    }
+    
+    notifyListeners();
+  }
 }
