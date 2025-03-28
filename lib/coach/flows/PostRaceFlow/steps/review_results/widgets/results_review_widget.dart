@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:xcelerate/coach/merge_conflicts_screen/model/timing_data.dart';
+import 'package:xcelerate/coach/merge_conflicts/model/timing_data.dart';
 import '../../../../../race_screen/widgets/runner_record.dart' show RunnerRecord;
 import 'review_header.dart';
 import 'results_table.dart';

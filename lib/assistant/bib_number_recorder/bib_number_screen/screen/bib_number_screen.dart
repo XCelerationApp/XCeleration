@@ -74,13 +74,13 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
   }
 
   Future<void> _checkForRunners() async {
-    debugPrint('Checking for runners');
-    debugPrint('Checking for runners');
-    debugPrint((await DatabaseHelper.instance.getAllRaces()).map((race) => race.raceId).toString());
-    _runners.addAll(await DatabaseHelper.instance.getRaceRunners(3));
-    _runners.addAll(await DatabaseHelper.instance.getRaceRunners(2));
-    _runners.addAll(await DatabaseHelper.instance.getRaceRunners(1));
-    setState(() {});
+    // debugPrint('Checking for runners');
+    // debugPrint('Checking for runners');
+    // debugPrint((await DatabaseHelper.instance.getAllRaces()).map((race) => race.raceId).toString());
+    // _runners.addAll(await DatabaseHelper.instance.getRaceRunners(3));
+    // _runners.addAll(await DatabaseHelper.instance.getRaceRunners(2));
+    // _runners.addAll(await DatabaseHelper.instance.getRaceRunners(1));
+    // setState(() {});
     return;
     if (_runners.isEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {

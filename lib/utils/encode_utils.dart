@@ -1,4 +1,4 @@
-import 'package:xcelerate/coach/merge_conflicts_screen/model/timing_data.dart';
+import 'package:xcelerate/coach/merge_conflicts/model/timing_data.dart';
 
 import '../coach/race_screen/widgets/runner_record.dart';
 import 'time_formatter.dart';
