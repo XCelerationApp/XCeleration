@@ -1,3 +1,5 @@
+import 'dart:async';
+import '../../../utils/enums.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
@@ -16,9 +18,38 @@ import '../../results_screen/model/results_record.dart';
 import '../../results_screen/model/team_record.dart';
 
 /// Controller class responsible for all sharing logic in the app
-class ShareRaceController {
+class ShareRaceController extends ChangeNotifier {
+  late final List<List<TeamRecord>> _headToHeadTeamResults;
+  late final List<TeamRecord> _overallTeamResults;
+  late final List<ResultsRecord> _individualResults;
+
+  late String _formattedResultsText;
+  late List<List<dynamic>> _formattedSheetsData;
+  late pw.Document _formattedPdf;
   
-  ShareRaceController();
+  
+  
+  ShareRaceController({
+    required headToHeadTeamResults,
+    required overallTeamResults,
+    required individualResults,
+  }) {
+    _headToHeadTeamResults = headToHeadTeamResults;
+    _overallTeamResults = overallTeamResults;
+    _individualResults = individualResults;
+    _formattedResultsText = _getFormattedText();
+    _formattedSheetsData = _getSheetsData();
+    _formattedPdf = _getPdfDocument();
+  }
+
+  ResultFormat _selectedFormat = ResultFormat.plainText;
+  
+  ResultFormat get selectedFormat => _selectedFormat;
+  
+  set selectedFormat(ResultFormat format) {
+    _selectedFormat = format;
+    notifyListeners();
+  }
 
   /// Show the share race bottom sheet
   static Future<dynamic> showShareRaceSheet({
@@ -31,28 +62,129 @@ class ShareRaceController {
       context: context,
       title: 'Share Race',
       body: ShareSheetScreen(
-        headToHeadTeamResults: headToHeadTeamResults,
-        overallTeamResults: overallTeamResults,
-        individualResults: individualResults,
-        controller: ShareRaceController(),
+        controller: ShareRaceController(
+          headToHeadTeamResults: headToHeadTeamResults,
+          overallTeamResults: overallTeamResults,
+          individualResults: individualResults,
+        ),
       ),
     );
+  }
+
+  // Text Formatting Methods
+  String _getFormattedText() {
+    final StringBuffer buffer = StringBuffer();
+    
+    // Team Results Section
+    buffer.writeln('Team Results');
+    buffer.writeln('Rank\tSchool\tScore\tSplit Time\tAverage Time');
+    for (final team in _overallTeamResults) {
+      buffer.writeln(
+        '${team.place}\t${team.school}\t${team.score}\t'
+        '${team.split}\t${team.avgTime}'
+      );
+    }
+    
+    // Individual Results Section
+    buffer.writeln('\nIndividual Results');
+    buffer.writeln('Place\tName\tSchool\tTime');
+    for (final runner in _individualResults) {
+      buffer.writeln(
+        '${runner.place}\t${runner.name}\t${runner.school}\t'
+        '${runner.finishTime}'
+      );
+    }
+    
+    return buffer.toString();
+  }
+
+  // Data Formatting Methods
+  List<List<dynamic>> _getSheetsData() {
+    final List<List<dynamic>> sheetsData = [
+      // Team Results Section
+      ['Team Results'],
+      ['Rank', 'School', 'Score', 'Split Time', 'Average Time'],
+      ..._overallTeamResults.map((team) => [
+        team.place,
+        team.school,
+        team.score,
+        team.split,
+        team.avgTime,
+      ]),
+      
+      // Spacing
+      [],
+      
+      // Individual Results Section
+      ['Individual Results'],
+      ['Place', 'Name', 'School', 'Time'],
+      ..._individualResults.map((runner) => [
+        runner.place,
+        runner.name,
+        runner.school,
+        runner.finishTime,
+      ]),
+    ];
+
+    return sheetsData;
+  }
+
+  pw.Document _getPdfDocument() {
+    final pdf = pw.Document();
+
+    pdf.addPage(
+      pw.MultiPage(
+        build: (context) => [
+          // Title
+          pw.Header(
+            level: 0,
+            child: pw.Text('Race Results', style: pw.TextStyle(fontSize: 24)),
+          ),
+          
+          // Team Results Section
+          pw.Header(level: 1, child: pw.Text('Team Results')),
+          pw.TableHelper.fromTextArray(
+            headers: ['Rank', 'School', 'Score', 'Split Time', 'Average Time'],
+            data: _overallTeamResults.map((team) => [
+              team.place.toString(),
+              team.school.toString(),
+              team.score.toString(),
+              team.split.toString(),
+              team.avgTime.toString(),
+            ]).toList(),
+          ),
+          
+          pw.SizedBox(height: 20),
+          
+          // Individual Results Section
+          pw.Header(level: 1, child: pw.Text('Individual Results')),
+          pw.TableHelper.fromTextArray(
+            headers: ['Place', 'Name', 'School', 'Time'],
+            data: _individualResults.map((runner) => [
+              runner.place.toString(),
+              runner.name.toString(),
+              runner.school.toString(),
+              runner.finishTime.toString(),
+            ]).toList(),
+          ),
+        ],
+      ),
+    );
+
+    return pdf;
   }
 
   /// Export the results to Google Sheets
   Future<String?> exportToGoogleSheets(
     BuildContext context,
-    List<List<dynamic>> sheetsData,
   ) async {
-    return await ShareUtils.exportToGoogleSheets(context, sheetsData);
+    return await ShareUtils.exportToGoogleSheets(context, _formattedSheetsData);
   }
   
   /// Save results locally to a file
   Future<void> saveLocally(
     BuildContext context, 
     ResultFormat format,
-    String formattedText,
-    Future<pw.Document> Function() generatePdf
   ) async {
     try {
       final String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
@@ -62,10 +194,9 @@ class ShareRaceController {
       final file = File(path.join(selectedDirectory, 'race_results.$extension'));
 
       if (format == ResultFormat.pdf) {
-        final pdfData = await generatePdf();
-        await file.writeAsBytes(await pdfData.save());
+        await file.writeAsBytes(await _formattedPdf.save());
       } else {
-        await file.writeAsString(formattedText);
+        await file.writeAsString(_formattedResultsText);
       }
 
       if (context.mounted) {
@@ -84,14 +215,11 @@ class ShareRaceController {
   Future<void> copyToClipboard(
     BuildContext context, 
     ResultFormat format,
-    String formattedText,
-    List<List<dynamic>> Function() getSheetsData,
   ) async {
     try {
       switch (format) {
         case ResultFormat.googleSheet:
-          final sheetsData = getSheetsData();
-          final sheetUrl = await exportToGoogleSheets(context, sheetsData);
+          final sheetUrl = await exportToGoogleSheets(context);
           if (sheetUrl != null) {
             await Clipboard.setData(ClipboardData(text: sheetUrl));
           }
@@ -105,7 +233,7 @@ class ShareRaceController {
           return;
         
         case ResultFormat.plainText:
-          await Clipboard.setData(ClipboardData(text: formattedText));
+          await Clipboard.setData(ClipboardData(text: _formattedResultsText));
           break;
       }
 
@@ -125,15 +253,11 @@ class ShareRaceController {
   Future<void> sendEmail(
     BuildContext context, 
     ResultFormat format,
-    String formattedText,
-    List<List<dynamic>> Function() getSheetsData,
-    Future<pw.Document> Function() generatePdf,
   ) async {
     try {
       switch (format) {
         case ResultFormat.googleSheet:
-          final sheetsData = getSheetsData();
-          final sheetUrl = await exportToGoogleSheets(context, sheetsData);
+          final sheetUrl = await exportToGoogleSheets(context);
           if (sheetUrl != null) {
             await _launchEmail(
               context: context,
@@ -144,7 +268,7 @@ class ShareRaceController {
           break;
 
         case ResultFormat.pdf:
-          final pdfData = await generatePdf();
+          final pdfData = _formattedPdf;
           final bytes = await pdfData.save();
           final base64Pdf = base64Encode(bytes);
           
@@ -160,7 +284,7 @@ class ShareRaceController {
           await _launchEmail(
             context: context,
             subject: 'Race Results',
-            body: formattedText,
+            body: _formattedResultsText,
           );
           break;
       }
@@ -175,18 +299,14 @@ class ShareRaceController {
   Future<void> sendSms(
     BuildContext context, 
     ResultFormat format,
-    String formattedText,
-    List<List<dynamic>> Function() getSheetsData,
-    Future<pw.Document> Function() generatePdf,
   ) async {
     try {
       String messageBody;
       if (format == ResultFormat.googleSheet) {
-        final sheetsData = getSheetsData();
-        final sheetUrl = await exportToGoogleSheets(context, sheetsData);
+        final sheetUrl = await exportToGoogleSheets(context);
         messageBody = sheetUrl ?? 'Race results not available';
       } else if (format == ResultFormat.pdf) {
-        final pdfData = await generatePdf();
+        final pdfData = _formattedPdf;
         final bytes = await pdfData.save();
         
         final Uri smsLaunchUri = Uri.parse('sms:?&body=Please find the race results attached.');
@@ -205,7 +325,7 @@ class ShareRaceController {
         }
         return;
       } else {
-        messageBody = formattedText;
+        messageBody = _formattedResultsText;
       }
 
       final Uri smsLaunchUri = Uri.parse('sms:&body=${Uri.encodeComponent(messageBody)}');
