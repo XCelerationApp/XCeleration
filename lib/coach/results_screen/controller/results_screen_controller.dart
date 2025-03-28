@@ -3,7 +3,6 @@ import '../model/team_record.dart';
 import 'package:collection/collection.dart';
 import 'package:xcelerate/utils/database_helper.dart';
 
-
 class ResultsScreenController {
   final int raceId;
   bool isHeadToHead = false;
@@ -12,6 +11,10 @@ class ResultsScreenController {
   List<TeamRecord> overallTeamResults = [];
   List<TeamRecord> individualTeamResults = [];
   List<List<TeamRecord>> headToHeadTeamResults = [];
+  
+  // Track expanded states
+  final Map<String, bool> expandedTeams = {};
+  bool expandedIndividuals = false;
 
   ResultsScreenController({
     required this.raceId,
@@ -19,13 +22,60 @@ class ResultsScreenController {
     _calculateResults();
   }
 
+  // Get top N runners from individual results
+  List<ResultsRecord> getTopRunners(int count) {
+    if (individualResults.isEmpty) return [];
+    return individualResults.take(count).toList();
+  }
+  
+  // Toggle expansion state for a team
+  void toggleTeamExpansion(String teamName) {
+    expandedTeams[teamName] = !(expandedTeams[teamName] ?? false);
+  }
+  
+  // Toggle expansion state for individual results
+  void toggleIndividualExpansion() {
+    expandedIndividuals = !expandedIndividuals;
+  }
+  
+  // Get race summary data
+  Map<String, dynamic> getRaceSummary() {
+    if (individualResults.isEmpty) {
+      return {
+        'totalRunners': 0,
+        'totalTeams': 0,
+        'fastestTime': '--:--',
+        'averageTime': '--:--',
+      };
+    }
+    
+    final fastestRunner = individualResults.first;
+    
+    // Calculate average time in milliseconds
+    int totalMs = 0;
+    for (var runner in individualResults) {
+      totalMs += runner.finishTime.inMilliseconds;
+    }
+    final avgTimeMs = totalMs ~/ individualResults.length;
+    
+    // Format average time
+    final avgMinutes = (avgTimeMs ~/ 60000).toString().padLeft(2, '0');
+    final avgSeconds = ((avgTimeMs % 60000) ~/ 1000).toString().padLeft(2, '0');
+    
+    return {
+      'totalRunners': individualResults.length,
+      'totalTeams': overallTeamResults.length,
+      'fastestTime': fastestRunner.formattedFinishTime,
+      'averageTime': '$avgMinutes:$avgSeconds',
+    };
+  }
 
   Future<void> _calculateResults() async {
     final List<ResultsRecord> results = await DatabaseHelper.instance.getRaceResults(raceId);
-    updateResultsPlaces(results);
+    // updateResultsPlaces(results);
     individualResults = List.from(results);
 
-    final List<TeamRecord> teamResults = _calculateTeams(results);
+    final List<TeamRecord> teamResults = _calculateTeams(List.from(results));
     overallTeamResults = List.from(teamResults);
     sortAndPlaceTeams(overallTeamResults);
 
@@ -42,7 +92,7 @@ class ResultsScreenController {
         final teamA = TeamRecord.from(teamResults[i]);
         final teamB = TeamRecord.from(teamResults[j]);
         final filteredRunners = [...teamA.runners, ...teamB.runners];
-        filteredRunners.sort((a, b) => b.finishTime.compareTo(a.finishTime));
+        filteredRunners.sort((a, b) => a.finishTime.compareTo(b.finishTime));
         updateResultsPlaces(filteredRunners);
         teamA.updateStats();
         teamB.updateStats();
@@ -75,10 +125,9 @@ class ResultsScreenController {
   }
 
   void sortAndPlaceTeams(List<TeamRecord> teams) {
-    teams.sort((a, b) => b.score - a.score);
+    teams.sort((a, b) => a.score - b.score);
     for (int i = 0; i < teams.length; i++) {
       teams[i].place = i + 1;
     }
   }
 }
-  

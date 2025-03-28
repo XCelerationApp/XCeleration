@@ -424,27 +424,23 @@ class DatabaseHelper {
     if (rawResults != null && rawResults.isNotEmpty) {
       final results = rawResults.map((r) => ResultsRecord.fromMap(r)).toList();
       results.sort((a, b) => a.finishTime.compareTo(b.finishTime));
-      return results;
+      // return results;
     }
     // Fallback to test data if query fails or for other race IDs
-    return [
-      ResultsRecord(
-        bib: '1001',
-        name: 'John Doe',
-        school: 'Test School',
-        grade: 5,
-        place: 1,
-        finishTime: Duration(seconds: 5),
-      ),
-      ResultsRecord(
-        bib: '1002',
-        name: 'Jane Doe',
-        school: 'Test School',
-        grade: 5,
-        place: 2,
-        finishTime: Duration(seconds: 6),
-      ),
-    ];
+    List<ResultsRecord> results = [];
+    for (int i = 0; i < 20; i++) {
+      results.add(
+        ResultsRecord(
+          bib: '${1001 + i}',
+          name: 'John Doe',
+          school: ['AW', 'TL', 'SR'][i % 3],
+          grade: 9,
+          place: i + 1,
+          finishTime: Duration(seconds: 5 + i),
+        ),
+      );
+    }
+    return results;
   }
 
   Future<List<TimingRecord>> getAllResults() async {
