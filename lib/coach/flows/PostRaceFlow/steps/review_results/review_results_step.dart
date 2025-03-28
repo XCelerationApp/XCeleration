@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:xcelerate/coach/flows/model/flow_model.dart';
 import '../../../../race_screen/widgets/runner_record.dart';
 import 'widgets/results_review_widget.dart';
-import 'package:xcelerate/coach/merge_conflicts_screen/model/timing_data.dart';
+import 'package:xcelerate/coach/merge_conflicts/model/timing_data.dart';
 
 /// A FlowStep implementation for the review results step in the post-race flow
 class ReviewResultsStep extends FlowStep {

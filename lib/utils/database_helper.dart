@@ -1,6 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
-import 'package:xcelerate/coach/merge_conflicts_screen/model/timing_data.dart';
+import 'package:xcelerate/coach/merge_conflicts/model/timing_data.dart';
 import 'package:xcelerate/assistant/race_timer/timing_screen/model/timing_record.dart';
 import 'package:xcelerate/utils/enums.dart' show RecordType;
 import '../../../shared/models/race.dart';

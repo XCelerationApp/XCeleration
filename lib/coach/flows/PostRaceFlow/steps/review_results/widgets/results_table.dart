@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:xcelerate/core/theme/app_colors.dart';
 import 'package:xcelerate/core/theme/typography.dart';
-import 'package:xcelerate/coach/merge_conflicts_screen/model/timing_data.dart';
+import 'package:xcelerate/coach/merge_conflicts/model/timing_data.dart';
 import 'package:xcelerate/assistant/race_timer/timing_screen/model/timing_record.dart';
 import 'package:xcelerate/coach/race_screen/widgets/runner_record.dart';
 

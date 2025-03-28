@@ -266,7 +266,7 @@ Widget buildRoleButton(BuildContext context, String currentRole) {
       onTap: () {
         changeRole(context, currentRole);
       },
-      child: Icon(Icons.person_outline, color: AppColors.darkColor, size: 48)
+      child: Icon(Icons.person_outline, color: AppColors.darkColor, size: 56)
     ),
   );
   // return TextButton(
