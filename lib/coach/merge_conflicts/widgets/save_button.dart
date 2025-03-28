@@ -9,26 +9,48 @@ class SaveButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-      child: ElevatedButton(
-        onPressed: () => controller.saveResults(),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primaryColor,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          elevation: 2,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.check_circle, size: 20),
-            const SizedBox(width: 8),
-            const Text(
-              'Finished Merging Conflicts',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: () => controller.saveResults(),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            decoration: BoxDecoration(
+              color: AppColors.primaryColor,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primaryColor.withOpacity(0.2),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-          ],
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.check_circle,
+                    size: 24,
+                    color: Colors.white,
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Finished Merging Conflicts',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
