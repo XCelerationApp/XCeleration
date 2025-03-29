@@ -85,7 +85,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
   @override
   void dispose() {
     // Remove the listener when the widget is disposed
-    _controller.removeListener(_rebuildUi);
+    _controller.dispose();
     super.dispose();
   }
 }

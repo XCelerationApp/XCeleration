@@ -17,7 +17,7 @@ import '../../../core/components/dialog_utils.dart';
 import '../../../utils/enums.dart';
 // import '../model/timing_data.dart';
 // import '../model/joined_record.dart';
-import '../../../assistant/race_timer/timing_screen/model/timing_record.dart';
+import '../../../assistant/race_timer/model/timing_record.dart';
 // import '../../../core/components/instruction_card.dart';
 // import '../../race_screen/model/race_result.dart';
 
@@ -475,5 +475,11 @@ class MergeConflictsController with ChangeNotifier {
     }
     
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _context = null;
+    super.dispose();
   }
 }

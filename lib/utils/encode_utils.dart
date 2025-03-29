@@ -6,7 +6,7 @@ import '../core/components/dialog_utils.dart';
 import 'runner_time_functions.dart';
 import 'package:flutter/material.dart';
 import 'database_helper.dart';
-import '../assistant/race_timer/timing_screen/model/timing_record.dart';
+import '../assistant/race_timer/model/timing_record.dart';
 import '../utils/enums.dart';
 
 Future<TimingData> decodeRaceTimesString(String encodedData) async {

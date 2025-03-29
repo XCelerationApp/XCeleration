@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../utils/enums.dart';
-import '../../../assistant/race_timer/timing_screen/model/timing_record.dart';
+import '../../../assistant/race_timer/model/timing_record.dart';
 
 class ConflictHeader extends StatelessWidget {
   const ConflictHeader({

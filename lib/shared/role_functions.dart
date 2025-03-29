@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../coach/races_screen/screen/races_screen.dart';
-import '../assistant/race_timer/timing_screen/screen/timing_screen.dart';
-import '../assistant/bib_number_recorder/bib_number_screen/screen/bib_number_screen.dart';
+import '../assistant/race_timer/screen/timing_screen.dart';
+import '../assistant/bib_number_recorder/screen/bib_number_screen.dart';
 import '../core/theme/app_colors.dart';
 import '../core/components/dialog_utils.dart';
 import '../utils/sheet_utils.dart';
