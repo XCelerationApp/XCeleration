@@ -3,11 +3,11 @@ import 'package:xcelerate/coach/share_race/controller/share_race_controller.dart
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
 import '../widgets/share_button.dart';
-import '../widgets/results_overview_widget.dart';
-import '../widgets/collapsible_results_widget.dart';
+import '../widgets/individual_results_widget.dart';
+import '../widgets/head_to_head_results.dart';
 import '../widgets/team_results_widget.dart';
-import '../widgets/collapsible_head_to_head_results.dart';
 import '../controller/results_screen_controller.dart';
+
 
 class ResultsScreen extends StatefulWidget {
   final int raceId;
@@ -59,141 +59,21 @@ class ResultsScreenState extends State<ResultsScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Overview section
-                            ResultsOverviewWidget(
-                              controller: _controller,
-                            ),
-                            
-                            // View toggle control (Overall / Head to Head)
-                            Container(
-                              margin: const EdgeInsets.only(bottom: 16.0),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.05),
-                                    blurRadius: 4,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-                              child: Row(
-                                children: [
-                                  const Text(
-                                    'View:',
-                                    style: AppTypography.bodyRegular,
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        color: AppColors.backgroundColor,
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Expanded(
-                                            child: GestureDetector(
-                                              onTap: () {
-                                                setState(() {
-                                                  _controller.isHeadToHead = false;
-                                                });
-                                              },
-                                              child: Container(
-                                                padding: const EdgeInsets.symmetric(vertical: 8),
-                                                decoration: BoxDecoration(
-                                                  color: !_controller.isHeadToHead
-                                                      ? AppColors.primaryColor
-                                                      : Colors.transparent,
-                                                  borderRadius:
-                                                      const BorderRadius.horizontal(left: Radius.circular(8)),
-                                                ),
-                                                child: Center(
-                                                  child: Text(
-                                                    'Overall',
-                                                    style: AppTypography.bodySemibold.copyWith(
-                                                      color: !_controller.isHeadToHead ? Colors.white : Colors.black54,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                          Expanded(
-                                            child: GestureDetector(
-                                              onTap: () {
-                                                setState(() {
-                                                  _controller.isHeadToHead = true;
-                                                });
-                                              },
-                                              child: Container(
-                                                padding: const EdgeInsets.symmetric(vertical: 8),
-                                                decoration: BoxDecoration(
-                                                  color: _controller.isHeadToHead
-                                                      ? AppColors.primaryColor
-                                                      : Colors.transparent,
-                                                  borderRadius:
-                                                      const BorderRadius.horizontal(right: Radius.circular(8)),
-                                                ),
-                                                child: Center(
-                                                  child: Text(
-                                                    'Head to Head',
-                                                    style: AppTypography.bodySemibold.copyWith(
-                                                      color: _controller.isHeadToHead ? Colors.white : Colors.black54,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            
-                            // Content based on selected view
-                            if (!_controller.isHeadToHead) ...[
-                              // Team Results Widget
-                              TeamResultsWidget(
-                                teams: _controller.overallTeamResults,
-                                expandedTeams: _controller.expandedTeams,
-                                onToggleTeam: (teamName) {
-                                  setState(() {
-                                    _controller.toggleTeamExpansion(teamName);
-                                  });
-                                },
-                              ),
-                              
-                              // Individual Results Widget
-                              CollapsibleResultsWidget(
-                                allResults: _controller.individualResults,
-                                initialVisibleCount: 3,
-                                isExpanded: _controller.expandedIndividuals,
-                                onToggleExpansion: () {
-                                  setState(() {
-                                    _controller.toggleIndividualExpansion();
-                                  });
-                                },
+                            if (_controller.overallTeamResults.length == 2) ...[
+                              // Head to Head Results
+                              HeadToHeadResults(
+                                controller: _controller,
                               ),
                             ] else ...[
-                              // Head to Head Results
-                              CollapsibleHeadToHeadResults(
-                                headToHeadTeamResults: _controller.headToHeadTeamResults,
-                                expandedMatchups: _controller.expandedTeams,
-                                onToggleMatchup: (matchupId) {
-                                  setState(() {
-                                    _controller.toggleTeamExpansion(matchupId);
-                                  });
-                                },
+                              TeamResultsWidget(
+                                controller: _controller,
                               ),
                             ],
-                            
+                            // Individual Results Widget
+                            IndividualResultsWidget(
+                              controller: _controller,
+                              initialVisibleCount: 5,
+                            ),
                             // Add bottom padding for scrolling
                             const SizedBox(height: 80),
                           ],
@@ -212,7 +92,7 @@ class ResultsScreenState extends State<ResultsScreen> {
             child: ShareButton(onPressed: () {
               ShareRaceController.showShareRaceSheet(
                 context: context,
-                headToHeadTeamResults: _controller.headToHeadTeamResults,
+                headToHeadTeamResults: _controller.headToHeadTeamResults!,
                 individualResults: _controller.individualResults,
                 overallTeamResults: _controller.overallTeamResults,
               );

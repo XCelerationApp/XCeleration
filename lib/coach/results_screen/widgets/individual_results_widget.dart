@@ -1,43 +1,62 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/typography.dart';
-import '../model/results_record.dart';
+import '../controller/results_screen_controller.dart';
+import 'collapsible_results_widget.dart';
 
 class IndividualResultsWidget extends StatelessWidget {
-  final List<ResultsRecord> individualResults;
-  
+  final ResultsScreenController controller;
+  final int initialVisibleCount;
+
+
   const IndividualResultsWidget({
     super.key,
-    required this.individualResults,
+    required this.controller,
+    this.initialVisibleCount = 5,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(
-          'Individual Results',
-          style: AppTypography.titleSemibold,
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Individual Results',
+                  style: AppTypography.titleSemibold,
+                ),
+                Text(
+                  '${controller.individualResults.length} Runners',
+                  style: AppTypography.bodyRegular.copyWith(
+                    color: Colors.black54,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            CollapsibleResultsWidget(
+              results: controller.individualResults,
+              initialVisibleCount: initialVisibleCount,
+            ),
+          ],
         ),
-        const SizedBox(height: 8),
-        ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: individualResults.length,
-          itemBuilder: (context, index) {
-            final runner = individualResults[index];
-            return ListTile(
-              title: Text(
-                '${index + 1}. ${runner.name} (${runner.school})',
-                style: AppTypography.bodyRegular,
-              ),
-              subtitle: Text(
-                'Time: ${runner.formattedFinishTime} | Grade: ${runner.grade} | Bib: ${runner.bib}',
-                style: AppTypography.bodyRegular,
-              ),
-            );
-          },
-        ),
-      ],
+      ),
     );
   }
 }

@@ -1,33 +1,55 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/typography.dart';
-import '../model/team_record.dart';
-import 'head_to_head_results_card.dart';
-
+import 'head_to_head_results_widget.dart';
+import '../controller/results_screen_controller.dart';
 
 class HeadToHeadResults extends StatelessWidget {
-  final List<List<TeamRecord>> headToHeadTeamResults;
-
-  const HeadToHeadResults({super.key, required this.headToHeadTeamResults});
+  final ResultsScreenController controller;
+  const HeadToHeadResults({
+    super.key,
+    required this.controller,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(
-          'Head-to-Head Results',
-          style: AppTypography.titleSemibold,
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Head to Head Results',
+              style: AppTypography.titleSemibold,
+            ),
+            const SizedBox(height: 16),
+            if (controller.headToHeadTeamResults != null && controller.headToHeadTeamResults!.isEmpty)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Text(
+                    'No head to head results available',
+                    style: AppTypography.bodyRegular,
+                  ),
+                ),
+              )
+            else
+              ...controller.headToHeadTeamResults!.map((matchup) => HeadToHeadResultsWidget(matchup: matchup)),
+          ],
         ),
-        const SizedBox(height: 8),
-        ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: headToHeadTeamResults.length,
-          itemBuilder: (context, index) {
-            final matchup = headToHeadTeamResults[index];
-            return HeadToHeadResultsCard(team1: matchup[0], team2: matchup[1]);
-          },
-        )
-      ],
+      ),
     );
   }
 }

@@ -20,6 +20,17 @@ class ResultsRecord {
     _finishTime = finishTime;
     _formattedFinishTime = TimeFormatter.formatDuration(finishTime);
   }
+  
+  // Copy constructor to create independent copies
+  ResultsRecord.copy(ResultsRecord other)
+      : place = other.place,
+        name = other.name,
+        school = other.school,
+        grade = other.grade,
+        bib = other.bib {
+    _finishTime = other._finishTime;
+    _formattedFinishTime = other._formattedFinishTime;
+  }
 
   String get formattedFinishTime => _formattedFinishTime;
   Duration get finishTime => _finishTime;

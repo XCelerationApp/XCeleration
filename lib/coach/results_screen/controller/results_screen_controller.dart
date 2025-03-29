@@ -5,16 +5,10 @@ import 'package:xcelerate/utils/database_helper.dart';
 
 class ResultsScreenController {
   final int raceId;
-  bool isHeadToHead = false;
   bool isLoading = true;
   List<ResultsRecord> individualResults = [];
   List<TeamRecord> overallTeamResults = [];
-  List<TeamRecord> individualTeamResults = [];
-  List<List<TeamRecord>> headToHeadTeamResults = [];
-  
-  // Track expanded states
-  final Map<String, bool> expandedTeams = {};
-  bool expandedIndividuals = false;
+  List<List<TeamRecord>>? headToHeadTeamResults;
 
   ResultsScreenController({
     required this.raceId,
@@ -27,75 +21,44 @@ class ResultsScreenController {
     if (individualResults.isEmpty) return [];
     return individualResults.take(count).toList();
   }
-  
-  // Toggle expansion state for a team
-  void toggleTeamExpansion(String teamName) {
-    expandedTeams[teamName] = !(expandedTeams[teamName] ?? false);
-  }
-  
-  // Toggle expansion state for individual results
-  void toggleIndividualExpansion() {
-    expandedIndividuals = !expandedIndividuals;
-  }
-  
-  // Get race summary data
-  Map<String, dynamic> getRaceSummary() {
-    if (individualResults.isEmpty) {
-      return {
-        'totalRunners': 0,
-        'totalTeams': 0,
-        'fastestTime': '--:--',
-        'averageTime': '--:--',
-      };
-    }
-    
-    final fastestRunner = individualResults.first;
-    
-    // Calculate average time in milliseconds
-    int totalMs = 0;
-    for (var runner in individualResults) {
-      totalMs += runner.finishTime.inMilliseconds;
-    }
-    final avgTimeMs = totalMs ~/ individualResults.length;
-    
-    // Format average time
-    final avgMinutes = (avgTimeMs ~/ 60000).toString().padLeft(2, '0');
-    final avgSeconds = ((avgTimeMs % 60000) ~/ 1000).toString().padLeft(2, '0');
-    
-    return {
-      'totalRunners': individualResults.length,
-      'totalTeams': overallTeamResults.length,
-      'fastestTime': fastestRunner.formattedFinishTime,
-      'averageTime': '$avgMinutes:$avgSeconds',
-    };
-  }
 
   Future<void> _calculateResults() async {
+    // Get race results from database
     final List<ResultsRecord> results = await DatabaseHelper.instance.getRaceResults(raceId);
-    // updateResultsPlaces(results);
-    individualResults = List.from(results);
+    
+    // DEEP COPY: Create completely independent copies for individual results
+    individualResults = results.map((r) => ResultsRecord.copy(r)).toList();
 
-    final List<TeamRecord> teamResults = _calculateTeams(List.from(results));
-    overallTeamResults = List.from(teamResults);
-    sortAndPlaceTeams(overallTeamResults);
+    // Calculate teams from the original results (don't reuse individualResults to avoid cross-contamination)
+    // Using original results ensures team calculations don't affect individual results
+    final List<TeamRecord> teamResults = _calculateTeams(results);
 
-    final List<TeamRecord> individualTeamResultsCopy = List.from(teamResults);
-    for (var team in individualTeamResultsCopy) {
-      updateResultsPlaces(team.runners);
+    sortAndPlaceTeams(teamResults);
+
+    // DEEP COPY: Create completely independent copies for overall team results
+    overallTeamResults = teamResults.map((r) => TeamRecord.from(r)).toList();    
+    if (teamResults.length > 3) {
+      isLoading = false;
+      return;
     }
-
-    individualTeamResults = individualTeamResultsCopy;
-
+    // Calculate head-to-head matchups
     final List<List<TeamRecord>> headToHeadResults = [];
     for (var i = 0; i < teamResults.length; i++) {
       for (var j = i + 1; j < teamResults.length; j++) {
+        // DEEP COPY: Create independent copies for each head-to-head matchup
         final teamA = TeamRecord.from(teamResults[i]);
         final teamB = TeamRecord.from(teamResults[j]);
+        
+        // Combine and sort runners for this specific matchup
+        // These are already deep copies from TeamRecord.from
         final filteredRunners = [...teamA.runners, ...teamB.runners];
         filteredRunners.sort((a, b) => a.finishTime.compareTo(b.finishTime));
         updateResultsPlaces(filteredRunners);
+        
+        // Update stats based on the new places
         teamA.updateStats();
         teamB.updateStats();
+        
         final matchup = [teamA, teamB];
         sortAndPlaceTeams(matchup);
         headToHeadResults.add(matchup);

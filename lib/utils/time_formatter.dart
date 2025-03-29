@@ -1,12 +1,14 @@
 String formatDuration(Duration duration) {
   final hours = duration.inHours;
   final minutes = (duration.inMinutes % 60);
-  final seconds = ((duration.inMilliseconds / 1000) % 60).toStringAsFixed(2); // Round to 2 decimal places
+  // Format seconds with exactly 2 decimal places
+  final seconds = ((duration.inMilliseconds / 1000) % 60).toStringAsFixed(2); 
+  
   if (hours > 0) {
-    return '$hours:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(5, '0')}';
+    return '$hours:${minutes.toString().padLeft(2, '0')}:${seconds.padLeft(5, '0')}';
   }
   else if (minutes > 0){
-    return'$minutes:${seconds.toString().padLeft(5, '0')}';
+    return '$minutes:${seconds.padLeft(5, '0')}';
   }
   else {
     return seconds;
@@ -19,7 +21,8 @@ String formatDurationWithZeros(Duration duration) {
   final minutes = (duration.inMinutes % 60);
   
   final minutesString = minutes.toString().padLeft(2, '0');
-  final seconds = ((duration.inMilliseconds / 1000) % 60).toStringAsFixed(2); // Round to 2 decimal places
+  // Format seconds with exactly 2 decimal places
+  final seconds = ((duration.inMilliseconds / 1000) % 60).toStringAsFixed(2); 
   final secondsString = seconds.padLeft(5, '0');
   
   return '$hoursString:$minutesString:$secondsString';

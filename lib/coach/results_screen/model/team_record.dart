@@ -26,7 +26,8 @@ class TeamRecord {
   factory TeamRecord.from(TeamRecord other) =>
     TeamRecord(
       school: other.school,
-      runners: other.runners,
+      // Create deep copies of all runners to prevent reference issues
+      runners: other.runners.map((r) => ResultsRecord.copy(r)).toList(),
       place: other.place,
     );
 

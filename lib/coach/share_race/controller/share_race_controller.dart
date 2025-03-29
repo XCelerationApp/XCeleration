@@ -85,7 +85,22 @@ class ShareRaceController extends ChangeNotifier {
       );
     }
     
-    // Individual Results Section
+    // Head-to-Head Team Results Section
+    buffer.writeln('Head-to-Head Team Results');
+    buffer.writeln('Rank\tSchool\tScore\tSplit Time\tAverage Time');
+    for (final matchup in _headToHeadTeamResults) {
+      final team1 = matchup[0];
+      final team2 = matchup[1];
+      buffer.writeln(
+        '${team1.place}\t${team1.school}\t${team1.score}\t'
+        '${team1.split}\t${team1.avgTime}'
+      );
+      buffer.writeln(
+        '${team2.place}\t${team2.school}\t${team2.score}\t'
+        '${team2.split}\t${team2.avgTime}'
+      );
+    }
+        // Individual Results Section
     buffer.writeln('\nIndividual Results');
     buffer.writeln('Place\tName\tSchool\tTime');
     for (final runner in _individualResults) {
