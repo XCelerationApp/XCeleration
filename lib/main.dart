@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'assistant/race_timer/model/timing_data.dart';
-import 'assistant/bib_number_recorder/bib_number_screen/model/bib_records_provider.dart';
+import 'assistant/bib_number_recorder/model/bib_records_provider.dart';
 import 'core/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';

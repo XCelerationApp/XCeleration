@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../../../core/theme/app_colors.dart';
-import '../../../../../core/services/tutorial_manager.dart';
-import '../../../../../core/components/coach_mark.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/services/tutorial_manager.dart';
+import '../../../../core/components/coach_mark.dart';
 
 class AddButtonWidget extends StatelessWidget {
   final TutorialManager tutorialManager;

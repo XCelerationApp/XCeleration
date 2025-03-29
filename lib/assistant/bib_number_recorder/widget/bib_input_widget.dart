@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:xcelerate/coach/race_screen/widgets/runner_record.dart';
 import '../model/bib_records_provider.dart';
-import '../../../../../core/theme/typography.dart';
+import '../../../../core/theme/typography.dart';
 
 class BibInputWidget extends StatelessWidget {
   final int index;

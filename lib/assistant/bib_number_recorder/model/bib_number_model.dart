@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../../../coach/race_screen/widgets/runner_record.dart';
+import '../../../coach/race_screen/widgets/runner_record.dart';
 import 'bib_records_provider.dart';
-import '../../../../../utils/enums.dart';
+import '../../../../utils/enums.dart';
 import 'package:provider/provider.dart';
-import '../../../../../core/services/device_connection_service.dart';
+import '../../../../core/services/device_connection_service.dart';
 
 class BibNumberModel {
   final List<RunnerRecord> runners;

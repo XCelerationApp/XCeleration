@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:xcelerate/coach/race_screen/widgets/runner_record.dart';
 import 'package:xcelerate/core/services/device_connection_service.dart';
 import '../model/bib_records_provider.dart';
-import '../../../../../core/components/dialog_utils.dart';
+import '../../../../core/components/dialog_utils.dart';
 import 'package:provider/provider.dart';
 
 class BibNumberController {

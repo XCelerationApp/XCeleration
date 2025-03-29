@@ -10,14 +10,14 @@ import '../widget/bottom_action_buttons_widget.dart';
 import '../widget/keyboard_accessory_bar.dart';
 import '../widget/stats_header_widget.dart';
 import '../widget/bib_list_widget.dart';
-import '../../../../core/components/dialog_utils.dart';
-import '../../../../core/components/device_connection_widget.dart';
-import '../../../../core/services/device_connection_service.dart';
-import '../../../../core/services/tutorial_manager.dart';
-import '../../../../utils/enums.dart';
-import '../../../../utils/sheet_utils.dart';
-import '../../../../shared/role_functions.dart';
-import '../../../../utils/encode_utils.dart';
+import '../../../core/components/dialog_utils.dart';
+import '../../../core/components/device_connection_widget.dart';
+import '../../../core/services/device_connection_service.dart';
+import '../../../core/services/tutorial_manager.dart';
+import '../../../utils/enums.dart';
+import '../../../utils/sheet_utils.dart';
+import '../../../shared/role_functions.dart';
+import '../../../utils/encode_utils.dart';
 
 class BibNumberScreen extends StatefulWidget {
   const BibNumberScreen({super.key});

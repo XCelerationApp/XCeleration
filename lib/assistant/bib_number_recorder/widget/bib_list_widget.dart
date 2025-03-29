@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../model/bib_records_provider.dart';
 import '../controller/bib_number_controller.dart';
-import './bib_input_widget.dart';
-import './add_button_widget.dart';
-import '../../../../core/components/dialog_utils.dart';
-import '../../../../core/services/tutorial_manager.dart';
+import 'bib_input_widget.dart';
+import 'add_button_widget.dart';
+import '../../../core/components/dialog_utils.dart';
+import '../../../core/services/tutorial_manager.dart';
 
 class BibListWidget extends StatelessWidget {
   final ScrollController scrollController;
