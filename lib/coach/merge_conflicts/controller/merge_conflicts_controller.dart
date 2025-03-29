@@ -476,4 +476,10 @@ class MergeConflictsController with ChangeNotifier {
     
     notifyListeners();
   }
+
+  @override
+  void dispose() {
+    _context = null;
+    super.dispose();
+  }
 }
