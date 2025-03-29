@@ -14,8 +14,8 @@ import '../../../../../utils/sheet_utils.dart';
 import '../../../../../utils/share_utils.dart';
 import '../../../../../core/components/dialog_utils.dart';
 import '../screen/share_race_screen.dart';
-import '../../results/model/results_record.dart';
-import '../../results/model/team_record.dart';
+import '../../race_results/model/results_record.dart';
+import '../../race_results/model/team_record.dart';
 
 /// Controller class responsible for all sharing logic in the app
 class ShareRaceController extends ChangeNotifier {

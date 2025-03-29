@@ -6,7 +6,7 @@ import '../widgets/share_button.dart';
 import '../widgets/individual_results_widget.dart';
 import '../widgets/head_to_head_results.dart';
 import '../widgets/team_results_widget.dart';
-import '../controller/results_controller.dart';
+import '../controller/race_results_controller.dart';
 
 
 class ResultsScreen extends StatefulWidget {
@@ -22,11 +22,11 @@ class ResultsScreen extends StatefulWidget {
 }
 
 class ResultsScreenState extends State<ResultsScreen> {
-  late final ResultsController _controller;
+  late final RaceResultsController _controller;
   @override
   void initState() {
     super.initState();
-    _controller = ResultsController(raceId: widget.raceId);
+    _controller = RaceResultsController(raceId: widget.raceId);
   }
 
   @override

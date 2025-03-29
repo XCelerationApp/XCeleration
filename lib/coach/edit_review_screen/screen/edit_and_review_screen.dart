@@ -7,7 +7,7 @@ import 'package:xcelerate/coach/merge_conflicts/model/timing_data.dart';
 import 'package:xcelerate/utils/database_helper.dart';
 import 'package:xcelerate/utils/enums.dart';
 import '../../../../utils/time_formatter.dart';
-import '../../results/screen/results_screen.dart';
+import '../../race_results/screen/results_screen.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../core/components/dialog_utils.dart';
 import '../../../../utils/runner_time_functions.dart';

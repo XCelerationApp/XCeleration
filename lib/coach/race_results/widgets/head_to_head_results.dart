@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:xcelerate/coach/results/widgets/collapsible_results_widget.dart';
 import '../../../core/theme/typography.dart';
-import '../controller/results_controller.dart';
+import 'head_to_head_results_widget.dart';
+import '../controller/race_results_controller.dart';
 
-class TeamResultsWidget extends StatelessWidget {
-  final ResultsController controller;
-
-  const TeamResultsWidget({
+class HeadToHeadResults extends StatelessWidget {
+  final RaceResultsController controller;
+  const HeadToHeadResults({
     super.key,
     required this.controller,
   });
@@ -32,11 +31,22 @@ class TeamResultsWidget extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Team Results',
+              'Head to Head Results',
               style: AppTypography.titleSemibold,
             ),
             const SizedBox(height: 16),
-            CollapsibleResultsWidget(results: controller.overallTeamResults, initialVisibleCount: 3),
+            if (controller.headToHeadTeamResults != null && controller.headToHeadTeamResults!.isEmpty)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Text(
+                    'No head to head results available',
+                    style: AppTypography.bodyRegular,
+                  ),
+                ),
+              )
+            else
+              ...controller.headToHeadTeamResults!.map((matchup) => HeadToHeadResultsWidget(matchup: matchup)),
           ],
         ),
       ),
