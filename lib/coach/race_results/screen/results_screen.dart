@@ -92,9 +92,7 @@ class ResultsScreenState extends State<ResultsScreen> {
             child: ShareButton(onPressed: () {
               ShareRaceController.showShareRaceSheet(
                 context: context,
-                headToHeadTeamResults: _controller.headToHeadTeamResults!,
-                individualResults: _controller.individualResults,
-                overallTeamResults: _controller.overallTeamResults,
+                controller: _controller,
               );
             }),
           ),

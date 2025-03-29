@@ -37,7 +37,7 @@ class RaceResultsController {
 
     // DEEP COPY: Create completely independent copies for overall team results
     overallTeamResults = teamResults.map((r) => TeamRecord.from(r)).toList();    
-    if (teamResults.length > 3) {
+    if (teamResults.length > 3 || teamResults.length < 2) {
       isLoading = false;
       return;
     }

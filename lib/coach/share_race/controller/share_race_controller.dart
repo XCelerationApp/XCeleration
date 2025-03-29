@@ -9,19 +9,16 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
 import 'dart:io';
 import 'dart:convert';
-
 import '../../../../../utils/sheet_utils.dart';
 import '../../../../../utils/share_utils.dart';
 import '../../../../../core/components/dialog_utils.dart';
 import '../screen/share_race_screen.dart';
-import '../../race_results/model/results_record.dart';
+import '../../race_results/controller/race_results_controller.dart';
 import '../../race_results/model/team_record.dart';
 
 /// Controller class responsible for all sharing logic in the app
 class ShareRaceController extends ChangeNotifier {
-  late final List<List<TeamRecord>> _headToHeadTeamResults;
-  late final List<TeamRecord> _overallTeamResults;
-  late final List<ResultsRecord> _individualResults;
+  late final RaceResultsController controller;
 
   late String _formattedResultsText;
   late List<List<dynamic>> _formattedSheetsData;
@@ -30,13 +27,8 @@ class ShareRaceController extends ChangeNotifier {
   
   
   ShareRaceController({
-    required headToHeadTeamResults,
-    required overallTeamResults,
-    required individualResults,
+    required this.controller,
   }) {
-    _headToHeadTeamResults = headToHeadTeamResults;
-    _overallTeamResults = overallTeamResults;
-    _individualResults = individualResults;
     _formattedResultsText = _getFormattedText();
     _formattedSheetsData = _getSheetsData();
     _formattedPdf = _getPdfDocument();
@@ -54,18 +46,14 @@ class ShareRaceController extends ChangeNotifier {
   /// Show the share race bottom sheet
   static Future<dynamic> showShareRaceSheet({
     required BuildContext context,
-    required List<List<TeamRecord>> headToHeadTeamResults,
-    required List<TeamRecord> overallTeamResults,
-    required List<ResultsRecord> individualResults,
+    required RaceResultsController controller,
   }) {
     return sheet(
       context: context,
       title: 'Share Race',
       body: ShareSheetScreen(
         controller: ShareRaceController(
-          headToHeadTeamResults: headToHeadTeamResults,
-          overallTeamResults: overallTeamResults,
-          individualResults: individualResults,
+          controller: controller,
         ),
       ),
     );
@@ -77,33 +65,18 @@ class ShareRaceController extends ChangeNotifier {
     
     // Team Results Section
     buffer.writeln('Team Results');
-    buffer.writeln('Rank\tSchool\tScore\tSplit Time\tAverage Time');
-    for (final team in _overallTeamResults) {
+    buffer.writeln('Place\tSchool\tScore\tSplit Time\tAverage Time');
+    for (final team in controller.overallTeamResults) {
       buffer.writeln(
         '${team.place}\t${team.school}\t${team.score}\t'
         '${team.split}\t${team.avgTime}'
       );
     }
     
-    // Head-to-Head Team Results Section
-    buffer.writeln('Head-to-Head Team Results');
-    buffer.writeln('Rank\tSchool\tScore\tSplit Time\tAverage Time');
-    for (final matchup in _headToHeadTeamResults) {
-      final team1 = matchup[0];
-      final team2 = matchup[1];
-      buffer.writeln(
-        '${team1.place}\t${team1.school}\t${team1.score}\t'
-        '${team1.split}\t${team1.avgTime}'
-      );
-      buffer.writeln(
-        '${team2.place}\t${team2.school}\t${team2.score}\t'
-        '${team2.split}\t${team2.avgTime}'
-      );
-    }
-        // Individual Results Section
+    // Individual Results Section
     buffer.writeln('\nIndividual Results');
     buffer.writeln('Place\tName\tSchool\tTime');
-    for (final runner in _individualResults) {
+    for (final runner in controller.individualResults) {
       buffer.writeln(
         '${runner.place}\t${runner.name}\t${runner.school}\t'
         '${runner.finishTime}'
@@ -118,11 +91,12 @@ class ShareRaceController extends ChangeNotifier {
     final List<List<dynamic>> sheetsData = [
       // Team Results Section
       ['Team Results'],
-      ['Rank', 'School', 'Score', 'Split Time', 'Average Time'],
-      ..._overallTeamResults.map((team) => [
+      ['Place', 'School', 'Score', 'Scorers', 'Split Time', 'Average Time'],
+      ...controller.overallTeamResults.map((team) => [
         team.place,
         team.school,
         team.score,
+        team.scorers.map((scorer) => scorer.place.toString()).join(', '),
         team.split,
         team.avgTime,
       ]),
@@ -130,10 +104,58 @@ class ShareRaceController extends ChangeNotifier {
       // Spacing
       [],
       
+      // Head-to-Head Team Results Sections
+      if (controller.headToHeadTeamResults != null) ...[
+        ...controller.headToHeadTeamResults!.expand((matchup) {
+          final team1 = matchup[0];
+          final team2 = matchup[1];
+          
+          // Get the max number of runners to show
+          final maxRunners = team1.runners.length > team2.runners.length ? team1.runners.length : team2.runners.length;
+          
+          // Create a header for this matchup
+          final matchupHeader = ['${team1.school} vs ${team2.school}', '', ''];
+          
+          // Create column headers
+          final columnHeaders = [
+            '', team1.school, team2.school
+          ];
+          
+          // Create data rows for each runner
+          List<List<dynamic>> runnerRows = [];
+          for (int i = 0; i < maxRunners; i++) {
+            // Runner from first team (if exists)
+            String team1Place = i < team1.runners.length ? '#${team1.runners[i].place}' : '';
+            String team1Name = i < team1.runners.length ? team1.runners[i].name : '';
+            
+            // Runner from second team (if exists)
+            String team2Place = i < team2.runners.length ? '#${team2.runners[i].place}' : '';
+            String team2Name = i < team2.runners.length ? team2.runners[i].name : '';
+            
+            runnerRows.add([
+              '${i+1}', 
+              team1Place.isNotEmpty ? '$team1Place $team1Name' : '',
+              team2Place.isNotEmpty ? '$team2Place $team2Name' : ''
+            ]);
+          }
+          
+          // Summary row
+          final summaryRow = ['Score', '${team1.score}', '${team2.score}'];
+          
+          return [
+            matchupHeader,
+            columnHeaders,
+            ...runnerRows,
+            summaryRow,
+            [], // Add empty row as spacing between matchups
+          ];
+        })
+      ],
+      
       // Individual Results Section
       ['Individual Results'],
       ['Place', 'Name', 'School', 'Time'],
-      ..._individualResults.map((runner) => [
+      ...controller.individualResults.map((runner) => [
         runner.place,
         runner.name,
         runner.school,
@@ -159,15 +181,37 @@ class ShareRaceController extends ChangeNotifier {
           // Team Results Section
           pw.Header(level: 1, child: pw.Text('Team Results')),
           pw.TableHelper.fromTextArray(
-            headers: ['Rank', 'School', 'Score', 'Split Time', 'Average Time'],
-            data: _overallTeamResults.map((team) => [
+            headers: ['Place', 'School', 'Score', 'Scorers', 'Split Time', 'Average Time'],
+            data: controller.overallTeamResults.map((team) => [
               team.place.toString(),
               team.school.toString(),
               team.score.toString(),
+              team.scorers.map((scorer) => scorer.place.toString()).join(', '),
               team.split.toString(),
               team.avgTime.toString(),
             ]).toList(),
           ),
+          
+          pw.SizedBox(height: 20),
+
+          // Head-to-Head Team Results Sections
+          if (controller.headToHeadTeamResults != null) ...[
+            pw.Header(level: 1, child: pw.Text('Head-to-Head Team Results')),
+            pw.SizedBox(height: 10),
+            
+            // Generate each head-to-head matchup section
+            for (final matchup in controller.headToHeadTeamResults!) ...[
+              pw.Header(level: 2, child: pw.Text('${matchup[0].school} vs ${matchup[1].school}')),
+              
+              // Table with the results
+              pw.TableHelper.fromTextArray(
+                headers: ['', matchup[0].school, matchup[1].school],
+                data: _generateHeadToHeadRows(matchup[0], matchup[1]),
+              ),
+              
+              pw.SizedBox(height: 20),
+            ],
+          ],
           
           pw.SizedBox(height: 20),
           
@@ -175,7 +219,7 @@ class ShareRaceController extends ChangeNotifier {
           pw.Header(level: 1, child: pw.Text('Individual Results')),
           pw.TableHelper.fromTextArray(
             headers: ['Place', 'Name', 'School', 'Time'],
-            data: _individualResults.map((runner) => [
+            data: controller.individualResults.map((runner) => [
               runner.place.toString(),
               runner.name.toString(),
               runner.school.toString(),
@@ -187,6 +231,32 @@ class ShareRaceController extends ChangeNotifier {
     );
 
     return pdf;
+  }
+
+  List<List<String>> _generateHeadToHeadRows(TeamRecord team1, TeamRecord team2) {
+    final List<List<String>> rows = [];
+    final maxRunners = team1.runners.length > team2.runners.length ? team1.runners.length : team2.runners.length;
+    
+    for (int i = 0; i < maxRunners; i++) {
+      // Runner from first team (if exists)
+      String team1Place = i < team1.runners.length ? '#${team1.runners[i].place}' : '';
+      String team1Name = i < team1.runners.length ? team1.runners[i].name : '';
+      
+      // Runner from second team (if exists)
+      String team2Place = i < team2.runners.length ? '#${team2.runners[i].place}' : '';
+      String team2Name = i < team2.runners.length ? team2.runners[i].name : '';
+      
+      rows.add([
+        '${i+1}', 
+        team1Place.isNotEmpty ? '$team1Place $team1Name' : '',
+        team2Place.isNotEmpty ? '$team2Place $team2Name' : ''
+      ]);
+    }
+    
+    // Add summary row
+    rows.add(['Score', '${team1.score}', '${team2.score}']);
+    
+    return rows;
   }
 
   /// Export the results to Google Sheets
