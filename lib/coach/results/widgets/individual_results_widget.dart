@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/typography.dart';
-import '../controller/results_screen_controller.dart';
+import '../controller/results_controller.dart';
 import 'collapsible_results_widget.dart';
 
 class IndividualResultsWidget extends StatelessWidget {
-  final ResultsScreenController controller;
+  final ResultsController controller;
   final int initialVisibleCount;
 
 

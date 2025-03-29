@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/typography.dart';
 import 'head_to_head_results_widget.dart';
-import '../controller/results_screen_controller.dart';
+import '../controller/results_controller.dart';
 
 class HeadToHeadResults extends StatelessWidget {
-  final ResultsScreenController controller;
+  final ResultsController controller;
   const HeadToHeadResults({
     super.key,
     required this.controller,

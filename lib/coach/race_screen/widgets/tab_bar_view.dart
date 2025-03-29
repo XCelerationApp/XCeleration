@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../results_screen/screen/results_screen.dart';
+import '../../results/screen/results_screen.dart';
 import '../widgets/race_details_tab.dart';
 import '../controller/race_screen_controller.dart';
 

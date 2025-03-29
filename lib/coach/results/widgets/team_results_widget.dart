@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:xcelerate/coach/results_screen/widgets/collapsible_results_widget.dart';
+import 'package:xcelerate/coach/results/widgets/collapsible_results_widget.dart';
 import '../../../core/theme/typography.dart';
-import '../controller/results_screen_controller.dart';
+import '../controller/results_controller.dart';
 
 class TeamResultsWidget extends StatelessWidget {
-  final ResultsScreenController controller;
+  final ResultsController controller;
 
   const TeamResultsWidget({
     super.key,

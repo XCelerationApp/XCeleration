@@ -8,7 +8,7 @@ import 'package:flutter/foundation.dart';
 
 import '../coach/race_screen/widgets/runner_record.dart' show RunnerRecord;
 import '../coach/race_screen/model/race_result.dart';
-import '../coach/results_screen/model/results_record.dart';
+import '../coach/results/model/results_record.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();

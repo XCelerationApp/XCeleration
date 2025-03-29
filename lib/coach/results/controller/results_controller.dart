@@ -3,14 +3,14 @@ import '../model/team_record.dart';
 import 'package:collection/collection.dart';
 import 'package:xcelerate/utils/database_helper.dart';
 
-class ResultsScreenController {
+class ResultsController {
   final int raceId;
   bool isLoading = true;
   List<ResultsRecord> individualResults = [];
   List<TeamRecord> overallTeamResults = [];
   List<List<TeamRecord>>? headToHeadTeamResults;
 
-  ResultsScreenController({
+  ResultsController({
     required this.raceId,
   }) {
     _calculateResults();
