@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
-import '../../../../utils/enums.dart';
+import '../../../utils/enums.dart';
 import 'timing_record.dart';
 
 class TimingData with ChangeNotifier {

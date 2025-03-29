@@ -3,10 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../model/timing_data.dart';
 import '../model/timing_record.dart';
-import '../../../../utils/time_formatter.dart' as time_formatter;
-import '../../../../utils/runner_time_functions.dart' as runner_functions;
-import '../../../../core/components/dialog_utils.dart';
-import '../../../../utils/enums.dart';
+import '../../../utils/time_formatter.dart' as time_formatter;
+import '../../../utils/runner_time_functions.dart' as runner_functions;
+import '../../../core/components/dialog_utils.dart';
+import '../../../utils/enums.dart';
 import '../model/timing_utils.dart';
 
 class TimingController extends ChangeNotifier {

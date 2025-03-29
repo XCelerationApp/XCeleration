@@ -1,4 +1,4 @@
-import 'package:xcelerate/assistant/race_timer/timing_screen/model/timing_record.dart';
+import 'package:xcelerate/assistant/race_timer/model/timing_record.dart';
 import 'package:flutter/material.dart';
 import 'package:xcelerate/coach/merge_conflicts/model/resolve_information.dart';
 import 'package:xcelerate/coach/race_screen/widgets/runner_record.dart';

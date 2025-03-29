@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../utils/time_formatter.dart';
+import '../../../utils/time_formatter.dart';
 
 class TimerDisplayWidget extends StatelessWidget {
   final DateTime? startTime;

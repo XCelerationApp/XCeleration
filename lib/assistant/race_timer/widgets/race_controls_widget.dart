@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import '../../../../core/components/button_utils.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../utils/sheet_utils.dart';
-import '../../../../core/components/device_connection_widget.dart';
-import '../../../../core/services/device_connection_service.dart';
+import '../../../core/components/button_utils.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../utils/sheet_utils.dart';
+import '../../../core/components/device_connection_widget.dart';
+import '../../../core/services/device_connection_service.dart';
 import '../model/timing_data.dart';
-import '../../../../utils/enums.dart';
+import '../../../utils/enums.dart';
 
 class RaceControlsWidget extends StatelessWidget {
   final DateTime? startTime;

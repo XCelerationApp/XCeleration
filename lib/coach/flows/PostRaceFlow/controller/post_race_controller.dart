@@ -14,7 +14,7 @@ import 'package:xcelerate/core/services/device_connection_service.dart';
 // import 'package:xcelerate/utils/runner_time_functions.dart';
 import 'package:xcelerate/utils/encode_utils.dart';
 import 'package:xcelerate/utils/enums.dart';
-import 'package:xcelerate/assistant/race_timer/timing_screen/model/timing_record.dart';
+import 'package:xcelerate/assistant/race_timer/model/timing_record.dart';
 import 'package:xcelerate/utils/sheet_utils.dart';
 import '../../../../utils/database_helper.dart';
 import '../../controller/flow_controller.dart';

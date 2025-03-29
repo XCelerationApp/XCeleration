@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/typography.dart';
-import '../../../../utils/enums.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/typography.dart';
+import '../../../utils/enums.dart';
 import '../model/timing_data.dart';
 
 class RaceInfoHeaderWidget extends StatelessWidget {
