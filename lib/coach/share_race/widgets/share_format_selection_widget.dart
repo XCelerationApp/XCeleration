@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'action_button.dart';
 import '../controller/share_race_controller.dart';
-import '../../../../utils/enums.dart';
-
-
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/typography.dart';
+import 'format_selection_widget.dart';
 
 class ShareFormatSelectionWidget extends StatelessWidget {
   final ShareRaceController controller;
@@ -11,43 +10,35 @@ class ShareFormatSelectionWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // Action Buttons
-        ActionButton(
-          icon: controller.selectedFormat == ResultFormat.googleSheet
-              ? Icons.cloud_upload
-              : Icons.save,
-          label: controller.selectedFormat == ResultFormat.googleSheet
-              ? 'Export to Google Sheets'
-              : 'Save Locally',
-          onPressed: () => controller.selectedFormat == ResultFormat.googleSheet
-              ? controller.exportToGoogleSheets(context)
-              : controller.saveLocally(context, controller.selectedFormat),
-        ),
-        const SizedBox(height: 12),
-        ActionButton(
-          icon: Icons.copy,
-          label: controller.selectedFormat == ResultFormat.googleSheet
-              ? 'Copy Sheet Link'
-              : 'Copy to Clipboard',
-          onPressed: controller.selectedFormat == ResultFormat.pdf
-              ? null
-              : () => controller.copyToClipboard(context, controller.selectedFormat),
-        ),
-        const SizedBox(height: 12),
-        ActionButton(
-          icon: Icons.email,
-          label: 'Send via Email',
-          onPressed: () => controller.sendEmail(context, controller.selectedFormat),
-        ),
-        const SizedBox(height: 12),
-        ActionButton(
-          icon: Icons.sms,
-          label: 'Send via SMS',
-          onPressed: () => controller.sendSms(context, controller.selectedFormat),
-        ),
-      ],
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Choose Format',
+            style: AppTypography.titleRegular,
+          ),
+          const SizedBox(height: 16),
+          // Format Selection
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.backgroundColor,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: AppColors.lightColor,
+                width: 1,
+              ),
+            ),
+            child: FormatSelectionWidget(
+              selectedFormat: controller.selectedFormat,
+              onFormatSelected: (format) {
+                controller.selectedFormat = format;
+                controller.sendSms(context, controller.selectedFormat!);
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

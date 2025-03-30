@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../controller/share_race_controller.dart';
 import '../widgets/share_format_selection_widget.dart';
-import '../widgets/share_method_selection_widget.dart';
 
 
 class ShareSheetScreen extends StatefulWidget {
@@ -42,11 +41,11 @@ class _ShareSheetScreenState extends State<ShareSheetScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        const SizedBox(height: 8),
-        ShareMethodSelectionWidget(
-          controller: widget.controller,
-        ),
-        const SizedBox(height: 32),
+        // const SizedBox(height: 8),
+        // ShareMethodSelectionWidget(
+        //   controller: widget.controller,
+        // ),
+        // const SizedBox(height: 32),
         ShareFormatSelectionWidget(
           controller: widget.controller,
         ),
