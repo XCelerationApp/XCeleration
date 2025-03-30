@@ -1,0 +1,98 @@
+name: Flutter CI/CD
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  lint-and-test:
+    name: Lint, Format, and Test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        flutter-version: ['3.29.x']
+        flutter-channel: ['stable']
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ matrix.flutter-version }}
+          channel: ${{ matrix.flutter-channel }}
+          cache: true
+      
+      - name: Install dependencies
+        run: flutter pub get
+      
+      - name: Verify formatting
+        run: flutter format --set-exit-if-changed .
+      
+      - name: Analyze project source
+        run: flutter analyze --fatal-infos --fatal-warnings
+      
+      - name: Run unit and widget tests
+        run: flutter test --coverage
+
+      - name: Verify Build
+        run: flutter build
+      
+      # Optional: Upload test coverage if you set up a coverage tool
+      # - name: Upload coverage to Codecov
+      #   uses: codecov/codecov-action@v3
+      #   with:
+      #     file: ./coverage/lcov.info
+      
+      # Optional: Check for outdated dependencies
+      - name: Check for outdated dependencies
+        run: flutter pub outdated
+      
+      # Optional: Run integration tests if you have them (disabled by default)
+      # - name: Run integration tests
+      #   run: flutter test integration_test
+
+  build:
+    name: Build on ${{ matrix.os }}
+    needs: lint-and-test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        flutter-version: ['3.29.x']
+        flutter-channel: ['stable']
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ matrix.flutter-version }}
+          channel: ${{ matrix.flutter-channel }}
+          cache: true
+      
+      - name: Install dependencies
+        run: flutter pub get
+      
+      # Build for Android
+      - name: Build Android APK
+        run: flutter build apk --release
+      
+      # Optional: Build for iOS (requires macOS runner)
+      # Uncomment if you want to build for iOS on macOS
+      # - name: Build iOS (if on macOS)
+      #   if: matrix.os == 'macos-latest'
+      #   run: flutter build ios --release --no-codesign
+      
+      # Artifacts can be automatically uploaded
+      - name: Upload APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
