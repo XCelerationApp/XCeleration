@@ -40,9 +40,6 @@ jobs:
       - name: Run unit and widget tests
         run: flutter test --coverage
 
-      - name: Verify Build
-        run: |
-          flutter build bundle
       
       # Optional: Upload test coverage if you set up a coverage tool
       # - name: Upload coverage to Codecov
@@ -64,7 +61,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        os: [macos-latest]
         flutter-version: ['3.29.x']
         flutter-channel: ['stable']
     
@@ -82,19 +79,5 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
       
-      # # Build for Android
-      # - name: Build Android APK
-      #   run: flutter build apk --release
-      
-      # Optional: Build for iOS (requires macOS runner)
-      # Uncomment if you want to build for iOS on macOS
-      # - name: Build iOS (if on macOS)
-      #   if: matrix.os == 'macos-latest'
-      #   run: flutter build ios --release --no-codesign
-      
-      # Artifacts can be automatically uploaded
-      # - name: Upload APK
-      #   uses: actions/upload-artifact@v3
-      #   with:
-      #     name: release-apk
-      #     path: build/app/outputs/flutter-apk/app-release.apk
+      - name: Verify Build
+        run: flutter build bundle

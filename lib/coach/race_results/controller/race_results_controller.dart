@@ -26,7 +26,7 @@ class RaceResultsController {
 
   Future<void> _calculateResults() async {
     // Get race results from database
-    final List<ResultsRecord> results =
+    final List<ResultsRecord> results 
         await dbHelper.getRaceResults(raceId);
 
     if (results.isEmpty) {
