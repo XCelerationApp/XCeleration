@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
-// import '../../../../core/theme/typography.dart';
 import '../../../../utils/enums.dart';
 
 class FormatSelectionWidget extends StatelessWidget {
@@ -20,13 +19,6 @@ class FormatSelectionWidget extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Text(
-          //   'Choose a format',
-          //   style: AppTypography.titleMedium.copyWith(
-          //     fontWeight: FontWeight.w600,
-          //   ),
-          // ),
-          // const SizedBox(height: 16),
           Container(
             decoration: BoxDecoration(
               color: AppColors.backgroundColor,
@@ -40,21 +32,23 @@ class FormatSelectionWidget extends StatelessWidget {
               ],
             ),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Row(
+              padding: const EdgeInsets.symmetric(horizontal: 0),
+              child: Column(
                 children: [
                   _buildFormatOption(
                     format: ResultFormat.plainText,
                     label: 'Plain Text',
                     icon: Icons.text_snippet,
-                    description: 'Copy as plain text',
+                    description: 'Share as plain text',
                   ),
+                  const Divider(height: 1, thickness: 0.5, color: Colors.black12),
                   _buildFormatOption(
                     format: ResultFormat.googleSheet,
                     label: 'Google Sheet',
                     icon: Icons.cloud_upload,
                     description: 'Export to Google Sheets',
                   ),
+                  const Divider(height: 1, thickness: 0.5, color: Colors.black12),
                   _buildFormatOption(
                     format: ResultFormat.pdf,
                     label: 'PDF',
@@ -77,53 +71,63 @@ class FormatSelectionWidget extends StatelessWidget {
     required String description,
   }) {
     final isSelected = format == selectedFormat;
-    return Expanded(
-      child: InkWell(
-        onTap: () => onFormatSelected(format),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
-          margin: const EdgeInsets.symmetric(horizontal: 4),
-          decoration: BoxDecoration(
-            color: isSelected ? AppColors.primaryColor.withOpacity(0.1) : Colors.transparent,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isSelected ? AppColors.primaryColor.withOpacity(0.5) : Colors.transparent,
-              width: 2,
+    
+    return InkWell(
+      onTap: () => onFormatSelected(format),
+      borderRadius: BorderRadius.circular(16),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+        decoration: BoxDecoration(
+          color: isSelected 
+              ? AppColors.primaryColor.withOpacity(0.15) 
+              : AppColors.backgroundColor,
+          borderRadius: BorderRadius.circular(16),
+          border: isSelected
+              ? Border.all(
+                  color: AppColors.primaryColor,
+                  width: 1.5,
+                )
+              : null,
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              size: 24,
+              color: isSelected ? AppColors.primaryColor : Colors.black54.withOpacity(0.8),
             ),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 24,
-                color: isSelected ? AppColors.primaryColor : Colors.black54,
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: isSelected ? AppColors.primaryColor : Colors.black87.withOpacity(0.9),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    description,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isSelected 
+                          ? AppColors.primaryColor.withOpacity(0.8) 
+                          : Colors.black54.withOpacity(0.7),
+                      fontWeight: FontWeight.w400,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: isSelected ? AppColors.primaryColor : Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                description,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isSelected ? AppColors.primaryColor.withOpacity(0.8) : Colors.black54,
-                  fontWeight: FontWeight.w400,
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
