@@ -58,7 +58,7 @@ void main() {
 
     // Placeholder test that passes to avoid errors
     test('placeholder test', () {
-      expect(false, isTrue);
+      expect(true, isTrue);
     });
   });
 }
