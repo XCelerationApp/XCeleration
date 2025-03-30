@@ -9,28 +9,28 @@ import 'reload_button.dart';
 class LoadResultsWidget extends StatefulWidget {
   /// Whether race results have been loaded
   final bool resultsLoaded;
-  
+
   /// Whether there are bib conflicts in the loaded results
   final bool hasBibConflicts;
-  
-  /// Whether there are timing conflicts in the loaded results  
+
+  /// Whether there are timing conflicts in the loaded results
   final bool hasTimingConflicts;
-  
+
   /// Map of connected devices and their data
   final DevicesManager devices;
-  
+
   /// Function to call when reload button is pressed
   final VoidCallback onReloadPressed;
-  
+
   /// Function to call when bib conflicts button is pressed
   final Function(BuildContext) onBibConflictsPressed;
-  
+
   /// Function to call when timing conflicts button is pressed
   final Function(BuildContext) onTimingConflictsPressed;
-  
+
   /// Function to call when results are loaded from devices
   final Function(BuildContext) onResultsLoaded;
-  
+
   /// Whether to immediately load test data (for development/testing)
   final bool testMode;
 
@@ -59,7 +59,7 @@ class _LoadResultsWidgetState extends State<LoadResultsWidget> {
   @override
   void initState() {
     super.initState();
-    
+
     // Automatically load test data if in test mode
     if (widget.testMode && !widget.resultsLoaded) {
       // Use a small delay to ensure the widget is fully built
@@ -96,7 +96,8 @@ class _LoadResultsWidgetState extends State<LoadResultsWidget> {
                 children: [
                   const CircularProgressIndicator(),
                   const SizedBox(height: 16),
-                  Text('Loading test data...', 
+                  Text(
+                    'Loading test data...',
                     style: Theme.of(context).textTheme.bodyLarge,
                   ),
                 ],
@@ -107,15 +108,16 @@ class _LoadResultsWidgetState extends State<LoadResultsWidget> {
             if (widget.hasBibConflicts) ...[
               ConflictButton(
                 title: 'Bib Numbers Not Found',
-                description: 'Some runners have unfound bib numbers. Please resolve these conflicts before proceeding.',
+                description:
+                    'Some runners have unfound bib numbers. Please resolve these conflicts before proceeding.',
                 buttonText: 'Resolve Bib Numbers',
                 onPressed: () => widget.onBibConflictsPressed(context),
               ),
-            ]
-            else if (widget.hasTimingConflicts) ...[
+            ] else if (widget.hasTimingConflicts) ...[
               ConflictButton(
                 title: 'Timing Cofnflicts',
-                description: 'There are conflicts in the race timing data. Please review and resolve these conflicts.',
+                description:
+                    'There are conflicts in the race timing data. Please review and resolve these conflicts.',
                 buttonText: 'Resolve Timing Conflicts',
                 onPressed: () => widget.onTimingConflictsPressed(context),
               ),
@@ -125,10 +127,9 @@ class _LoadResultsWidgetState extends State<LoadResultsWidget> {
             ],
             const SizedBox(height: 16),
           ],
-
-          if (widget.resultsLoaded) 
+          if (widget.resultsLoaded)
             ReloadButton(onPressed: widget.onReloadPressed)
-          else 
+          else
             const SizedBox.shrink(),
         ],
       ),

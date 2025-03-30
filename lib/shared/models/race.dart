@@ -28,7 +28,7 @@ class Race {
   static Race fromJson(Map<String, dynamic> race) {
     final List<dynamic> teamColorsList = jsonDecode(race['team_colors']);
     final List<dynamic> teamsList = jsonDecode(race['teams']);
-    
+
     return Race(
       raceId: int.parse(race['race_id'].toString()),
       raceName: race['race_name'],
@@ -36,7 +36,8 @@ class Race {
       location: race['location'],
       distance: double.parse(race['distance'].toString()),
       distanceUnit: race['distance_unit'],
-      teamColors: teamColorsList.map((x) => Color(int.parse(x.toString()))).toList(),
+      teamColors:
+          teamColorsList.map((x) => Color(int.parse(x.toString()))).toList(),
       teams: teamsList.cast<String>(),
       flowState: race['flow_state'] ?? 'setup',
     );

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:xcelerate/coach/merge_conflicts/model/timing_data.dart';
-import '../../../../../race_screen/widgets/runner_record.dart' show RunnerRecord;
+import '../../../../../race_screen/widgets/runner_record.dart'
+    show RunnerRecord;
 import 'review_header.dart';
 import 'results_table.dart';
 
@@ -22,7 +23,8 @@ class ResultsReviewWidget extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const ReviewHeader(),
-            ResultsTable(timingData: timingData),          ],
+            ResultsTable(timingData: timingData),
+          ],
         ),
       ),
     );

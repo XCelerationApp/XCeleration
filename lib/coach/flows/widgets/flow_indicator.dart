@@ -7,7 +7,8 @@ class EnhancedFlowIndicator extends StatelessWidget {
   final int currentStep;
   final VoidCallback? onBack;
 
-  const EnhancedFlowIndicator({super.key, 
+  const EnhancedFlowIndicator({
+    super.key,
     required this.totalSteps,
     required this.currentStep,
     this.onBack,
@@ -29,7 +30,8 @@ class EnhancedFlowIndicator extends StatelessWidget {
               bottom: 0,
               child: Center(
                 child: IconButton(
-                  icon: const Icon(Icons.arrow_back, size: 24, color: Colors.black),
+                  icon: const Icon(Icons.arrow_back,
+                      size: 24, color: Colors.black),
                   onPressed: onBack,
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
@@ -55,7 +57,9 @@ class EnhancedFlowIndicator extends StatelessWidget {
                         right: index < totalSteps - 1 ? 4 : 0,
                       ),
                       decoration: BoxDecoration(
-                        color: isCompleted || isCurrentStep ? AppColors.darkColor : AppColors.lightColor,
+                        color: isCompleted || isCurrentStep
+                            ? AppColors.darkColor
+                            : AppColors.lightColor,
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),

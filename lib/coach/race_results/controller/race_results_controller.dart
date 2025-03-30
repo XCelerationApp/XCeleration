@@ -24,8 +24,9 @@ class RaceResultsController {
 
   Future<void> _calculateResults() async {
     // Get race results from database
-    final List<ResultsRecord> results = await DatabaseHelper.instance.getRaceResults(raceId);
-    
+    final List<ResultsRecord> results =
+        await DatabaseHelper.instance.getRaceResults(raceId);
+
     // DEEP COPY: Create completely independent copies for individual results
     individualResults = results.map((r) => ResultsRecord.copy(r)).toList();
 
@@ -36,7 +37,7 @@ class RaceResultsController {
     sortAndPlaceTeams(teamResults);
 
     // DEEP COPY: Create completely independent copies for overall team results
-    overallTeamResults = teamResults.map((r) => TeamRecord.from(r)).toList();    
+    overallTeamResults = teamResults.map((r) => TeamRecord.from(r)).toList();
     if (teamResults.length > 3 || teamResults.length < 2) {
       isLoading = false;
       return;
@@ -48,17 +49,17 @@ class RaceResultsController {
         // DEEP COPY: Create independent copies for each head-to-head matchup
         final teamA = TeamRecord.from(teamResults[i]);
         final teamB = TeamRecord.from(teamResults[j]);
-        
+
         // Combine and sort runners for this specific matchup
         // These are already deep copies from TeamRecord.from
         final filteredRunners = [...teamA.runners, ...teamB.runners];
         filteredRunners.sort((a, b) => a.finishTime.compareTo(b.finishTime));
         updateResultsPlaces(filteredRunners);
-        
+
         // Update stats based on the new places
         teamA.updateStats();
         teamB.updateStats();
-        
+
         final matchup = [teamA, teamB];
         sortAndPlaceTeams(matchup);
         headToHeadResults.add(matchup);

@@ -13,13 +13,12 @@ import '../../../core/components/dialog_utils.dart';
 import '../../../../utils/runner_time_functions.dart';
 import '../../../../core/theme/typography.dart';
 
-
 class EditAndReviewScreen extends StatefulWidget {
   final TimingData timingData;
   final int raceId;
 
   const EditAndReviewScreen({
-    super.key, 
+    super.key,
     required this.timingData,
     required this.raceId,
   });
@@ -54,7 +53,9 @@ class _EditAndReviewScreenState extends State<EditAndReviewScreen> {
   Future<void> _saveResults() async {
     final records = _timingData.records;
     if (!_validateRunnerInfo(records)) {
-      DialogUtils.showErrorDialog(context, message: 'All runners must have a bib number assigned before proceeding.');
+      DialogUtils.showErrorDialog(context,
+          message:
+              'All runners must have a bib number assigned before proceeding.');
       return;
     }
 
@@ -63,13 +64,12 @@ class _EditAndReviewScreenState extends State<EditAndReviewScreen> {
   }
 
   bool _validateRunnerInfo(List<TimingRecord> records) {
-    return records.every((runner) => 
-      runner.bib != '' && 
-      runner.name != '' && 
-      runner.grade != null &&
-      runner.grade! > 0 && 
-      runner.school != ''
-    );
+    return records.every((runner) =>
+        runner.bib != '' &&
+        runner.name != '' &&
+        runner.grade != null &&
+        runner.grade! > 0 &&
+        runner.school != '');
   }
 
   Future<void> _processAndSaveRecords(List<TimingRecord> records) async {
@@ -80,11 +80,14 @@ class _EditAndReviewScreenState extends State<EditAndReviewScreen> {
 
   void _showResultsSavedSnackBar() {
     _navigateToResultsScreen();
-    DialogUtils.showSuccessDialog(context, message: 'Results saved successfully. View results?');
+    DialogUtils.showSuccessDialog(context,
+        message: 'Results saved successfully. View results?');
   }
 
   void _navigateToResultsScreen() {
-    DialogUtils.showErrorDialog(context, message: 'Results saved successfully. Results screen not yet implemented.');
+    DialogUtils.showErrorDialog(context,
+        message:
+            'Results saved successfully. Results screen not yet implemented.');
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
@@ -93,10 +96,12 @@ class _EditAndReviewScreenState extends State<EditAndReviewScreen> {
     );
   }
 
-  bool _timeIsValid(String newValue, int index, List<TimingRecord> timeRecords) {
+  bool _timeIsValid(
+      String newValue, int index, List<TimingRecord> timeRecords) {
     Duration? parsedTime = loadDurationFromString(newValue);
     if (parsedTime == null || parsedTime < Duration.zero) {
-      DialogUtils.showErrorDialog(context, message: 'Invalid time entered. Should be in HH:mm:ss.ms format');
+      DialogUtils.showErrorDialog(context,
+          message: 'Invalid time entered. Should be in HH:mm:ss.ms format');
       return false;
     }
 
@@ -104,13 +109,19 @@ class _EditAndReviewScreenState extends State<EditAndReviewScreen> {
       return false;
     }
 
-    if (index > 0 && loadDurationFromString(timeRecords[index - 1].elapsedTime)! > parsedTime) {
-      DialogUtils.showErrorDialog(context, message: 'Time must be greater than the previous time');
+    if (index > 0 &&
+        loadDurationFromString(timeRecords[index - 1].elapsedTime)! >
+            parsedTime) {
+      DialogUtils.showErrorDialog(context,
+          message: 'Time must be greater than the previous time');
       return false;
     }
 
-    if (index < timeRecords.length - 1 && loadDurationFromString(timeRecords[index + 1].elapsedTime)! < parsedTime) {
-      DialogUtils.showErrorDialog(context, message: 'Time must be less than the next time');
+    if (index < timeRecords.length - 1 &&
+        loadDurationFromString(timeRecords[index + 1].elapsedTime)! <
+            parsedTime) {
+      DialogUtils.showErrorDialog(context,
+          message: 'Time must be less than the next time');
       return false;
     }
 
@@ -119,20 +130,23 @@ class _EditAndReviewScreenState extends State<EditAndReviewScreen> {
 
   int getRunnerIndex(int recordIndex) {
     final records = _timingData.records;
-    final runnerRecords = records.where((r) => r.type == RecordType.runnerTime).toList();
+    final runnerRecords =
+        records.where((r) => r.type == RecordType.runnerTime).toList();
     return runnerRecords.indexOf(records[recordIndex]);
   }
-
 
   Future<bool> _confirmDeleteLastRecord(int recordIndex) async {
     final records = _timingData.records;
     final record = records[recordIndex];
-    if (record.type == RecordType.runnerTime && !record.isConfirmed && record.conflict == null) {
-      return await DialogUtils.showConfirmationDialog(context, title: 'Confirm Deletion', content: 'Are you sure you want to delete this runner?');
+    if (record.type == RecordType.runnerTime &&
+        !record.isConfirmed &&
+        record.conflict == null) {
+      return await DialogUtils.showConfirmationDialog(context,
+          title: 'Confirm Deletion',
+          content: 'Are you sure you want to delete this runner?');
     }
     return false;
   }
-
 
   @override
   void dispose() {
@@ -171,8 +185,9 @@ class _EditAndReviewScreenState extends State<EditAndReviewScreen> {
   }
 
   Widget _buildControlButtons(DateTime? startTime, List<dynamic> timeRecords) {
-    if (startTime != null || timeRecords.isEmpty) return const SizedBox.shrink();
-    
+    if (startTime != null || timeRecords.isEmpty)
+      return const SizedBox.shrink();
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -189,14 +204,16 @@ class _EditAndReviewScreenState extends State<EditAndReviewScreen> {
         padding: const EdgeInsets.all(8.0),
         child: LayoutBuilder(
           builder: (context, constraints) {
-    return ElevatedButton(
-      onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: AppColors.primaryColor,
-      ),
-      child: Text(
-        text,
-                style: TextStyle(fontSize: constraints.maxWidth * 0.12, color: AppColors.unselectedRoleColor),
+            return ElevatedButton(
+              onPressed: onPressed,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryColor,
+              ),
+              child: Text(
+                text,
+                style: TextStyle(
+                    fontSize: constraints.maxWidth * 0.12,
+                    color: AppColors.unselectedRoleColor),
               ),
             );
           },
@@ -216,7 +233,8 @@ class _EditAndReviewScreenState extends State<EditAndReviewScreen> {
             child: ListView.builder(
               controller: _scrollController,
               itemCount: timeRecords.length,
-              itemBuilder: (context, index) => _buildRecordItem(context, index, timeRecords),
+              itemBuilder: (context, index) =>
+                  _buildRecordItem(context, index, timeRecords),
             ),
           ),
         ],
@@ -224,7 +242,8 @@ class _EditAndReviewScreenState extends State<EditAndReviewScreen> {
     );
   }
 
-  Widget _buildRecordItem(BuildContext context, int index, List<TimingRecord> timeRecords) {
+  Widget _buildRecordItem(
+      BuildContext context, int index, List<TimingRecord> timeRecords) {
     final record = timeRecords[index];
     // Convert TimingRecord to map for easier access
     // final Map<String, dynamic> recordMap = record.toMap();
@@ -237,9 +256,10 @@ class _EditAndReviewScreenState extends State<EditAndReviewScreen> {
     return const SizedBox.shrink();
   }
 
-  Widget _buildConfirmationRecord(BuildContext context, int index, TimingRecord timeRecord) {
+  Widget _buildConfirmationRecord(
+      BuildContext context, int index, TimingRecord timeRecord) {
     final isLastRecord = index == _timingData.records.length - 1;
-    
+
     return Container(
       margin: EdgeInsets.fromLTRB(
         MediaQuery.of(context).size.width * 0.02,
@@ -252,14 +272,13 @@ class _EditAndReviewScreenState extends State<EditAndReviewScreen> {
         children: [
           GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onLongPress: isLastRecord 
-              ? () => _handleConfirmationDeletion(index)
-              : null,
+            onLongPress:
+                isLastRecord ? () => _handleConfirmationDeletion(index) : null,
             child: Text(
               'Confirmed: ${timeRecord.elapsedTime}',
               style: TextStyle(
                 fontSize: MediaQuery.of(context).size.width * 0.05,
-              fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.bold,
                 color: AppColors.darkColor,
               ),
             ),
@@ -278,10 +297,7 @@ class _EditAndReviewScreenState extends State<EditAndReviewScreen> {
   }
 
   Widget _buildRunnerInfoRow(
-    BuildContext context, 
-    TimingRecord timeRecord, 
-    int index
-  ) {
+      BuildContext context, TimingRecord timeRecord, int index) {
     final textStyle = TextStyle(
       fontSize: MediaQuery.of(context).size.width * 0.05,
       fontWeight: FontWeight.bold,
@@ -319,12 +335,9 @@ class _EditAndReviewScreenState extends State<EditAndReviewScreen> {
   }
 
   Widget _buildFinishTimeField(
-    TimingRecord timeRecord, 
-    int index,
-    TextStyle textStyle
-  ) {
-    final isEnabled = timeRecord.elapsedTime != '' && 
-                     timeRecord.elapsedTime != 'TBD';
+      TimingRecord timeRecord, int index, TextStyle textStyle) {
+    final isEnabled =
+        timeRecord.elapsedTime != '' && timeRecord.elapsedTime != 'TBD';
 
     return SizedBox(
       width: 100,
@@ -361,17 +374,18 @@ class _EditAndReviewScreenState extends State<EditAndReviewScreen> {
         ),
         enabled: isEnabled,
         textAlign: TextAlign.center,
-        keyboardType: const TextInputType.numberWithOptions(
-          signed: true, 
-          decimal: false
-        ),
-        onSubmitted: (newValue) => _handleTimeSubmission(newValue, index, timeRecord),
+        keyboardType:
+            const TextInputType.numberWithOptions(signed: true, decimal: false),
+        onSubmitted: (newValue) =>
+            _handleTimeSubmission(newValue, index, timeRecord),
       ),
     );
   }
 
-  void _handleTimeSubmission(String newValue, int index, TimingRecord timeRecord) {
-    if (newValue.isNotEmpty && _timeIsValid(newValue, index, _timingData.records)) {
+  void _handleTimeSubmission(
+      String newValue, int index, TimingRecord timeRecord) {
+    if (newValue.isNotEmpty &&
+        _timeIsValid(newValue, index, _timingData.records)) {
       timeRecord.elapsedTime = newValue;
     } else {
       // Reset to previous value
@@ -379,7 +393,8 @@ class _EditAndReviewScreenState extends State<EditAndReviewScreen> {
     }
   }
 
-  Widget _buildRunnerTimeRecord(BuildContext context, int index, TimingRecord timeRecord) {
+  Widget _buildRunnerTimeRecord(
+      BuildContext context, int index, TimingRecord timeRecord) {
     return Container(
       margin: EdgeInsets.fromLTRB(
         MediaQuery.of(context).size.width * 0.02,
@@ -394,7 +409,7 @@ class _EditAndReviewScreenState extends State<EditAndReviewScreen> {
             behavior: HitTestBehavior.opaque,
             onLongPress: () async {
               final confirmed = await _confirmDeleteLastRecord(index);
-              if (confirmed ) {
+              if (confirmed) {
                 setState(() {
                   // _controllers.removeAt(getNumberOfTimes(_timingData.records) - 1);
                   _timingData.records.removeAt(index);

@@ -6,14 +6,19 @@ class FlowNotification extends StatelessWidget {
   final Color color;
   final IconData icon;
   final VoidCallback continueAction;
-  
-  const FlowNotification({super.key, required this.flowState, required this.color, required this.icon, required this.continueAction});
+
+  const FlowNotification(
+      {super.key,
+      required this.flowState,
+      required this.color,
+      required this.icon,
+      required this.continueAction});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Container( 
+      child: Container(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
         // decoration: BoxDecoration(
         //   borderRadius: BorderRadius.circular(6),
@@ -22,7 +27,7 @@ class FlowNotification extends StatelessWidget {
         child: Row(
           children: [
             // Container(
-            //   padding: const EdgeInsets.all(4), 
+            //   padding: const EdgeInsets.all(4),
             //   // decoration: BoxDecoration(
             //   //   color: Colors.white.withOpacity(0.2),
             //   //   borderRadius: BorderRadius.circular(8),
@@ -30,38 +35,38 @@ class FlowNotification extends StatelessWidget {
             //   child: Icon(
             //     icon,
             //     color: color,
-            //     size: 14, 
+            //     size: 14,
             //   ),
             // ),
-            // const SizedBox(width: 8), 
+            // const SizedBox(width: 8),
             Text(
               '$flowState Not Completed',
               style: TextStyle(
                 color: color,
                 fontWeight: FontWeight.w600,
-                fontSize: 16, 
+                fontSize: 16,
               ),
             ),
             const Spacer(),
             // Container(
             //   decoration: BoxDecoration(
             //     color: Colors.white,
-            //     borderRadius: BorderRadius.circular(16), 
+            //     borderRadius: BorderRadius.circular(16),
             //   ),
             //   child: ClipRRect(
-            //     borderRadius: BorderRadius.circular(16), 
+            //     borderRadius: BorderRadius.circular(16),
             //     child: Material(
             //       color: Colors.transparent,
             //       child: InkWell(
             //         onTap: continueAction,
             //         child: Padding(
-            //           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), 
+            //           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             //           child: Text(
             //             'Continue',
             //             style: TextStyle(
-            //               color: AppColors.primaryColor, 
+            //               color: AppColors.primaryColor,
             //               fontWeight: FontWeight.bold,
-            //               fontSize: 13, 
+            //               fontSize: 13,
             //             ),
             //           ),
             //         ),

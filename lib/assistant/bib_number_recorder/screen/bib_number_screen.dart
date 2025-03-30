@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:xcelerate/coach/race_screen/widgets/runner_record.dart' show RunnerRecord;
+import 'package:xcelerate/coach/race_screen/widgets/runner_record.dart'
+    show RunnerRecord;
 import 'package:xcelerate/utils/database_helper.dart';
 import 'dart:io';
 import '../model/bib_number_model.dart';
@@ -44,24 +45,22 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _providerReference = Provider.of<BibRecordsProvider>(context, listen: false);
+    _providerReference =
+        Provider.of<BibRecordsProvider>(context, listen: false);
   }
 
   @override
   void initState() {
     super.initState();
-    _model = BibNumberModel(
-      initialRunners: _runners, 
-      initialDevices: devices
-    );
-    
+    _model = BibNumberModel(initialRunners: _runners, initialDevices: devices);
+
     _controller = BibNumberController(
       context: context,
       runners: _runners,
       scrollController: _scrollController,
       devices: devices,
     );
-    
+
     _checkForRunners();
   }
 
@@ -90,7 +89,8 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
           builder: (BuildContext context) {
             return AlertDialog(
               title: const Text('No Runners Loaded'),
-              content: const Text('There are no runners loaded in the system. Please load runners to continue.'),
+              content: const Text(
+                  'There are no runners loaded in the system. Please load runners to continue.'),
               actions: [
                 TextButton(
                   child: const Text('Return to Home'),
@@ -126,27 +126,29 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
 
   Future<void> loadRunners() async {
     final data = devices.coach?.data;
-    
+
     if (data != null) {
       try {
         // Process data outside of setState
         final runners = await decodeEncodedRunners(data, context);
-        
+
         if (runners == null || runners.isEmpty) {
-          DialogUtils.showErrorDialog(context, 
-            message: 'Invalid data received from bib recorder. Please try again.');
+          DialogUtils.showErrorDialog(context,
+              message:
+                  'Invalid data received from bib recorder. Please try again.');
           return;
         }
-        
-        final runnerInCorrectFormat = runners.every((runner) => 
-          runner.bib.isNotEmpty && 
-          runner.name.isNotEmpty && 
-          runner.school.isNotEmpty && 
-          runner.grade > 0);
-        
+
+        final runnerInCorrectFormat = runners.every((runner) =>
+            runner.bib.isNotEmpty &&
+            runner.name.isNotEmpty &&
+            runner.school.isNotEmpty &&
+            runner.grade > 0);
+
         if (!runnerInCorrectFormat) {
-          DialogUtils.showErrorDialog(context, 
-            message: 'Invalid data format received from bib recorder. Please try again.');
+          DialogUtils.showErrorDialog(context,
+              message:
+                  'Invalid data format received from bib recorder. Please try again.');
           return;
         }
 
@@ -155,30 +157,30 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
           if (_runners.isNotEmpty) _runners.clear();
           _runners.addAll(runners);
         });
-        
+
         debugPrint('Runners loaded: $_runners');
-        
+
         // Close dialog and handle UI updates after state is set
         if (_runners.isNotEmpty && mounted) {
           // Close the "No Runners Loaded" dialog
           Navigator.of(context).pop();
-          
+
           // Setup tutorials after UI has settled
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) _setupTutorials();
           });
-            
+
           // Reset the bib number field
           _controller.handleBibNumber('');
         }
       } catch (e) {
         debugPrint('Error loading runners: $e');
-        DialogUtils.showErrorDialog(context, 
-          message: 'Error processing runner data: $e');
+        DialogUtils.showErrorDialog(context,
+            message: 'Error processing runner data: $e');
       }
     } else {
-      DialogUtils.showErrorDialog(context, 
-        message: 'No data received from bib recorder. Please try again.');
+      DialogUtils.showErrorDialog(context,
+          message: 'No data received from bib recorder. Please try again.');
     }
   }
 
@@ -196,13 +198,13 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
       _controller.restoreFocusability();
       return;
     }
-    
+
     confirmed = await _controller.checkDuplicateRecords();
     if (!confirmed) {
       _controller.restoreFocusability();
       return;
     }
-    
+
     confirmed = await _controller.checkUnknownRecords();
     if (!confirmed) {
       _controller.restoreFocusability();
@@ -236,7 +238,8 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
       setState(() {
         _runners.clear();
         // Reset related bib data
-        Provider.of<BibRecordsProvider>(context, listen: false).clearBibRecords();
+        Provider.of<BibRecordsProvider>(context, listen: false)
+            .clearBibRecords();
         _checkForRunners();
       });
     }
@@ -260,7 +263,8 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
         bool shouldPop = await DialogUtils.showConfirmationDialog(
           context,
           title: 'Leave Bib Number Screen?',
-          content: 'All bib numbers will be lost if you leave this screen. Do you want to continue?',
+          content:
+              'All bib numbers will be lost if you leave this screen. Do you want to continue?',
           confirmText: 'Continue',
           cancelText: 'Stay',
         );
@@ -294,17 +298,19 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                   // Action buttons at the bottom
                   Consumer<BibRecordsProvider>(
                     builder: (context, provider, _) {
-                      return provider.isKeyboardVisible 
-                        ? const SizedBox.shrink() 
-                        : BottomActionButtonsWidget(
-                            onShareBibNumbers: _showShareBibNumbersPopup,
-                          );
+                      return provider.isKeyboardVisible
+                          ? const SizedBox.shrink()
+                          : BottomActionButtonsWidget(
+                              onShareBibNumbers: _showShareBibNumbersPopup,
+                            );
                     },
                   ),
                   // Keyboard accessory bar for mobile devices
                   Consumer<BibRecordsProvider>(
                     builder: (context, provider, _) {
-                      if (!(Platform.isIOS || Platform.isAndroid) || !provider.isKeyboardVisible || provider.bibRecords.isEmpty) {
+                      if (!(Platform.isIOS || Platform.isAndroid) ||
+                          !provider.isKeyboardVisible ||
+                          provider.bibRecords.isEmpty) {
                         return const SizedBox.shrink();
                       }
                       return KeyboardAccessoryBar(

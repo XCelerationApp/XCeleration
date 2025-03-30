@@ -38,7 +38,9 @@ class RunnerTimeRecordItem extends StatelessWidget {
             style: AppTypography.bodySemibold.copyWith(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: record.textColor != null ? AppColors.confirmRunnerColor : null,
+              color: record.textColor != null
+                  ? AppColors.confirmRunnerColor
+                  : null,
             ),
           ),
           Text(
@@ -93,7 +95,7 @@ class ConfirmationRecordItem extends StatelessWidget {
           Text(
             'Confirmed: ${record.elapsedTime}',
             style: AppTypography.bodySemibold.copyWith(
-              fontSize: 18, 
+              fontSize: 18,
               color: Colors.green[700],
             ),
           ),
@@ -133,9 +135,9 @@ class ConflictRecordItem extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
           Text(
-            record.type == RecordType.missingRunner 
-              ? 'Missing Runner at ${record.elapsedTime}'
-              : 'Extra Runner at ${record.elapsedTime}',
+            record.type == RecordType.missingRunner
+                ? 'Missing Runner at ${record.elapsedTime}'
+                : 'Extra Runner at ${record.elapsedTime}',
             style: AppTypography.bodySemibold.copyWith(
               fontSize: 18,
               color: AppColors.redColor,

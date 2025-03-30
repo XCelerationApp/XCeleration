@@ -18,13 +18,13 @@ class RunnersManagementController with ChangeNotifier {
   bool showHeader = true;
   String searchAttribute = 'Bib Number';
   final TextEditingController searchController = TextEditingController();
-  
+
   // Sheet controllers
   TextEditingController? nameController;
   TextEditingController? gradeController;
   TextEditingController? schoolController;
   TextEditingController? bibController;
-  
+
   final int raceId;
   final VoidCallback? onBack;
   final VoidCallback? onContentChanged;
@@ -110,14 +110,14 @@ class RunnersManagementController with ChangeNotifier {
     } else {
       filteredRunners = runners.where((runner) {
         final value = switch (searchAttribute) {
-            'Bib Number' => runner.bib,
-            'Name' => runner.name.toLowerCase(),
-            'Grade' => runner.grade.toString(),
-            'School' => runner.school.toLowerCase(),
-            String() => '',
-          };
-          return value.contains(query.toLowerCase());
-        }).toList();
+          'Bib Number' => runner.bib,
+          'Name' => runner.name.toLowerCase(),
+          'Grade' => runner.grade.toString(),
+          'School' => runner.school.toLowerCase(),
+          String() => '',
+        };
+        return value.contains(query.toLowerCase());
+      }).toList();
     }
     notifyListeners();
   }
@@ -159,7 +159,7 @@ class RunnersManagementController with ChangeNotifier {
     String? gradeError;
     String? schoolError;
     String? bibError;
-    
+
     // Initialize controllers
     initControllers();
 
@@ -171,9 +171,10 @@ class RunnersManagementController with ChangeNotifier {
     }
 
     try {
-      await sheet(context: context, body: StatefulBuilder(
-          builder: (context, setSheetState) => 
-            Column(
+      await sheet(
+          context: context,
+          body: StatefulBuilder(
+            builder: (context, setSheetState) => Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 const SizedBox(height: 16),
@@ -280,69 +281,87 @@ class RunnersManagementController with ChangeNotifier {
                     setSheetState: setSheetState,
                   ),
                 ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: (schoolError != null || bibError != null || gradeError != null || nameError != null || nameController == null || nameController!.text.isEmpty || gradeController!.text.isEmpty || schoolController!.text.isEmpty || bibController!.text.isEmpty)
-                      ? AppColors.primaryColor.withAlpha((0.5 * 255).round())
-                      : AppColors.primaryColor,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                onPressed: () async {
-                  print('pressed');
-                  print('schoolError: $schoolError');
-                  print('bibError: $bibError');
-                  print('gradeError: $gradeError');
-                  print('nameError: $nameError');
-                  print('_nameController!.text: ${nameController!.text}');
-                  print('_gradeController!.text: ${gradeController!.text}');
-                  print('_schoolController!.text: ${schoolController!.text}');
-                  print('_bibController!.text: ${bibController!.text}');
-                  if (schoolError != null || bibError != null || gradeError != null || nameError != null || nameController!.text.isEmpty || gradeController!.text.isEmpty || schoolController!.text.isEmpty || bibController!.text.isEmpty) return;
-                  try {
-                    final newRunner = RunnerRecord(
-                      name: nameController!.text,
-                      grade: int.tryParse(gradeController!.text) ?? 0,
-                      school: schoolController!.text,
-                      bib: bibController!.text,
-                      raceId: raceId,
-                    );
-                    print('newRunner: ${newRunner.toMap()}');
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: (schoolError != null ||
+                              bibError != null ||
+                              gradeError != null ||
+                              nameError != null ||
+                              nameController == null ||
+                              nameController!.text.isEmpty ||
+                              gradeController!.text.isEmpty ||
+                              schoolController!.text.isEmpty ||
+                              bibController!.text.isEmpty)
+                          ? AppColors.primaryColor
+                              .withAlpha((0.5 * 255).round())
+                          : AppColors.primaryColor,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    onPressed: () async {
+                      print('pressed');
+                      print('schoolError: $schoolError');
+                      print('bibError: $bibError');
+                      print('gradeError: $gradeError');
+                      print('nameError: $nameError');
+                      print('_nameController!.text: ${nameController!.text}');
+                      print('_gradeController!.text: ${gradeController!.text}');
+                      print(
+                          '_schoolController!.text: ${schoolController!.text}');
+                      print('_bibController!.text: ${bibController!.text}');
+                      if (schoolError != null ||
+                          bibError != null ||
+                          gradeError != null ||
+                          nameError != null ||
+                          nameController!.text.isEmpty ||
+                          gradeController!.text.isEmpty ||
+                          schoolController!.text.isEmpty ||
+                          bibController!.text.isEmpty) return;
+                      try {
+                        final newRunner = RunnerRecord(
+                          name: nameController!.text,
+                          grade: int.tryParse(gradeController!.text) ?? 0,
+                          school: schoolController!.text,
+                          bib: bibController!.text,
+                          raceId: raceId,
+                        );
+                        print('newRunner: ${newRunner.toMap()}');
 
-                    await handleRunnerSubmission(newRunner);
-                    if (context.mounted) {
-                      Navigator.pop(context);
-                    }
-                  } catch (e) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Error: $e'),
-                          backgroundColor: Colors.red,
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                    }
-                  }
-                },
-                child: Text(
-                  runner == null ? 'Create' : 'Save',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                        await handleRunnerSubmission(newRunner);
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Error: $e'),
+                              backgroundColor: Colors.red,
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
+                      }
+                    },
+                    child: Text(
+                      runner == null ? 'Create' : 'Save',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
-      ), title: title);
+          ),
+          title: title);
     } finally {
       // Always dispose controllers when sheet is closed
       disposeControllers();
@@ -352,7 +371,8 @@ class RunnersManagementController with ChangeNotifier {
   Future<void> handleRunnerSubmission(RunnerRecord runner) async {
     try {
       dynamic existingRunner;
-      existingRunner = await DatabaseHelper.instance.getRaceRunnerByBib(raceId, runner.bib);
+      existingRunner =
+          await DatabaseHelper.instance.getRaceRunnerByBib(raceId, runner.bib);
       print('existingRunner: $existingRunner');
 
       if (existingRunner != null) {
@@ -364,18 +384,19 @@ class RunnersManagementController with ChangeNotifier {
           final shouldOverwrite = await DialogUtils.showConfirmationDialog(
             context,
             title: 'Overwrite Runner',
-            content: 'A runner with bib number ${runner.bib} already exists. Do you want to overwrite it?',
+            content:
+                'A runner with bib number ${runner.bib} already exists. Do you want to overwrite it?',
           );
 
           if (!shouldOverwrite) return;
-          
+
           await DatabaseHelper.instance.deleteRaceRunner(raceId, runner.bib);
           await insertRunner(runner);
         }
       } else {
         await insertRunner(runner);
       }
-      
+
       await loadRunners();
       if (onContentChanged != null) {
         onContentChanged!();
@@ -400,16 +421,17 @@ class RunnersManagementController with ChangeNotifier {
       title: 'Confirm Deletion',
       content: 'Are you sure you want to delete all runners?',
     );
-    
+
     if (!confirmed) return;
-    
+
     await DatabaseHelper.instance.deleteAllRaceRunners(raceId);
-    
+
     await loadRunners();
   }
 
   Future<void> showSampleSpreadsheet() async {
-    final file = await rootBundle.loadString('assets/sample_sheets/sample_spreadsheet.csv');
+    final file = await rootBundle
+        .loadString('assets/sample_sheets/sample_spreadsheet.csv');
     final lines = file.split('\n');
     final table = Table(
       border: TableBorder.all(color: Colors.grey),
@@ -466,7 +488,7 @@ class RunnersManagementController with ChangeNotifier {
               ),
             ),
             const SizedBox(height: 24), // Adjusted spacing for balance
-            
+
             // Description text
             Text(
               'Import your runners from a CSV or Excel spreadsheet to quickly set up your race.',
@@ -478,7 +500,7 @@ class RunnersManagementController with ChangeNotifier {
               ),
             ),
             const SizedBox(height: 24), // Adjusted spacing for balance
-            
+
             // See Example button - with rounded corners and shadow
             ElevatedButton(
               onPressed: () async => await showSampleSpreadsheet(),
@@ -487,7 +509,8 @@ class RunnersManagementController with ChangeNotifier {
                 foregroundColor: AppColors.primaryColor,
                 elevation: 0,
                 // shadowColor: Colors.black.withOpacity(0.1),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
                   side: BorderSide(
@@ -495,26 +518,31 @@ class RunnersManagementController with ChangeNotifier {
                     width: 1,
                   ),
                 ),
-                minimumSize: const Size(double.infinity, 56), // Full width button
+                minimumSize:
+                    const Size(double.infinity, 56), // Full width button
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.description_outlined, size: 24, color: AppColors.primaryColor), // Ensuring color consistency
+                  Icon(Icons.description_outlined,
+                      size: 24,
+                      color:
+                          AppColors.primaryColor), // Ensuring color consistency
                   const SizedBox(width: 12),
                   Text(
                     'See Example Format',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.primaryColor, // Ensuring color consistency
+                      color:
+                          AppColors.primaryColor, // Ensuring color consistency
                     ),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 24), // Adjusted spacing for balance
-            
+
             // Action Buttons
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -532,7 +560,8 @@ class RunnersManagementController with ChangeNotifier {
                           width: 1,
                         ),
                       ),
-                      minimumSize: const Size(double.infinity, 56), // Full width button
+                      minimumSize:
+                          const Size(double.infinity, 56), // Full width button
                     ),
                     child: Text(
                       'Cancel',
@@ -545,7 +574,7 @@ class RunnersManagementController with ChangeNotifier {
                   ),
                 ),
                 const SizedBox(width: 16),
-                
+
                 // Import Button
                 Expanded(
                   child: ElevatedButton(
@@ -554,16 +583,20 @@ class RunnersManagementController with ChangeNotifier {
                       backgroundColor: AppColors.primaryColor,
                       foregroundColor: Colors.white,
                       elevation: 0,
-                      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 16, horizontal: 24),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(24),
                       ),
-                      minimumSize: const Size(double.infinity, 56), // Full width button
+                      minimumSize:
+                          const Size(double.infinity, 56), // Full width button
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.cloud_upload_outlined, size: 20, color: Colors.white), // Ensuring color consistency
+                        Icon(Icons.cloud_upload_outlined,
+                            size: 20,
+                            color: Colors.white), // Ensuring color consistency
                         const SizedBox(width: 8),
                         Text(
                           'Import Now',
@@ -588,12 +621,18 @@ class RunnersManagementController with ChangeNotifier {
   Future<void> handleSpreadsheetLoad() async {
     final confirmed = await showSpreadsheetLoadSheet(context);
     if (confirmed == null || !confirmed) return;
-    final List<RunnerRecord> runnerData = await processSpreadsheet(raceId, false);
+    final List<RunnerRecord> runnerData =
+        await processSpreadsheet(raceId, false);
     final overwriteRunners = [];
     for (final runner in runnerData) {
       dynamic existingRunner;
-      existingRunner = await DatabaseHelper.instance.getRaceRunnerByBib(raceId, runner.bib);
-      if (existingRunner != null && runner.bib == existingRunner.bib && runner.name == existingRunner.name && runner.school == existingRunner.school && runner.grade == existingRunner.grade) continue;
+      existingRunner =
+          await DatabaseHelper.instance.getRaceRunnerByBib(raceId, runner.bib);
+      if (existingRunner != null &&
+          runner.bib == existingRunner.bib &&
+          runner.name == existingRunner.name &&
+          runner.school == existingRunner.school &&
+          runner.grade == existingRunner.grade) continue;
 
       if (existingRunner != null) {
         overwriteRunners.add(runner);
@@ -603,15 +642,18 @@ class RunnersManagementController with ChangeNotifier {
     }
     await loadRunners();
     if (overwriteRunners.isEmpty) return;
-    final overwriteRunnersBibs = overwriteRunners.map((runner) => runner['bib_number']).toList();
+    final overwriteRunnersBibs =
+        overwriteRunners.map((runner) => runner['bib_number']).toList();
     final overwriteExistingRunners = await DialogUtils.showConfirmationDialog(
       context,
       title: 'Confirm Overwrite',
-      content: 'Are you sure you want to overwrite the following runners with bib numbers: ${overwriteRunnersBibs.join(', ')}?',
+      content:
+          'Are you sure you want to overwrite the following runners with bib numbers: ${overwriteRunnersBibs.join(', ')}?',
     );
     if (!overwriteExistingRunners) return;
     for (final runner in overwriteRunners) {
-      await DatabaseHelper.instance.deleteRaceRunner(raceId, runner['bib_number']);
+      await DatabaseHelper.instance
+          .deleteRaceRunner(raceId, runner['bib_number']);
       await DatabaseHelper.instance.insertRaceRunner(runner);
     }
     await loadRunners();

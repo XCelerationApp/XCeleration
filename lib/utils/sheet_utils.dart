@@ -31,7 +31,7 @@ Widget createSheetHandle({double height = 10.0, double width = 50.0}) {
   );
 }
 
-Widget createBackArrow(BuildContext context, {VoidCallback? onBack}) {  
+Widget createBackArrow(BuildContext context, {VoidCallback? onBack}) {
   return IconButton(
     iconSize: 24,
     icon: const Icon(Icons.arrow_back),
@@ -67,7 +67,8 @@ Widget createBackArrow(BuildContext context, {VoidCallback? onBack}) {
 //   );
 // }
 
-Widget createSheetHeader(String? title, {
+Widget createSheetHeader(
+  String? title, {
   double titleSize = 24,
   bool backArrow = false,
   BuildContext? context,
@@ -102,7 +103,14 @@ Widget createSheetHeader(String? title, {
   );
 }
 
-Future<dynamic> sheet({required BuildContext context, required Widget body, String? title, double titleSize = 24, Widget? action_buttons, bool showHeader = true, bool takeUpScreen = false}) async {
+Future<dynamic> sheet(
+    {required BuildContext context,
+    required Widget body,
+    String? title,
+    double titleSize = 24,
+    Widget? action_buttons,
+    bool showHeader = true,
+    bool takeUpScreen = false}) async {
   return await showModalBottomSheet(
     backgroundColor: Colors.transparent,
     context: context,

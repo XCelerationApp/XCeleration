@@ -23,9 +23,7 @@ class ShareRaceController extends ChangeNotifier {
   late String _formattedResultsText;
   late List<List<dynamic>> _formattedSheetsData;
   late pw.Document _formattedPdf;
-  
-  
-  
+
   ShareRaceController({
     required this.controller,
   }) {
@@ -35,9 +33,9 @@ class ShareRaceController extends ChangeNotifier {
   }
 
   ResultFormat? _selectedFormat;
-  
+
   ResultFormat? get selectedFormat => _selectedFormat;
-  
+
   set selectedFormat(ResultFormat? format) {
     _selectedFormat = format;
     notifyListeners();
@@ -62,27 +60,23 @@ class ShareRaceController extends ChangeNotifier {
   // Text Formatting Methods
   String _getFormattedText() {
     final StringBuffer buffer = StringBuffer();
-    
+
     // Team Results Section
     buffer.writeln('Team Results');
     buffer.writeln('Place\tSchool\tScore\tSplit Time\tAverage Time');
     for (final team in controller.overallTeamResults) {
-      buffer.writeln(
-        '${team.place}\t${team.school}\t${team.score}\t'
-        '${team.split}\t${team.avgTime}'
-      );
+      buffer.writeln('${team.place}\t${team.school}\t${team.score}\t'
+          '${team.split}\t${team.avgTime}');
     }
-    
+
     // Individual Results Section
     buffer.writeln('\nIndividual Results');
     buffer.writeln('Place\tName\tSchool\tTime');
     for (final runner in controller.individualResults) {
-      buffer.writeln(
-        '${runner.place}\t${runner.name}\t${runner.school}\t'
-        '${runner.finishTime}'
-      );
+      buffer.writeln('${runner.place}\t${runner.name}\t${runner.school}\t'
+          '${runner.finishTime}');
     }
-    
+
     return buffer.toString();
   }
 
@@ -93,55 +87,59 @@ class ShareRaceController extends ChangeNotifier {
       ['Team Results'],
       ['Place', 'School', 'Score', 'Scorers', 'Split Time', 'Average Time'],
       ...controller.overallTeamResults.map((team) => [
-        team.place,
-        team.school,
-        team.score,
-        team.scorers.map((scorer) => scorer.place.toString()).join(', '),
-        team.split,
-        team.avgTime,
-      ]),
-      
+            team.place,
+            team.school,
+            team.score,
+            team.scorers.map((scorer) => scorer.place.toString()).join(', '),
+            team.split,
+            team.avgTime,
+          ]),
+
       // Spacing
       [],
-      
+
       // Head-to-Head Team Results Sections
       if (controller.headToHeadTeamResults != null) ...[
         ...controller.headToHeadTeamResults!.expand((matchup) {
           final team1 = matchup[0];
           final team2 = matchup[1];
-          
+
           // Get the max number of runners to show
-          final maxRunners = team1.runners.length > team2.runners.length ? team1.runners.length : team2.runners.length;
-          
+          final maxRunners = team1.runners.length > team2.runners.length
+              ? team1.runners.length
+              : team2.runners.length;
+
           // Create a header for this matchup
           final matchupHeader = ['${team1.school} vs ${team2.school}', '', ''];
-          
+
           // Create column headers
-          final columnHeaders = [
-            '', team1.school, team2.school
-          ];
-          
+          final columnHeaders = ['', team1.school, team2.school];
+
           // Create data rows for each runner
           List<List<dynamic>> runnerRows = [];
           for (int i = 0; i < maxRunners; i++) {
             // Runner from first team (if exists)
-            String team1Place = i < team1.runners.length ? '#${team1.runners[i].place}' : '';
-            String team1Name = i < team1.runners.length ? team1.runners[i].name : '';
-            
+            String team1Place =
+                i < team1.runners.length ? '#${team1.runners[i].place}' : '';
+            String team1Name =
+                i < team1.runners.length ? team1.runners[i].name : '';
+
             // Runner from second team (if exists)
-            String team2Place = i < team2.runners.length ? '#${team2.runners[i].place}' : '';
-            String team2Name = i < team2.runners.length ? team2.runners[i].name : '';
-            
+            String team2Place =
+                i < team2.runners.length ? '#${team2.runners[i].place}' : '';
+            String team2Name =
+                i < team2.runners.length ? team2.runners[i].name : '';
+
             runnerRows.add([
-              '${i+1}', 
+              '${i + 1}',
               team1Place.isNotEmpty ? '$team1Place $team1Name' : '',
               team2Place.isNotEmpty ? '$team2Place $team2Name' : ''
             ]);
           }
-          
+
           // Summary row
           final summaryRow = ['Score', '${team1.score}', '${team2.score}'];
-          
+
           return [
             matchupHeader,
             columnHeaders,
@@ -151,16 +149,16 @@ class ShareRaceController extends ChangeNotifier {
           ];
         })
       ],
-      
+
       // Individual Results Section
       ['Individual Results'],
       ['Place', 'Name', 'School', 'Time'],
       ...controller.individualResults.map((runner) => [
-        runner.place,
-        runner.name,
-        runner.school,
-        runner.finishTime,
-      ]),
+            runner.place,
+            runner.name,
+            runner.school,
+            runner.finishTime,
+          ]),
     ];
 
     return sheetsData;
@@ -177,54 +175,70 @@ class ShareRaceController extends ChangeNotifier {
             level: 0,
             child: pw.Text('Race Results', style: pw.TextStyle(fontSize: 24)),
           ),
-          
+
           // Team Results Section
           pw.Header(level: 1, child: pw.Text('Team Results')),
           pw.TableHelper.fromTextArray(
-            headers: ['Place', 'School', 'Score', 'Scorers', 'Split Time', 'Average Time'],
-            data: controller.overallTeamResults.map((team) => [
-              team.place.toString(),
-              team.school.toString(),
-              team.score.toString(),
-              team.scorers.map((scorer) => scorer.place.toString()).join(', '),
-              team.split.toString(),
-              team.avgTime.toString(),
-            ]).toList(),
+            headers: [
+              'Place',
+              'School',
+              'Score',
+              'Scorers',
+              'Split Time',
+              'Average Time'
+            ],
+            data: controller.overallTeamResults
+                .map((team) => [
+                      team.place.toString(),
+                      team.school.toString(),
+                      team.score.toString(),
+                      team.scorers
+                          .map((scorer) => scorer.place.toString())
+                          .join(', '),
+                      team.split.toString(),
+                      team.avgTime.toString(),
+                    ])
+                .toList(),
           ),
-          
+
           pw.SizedBox(height: 20),
 
           // Head-to-Head Team Results Sections
           if (controller.headToHeadTeamResults != null) ...[
             pw.Header(level: 1, child: pw.Text('Head-to-Head Team Results')),
             pw.SizedBox(height: 10),
-            
+
             // Generate each head-to-head matchup section
             for (final matchup in controller.headToHeadTeamResults!) ...[
-              pw.Header(level: 2, child: pw.Text('${matchup[0].school} vs ${matchup[1].school}')),
-              
+              pw.Header(
+                  level: 2,
+                  child:
+                      pw.Text('${matchup[0].school} vs ${matchup[1].school}')),
+
               // Table with the results
               pw.TableHelper.fromTextArray(
                 headers: ['', matchup[0].school, matchup[1].school],
                 data: _generateHeadToHeadRows(matchup[0], matchup[1]),
               ),
-              
+
               pw.SizedBox(height: 20),
             ],
           ],
-          
+
           pw.SizedBox(height: 20),
-          
+
           // Individual Results Section
           pw.Header(level: 1, child: pw.Text('Individual Results')),
           pw.TableHelper.fromTextArray(
             headers: ['Place', 'Name', 'School', 'Time'],
-            data: controller.individualResults.map((runner) => [
-              runner.place.toString(),
-              runner.name.toString(),
-              runner.school.toString(),
-              runner.finishTime.toString(),
-            ]).toList(),
+            data: controller.individualResults
+                .map((runner) => [
+                      runner.place.toString(),
+                      runner.name.toString(),
+                      runner.school.toString(),
+                      runner.finishTime.toString(),
+                    ])
+                .toList(),
           ),
         ],
       ),
@@ -233,29 +247,34 @@ class ShareRaceController extends ChangeNotifier {
     return pdf;
   }
 
-  List<List<String>> _generateHeadToHeadRows(TeamRecord team1, TeamRecord team2) {
+  List<List<String>> _generateHeadToHeadRows(
+      TeamRecord team1, TeamRecord team2) {
     final List<List<String>> rows = [];
-    final maxRunners = team1.runners.length > team2.runners.length ? team1.runners.length : team2.runners.length;
-    
+    final maxRunners = team1.runners.length > team2.runners.length
+        ? team1.runners.length
+        : team2.runners.length;
+
     for (int i = 0; i < maxRunners; i++) {
       // Runner from first team (if exists)
-      String team1Place = i < team1.runners.length ? '#${team1.runners[i].place}' : '';
+      String team1Place =
+          i < team1.runners.length ? '#${team1.runners[i].place}' : '';
       String team1Name = i < team1.runners.length ? team1.runners[i].name : '';
-      
+
       // Runner from second team (if exists)
-      String team2Place = i < team2.runners.length ? '#${team2.runners[i].place}' : '';
+      String team2Place =
+          i < team2.runners.length ? '#${team2.runners[i].place}' : '';
       String team2Name = i < team2.runners.length ? team2.runners[i].name : '';
-      
+
       rows.add([
-        '${i+1}', 
+        '${i + 1}',
         team1Place.isNotEmpty ? '$team1Place $team1Name' : '',
         team2Place.isNotEmpty ? '$team2Place $team2Name' : ''
       ]);
     }
-    
+
     // Add summary row
     rows.add(['Score', '${team1.score}', '${team2.score}']);
-    
+
     return rows;
   }
 
@@ -265,18 +284,20 @@ class ShareRaceController extends ChangeNotifier {
   ) async {
     return await ShareUtils.exportToGoogleSheets(context, _formattedSheetsData);
   }
-  
+
   /// Save results locally to a file
   Future<void> saveLocally(
-    BuildContext context, 
+    BuildContext context,
     ResultFormat format,
   ) async {
     try {
-      final String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
+      final String? selectedDirectory =
+          await FilePicker.platform.getDirectoryPath();
       if (selectedDirectory == null) return;
 
       final String extension = format == ResultFormat.pdf ? 'pdf' : 'txt';
-      final file = File(path.join(selectedDirectory, 'race_results.$extension'));
+      final file =
+          File(path.join(selectedDirectory, 'race_results.$extension'));
 
       if (format == ResultFormat.pdf) {
         await file.writeAsBytes(await _formattedPdf.save());
@@ -291,14 +312,15 @@ class ShareRaceController extends ChangeNotifier {
       }
     } catch (e) {
       if (context.mounted) {
-        DialogUtils.showErrorDialog(context, message: 'Failed to save file: $e');
+        DialogUtils.showErrorDialog(context,
+            message: 'Failed to save file: $e');
       }
     }
   }
 
   /// Copy the results to clipboard
   Future<void> copyToClipboard(
-    BuildContext context, 
+    BuildContext context,
     ResultFormat format,
   ) async {
     try {
@@ -309,14 +331,13 @@ class ShareRaceController extends ChangeNotifier {
             await Clipboard.setData(ClipboardData(text: sheetUrl));
           }
           break;
-        
+
         case ResultFormat.pdf:
-          DialogUtils.showErrorDialog(
-            context,
-            message: 'PDF format cannot be copied to clipboard. Please use Save or Email options instead.'
-          );
+          DialogUtils.showErrorDialog(context,
+              message:
+                  'PDF format cannot be copied to clipboard. Please use Save or Email options instead.');
           return;
-        
+
         case ResultFormat.plainText:
           await Clipboard.setData(ClipboardData(text: _formattedResultsText));
           break;
@@ -329,14 +350,15 @@ class ShareRaceController extends ChangeNotifier {
       }
     } catch (e) {
       if (context.mounted) {
-        DialogUtils.showErrorDialog(context, message: 'Failed to copy to clipboard: $e');
+        DialogUtils.showErrorDialog(context,
+            message: 'Failed to copy to clipboard: $e');
       }
     }
   }
 
   /// Share results via email
   Future<void> sendEmail(
-    BuildContext context, 
+    BuildContext context,
     ResultFormat format,
   ) async {
     try {
@@ -347,7 +369,8 @@ class ShareRaceController extends ChangeNotifier {
             await _launchEmail(
               context: context,
               subject: 'Race Results',
-              body: 'Race results are available in the following Google Sheet:\n\n$sheetUrl',
+              body:
+                  'Race results are available in the following Google Sheet:\n\n$sheetUrl',
             );
           }
           break;
@@ -356,7 +379,7 @@ class ShareRaceController extends ChangeNotifier {
           final pdfData = _formattedPdf;
           final bytes = await pdfData.save();
           final base64Pdf = base64Encode(bytes);
-          
+
           await _launchEmail(
             context: context,
             subject: 'Race Results',
@@ -375,14 +398,15 @@ class ShareRaceController extends ChangeNotifier {
       }
     } catch (e) {
       if (context.mounted) {
-        DialogUtils.showErrorDialog(context, message: 'Failed to send email: $e');
+        DialogUtils.showErrorDialog(context,
+            message: 'Failed to send email: $e');
       }
     }
   }
 
   /// Share results via SMS
   Future<void> sendSms(
-    BuildContext context, 
+    BuildContext context,
     ResultFormat format,
   ) async {
     try {
@@ -391,7 +415,8 @@ class ShareRaceController extends ChangeNotifier {
         if (sheetUrl != null) {
           await Share.share(sheetUrl);
         } else if (context.mounted) {
-          DialogUtils.showErrorDialog(context, message: 'Failed to create Google Sheet');
+          DialogUtils.showErrorDialog(context,
+              message: 'Failed to create Google Sheet');
         }
         return;
       }
@@ -399,7 +424,7 @@ class ShareRaceController extends ChangeNotifier {
       if (format == ResultFormat.pdf) {
         final pdfData = _formattedPdf;
         final bytes = await pdfData.save();
-        
+
         await Share.shareXFiles([
           XFile.fromData(
             bytes,
@@ -442,14 +467,16 @@ class ShareRaceController extends ChangeNotifier {
     if (await canLaunchUrl(emailLaunchUri)) {
       await launchUrl(emailLaunchUri);
     } else if (context.mounted) {
-      DialogUtils.showErrorDialog(context, message: 'Could not launch email client');
+      DialogUtils.showErrorDialog(context,
+          message: 'Could not launch email client');
     }
   }
 
   // Helper method to encode query parameters
   String _encodeQueryParameters(Map<String, String> params) {
     return params.entries
-        .map((e) => '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
+        .map((e) =>
+            '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
         .join('&');
   }
 }

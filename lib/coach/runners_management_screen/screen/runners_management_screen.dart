@@ -35,7 +35,8 @@ class RunnersManagementScreen extends StatefulWidget {
     // Verify each team in the race has enough runners
     for (final teamName in race!.teams) {
       final runnerCount = teamRunnerCounts[teamName] ?? 0;
-      if (runnerCount < 1) { // only checking 1 for testing purposes
+      if (runnerCount < 1) {
+        // only checking 1 for testing purposes
         return false;
       }
     }
@@ -52,7 +53,8 @@ class RunnersManagementScreen extends StatefulWidget {
   });
 
   @override
-  State<RunnersManagementScreen> createState() => _RunnersManagementScreenState();
+  State<RunnersManagementScreen> createState() =>
+      _RunnersManagementScreenState();
 }
 
 class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
@@ -125,7 +127,8 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
           ActionButton(
             text: 'Add Runner',
             icon: Icons.person_add_alt_1,
-            onPressed: () => _controller.showRunnerSheet(context: context, runner: null),
+            onPressed: () =>
+                _controller.showRunnerSheet(context: context, runner: null),
           ),
           ActionButton(
             text: 'Load Runners',

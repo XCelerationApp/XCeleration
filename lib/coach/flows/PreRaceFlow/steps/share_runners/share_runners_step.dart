@@ -5,10 +5,12 @@ import 'widgets/share_results_widget.dart';
 /// A FlowStep implementation for the share runners step in the pre-race flow
 class ShareRunnersStep extends FlowStep {
   final DevicesManager devices;
-  ShareRunnersStep({required this.devices}) : super(
-    title: 'Share Runners',
-    description: 'Share the runners with the bib recorders phone before starting the race.',
-    content: ShareResultsWidget(devices: devices),
-    canProceed: () => true,
-  );
+  ShareRunnersStep({required this.devices})
+      : super(
+          title: 'Share Runners',
+          description:
+              'Share the runners with the bib recorders phone before starting the race.',
+          content: ShareResultsWidget(devices: devices),
+          canProceed: () => true,
+        );
 }

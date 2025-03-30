@@ -9,14 +9,13 @@ class ActionButton extends StatelessWidget {
   final RacesController controller;
   final bool isEditing;
   final int? raceId;
-  
-  const ActionButton({
-    required this.controller, 
-    this.isEditing = false, 
-    this.raceId, 
-    super.key
-  });
-  
+
+  const ActionButton(
+      {required this.controller,
+      this.isEditing = false,
+      this.raceId,
+      super.key});
+
   @override
   Widget build(BuildContext context) {
     return ElevatedButton(
@@ -46,8 +45,10 @@ class ActionButton extends StatelessWidget {
         );
 
         if (isEditing && raceId != null) {
-          final flowState = (await DatabaseHelper.instance.getRaceById(raceId!))!.flowState;
-          await DatabaseHelper.instance.updateRace(race.copyWith(flowState: flowState));
+          final flowState =
+              (await DatabaseHelper.instance.getRaceById(raceId!))!.flowState;
+          await DatabaseHelper.instance
+              .updateRace(race.copyWith(flowState: flowState));
         } else {
           await DatabaseHelper.instance.insertRace(race);
         }

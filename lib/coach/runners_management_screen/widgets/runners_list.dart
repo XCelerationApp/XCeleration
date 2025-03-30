@@ -77,7 +77,8 @@ class RunnersList extends StatelessWidget {
         itemBuilder: (context, index) {
           final school = sortedSchools[index];
           final schoolRunners = groupedRunners[school]!;
-          final team = controller.teams.firstWhereOrNull((team) => team.name == school);
+          final team =
+              controller.teams.firstWhereOrNull((team) => team.name == school);
           final schoolColor = team != null ? team.color : Colors.blueGrey[400];
 
           return AnimatedOpacity(
@@ -90,14 +91,16 @@ class RunnersList extends StatelessWidget {
                 const Divider(height: 1, thickness: 1, color: Colors.grey),
                 Container(
                   decoration: BoxDecoration(
-                    color: schoolColor?.withAlpha((0.12 * 255).round()) ?? Colors.grey.withAlpha((0.12 * 255).round()),
+                    color: schoolColor?.withAlpha((0.12 * 255).round()) ??
+                        Colors.grey.withAlpha((0.12 * 255).round()),
                     borderRadius: const BorderRadius.only(
                       topRight: Radius.circular(12),
                       bottomRight: Radius.circular(12),
                     ),
                   ),
                   margin: const EdgeInsets.only(right: 16.0),
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 10.0),
                   child: Row(
                     children: [
                       Icon(
@@ -116,7 +119,8 @@ class RunnersList extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
                           color: schoolColor?.withOpacity(0.15),
                           borderRadius: BorderRadius.circular(12),
@@ -134,10 +138,11 @@ class RunnersList extends StatelessWidget {
                   ),
                 ),
                 ...schoolRunners.map((runner) => RunnerListItem(
-                  runner: runner,
-                  controller: controller,
-                  onAction: (action) => controller.handleRunnerAction(action, runner),
-                )),
+                      runner: runner,
+                      controller: controller,
+                      onAction: (action) =>
+                          controller.handleRunnerAction(action, runner),
+                    )),
               ],
             ),
           );

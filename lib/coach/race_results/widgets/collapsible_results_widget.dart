@@ -6,17 +6,19 @@ import '../model/team_record.dart';
 class CollapsibleResultsWidget extends StatefulWidget {
   final List<dynamic> results;
   final int initialVisibleCount;
-  const CollapsibleResultsWidget({super.key, required this.results, this.initialVisibleCount = 5});
+  const CollapsibleResultsWidget(
+      {super.key, required this.results, this.initialVisibleCount = 5});
 
   @override
-  State<CollapsibleResultsWidget> createState() => _CollapsibleResultsWidgetState();
+  State<CollapsibleResultsWidget> createState() =>
+      _CollapsibleResultsWidgetState();
 }
 
 class _CollapsibleResultsWidgetState extends State<CollapsibleResultsWidget> {
   bool isExpanded = false;
 
   List<dynamic> displayResults = [];
-  
+
   @override
   void initState() {
     super.initState();
@@ -26,27 +28,27 @@ class _CollapsibleResultsWidgetState extends State<CollapsibleResultsWidget> {
   void toggleExpansion() {
     setState(() {
       isExpanded = !isExpanded;
-      displayResults = isExpanded 
-          ? widget.results 
+      displayResults = isExpanded
+          ? widget.results
           : widget.results.take(widget.initialVisibleCount).toList();
     });
   }
-  
+
   @override
   Widget build(BuildContext context) {
     // Check if results list is empty
     if (widget.results.isEmpty) {
       return const Center(child: Text('No results to display'));
     }
-    
+
     // Determine the type of results we're displaying
     bool isTeamResults = widget.results.first is TeamRecord;
-    
+
     return Column(
       children: [
         Padding(
           padding: const EdgeInsets.only(bottom: 8.0),
-          child: isTeamResults 
+          child: isTeamResults
               ? _buildTeamResultsHeader()
               : _buildIndividualResultsHeader(),
         ),
@@ -57,14 +59,14 @@ class _CollapsibleResultsWidgetState extends State<CollapsibleResultsWidget> {
           itemBuilder: (context, index) {
             final item = displayResults[index];
             // Use subtle alternate row colors for better readability
-            final backgroundColor = index % 2 == 0 
-                ? Colors.transparent 
+            final backgroundColor = index % 2 == 0
+                ? Colors.transparent
                 : Colors.grey.withOpacity(0.05);
-            
+
             return Container(
               color: backgroundColor,
               padding: const EdgeInsets.symmetric(vertical: 6.0),
-              child: isTeamResults 
+              child: isTeamResults
                   ? _buildTeamResultRow(item as TeamRecord)
                   : _buildIndividualResultRow(item as ResultsRecord),
             );
@@ -89,36 +91,45 @@ class _CollapsibleResultsWidgetState extends State<CollapsibleResultsWidget> {
       ],
     );
   }
-  
+
   Widget _buildIndividualResultsHeader() {
     return const Row(
       children: [
-        SizedBox(width: 50, child: Text('Place', style: AppTypography.bodySemibold)),
-        Expanded(flex: 1, child: Text('Name', style: AppTypography.bodySemibold)),
-        Expanded(flex: 1, child: Text('School', style: AppTypography.bodySemibold)),
-        Expanded(flex: 1, child: Text('Time', style: AppTypography.bodySemibold)),
+        SizedBox(
+            width: 50, child: Text('Place', style: AppTypography.bodySemibold)),
+        Expanded(
+            flex: 1, child: Text('Name', style: AppTypography.bodySemibold)),
+        Expanded(
+            flex: 1, child: Text('School', style: AppTypography.bodySemibold)),
+        Expanded(
+            flex: 1, child: Text('Time', style: AppTypography.bodySemibold)),
       ],
     );
   }
-  
+
   Widget _buildTeamResultsHeader() {
     return const Row(
       children: [
-        SizedBox(width: 50, child: Text('Place', style: AppTypography.bodySemibold)),
-        Expanded(flex: 1, child: Text('School', style: AppTypography.bodySemibold)),
-        Expanded(flex: 1, child: Text('Score', style: AppTypography.bodySemibold)),
-        Expanded(flex: 2, child: Text('Scorer Places', style: AppTypography.bodySemibold)),
+        SizedBox(
+            width: 50, child: Text('Place', style: AppTypography.bodySemibold)),
+        Expanded(
+            flex: 1, child: Text('School', style: AppTypography.bodySemibold)),
+        Expanded(
+            flex: 1, child: Text('Score', style: AppTypography.bodySemibold)),
+        Expanded(
+            flex: 2,
+            child: Text('Scorer Places', style: AppTypography.bodySemibold)),
       ],
     );
   }
-  
+
   Widget _buildIndividualResultRow(ResultsRecord runner) {
     return Row(
       children: [
         SizedBox(
           width: 50,
           child: Text(
-            '${runner.place}', 
+            '${runner.place}',
             style: AppTypography.bodyRegular,
           ),
         ),
@@ -147,13 +158,13 @@ class _CollapsibleResultsWidgetState extends State<CollapsibleResultsWidget> {
       ],
     );
   }
-  
+
   Widget _buildTeamResultRow(TeamRecord team) {
     // Format the scorer places as a string (e.g., "1, 4, 7, 12, 15")
     final scorerPlaces = team.scorers.isEmpty
         ? 'N/A'
         : team.scorers.map((scorer) => scorer.place.toString()).join(', ');
-    
+
     return Row(
       children: [
         SizedBox(

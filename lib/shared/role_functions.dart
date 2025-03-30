@@ -63,9 +63,11 @@ final List<RoleOption> profileOptions = [
 Widget _buildRoleTitle(RoleOption role, String currentRole) {
   return Row(
     children: [
-      Icon(role.icon, size: 56, color: role.value == currentRole
-                  ? AppColors.selectedRoleTextColor
-                  : AppColors.unselectedRoleTextColor),
+      Icon(role.icon,
+          size: 56,
+          color: role.value == currentRole
+              ? AppColors.selectedRoleTextColor
+              : AppColors.unselectedRoleTextColor),
       SizedBox(width: 8),
       Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -101,7 +103,8 @@ Widget _buildRoleTitle(RoleOption role, String currentRole) {
   );
 }
 
-Widget _buildRoleListTile(BuildContext context, RoleOption role, String currentRole) {
+Widget _buildRoleListTile(
+    BuildContext context, RoleOption role, String currentRole) {
   return Padding(
     padding: const EdgeInsets.only(top: 8.0),
     child: RadioListTile<String>(
@@ -110,40 +113,43 @@ Widget _buildRoleListTile(BuildContext context, RoleOption role, String currentR
       onChanged: (value) async {
         // Close the role selection sheet first
         Navigator.pop(context);
-        
+
         // Skip confirmation if user selects the current role
         if (value == currentRole) return;
-        
+
         // Add confirmation for leaving bib number screen or timing screen
         bool shouldProceed = true;
-        
+
         // Show confirmation dialog when leaving bib number screen
         if (currentRole == 'bib recorder') {
           shouldProceed = await DialogUtils.showConfirmationDialog(
             context,
             title: 'Leave Bib Number Screen?',
-            content: 'All bib numbers will be lost if you leave this screen. Do you want to continue?',
+            content:
+                'All bib numbers will be lost if you leave this screen. Do you want to continue?',
             confirmText: 'Continue',
             cancelText: 'Stay',
           );
-        } 
+        }
         // Show confirmation dialog when leaving timing screen
         else if (currentRole == 'timer') {
           shouldProceed = await DialogUtils.showConfirmationDialog(
             context,
             title: 'Leave Timing Screen?',
-            content: 'All race times will be lost if you leave this screen. Do you want to continue?',
+            content:
+                'All race times will be lost if you leave this screen. Do you want to continue?',
             confirmText: 'Continue',
             cancelText: 'Stay',
           );
         }
-        
+
         // Only navigate if user confirms
         if (shouldProceed && context.mounted) {
           Navigator.push(
             context,
             PageRouteBuilder(
-              pageBuilder: (context, animation, secondaryAnimation) => role.screen,
+              pageBuilder: (context, animation, secondaryAnimation) =>
+                  role.screen,
             ),
           );
         }
@@ -168,7 +174,8 @@ void changeRole(BuildContext context, String currentRole) {
     body: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        ...roleOptions.map((role) => _buildRoleListTile(context, role, currentRole)),
+        ...roleOptions
+            .map((role) => _buildRoleListTile(context, role, currentRole)),
         const SizedBox(height: 30),
       ],
     ),
@@ -182,14 +189,16 @@ void changeProfile(BuildContext context, String currentProfile) {
     body: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        ...profileOptions.map((role) => _buildRoleListTile(context, role, currentProfile)),
+        ...profileOptions
+            .map((role) => _buildRoleListTile(context, role, currentProfile)),
         const SizedBox(height: 30),
       ],
     ),
   );
 }
 
-Widget buildRoleBar(BuildContext context, String currentRole, TutorialManager tutorialManager) {
+Widget buildRoleBar(
+    BuildContext context, String currentRole, TutorialManager tutorialManager) {
   return Container(
     padding: EdgeInsets.only(bottom: 10, left: 5, right: 0),
     decoration: BoxDecoration(
@@ -210,20 +219,20 @@ Widget buildRoleBar(BuildContext context, String currentRole, TutorialManager tu
           children: [
             // Role button
             CoachMark(
-              id: 'role_bar_tutorial',
-              tutorialManager: tutorialManager,
-              config: const CoachMarkConfig(
-                title: 'Switch Roles',
-                alignmentX: AlignmentX.left,
-                alignmentY: AlignmentY.bottom,
-                description: 'Click here to switch between Coach, Timer, and Bib Recorder roles',
-                icon: Icons.touch_app,
-                type: CoachMarkType.targeted,
-                backgroundColor: Color(0xFF1976D2),
-                elevation: 12,
-              ),
-              child: buildRoleButton(context, currentRole)
-            ),
+                id: 'role_bar_tutorial',
+                tutorialManager: tutorialManager,
+                config: const CoachMarkConfig(
+                  title: 'Switch Roles',
+                  alignmentX: AlignmentX.left,
+                  alignmentY: AlignmentY.bottom,
+                  description:
+                      'Click here to switch between Coach, Timer, and Bib Recorder roles',
+                  icon: Icons.touch_app,
+                  type: CoachMarkType.targeted,
+                  backgroundColor: Color(0xFF1976D2),
+                  elevation: 12,
+                ),
+                child: buildRoleButton(context, currentRole)),
             const SizedBox(width: 8),
             // Settings button
             IconButton(
@@ -231,7 +240,8 @@ Widget buildRoleBar(BuildContext context, String currentRole, TutorialManager tu
               onPressed: () {
                 final role = (currentRole == 'coach') ? 'coach' : 'assistant';
                 Navigator.of(context).push(
-                  MaterialPageRoute(builder: (context) => SettingsScreen(currentRole: role)),
+                  MaterialPageRoute(
+                      builder: (context) => SettingsScreen(currentRole: role)),
                 );
               },
               padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -263,11 +273,11 @@ Widget buildRoleButton(BuildContext context, String currentRole) {
       elevation: 12,
     ),
     child: GestureDetector(
-      onTap: () {
-        changeRole(context, currentRole);
-      },
-      child: Icon(Icons.person_outline, color: AppColors.darkColor, size: 56)
-    ),
+        onTap: () {
+          changeRole(context, currentRole);
+        },
+        child:
+            Icon(Icons.person_outline, color: AppColors.darkColor, size: 56)),
   );
   // return TextButton(
   //   onPressed: () => changeRole(context, currentRole),
@@ -283,6 +293,6 @@ Widget buildRoleButton(BuildContext context, String currentRole) {
   //         color: AppColors.navBarTextColor,
   //       ),
   //     ],
-  //   ), 
+  //   ),
   // );
 }

@@ -24,7 +24,8 @@ class ActionButton extends StatefulWidget {
   State<ActionButton> createState() => _ActionButtonState();
 }
 
-class _ActionButtonState extends State<ActionButton> with SingleTickerProviderStateMixin {
+class _ActionButtonState extends State<ActionButton>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
 
@@ -65,15 +66,18 @@ class _ActionButtonState extends State<ActionButton> with SingleTickerProviderSt
             },
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-              backgroundColor: widget.isPrimary ? AppColors.primaryColor : Colors.white,
-              foregroundColor: widget.isPrimary ? Colors.white : AppColors.primaryColor,
+              backgroundColor:
+                  widget.isPrimary ? AppColors.primaryColor : Colors.white,
+              foregroundColor:
+                  widget.isPrimary ? Colors.white : AppColors.primaryColor,
               elevation: widget.isPrimary ? 0 : 2,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
-              side: widget.isPrimary 
-                ? BorderSide.none 
-                : BorderSide(color: AppColors.primaryColor.withOpacity(0.5), width: 1),
+              side: widget.isPrimary
+                  ? BorderSide.none
+                  : BorderSide(
+                      color: AppColors.primaryColor.withOpacity(0.5), width: 1),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -81,15 +85,19 @@ class _ActionButtonState extends State<ActionButton> with SingleTickerProviderSt
                 Icon(
                   widget.icon,
                   size: 18,
-                  color: widget.isPrimary ? Colors.white : AppColors.primaryColor,
+                  color:
+                      widget.isPrimary ? Colors.white : AppColors.primaryColor,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     widget.label,
                     style: AppTypography.bodyRegular.copyWith(
-                      color: widget.isPrimary ? Colors.white : AppColors.primaryColor,
-                      fontWeight: widget.isPrimary ? FontWeight.w600 : FontWeight.w400,
+                      color: widget.isPrimary
+                          ? Colors.white
+                          : AppColors.primaryColor,
+                      fontWeight:
+                          widget.isPrimary ? FontWeight.w600 : FontWeight.w400,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,

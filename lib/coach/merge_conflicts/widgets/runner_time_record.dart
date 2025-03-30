@@ -21,17 +21,18 @@ class RunnerTimeRecord extends StatelessWidget {
   final Color color;
   final Chunk chunk;
   final int index;
-  
+
   @override
   Widget build(BuildContext context) {
     final runner = joinedRecord.runner;
     final timeRecord = joinedRecord.timeRecord;
     final hasConflict = chunk.resolve != null;
-    
-    final Color conflictColor = hasConflict ? AppColors.primaryColor : Colors.green;
+
+    final Color conflictColor =
+        hasConflict ? AppColors.primaryColor : Colors.green;
     final Color bgColor = conflictColor.withOpacity(0.05);
     final Color borderColor = conflictColor.withOpacity(0.5);
-    
+
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
       elevation: 0.3,
@@ -53,14 +54,16 @@ class RunnerTimeRecord extends StatelessWidget {
                     bottomLeft: Radius.circular(10),
                   ),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     PlaceNumber(place: timeRecord.place!, color: conflictColor),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: RunnerInfo(runner: runner, accentColor: conflictColor),
+                      child: RunnerInfo(
+                          runner: runner, accentColor: conflictColor),
                     ),
                   ],
                 ),
@@ -77,17 +80,20 @@ class RunnerTimeRecord extends StatelessWidget {
                     bottomRight: Radius.circular(10),
                   ),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
                 child: hasConflict
-                  ? TimeSelector(
-                      controller: controller,
-                      timeController: chunk.controllers['timeControllers']![index],
-                      manualController: chunk.controllers['manualControllers']![index],
-                      times: chunk.resolve!.availableTimes,
-                      conflictIndex: chunk.conflictIndex,
-                      manual: chunk.type != RecordType.extraRunner,
-                    )
-                  : ConfirmedTime(time: timeRecord.elapsedTime),
+                    ? TimeSelector(
+                        controller: controller,
+                        timeController:
+                            chunk.controllers['timeControllers']![index],
+                        manualController:
+                            chunk.controllers['manualControllers']![index],
+                        times: chunk.resolve!.availableTimes,
+                        conflictIndex: chunk.conflictIndex,
+                        manual: chunk.type != RecordType.extraRunner,
+                      )
+                    : ConfirmedTime(time: timeRecord.elapsedTime),
               ),
             ),
           ],

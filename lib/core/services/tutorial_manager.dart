@@ -28,7 +28,7 @@ class TutorialManager extends ChangeNotifier {
   /// Start a tutorial sequence with the given coach mark IDs
   void startTutorial(List<String> coachMarkIds) async {
     _tutorialQueue = [];
-    
+
     for (final id in coachMarkIds) {
       final hasSeen = await hasSeenTutorial(id);
       if (!hasSeen) {
@@ -48,12 +48,12 @@ class TutorialManager extends ChangeNotifier {
     if (_activeCoachMark == null) return;
 
     await _markTutorialAsSeen(_activeCoachMark!);
-    
+
     // Check if the queue has items before removing
     if (_tutorialQueue.isNotEmpty) {
       _tutorialQueue.removeAt(0);
     }
-    
+
     // Always clear the target rect between tutorials
     _targetRect = null;
     notifyListeners();
@@ -123,7 +123,7 @@ class _TutorialRootState extends State<TutorialRoot> {
         children: [
           // Layer 1: Main content
           widget.child,
-          
+
           // Layer 2: Semi-transparent overlay with cutout
           ListenableBuilder(
             listenable: widget.tutorialManager,
@@ -199,8 +199,7 @@ class OverlayPainter extends CustomPainter {
     );
 
     // Create a path for the entire screen
-    final backgroundPath = Path()
-      ..addRect(Offset.zero & size);
+    final backgroundPath = Path()..addRect(Offset.zero & size);
 
     // Create a hole path for the target
     final holePath = Path()
@@ -221,6 +220,7 @@ class OverlayPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(OverlayPainter oldDelegate) {
-    return targetRect != oldDelegate.targetRect || opacity != oldDelegate.opacity;
+    return targetRect != oldDelegate.targetRect ||
+        opacity != oldDelegate.opacity;
   }
 }

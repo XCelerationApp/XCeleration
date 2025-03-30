@@ -19,16 +19,19 @@ class Chunk {
     required this.type,
     required this.runners,
     required this.conflictIndex,
-  }) : joinedRecords = List.generate(
-         runners.length,
-         (j) => JoinedRecord(runner: runners[j], timeRecord: records[j]),
-       ),
-       controllers = {
-         'timeControllers': List.generate(runners.length, (_) => TextEditingController()),
-         'manualControllers': List.generate(runners.length, (_) => TextEditingController()),
-       };
+  })  : joinedRecords = List.generate(
+          runners.length,
+          (j) => JoinedRecord(runner: runners[j], timeRecord: records[j]),
+        ),
+        controllers = {
+          'timeControllers':
+              List.generate(runners.length, (_) => TextEditingController()),
+          'manualControllers':
+              List.generate(runners.length, (_) => TextEditingController()),
+        };
 
-  factory Chunk.fromMap(Map<String, dynamic> map, List<RunnerRecord> runnerRecords) {
+  factory Chunk.fromMap(
+      Map<String, dynamic> map, List<RunnerRecord> runnerRecords) {
     return Chunk(
       records: List<TimingRecord>.from(map['records']),
       type: map['type'],

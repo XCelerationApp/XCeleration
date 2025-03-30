@@ -20,7 +20,7 @@ class InstructionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = accentColor ?? AppColors.primaryColor;
-    
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 0),
       child: Card(
@@ -94,7 +94,7 @@ class InstructionItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = accentColor ?? AppColors.primaryColor;
-    
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(

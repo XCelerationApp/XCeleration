@@ -75,7 +75,10 @@ class RoleScreen extends StatelessWidget {
               const SizedBox(height: 40, width: double.infinity),
               Text(
                 'Please select your role',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w300, color: AppColors.backgroundColor),
+                style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w300,
+                    color: AppColors.backgroundColor),
                 textAlign: TextAlign.center,
               ),
               SizedBox(height: 30),
@@ -134,7 +137,10 @@ class AssistantRoleScreen extends StatelessWidget {
                   const SizedBox(height: 40, width: double.infinity),
                   Text(
                     'Please select your role',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w300, color: AppColors.backgroundColor),
+                    style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w300,
+                        color: AppColors.backgroundColor),
                     textAlign: TextAlign.center,
                   ),
                   SizedBox(height: 30),

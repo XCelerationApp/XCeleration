@@ -26,14 +26,16 @@ class PreRaceController {
 
   void _initializeSteps() {
     _reviewRunnersStep = ReviewRunnersStep(raceId, () async {
-      final encoded = await DatabaseHelper.instance.getEncodedRunnersData(raceId);
+      final encoded =
+          await DatabaseHelper.instance.getEncodedRunnersData(raceId);
       devices.bibRecorder!.data = encoded;
     });
     _shareRunnersStep = ShareRunnersStep(devices: devices);
     _preRaceFlowCompleteStep = PreRaceFlowCompleteStep();
   }
 
-  Future<bool> showPreRaceFlow(BuildContext context, bool showProgressIndicator) {
+  Future<bool> showPreRaceFlow(
+      BuildContext context, bool showProgressIndicator) {
     return showFlow(
       context: context,
       showProgressIndicator: showProgressIndicator,

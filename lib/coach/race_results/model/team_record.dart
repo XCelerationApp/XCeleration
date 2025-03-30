@@ -1,6 +1,5 @@
 import 'results_record.dart';
 
-
 class TeamRecord {
   late int score;
   final String school;
@@ -22,26 +21,24 @@ class TeamRecord {
     updateStats();
   }
 
-  
-  factory TeamRecord.from(TeamRecord other) =>
-    TeamRecord(
-      school: other.school,
-      // Create deep copies of all runners to prevent reference issues
-      runners: other.runners.map((r) => ResultsRecord.copy(r)).toList(),
-      place: other.place,
-    );
-
+  factory TeamRecord.from(TeamRecord other) => TeamRecord(
+        school: other.school,
+        // Create deep copies of all runners to prevent reference issues
+        runners: other.runners.map((r) => ResultsRecord.copy(r)).toList(),
+        place: other.place,
+      );
 
   void updateStats() {
     if (scorers.isNotEmpty) {
       score = scorers.fold<int>(0, (sum, runner) => sum + runner.place);
       split = scorers.last.finishTime - scorers.first.finishTime;
-      avgTime = scorers.fold(Duration.zero, (sum, runner) => sum + runner.finishTime) ~/ 5;
+      avgTime = scorers.fold(
+              Duration.zero, (sum, runner) => sum + runner.finishTime) ~/
+          5;
     } else {
       score = 0;
       split = Duration.zero;
       avgTime = Duration.zero;
     }
   }
-  
 }

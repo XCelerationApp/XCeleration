@@ -20,7 +20,7 @@ class ResultsRecord {
     _finishTime = finishTime;
     _formattedFinishTime = TimeFormatter.formatDuration(finishTime);
   }
-  
+
   // Copy constructor to create independent copies
   ResultsRecord.copy(ResultsRecord other)
       : place = other.place,
@@ -47,7 +47,10 @@ class ResultsRecord {
       school: map['school'],
       grade: map['grade'],
       bib: map['bib_number'],
-      finishTime: map['finish_time'].runtimeType == Duration ? map['finish_time'] : TimeFormatter.loadDurationFromString(map['finish_time']) ?? Duration.zero,
+      finishTime: map['finish_time'].runtimeType == Duration
+          ? map['finish_time']
+          : TimeFormatter.loadDurationFromString(map['finish_time']) ??
+              Duration.zero,
     );
   }
 }

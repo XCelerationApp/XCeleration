@@ -14,20 +14,26 @@ class ResultsTableHeader extends StatelessWidget {
           children: [
             Expanded(
               flex: 1,
-              child: Text('Place', 
-                style: AppTypography.bodySemibold.copyWith(color: AppColors.darkColor),
+              child: Text(
+                'Place',
+                style: AppTypography.bodySemibold
+                    .copyWith(color: AppColors.darkColor),
               ),
             ),
             Expanded(
               flex: 3,
-              child: Text('Runner', 
-                style: AppTypography.bodySemibold.copyWith(color: AppColors.darkColor),
+              child: Text(
+                'Runner',
+                style: AppTypography.bodySemibold
+                    .copyWith(color: AppColors.darkColor),
               ),
             ),
             Expanded(
               flex: 2,
-              child: Text('Time', 
-                style: AppTypography.bodySemibold.copyWith(color: AppColors.darkColor),
+              child: Text(
+                'Time',
+                style: AppTypography.bodySemibold
+                    .copyWith(color: AppColors.darkColor),
               ),
             ),
           ],

@@ -11,7 +11,8 @@ class SplashScreen extends StatefulWidget {
   SplashScreenState createState() => SplashScreenState();
 }
 
-class SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+class SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeInAnimation;
   late Animation<double> _scaleAnimation;
@@ -19,20 +20,20 @@ class SplashScreenState extends State<SplashScreen> with SingleTickerProviderSta
   @override
   void initState() {
     super.initState();
-    
+
     // Set up animations
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200),
     );
-    
+
     _fadeInAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
         curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
       ),
     );
-    
+
     _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
@@ -44,10 +45,10 @@ class SplashScreenState extends State<SplashScreen> with SingleTickerProviderSta
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // Remove the native splash screen only after the first frame is rendered
       FlutterNativeSplash.remove();
-      
+
       // Start animation
       _controller.forward();
-      
+
       // Navigate after a delay
       Future.delayed(const Duration(milliseconds: 2500), () {
         _navigateToNextScreen();
@@ -72,7 +73,7 @@ class SplashScreenState extends State<SplashScreen> with SingleTickerProviderSta
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    
+
     return Scaffold(
       backgroundColor: AppColors.primaryColor,
       body: AnimatedBuilder(
@@ -96,14 +97,14 @@ class SplashScreenState extends State<SplashScreen> with SingleTickerProviderSta
                   ),
                 ),
               ),
-              
+
               // Content
               SafeArea(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Spacer(flex: 2),
-                    
+
                     // Logo with animation
                     FadeTransition(
                       opacity: _fadeInAnimation,
@@ -148,9 +149,9 @@ class SplashScreenState extends State<SplashScreen> with SingleTickerProviderSta
                         ),
                       ),
                     ),
-                    
+
                     SizedBox(height: size.height * 0.05),
-                    
+
                     // App name with animation
                     FadeTransition(
                       opacity: _fadeInAnimation,
@@ -184,9 +185,9 @@ class SplashScreenState extends State<SplashScreen> with SingleTickerProviderSta
                         ],
                       ),
                     ),
-                    
+
                     const Spacer(flex: 3),
-                    
+
                     // Loading indicator - use a loading type that looks better on orange
                     AppLoading(
                       type: LoadingType.fadingCircle,
@@ -194,7 +195,7 @@ class SplashScreenState extends State<SplashScreen> with SingleTickerProviderSta
                       color: Colors.white,
                       size: 50,
                     ),
-                    
+
                     const Spacer(flex: 2),
                   ],
                 ),

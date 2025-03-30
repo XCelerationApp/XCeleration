@@ -7,22 +7,22 @@ import 'app_colors.dart';
 enum LoadingType {
   /// Circle spinner
   circle,
-  
+
   /// Double bounce
   doubleBounce,
-  
+
   /// Wave
   wave,
-  
+
   /// Fading circle
   fadingCircle,
-  
+
   /// Fading cube
   fadingCube,
-  
+
   /// Pulse
   pulse,
-  
+
   /// Three bounce
   threeBounce
 }
@@ -31,16 +31,16 @@ enum LoadingType {
 class AppLoading extends StatelessWidget {
   /// Type of loading animation
   final LoadingType type;
-  
+
   /// Color of the loading animation
   final Color? color;
-  
+
   /// Size of the loading animation
   final double size;
-  
+
   /// Optional message to display below the loading indicator
   final String? message;
-  
+
   /// Creates a loading indicator
   const AppLoading({
     super.key,
@@ -49,14 +49,14 @@ class AppLoading extends StatelessWidget {
     this.size = 50.0,
     this.message,
   });
-  
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final loadingColor = color ?? theme.colorScheme.primary;
-    
+
     Widget loadingWidget;
-    
+
     switch (type) {
       case LoadingType.circle:
         loadingWidget = SpinKitCircle(
@@ -101,7 +101,7 @@ class AppLoading extends StatelessWidget {
         );
         break;
     }
-    
+
     // If there's a message, return a column with the loading widget and the message
     if (message != null) {
       return Column(
@@ -120,7 +120,7 @@ class AppLoading extends StatelessWidget {
         ],
       );
     }
-    
+
     // Otherwise, just return the loading widget
     return loadingWidget;
   }
@@ -130,22 +130,22 @@ class AppLoading extends StatelessWidget {
 class AppLoadingOverlay extends StatelessWidget {
   /// Whether to show the loading overlay
   final bool isLoading;
-  
+
   /// Child widget to display behind the loading overlay
   final Widget child;
-  
+
   /// Type of loading animation
   final LoadingType type;
-  
+
   /// Color of the loading animation
   final Color? color;
-  
+
   /// Size of the loading animation
   final double size;
-  
+
   /// Background color of the overlay
   final Color? backgroundColor;
-  
+
   /// Creates a loading overlay
   const AppLoadingOverlay({
     super.key,
@@ -156,11 +156,11 @@ class AppLoadingOverlay extends StatelessWidget {
     this.size = 50.0,
     this.backgroundColor,
   });
-  
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Stack(
       children: [
         child,

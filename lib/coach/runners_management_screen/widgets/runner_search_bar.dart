@@ -40,8 +40,10 @@ class RunnerSearchBar extends StatelessWidget {
                 controller: controller,
                 decoration: InputDecoration(
                   hintText: 'Search',
-                  hintStyle: TextStyle(color: AppColors.mediumColor.withOpacity(0.7)),
-                  prefixIcon: Icon(Icons.search, color: AppColors.primaryColor.withOpacity(0.8)),
+                  hintStyle:
+                      TextStyle(color: AppColors.mediumColor.withOpacity(0.7)),
+                  prefixIcon: Icon(Icons.search,
+                      color: AppColors.primaryColor.withOpacity(0.8)),
                   fillColor: Colors.white,
                   filled: true,
                   contentPadding: const EdgeInsets.symmetric(vertical: 12),
@@ -51,7 +53,8 @@ class RunnerSearchBar extends StatelessWidget {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: AppColors.primaryColor, width: 1.5),
+                    borderSide:
+                        BorderSide(color: AppColors.primaryColor, width: 1.5),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -86,16 +89,18 @@ class RunnerSearchBar extends StatelessWidget {
                     onChanged: onAttributeChanged,
                     items: ['Bib Number', 'Name', 'Grade', 'School']
                         .map((value) => DropdownMenuItem(
-                          value: value, 
-                          child: Text(value, 
-                            style: TextStyle(
-                              color: AppColors.darkColor,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ))
+                              value: value,
+                              child: Text(
+                                value,
+                                style: TextStyle(
+                                  color: AppColors.darkColor,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ))
                         .toList(),
-                    icon: const Icon(Icons.arrow_drop_down, color: AppColors.navBarColor),
+                    icon: const Icon(Icons.arrow_drop_down,
+                        color: AppColors.navBarColor),
                     iconSize: 30,
                     isExpanded: true,
                     focusColor: AppColors.backgroundColor,

@@ -11,7 +11,7 @@ class PlaceNumber extends StatelessWidget {
   });
   final int place;
   final Color color;
-  
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -47,7 +47,7 @@ class RunnerInfo extends StatelessWidget {
   });
   final RunnerRecord runner;
   final Color accentColor;
-  
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -71,7 +71,9 @@ class RunnerInfo extends StatelessWidget {
             if (runner.bib.isNotEmpty)
               InfoChip(label: 'Bib ${runner.bib}', color: accentColor),
             if (runner.school.isNotEmpty)
-              InfoChip(label: runner.school, color: AppColors.mediumColor.withOpacity(0.8)),
+              InfoChip(
+                  label: runner.school,
+                  color: AppColors.mediumColor.withOpacity(0.8)),
           ],
         ),
       ],
@@ -87,7 +89,7 @@ class InfoChip extends StatelessWidget {
   });
   final String label;
   final Color color;
-  
+
   @override
   Widget build(BuildContext context) {
     return Container(

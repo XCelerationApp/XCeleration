@@ -5,13 +5,13 @@ import 'package:xcelerate/utils/enums.dart';
 class TimingRecord {
   /// The time the runner finished the race, as a Duration from the race start time
   String elapsedTime;
-  
+
   /// The runner's assigned number, if known
   final String? runnerNumber;
-  
+
   /// Whether this record has been confirmed
   bool isConfirmed;
-  
+
   /// Details about any conflicts with other records
   ConflictDetails? conflict;
 
@@ -19,7 +19,7 @@ class TimingRecord {
   int? place;
   int? previousPlace;
   dynamic textColor;
-  
+
   // Runner properties
   int? runnerId;
   int? raceId;
@@ -47,7 +47,7 @@ class TimingRecord {
     this.bib,
     this.error,
   });
-  
+
   /// Creates a copy of this record with the given fields replaced
   TimingRecord copyWith({
     String? id,
@@ -77,7 +77,7 @@ class TimingRecord {
       type: type ?? this.type,
       place: place ?? this.place,
       previousPlace: previousPlace ?? this.previousPlace,
-      textColor: clearTextColor ? null : (textColor ?? this.textColor), 
+      textColor: clearTextColor ? null : (textColor ?? this.textColor),
       runnerId: runnerId ?? this.runnerId,
       raceId: raceId ?? this.raceId,
       name: name ?? this.name,
@@ -88,16 +88,19 @@ class TimingRecord {
     );
   }
 
-  
   /// Checks if this record has a conflict that hasn't been resolved
   bool hasConflict() => conflict != null;
-  
+
   /// Checks if this record's conflict has been resolved
   bool isResolved() => conflict?.isResolved ?? true;
 
   /// Converts this TimingRecord to a RunnerRecord
   RunnerRecord? get runnerRecord {
-    if (raceId == null || name == null || school == null || grade == null || bib == null) {
+    if (raceId == null ||
+        name == null ||
+        school == null ||
+        grade == null ||
+        bib == null) {
       return null;
     }
     return RunnerRecord(
@@ -110,7 +113,7 @@ class TimingRecord {
       error: error,
     );
   }
-  
+
   /// Converts record to a Map for serialization
   Map<String, dynamic> toMap() {
     return {
@@ -131,15 +134,16 @@ class TimingRecord {
       'error': error,
     };
   }
-  
+
   /// Creates a TimingRecord from a Map
-  factory TimingRecord.fromMap(Map<String, dynamic> map, {bool database = false}) {
+  factory TimingRecord.fromMap(Map<String, dynamic> map,
+      {bool database = false}) {
     return TimingRecord(
       elapsedTime: database ? map['finish_time'] : map['elapsed_time'],
       runnerNumber: map['runner_number'],
       isConfirmed: map['is_confirmed'] ?? false,
-      conflict: map['conflict'] != null 
-          ? ConflictDetails.fromMap(map['conflict']) 
+      conflict: map['conflict'] != null
+          ? ConflictDetails.fromMap(map['conflict'])
           : null,
       type: map['type'] ?? RecordType.runnerTime,
       place: map['place'],
@@ -160,20 +164,20 @@ class TimingRecord {
 class ConflictDetails {
   /// Type of conflict (e.g., 'missing_runner', 'extra_runner')
   final RecordType type;
-  
+
   /// Whether the conflict has been resolved
   final bool isResolved;
-  
+
   /// Any additional data relevant to the conflict
   final Map<String, dynamic>? data;
-  
+
   /// Constructor for ConflictDetails
   ConflictDetails({
     required this.type,
     this.isResolved = false,
     this.data,
   });
-  
+
   /// Creates a copy of this conflict with the given fields replaced
   ConflictDetails copyWith({
     RecordType? type,
@@ -186,7 +190,7 @@ class ConflictDetails {
       data: data ?? this.data,
     );
   }
-  
+
   /// Converts conflict details to a Map for serialization
   Map<String, dynamic> toMap() {
     return {
@@ -195,7 +199,7 @@ class ConflictDetails {
       'data': data,
     };
   }
-  
+
   /// Creates a ConflictDetails from a Map
   factory ConflictDetails.fromMap(Map<String, dynamic> map) {
     return ConflictDetails(

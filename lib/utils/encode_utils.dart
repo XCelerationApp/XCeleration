@@ -20,18 +20,16 @@ Future<TimingData> decodeRaceTimesString(String encodedData) async {
     if (loadDurationFromString(recordString) != null || recordString == 'TBD') {
       place++;
       records.add(TimingRecord(
-        elapsedTime: recordString,
-        type: RecordType.runnerTime,
-        place: place
-      ));
+          elapsedTime: recordString,
+          type: RecordType.runnerTime,
+          place: place));
       // records.add({
       //   'finish_time': recordString,
       //   'type': 'runner_time',
       //   'is_confirmed': false,
       //   'place': place
       // });
-    }
-    else {
+    } else {
       final [type, offByString, finishTime] = recordString.split(' ');
 
       int? offBy = int.tryParse(offByString);
@@ -40,34 +38,31 @@ Future<TimingData> decodeRaceTimesString(String encodedData) async {
         continue;
       }
 
-      if (type == RecordType.confirmRunner.toString()){
+      if (type == RecordType.confirmRunner.toString()) {
         records = confirmRunnerNumber(records, place, finishTime);
-      }
-      else if (type == RecordType.missingRunner.toString()){
-        records = missingRunnerTime(offBy, records, place, finishTime, addMissingRunner: false);
+      } else if (type == RecordType.missingRunner.toString()) {
+        records = missingRunnerTime(offBy, records, place, finishTime,
+            addMissingRunner: false);
         place += offBy;
-      }
-      else if (type == RecordType.extraRunner.toString()){
+      } else if (type == RecordType.extraRunner.toString()) {
         records = extraRunnerTime(offBy, records, place, finishTime);
         place -= offBy;
-      }
-      else {
+      } else {
         debugPrint('Unknown type: $type, string: $recordString');
       }
     }
   }
   return TimingData(
-    endTime: records.last.elapsedTime,
-    records: records,
-    startTime: null
-  );
+      endTime: records.last.elapsedTime, records: records, startTime: null);
 }
 
-Future<TimingData?> processEncodedTimingData(String data, BuildContext context) async {
+Future<TimingData?> processEncodedTimingData(
+    String data, BuildContext context) async {
   try {
     final TimingData timingData = await decodeRaceTimesString(data);
     debugPrint(timingData.toString());
-    debugPrint('Has conflicts: ${timingData.records.any((record) => record.conflict != null)}');
+    debugPrint(
+        'Has conflicts: ${timingData.records.any((record) => record.conflict != null)}');
     for (var record in timingData.records) {
       debugPrint(record.toString());
     }
@@ -75,7 +70,8 @@ Future<TimingData?> processEncodedTimingData(String data, BuildContext context) 
     if (isValidTimingData(timingData)) {
       return timingData;
     } else {
-      DialogUtils.showErrorDialog(context, message: 'Error: Invalid Timing Data');
+      DialogUtils.showErrorDialog(context,
+          message: 'Error: Invalid Timing Data');
       return null;
     }
   } catch (e) {
@@ -88,35 +84,34 @@ Future<TimingData?> processEncodedTimingData(String data, BuildContext context) 
 //   for (var runnerRecord in runnerRecords) {
 //     timingData.mergeRunnerData(
 //       runnerRecord,
-      
+
 //     );
 //   }
 //   return timingData;
 // }
 
 bool isValidTimingData(TimingData data) {
-  return data.records.isNotEmpty &&
-    data.endTime != '';
+  return data.records.isNotEmpty && data.endTime != '';
 }
 
-Future<List<RunnerRecord>> decodeBibRecordsString(String encodedBibRecords, int raceId) async {
+Future<List<RunnerRecord>> decodeBibRecordsString(
+    String encodedBibRecords, int raceId) async {
   final List<String> bibNumbers = encodedBibRecords.split(' ');
   List<RunnerRecord> bibRecords = [];
   for (var bibNumber in bibNumbers) {
     if (bibNumber.isNotEmpty) {
-      final runner = await DatabaseHelper.instance.getRaceRunnerByBib(raceId, bibNumber);
+      final runner =
+          await DatabaseHelper.instance.getRaceRunnerByBib(raceId, bibNumber);
       if (runner == null) {
         bibRecords.add(RunnerRecord(
-          runnerId: -1,
-          raceId: -1,
-          bib: bibNumber,
-          name: 'Unknown',
-          grade: 0,
-          school: 'Unknown',
-          error: 'Runner not found'
-        ));
-      }
-      else {
+            runnerId: -1,
+            raceId: -1,
+            bib: bibNumber,
+            name: 'Unknown',
+            grade: 0,
+            school: 'Unknown',
+            error: 'Runner not found'));
+      } else {
         bibRecords.add(runner);
       }
     }
@@ -124,7 +119,8 @@ Future<List<RunnerRecord>> decodeBibRecordsString(String encodedBibRecords, int 
   return bibRecords;
 }
 
-Future<List<RunnerRecord>> processEncodedBibRecordsData(String data, BuildContext context, int raceId) async {
+Future<List<RunnerRecord>> processEncodedBibRecordsData(
+    String data, BuildContext context, int raceId) async {
   try {
     final bibData = await decodeBibRecordsString(data, raceId);
     debugPrint(bibData.toString());
@@ -147,13 +143,14 @@ Future<List<RunnerRecord>> processEncodedBibRecordsData(String data, BuildContex
 bool isValidBibData(RunnerRecord data) {
   print(data.toMap());
   return data.error == 'Runner not found' ||
-    data.bib.isNotEmpty &&
-    data.name.isNotEmpty &&
-    data.grade > 0 &&
-    data.school.isNotEmpty;
+      data.bib.isNotEmpty &&
+          data.name.isNotEmpty &&
+          data.grade > 0 &&
+          data.school.isNotEmpty;
 }
 
-Future<List<RunnerRecord>?> decodeEncodedRunners(String data, BuildContext context) async {
+Future<List<RunnerRecord>?> decodeEncodedRunners(
+    String data, BuildContext context) async {
   try {
     final List<String> encodedRunners = data.split(' ');
     List<RunnerRecord> decodedRunners = [];

@@ -2,15 +2,13 @@ String formatDuration(Duration duration) {
   final hours = duration.inHours;
   final minutes = (duration.inMinutes % 60);
   // Format seconds with exactly 2 decimal places
-  final seconds = ((duration.inMilliseconds / 1000) % 60).toStringAsFixed(2); 
-  
+  final seconds = ((duration.inMilliseconds / 1000) % 60).toStringAsFixed(2);
+
   if (hours > 0) {
     return '$hours:${minutes.toString().padLeft(2, '0')}:${seconds.padLeft(5, '0')}';
-  }
-  else if (minutes > 0){
+  } else if (minutes > 0) {
     return '$minutes:${seconds.padLeft(5, '0')}';
-  }
-  else {
+  } else {
     return seconds;
   }
 }
@@ -19,12 +17,12 @@ String formatDurationWithZeros(Duration duration) {
   final hours = duration.inHours;
   final hoursString = hours.toString().padLeft(2, '0');
   final minutes = (duration.inMinutes % 60);
-  
+
   final minutesString = minutes.toString().padLeft(2, '0');
   // Format seconds with exactly 2 decimal places
-  final seconds = ((duration.inMilliseconds / 1000) % 60).toStringAsFixed(2); 
+  final seconds = ((duration.inMilliseconds / 1000) % 60).toStringAsFixed(2);
   final secondsString = seconds.padLeft(5, '0');
-  
+
   return '$hoursString:$minutesString:$secondsString';
 }
 
@@ -61,7 +59,7 @@ String formatDurationWithZeros(Duration duration) {
 Duration? loadDurationFromString(String input) {
   try {
     if (input.isEmpty || input == '' || input == 'manual') return null;
-    
+
     final parts = input.split(':');
     final timeString = switch (parts.length) {
       1 => '00:00:$input',
@@ -71,19 +69,21 @@ Duration? loadDurationFromString(String input) {
     };
 
     if (timeString == null) return null;
-    
+
     final millisecondParts = timeString.split('.');
     if (millisecondParts.length > 2) return null;
-    
-    final millisString = millisecondParts.length > 1 ? millisecondParts[1].padRight(3, '0') : '0';
-    
+
+    final millisString = millisecondParts.length > 1
+        ? millisecondParts[1].padRight(3, '0')
+        : '0';
+
     final timeParts = timeString.split(':');
 
     final hours = int.parse(timeParts[0]);
     final minutes = int.parse(timeParts[1]);
     final seconds = int.parse(timeParts[2].split('.')[0]);
     final milliseconds = int.parse(millisString);
-    
+
     return Duration(
       hours: hours,
       minutes: minutes,

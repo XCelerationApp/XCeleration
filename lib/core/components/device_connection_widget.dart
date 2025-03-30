@@ -4,14 +4,8 @@ import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
 import '../services/device_connection_service.dart';
 
-Widget deviceConnectionWidget(
-  BuildContext context,
-  DevicesManager devices,
-  {
-    Function? callback,
-    bool inSheet = true
-  }
-) {
+Widget deviceConnectionWidget(BuildContext context, DevicesManager devices,
+    {Function? callback, bool inSheet = true}) {
   void handleCallback() async {
     if (callback != null) {
       await callback();
@@ -28,7 +22,7 @@ Widget deviceConnectionWidget(
       });
     }
   }
-  
+
   return Column(
     mainAxisSize: MainAxisSize.min,
     children: [
@@ -36,7 +30,7 @@ Widget deviceConnectionWidget(
         devices: devices,
         callback: handleCallback,
       ),
-      
+
       // Separator
       const SizedBox(height: 16),
       const Text(
@@ -47,9 +41,9 @@ Widget deviceConnectionWidget(
           height: 1.5,
         ),
       ),
-      
+
       const SizedBox(height: 16),
-      
+
       // QR connection button
       QRConnectionWidget(
         devices: devices,

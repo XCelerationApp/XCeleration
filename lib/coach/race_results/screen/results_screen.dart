@@ -8,7 +8,6 @@ import '../widgets/head_to_head_results.dart';
 import '../widgets/team_results_widget.dart';
 import '../controller/race_results_controller.dart';
 
-
 class ResultsScreen extends StatefulWidget {
   final int raceId;
 
@@ -55,7 +54,8 @@ class ResultsScreenState extends State<ResultsScreen> {
                   Expanded(
                     child: SingleChildScrollView(
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16.0, vertical: 8.0),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [

@@ -9,7 +9,7 @@ class BibConflictsOverview extends StatefulWidget {
   final List<RunnerRecord> records;
   final Function(List<RunnerRecord>) onConflictSelected;
   final int raceId;
-  
+
   const BibConflictsOverview({
     super.key,
     required this.records,
@@ -23,13 +23,13 @@ class BibConflictsOverview extends StatefulWidget {
 
 class _BibConflictsOverviewState extends State<BibConflictsOverview> {
   late List<RunnerRecord> _records;
-  
+
   @override
   void initState() {
     super.initState();
     _records = widget.records;
   }
-  
+
   @override
   void didUpdateWidget(BibConflictsOverview oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -42,8 +42,9 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
 
   @override
   Widget build(BuildContext context) {
-    final errorRecords = _records.where((record) => record.error != null).toList();
-    
+    final errorRecords =
+        _records.where((record) => record.error != null).toList();
+
     if (errorRecords.isEmpty) {
       return Center(
         child: Column(
@@ -58,14 +59,14 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                Icons.check_circle_outline, 
-                size: 60, 
+                Icons.check_circle_outline,
+                size: 60,
                 color: Colors.green,
               ),
             ),
             const SizedBox(height: 24),
             Text(
-              'No Unfound Bib Numbers', 
+              'No Unfound Bib Numbers',
               style: AppTypography.titleSemibold,
             ),
             const SizedBox(height: 12),
@@ -79,7 +80,7 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
         ),
       );
     }
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -90,7 +91,7 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '${errorRecords.length} Unfound Bib Numbers', 
+                '${errorRecords.length} Unfound Bib Numbers',
                 style: AppTypography.headerSemibold.copyWith(
                   color: AppColors.darkColor,
                 ),
@@ -113,14 +114,16 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
             padding: const EdgeInsets.symmetric(vertical: 12),
             itemCount: errorRecords.length,
             separatorBuilder: (context, index) => const SizedBox(height: 12),
-            itemBuilder: (context, index) => _buildConflictTile(context, errorRecords[index], index),
+            itemBuilder: (context, index) =>
+                _buildConflictTile(context, errorRecords[index], index),
           ),
         ),
       ],
     );
   }
-  
-  Widget _buildConflictTile(BuildContext context, RunnerRecord record, int index) {
+
+  Widget _buildConflictTile(
+      BuildContext context, RunnerRecord record, int index) {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(
@@ -136,13 +139,13 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
             context: context,
             title: 'Resolve Bib #${record.bib} Conflict',
             body: ResolveBibNumberScreen(
-              record: record, 
-              raceId: widget.raceId, 
-              records: _records, 
+              record: record,
+              raceId: widget.raceId,
+              records: _records,
               onComplete: (record) => Navigator.pop(context, record),
             ),
           );
-          
+
           if (updatedRecord != null) {
             setState(() {
               record = updatedRecord;
@@ -191,7 +194,7 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      record.error ?? 'Bib number not found', 
+                      record.error ?? 'Bib number not found',
                       style: AppTypography.bodyRegular.copyWith(
                         letterSpacing: 0.1,
                       ),

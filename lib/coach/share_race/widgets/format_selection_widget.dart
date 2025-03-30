@@ -41,14 +41,16 @@ class FormatSelectionWidget extends StatelessWidget {
                     icon: Icons.text_snippet,
                     description: 'Share as plain text',
                   ),
-                  const Divider(height: 1, thickness: 0.5, color: Colors.black12),
+                  const Divider(
+                      height: 1, thickness: 0.5, color: Colors.black12),
                   _buildFormatOption(
                     format: ResultFormat.googleSheet,
                     label: 'Google Sheet',
                     icon: Icons.cloud_upload,
                     description: 'Export to Google Sheets',
                   ),
-                  const Divider(height: 1, thickness: 0.5, color: Colors.black12),
+                  const Divider(
+                      height: 1, thickness: 0.5, color: Colors.black12),
                   _buildFormatOption(
                     format: ResultFormat.pdf,
                     label: 'PDF',
@@ -71,7 +73,7 @@ class FormatSelectionWidget extends StatelessWidget {
     required String description,
   }) {
     final isSelected = format == selectedFormat;
-    
+
     return InkWell(
       onTap: () => onFormatSelected(format),
       borderRadius: BorderRadius.circular(16),
@@ -80,8 +82,8 @@ class FormatSelectionWidget extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
         decoration: BoxDecoration(
-          color: isSelected 
-              ? AppColors.primaryColor.withOpacity(0.15) 
+          color: isSelected
+              ? AppColors.primaryColor.withOpacity(0.15)
               : AppColors.backgroundColor,
           borderRadius: BorderRadius.circular(16),
           border: isSelected
@@ -96,7 +98,9 @@ class FormatSelectionWidget extends StatelessWidget {
             Icon(
               icon,
               size: 24,
-              color: isSelected ? AppColors.primaryColor : Colors.black54.withOpacity(0.8),
+              color: isSelected
+                  ? AppColors.primaryColor
+                  : Colors.black54.withOpacity(0.8),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -108,7 +112,9 @@ class FormatSelectionWidget extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: isSelected ? AppColors.primaryColor : Colors.black87.withOpacity(0.9),
+                      color: isSelected
+                          ? AppColors.primaryColor
+                          : Colors.black87.withOpacity(0.9),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -116,8 +122,8 @@ class FormatSelectionWidget extends StatelessWidget {
                     description,
                     style: TextStyle(
                       fontSize: 14,
-                      color: isSelected 
-                          ? AppColors.primaryColor.withOpacity(0.8) 
+                      color: isSelected
+                          ? AppColors.primaryColor.withOpacity(0.8)
                           : Colors.black54.withOpacity(0.7),
                       fontWeight: FontWeight.w400,
                     ),

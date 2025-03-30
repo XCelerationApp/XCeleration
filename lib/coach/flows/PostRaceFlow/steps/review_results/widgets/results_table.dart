@@ -13,7 +13,7 @@ import 'placeholder_row.dart';
 class ResultsTable extends StatelessWidget {
   /// The race timing data to display
   final TimingData? timingData;
-  
+
   /// Maximum number of rows to show before truncating
   final int maxVisibleRows;
 
@@ -34,7 +34,6 @@ class ResultsTable extends StatelessWidget {
       child: Column(
         children: [
           const ResultsTableHeader(),
-          
           if (timingData != null && timingData!.runnerRecords.isNotEmpty) ...[
             // Show actual race results when available
             ...timingData!.runnerRecords.take(maxVisibleRows).map((runner) {
@@ -45,34 +44,34 @@ class ResultsTable extends StatelessWidget {
                 formatTimeDisplay: _formatTimeDisplay,
               );
             }),
-            
+
             if (timingData!.runnerRecords.length > maxVisibleRows) ...[
-              _buildRemainingRunnersMessage(timingData!.runnerRecords.length - maxVisibleRows),
+              _buildRemainingRunnersMessage(
+                  timingData!.runnerRecords.length - maxVisibleRows),
             ],
           ] else ...[
             // Show placeholder rows if no data available
-            for (var i = 1; i <= 3; i++)
-              PlaceholderRow(position: i),
+            for (var i = 1; i <= 3; i++) PlaceholderRow(position: i),
           ],
         ],
       ),
     );
   }
-  
+
   /// Get timing record for a runner
   TimingRecord? _getRunnerRecord(RunnerRecord runner) {
     if (timingData == null) return null;
-    
+
     // Find the corresponding record for this runner
     for (var record in timingData!.records) {
       if (record.bib == runner.bib) {
         return record;
       }
     }
-    
+
     return null;
   }
-  
+
   /// Format time value for display
   String _formatTimeDisplay(dynamic elapsedTime) {
     if (elapsedTime is String) {
@@ -85,14 +84,15 @@ class ResultsTable extends StatelessWidget {
       return '--';
     }
   }
-  
+
   /// Build a message showing how many more runners aren't displayed
   Widget _buildRemainingRunnersMessage(int remainingCount) {
     return Padding(
       padding: const EdgeInsets.only(top: 8),
       child: Text(
         '... and $remainingCount more runners',
-        style: AppTypography.bodyRegular.copyWith(color: AppColors.darkColor.withOpacity(0.6)),
+        style: AppTypography.bodyRegular
+            .copyWith(color: AppColors.darkColor.withOpacity(0.6)),
         textAlign: TextAlign.center,
       ),
     );

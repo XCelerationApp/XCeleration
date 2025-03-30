@@ -21,7 +21,8 @@ class ModernDetailRow extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       child: Row(
-        crossAxisAlignment: isMultiLine ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+        crossAxisAlignment:
+            isMultiLine ? CrossAxisAlignment.start : CrossAxisAlignment.center,
         children: [
           Container(
             padding: const EdgeInsets.all(10),

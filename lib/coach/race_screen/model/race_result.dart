@@ -2,16 +2,16 @@
 class RaceResult {
   /// The ID of the race
   final int raceId;
-  
+
   /// The finishing place of the runner
   final int? place;
-  
+
   /// The ID of the runner (may be null if bib wasn't resolved)
   final int? runnerId;
-  
+
   /// The time the runner finished, formatted as hh:mm:ss.ms
   final String finishTime;
-  
+
   /// Creates a new race result
   const RaceResult({
     required this.raceId,
@@ -19,7 +19,7 @@ class RaceResult {
     this.runnerId,
     required this.finishTime,
   });
-  
+
   /// Creates a copy of this result with specified fields replaced
   RaceResult copyWith({
     int? raceId,
@@ -34,7 +34,7 @@ class RaceResult {
       finishTime: finishTime ?? this.finishTime,
     );
   }
-  
+
   /// Converts this race result to a map for database storage
   Map<String, dynamic> toMap({bool database = false}) {
     if (database) {
@@ -52,7 +52,7 @@ class RaceResult {
       'finish_time': finishTime,
     };
   }
-  
+
   /// Creates a race result from a database map
   factory RaceResult.fromMap(Map<String, dynamic> map) {
     return RaceResult(
@@ -62,28 +62,28 @@ class RaceResult {
       finishTime: map['finish_time'],
     );
   }
-  
+
   @override
   String toString() {
     return 'RaceResult(raceId: $raceId, place: $place, runnerId: $runnerId, finishTime: $finishTime)';
   }
-  
+
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    
+
     return other is RaceResult &&
-      other.raceId == raceId &&
-      other.place == place &&
-      other.runnerId == runnerId &&
-      other.finishTime == finishTime;
+        other.raceId == raceId &&
+        other.place == place &&
+        other.runnerId == runnerId &&
+        other.finishTime == finishTime;
   }
-  
+
   @override
   int get hashCode {
     return raceId.hashCode ^
-      place.hashCode ^
-      runnerId.hashCode ^
-      finishTime.hashCode;
+        place.hashCode ^
+        runnerId.hashCode ^
+        finishTime.hashCode;
   }
 }

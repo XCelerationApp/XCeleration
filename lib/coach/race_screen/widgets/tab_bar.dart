@@ -15,9 +15,11 @@ class TabBarWidget extends StatelessWidget {
             labelColor: AppColors.primaryColor,
             unselectedLabelColor: Colors.grey,
             indicatorColor: AppColors.primaryColor,
-            indicatorWeight: 3.0, 
-            indicatorPadding: const EdgeInsets.only(bottom: 5.0,), 
-            labelPadding: const EdgeInsets.only(bottom: 8.0), 
+            indicatorWeight: 3.0,
+            indicatorPadding: const EdgeInsets.only(
+              bottom: 5.0,
+            ),
+            labelPadding: const EdgeInsets.only(bottom: 8.0),
             tabs: const [
               Tab(text: 'Race Details', icon: Icon(Icons.flag)),
               Tab(text: 'Results', icon: Icon(Icons.assessment)),

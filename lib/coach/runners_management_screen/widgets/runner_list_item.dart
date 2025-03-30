@@ -5,7 +5,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../race_screen/widgets/runner_record.dart';
 import '../controller/runners_management_controller.dart';
 
-
 class RunnerListItem extends StatelessWidget {
   final RunnerRecord runner;
   final Function(String) onAction;
@@ -25,7 +24,7 @@ class RunnerListItem extends StatelessWidget {
       (team) => team.name == runner.school,
     );
     final bibColor = team != null ? team.color : AppColors.mediumColor;
-    
+
     return Slidable(
       key: Key(runner.bib),
       endActionPane: ActionPane(
@@ -52,7 +51,8 @@ class RunnerListItem extends StatelessWidget {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 0.0, vertical: 8.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 0.0, vertical: 8.0),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8.0),
                 child: Row(
@@ -74,7 +74,8 @@ class RunnerListItem extends StatelessWidget {
                       child: Center(
                         child: Text(
                           runner.school,
-                          style: const TextStyle(fontSize: 16, color: Colors.black),
+                          style: const TextStyle(
+                              fontSize: 16, color: Colors.black),
                           overflow: TextOverflow.ellipsis,
                           maxLines: 1,
                         ),
@@ -85,7 +86,8 @@ class RunnerListItem extends StatelessWidget {
                       child: Center(
                         child: Text(
                           runner.grade.toString(),
-                          style: const TextStyle(fontSize: 16, color: Colors.black),
+                          style: const TextStyle(
+                              fontSize: 16, color: Colors.black),
                           overflow: TextOverflow.ellipsis,
                           maxLines: 1,
                         ),
@@ -109,7 +111,8 @@ class RunnerListItem extends StatelessWidget {
                 ),
               ),
             ),
-            const Divider(height: 1, thickness: 1, color: Colors.grey),          ],
+            const Divider(height: 1, thickness: 1, color: Colors.grey),
+          ],
         ),
       ),
     );

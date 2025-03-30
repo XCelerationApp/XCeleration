@@ -7,7 +7,7 @@ import '../core/components/dialog_utils.dart';
 
 class SettingsScreen extends StatefulWidget {
   final String currentRole;
-  
+
   const SettingsScreen({
     super.key,
     required this.currentRole,
@@ -19,20 +19,21 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   late String _selectedRole;
-  
+
   @override
   void initState() {
     super.initState();
     _selectedRole = widget.currentRole;
   }
-  
+
   void _changeRole(String role) {
     if (role == _selectedRole) return;
     setState(() {
       _selectedRole = role;
-      DialogUtils.showSuccessDialog(context, message: 'Role changed successfully');
+      DialogUtils.showSuccessDialog(context,
+          message: 'Role changed successfully');
     });
-    
+
     if (mounted) {
       if (role == 'coach') {
         Navigator.of(context).pushAndRemoveUntil(
@@ -41,7 +42,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         );
       } else if (role == 'assistant') {
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const AssistantRoleScreen(showBackArrow: false)),
+          MaterialPageRoute(
+              builder: (context) =>
+                  const AssistantRoleScreen(showBackArrow: false)),
           (route) => false,
         );
       }
@@ -65,9 +68,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // Role Selection Section
               _buildSectionHeader('Role'),
               _buildRoleSelection(context),
-              
+
               const Divider(),
-              
+
               // Add more settings sections here if needed
               // For example: app preferences, notifications, etc.
             ],
@@ -105,7 +108,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           'Assistant',
           'Timer or bib recorder roles',
           Icons.support_agent,
-          isSelected: _selectedRole == 'assistant' || _selectedRole == 'timer' || _selectedRole == 'bib recorder',
+          isSelected: _selectedRole == 'assistant' ||
+              _selectedRole == 'timer' ||
+              _selectedRole == 'bib recorder',
           onTap: () => _changeRole('assistant'),
         ),
       ],
@@ -125,7 +130,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primaryColor.withOpacity(0.1) : Colors.transparent,
+          color: isSelected
+              ? AppColors.primaryColor.withOpacity(0.1)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
@@ -134,7 +141,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: isSelected ? AppColors.primaryColor : AppColors.primaryColor.withOpacity(0.1),
+                color: isSelected
+                    ? AppColors.primaryColor
+                    : AppColors.primaryColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
@@ -168,7 +177,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 color: AppColors.primaryColor,
                 size: 24,
               )
-            else 
+            else
               Icon(
                 Icons.circle_outlined,
                 color: AppColors.mediumColor,

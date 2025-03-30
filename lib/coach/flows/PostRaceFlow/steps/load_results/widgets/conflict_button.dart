@@ -35,14 +35,16 @@ class ConflictButton extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 title,
-                style: AppTypography.bodySemibold.copyWith(color: Colors.amber.shade700),
+                style: AppTypography.bodySemibold
+                    .copyWith(color: Colors.amber.shade700),
               ),
             ],
           ),
           const SizedBox(height: 8),
           Text(
             description,
-            style: AppTypography.bodyRegular.copyWith(color: AppColors.darkColor.withOpacity(0.8)),
+            style: AppTypography.bodyRegular
+                .copyWith(color: AppColors.darkColor.withOpacity(0.8)),
           ),
           const SizedBox(height: 16),
           ElevatedButton(

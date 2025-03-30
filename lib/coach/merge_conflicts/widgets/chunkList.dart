@@ -42,15 +42,16 @@ class ChunkItem extends StatelessWidget {
     final chunkType = chunk.type;
     final record = chunk.records.last;
     final previousChunk = index > 0 ? controller.chunks[index - 1] : null;
-    final previousChunkEndTime = previousChunk != null ? previousChunk.records.last.elapsedTime : '0.0';
-    
+    final previousChunkEndTime =
+        previousChunk != null ? previousChunk.records.last.elapsedTime : '0.0';
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (chunkType == RecordType.extraRunner || chunkType == RecordType.missingRunner)
+          if (chunkType == RecordType.extraRunner ||
+              chunkType == RecordType.missingRunner)
             ConflictHeader(
               type: chunkType,
               conflictRecord: record,
@@ -65,13 +66,15 @@ class ChunkItem extends StatelessWidget {
               return RunnerTimeRecord(
                 index: chunk.joinedRecords.indexOf(joinedRecord),
                 joinedRecord: joinedRecord,
-                color: chunkType == RecordType.runnerTime || chunkType == RecordType.confirmRunner
+                color: chunkType == RecordType.runnerTime ||
+                        chunkType == RecordType.confirmRunner
                     ? Colors.green
                     : AppColors.primaryColor,
                 chunk: chunk,
                 controller: controller,
               );
-            } else if (joinedRecord.timeRecord.type == RecordType.confirmRunner) {
+            } else if (joinedRecord.timeRecord.type ==
+                RecordType.confirmRunner) {
               return ConfirmationRecord(
                 context,
                 chunk.joinedRecords.indexOf(joinedRecord),
@@ -80,7 +83,8 @@ class ChunkItem extends StatelessWidget {
             }
             return const SizedBox.shrink();
           }),
-          if (chunkType == RecordType.extraRunner || chunkType == RecordType.missingRunner)
+          if (chunkType == RecordType.extraRunner ||
+              chunkType == RecordType.missingRunner)
             Padding(
               padding: const EdgeInsets.only(top: 16.0),
               child: ActionButton(

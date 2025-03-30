@@ -5,19 +5,16 @@ import '../model/team_record.dart';
 import '../model/results_record.dart';
 import 'collapsible_results_widget.dart';
 
-
-
-
 class HeadToHeadResultsWidget extends StatelessWidget {
   final List<TeamRecord> matchup;
   late final TeamRecord teamA;
   late final TeamRecord teamB;
   late final List<ResultsRecord> allResults;
-  
+
   HeadToHeadResultsWidget({super.key, required this.matchup}) {
     teamA = matchup[0];
     teamB = matchup[1];
-    
+
     // We'll show a selection of top 3 runners combined from both teams
     allResults = [...teamA.scorers, ...teamB.scorers];
     allResults.sort((a, b) => a.place.compareTo(b.place));
@@ -26,7 +23,6 @@ class HeadToHeadResultsWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (matchup.length != 2) return const SizedBox.shrink();
-    
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -44,9 +40,10 @@ class HeadToHeadResultsWidget extends StatelessWidget {
               children: [
                 Expanded(
                   child: _buildTeamHeader(
-                    teamA, 
-                    teamA.place == 1 ? AppColors.primaryColor : Colors.grey.shade600
-                  ),
+                      teamA,
+                      teamA.place == 1
+                          ? AppColors.primaryColor
+                          : Colors.grey.shade600),
                 ),
                 Container(
                   height: 24,
@@ -67,14 +64,15 @@ class HeadToHeadResultsWidget extends StatelessWidget {
                 ),
                 Expanded(
                   child: _buildTeamHeader(
-                    teamB, 
-                    teamB.place == 1 ? AppColors.primaryColor : Colors.grey.shade600
-                  ),
+                      teamB,
+                      teamB.place == 1
+                          ? AppColors.primaryColor
+                          : Colors.grey.shade600),
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            
+
             CollapsibleResultsWidget(
               results: allResults,
               initialVisibleCount: 3,
@@ -84,7 +82,6 @@ class HeadToHeadResultsWidget extends StatelessWidget {
       ),
     );
   }
-
 
   Widget _buildTeamHeader(TeamRecord team, Color accentColor) {
     return Column(

@@ -12,57 +12,61 @@ Widget buildDropdown({
 }) {
   const double borderRadius = 12.0;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch, 
-      children: [
-        Focus(
-          onFocusChange: (hasFocus) {
-            if (!hasFocus) {
-              onChanged(controller.text);
-            }
-          },
-          child: Container(
-            decoration: BoxDecoration(
-              color: error != null ? Colors.red.withAlpha((0.05 * 255).round()) : Colors.grey.withAlpha((0.05 * 255).round()),
-              border: Border.all(color: error != null ? Colors.red.withAlpha((0.5 * 255).round()) : Colors.grey.withAlpha((0.5 * 255).round())),
-              borderRadius: BorderRadius.circular(borderRadius),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: ButtonTheme(
-                alignedDropdown: true,
-                child: DropdownButton<String>(
-                  value: (controller.text.isEmpty ? null : controller.text),
-                  hint: Text(hint, style: const TextStyle(color: Colors.grey)),
-                  isExpanded: true,
-                  items: [
-                    ...items.map((item) => DropdownMenuItem(
-                      value: item,
-                      child: Text(item),
-                    )),
-                  ],
-                  onChanged: (value) {
-                    setSheetState(() => controller.text = value ?? '');
-                    onChanged(value ?? '');
-                  },
-                ),
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Focus(
+        onFocusChange: (hasFocus) {
+          if (!hasFocus) {
+            onChanged(controller.text);
+          }
+        },
+        child: Container(
+          decoration: BoxDecoration(
+            color: error != null
+                ? Colors.red.withAlpha((0.05 * 255).round())
+                : Colors.grey.withAlpha((0.05 * 255).round()),
+            border: Border.all(
+                color: error != null
+                    ? Colors.red.withAlpha((0.5 * 255).round())
+                    : Colors.grey.withAlpha((0.5 * 255).round())),
+            borderRadius: BorderRadius.circular(borderRadius),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: ButtonTheme(
+              alignedDropdown: true,
+              child: DropdownButton<String>(
+                value: (controller.text.isEmpty ? null : controller.text),
+                hint: Text(hint, style: const TextStyle(color: Colors.grey)),
+                isExpanded: true,
+                items: [
+                  ...items.map((item) => DropdownMenuItem(
+                        value: item,
+                        child: Text(item),
+                      )),
+                ],
+                onChanged: (value) {
+                  setSheetState(() => controller.text = value ?? '');
+                  onChanged(value ?? '');
+                },
               ),
             ),
           ),
         ),
-        if (error != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 4, left: 12),
-            child: Text(
-              error,
-              style: const TextStyle(
-                color: Colors.red,
-                fontSize: 12,
-              ),
+      ),
+      if (error != null)
+        Padding(
+          padding: const EdgeInsets.only(top: 4, left: 12),
+          child: Text(
+            error,
+            style: const TextStyle(
+              color: Colors.red,
+              fontSize: 12,
             ),
           ),
-      ],
+        ),
+    ],
   );
-                    
 }
 
 Widget buildTextField({
@@ -86,71 +90,77 @@ Widget buildTextField({
   const double contentPadding = 16.0;
 
   return Focus(
-      onFocusChange: (hasFocus) {
-        if (!hasFocus) {
-          onChanged(controller.text);
-        }
-      },
-      child: TextField(
-        controller: controller,
-        keyboardType: keyboardType,
-        obscureText: obscureText,
-        textAlign: textAlign,
-        maxLength: maxLength,
-        autofocus: autofocus,
-        inputFormatters: inputFormatters,
-        style: const TextStyle(
+    onFocusChange: (hasFocus) {
+      if (!hasFocus) {
+        onChanged(controller.text);
+      }
+    },
+    child: TextField(
+      controller: controller,
+      keyboardType: keyboardType,
+      obscureText: obscureText,
+      textAlign: textAlign,
+      maxLength: maxLength,
+      autofocus: autofocus,
+      inputFormatters: inputFormatters,
+      style: const TextStyle(
+        fontSize: 16,
+        color: Colors.black87,
+      ),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: const TextStyle(
+          color: Colors.grey,
           fontSize: 16,
-          color: Colors.black87,
         ),
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: const TextStyle(
-            color: Colors.grey,
-            fontSize: 16,
-          ),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: contentPadding,
-            vertical: contentPadding,
-          ),
-          filled: true,
-          fillColor: error != null ? Colors.red.withAlpha((0.05 * 255).round()) : Colors.grey.withAlpha((0.05 * 255).round()),
-          prefixIcon: prefixIcon,
-          suffixIcon: suffixIcon,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(borderRadius),
-            borderSide: BorderSide(
-              color: error != null ? Colors.red.withAlpha((0.5 * 255).round()) : Colors.grey.withAlpha((0.5 * 255).round()),
-            ),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(borderRadius),
-            borderSide: BorderSide(
-              color: error != null ? Colors.red.withAlpha((0.5 * 255).round()) : Colors.grey.withAlpha((0.5 * 255).round()),
-            ),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(borderRadius),
-            borderSide: BorderSide(
-              color: error != null ? Colors.red : AppColors.primaryColor,
-              width: 2,
-            ),
-          ),
-          errorText: error,
-          errorStyle: const TextStyle(
-            color: Colors.red,
-            fontSize: 12,
-            height: 1,
-          ),
-          counterText: '', // Hide the built-in counter
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: contentPadding,
+          vertical: contentPadding,
         ),
-        onTapOutside: (_) {
-          if (context.mounted) {
-            FocusScope.of(context).unfocus();
-          }
-          onChanged(controller.text);
-        },
-        onChanged: onChanged,
+        filled: true,
+        fillColor: error != null
+            ? Colors.red.withAlpha((0.05 * 255).round())
+            : Colors.grey.withAlpha((0.05 * 255).round()),
+        prefixIcon: prefixIcon,
+        suffixIcon: suffixIcon,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(borderRadius),
+          borderSide: BorderSide(
+            color: error != null
+                ? Colors.red.withAlpha((0.5 * 255).round())
+                : Colors.grey.withAlpha((0.5 * 255).round()),
+          ),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(borderRadius),
+          borderSide: BorderSide(
+            color: error != null
+                ? Colors.red.withAlpha((0.5 * 255).round())
+                : Colors.grey.withAlpha((0.5 * 255).round()),
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(borderRadius),
+          borderSide: BorderSide(
+            color: error != null ? Colors.red : AppColors.primaryColor,
+            width: 2,
+          ),
+        ),
+        errorText: error,
+        errorStyle: const TextStyle(
+          color: Colors.red,
+          fontSize: 12,
+          height: 1,
+        ),
+        counterText: '', // Hide the built-in counter
+      ),
+      onTapOutside: (_) {
+        if (context.mounted) {
+          FocusScope.of(context).unfocus();
+        }
+        onChanged(controller.text);
+      },
+      onChanged: onChanged,
     ),
   );
 }

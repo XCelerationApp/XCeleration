@@ -9,11 +9,6 @@ class ShareResultsWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: deviceConnectionWidget(
-        context,
-        devices,
-        inSheet: false
-      )
-    );
+        child: deviceConnectionWidget(context, devices, inSheet: false));
   }
 }

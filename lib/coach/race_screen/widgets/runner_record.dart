@@ -25,7 +25,10 @@ class RunnerRecord {
     ),
   });
 
-  bool get hasErrors => flags.notInDatabase || flags.duplicateBibNumber || flags.lowConfidenceScore;
+  bool get hasErrors =>
+      flags.notInDatabase ||
+      flags.duplicateBibNumber ||
+      flags.lowConfidenceScore;
 
   factory RunnerRecord.fromMap(Map<String, dynamic> map) {
     return RunnerRecord(

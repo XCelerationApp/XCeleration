@@ -6,7 +6,7 @@ class PlaceholderRow extends StatelessWidget {
   final int position;
 
   const PlaceholderRow({
-    super.key, 
+    super.key,
     required this.position,
   });
 

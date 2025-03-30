@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 
 class ListTitles extends StatelessWidget {
@@ -11,36 +10,32 @@ class ListTitles extends StatelessWidget {
       children: [
         Expanded(
           flex: 5,
-          child: Text(
-            'Name',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize)
+          child: Text('Name',
+              style:
+                  TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize)),
+        ),
+        Expanded(
+          flex: 2,
+          child: Center(
+            child: Text('School',
+                style:
+                    TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize)),
           ),
         ),
         Expanded(
           flex: 2,
           child: Center(
-            child: Text(
-              'School',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize)
-            ),
+            child: Text('Gr.',
+                style:
+                    TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize)),
           ),
         ),
         Expanded(
           flex: 2,
           child: Center(
-            child: Text(
-              'Gr.',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize)
-            ),
-          ),
-        ),
-        Expanded(
-          flex: 2,
-          child: Center(
-            child: Text(
-              'Bib',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize)
-            ),
+            child: Text('Bib',
+                style:
+                    TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize)),
           ),
         ),
       ],

@@ -10,7 +10,7 @@ class BibNumberController {
   final List<RunnerRecord> runners;
   final ScrollController scrollController;
   DevicesManager devices;
-  
+
   BibNumberController({
     required this.context,
     required this.runners,
@@ -23,7 +23,8 @@ class BibNumberController {
     try {
       final runner = runners.firstWhere(
         (runner) => runner.bib == bibNumber,
-        orElse: () => RunnerRecord(bib: '', name: '', raceId: -1, grade: -1, school: ''),
+        orElse: () =>
+            RunnerRecord(bib: '', name: '', raceId: -1, grade: -1, school: ''),
       );
       print('Runner found: ${runner.toMap()}');
       return (runner.raceId != -1) ? runner : null;
@@ -57,7 +58,8 @@ class BibNumberController {
   }
 
   // Bib number validation and handling
-  Future<void> validateBibNumber(int index, String bibNumber, List<double>? confidences) async {
+  Future<void> validateBibNumber(
+      int index, String bibNumber, List<double>? confidences) async {
     final provider = Provider.of<BibRecordsProvider>(context, listen: false);
     final record = provider.bibRecords[index];
 
@@ -95,11 +97,11 @@ class BibNumberController {
 
     // Check duplicates
     final duplicateIndexes = provider.bibRecords
-      .asMap()
-      .entries
-      .where((e) => e.value.bib == bibNumber && e.value.bib.isNotEmpty)
-      .map((e) => e.key)
-      .toList();
+        .asMap()
+        .entries
+        .where((e) => e.value.bib == bibNumber && e.value.bib.isNotEmpty)
+        .map((e) => e.key)
+        .toList();
 
     if (duplicateIndexes.length > 1) {
       // Mark as duplicate if this is not the first occurrence
@@ -124,12 +126,13 @@ class BibNumberController {
     }
   }
 
-  Future<void> handleBibNumber(String bibNumber, {
+  Future<void> handleBibNumber(
+    String bibNumber, {
     List<double>? confidences,
     int? index,
   }) async {
     final provider = Provider.of<BibRecordsProvider>(context, listen: false);
-    
+
     if (index != null) {
       await validateBibNumber(index, bibNumber, confidences);
       provider.updateBibRecord(index, bibNumber);
@@ -152,14 +155,14 @@ class BibNumberController {
 
     // Validate all bib numbers to update duplicate states
     for (var i = 0; i < provider.bibRecords.length; i++) {
-      await validateBibNumber(i, provider.bibRecords[i].bib, 
-        i == index ? confidences : null);
+      await validateBibNumber(
+          i, provider.bibRecords[i].bib, i == index ? confidences : null);
     }
 
     if (runners.isNotEmpty) {
       Provider.of<BibRecordsProvider>(context, listen: false)
-        .focusNodes[index ?? provider.bibRecords.length - 1]
-        .requestFocus();
+          .focusNodes[index ?? provider.bibRecords.length - 1]
+          .requestFocus();
     }
   }
 
@@ -175,8 +178,12 @@ class BibNumberController {
 
   // Sharing and data validation methods
   String getEncodedBibData() {
-    final bibRecordsProvider = Provider.of<BibRecordsProvider>(context, listen: false);
-    return bibRecordsProvider.bibRecords.map((record) => record.bib).toList().join(' ');
+    final bibRecordsProvider =
+        Provider.of<BibRecordsProvider>(context, listen: false);
+    return bibRecordsProvider.bibRecords
+        .map((record) => record.bib)
+        .toList()
+        .join(' ');
   }
 
   void restoreFocusability() {
@@ -188,15 +195,17 @@ class BibNumberController {
 
   Future<bool> cleanEmptyRecords() async {
     final provider = Provider.of<BibRecordsProvider>(context, listen: false);
-    final emptyRecords = provider.bibRecords.where((bib) => bib.bib.isEmpty).length;
-    
+    final emptyRecords =
+        provider.bibRecords.where((bib) => bib.bib.isEmpty).length;
+
     if (emptyRecords > 0) {
       final confirmed = await DialogUtils.showConfirmationDialog(
         context,
         title: 'Clean Empty Records',
-        content: 'There are $emptyRecords empty bib numbers that will be deleted. Continue?',
+        content:
+            'There are $emptyRecords empty bib numbers that will be deleted. Continue?',
       );
-      
+
       if (confirmed) {
         provider.bibRecords.removeWhere((bib) => bib.bib.isEmpty);
       }
@@ -207,13 +216,15 @@ class BibNumberController {
 
   Future<bool> checkDuplicateRecords() async {
     final provider = Provider.of<BibRecordsProvider>(context, listen: false);
-    final duplicateRecords = provider.bibRecords.where((bib) => bib.flags.duplicateBibNumber).length;
-    
+    final duplicateRecords =
+        provider.bibRecords.where((bib) => bib.flags.duplicateBibNumber).length;
+
     if (duplicateRecords > 0) {
       final confirmed = await DialogUtils.showConfirmationDialog(
         context,
         title: 'Duplicate Bib Numbers',
-        content: 'There are $duplicateRecords duplicate bib numbers. Do you want to continue?',
+        content:
+            'There are $duplicateRecords duplicate bib numbers. Do you want to continue?',
       );
       return confirmed;
     }
@@ -222,13 +233,15 @@ class BibNumberController {
 
   Future<bool> checkUnknownRecords() async {
     final provider = Provider.of<BibRecordsProvider>(context, listen: false);
-    final unknownRecords = provider.bibRecords.where((bib) => bib.flags.notInDatabase).length;
-    
+    final unknownRecords =
+        provider.bibRecords.where((bib) => bib.flags.notInDatabase).length;
+
     if (unknownRecords > 0) {
       final confirmed = await DialogUtils.showConfirmationDialog(
         context,
         title: 'Unknown Bib Numbers',
-        content: 'There are $unknownRecords bib numbers that are not in the database. Do you want to continue?',
+        content:
+            'There are $unknownRecords bib numbers that are not in the database. Do you want to continue?',
       );
       return confirmed;
     }

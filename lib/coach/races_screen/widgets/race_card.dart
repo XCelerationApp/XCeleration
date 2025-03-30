@@ -18,15 +18,16 @@ class RaceCard extends StatelessWidget {
     required this.flowState,
     required this.controller,
   });
-  
+
   @override
   Widget build(BuildContext context) {
     final flowStateText = {
-      'setup': 'Setup Required',
-      'pre-race': 'Pre-Race Setup',
-      'post-race': 'Post-Race',
-      'finished': 'Completed',
-    }[race.flowState] ?? 'Setup Required';
+          'setup': 'Setup Required',
+          'pre-race': 'Pre-Race Setup',
+          'post-race': 'Post-Race',
+          'finished': 'Completed',
+        }[race.flowState] ??
+        'Setup Required';
 
     // final flowStateColor = {
     //   'setup': Colors.orange,
@@ -108,10 +109,12 @@ class RaceCard extends StatelessWidget {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(16),
           child: InkWell(
-            onTap: () => RaceScreenController.showRaceScreen(context, race.race_id),
+            onTap: () =>
+                RaceScreenController.showRaceScreen(context, race.race_id),
             child: Expanded(
               child: Padding(
-                padding: const EdgeInsets.only(left: 24.0, right: 24.0, top: 16.0, bottom: 16.0),
+                padding: const EdgeInsets.only(
+                    left: 24.0, right: 24.0, top: 16.0, bottom: 16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -124,12 +127,15 @@ class RaceCard extends StatelessWidget {
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: flowStateColor.withAlpha((0.1 * 255).round()),
+                            color:
+                                flowStateColor.withAlpha((0.1 * 255).round()),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: flowStateColor.withAlpha((0.5 * 255).round()),
+                              color:
+                                  flowStateColor.withAlpha((0.5 * 255).round()),
                               width: 1,
                             ),
                           ),
@@ -156,7 +162,8 @@ class RaceCard extends StatelessWidget {
                         Expanded(
                           child: Text(
                             race.location,
-                            style: AppTypography.bodyRegular.copyWith(color: Colors.black54),
+                            style: AppTypography.bodyRegular
+                                .copyWith(color: Colors.black54),
                             overflow: TextOverflow.ellipsis,
                             maxLines: 1,
                           ),
@@ -177,7 +184,8 @@ class RaceCard extends StatelessWidget {
                             const SizedBox(width: 8),
                             Text(
                               DateFormat('MMM d, y').format(race.race_date),
-                              style: AppTypography.bodyRegular.copyWith(color: Colors.black54),
+                              style: AppTypography.bodyRegular
+                                  .copyWith(color: Colors.black54),
                             ),
                           ],
                         ),

@@ -16,7 +16,7 @@ class BibRecordsProvider with ChangeNotifier {
     _bibRecords.add(record);
     final controller = TextEditingController(text: record.bib);
     _controllers.add(controller);
-    
+
     final focusNode = FocusNode();
     focusNode.addListener(() {
       if (focusNode.hasFocus != _isKeyboardVisible) {
@@ -25,7 +25,7 @@ class BibRecordsProvider with ChangeNotifier {
       }
     });
     _focusNodes.add(focusNode);
-    
+
     notifyListeners();
   }
 

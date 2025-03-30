@@ -20,7 +20,8 @@ class TimingScreen extends StatefulWidget {
   State<TimingScreen> createState() => _TimingScreenState();
 }
 
-class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMixin {
+class _TimingScreenState extends State<TimingScreen>
+    with TickerProviderStateMixin {
   late TimingController _controller;
   late TabController _tabController;
   late final TutorialManager tutorialManager = TutorialManager();
@@ -30,7 +31,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _controller = TimingController();
-    
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _setupTutorials();
@@ -48,7 +49,7 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
   Widget build(BuildContext context) {
     // Set the context in the controller for dialog management
     _controller.setContext(context);
-    
+
     // Use the existing TimingData in the controller
     return ChangeNotifierProvider.value(
       value: _controller.timingData,
@@ -60,35 +61,37 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
               bool shouldPop = await DialogUtils.showConfirmationDialog(
                 context,
                 title: 'Leave Timing Screen?',
-                content: 'All race times will be lost if you leave this screen. Do you want to continue?',
+                content:
+                    'All race times will be lost if you leave this screen. Do you want to continue?',
                 confirmText: 'Continue',
                 cancelText: 'Stay',
               );
               return shouldPop;
             },
             child: TutorialRoot(
-              tutorialManager: tutorialManager,
-              child: Scaffold(
-                body: Padding(
-                  padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      buildRoleBar(context, 'timer', tutorialManager),
-                      const SizedBox(height: 8),
-                      _buildRaceInfoHeader(),
-                      const SizedBox(height: 8),
-                      _buildTimerDisplay(),
-                      _buildControlButtons(),
-                      if (_controller.records.isNotEmpty) const SizedBox(height: 30),
-                      Expanded(child: _buildRecordsList()),
-                      if (_controller.timingData.startTime != null && _controller.records.isNotEmpty)
-                        _buildBottomControls(),
-                    ],
+                tutorialManager: tutorialManager,
+                child: Scaffold(
+                  body: Padding(
+                    padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        buildRoleBar(context, 'timer', tutorialManager),
+                        const SizedBox(height: 8),
+                        _buildRaceInfoHeader(),
+                        const SizedBox(height: 8),
+                        _buildTimerDisplay(),
+                        _buildControlButtons(),
+                        if (_controller.records.isNotEmpty)
+                          const SizedBox(height: 30),
+                        Expanded(child: _buildRecordsList()),
+                        if (_controller.timingData.startTime != null &&
+                            _controller.records.isNotEmpty)
+                          _buildBottomControls(),
+                      ],
+                    ),
                   ),
-                ),
-              )
-            ),
+                )),
           );
         },
       ),
@@ -132,75 +135,76 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
       );
     }
 
-    return Column(
-      children: [
-        Expanded(
+    return Column(children: [
+      Expanded(
           child: ListView.separated(
-            controller: _controller.scrollController,
-            physics: const BouncingScrollPhysics(),
-            itemCount: _controller.records.length,
-            separatorBuilder: (context, index) => const SizedBox(height: 1),
-            itemBuilder: (context, index) {
-              final record = _controller.records[index];
-              if (record.type == RecordType.runnerTime) {
-                return Dismissible(
-                  key: ValueKey(record),
-                  background: Container(
-                    color: Colors.red,
-                    alignment: Alignment.centerRight,
-                    padding: const EdgeInsets.only(right: 16.0),
-                    child: const Icon(
-                      Icons.delete,
-                      color: Colors.white,
-                    ),
-                  ),
-                  direction: DismissDirection.endToStart,
-                  confirmDismiss: (direction) => _controller.confirmRecordDismiss(record),
-                  onDismissed: (direction) => _controller.onDismissRunnerTimeRecord(record, index),
-                  child: _buildRunnerTimeRecord(record, index),
-                );
-              } else if (record.type == RecordType.confirmRunner) {
-                return Dismissible(
-                  key: ValueKey(record),
-                  background: Container(
-                    color: Colors.red,
-                    alignment: Alignment.centerRight,
-                    padding: const EdgeInsets.only(right: 16.0),
-                    child: const Icon(
-                      Icons.delete,
-                      color: Colors.white,
-                    ),
-                  ),
-                  direction: DismissDirection.endToStart,
-                  confirmDismiss: (direction) => _controller.confirmRecordDismiss(record),
-                  onDismissed: (direction) => _controller.onDismissConfirmationRecord(record, index),
-                  child: _buildConfirmationRecord(record, index),
-                );
-              }
-              // } else if (record.type == RecordType.missingRunner || record.type == RecordType.extraRunner) {
-              //   return Dismissible(
-              //     key: ValueKey(record),
-              //     background: Container(
-              //       color: Colors.red,
-              //       alignment: Alignment.centerRight,
-              //       padding: const EdgeInsets.only(right: 16.0),
-              //       child: const Icon(
-              //         Icons.delete,
-              //         color: Colors.white,
-              //       ),
-              //     ),
-              //     direction: DismissDirection.endToStart,
-              //     confirmDismiss: (direction) => _controller.confirmRecordDismiss(record),
-              //     onDismissed: (direction) => _controller.onDismissConflictRecord(record),
-              //     child: _buildConflictRecord(record, index),
-              //   );
-              // }
-              return const SizedBox.shrink();
-            },
-          )
-        )
-      ]
-    );
+        controller: _controller.scrollController,
+        physics: const BouncingScrollPhysics(),
+        itemCount: _controller.records.length,
+        separatorBuilder: (context, index) => const SizedBox(height: 1),
+        itemBuilder: (context, index) {
+          final record = _controller.records[index];
+          if (record.type == RecordType.runnerTime) {
+            return Dismissible(
+              key: ValueKey(record),
+              background: Container(
+                color: Colors.red,
+                alignment: Alignment.centerRight,
+                padding: const EdgeInsets.only(right: 16.0),
+                child: const Icon(
+                  Icons.delete,
+                  color: Colors.white,
+                ),
+              ),
+              direction: DismissDirection.endToStart,
+              confirmDismiss: (direction) =>
+                  _controller.confirmRecordDismiss(record),
+              onDismissed: (direction) =>
+                  _controller.onDismissRunnerTimeRecord(record, index),
+              child: _buildRunnerTimeRecord(record, index),
+            );
+          } else if (record.type == RecordType.confirmRunner) {
+            return Dismissible(
+              key: ValueKey(record),
+              background: Container(
+                color: Colors.red,
+                alignment: Alignment.centerRight,
+                padding: const EdgeInsets.only(right: 16.0),
+                child: const Icon(
+                  Icons.delete,
+                  color: Colors.white,
+                ),
+              ),
+              direction: DismissDirection.endToStart,
+              confirmDismiss: (direction) =>
+                  _controller.confirmRecordDismiss(record),
+              onDismissed: (direction) =>
+                  _controller.onDismissConfirmationRecord(record, index),
+              child: _buildConfirmationRecord(record, index),
+            );
+          }
+          // } else if (record.type == RecordType.missingRunner || record.type == RecordType.extraRunner) {
+          //   return Dismissible(
+          //     key: ValueKey(record),
+          //     background: Container(
+          //       color: Colors.red,
+          //       alignment: Alignment.centerRight,
+          //       padding: const EdgeInsets.only(right: 16.0),
+          //       child: const Icon(
+          //         Icons.delete,
+          //         color: Colors.white,
+          //       ),
+          //     ),
+          //     direction: DismissDirection.endToStart,
+          //     confirmDismiss: (direction) => _controller.confirmRecordDismiss(record),
+          //     onDismissed: (direction) => _controller.onDismissConflictRecord(record),
+          //     child: _buildConflictRecord(record, index),
+          //   );
+          // }
+          return const SizedBox.shrink();
+        },
+      ))
+    ]);
   }
 
   Widget _buildRunnerTimeRecord(TimingRecord record, int index) {
@@ -232,7 +236,9 @@ class _TimingScreenState extends State<TimingScreen> with TickerProviderStateMix
       onConfirmRunnerNumber: _controller.confirmRunnerNumber,
       onMissingRunnerTime: () => _controller.missingRunnerTime(),
       onExtraRunnerTime: () => _controller.extraRunnerTime(),
-      onUndoLastConflict: _controller.hasUndoableConflict() ? _controller.undoLastConflict : null,
+      onUndoLastConflict: _controller.hasUndoableConflict()
+          ? _controller.undoLastConflict
+          : null,
       hasUndoableConflict: _controller.hasUndoableConflict(),
     );
   }

@@ -8,7 +8,8 @@ import '../../../../core/theme/typography.dart';
 class BibInputWidget extends StatelessWidget {
   final int index;
   final RunnerRecord record;
-  final Function(String, {List<double>? confidences, int? index}) onBibNumberChanged;
+  final Function(String, {List<double>? confidences, int? index})
+      onBibNumberChanged;
   final Function() onSubmitted;
 
   const BibInputWidget({
@@ -23,7 +24,8 @@ class BibInputWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        final provider = Provider.of<BibRecordsProvider>(context, listen: false);
+        final provider =
+            Provider.of<BibRecordsProvider>(context, listen: false);
         provider.focusNodes[index].requestFocus();
       },
       child: Container(
@@ -107,8 +109,7 @@ class BibInputWidget extends StatelessWidget {
       children: [
         if (errors.isNotEmpty)
           Icon(Icons.error_outline, color: Colors.red, size: 16),
-        if (errors.isNotEmpty)
-          const SizedBox(width: 4),
+        if (errors.isNotEmpty) const SizedBox(width: 4),
         Text(
           errors.join(' • '),
           style: AppTypography.bodyRegular.copyWith(

@@ -6,10 +6,10 @@ import 'package:xcelerate/coach/race_screen/widgets/runner_record.dart';
 class RunnerResultRow extends StatelessWidget {
   /// The runner record to display
   final RunnerRecord runner;
-  
+
   /// The timing record with placement and time information
   final TimingRecord? timingRecord;
-  
+
   /// Function to format time for display
   final String Function(dynamic elapsedTime) formatTimeDisplay;
 

@@ -16,7 +16,8 @@ class ShareUtils {
         if (!context.mounted) return null;
         DialogUtils.showErrorDialog(
           context,
-          message: 'Please sign in to your Google account to export to Google Sheets',
+          message:
+              'Please sign in to your Google account to export to Google Sheets',
         );
         return null;
       }
@@ -33,24 +34,18 @@ class ShareUtils {
         if (await canLaunchUrl(uri)) {
           await launchUrl(uri);
           if (!context.mounted) return null;
-          DialogUtils.showSuccessDialog(
-            context, 
-            message: 'Results exported to Google Sheets successfully'
-          );
+          DialogUtils.showSuccessDialog(context,
+              message: 'Results exported to Google Sheets successfully');
           return url;
         }
       }
       if (!context.mounted) return null;
-      DialogUtils.showErrorDialog(
-        context,
-        message: 'Failed to export to Google Sheets. Please try again.'
-      );
+      DialogUtils.showErrorDialog(context,
+          message: 'Failed to export to Google Sheets. Please try again.');
       return null;
     } catch (e) {
-      DialogUtils.showErrorDialog(
-        context,
-        message: 'Error exporting to Google Sheets: $e'
-      );
+      DialogUtils.showErrorDialog(context,
+          message: 'Error exporting to Google Sheets: $e');
       return null;
     }
   }
@@ -61,7 +56,8 @@ class ShareUtils {
         // For macOS, use clipboard and show a notification
         await Clipboard.setData(ClipboardData(text: text));
         if (context.mounted) {
-          DialogUtils.showSuccessDialog(context, message: 'Results copied to clipboard');
+          DialogUtils.showSuccessDialog(context,
+              message: 'Results copied to clipboard');
         }
       } else {
         await Share.share(text);

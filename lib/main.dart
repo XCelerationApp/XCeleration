@@ -14,16 +14,16 @@ Process? _flaskProcess;
 void main() async {
   // This is important to ensure the native splash screen works correctly
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Preserve the native splash screen until the app is ready
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
-  
+
   // Lock the orientation to portrait mode
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
-  
+
   runApp(
     MultiProvider(
       providers: [
@@ -41,7 +41,8 @@ void main() async {
 
 Future<void> startFlaskServer() async {
   debugPrint('Starting Flask Server...');
-  _flaskProcess =  await Process.start('python', ['lib/server/mnist_image_classification.py']);
+  _flaskProcess = await Process.start(
+      'python', ['lib/server/mnist_image_classification.py']);
 }
 
 void stopFlaskServer() {
@@ -103,7 +104,7 @@ class MyApp extends StatelessWidget {
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             textStyle: TextStyle(color: AppColors.darkColor),
-            foregroundColor: AppColors.darkColor, 
+            foregroundColor: AppColors.darkColor,
           ),
         ),
       ),

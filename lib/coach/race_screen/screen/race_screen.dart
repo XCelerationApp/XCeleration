@@ -10,7 +10,7 @@ class RaceScreen extends StatefulWidget {
   final int raceId;
   final RaceScreenPage page;
   const RaceScreen({
-    super.key, 
+    super.key,
     required this.raceId,
     this.page = RaceScreenPage.main,
   });
@@ -23,13 +23,13 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
   // Controller
   late RaceScreenController _controller;
   bool _isLoading = true;
-  
+
   @override
   void initState() {
     super.initState();
     _controller = RaceScreenController(raceId: widget.raceId);
     _controller.tabController = TabController(length: 2, vsync: this);
-    
+
     // Navigate to results page if specified
     if (widget.page == RaceScreenPage.results) {
       _controller.tabController.animateTo(1);
@@ -39,16 +39,16 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
     _controller.tabController.addListener(() {
       setState(() {}); // Refresh UI when tab changes
     });
-    
+
     _loadRaceData();
   }
-  
+
   @override
   void dispose() {
     _controller.tabController.dispose();
     super.dispose();
   }
-  
+
   Future<void> _loadRaceData() async {
     await _controller.init(context);
     if (mounted) {

@@ -18,12 +18,14 @@ class TimeSelector extends StatelessWidget {
   final List<String> times;
   final int conflictIndex;
   final bool manual;
-  
+
   @override
   Widget build(BuildContext context) {
-    final availableOptions = times.where((time) => 
-      time == timeController.text || !controller.selectedTimes[conflictIndex].contains(time)
-    ).toList();
+    final availableOptions = times
+        .where((time) =>
+            time == timeController.text ||
+            !controller.selectedTimes[conflictIndex].contains(time))
+        .toList();
 
     return Container(
       decoration: BoxDecoration(
@@ -40,7 +42,9 @@ class TimeSelector extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          value: availableOptions.contains(timeController.text) ? timeController.text : null,
+          value: availableOptions.contains(timeController.text)
+              ? timeController.text
+              : null,
           hint: Text(
             timeController.text.isEmpty ? 'Select Time' : timeController.text,
             style: TextStyle(
@@ -50,7 +54,7 @@ class TimeSelector extends StatelessWidget {
             ),
           ),
           items: [
-            if (manual) 
+            if (manual)
               DropdownMenuItem<String>(
                 value: 'manual_entry',
                 child: SizedBox(
@@ -74,28 +78,29 @@ class TimeSelector extends StatelessWidget {
                       if (value.isNotEmpty) {
                         final String previousValue = timeController.text;
                         timeController.text = value;
-                        controller.updateSelectedTime(conflictIndex, value, previousValue);
+                        controller.updateSelectedTime(
+                            conflictIndex, value, previousValue);
                       }
                     },
                   ),
                 ),
               ),
             ...availableOptions.map((time) => DropdownMenuItem<String>(
-              value: time,
-              child: Text(
-                time,
-                style: TextStyle(
-                  color: AppColors.darkColor,
-                  fontWeight: FontWeight.w500,
-                  fontSize: 15,
-                ),
-              ),
-            )),
+                  value: time,
+                  child: Text(
+                    time,
+                    style: TextStyle(
+                      color: AppColors.darkColor,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 15,
+                    ),
+                  ),
+                )),
           ],
           onChanged: (value) {
             if (value == null) return;
             if (value == 'manual_entry') return;
-            
+
             final previousValue = timeController.text;
             timeController.text = value;
             controller.updateSelectedTime(conflictIndex, value, previousValue);
@@ -123,7 +128,7 @@ class ConfirmedTime extends StatelessWidget {
     required this.time,
   });
   final String time;
-  
+
   @override
   Widget build(BuildContext context) {
     return Container(

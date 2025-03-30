@@ -24,7 +24,7 @@ class LoadResultsStep extends FlowStep {
       notifyContentChanged();
     }
   }
-  
+
   bool get hasBibConflicts => _hasBibConflicts;
   set hasBibConflicts(bool value) {
     if (_hasBibConflicts != value) {
@@ -32,7 +32,7 @@ class LoadResultsStep extends FlowStep {
       notifyContentChanged();
     }
   }
-  
+
   bool get hasTimingConflicts => _hasTimingConflicts;
   set hasTimingConflicts(bool value) {
     if (_hasTimingConflicts != value) {
@@ -49,36 +49,36 @@ class LoadResultsStep extends FlowStep {
     required Function(BuildContext context) showBibConflictsSheet,
     required Function(BuildContext context) showTimingConflictsSheet,
     bool testMode = false,
-  }) :
-    _resultsLoaded = false,
-    _hasBibConflicts = false,
-    _hasTimingConflicts = false,
-    _devices = devices,
-    _reloadDevices = reloadDevices,
-    _onResultsLoaded = onResultsLoaded,
-    _showBibConflictsSheet = showBibConflictsSheet,
-    _showTimingConflictsSheet = showTimingConflictsSheet,
-    _testMode = testMode,
-    super(
-      title: 'Load Results',
-      description: 'Load the results of the race from the assistant devices.',
-      content: SingleChildScrollView(
-        child: LoadResultsWidget(
-          closeWhenDone: false,
-          resultsLoaded: false,
-          onResultsLoaded: onResultsLoaded,
-          hasBibConflicts: false,
-          hasTimingConflicts: false,
-          devices: devices,
-          onReloadPressed: () {},
-          onBibConflictsPressed: (context) {},
-          onTimingConflictsPressed: (context) {},
-          testMode: testMode,
-        ),
-      ),
-      canProceed: () => true,
-    );
-  
+  })  : _resultsLoaded = false,
+        _hasBibConflicts = false,
+        _hasTimingConflicts = false,
+        _devices = devices,
+        _reloadDevices = reloadDevices,
+        _onResultsLoaded = onResultsLoaded,
+        _showBibConflictsSheet = showBibConflictsSheet,
+        _showTimingConflictsSheet = showTimingConflictsSheet,
+        _testMode = testMode,
+        super(
+          title: 'Load Results',
+          description:
+              'Load the results of the race from the assistant devices.',
+          content: SingleChildScrollView(
+            child: LoadResultsWidget(
+              closeWhenDone: false,
+              resultsLoaded: false,
+              onResultsLoaded: onResultsLoaded,
+              hasBibConflicts: false,
+              hasTimingConflicts: false,
+              devices: devices,
+              onReloadPressed: () {},
+              onBibConflictsPressed: (context) {},
+              onTimingConflictsPressed: (context) {},
+              testMode: testMode,
+            ),
+          ),
+          canProceed: () => true,
+        );
+
   // Override to rebuild the content with current state
   @override
   Widget get content {

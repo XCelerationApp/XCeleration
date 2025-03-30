@@ -10,16 +10,19 @@ class ReviewHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Icon(Icons.fact_check_outlined, size: 80, color: AppColors.primaryColor),
+        Icon(Icons.fact_check_outlined,
+            size: 80, color: AppColors.primaryColor),
         const SizedBox(height: 24),
         Text(
           'Review Race Results',
-          style: AppTypography.titleSemibold.copyWith(color: AppColors.darkColor),
+          style:
+              AppTypography.titleSemibold.copyWith(color: AppColors.darkColor),
         ),
         const SizedBox(height: 16),
         Text(
           'Make sure all times and placements are correct.',
-          style: AppTypography.bodyRegular.copyWith(color: AppColors.darkColor.withOpacity(0.7)),
+          style: AppTypography.bodyRegular
+              .copyWith(color: AppColors.darkColor.withOpacity(0.7)),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 32),

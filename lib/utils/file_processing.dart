@@ -27,10 +27,15 @@ Future<List<RunnerRecord>> processSpreadsheet(int raceId, bool isTeam) async {
           String name = row[0]?.toString() ?? '';
           int grade = int.tryParse(row[1]?.toString() ?? '') ?? 0;
           String school = row[2]?.toString() ?? '';
-          String bibNumber = row[3]?.toString().replaceAll('"', '') ?? ''; // Remove quotation marks if present
+          String bibNumber = row[3]?.toString().replaceAll('"', '') ??
+              ''; // Remove quotation marks if present
           int bibNumberInt = int.tryParse(bibNumber) ?? -1;
 
-          if (name.isNotEmpty && grade > 0 && school.isNotEmpty && bibNumber.isNotEmpty && bibNumberInt >= 0) {
+          if (name.isNotEmpty &&
+              grade > 0 &&
+              school.isNotEmpty &&
+              bibNumber.isNotEmpty &&
+              bibNumberInt >= 0) {
             if (isTeam == true) {
               runnerData.add(RunnerRecord(
                 name: name,
@@ -49,7 +54,7 @@ Future<List<RunnerRecord>> processSpreadsheet(int raceId, bool isTeam) async {
                 raceId: raceId,
                 runnerId: -1,
               ));
-            } 
+            }
           } else {
             debugPrint('Invalid data in row: $row');
           }
@@ -57,7 +62,6 @@ Future<List<RunnerRecord>> processSpreadsheet(int raceId, bool isTeam) async {
           debugPrint('Incomplete row: $row');
         }
       }
-
     } else if (extension == 'xlsx') {
       // Process Excel file
       var bytes = file.readAsBytesSync();
@@ -72,11 +76,16 @@ Future<List<RunnerRecord>> processSpreadsheet(int raceId, bool isTeam) async {
             String name = row[0]?.toString() ?? '';
             int grade = int.tryParse(row[1]?.toString() ?? '') ?? 0;
             String school = row[2]?.toString() ?? '';
-            String bibNumber = row[3]?.toString().replaceAll('"', '') ?? ''; // Remove quotation marks if present
+            String bibNumber = row[3]?.toString().replaceAll('"', '') ??
+                ''; // Remove quotation marks if present
             int bibNumberInt = int.tryParse(bibNumber) ?? -1;
 
             // Validate the parsed data
-            if (name.isNotEmpty && grade > 0 && school.isNotEmpty && bibNumberInt >= 0 && bibNumber.isNotEmpty) {
+            if (name.isNotEmpty &&
+                grade > 0 &&
+                school.isNotEmpty &&
+                bibNumberInt >= 0 &&
+                bibNumber.isNotEmpty) {
               // Insert into the database
               if (isTeam == true) {
                 runnerData.add(RunnerRecord(
@@ -96,7 +105,7 @@ Future<List<RunnerRecord>> processSpreadsheet(int raceId, bool isTeam) async {
                   runnerId: -1,
                   raceId: raceId,
                 ));
-              } 
+              }
             } else {
               debugPrint('Invalid data in row: $row');
             }
@@ -105,7 +114,6 @@ Future<List<RunnerRecord>> processSpreadsheet(int raceId, bool isTeam) async {
           }
         }
       }
-
     } else {
       debugPrint('Unsupported file format: $extension');
     }

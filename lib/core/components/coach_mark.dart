@@ -34,10 +34,7 @@ class CoachMarkConfig {
 }
 
 /// Defines the position of the coach mark tooltip
-enum CoachMarkType{
-  general,
-  targeted
-}
+enum CoachMarkType { general, targeted }
 
 /// A widget that shows a coach mark tooltip
 class CoachMark extends StatefulWidget {
@@ -73,13 +70,16 @@ class _CoachMarkState extends State<CoachMark> {
   }
 
   void updateTargetRect() {
-    if (!mounted || _hasUpdatedRect || widget.config.type == CoachMarkType.general) return;
-    
-    final RenderBox? renderBox = _targetKey.currentContext?.findRenderObject() as RenderBox?;
+    if (!mounted ||
+        _hasUpdatedRect ||
+        widget.config.type == CoachMarkType.general) return;
+
+    final RenderBox? renderBox =
+        _targetKey.currentContext?.findRenderObject() as RenderBox?;
     if (renderBox == null) return;
 
     final Rect rect = renderBox.localToGlobal(Offset.zero) & renderBox.size;
-    
+
     if (widget.tutorialManager.activeCoachMark == widget.id) {
       widget.tutorialManager.setTargetRect(rect);
       _hasUpdatedRect = true;
@@ -92,7 +92,7 @@ class _CoachMarkState extends State<CoachMark> {
       listenable: widget.tutorialManager,
       builder: (context, _) {
         final isVisible = widget.tutorialManager.activeCoachMark == widget.id;
-        
+
         if (!isVisible) {
           _hasUpdatedRect = false;
           return widget.child;
@@ -189,12 +189,14 @@ class _CoachMarkState extends State<CoachMark> {
       return Offset.zero;
     }
 
-    final double xOffset = widget.config.alignmentX == AlignmentX.left 
-        ? 30 + widget.config.arrowSize 
-        : (widget.config.alignmentX == AlignmentX.right ? -(30 + widget.config.arrowSize) : 0);
-    
-    final double yOffset = widget.config.alignmentY == AlignmentY.top 
-        ? -8 
+    final double xOffset = widget.config.alignmentX == AlignmentX.left
+        ? 30 + widget.config.arrowSize
+        : (widget.config.alignmentX == AlignmentX.right
+            ? -(30 + widget.config.arrowSize)
+            : 0);
+
+    final double yOffset = widget.config.alignmentY == AlignmentY.top
+        ? -8
         : (widget.config.alignmentY == AlignmentY.bottom ? 8 : 0);
 
     return Offset(xOffset, yOffset);
@@ -202,12 +204,16 @@ class _CoachMarkState extends State<CoachMark> {
 
   Widget _buildCoachMark() {
     return SizedBox(
-      width: widget.config.width,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (widget.config.type != CoachMarkType.general && widget.config.alignmentY == AlignmentY.bottom) ...[
-            buildArrow(widget.config.arrowSize, widget.config.width, widget.config.alignmentX, widget.config.alignmentY, widget.config.backgroundColor),
+        width: widget.config.width,
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          if (widget.config.type != CoachMarkType.general &&
+              widget.config.alignmentY == AlignmentY.bottom) ...[
+            buildArrow(
+                widget.config.arrowSize,
+                widget.config.width,
+                widget.config.alignmentX,
+                widget.config.alignmentY,
+                widget.config.backgroundColor),
           ],
           Container(
             padding: widget.config.padding,
@@ -248,7 +254,8 @@ class _CoachMarkState extends State<CoachMark> {
                   Text(
                     widget.config.description!,
                     style: TextStyle(
-                      color: widget.config.textColor.withAlpha((0.9 * 255).round()),
+                      color: widget.config.textColor
+                          .withAlpha((0.9 * 255).round()),
                       fontSize: 12,
                       height: 1.4,
                     ),
@@ -258,16 +265,21 @@ class _CoachMarkState extends State<CoachMark> {
               ],
             ),
           ),
-          if (widget.config.type != CoachMarkType.general && widget.config.alignmentY == AlignmentY.top) ...[
-            buildArrow(widget.config.arrowSize, widget.config.width, widget.config.alignmentX, widget.config.alignmentY, widget.config.backgroundColor),
+          if (widget.config.type != CoachMarkType.general &&
+              widget.config.alignmentY == AlignmentY.top) ...[
+            buildArrow(
+                widget.config.arrowSize,
+                widget.config.width,
+                widget.config.alignmentX,
+                widget.config.alignmentY,
+                widget.config.backgroundColor),
           ],
-        ]
-      )
-    );
+        ]));
   }
 }
 
-Widget buildArrow(double arrowSize, double width, AlignmentX alignmentX, AlignmentY alignmentY, Color backgroundColor) {
+Widget buildArrow(double arrowSize, double width, AlignmentX alignmentX,
+    AlignmentY alignmentY, Color backgroundColor) {
   return SizedBox(
     height: arrowSize,
     width: width,
@@ -322,8 +334,10 @@ class ArrowPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(ArrowPainter oldDelegate) => color != oldDelegate.color || alignmentY != oldDelegate.alignmentY;
+  bool shouldRepaint(ArrowPainter oldDelegate) =>
+      color != oldDelegate.color || alignmentY != oldDelegate.alignmentY;
 }
 
 enum AlignmentX { left, center, right }
+
 enum AlignmentY { top, center, bottom }

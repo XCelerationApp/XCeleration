@@ -30,7 +30,9 @@ class ReloadButton extends StatelessWidget {
           children: [
             const Icon(Icons.download_sharp, color: Colors.white, size: 18),
             const SizedBox(width: 16),
-            Text('Reload Results', style: AppTypography.headerSemibold.copyWith(color: Colors.white)),
+            Text('Reload Results',
+                style:
+                    AppTypography.headerSemibold.copyWith(color: Colors.white)),
           ],
         ),
       ),

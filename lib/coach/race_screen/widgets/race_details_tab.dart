@@ -8,7 +8,7 @@ class RaceDetailsTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(16), 
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -28,7 +28,8 @@ class RaceDetailsTab extends StatelessWidget {
           const SizedBox(height: 16),
           ModernDetailRow(
             label: 'Distance',
-            value: '${controller.race!.distance} ${controller.race!.distanceUnit}',
+            value:
+                '${controller.race!.distance} ${controller.race!.distanceUnit}',
             icon: Icons.straighten_rounded,
           ),
           const SizedBox(height: 16),

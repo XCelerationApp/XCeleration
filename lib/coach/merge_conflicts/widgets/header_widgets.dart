@@ -21,13 +21,11 @@ class ConflictHeader extends StatelessWidget {
     final String title = type == RecordType.extraRunner
         ? 'Too Many Runner Times'
         : 'Missing Runner Times';
-    final String description = '${type == RecordType.extraRunner
-        ? 'There are more times recorded by the timing assistant than runners'
-        : 'There are more runners than times recorded by the timing assistant'}. Please select or enter appropriate times between $startTime and $endTime to resolve the discrepancy between recorded times and runners.';
-    final IconData icon = type == RecordType.extraRunner
-        ? Icons.group_add
-        : Icons.person_search;
-        
+    final String description =
+        '${type == RecordType.extraRunner ? 'There are more times recorded by the timing assistant than runners' : 'There are more runners than times recorded by the timing assistant'}. Please select or enter appropriate times between $startTime and $endTime to resolve the discrepancy between recorded times and runners.';
+    final IconData icon =
+        type == RecordType.extraRunner ? Icons.group_add : Icons.person_search;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -148,7 +146,8 @@ class ConfirmHeader extends StatelessWidget {
 }
 
 class ConfirmationRecord extends StatelessWidget {
-  const ConfirmationRecord(this.context, this.index, this.timeRecord, {super.key});
+  const ConfirmationRecord(this.context, this.index, this.timeRecord,
+      {super.key});
   final BuildContext context;
   final int index;
   final TimingRecord timeRecord;

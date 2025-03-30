@@ -5,7 +5,7 @@ class PageButton extends StatelessWidget {
   final String title;
   final String iconName;
   final VoidCallback onPressed;
-  
+
   const PageButton({
     super.key,
     required this.title,
@@ -53,7 +53,8 @@ class PageButton extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               title,
-              style: AppTypography.bodySemibold.copyWith(color: Colors.blueGrey[800]),
+              style: AppTypography.bodySemibold
+                  .copyWith(color: Colors.blueGrey[800]),
               textAlign: TextAlign.center,
             ),
           ],

@@ -6,11 +6,7 @@ class Package {
   final String type;
   late String? data;
   late String? checksum;
-  Package({
-    required this.number,
-    required this.type,
-    this.data
-  }) {
+  Package({required this.number, required this.type, this.data}) {
     if (type == 'DATA' && data != null) {
       data = data;
       checksum = _calculateChecksum();
@@ -55,5 +51,4 @@ class Package {
     Map<String, dynamic> json = jsonDecode(encodedJson);
     return Package.fromJson(json);
   }
-
 }

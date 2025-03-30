@@ -21,7 +21,8 @@ class StatsHeaderWidget extends StatefulWidget {
   State<StatsHeaderWidget> createState() => _StatsHeaderWidgetState();
 }
 
-class _StatsHeaderWidgetState extends State<StatsHeaderWidget> with SingleTickerProviderStateMixin {
+class _StatsHeaderWidgetState extends State<StatsHeaderWidget>
+    with SingleTickerProviderStateMixin {
   late AnimationController _countAnimationController;
   late Animation<double> _scaleAnimation;
   int _previousCount = 0;
@@ -39,10 +40,10 @@ class _StatsHeaderWidgetState extends State<StatsHeaderWidget> with SingleTicker
         curve: Curves.easeOutBack,
       ),
     )..addStatusListener((status) {
-      if (status == AnimationStatus.completed) {
-        _countAnimationController.reverse();
-      }
-    });
+        if (status == AnimationStatus.completed) {
+          _countAnimationController.reverse();
+        }
+      });
   }
 
   @override
@@ -56,13 +57,13 @@ class _StatsHeaderWidgetState extends State<StatsHeaderWidget> with SingleTicker
     return Consumer<BibRecordsProvider>(
       builder: (context, provider, _) {
         final currentCount = widget.model.countNonEmptyBibNumbers(context);
-        
+
         // Trigger animation when count changes
         if (_previousCount != currentCount) {
           _countAnimationController.forward(from: 0.0);
           _previousCount = currentCount;
         }
-        
+
         return Container(
           margin: const EdgeInsets.fromLTRB(0.0, 16.0, 0.0, 8.0),
           decoration: BoxDecoration(
@@ -92,9 +93,9 @@ class _StatsHeaderWidgetState extends State<StatsHeaderWidget> with SingleTicker
                     //     letterSpacing: 0.5,
                     //   ),
                     // ),
-                    
+
                     // const SizedBox(height: 12),
-                    
+
                     // Animated bib count - the primary focus
                     ScaleTransition(
                       scale: _scaleAnimation,
@@ -124,16 +125,17 @@ class _StatsHeaderWidgetState extends State<StatsHeaderWidget> with SingleTicker
                         ],
                       ),
                     ),
-                    
+
                     const SizedBox(height: 24),
-                    
+
                     // Bottom row with secondary information and actions
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         // Runners count
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 8),
                           decoration: BoxDecoration(
                             color: Colors.grey[100],
                             borderRadius: BorderRadius.circular(24),
@@ -157,7 +159,7 @@ class _StatsHeaderWidgetState extends State<StatsHeaderWidget> with SingleTicker
                             ],
                           ),
                         ),
-                        
+
                         // Reset button - less prominent but accessible
                         Material(
                           color: Colors.transparent,
@@ -165,7 +167,8 @@ class _StatsHeaderWidgetState extends State<StatsHeaderWidget> with SingleTicker
                             onTap: widget.onReset,
                             borderRadius: BorderRadius.circular(24),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 8),
                               decoration: BoxDecoration(
                                 color: AppColors.primaryColor,
                                 borderRadius: BorderRadius.circular(24),

@@ -21,15 +21,15 @@ import '../../controller/flow_controller.dart';
 
 class PostRaceController {
   final int raceId;
-  
+
   // Controller state
   late DevicesManager devices;
-  
+
   // Flow steps
   late LoadResultsStep _loadResultsStep;
   late ReviewResultsStep _reviewResultsStep;
   late ShareResultsStep _shareResultsStep;
-  
+
   // Constructor
   PostRaceController({required this.raceId, bool useTestData = false}) {
     devices = DeviceConnectionService.createDevices(
@@ -38,7 +38,7 @@ class PostRaceController {
     );
     _initializeSteps(useTestData);
   }
-  
+
   // Initialize the flow steps
   void _initializeSteps([bool useTestData = false]) {
     _loadResultsStep = LoadResultsStep(
@@ -47,17 +47,18 @@ class PostRaceController {
         _resetDevices(),
         // loadResults()
       },
-      onResultsLoaded: (context) => useTestData ? _loadTestData(context) : processReceivedData(context),
+      onResultsLoaded: (context) =>
+          useTestData ? _loadTestData(context) : processReceivedData(context),
       showBibConflictsSheet: (context) => showBibConflictsSheet(context),
       showTimingConflictsSheet: (context) => showTimingConflictsSheet(context),
       testMode: useTestData,
     );
-    
+
     _reviewResultsStep = ReviewResultsStep();
-    
+
     _shareResultsStep = ShareResultsStep();
   }
-  
+
   void _resetDevices() {
     devices.reset();
     _loadResultsStep.resultsLoaded = false;
@@ -66,19 +67,22 @@ class PostRaceController {
     _reviewResultsStep.timingData = null;
     _reviewResultsStep.runnerRecords = null;
   }
-  
+
   Future<void> loadResults() async {
-    final TimingData? savedResults = await DatabaseHelper.instance.getRaceResultsData(raceId);
+    final TimingData? savedResults =
+        await DatabaseHelper.instance.getRaceResultsData(raceId);
     if (savedResults != null) {
       _reviewResultsStep.timingData = savedResults;
       _loadResultsStep.resultsLoaded = true;
-      
+
       // Check for conflicts in the loaded data
-      _loadResultsStep.hasBibConflicts = containsBibConflicts(savedResults.runnerRecords);
-      _loadResultsStep.hasTimingConflicts = containsTimingConflicts(savedResults);
+      _loadResultsStep.hasBibConflicts =
+          containsBibConflicts(savedResults.runnerRecords);
+      _loadResultsStep.hasTimingConflicts =
+          containsTimingConflicts(savedResults);
     }
   }
-  
+
   Future<void> saveRaceResults() async {
     if (_reviewResultsStep.timingData != null) {
       await DatabaseHelper.instance.saveRaceResults(
@@ -87,39 +91,40 @@ class PostRaceController {
       );
     }
   }
-  
+
   Future<void> processReceivedData(BuildContext context) async {
     String? bibRecordsData = devices.bibRecorder?.data;
     String? finishTimesData = devices.raceTimer?.data;
     if (bibRecordsData != null && finishTimesData != null) {
-      final List<RunnerRecord> runnerRecords = await processEncodedBibRecordsData(
-        bibRecordsData,
-        context,
-        raceId
-      );
-      
-      final TimingData? processedTimingData = await processEncodedTimingData(
-        finishTimesData,
-        context
-      );
-      
+      final List<RunnerRecord> runnerRecords =
+          await processEncodedBibRecordsData(bibRecordsData, context, raceId);
+
+      final TimingData? processedTimingData =
+          await processEncodedTimingData(finishTimesData, context);
+
       _reviewResultsStep.timingData = processedTimingData;
       _reviewResultsStep.runnerRecords = runnerRecords;
-      
+
       _loadResultsStep.resultsLoaded = true;
       _loadResultsStep.hasBibConflicts = containsBibConflicts(runnerRecords);
-      _loadResultsStep.hasTimingConflicts = containsTimingConflicts(processedTimingData!);
-      
-      if (!_loadResultsStep.hasBibConflicts && !_loadResultsStep.hasTimingConflicts) {
-        _reviewResultsStep.timingData = await _mergeRunnerRecordsWithTimingData(processedTimingData, runnerRecords);
+      _loadResultsStep.hasTimingConflicts =
+          containsTimingConflicts(processedTimingData!);
+
+      if (!_loadResultsStep.hasBibConflicts &&
+          !_loadResultsStep.hasTimingConflicts) {
+        _reviewResultsStep.timingData = await _mergeRunnerRecordsWithTimingData(
+            processedTimingData, runnerRecords);
         await saveRaceResults();
       }
     }
   }
 
-  Future<TimingData> _mergeRunnerRecordsWithTimingData(TimingData timingData, List<RunnerRecord> runnerRecords) async {
+  Future<TimingData> _mergeRunnerRecordsWithTimingData(
+      TimingData timingData, List<RunnerRecord> runnerRecords) async {
     // TimingData newTimingData = TimingData(records: [], endTime: timingData.endTime);
-    final List<TimingRecord> records = timingData.records.where((record) => record.type == RecordType.runnerTime).toList();
+    final List<TimingRecord> records = timingData.records
+        .where((record) => record.type == RecordType.runnerTime)
+        .toList();
     // print('records length: ${records.length}');
     // print('runnerRecords length: ${runnerRecords.length}');
     for (var i = 0; i < records.length; i++) {
@@ -140,7 +145,7 @@ class PostRaceController {
     // print('runnerRecords: ${timingData.runnerRecords}');
     return timingData;
   }
-  
+
   Future<void> _loadTestData(BuildContext context) async {
     debugPrint('Loading test data...');
     // Fake encoded data strings
@@ -197,11 +202,11 @@ class PostRaceController {
         type: RecordType.missingRunner,
       ),
     ], endTime: '13.7');
-    
-    // Inject fake data into the devices 
+
+    // Inject fake data into the devices
     devices.bibRecorder?.data = fakeBibRecordsData;
     devices.raceTimer?.data = fakeFinishTimesData.encode();
-    
+
     // Process the fake data
     await processReceivedData(context);
   }
@@ -209,7 +214,7 @@ class PostRaceController {
   Future<bool> showPostRaceFlow(BuildContext context, bool dismissible) async {
     // Get steps
     final steps = _getSteps();
-    
+
     // Show the flow
     return await showFlow(
       context: context,
@@ -220,7 +225,7 @@ class PostRaceController {
 
   Future<void> showBibConflictsSheet(BuildContext context) async {
     if (_reviewResultsStep.runnerRecords == null) return;
-    
+
     final List<RunnerRecord>? updatedRunnerRecords = await sheet(
       context: context,
       title: 'Resolve Bib Numbers',
@@ -233,19 +238,24 @@ class PostRaceController {
       ),
     );
 
-    debugPrint('Updated runner records: ${updatedRunnerRecords?[1].toMap()}!!!');
-    
+    debugPrint(
+        'Updated runner records: ${updatedRunnerRecords?[1].toMap()}!!!');
+
     // Update runner records if a result was returned
     if (updatedRunnerRecords != null) {
       _reviewResultsStep.runnerRecords = updatedRunnerRecords;
-      
+
       // Check if conflicts have been resolved
-      _loadResultsStep.hasBibConflicts = containsBibConflicts(updatedRunnerRecords);
-      _loadResultsStep.hasTimingConflicts = containsTimingConflicts(_reviewResultsStep.timingData!);
-    
+      _loadResultsStep.hasBibConflicts =
+          containsBibConflicts(updatedRunnerRecords);
+      _loadResultsStep.hasTimingConflicts =
+          containsTimingConflicts(_reviewResultsStep.timingData!);
+
       // If all conflicts resolved, save results
-      if (!_loadResultsStep.hasBibConflicts && !_loadResultsStep.hasTimingConflicts) {
-        _reviewResultsStep.timingData = await _mergeRunnerRecordsWithTimingData(_reviewResultsStep.timingData!, _reviewResultsStep.runnerRecords!);
+      if (!_loadResultsStep.hasBibConflicts &&
+          !_loadResultsStep.hasTimingConflicts) {
+        _reviewResultsStep.timingData = await _mergeRunnerRecordsWithTimingData(
+            _reviewResultsStep.timingData!, _reviewResultsStep.runnerRecords!);
         await saveRaceResults();
       }
     }
@@ -253,7 +263,7 @@ class PostRaceController {
 
   Future<void> showTimingConflictsSheet(BuildContext context) async {
     if (_reviewResultsStep.timingData == null) return;
-    
+
     // final conflictingRecords = getConflictingRecords(_reviewResultsStep.timingData!.records, _reviewResultsStep.runnerRecords!);
     final updatedTimingData = await sheet(
       context: context,
@@ -272,17 +282,20 @@ class PostRaceController {
         // },
       ),
     );
-    
+
     // Update timing data if a result was returned
     if (updatedTimingData != null) {
       _reviewResultsStep.timingData = updatedTimingData;
-      
+
       // Check if conflicts have been resolved
-      _loadResultsStep.hasTimingConflicts = containsTimingConflicts(updatedTimingData);
-      
+      _loadResultsStep.hasTimingConflicts =
+          containsTimingConflicts(updatedTimingData);
+
       // If all conflicts resolved, save results
-      if (!_loadResultsStep.hasBibConflicts && !_loadResultsStep.hasTimingConflicts) {
-        _reviewResultsStep.timingData = await _mergeRunnerRecordsWithTimingData(_reviewResultsStep.timingData!, _reviewResultsStep.runnerRecords!);
+      if (!_loadResultsStep.hasBibConflicts &&
+          !_loadResultsStep.hasTimingConflicts) {
+        _reviewResultsStep.timingData = await _mergeRunnerRecordsWithTimingData(
+            _reviewResultsStep.timingData!, _reviewResultsStep.runnerRecords!);
         await saveRaceResults();
       }
     }

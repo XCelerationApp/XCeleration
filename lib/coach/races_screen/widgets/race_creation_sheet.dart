@@ -12,14 +12,13 @@ class RaceCreationSheet extends StatelessWidget {
   final bool isEditing;
   final int? raceId;
   final RacesController controller;
-  
-  const RaceCreationSheet({
-    required this.setSheetState, 
-    this.isEditing = false, 
-    this.raceId, 
-    required this.controller, 
-    super.key
-  });
+
+  const RaceCreationSheet(
+      {required this.setSheetState,
+      this.isEditing = false,
+      this.raceId,
+      required this.controller,
+      super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -29,15 +28,19 @@ class RaceCreationSheet extends StatelessWidget {
         children: [
           RaceNameField(controller: controller, setSheetState: setSheetState),
           const SizedBox(height: 12),
-          CompetingTeamsField(controller: controller, setSheetState: setSheetState),
+          CompetingTeamsField(
+              controller: controller, setSheetState: setSheetState),
           const SizedBox(height: 12),
-          RaceLocationField(controller: controller, setSheetState: setSheetState),
+          RaceLocationField(
+              controller: controller, setSheetState: setSheetState),
           const SizedBox(height: 12),
           RaceDateField(controller: controller, setSheetState: setSheetState),
           const SizedBox(height: 12),
-          RaceDistanceField(controller: controller, setSheetState: setSheetState),
+          RaceDistanceField(
+              controller: controller, setSheetState: setSheetState),
           const SizedBox(height: 12),
-          ActionButton(controller: controller, isEditing: isEditing, raceId: raceId),
+          ActionButton(
+              controller: controller, isEditing: isEditing, raceId: raceId),
         ],
       ),
     );

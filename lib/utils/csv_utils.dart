@@ -4,7 +4,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 
 class CsvUtils {
-  
   // Generate CSV content based on the provided data
   static String generateCsvContent({
     required bool isHeadToHead,
@@ -38,9 +37,9 @@ class CsvUtils {
         ]);
       }
     }
-    
+
     // Individual Results
-    rows.add([]);  // Add empty row as separator
+    rows.add([]); // Add empty row as separator
     rows.add(['Individual Results']);
     rows.add(['Place', 'Name', 'Grade', 'School', 'Time', 'Bib Number']);
     for (int i = 0; i < individualResults.length; i++) {
@@ -54,15 +53,16 @@ class CsvUtils {
         runner['bib_number'] ?? 'N/A',
       ]);
     }
-    
+
     return const ListToCsvConverter().convert(rows);
   }
 
   // Save the generated CSV content using file_saver (cross-platform)
-  static Future<String> saveCsvWithFileSaver(String filename, String csvContent) async {
+  static Future<String> saveCsvWithFileSaver(
+      String filename, String csvContent) async {
     try {
       String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
-      
+
       if (selectedDirectory != null) {
         // Create the file in the selected directory
         final file = File('$selectedDirectory/$filename');

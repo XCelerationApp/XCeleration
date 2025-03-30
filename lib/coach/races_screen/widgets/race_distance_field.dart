@@ -5,13 +5,10 @@ import '../controller/races_controller.dart';
 class RaceDistanceField extends StatelessWidget {
   final RacesController controller;
   final StateSetter setSheetState;
-  
-  const RaceDistanceField({
-    required this.controller, 
-    required this.setSheetState, 
-    super.key
-  });
-  
+
+  const RaceDistanceField(
+      {required this.controller, required this.setSheetState, super.key});
+
   @override
   Widget build(BuildContext context) {
     return buildInputRow(
@@ -26,7 +23,8 @@ class RaceDistanceField extends StatelessWidget {
               hint: '0.0',
               error: controller.distanceError,
               setSheetState: setSheetState,
-              onChanged: (_) => controller.validateDistance(controller.distanceController.text, setSheetState),
+              onChanged: (_) => controller.validateDistance(
+                  controller.distanceController.text, setSheetState),
               keyboardType: TextInputType.numberWithOptions(decimal: true),
             ),
           ),

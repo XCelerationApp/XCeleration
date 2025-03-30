@@ -11,7 +11,8 @@ import '../services/device_connection_service.dart';
 import '../utils/data_protocol.dart';
 import '../components/dialog_utils.dart';
 import '../../utils/sheet_utils.dart';
-import '../../utils/enums.dart' show DeviceName, DeviceType, ConnectionStatus, WirelessConnectionError;
+import '../../utils/enums.dart'
+    show DeviceName, DeviceType, ConnectionStatus, WirelessConnectionError;
 
 class WirelessConnectionButton extends StatefulWidget {
   final DeviceName deviceName;
@@ -32,22 +33,24 @@ class WirelessConnectionButton extends StatefulWidget {
   });
 
   WirelessConnectionButton get skeleton => WirelessConnectionButton(
-    deviceName: deviceName,
-    icon: icon,
-    connectionStatus: connectionStatus,
-    isLoading: true,
-  );
+        deviceName: deviceName,
+        icon: icon,
+        connectionStatus: connectionStatus,
+        isLoading: true,
+      );
 
-  WirelessConnectionButton error(String message, {Function()? retryAction}) => WirelessConnectionButton(
-    deviceName: deviceName,
-    icon: Icons.error_outline,
-    connectionStatus: ConnectionStatus.error,
-    errorMessage: message,
-    onRetry: retryAction,
-  );
+  WirelessConnectionButton error(String message, {Function()? retryAction}) =>
+      WirelessConnectionButton(
+        deviceName: deviceName,
+        icon: Icons.error_outline,
+        connectionStatus: ConnectionStatus.error,
+        errorMessage: message,
+        onRetry: retryAction,
+      );
 
   @override
-  State<WirelessConnectionButton> createState() => _WirelessConnectionButtonState();
+  State<WirelessConnectionButton> createState() =>
+      _WirelessConnectionButtonState();
 }
 
 class _WirelessConnectionButtonState extends State<WirelessConnectionButton> {
@@ -95,7 +98,8 @@ class _WirelessConnectionButtonState extends State<WirelessConnectionButton> {
       );
     }
 
-    if (widget.connectionStatus == ConnectionStatus.error && widget.errorMessage != null) {
+    if (widget.connectionStatus == ConnectionStatus.error &&
+        widget.errorMessage != null) {
       return Container(
         width: double.infinity,
         decoration: BoxDecoration(
@@ -140,7 +144,8 @@ class _WirelessConnectionButtonState extends State<WirelessConnectionButton> {
               TextButton(
                 onPressed: widget.onRetry,
                 style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   minimumSize: Size.zero,
                 ),
                 child: const Text('Retry'),
@@ -198,7 +203,8 @@ class _WirelessConnectionButtonState extends State<WirelessConnectionButton> {
                   height: 16,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.grey[400]!),
+                    valueColor:
+                        AlwaysStoppedAnimation<Color>(Colors.grey[400]!),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -217,7 +223,6 @@ class _WirelessConnectionButtonState extends State<WirelessConnectionButton> {
     );
   }
 }
-
 
 class QRConnectionButton extends StatefulWidget {
   final DeviceName deviceName;
@@ -267,13 +272,15 @@ class _QRConnectionButtonState extends State<QRConnectionButton> {
                   ),
                   const SizedBox(width: 16),
                   Text(
-                    widget.deviceType == DeviceType.advertiserDevice ? 'Show QR Code' : 'Scan QR Code',
+                    widget.deviceType == DeviceType.advertiserDevice
+                        ? 'Show QR Code'
+                        : 'Scan QR Code',
                     style: const TextStyle(
                       fontSize: 17,
                       color: Colors.black87,
                     ),
                   )
-                ],    
+                ],
               ),
             ),
           )
@@ -283,12 +290,11 @@ class _QRConnectionButtonState extends State<QRConnectionButton> {
   }
 }
 
-
 class QRConnectionWidget extends StatefulWidget {
   final DeviceName deviceName;
   final DeviceType deviceType;
   final Map<DeviceName, Map<String, dynamic>> otherDevices;
-  
+
   const QRConnectionWidget({
     super.key,
     required this.deviceName,
@@ -306,7 +312,8 @@ class _QRConnectionState extends State<QRConnectionWidget> {
   @override
   void initState() {
     super.initState();
-    if (widget.deviceType == DeviceType.advertiserDevice && widget.otherDevices.length != 1) {
+    if (widget.deviceType == DeviceType.advertiserDevice &&
+        widget.otherDevices.length != 1) {
       throw Exception('Can only show data for one device');
     }
     _audioPlayer = AudioPlayer();
@@ -336,18 +343,18 @@ class _QRConnectionState extends State<QRConnectionWidget> {
 
       if (result.type == ResultType.Barcode) {
         final parts = result.rawContent.split(':');
-        
+
         DeviceName? scannedDeviceName;
         try {
           scannedDeviceName = widget.otherDevices.keys.firstWhere(
-            (element) => getDeviceNameString(element) == parts[0]
-          );
+              (element) => getDeviceNameString(element) == parts[0]);
         } catch (e) {
           // No match found, scanDeviceName remains null
         }
-        
+
         if (parts.isEmpty || scannedDeviceName == null) {
-          DialogUtils.showErrorDialog(context, message: 'Incorrect QR Code Scanned');
+          DialogUtils.showErrorDialog(context,
+              message: 'Incorrect QR Code Scanned');
           return;
         }
         try {
@@ -356,16 +363,20 @@ class _QRConnectionState extends State<QRConnectionWidget> {
           debugPrint('Error playing completion sound: $e');
         }
         setState(() {
-          widget.otherDevices[scannedDeviceName]!['status'] = ConnectionStatus.finished;
-          widget.otherDevices[scannedDeviceName]!['data'] = parts.sublist(1).join(':');
+          widget.otherDevices[scannedDeviceName]!['status'] =
+              ConnectionStatus.finished;
+          widget.otherDevices[scannedDeviceName]!['data'] =
+              parts.sublist(1).join(':');
         });
       }
     } on MissingPluginException {
       if (!mounted) return;
-      DialogUtils.showErrorDialog(context, message: 'The QR code scanner is not available on this device.');
+      DialogUtils.showErrorDialog(context,
+          message: 'The QR code scanner is not available on this device.');
     } catch (e) {
       if (!mounted) return;
-      DialogUtils.showErrorDialog(context, message: 'An unknown error occurred: $e');
+      DialogUtils.showErrorDialog(context,
+          message: 'An unknown error occurred: $e');
     }
   }
 
@@ -400,14 +411,14 @@ class WirelessConnectionWidget extends StatefulWidget {
   final DeviceName deviceName;
   final DeviceType deviceType;
   final Map<DeviceName, Map<String, dynamic>> otherDevices;
-  
+
   const WirelessConnectionWidget({
     super.key,
     required this.deviceName,
     required this.deviceType,
     required this.otherDevices,
   });
-  
+
   @override
   State<WirelessConnectionWidget> createState() => _WirelessConnectionState();
 }
@@ -430,7 +441,8 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
     _protocol = Protocol(deviceConnectionService: _deviceConnectionService);
 
     try {
-      final isServiceAvailable = await _deviceConnectionService.checkIfNearbyConnectionsWorks();
+      final isServiceAvailable =
+          await _deviceConnectionService.checkIfNearbyConnectionsWorks();
       if (!isServiceAvailable) {
         setState(() {
           _wirelessConnectionError = WirelessConnectionError.unavailable;
@@ -449,7 +461,7 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
         setState(() {
           _isInitialized = true;
         });
-        
+
         _startConnectionProcess();
       } catch (e) {
         setState(() {
@@ -468,7 +480,8 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
           DialogUtils.showErrorDialog(
             context,
             title: 'Error',
-            message: 'An error occurred while trying to connect. Please try again.',
+            message:
+                'An error occurred while trying to connect. Please try again.',
           );
         });
       }
@@ -479,7 +492,8 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
     // Setup device monitoring here
     _deviceConnectionService.monitorDevicesConnectionStatus(
       deviceNames: widget.otherDevices.keys
-          .map((deviceName) => getDeviceNameString(deviceName)).toList(),
+          .map((deviceName) => getDeviceNameString(deviceName))
+          .toList(),
       deviceFoundCallback: _deviceFoundCallback,
       deviceLostCallback: _deviceLostCallback,
       deviceConnectingCallback: _deviceConnectingCallback,
@@ -489,15 +503,16 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
 
   Future<void> _deviceFoundCallback(Device device) async {
     final deviceName = getDeviceNameFromString(device.deviceName);
-    if (!widget.otherDevices.containsKey(deviceName) || 
-        widget.otherDevices[deviceName]!['status'] == ConnectionStatus.finished) {
+    if (!widget.otherDevices.containsKey(deviceName) ||
+        widget.otherDevices[deviceName]!['status'] ==
+            ConnectionStatus.finished) {
       return;
     }
-    
+
     setState(() {
       widget.otherDevices[deviceName]!['status'] = ConnectionStatus.found;
     });
-    
+
     if (widget.deviceType == DeviceType.advertiserDevice) return;
     await _deviceConnectionService.inviteDevice(device);
   }
@@ -508,8 +523,9 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
 
   Future<void> _deviceConnectingCallback(Device device) async {
     final deviceName = getDeviceNameFromString(device.deviceName);
-    if (widget.otherDevices[deviceName]!['status'] == ConnectionStatus.finished) return;
-    
+    if (widget.otherDevices[deviceName]!['status'] == ConnectionStatus.finished)
+      return;
+
     setState(() {
       widget.otherDevices[deviceName]!['status'] = ConnectionStatus.connecting;
     });
@@ -517,15 +533,16 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
 
   Future<void> _deviceConnectedCallback(Device device) async {
     final deviceName = getDeviceNameFromString(device.deviceName);
-    if (widget.otherDevices[deviceName]!['status'] == ConnectionStatus.finished) return;
-    
+    if (widget.otherDevices[deviceName]!['status'] == ConnectionStatus.finished)
+      return;
+
     setState(() {
       widget.otherDevices[deviceName]!['status'] = ConnectionStatus.connected;
     });
 
     try {
       _protocol.addDevice(device);
-      
+
       _deviceConnectionService.monitorMessageReceives(
         device,
         messageReceivedCallback: (package, senderId) async {
@@ -535,11 +552,13 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
 
       if (widget.deviceType == DeviceType.browserDevice) {
         setState(() {
-          widget.otherDevices[deviceName]!['status'] = ConnectionStatus.receiving;
+          widget.otherDevices[deviceName]!['status'] =
+              ConnectionStatus.receiving;
         });
-        
+
         try {
-          final results = await _protocol.receiveDataFromDevice(device.deviceId);
+          final results =
+              await _protocol.receiveDataFromDevice(device.deviceId);
           try {
             await _audioPlayer.play(AssetSource('sounds/completed_ding.mp3'));
           } catch (e) {
@@ -547,7 +566,8 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
           }
           widget.otherDevices[deviceName]!['data'] = results;
           setState(() {
-            widget.otherDevices[deviceName]!['status'] = ConnectionStatus.finished;
+            widget.otherDevices[deviceName]!['status'] =
+                ConnectionStatus.finished;
           });
         } catch (e) {
           debugPrint('Error receiving data: $e');
@@ -556,14 +576,16 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
       } else {
         if (widget.otherDevices[deviceName]!['data'] != null) {
           setState(() {
-            widget.otherDevices[deviceName]!['status'] = ConnectionStatus.sending;
+            widget.otherDevices[deviceName]!['status'] =
+                ConnectionStatus.sending;
           });
-          
+
           try {
             final data = widget.otherDevices[deviceName]!['data']!;
             await _protocol.sendData(data, device.deviceId);
             setState(() {
-              widget.otherDevices[deviceName]!['status'] = ConnectionStatus.finished;
+              widget.otherDevices[deviceName]!['status'] =
+                  ConnectionStatus.finished;
             });
             _deviceConnectionService.disconnectDevice(device);
           } catch (e) {
@@ -585,7 +607,6 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
     }
   }
 
-
   @override
   void dispose() {
     _deviceConnectionService.dispose();
@@ -601,25 +622,24 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Padding(
-            padding: const EdgeInsets.only(bottom: 8.0),
-            child: WirelessConnectionButton(
-              deviceName: DeviceName.coach,
-              connectionStatus: ConnectionStatus.error,
-              errorMessage: _wirelessConnectionError == WirelessConnectionError.unavailable 
-                  ? 'Wireless connection is not available on this device.'
-                  : 'An unknown error occurred.',
-              onRetry: () {
-                setState(() {
-                  _wirelessConnectionError = null;
-                  _isInitialized = false;
-                });
-                _initialize();
-              }
-            )
-          ),
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: WirelessConnectionButton(
+                  deviceName: DeviceName.coach,
+                  connectionStatus: ConnectionStatus.error,
+                  errorMessage: _wirelessConnectionError ==
+                          WirelessConnectionError.unavailable
+                      ? 'Wireless connection is not available on this device.'
+                      : 'An unknown error occurred.',
+                  onRetry: () {
+                    setState(() {
+                      _wirelessConnectionError = null;
+                      _isInitialized = false;
+                    });
+                    _initialize();
+                  })),
         ],
       );
-    } 
+    }
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -627,15 +647,16 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
         for (var deviceName in widget.otherDevices.keys)
           Padding(
             padding: const EdgeInsets.only(bottom: 16.0),
-            child: !_isInitialized 
-              ? WirelessConnectionButton(
-                  deviceName: deviceName,
-                  connectionStatus: ConnectionStatus.searching,
-                ).skeleton
-              : WirelessConnectionButton(
-                  deviceName: deviceName,
-                  connectionStatus: widget.otherDevices[deviceName]!['status'],
-                ),
+            child: !_isInitialized
+                ? WirelessConnectionButton(
+                    deviceName: deviceName,
+                    connectionStatus: ConnectionStatus.searching,
+                  ).skeleton
+                : WirelessConnectionButton(
+                    deviceName: deviceName,
+                    connectionStatus:
+                        widget.otherDevices[deviceName]!['status'],
+                  ),
           ),
       ],
     );

@@ -5,13 +5,10 @@ import '../controller/races_controller.dart';
 class RaceNameField extends StatelessWidget {
   final RacesController controller;
   final StateSetter setSheetState;
-  
-  const RaceNameField({
-    required this.controller, 
-    required this.setSheetState, 
-    super.key
-  });
-  
+
+  const RaceNameField(
+      {required this.controller, required this.setSheetState, super.key});
+
   @override
   Widget build(BuildContext context) {
     return buildInputRow(
@@ -21,7 +18,8 @@ class RaceNameField extends StatelessWidget {
         controller: controller.nameController,
         hint: 'Enter race name',
         error: controller.nameError,
-        onChanged: (_) => controller.validateName(controller.nameController.text, setSheetState),
+        onChanged: (_) => controller.validateName(
+            controller.nameController.text, setSheetState),
         setSheetState: setSheetState,
       ),
     );

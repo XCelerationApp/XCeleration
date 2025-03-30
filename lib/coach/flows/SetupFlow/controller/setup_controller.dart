@@ -20,8 +20,8 @@ class SetupController {
     _setupCompleteStep = SetupCompleteStep();
   }
 
-
-  Future<bool> showSetupFlow(BuildContext context, bool showProgressIndicator) async {
+  Future<bool> showSetupFlow(
+      BuildContext context, bool showProgressIndicator) async {
     final steps = _getSteps();
 
     return await showFlow(
@@ -30,11 +30,11 @@ class SetupController {
       steps: steps,
     );
   }
+
   List<FlowStep> _getSteps() {
     return [
       _loadRunnersStep,
       _setupCompleteStep,
     ];
   }
-
 }

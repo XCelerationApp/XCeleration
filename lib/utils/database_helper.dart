@@ -124,13 +124,13 @@ class DatabaseHelper {
     //     )
     //   ''');
     // }
-    
+
     // Add version 3 upgrade to rename the column
     if (oldVersion < 3) {
       try {
         // SQLite doesn't directly support column renaming in older versions
         // We need to create a new table with the correct structure and copy data
-        
+
         // 1. Create a temporary table with the new structure
         await db.execute('''
           CREATE TABLE race_runners_new (
@@ -144,19 +144,19 @@ class DatabaseHelper {
             UNIQUE(race_id, bib_number)
           )
         ''');
-        
+
         // 2. Copy data from the old table to the new one, mapping race_runner_id to runner_id
         await db.execute('''
           INSERT INTO race_runners_new (runner_id, race_id, bib_number, name, school, grade)
           SELECT race_runner_id, race_id, bib_number, name, school, grade FROM race_runners
         ''');
-        
+
         // 3. Drop the old table
         await db.execute('DROP TABLE race_runners');
-        
+
         // 4. Rename the new table to the original name
         await db.execute('ALTER TABLE race_runners_new RENAME TO race_runners');
-        
+
         print('Successfully migrated race_runners table with renamed column');
       } catch (e) {
         print('Error during migration: $e');
@@ -181,7 +181,6 @@ class DatabaseHelper {
     );
   }
 
-
   Future<List<RunnerRecord>> getAllTeamRunners() async {
     final db = await instance.database;
     final List<Map<String, dynamic>> maps = await db.query('team_runners');
@@ -200,7 +199,6 @@ class DatabaseHelper {
     return results.isNotEmpty ? RunnerRecord.fromMap(results.first) : null;
   }
 
-  
   // Delete a team runner
   Future<int> deleteTeamRunner(String bib) async {
     final db = await instance.database;
@@ -211,13 +209,12 @@ class DatabaseHelper {
     );
   }
 
-
   // Races Methods
   Future<int> insertRace(Race race) async {
     final db = await instance.database;
     return await db.insert('races', race.toMap(database: true));
   }
-  
+
   Future<int> updateRace(Race race) async {
     final db = await instance.database;
     return await db.update(
@@ -236,7 +233,7 @@ class DatabaseHelper {
     );
 
     List<Race> result = [];
-    
+
     for (var map in maps) {
       result.add(Race.fromJson(map));
     }
@@ -251,9 +248,9 @@ class DatabaseHelper {
       where: 'race_id = ?',
       whereArgs: [id],
     );
-    
+
     if (results.isEmpty) return null;
-    
+
     return Race.fromJson(results.first);
   }
 
@@ -263,7 +260,8 @@ class DatabaseHelper {
     return await db.insert(
       'race_runners',
       runner.toMap(database: true),
-      conflictAlgorithm: ConflictAlgorithm.replace, // Replace if bib number exists in race
+      conflictAlgorithm:
+          ConflictAlgorithm.replace, // Replace if bib number exists in race
     );
   }
 
@@ -280,12 +278,10 @@ class DatabaseHelper {
 
   Future<String> getEncodedRunnersData(int raceId) async {
     final runners = await getRaceRunners(raceId);
-    return runners.map((runner) => [
-      runner.bib,
-      runner.name,
-      runner.school,
-      runner.grade
-    ].join(',')).join(' ');
+    return runners
+        .map((runner) =>
+            [runner.bib, runner.name, runner.school, runner.grade].join(','))
+        .join(' ');
   }
 
   Future<RunnerRecord?> getRaceRunnerByBib(int raceId, String bibNumber) async {
@@ -296,11 +292,13 @@ class DatabaseHelper {
       whereArgs: [raceId, bibNumber],
     );
 
-    final Map<String, dynamic>? runner = results.isNotEmpty ? results.first : null;
+    final Map<String, dynamic>? runner =
+        results.isNotEmpty ? results.first : null;
     return runner == null ? null : RunnerRecord.fromMap(runner);
   }
 
-  Future<List<RunnerRecord>> getRaceRunnersByBibs(int raceId, List<String> bibNumbers) async {
+  Future<List<RunnerRecord>> getRaceRunnersByBibs(
+      int raceId, List<String> bibNumbers) async {
     List<RunnerRecord> results = [];
     for (int i = 0; i < bibNumbers.length; i++) {
       final runner = await getRaceRunnerByBib(raceId, bibNumbers[i]);
@@ -311,7 +309,6 @@ class DatabaseHelper {
     }
     return results;
   }
-
 
   Future<void> updateRaceRunner(RunnerRecord runner) async {
     final db = await instance.database;
@@ -332,12 +329,14 @@ class DatabaseHelper {
     );
   }
 
-  Future<List<RunnerRecord>> searchRaceRunners(int raceId, String query, [String searchParameter = 'all']) async {
+  Future<List<RunnerRecord>> searchRaceRunners(int raceId, String query,
+      [String searchParameter = 'all']) async {
     final db = await instance.database;
     String whereClause;
     List<dynamic> whereArgs = [raceId, '%$query%'];
     if (searchParameter == 'all') {
-      whereClause = 'race_id = ? AND (name LIKE ? OR grade LIKE ? OR bib_number LIKE ?)';
+      whereClause =
+          'race_id = ? AND (name LIKE ? OR grade LIKE ? OR bib_number LIKE ?)';
       whereArgs.add('%$query%');
       whereArgs.add('%$query%');
     } else {
@@ -351,10 +350,10 @@ class DatabaseHelper {
     return results.map((map) => RunnerRecord.fromMap(map)).toList();
   }
 
-
   Future<void> insertRaceResult(RunnerRecord result) async {
     // Check if the runner exists in team runners or race runners
-    bool runnerExists = result.runnerId == null ? false : await _runnerExists(result.runnerId!);
+    bool runnerExists =
+        result.runnerId == null ? false : await _runnerExists(result.runnerId!);
     final db = await instance.database;
 
     if (runnerExists) {
@@ -402,7 +401,7 @@ class DatabaseHelper {
   Future<List<ResultsRecord>> getRaceResults(int raceId) async {
     final db = await instance.database;
     late final List<Map<String, dynamic>>? rawResults;
-    
+
     try {
       // Use the correct column name runner_id instead of race_runner_id
       rawResults = await db.rawQuery('''
@@ -417,7 +416,7 @@ class DatabaseHelper {
         FROM race_results r
         LEFT JOIN race_runners rr ON rr.runner_id = r.runner_id
         WHERE rr.race_id = ?
-      ''', [raceId]); 
+      ''', [raceId]);
     } catch (e) {
       print('Query error: $e');
     }
@@ -449,8 +448,6 @@ class DatabaseHelper {
     return results.map((r) => TimingRecord.fromMap(r, database: true)).toList();
   }
 
-
-
   Future<String> getRaceState(int raceId, {race}) async {
     final raceResults = await instance.getRaceResults(raceId);
     if (raceResults.isEmpty) return 'in_progress';
@@ -478,15 +475,16 @@ class DatabaseHelper {
         where: 'race_id = ?',
         whereArgs: [raceId],
       );
-      
+
       // Then insert all the new results
       final batch = db.batch();
       for (final result in timingData.raceResults) {
         batch.insert('race_results', result.toMap());
       }
       await batch.commit();
-      
-      print('Successfully saved ${timingData.raceResults.length} race results for race $raceId');
+
+      print(
+          'Successfully saved ${timingData.raceResults.length} race results for race $raceId');
     } catch (e) {
       print('Error saving race results: $e');
       rethrow;
@@ -496,15 +494,15 @@ class DatabaseHelper {
   // Get race results
   Future<TimingData?> getRaceResultsData(int raceId) async {
     final db = await instance.database;
-    
+
     final results = await db.query(
       'race_results',
       where: 'race_id = ?',
       whereArgs: [raceId],
     );
-    
+
     if (results.isEmpty) return null;
-    
+
     final raceResults = results.map((r) => RaceResult.fromMap(r)).toList();
     final runnerRecords = await getRaceRunners(raceId);
     final endTime = raceResults.last.finishTime;
@@ -515,16 +513,19 @@ class DatabaseHelper {
     );
 
     for (final result in raceResults) {
-      final runner = runnerRecords.firstWhere((r) => r.runnerId == result.runnerId);
-      
-      timingData.mergeRunnerData(TimingRecord(
-        elapsedTime: result.finishTime,
-        isConfirmed: true,
-        conflict: null,
-        type: RecordType.runnerTime,
-        place: result.place,
-        textColor: null,
-      ), runner);
+      final runner =
+          runnerRecords.firstWhere((r) => r.runnerId == result.runnerId);
+
+      timingData.mergeRunnerData(
+          TimingRecord(
+            elapsedTime: result.finishTime,
+            isConfirmed: true,
+            conflict: null,
+            type: RecordType.runnerTime,
+            place: result.place,
+            textColor: null,
+          ),
+          runner);
     }
     return timingData;
   }
@@ -534,8 +535,10 @@ class DatabaseHelper {
     final db = await instance.database;
     await db.transaction((txn) async {
       // Delete related records first
-      await txn.delete('race_results', where: 'race_id = ?', whereArgs: [raceId]);
-      await txn.delete('race_runners', where: 'race_id = ?', whereArgs: [raceId]);
+      await txn
+          .delete('race_results', where: 'race_id = ?', whereArgs: [raceId]);
+      await txn
+          .delete('race_runners', where: 'race_id = ?', whereArgs: [raceId]);
       await txn.delete('races', where: 'race_id = ?', whereArgs: [raceId]);
     });
   }
@@ -553,17 +556,19 @@ class DatabaseHelper {
     final db = await instance.database;
     await db.transaction((txn) async {
       // Delete related race results first (due to foreign key constraint)
-      await txn.delete('race_results', where: 'race_id = ?', whereArgs: [raceId]);
+      await txn
+          .delete('race_results', where: 'race_id = ?', whereArgs: [raceId]);
       // Then delete all runners for this race
-      await txn.delete('race_runners', where: 'race_id = ?', whereArgs: [raceId]);
+      await txn
+          .delete('race_runners', where: 'race_id = ?', whereArgs: [raceId]);
     });
   }
-  
+
   Future<void> clearTeamRunners() async {
     final db = await instance.database;
-    await db.rawUpdate('UPDATE team_runners SET name = \'\', school = \'\', grade = 0, bib_number = 0');
+    await db.rawUpdate(
+        'UPDATE team_runners SET name = \'\', school = \'\', grade = 0, bib_number = 0');
   }
-
 
   Future<void> deleteDatabase() async {
     debugPrint('deleting database');

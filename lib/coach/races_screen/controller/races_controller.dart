@@ -24,7 +24,7 @@ class RacesController with ChangeNotifier {
   String unit = 'mi';
 
   final TutorialManager tutorialManager = TutorialManager();
-  
+
   // Validation error messages
   String? nameError;
   String? locationError;
@@ -41,7 +41,8 @@ class RacesController with ChangeNotifier {
   }
 
   BuildContext get context {
-    assert(_context != null, 'Context not set in RacesController. Call setContext() first.');
+    assert(_context != null,
+        'Context not set in RacesController. Call setContext() first.');
     return _context!;
   }
 
@@ -64,12 +65,13 @@ class RacesController with ChangeNotifier {
     tutorialManager.startTutorial([
       'race_swipe_tutorial',
       'role_bar_tutorial',
-      'create_race_button_tutorial'  
+      'create_race_button_tutorial'
     ]);
   }
 
   void updateLocationButtonVisibility() {
-    isLocationButtonVisible = locationController.text.trim() != userlocationController.text.trim();
+    isLocationButtonVisible =
+        locationController.text.trim() != userlocationController.text.trim();
     notifyListeners();
   }
 
@@ -83,7 +85,10 @@ class RacesController with ChangeNotifier {
   void showCreateRaceSheet(BuildContext context) {
     resetControllers();
 
-    sheet(context: context, title: 'Create New Race', body: StatefulBuilder(
+    sheet(
+      context: context,
+      title: 'Create New Race',
+      body: StatefulBuilder(
         builder: (BuildContext context, StateSetter setSheetState) {
           return SizedBox(
             height: MediaQuery.of(context).size.height * 0.92,
@@ -93,7 +98,8 @@ class RacesController with ChangeNotifier {
             ),
           );
         },
-      ),);
+      ),
+    );
   }
 
   void validateName(name, StateSetter setSheetState) {
@@ -185,7 +191,7 @@ class RacesController with ChangeNotifier {
         return 'Invalid distance';
       }
     }
-    
+
     List<String> teams = teamControllers
         .map((controller) => controller.text.trim())
         .where((text) => text.isNotEmpty)
@@ -193,7 +199,7 @@ class RacesController with ChangeNotifier {
     if (teams.isEmpty) {
       return 'Please add at least one team';
     }
-    
+
     return null;
   }
 
@@ -226,24 +232,29 @@ class RacesController with ChangeNotifier {
       }
 
       if (permission == LocationPermission.deniedForever) {
-        DialogUtils.showErrorDialog(context, message: 'Location permissions are permanently denied');
+        DialogUtils.showErrorDialog(context,
+            message: 'Location permissions are permanently denied');
         return;
       }
 
       if (permission == LocationPermission.denied) {
-        DialogUtils.showErrorDialog(context, message: 'Location permissions are denied');
+        DialogUtils.showErrorDialog(context,
+            message: 'Location permissions are denied');
         return;
       }
 
       if (!await Geolocator.isLocationServiceEnabled()) {
-        DialogUtils.showErrorDialog(context, message: 'Location services are disabled');
+        DialogUtils.showErrorDialog(context,
+            message: 'Location services are disabled');
         return;
       }
 
       final position = await Geolocator.getCurrentPosition();
-      final placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
+      final placemarks =
+          await placemarkFromCoordinates(position.latitude, position.longitude);
       final placemark = placemarks.first;
-      locationController.text = '${placemark.subThoroughfare} ${placemark.thoroughfare}, ${placemark.locality}, ${placemark.administrativeArea} ${placemark.postalCode}';
+      locationController.text =
+          '${placemark.subThoroughfare} ${placemark.thoroughfare}, ${placemark.locality}, ${placemark.administrativeArea} ${placemark.postalCode}';
       userlocationController.text = locationController.text;
       locationError = null;
       notifyListeners();
@@ -268,7 +279,8 @@ class RacesController with ChangeNotifier {
     }
   }
 
-  void showColorPicker(StateSetter setSheetState, TextEditingController controller) {
+  void showColorPicker(
+      StateSetter setSheetState, TextEditingController controller) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -347,7 +359,8 @@ class RacesController with ChangeNotifier {
     final confirmed = await DialogUtils.showConfirmationDialog(
       context,
       title: 'Delete Race',
-      content: 'Are you sure you want to delete "${race.raceName}"? This action cannot be undone.',
+      content:
+          'Are you sure you want to delete "${race.raceName}"? This action cannot be undone.',
       confirmText: 'Delete',
       cancelText: 'Cancel',
     );

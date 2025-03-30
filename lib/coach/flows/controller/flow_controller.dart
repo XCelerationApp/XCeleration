@@ -30,7 +30,7 @@ class MasterFlowController {
     race = race;
     setupController = SetupController(raceId: raceId);
     preRaceController = PreRaceController(raceId: raceId);
-    postRaceController = PostRaceController(raceId: raceId, useTestData: true);
+    postRaceController = PostRaceController(raceId: raceId, useTestData: false);
   }
 
   /// Continue the race flow based on the current state
@@ -43,7 +43,7 @@ class MasterFlowController {
         return;
       }
     }
-    
+
     switch (race!.flowState) {
       case 'setup':
         await _setupFlow(context);
@@ -77,7 +77,8 @@ class MasterFlowController {
   /// Pre-race setup flow
   /// Shows a flow for pre-race setup and coordination
   Future<bool> _preRaceFlow(BuildContext context) async {
-    final bool completed = await preRaceController.showPreRaceFlow(context, true);
+    final bool completed =
+        await preRaceController.showPreRaceFlow(context, true);
     if (!completed) return false;
     await updateRaceFlowState('post-race');
     return _postRaceFlow(context);
@@ -86,11 +87,13 @@ class MasterFlowController {
   /// Post-race setup flow
   /// Shows a flow for post-race data collection and result processing
   Future<bool> _postRaceFlow(BuildContext context) async {
-    final bool completed = await postRaceController.showPostRaceFlow(context, true);
+    final bool completed =
+        await postRaceController.showPostRaceFlow(context, true);
     if (!completed) return false;
     await updateRaceFlowState('finished');
     if (context.mounted) {
-      RaceScreenController.showRaceScreen(context, raceId, page: RaceScreenPage.results);
+      RaceScreenController.showRaceScreen(context, raceId,
+          page: RaceScreenPage.results);
     }
     return true;
   }
@@ -115,7 +118,8 @@ class FlowController extends ChangeNotifier {
   int get currentIndex => _currentIndex;
   bool get isLastStep => _currentIndex == steps.length - 1;
   bool get canGoBack => _currentIndex > 0;
-  bool get canProceed => currentStep.canProceed == null || currentStep.canProceed!();
+  bool get canProceed =>
+      currentStep.canProceed == null || currentStep.canProceed!();
   bool get canGoForward => canProceed && !isLastStep;
 
   FlowStep get currentStep => steps[_currentIndex];
@@ -145,7 +149,6 @@ class FlowController extends ChangeNotifier {
     super.dispose();
   }
 }
-
 
 Future<bool> showFlow({
   required BuildContext context,
@@ -205,7 +208,8 @@ Future<bool> showFlow({
                     return SingleChildScrollView(
                       child: ConstrainedBox(
                         constraints: BoxConstraints(
-                          minHeight: constraints.maxHeight - 120, // Account for bottom padding and button
+                          minHeight: constraints.maxHeight -
+                              120, // Account for bottom padding and button
                         ),
                         child: Padding(
                           padding: EdgeInsets.zero,
@@ -236,7 +240,9 @@ Future<bool> showFlow({
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: controller.canProceed ? AppColors.primaryColor : Colors.grey,
+                      backgroundColor: controller.canProceed
+                          ? AppColors.primaryColor
+                          : Colors.grey,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(6),
                       ),

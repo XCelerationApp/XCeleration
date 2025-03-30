@@ -7,7 +7,6 @@ class IndividualResultsWidget extends StatelessWidget {
   final RaceResultsController controller;
   final int initialVisibleCount;
 
-
   const IndividualResultsWidget({
     super.key,
     required this.controller,

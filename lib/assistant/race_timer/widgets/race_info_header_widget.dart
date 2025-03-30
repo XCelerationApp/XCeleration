@@ -21,31 +21,41 @@ class RaceInfoHeaderWidget extends StatelessWidget {
     return Consumer<TimingData>(
       builder: (context, timingData, child) {
         final currentRecords = timingData.records;
-        
-        final hasRace = startTime != null || (endTime != null && currentRecords.isNotEmpty);
-        final isRaceFinished = startTime == null && endTime != null && currentRecords.isNotEmpty;
-        
+
+        final hasRace =
+            startTime != null || (endTime != null && currentRecords.isNotEmpty);
+        final isRaceFinished =
+            startTime == null && endTime != null && currentRecords.isNotEmpty;
+
         // Calculate runner count by explicitly counting each type
-        final runnerTimeCount = currentRecords.where((r) => r.type == RecordType.runnerTime && r.place != null).length;
+        final runnerTimeCount = currentRecords
+            .where((r) => r.type == RecordType.runnerTime && r.place != null)
+            .length;
         final runnerCount = runnerTimeCount;
-        
+
         return Container(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
           decoration: BoxDecoration(
             color: hasRace ? const Color(0xFFF5F5F5) : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
-            border: hasRace ? Border.all(color: Colors.grey.withOpacity(0.2)) : null,
+            border: hasRace
+                ? Border.all(color: Colors.grey.withOpacity(0.2))
+                : null,
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                isRaceFinished ? 'Race finished' : (hasRace ? 'Race in progress' : 'Ready to start'),
+                isRaceFinished
+                    ? 'Race finished'
+                    : (hasRace ? 'Race in progress' : 'Ready to start'),
                 style: AppTypography.bodyRegular.copyWith(
                   fontSize: 16,
-                  color: hasRace 
-                    ? isRaceFinished ? Colors.green[700] : AppColors.primaryColor
-                    : Colors.black54,
+                  color: hasRace
+                      ? isRaceFinished
+                          ? Colors.green[700]
+                          : AppColors.primaryColor
+                      : Colors.black54,
                   fontWeight: hasRace ? FontWeight.w600 : FontWeight.normal,
                 ),
               ),

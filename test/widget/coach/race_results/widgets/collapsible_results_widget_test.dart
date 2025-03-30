@@ -24,7 +24,7 @@ void main() {
       // expect(find.text(resultsRecord.name), findsOneWidget);
       // expect(find.text(resultsRecord.school), findsOneWidget);
     }); */
-    
+
     // This test verifies the widget correctly displays team results
     /* testWidgets('renders team results correctly', (WidgetTester tester) async {
       // TODO: Create test data for team results (TeamRecord)
@@ -43,7 +43,7 @@ void main() {
       // TODO: Verify UI elements
       // expect(find.text(teamRecord.school), findsOneWidget);
     }); */
-    
+
     // This test verifies the collapsible behavior
     /* testWidgets('collapses and expands when tapped', (WidgetTester tester) async {
       // TODO: Implement test for the collapsible functionality
@@ -55,10 +55,10 @@ void main() {
       // 6. Tap to collapse
       // 7. Verify collapsed state again
     }); */
-    
+
     // Placeholder test that passes to avoid errors
     test('placeholder test', () {
-      expect(true, isTrue);
+      expect(false, isTrue);
     });
   });
 }

@@ -21,20 +21,19 @@ class RaceScreenController with ChangeNotifier {
   // bool hasTimingConflicts = false;
 
   late MasterFlowController flowController;
-  
+
   // Flow state
   String get flowState => race?.flowState ?? 'setup';
 
-
-  
   // Constructor
   RaceScreenController({required this.raceId});
 
-  static void showRaceScreen(BuildContext context, int raceId, {RaceScreenPage page = RaceScreenPage.main}) {
+  static void showRaceScreen(BuildContext context, int raceId,
+      {RaceScreenPage page = RaceScreenPage.main}) {
     sheet(
       context: context,
       body: RaceScreen(
-        raceId: raceId, 
+        raceId: raceId,
         page: page,
       ),
     );
@@ -48,13 +47,13 @@ class RaceScreenController with ChangeNotifier {
       await continueRaceFlow(context);
     }
   }
-  
+
   /// Load the race data and any saved results
   Future<Race?> loadRace() async {
     final loadedRace = await DatabaseHelper.instance.getRaceById(raceId);
     return loadedRace;
   }
-  
+
   /// Update the race flow state
   Future<void> updateRaceFlowState(String newState) async {
     await DatabaseHelper.instance.updateRaceFlowState(raceId, newState);
@@ -66,7 +65,7 @@ class RaceScreenController with ChangeNotifier {
   Future<void> continueRaceFlow(BuildContext context) async {
     await flowController.continueRaceFlow(context);
   }
-  
+
   // /// Reset results loading state
   // void resetResultsLoading() {
   //   resultsLoaded = false;
@@ -74,12 +73,10 @@ class RaceScreenController with ChangeNotifier {
   //   hasTimingConflicts = false;
   //   notifyListeners();
   // }
-  
+
   /// Create device connections list for communication
-  DevicesManager createDevices(
-    DeviceType deviceType, 
-    {DeviceName deviceName = DeviceName.coach, String data = ''}
-  ) {
+  DevicesManager createDevices(DeviceType deviceType,
+      {DeviceName deviceName = DeviceName.coach, String data = ''}) {
     return DeviceConnectionService.createDevices(
       deviceName,
       deviceType,

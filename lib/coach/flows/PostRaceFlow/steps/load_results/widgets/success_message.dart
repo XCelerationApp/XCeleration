@@ -12,12 +12,14 @@ class SuccessMessage extends StatelessWidget {
       children: [
         Text(
           'Results Loaded Successfully',
-          style: AppTypography.bodySemibold.copyWith(color: AppColors.primaryColor),
+          style: AppTypography.bodySemibold
+              .copyWith(color: AppColors.primaryColor),
         ),
         const SizedBox(height: 8),
         Text(
           'You can proceed to review the results or load them again if needed.',
-          style: AppTypography.bodyRegular.copyWith(color: AppColors.darkColor.withOpacity(0.7)),
+          style: AppTypography.bodyRegular
+              .copyWith(color: AppColors.darkColor.withOpacity(0.7)),
           textAlign: TextAlign.center,
         ),
       ],

@@ -14,7 +14,7 @@ class MergeConflictsScreen extends StatefulWidget {
   final List<RunnerRecord> runnerRecords;
 
   const MergeConflictsScreen({
-    super.key, 
+    super.key,
     required this.raceId,
     required this.timingData,
     required this.runnerRecords,
@@ -31,11 +31,11 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
   void initState() {
     super.initState();
     _initializeState();
-    
+
     // Add listener to rebuild UI when controller data changes
     _controller.addListener(_rebuildUi);
   }
-  
+
   void _rebuildUi() {
     if (mounted) {
       setState(() {});
@@ -62,7 +62,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
   Widget build(BuildContext context) {
     // Set the controller's context
     _controller.setContext(context);
-    
+
     return Scaffold(
       body: Container(
         color: AppColors.backgroundColor,
@@ -104,7 +104,8 @@ class InstructionsAndList extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               'No race results to review',
-              style: AppTypography.titleSemibold.copyWith(color: Colors.grey[600]),
+              style:
+                  AppTypography.titleSemibold.copyWith(color: Colors.grey[600]),
             ),
           ],
         ),
@@ -117,9 +118,12 @@ class InstructionsAndList extends StatelessWidget {
         InstructionCard(
           title: 'Review Race Results',
           instructions: [
-            InstructionItem(number: '1', text: 'Find the runners with the unknown times (orange)'),
+            InstructionItem(
+                number: '1',
+                text: 'Find the runners with the unknown times (orange)'),
             InstructionItem(number: '2', text: 'Update times as needed'),
-            InstructionItem(number: '3', text: 'Save when all results are confirmed'),
+            InstructionItem(
+                number: '3', text: 'Save when all results are confirmed'),
           ],
         ),
         const SizedBox(height: 16),

@@ -36,8 +36,10 @@ class TimingData {
   }
 
   // Helper method to merge runner data into a timing record
-  void mergeRunnerData(TimingRecord timingRecord, RunnerRecord runnerRecord, {int? index}) {
-    index ??= records.indexWhere((record) => record.runnerId == runnerRecord.runnerId);
+  void mergeRunnerData(TimingRecord timingRecord, RunnerRecord runnerRecord,
+      {int? index}) {
+    index ??= records
+        .indexWhere((record) => record.runnerId == runnerRecord.runnerId);
     if (index != -1) {
       records[index] = timingRecord.copyWith(
         runnerId: runnerRecord.runnerId,
@@ -69,50 +71,62 @@ class TimingData {
   }
 
   // Get all RunnerRecord info from the TimingRecords
-  List<RunnerRecord> get runnerRecords => records.where((record) => 
-    record.runnerId != null || record.bib != null
-  ).map((record) => RunnerRecord(
-    runnerId: record.runnerId,
-    raceId: record.raceId ?? 0,
-    name: record.name ?? '',
-    school: record.school ?? '',
-    grade: record.grade ?? 0,
-    bib: record.bib ?? '',
-    error: record.error,
-  )).toList();
-
-
+  List<RunnerRecord> get runnerRecords => records
+      .where((record) => record.runnerId != null || record.bib != null)
+      .map((record) => RunnerRecord(
+            runnerId: record.runnerId,
+            raceId: record.raceId ?? 0,
+            name: record.name ?? '',
+            school: record.school ?? '',
+            grade: record.grade ?? 0,
+            bib: record.bib ?? '',
+            error: record.error,
+          ))
+      .toList();
 
   // Get all RunnerRecord info from the TimingRecords
-  List<RaceResult> get raceResults => records.where((record) => 
-    record.type == RecordType.runnerTime && record.runnerId != null && record.place != null && record.elapsedTime != ''
-  ).map((record) => RaceResult(
-    runnerId: record.runnerId,
-    raceId: record.raceId ?? 0,
-    place: record.place,
-    finishTime: record.elapsedTime,
-  )).toList();
+  List<RaceResult> get raceResults => records
+      .where((record) =>
+          record.type == RecordType.runnerTime &&
+          record.runnerId != null &&
+          record.place != null &&
+          record.elapsedTime != '')
+      .map((record) => RaceResult(
+            runnerId: record.runnerId,
+            raceId: record.raceId ?? 0,
+            place: record.place,
+            finishTime: record.elapsedTime,
+          ))
+      .toList();
 
-  int get numberOfConfirmedTimes => records.where((record) => record.isConfirmed).length;
+  int get numberOfConfirmedTimes =>
+      records.where((record) => record.isConfirmed).length;
   int get numberOfTimes => records.length;
 
   Map<String, dynamic> toJson() => {
-    'records': records.map((r) => r.toMap()).toList(),
-    'end_time': endTime,
-  };
+        'records': records.map((r) => r.toMap()).toList(),
+        'end_time': endTime,
+      };
 
   factory TimingData.fromJson(Map<String, dynamic> json) {
     return TimingData(
       records: (json['records'] as List?)
-          ?.map((r) => TimingRecord.fromMap(r as Map<String, dynamic>))
-          .toList() ?? [],
+              ?.map((r) => TimingRecord.fromMap(r as Map<String, dynamic>))
+              .toList() ??
+          [],
       endTime: json['end_time'] != null ? json['end_time'] as String : '',
     );
   }
 
   String encode() {
     // final String encodedRecords = encodeTimingRecords();
-    List<String> recordMaps = records.map((record) => (record.type == RecordType.runnerTime) ? record.elapsedTime : (record.type == RecordType.confirmRunner) ? '${record.type.toString()} ${record.place} ${record.elapsedTime}' : '${record.type.toString()} ${record.conflict?.data?["offBy"]} ${record.elapsedTime}').toList();
+    List<String> recordMaps = records
+        .map((record) => (record.type == RecordType.runnerTime)
+            ? record.elapsedTime
+            : (record.type == RecordType.confirmRunner)
+                ? '${record.type.toString()} ${record.place} ${record.elapsedTime}'
+                : '${record.type.toString()} ${record.conflict?.data?["offBy"]} ${record.elapsedTime}')
+        .toList();
     return recordMaps.join(',');
   }
 }

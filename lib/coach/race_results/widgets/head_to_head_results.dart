@@ -35,7 +35,8 @@ class HeadToHeadResults extends StatelessWidget {
               style: AppTypography.titleSemibold,
             ),
             const SizedBox(height: 16),
-            if (controller.headToHeadTeamResults != null && controller.headToHeadTeamResults!.isEmpty)
+            if (controller.headToHeadTeamResults != null &&
+                controller.headToHeadTeamResults!.isEmpty)
               const Center(
                 child: Padding(
                   padding: EdgeInsets.all(16.0),
@@ -46,7 +47,8 @@ class HeadToHeadResults extends StatelessWidget {
                 ),
               )
             else
-              ...controller.headToHeadTeamResults!.map((matchup) => HeadToHeadResultsWidget(matchup: matchup)),
+              ...controller.headToHeadTeamResults!
+                  .map((matchup) => HeadToHeadResultsWidget(matchup: matchup)),
           ],
         ),
       ),

@@ -10,7 +10,7 @@ class ResolveBibNumberScreen extends StatefulWidget {
   final int raceId;
   final Function(RunnerRecord) onComplete;
   final RunnerRecord record;
-  
+
   const ResolveBibNumberScreen({
     super.key,
     required this.records,
@@ -37,7 +37,7 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
   late List<RunnerRecord> _records;
   // String _currentBibNumber = '';
   late RunnerRecord _record;
-  
+
   @override
   void initState() {
     super.initState();
@@ -72,8 +72,11 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
   }
 
   Future<void> _createNewRunner() async {
-    if (_nameController.text.isEmpty || _gradeController.text.isEmpty || _schoolController.text.isEmpty) {
-      DialogUtils.showErrorDialog(context, message: 'Please enter a name, grade, and school for the runner');
+    if (_nameController.text.isEmpty ||
+        _gradeController.text.isEmpty ||
+        _schoolController.text.isEmpty) {
+      DialogUtils.showErrorDialog(context,
+          message: 'Please enter a name, grade, and school for the runner');
       return;
     }
 
@@ -87,24 +90,29 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
 
     await _databaseHelper.insertRaceRunner(runner);
     _record.error = null;
-    
+
     // Update the current record with the new runner information
     _record.name = runner.name;
     _record.grade = runner.grade;
     _record.school = runner.school;
-    
+
     // Return the updated records immediately
     widget.onComplete(_record);
   }
 
   Future<void> _assignExistingRunner(RunnerRecord runner) async {
-    if (_records.any((record) => record.bib == runner.bib && record != _record)) {
-      DialogUtils.showErrorDialog(context, message: 'This bib number is already assigned to another runner');
+    if (_records
+        .any((record) => record.bib == runner.bib && record != _record)) {
+      DialogUtils.showErrorDialog(context,
+          message: 'This bib number is already assigned to another runner');
       return;
     }
-    final confirmed = await DialogUtils.showConfirmationDialog(context, title: 'Assign Runner', content: 'Are you sure this is the correct runner? \nName: ${runner.name} \nGrade: ${runner.grade} \nSchool: ${runner.school} \nBib Number: ${runner.bib}');
+    final confirmed = await DialogUtils.showConfirmationDialog(context,
+        title: 'Assign Runner',
+        content:
+            'Are you sure this is the correct runner? \nName: ${runner.name} \nGrade: ${runner.grade} \nSchool: ${runner.school} \nBib Number: ${runner.bib}');
     if (!confirmed) return;
-    
+
     // Update all fields from the selected runner
     _record.bib = runner.bib;
     _record.error = null;
@@ -370,7 +378,8 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
                 ),
                 const SizedBox(height: 16),
                 _buildSearchResults(),
-              ] else _buildCreateNewForm(),
+              ] else
+                _buildCreateNewForm(),
             ],
           ),
         ),
@@ -382,15 +391,24 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
     return InstructionCard(
       title: 'Resolve Bib Number',
       instructions: [
-        InstructionItem(number: '1', text: 'Choose an existing runner or create a new one to assign to bib #${_record.bib}'),
-        const InstructionItem(number: '2', text: 'For existing runners, search by name, school, or bib number'),
-        const InstructionItem(number: '3', text: 'For new runners, enter all required information'),
+        InstructionItem(
+            number: '1',
+            text:
+                'Choose an existing runner or create a new one to assign to bib #${_record.bib}'),
+        const InstructionItem(
+            number: '2',
+            text:
+                'For existing runners, search by name, school, or bib number'),
+        const InstructionItem(
+            number: '3',
+            text: 'For new runners, enter all required information'),
       ],
       initiallyExpanded: true,
     );
   }
 
-  Widget _buildActionButton(String label, IconData icon, bool isSelected, VoidCallback onPressed) {
+  Widget _buildActionButton(
+      String label, IconData icon, bool isSelected, VoidCallback onPressed) {
     return ElevatedButton(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
@@ -410,7 +428,8 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: isSelected ? Colors.white : AppColors.primaryColor),
+            Icon(icon,
+                color: isSelected ? Colors.white : AppColors.primaryColor),
             const SizedBox(width: 8),
             Flexible(
               child: Text(
