@@ -10,7 +10,7 @@ class ShareButton extends StatelessWidget {
     return FloatingActionButton(
       onPressed: onPressed,
       backgroundColor: AppColors.primaryColor,
-      child: const Icon(Icons.share, color: Colors.white),
+      child: const Icon(Icons.ios_share, color: Colors.white),
     );
   }
 }

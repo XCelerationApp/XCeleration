@@ -34,11 +34,11 @@ class ShareRaceController extends ChangeNotifier {
     _formattedPdf = _getPdfDocument();
   }
 
-  ResultFormat _selectedFormat = ResultFormat.plainText;
+  ResultFormat? _selectedFormat;
   
-  ResultFormat get selectedFormat => _selectedFormat;
+  ResultFormat? get selectedFormat => _selectedFormat;
   
-  set selectedFormat(ResultFormat format) {
+  set selectedFormat(ResultFormat? format) {
     _selectedFormat = format;
     notifyListeners();
   }
@@ -386,43 +386,35 @@ class ShareRaceController extends ChangeNotifier {
     ResultFormat format,
   ) async {
     try {
-      String messageBody;
       if (format == ResultFormat.googleSheet) {
         final sheetUrl = await exportToGoogleSheets(context);
-        messageBody = sheetUrl ?? 'Race results not available';
-      } else if (format == ResultFormat.pdf) {
+        if (sheetUrl != null) {
+          await Share.share(sheetUrl);
+        } else if (context.mounted) {
+          DialogUtils.showErrorDialog(context, message: 'Failed to create Google Sheet');
+        }
+        return;
+      }
+
+      if (format == ResultFormat.pdf) {
         final pdfData = _formattedPdf;
         final bytes = await pdfData.save();
         
-        final Uri smsLaunchUri = Uri.parse('sms:?&body=Please find the race results attached.');
-        if (await canLaunchUrl(smsLaunchUri)) {
-          await Share.shareXFiles(
-            [
-              XFile.fromData(
-                bytes,
-                name: 'race_results.pdf',
-                mimeType: 'application/pdf',
-              )
-            ],
-          );
-        } else if (context.mounted) {
-          DialogUtils.showErrorDialog(context, message: 'Could not share the PDF');
-        }
+        await Share.shareXFiles([
+          XFile.fromData(
+            bytes,
+            name: 'race_results.pdf',
+            mimeType: 'application/pdf',
+          )
+        ]);
         return;
-      } else {
-        messageBody = _formattedResultsText;
       }
 
-      final Uri smsLaunchUri = Uri.parse('sms:&body=${Uri.encodeComponent(messageBody)}');
-
-      if (await canLaunchUrl(smsLaunchUri)) {
-        await launchUrl(smsLaunchUri);
-      } else if (context.mounted) {
-        DialogUtils.showErrorDialog(context, message: 'Could not launch SMS app');
-      }
+      // For plain text, use the formatted text
+      await Share.share(_formattedResultsText);
     } catch (e) {
       if (context.mounted) {
-        DialogUtils.showErrorDialog(context, message: 'Failed to send SMS: $e');
+        DialogUtils.showErrorDialog(context, message: 'Failed to share: $e');
       }
     }
   }

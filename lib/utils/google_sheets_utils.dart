@@ -1,21 +1,14 @@
-// import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:googleapis/sheets/v4.dart' as sheets;
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:google_sign_in/google_sign_in.dart';
-// import 'package:googleapis_auth/googleapis_auth.dart';
-// import 'package:url_launcher/url_launcher.dart';
 import 'package:http/http.dart' as http;
-import 'dart:io' show Platform;
+import '../core/components/dialog_utils.dart';
 
 class GoogleSheetsUtils {
   static const _clientId = '529053126812-cuhlura1vskuup3lg6hpf6iup6mlje6v.apps.googleusercontent.com';
   
   static Future<bool> testSignIn(BuildContext context) async {
-    if (!Platform.isIOS) {
-      throw UnsupportedError('Google Sign-In is only supported on iOS devices');
-    }
-    
     try {
       final googleSignIn = GoogleSignIn(
         scopes: [sheets.SheetsApi.spreadsheetsScope],
@@ -29,10 +22,11 @@ class GoogleSheetsUtils {
       }
 
       final auth = await account.authentication;
-      final client = GoogleAuthClient(auth.accessToken!);
-      final sheetsApi = sheets.SheetsApi(client);
-      debugPrint(sheetsApi.toString());
-      
+      if (auth.accessToken == null) {
+        debugPrint('Failed to get authentication');
+        return false;
+      }
+
       return true;
     } catch (e) {
       debugPrint('Sign in error: $e');
@@ -45,20 +39,27 @@ class GoogleSheetsUtils {
       final googleSignIn = GoogleSignIn(
         scopes: [
           sheets.SheetsApi.spreadsheetsScope,
-          drive.DriveApi.driveFileScope,  // Add file scope for sharing
+          drive.DriveApi.driveFileScope,
         ],
         clientId: _clientId,
       );
       
       final account = await googleSignIn.signIn();
-      if (account == null) return null;
+      if (account == null) {
+        debugPrint('Sign in cancelled by user');
+        return null;
+      }
 
       final auth = await account.authentication;
+      if (auth.accessToken == null) {
+        debugPrint('Failed to get authentication');
+        return null;
+      }
+
       final client = GoogleAuthClient(auth.accessToken!);
-      
       return sheets.SheetsApi(client);
     } catch (e) {
-      debugPrint('Sheets API Error: $e');  // Add error logging
+      debugPrint('Sheets API Error: $e');
       return null;
     }
   }
@@ -67,20 +68,27 @@ class GoogleSheetsUtils {
     try {
       final googleSignIn = GoogleSignIn(
         scopes: [
-          drive.DriveApi.driveFileScope,  // Use file scope instead of full drive scope
+          drive.DriveApi.driveFileScope,
         ],
         clientId: _clientId,
       );
       
       final account = await googleSignIn.signIn();
-      if (account == null) return null;
+      if (account == null) {
+        debugPrint('Sign in cancelled by user');
+        return null;
+      }
 
       final auth = await account.authentication;
+      if (auth.accessToken == null) {
+        debugPrint('Failed to get authentication');
+        return null;
+      }
+
       final client = GoogleAuthClient(auth.accessToken!);
-      
       return drive.DriveApi(client);
     } catch (e) {
-      debugPrint('Drive API Error: $e');  // Add error logging
+      debugPrint('Drive API Error: $e');
       return null;
     }
   }
@@ -90,13 +98,34 @@ class GoogleSheetsUtils {
     required String title,
     required List<List<dynamic>> data,
   }) async {
-    final sheetsApi = await _getSheetsApi(context);
-    if (sheetsApi == null) return null;
-
     try {
+      // First check if we can sign in
+      if (!await testSignIn(context)) {
+        if (!context.mounted) return null;
+        DialogUtils.showErrorDialog(
+          context,
+          message: 'Please sign in to your Google account to export to Google Sheets',
+        );
+        return null;
+      }
+
+      final sheetsApi = await _getSheetsApi(context);
+      if (sheetsApi == null) {
+        if (!context.mounted) return null;
+        DialogUtils.showErrorDialog(
+          context,
+          message: 'Failed to connect to Google Sheets',
+        );
+        return null;
+      }
+
       // Create a new spreadsheet
       final spreadsheet = sheets.Spreadsheet(
-        properties: sheets.SpreadsheetProperties(title: title),
+        properties: sheets.SpreadsheetProperties(
+          title: title,
+          locale: 'en_US',
+          timeZone: 'America/New_York',
+        ),
       );
 
       final createdSpreadsheet = await sheetsApi.spreadsheets.create(spreadsheet);
@@ -105,21 +134,40 @@ class GoogleSheetsUtils {
       if (spreadsheetId != null) {
         // Update the values in the first sheet
         final range = 'Sheet1!A1';
-        final valueRange = sheets.ValueRange(values: data);
+        
+        // Convert dynamic data to proper values for ValueRange
+        final List<List<dynamic>> formattedData = data.map((row) {
+          return row.map((value) {
+            if (value is String) return value;
+            if (value is num) return value.toString();
+            if (value == null) return '';
+            return value.toString();
+          }).toList();
+        }).toList();
 
-        await sheetsApi.spreadsheets.values.update(
-          valueRange,
-          spreadsheetId,
-          range,
-          valueInputOption: 'USER_ENTERED',
-        );
-        if (!context.mounted) return null;
+        final valueRange = sheets.ValueRange(values: formattedData);
+
+        try {
+          await sheetsApi.spreadsheets.values.update(
+            valueRange,
+            spreadsheetId,
+            range,
+            valueInputOption: 'USER_ENTERED',
+          );
+        } catch (e) {
+          debugPrint('Error updating values: $e');
+          if (!context.mounted) return null;
+          DialogUtils.showErrorDialog(
+            context,
+            message: 'Failed to update spreadsheet values. Please try again.',
+          );
+          return null;
+        }
 
         // Set the sharing permissions to 'anyone with the link can view'
         final driveApi = await _getDriveApi(context);
         if (driveApi != null) {
           try {
-            // Create the permission for anyone to view
             final permission = drive.Permission(
               type: 'anyone',
               role: 'reader',
@@ -132,29 +180,20 @@ class GoogleSheetsUtils {
               supportsAllDrives: true,
               supportsTeamDrives: true,
             );
-            
-            // Get the file to verify sharing settings
-            final file = await driveApi.files.get(
-              spreadsheetId,
-              $fields: 'webViewLink,permissions',
-            ) as drive.File;
-            
-            debugPrint('File permissions: ${file.permissions}');  // Debug log
-            
-            if (file.webViewLink != null) {
-              return file.webViewLink;
-            }
-            return 'https://docs.google.com/spreadsheets/d/$spreadsheetId';
           } catch (e) {
             debugPrint('Error setting permissions: $e');
-            // Still return the URL even if permission setting fails
-            return 'https://docs.google.com/spreadsheets/d/$spreadsheetId';
           }
         }
+
         return 'https://docs.google.com/spreadsheets/d/$spreadsheetId';
       }
     } catch (e) {
-      debugPrint('Spreadsheet creation error: $e');  // Add error logging
+      debugPrint('Spreadsheet creation error: $e');
+      if (!context.mounted) return null;
+      DialogUtils.showErrorDialog(
+        context,
+        message: 'Failed to create Google Sheet. Please try again.',
+      );
       return null;
     }
     return null;
