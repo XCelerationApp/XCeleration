@@ -8,22 +8,38 @@ import '../core/components/dialog_utils.dart';
 class GoogleSheetsUtils {
   static const _clientId = '529053126812-cuhlura1vskuup3lg6hpf6iup6mlje6v.apps.googleusercontent.com';
   
+  static GoogleSignIn? _googleSignIn;
+  
   static Future<bool> testSignIn(BuildContext context) async {
+    debugPrint('testSignIn called');
     try {
-      final googleSignIn = GoogleSignIn(
-        scopes: [sheets.SheetsApi.spreadsheetsScope],
+      // Initialize GoogleSignIn if not already done
+      _googleSignIn ??= GoogleSignIn(
+        scopes: [
+          sheets.SheetsApi.spreadsheetsScope,
+          drive.DriveApi.driveFileScope,
+        ],
         clientId: _clientId,
       );
+      debugPrint('GoogleSignIn initialized');
       
-      final account = await googleSignIn.signIn();
-      if (account == null) {
-        debugPrint('Sign in cancelled by user');
-        return false;
+      // Try to get existing account first
+      debugPrint('Attempting silent sign-in');
+      final account = await _googleSignIn!.signInSilently();
+      debugPrint('Silent sign-in result: ${account != null ? 'success' : 'failed'}');
+      
+      if (account != null) {
+        debugPrint('Found existing account');
+        return true;
       }
-
-      final auth = await account.authentication;
-      if (auth.accessToken == null) {
-        debugPrint('Failed to get authentication');
+      
+      // If no existing account, try to sign in
+      debugPrint('No existing account, attempting regular sign-in');
+      final signedInAccount = await _googleSignIn!.signIn();
+      debugPrint('Regular sign-in result: ${signedInAccount != null ? 'success' : 'failed'}');
+      
+      if (signedInAccount == null) {
+        debugPrint('Sign in cancelled by user');
         return false;
       }
 
@@ -35,28 +51,55 @@ class GoogleSheetsUtils {
   }
 
   static Future<sheets.SheetsApi?> _getSheetsApi(BuildContext context) async {
+    debugPrint('_getSheetsApi called');
     try {
-      final googleSignIn = GoogleSignIn(
-        scopes: [
-          sheets.SheetsApi.spreadsheetsScope,
-          drive.DriveApi.driveFileScope,
-        ],
-        clientId: _clientId,
-      );
+      _googleSignIn ??= GoogleSignIn(
+          scopes: [
+            sheets.SheetsApi.spreadsheetsScope,
+            drive.DriveApi.driveFileScope,
+          ],
+          clientId: _clientId,
+        );
+      debugPrint('GoogleSignIn instance: $_googleSignIn');
       
-      final account = await googleSignIn.signIn();
-      if (account == null) {
+      // Try to get existing account first
+      debugPrint('Attempting silent sign-in for SheetsApi');
+      final account = await _googleSignIn!.signInSilently();
+      debugPrint('Silent sign-in result: ${account != null ? 'success' : 'failed'}');
+      
+      if (account != null) {
+        debugPrint('Found existing account');
+        final auth = await account.authentication;
+        debugPrint('Authentication result: ${auth != null ? 'success' : 'failed'}');
+        
+        if (auth?.accessToken != null) {
+          debugPrint('Access token found');
+          final client = GoogleAuthClient(auth.accessToken!);
+          debugPrint('Creating SheetsApi client');
+          return sheets.SheetsApi(client);
+        }
+      }
+      
+      // If no existing account or invalid credentials, sign in again
+      debugPrint('No valid credentials, attempting regular sign-in');
+      final signedInAccount = await _googleSignIn!.signIn();
+      debugPrint('Regular sign-in result: ${signedInAccount != null ? 'success' : 'failed'}');
+      
+      if (signedInAccount == null) {
         debugPrint('Sign in cancelled by user');
         return null;
       }
 
-      final auth = await account.authentication;
-      if (auth.accessToken == null) {
+      final auth = await signedInAccount.authentication;
+      debugPrint('Authentication result: ${auth != null ? 'success' : 'failed'}');
+      
+      if (auth?.accessToken == null) {
         debugPrint('Failed to get authentication');
         return null;
       }
 
       final client = GoogleAuthClient(auth.accessToken!);
+      debugPrint('Creating SheetsApi client');
       return sheets.SheetsApi(client);
     } catch (e) {
       debugPrint('Sheets API Error: $e');
@@ -65,27 +108,55 @@ class GoogleSheetsUtils {
   }
 
   static Future<drive.DriveApi?> _getDriveApi(BuildContext context) async {
+    debugPrint('_getDriveApi called');
     try {
-      final googleSignIn = GoogleSignIn(
-        scopes: [
-          drive.DriveApi.driveFileScope,
-        ],
-        clientId: _clientId,
-      );
+      _googleSignIn ??= GoogleSignIn(
+          scopes: [
+            sheets.SheetsApi.spreadsheetsScope,
+            drive.DriveApi.driveFileScope,
+          ],
+          clientId: _clientId,
+        );
+      debugPrint('GoogleSignIn instance: $_googleSignIn');
       
-      final account = await googleSignIn.signIn();
-      if (account == null) {
+      // Try to get existing account first
+      debugPrint('Attempting silent sign-in for DriveApi');
+      final account = await _googleSignIn!.signInSilently();
+      debugPrint('Silent sign-in result: ${account != null ? 'success' : 'failed'}');
+      
+      if (account != null) {
+        debugPrint('Found existing account');
+        final auth = await account.authentication;
+        debugPrint('Authentication result: ${auth != null ? 'success' : 'failed'}');
+        
+        if (auth?.accessToken != null) {
+          debugPrint('Access token found');
+          final client = GoogleAuthClient(auth.accessToken!);
+          debugPrint('Creating DriveApi client');
+          return drive.DriveApi(client);
+        }
+      }
+      
+      // If no existing account or invalid credentials, sign in again
+      debugPrint('No valid credentials, attempting regular sign-in');
+      final signedInAccount = await _googleSignIn!.signIn();
+      debugPrint('Regular sign-in result: ${signedInAccount != null ? 'success' : 'failed'}');
+      
+      if (signedInAccount == null) {
         debugPrint('Sign in cancelled by user');
         return null;
       }
 
-      final auth = await account.authentication;
-      if (auth.accessToken == null) {
+      final auth = await signedInAccount.authentication;
+      debugPrint('Authentication result: ${auth != null ? 'success' : 'failed'}');
+      
+      if (auth?.accessToken == null) {
         debugPrint('Failed to get authentication');
         return null;
       }
 
       final client = GoogleAuthClient(auth.accessToken!);
+      debugPrint('Creating DriveApi client');
       return drive.DriveApi(client);
     } catch (e) {
       debugPrint('Drive API Error: $e');
@@ -98,9 +169,12 @@ class GoogleSheetsUtils {
     required String title,
     required List<List<dynamic>> data,
   }) async {
+    debugPrint('createSpreadsheet called');
     try {
-      // First check if we can sign in
+      // First check if we're signed in
+      debugPrint('Checking if signed in');
       if (!await testSignIn(context)) {
+        debugPrint('Not signed in');
         if (!context.mounted) return null;
         DialogUtils.showErrorDialog(
           context,
@@ -109,8 +183,12 @@ class GoogleSheetsUtils {
         return null;
       }
 
+      debugPrint('Getting SheetsApi');
       final sheetsApi = await _getSheetsApi(context);
+      debugPrint('SheetsApi result: ${sheetsApi != null ? 'success' : 'failed'}');
+      
       if (sheetsApi == null) {
+        debugPrint('Failed to get SheetsApi');
         if (!context.mounted) return null;
         DialogUtils.showErrorDialog(
           context,
@@ -120,6 +198,7 @@ class GoogleSheetsUtils {
       }
 
       // Create a new spreadsheet
+      debugPrint('Creating new spreadsheet');
       final spreadsheet = sheets.Spreadsheet(
         properties: sheets.SpreadsheetProperties(
           title: title,
@@ -128,10 +207,15 @@ class GoogleSheetsUtils {
         ),
       );
 
+      debugPrint('Creating spreadsheet');
       final createdSpreadsheet = await sheetsApi.spreadsheets.create(spreadsheet);
+      debugPrint('Spreadsheet created: ${createdSpreadsheet != null}');
+      
       final spreadsheetId = createdSpreadsheet.spreadsheetId;
+      debugPrint('Spreadsheet ID: $spreadsheetId');
 
       if (spreadsheetId != null) {
+        debugPrint('Updating values in sheet');
         // Update the values in the first sheet
         final range = 'Sheet1!A1';
         
@@ -146,14 +230,17 @@ class GoogleSheetsUtils {
         }).toList();
 
         final valueRange = sheets.ValueRange(values: formattedData);
+        debugPrint('ValueRange created');
 
         try {
+          debugPrint('Updating values in sheet');
           await sheetsApi.spreadsheets.values.update(
             valueRange,
             spreadsheetId,
             range,
             valueInputOption: 'USER_ENTERED',
           );
+          debugPrint('Values updated successfully');
         } catch (e) {
           debugPrint('Error updating values: $e');
           if (!context.mounted) return null;
@@ -165,9 +252,13 @@ class GoogleSheetsUtils {
         }
 
         // Set the sharing permissions to 'anyone with the link can view'
+        debugPrint('Getting DriveApi');
         final driveApi = await _getDriveApi(context);
+        debugPrint('DriveApi result: ${driveApi != null ? 'success' : 'failed'}');
+        
         if (driveApi != null) {
           try {
+            debugPrint('Setting permissions');
             final permission = drive.Permission(
               type: 'anyone',
               role: 'reader',
@@ -180,11 +271,13 @@ class GoogleSheetsUtils {
               supportsAllDrives: true,
               supportsTeamDrives: true,
             );
+            debugPrint('Permissions set successfully');
           } catch (e) {
             debugPrint('Error setting permissions: $e');
           }
         }
 
+        debugPrint('Returning spreadsheet URL');
         return 'https://docs.google.com/spreadsheets/d/$spreadsheetId';
       }
     } catch (e) {
@@ -209,6 +302,7 @@ class GoogleAuthClient extends http.BaseClient {
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) {
     request.headers['Authorization'] = 'Bearer $accessToken';
+    debugPrint('Sending request with token: ${accessToken.substring(0, 10)}...');
     return _client.send(request);
   }
 }

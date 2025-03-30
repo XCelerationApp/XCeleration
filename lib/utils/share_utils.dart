@@ -11,9 +11,20 @@ class ShareUtils {
     List<List<dynamic>> sheetsData,
   ) async {
     try {
+      // First check if we're already signed in
+      if (!await GoogleSheetsUtils.testSignIn(context)) {
+        if (!context.mounted) return null;
+        DialogUtils.showErrorDialog(
+          context,
+          message: 'Please sign in to your Google account to export to Google Sheets',
+        );
+        return null;
+      }
+
+      // Try to create the spreadsheet
       final url = await GoogleSheetsUtils.createSpreadsheet(
         context,
-        title: 'Race Results ${DateTime.now().toString()}',
+        title: 'Race Results ${DateTime.now().toString()}'.replaceAll(' ', '_'),
         data: sheetsData,
       );
 

@@ -81,7 +81,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     // _runners.addAll(await DatabaseHelper.instance.getRaceRunners(2));
     // _runners.addAll(await DatabaseHelper.instance.getRaceRunners(1));
     // setState(() {});
-    return;
+    // return;
     if (_runners.isEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         showDialog(
