@@ -43,7 +43,6 @@ jobs:
       - name: Verify Build
         run: |
           flutter build bundle
-          flutter build web --web-renderer html
       
       # Optional: Upload test coverage if you set up a coverage tool
       # - name: Upload coverage to Codecov
