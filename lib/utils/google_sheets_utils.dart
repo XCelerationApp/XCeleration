@@ -75,9 +75,9 @@ class GoogleSheetsUtils {
         debugPrint('Found existing account');
         final auth = await account.authentication;
         debugPrint(
-            'Authentication result: ${auth != null ? 'success' : 'failed'}');
+            'Authentication result: ${auth.accessToken != null ? 'success' : 'failed'}');
 
-        if (auth?.accessToken != null) {
+        if (auth.accessToken != null) {
           debugPrint('Access token found');
           final client = GoogleAuthClient(auth.accessToken!);
           debugPrint('Creating SheetsApi client');
@@ -98,9 +98,9 @@ class GoogleSheetsUtils {
 
       final auth = await signedInAccount.authentication;
       debugPrint(
-          'Authentication result: ${auth != null ? 'success' : 'failed'}');
+          'Authentication result: ${auth.accessToken != null ? 'success' : 'failed'}');
 
-      if (auth?.accessToken == null) {
+      if (auth.accessToken == null) {
         debugPrint('Failed to get authentication');
         return null;
       }
@@ -136,9 +136,9 @@ class GoogleSheetsUtils {
         debugPrint('Found existing account');
         final auth = await account.authentication;
         debugPrint(
-            'Authentication result: ${auth != null ? 'success' : 'failed'}');
+            'Authentication result: ${auth.accessToken != null ? 'success' : 'failed'}');
 
-        if (auth?.accessToken != null) {
+        if (auth.accessToken != null) {
           debugPrint('Access token found');
           final client = GoogleAuthClient(auth.accessToken!);
           debugPrint('Creating DriveApi client');
@@ -159,9 +159,9 @@ class GoogleSheetsUtils {
 
       final auth = await signedInAccount.authentication;
       debugPrint(
-          'Authentication result: ${auth != null ? 'success' : 'failed'}');
+          'Authentication result: ${auth.accessToken != null ? 'success' : 'failed'}');
 
-      if (auth?.accessToken == null) {
+      if (auth.accessToken == null) {
         debugPrint('Failed to get authentication');
         return null;
       }
@@ -210,101 +210,109 @@ class GoogleSheetsUtils {
         return null;
       }
 
-      // Create a new spreadsheet
-      debugPrint('Creating new spreadsheet');
-      final spreadsheet = sheets.Spreadsheet(
-        properties: sheets.SpreadsheetProperties(
-          title: title,
-          locale: 'en_US',
-          timeZone: 'America/New_York',
+      // Create the spreadsheet
+      debugPrint('Creating spreadsheet');
+      final spreadsheet = await sheetsApi.spreadsheets.create(
+        sheets.Spreadsheet(
+          properties: sheets.SpreadsheetProperties(title: title),
         ),
       );
+      debugPrint('Spreadsheet created: ${spreadsheet.spreadsheetId}');
 
-      debugPrint('Creating spreadsheet');
-      final createdSpreadsheet =
-          await sheetsApi.spreadsheets.create(spreadsheet);
-      debugPrint('Spreadsheet created: ${createdSpreadsheet != null}');
-
-      final spreadsheetId = createdSpreadsheet.spreadsheetId;
-      debugPrint('Spreadsheet ID: $spreadsheetId');
-
-      if (spreadsheetId != null) {
-        debugPrint('Updating values in sheet');
-        // Update the values in the first sheet
-        final range = 'Sheet1!A1';
-
-        // Convert dynamic data to proper values for ValueRange
-        final List<List<dynamic>> formattedData = data.map((row) {
-          return row.map((value) {
-            if (value is String) return value;
-            if (value is num) return value.toString();
-            if (value == null) return '';
-            return value.toString();
-          }).toList();
-        }).toList();
-
-        final valueRange = sheets.ValueRange(values: formattedData);
-        debugPrint('ValueRange created');
-
+      // Set the spreadsheet to be accessible to anyone with the link
+      debugPrint('Setting spreadsheet permissions');
+      final driveApi = await _getDriveApi(context);
+      if (driveApi != null && spreadsheet.spreadsheetId != null) {
         try {
-          debugPrint('Updating values in sheet');
-          await sheetsApi.spreadsheets.values.update(
-            valueRange,
-            spreadsheetId,
-            range,
-            valueInputOption: 'USER_ENTERED',
-          );
-          debugPrint('Values updated successfully');
-        } catch (e) {
-          debugPrint('Error updating values: $e');
-          if (!context.mounted) return null;
-          DialogUtils.showErrorDialog(
-            context,
-            message: 'Failed to update spreadsheet values. Please try again.',
-          );
-          return null;
-        }
-
-        // Set the sharing permissions to 'anyone with the link can view'
-        debugPrint('Getting DriveApi');
-        final driveApi = await _getDriveApi(context);
-        debugPrint(
-            'DriveApi result: ${driveApi != null ? 'success' : 'failed'}');
-
-        if (driveApi != null) {
-          try {
-            debugPrint('Setting permissions');
-            final permission = drive.Permission(
+          await driveApi.permissions.create(
+            drive.Permission(
               type: 'anyone',
               role: 'reader',
               allowFileDiscovery: false,
-            );
-
-            await driveApi.permissions.create(
-              permission,
-              spreadsheetId,
-              supportsAllDrives: true,
-              supportsTeamDrives: true,
-            );
-            debugPrint('Permissions set successfully');
-          } catch (e) {
-            debugPrint('Error setting permissions: $e');
-          }
+            ),
+            spreadsheet.spreadsheetId!,
+          );
+          debugPrint('Permissions set successfully');
+        } catch (e) {
+          debugPrint('Error setting permissions: $e');
+          // Don't fail the entire operation if permissions can't be set
         }
-
-        debugPrint('Returning spreadsheet URL');
-        return 'https://docs.google.com/spreadsheets/d/$spreadsheetId';
       }
+
+      // Update the spreadsheet with data
+      debugPrint('Updating spreadsheet with data');
+      final batchUpdate = sheets.BatchUpdateSpreadsheetRequest(
+        requests: [
+          sheets.Request(
+            addSheet: sheets.AddSheetRequest(
+              properties: sheets.SheetProperties(
+                title: 'Results',
+              ),
+            ),
+          ),
+          sheets.Request(
+            appendCells: sheets.AppendCellsRequest(
+              sheetId: 0,
+              fields: 'userEnteredValue',
+              rows: data
+                  .map((row) => sheets.RowData(values: [
+                        for (var cell in row)
+                          sheets.CellData(
+                            userEnteredValue: sheets.ExtendedValue(
+                              stringValue: cell.toString(),
+                            ),
+                          ),
+                      ]))
+                  .toList(),
+            ),
+          ),
+        ],
+      );
+
+      await sheetsApi.spreadsheets.batchUpdate(
+        batchUpdate,
+        spreadsheet.spreadsheetId!,
+      );
+
+      // Get the sharing URL
+      debugPrint('Getting sharing URL');
+      final driveFile = await driveApi?.files.get(
+        spreadsheet.spreadsheetId!,
+        $fields: 'webViewLink',
+        supportsAllDrives: true,
+      );
+
+      if (driveFile == null) {
+        debugPrint('Failed to get drive file');
+        if (!context.mounted) return null;
+        DialogUtils.showErrorDialog(
+          context,
+          message: 'Failed to get sharing URL',
+        );
+        return null;
+      }
+
+      final webViewLink = (driveFile as drive.File).webViewLink;
+      if (webViewLink == null) {
+        debugPrint('Failed to get webViewLink');
+        if (!context.mounted) return null;
+        DialogUtils.showErrorDialog(
+          context,
+          message: 'Failed to get sharing URL',
+        );
+        return null;
+      }
+
+      return webViewLink;
     } catch (e) {
-      debugPrint('Spreadsheet creation error: $e');
+      debugPrint('Error creating spreadsheet: $e');
       if (!context.mounted) return null;
       DialogUtils.showErrorDialog(
         context,
-        message: 'Failed to create Google Sheet. Please try again.',
+        message: 'Failed to create Google Sheet',
       );
       return null;
     }
-    return null;
   }
 }
 
