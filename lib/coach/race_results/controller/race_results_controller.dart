@@ -5,6 +5,7 @@ import 'package:xcelerate/utils/database_helper.dart';
 
 class RaceResultsController {
   final int raceId;
+  final DatabaseHelper dbHelper;
   bool isLoading = true;
   List<ResultsRecord> individualResults = [];
   List<TeamRecord> overallTeamResults = [];
@@ -12,6 +13,7 @@ class RaceResultsController {
 
   RaceResultsController({
     required this.raceId,
+    required this.dbHelper,
   }) {
     _calculateResults();
   }
@@ -25,8 +27,15 @@ class RaceResultsController {
   Future<void> _calculateResults() async {
     // Get race results from database
     final List<ResultsRecord> results =
-        await DatabaseHelper.instance.getRaceResults(raceId);
+        await dbHelper.getRaceResults(raceId);
 
+    if (results.isEmpty) {
+      isLoading = false;
+      return;
+    }
+
+    sortRunners(results);
+    updateResultsPlaces(results);
     // DEEP COPY: Create completely independent copies for individual results
     individualResults = results.map((r) => ResultsRecord.copy(r)).toList();
 
@@ -86,6 +95,10 @@ class RaceResultsController {
     for (int i = 0; i < results.length; i++) {
       results[i].place = i + 1;
     }
+  }
+
+  void sortRunners(List<ResultsRecord> results) {
+    results.sort((a, b) => a.finishTime.compareTo(b.finishTime));
   }
 
   void sortAndPlaceTeams(List<TeamRecord> teams) {
