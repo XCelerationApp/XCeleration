@@ -96,4 +96,7 @@ class LoadResultsStep extends FlowStep {
       ),
     );
   }
+
+  @override
+  bool Function()? get canProceed => () => _devices.allDevicesFinished();
 }
