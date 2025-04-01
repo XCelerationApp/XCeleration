@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../../utils/database_helper.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/components/dialog_utils.dart';
-import '../../race_screen/widgets/runner_record.dart';
 import '../../../core/components/instruction_card.dart';
+import '../../race_screen/widgets/runner_record.dart';
+import '../controller/resolve_bib_number_controller.dart';
 
 class ResolveBibNumberScreen extends StatefulWidget {
   final List<RunnerRecord> records;
@@ -24,115 +23,26 @@ class ResolveBibNumberScreen extends StatefulWidget {
 }
 
 class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
-  final DatabaseHelper _databaseHelper = DatabaseHelper.instance;
-  // List<RunnerRecord> _errorRecords = [];
-  List<RunnerRecord> _searchResults = [];
-  // int _currentIndex = 0;
-  final _searchController = TextEditingController();
-  final _nameController = TextEditingController();
-  final _gradeController = TextEditingController();
-  final _schoolController = TextEditingController();
-  bool _showCreateNew = false;
-  late int _raceId;
-  late List<RunnerRecord> _records;
-  // String _currentBibNumber = '';
-  late RunnerRecord _record;
+  late ResolveBibNumberController _controller;
 
   @override
   void initState() {
     super.initState();
-    _raceId = widget.raceId;
-    _records = widget.records;
-    // _errorRecords = _records.where((record) => record.error != null).toList();
-    // if (_errorRecords.isNotEmpty) {
-    //   _currentBibNumber = _errorRecords[0].bib.toString();
-    _record = widget.record;
-    _searchRunners('');
-    // }
-  }
-
-  Future<void> _searchRunners(String query) async {
-    print('Searching runners...');
-    print('Query: $query');
-    print('Race ID: $_raceId');
-    if (query.isEmpty) {
-      final results = await _databaseHelper.getRaceRunners(_raceId);
-      setState(() {
-        _searchResults = results;
-      });
-      print('Search results: ${_searchResults.map((r) => r.bib).join(', ')}');
-      return;
-    }
-
-    final results = await _databaseHelper.searchRaceRunners(_raceId, query);
-    setState(() {
-      _searchResults = results;
-    });
-    print('Search results: ${_searchResults.map((r) => r.bib).join(', ')}');
-  }
-
-  Future<void> _createNewRunner() async {
-    if (_nameController.text.isEmpty ||
-        _gradeController.text.isEmpty ||
-        _schoolController.text.isEmpty) {
-      DialogUtils.showErrorDialog(context,
-          message: 'Please enter a name, grade, and school for the runner');
-      return;
-    }
-
-    final runner = RunnerRecord(
-      name: _nameController.text,
-      bib: _record.bib,
-      raceId: _raceId,
-      grade: int.parse(_gradeController.text),
-      school: _schoolController.text,
+    _controller = ResolveBibNumberController(
+      records: widget.records,
+      raceId: widget.raceId,
+      onComplete: widget.onComplete,
+      record: widget.record,
     );
-
-    await _databaseHelper.insertRaceRunner(runner);
-    _record.error = null;
-
-    // Update the current record with the new runner information
-    _record.name = runner.name;
-    _record.grade = runner.grade;
-    _record.school = runner.school;
-
-    // Return the updated records immediately
-    widget.onComplete(_record);
-  }
-
-  Future<void> _assignExistingRunner(RunnerRecord runner) async {
-    if (_records
-        .any((record) => record.bib == runner.bib && record != _record)) {
-      DialogUtils.showErrorDialog(context,
-          message: 'This bib number is already assigned to another runner');
-      return;
-    }
-    final confirmed = await DialogUtils.showConfirmationDialog(context,
-        title: 'Assign Runner',
-        content:
-            'Are you sure this is the correct runner? \nName: ${runner.name} \nGrade: ${runner.grade} \nSchool: ${runner.school} \nBib Number: ${runner.bib}');
-    if (!confirmed) return;
-
-    // Update all fields from the selected runner
-    _record.bib = runner.bib;
-    _record.error = null;
-    _record.name = runner.name;
-    _record.grade = runner.grade;
-    _record.school = runner.school;
-    _record.runnerId = runner.runnerId;
-    _record.flags = runner.flags;
-    _record.raceId = runner.raceId;
-
-    // Return the updated records immediately
-    widget.onComplete(_record);
+    _controller.setContext(context);
   }
 
   Widget _buildSearchResults() {
     return Expanded(
       child: ListView.builder(
-        itemCount: _searchResults.length,
+        itemCount: _controller.searchResults.length,
         itemBuilder: (context, index) {
-          final runner = _searchResults[index];
+          final runner = _controller.searchResults[index];
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 4),
             child: Card(
@@ -181,7 +91,7 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
                     ),
                   ],
                 ),
-                onTap: () => _assignExistingRunner(runner),
+                onTap: () => _controller.assignExistingRunner(runner),
               ),
             ),
           );
@@ -219,26 +129,26 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _buildTextField(
-              controller: _nameController,
+              controller: _controller.nameController,
               label: 'Runner Name',
               icon: Icons.person,
             ),
             const SizedBox(height: 16),
             _buildTextField(
-              controller: _gradeController,
+              controller: _controller.gradeController,
               label: 'Grade',
               icon: Icons.school,
               keyboardType: TextInputType.number,
             ),
             const SizedBox(height: 16),
             _buildTextField(
-              controller: _schoolController,
+              controller: _controller.schoolController,
               label: 'School',
               icon: Icons.business,
             ),
             const SizedBox(height: 32),
             ElevatedButton(
-              onPressed: _createNewRunner,
+              onPressed: _controller.createNewRunner,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryColor,
                 padding: const EdgeInsets.symmetric(vertical: 20),
@@ -316,7 +226,7 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_record.error == null) {
+    if (_controller.record.error == null) {
       return const Scaffold(
         body: Center(child: Text('No records to resolve')),
       );
@@ -344,12 +254,9 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
                     child: _buildActionButton(
                       'Choose Existing Runner',
                       Icons.people,
-                      !_showCreateNew,
+                      !_controller.showCreateNew,
                       () {
-                        setState(() {
-                          _showCreateNew = false;
-                          _searchRunners(_searchController.text);
-                        });
+                        _controller.searchRunners(_controller.searchController.text);
                       },
                     ),
                   ),
@@ -358,10 +265,10 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
                     child: _buildActionButton(
                       'Create New Runner',
                       Icons.person_add,
-                      _showCreateNew,
+                      _controller.showCreateNew,
                       () {
                         setState(() {
-                          _showCreateNew = true;
+                          _controller.showCreateNew = true;
                         });
                       },
                     ),
@@ -369,12 +276,12 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
                 ],
               ),
               const SizedBox(height: 24),
-              if (!_showCreateNew) ...[
+              if (!_controller.showCreateNew) ...[
                 _buildTextField(
-                  controller: _searchController,
+                  controller: _controller.searchController,
                   label: 'Search runners',
                   icon: Icons.search,
-                  onChanged: (value) => _searchRunners(value),
+                  onChanged: (value) => _controller.searchRunners(value),
                 ),
                 const SizedBox(height: 16),
                 _buildSearchResults(),
@@ -394,7 +301,7 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
         InstructionItem(
             number: '1',
             text:
-                'Choose an existing runner or create a new one to assign to bib #${_record.bib}'),
+                'Choose an existing runner or create a new one to assign to bib #${_controller.record.bib}'),
         const InstructionItem(
             number: '2',
             text:
@@ -451,10 +358,7 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
 
   @override
   void dispose() {
-    _searchController.dispose();
-    _nameController.dispose();
-    _gradeController.dispose();
-    _schoolController.dispose();
+    _controller.dispose();
     super.dispose();
   }
 }

@@ -23,8 +23,9 @@ class RunnerSearchBar extends StatelessWidget {
       padding: EdgeInsets.zero,
       child: Row(
         children: [
-          Expanded(
+          Flexible(
             child: Container(
+              height: 48,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
@@ -66,8 +67,9 @@ class RunnerSearchBar extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 10),
-          Expanded(
+          Flexible(
             child: Container(
+              height: 48,
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),

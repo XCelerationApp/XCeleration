@@ -87,29 +87,27 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
         builder: (context, controller, child) {
           return Material(
             color: AppColors.backgroundColor,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (controller.showHeader) ...[
-                  createSheetHeader(
-                    'Race Runners',
-                    backArrow: true,
-                    context: context,
-                    onBack: widget.onBack,
-                  ),
-                ],
-                _buildActionButtons(),
-                const SizedBox(height: 12),
-                if (controller.runners.isNotEmpty) ...[
-                  _buildSearchSection(),
-                  const SizedBox(height: 8),
-                ],
-                const ListTitles(),
-                const SizedBox(height: 4),
-                // Expanded(
-                RunnersList(controller: controller),
-                // ),
-              ],
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (controller.showHeader) ...[
+                      createSheetHeader(
+                        'Race Runners',
+                        backArrow: true,
+                        context: context,
+                        onBack: widget.onBack,
+                      ),
+                    ],
+                    _buildActionButtons(),
+                    const SizedBox(height: 12),
+                    if (controller.runners.isNotEmpty) ...[
+                      _buildSearchSection(),
+                      const SizedBox(height: 8),
+                      const ListTitles(),
+                      const SizedBox(height: 4),
+                    ],
+                    RunnersList(controller: controller),
+                  ],
             ),
           );
         },
