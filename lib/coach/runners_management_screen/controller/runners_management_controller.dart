@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../core/components/dialog_utils.dart';
+import '../../../core/components/runner_input_form.dart';
 import '../../../core/components/textfield_utils.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../utils/database_helper.dart';
@@ -173,193 +174,20 @@ class RunnersManagementController with ChangeNotifier {
     try {
       await sheet(
           context: context,
-          body: StatefulBuilder(
-            builder: (context, setSheetState) => Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const SizedBox(height: 16),
-                buildInputRow(
-                  label: 'Name',
-                  inputWidget: buildTextField(
-                    context: context,
-                    controller: nameController ?? TextEditingController(),
-                    hint: 'John Doe',
-                    error: nameError,
-                    onChanged: (value) {
-                      if (value.isEmpty) {
-                        setSheetState(() {
-                          nameError = 'Please enter a name';
-                        });
-                      } else {
-                        setSheetState(() {
-                          nameError = null;
-                        });
-                      }
-                    },
-                    setSheetState: setSheetState,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                buildInputRow(
-                  label: 'Grade',
-                  inputWidget: buildTextField(
-                    context: context,
-                    controller: gradeController ?? TextEditingController(),
-                    hint: '9',
-                    keyboardType: TextInputType.number,
-                    error: gradeError,
-                    onChanged: (value) {
-                      if (value.isEmpty) {
-                        setSheetState(() {
-                          gradeError = 'Please enter a grade';
-                        });
-                      } else if (int.tryParse(value) == null) {
-                        setSheetState(() {
-                          gradeError = 'Please enter a valid grade number';
-                        });
-                      } else {
-                        final grade = int.parse(value);
-                        if (grade < 9 || grade > 12) {
-                          setSheetState(() {
-                            gradeError = 'Grade must be between 9 and 12';
-                          });
-                        } else {
-                          setSheetState(() {
-                            gradeError = null;
-                          });
-                        }
-                      }
-                    },
-                    setSheetState: setSheetState,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                buildInputRow(
-                  label: 'School',
-                  inputWidget: buildDropdown(
-                    controller: schoolController ?? TextEditingController(),
-                    hint: 'Select School',
-                    error: schoolError,
-                    onChanged: (value) {
-                      if (value.isEmpty) {
-                        setSheetState(() {
-                          schoolError = 'Please select a school';
-                        });
-                      } else {
-                        setSheetState(() {
-                          schoolError = null;
-                        });
-                      }
-                    },
-                    setSheetState: setSheetState,
-                    items: teams.map((team) => team.name).toList()..sort(),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                buildInputRow(
-                  label: 'Bib #',
-                  inputWidget: buildTextField(
-                    context: context,
-                    controller: bibController ?? TextEditingController(),
-                    hint: '1234',
-                    error: bibError,
-                    onChanged: (value) {
-                      if (value.isEmpty) {
-                        setSheetState(() {
-                          bibError = 'Please enter a bib number';
-                        });
-                      } else if (int.tryParse(value) == null) {
-                        setSheetState(() {
-                          bibError = 'Please enter a valid bib number';
-                        });
-                      } else {
-                        setSheetState(() {
-                          bibError = null;
-                        });
-                      }
-                    },
-                    setSheetState: setSheetState,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: (schoolError != null ||
-                              bibError != null ||
-                              gradeError != null ||
-                              nameError != null ||
-                              nameController == null ||
-                              nameController!.text.isEmpty ||
-                              gradeController!.text.isEmpty ||
-                              schoolController!.text.isEmpty ||
-                              bibController!.text.isEmpty)
-                          ? AppColors.primaryColor
-                              .withAlpha((0.5 * 255).round())
-                          : AppColors.primaryColor,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    onPressed: () async {
-                      print('pressed');
-                      print('schoolError: $schoolError');
-                      print('bibError: $bibError');
-                      print('gradeError: $gradeError');
-                      print('nameError: $nameError');
-                      print('_nameController!.text: ${nameController!.text}');
-                      print('_gradeController!.text: ${gradeController!.text}');
-                      print(
-                          '_schoolController!.text: ${schoolController!.text}');
-                      print('_bibController!.text: ${bibController!.text}');
-                      if (schoolError != null ||
-                          bibError != null ||
-                          gradeError != null ||
-                          nameError != null ||
-                          nameController!.text.isEmpty ||
-                          gradeController!.text.isEmpty ||
-                          schoolController!.text.isEmpty ||
-                          bibController!.text.isEmpty) return;
-                      try {
-                        final newRunner = RunnerRecord(
-                          name: nameController!.text,
-                          grade: int.tryParse(gradeController!.text) ?? 0,
-                          school: schoolController!.text,
-                          bib: bibController!.text,
-                          raceId: raceId,
-                        );
-                        print('newRunner: ${newRunner.toMap()}');
-
-                        await handleRunnerSubmission(newRunner);
-                        if (context.mounted) {
-                          Navigator.pop(context);
-                        }
-                      } catch (e) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Error: $e'),
-                              backgroundColor: Colors.red,
-                              behavior: SnackBarBehavior.floating,
-                            ),
-                          );
-                        }
-                      }
-                    },
-                    child: Text(
-                      runner == null ? 'Create' : 'Save',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+          body: RunnerInputForm(
+            nameController: nameController,
+            gradeController: gradeController,
+            schoolController: schoolController,
+            bibController: bibController,
+            schoolOptions: teams.map((team) => team.name).toList()..sort(),
+            raceId: raceId,
+            initialRunner: runner,
+            onSubmit: (RunnerRecord runner) async {
+              await handleRunnerSubmission(runner);
+            },
+            submitButtonText: runner == null ? 'Create' : 'Save',
+            useSheetLayout: true,
+            showBibField: true,
           ),
           title: title);
     } finally {
@@ -404,6 +232,7 @@ class RunnersManagementController with ChangeNotifier {
     } catch (e) {
       throw Exception('Failed to save runner: $e');
     }
+    Navigator.of(context).pop();
   }
 
   Future<void> insertRunner(RunnerRecord runner) async {
@@ -632,7 +461,9 @@ class RunnersManagementController with ChangeNotifier {
           runner.bib == existingRunner.bib &&
           runner.name == existingRunner.name &&
           runner.school == existingRunner.school &&
-          runner.grade == existingRunner.grade) continue;
+          runner.grade == existingRunner.grade) {
+        continue;
+      }
 
       if (existingRunner != null) {
         overwriteRunners.add(runner);

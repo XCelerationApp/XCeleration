@@ -266,8 +266,9 @@ class MergeConflictsController with ChangeNotifier {
             .indexWhere((record) => record.conflict != null) +
         lastConfirmedIndex +
         1;
-    if (firstConflictingRecordIndex == -1)
+    if (firstConflictingRecordIndex == -1) {
       throw Exception('No conflicting records found');
+    }
 
     final startingIndex = lastConfirmedPlace ?? 0;
     // debugPrint('Starting index: $startingIndex');

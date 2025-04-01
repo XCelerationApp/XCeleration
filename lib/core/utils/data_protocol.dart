@@ -305,8 +305,9 @@ class Protocol {
       // Wait for either completion or termination
       await Future.any([
         Future.doWhile(() async {
-          if (_finishedDevices.contains(deviceId) || _isTerminated)
+          if (_finishedDevices.contains(deviceId) || _isTerminated) {
             return false;
+          }
           await Future.delayed(
               Duration(milliseconds: 100)); // Reduced delay for faster response
           return true;
