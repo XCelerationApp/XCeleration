@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 
 import '../../../core/components/dialog_utils.dart';
 import '../../../core/components/runner_input_form.dart';
-import '../../../core/components/textfield_utils.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../utils/database_helper.dart';
 import '../../../utils/file_processing.dart';
@@ -156,10 +155,6 @@ class RunnersManagementController with ChangeNotifier {
     RunnerRecord? runner,
   }) async {
     final title = runner == null ? 'Add Runner' : 'Edit Runner';
-    String? nameError;
-    String? gradeError;
-    String? schoolError;
-    String? bibError;
 
     // Initialize controllers
     initControllers();

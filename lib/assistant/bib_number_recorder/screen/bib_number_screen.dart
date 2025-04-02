@@ -248,9 +248,8 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
   void dispose() {
     _scrollController.dispose();
     // Use the stored reference instead of accessing Provider in dispose
-    for (var node in _providerReference.focusNodes) {
-      node.removeListener(() {});
-    }
+    _providerReference.dispose();
+    tutorialManager.dispose();
     super.dispose();
   }
 

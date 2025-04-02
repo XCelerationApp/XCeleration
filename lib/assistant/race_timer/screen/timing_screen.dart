@@ -247,6 +247,7 @@ class _TimingScreenState extends State<TimingScreen>
   void dispose() {
     _tabController.dispose();
     _controller.dispose();
+    tutorialManager.dispose();
     super.dispose();
   }
 }
