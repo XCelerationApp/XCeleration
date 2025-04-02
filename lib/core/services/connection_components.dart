@@ -523,8 +523,9 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
 
   Future<void> _deviceConnectingCallback(Device device) async {
     final deviceName = getDeviceNameFromString(device.deviceName);
-    if (widget.otherDevices[deviceName]!['status'] == ConnectionStatus.finished)
+    if (widget.otherDevices[deviceName]!['status'] == ConnectionStatus.finished) {
       return;
+    }
 
     setState(() {
       widget.otherDevices[deviceName]!['status'] = ConnectionStatus.connecting;
@@ -533,8 +534,9 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
 
   Future<void> _deviceConnectedCallback(Device device) async {
     final deviceName = getDeviceNameFromString(device.deviceName);
-    if (widget.otherDevices[deviceName]!['status'] == ConnectionStatus.finished)
+    if (widget.otherDevices[deviceName]!['status'] == ConnectionStatus.finished) {
       return;
+    }
 
     setState(() {
       widget.otherDevices[deviceName]!['status'] = ConnectionStatus.connected;

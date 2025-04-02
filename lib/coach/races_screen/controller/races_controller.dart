@@ -379,7 +379,9 @@ class RacesController with ChangeNotifier {
     distanceController.dispose();
     userlocationController.dispose();
     unitController.dispose();
-    teamControllers.forEach((controller) => controller.dispose());
+    for (var controller in teamControllers) {
+      controller.dispose();
+    }
     teamColors.clear();
     tutorialManager.dispose();
     _context = null;

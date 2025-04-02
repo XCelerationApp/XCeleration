@@ -72,7 +72,9 @@ class _CoachMarkState extends State<CoachMark> {
   void updateTargetRect() {
     if (!mounted ||
         _hasUpdatedRect ||
-        widget.config.type == CoachMarkType.general) return;
+        widget.config.type == CoachMarkType.general) {
+      return;
+    }
 
     final RenderBox? renderBox =
         _targetKey.currentContext?.findRenderObject() as RenderBox?;

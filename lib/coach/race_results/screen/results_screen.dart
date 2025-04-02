@@ -30,7 +30,7 @@ class ResultsScreenState extends State<ResultsScreen> {
     _controller = RaceResultsController(raceId: widget.raceId, dbHelper: DatabaseHelper.instance);
   }
 
-  @override
+  @override 
   Widget build(BuildContext context) {
     return Material(
       color: AppColors.backgroundColor,

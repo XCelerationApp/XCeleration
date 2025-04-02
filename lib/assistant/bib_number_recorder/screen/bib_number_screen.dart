@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:xcelerate/coach/race_screen/widgets/runner_record.dart'
     show RunnerRecord;
-import 'package:xcelerate/utils/database_helper.dart';
 import 'dart:io';
 import '../model/bib_number_model.dart';
 import '../model/bib_records_provider.dart';
