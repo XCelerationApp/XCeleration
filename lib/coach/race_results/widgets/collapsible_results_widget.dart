@@ -3,34 +3,42 @@ import '../../../core/theme/typography.dart';
 import '../model/results_record.dart';
 import '../model/team_record.dart';
 
+/// A widget that displays a collapsible list of race results
+/// Can handle both individual results (ResultsRecord) and team results (TeamRecord)
 class CollapsibleResultsWidget extends StatefulWidget {
   final List<dynamic> results;
   final int initialVisibleCount;
-  const CollapsibleResultsWidget(
-      {super.key, required this.results, this.initialVisibleCount = 5});
+  
+  const CollapsibleResultsWidget({
+    super.key, 
+    required this.results, 
+    this.initialVisibleCount = 5
+  });
 
   @override
-  State<CollapsibleResultsWidget> createState() =>
-      _CollapsibleResultsWidgetState();
+  State<CollapsibleResultsWidget> createState() => _CollapsibleResultsWidgetState();
 }
 
 class _CollapsibleResultsWidgetState extends State<CollapsibleResultsWidget> {
   bool isExpanded = false;
-
-  List<dynamic> displayResults = [];
+  late List<dynamic> displayResults;
 
   @override
   void initState() {
     super.initState();
-    displayResults = widget.results.take(widget.initialVisibleCount).toList();
+    _updateDisplayResults();
+  }
+  
+  void _updateDisplayResults() {
+    displayResults = isExpanded
+        ? widget.results
+        : widget.results.take(widget.initialVisibleCount).toList();
   }
 
   void toggleExpansion() {
     setState(() {
       isExpanded = !isExpanded;
-      displayResults = isExpanded
-          ? widget.results
-          : widget.results.take(widget.initialVisibleCount).toList();
+      _updateDisplayResults();
     });
   }
 
@@ -45,115 +53,120 @@ class _CollapsibleResultsWidgetState extends State<CollapsibleResultsWidget> {
     bool isTeamResults = widget.results.first is TeamRecord;
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8.0),
-          child: isTeamResults
-              ? _buildTeamResultsHeader()
-              : _buildIndividualResultsHeader(),
-        ),
-        ListView.builder(
-          physics: const NeverScrollableScrollPhysics(),
-          shrinkWrap: true,
-          itemCount: displayResults.length,
-          itemBuilder: (context, index) {
-            final item = displayResults[index];
-            // Use subtle alternate row colors for better readability
-            final backgroundColor = index % 2 == 0
-                ? Colors.transparent
-                : Colors.grey.withOpacity(0.05);
+        // Display the appropriate header
+        isTeamResults 
+            ? _buildTeamResultsHeader() 
+            : _buildIndividualResultsHeader(),
+        
+        const SizedBox(height: 8),
+        
+        // Display results rows
+        ...displayResults.map((item) {
+          final index = displayResults.indexOf(item);
+          // Use subtle alternate row colors for better readability
+          final backgroundColor = index % 2 == 0
+              ? Colors.transparent
+              : Colors.grey.withOpacity(0.05);
 
-            return Container(
-              color: backgroundColor,
-              padding: const EdgeInsets.symmetric(vertical: 6.0),
-              child: isTeamResults
-                  ? _buildTeamResultRow(item as TeamRecord)
-                  : _buildIndividualResultRow(item as ResultsRecord),
-            );
-          },
-        ),
-        if (widget.results.length > widget.initialVisibleCount) ...[
-          const SizedBox(height: 16),
-          Container(
-            alignment: Alignment.centerRight,
-            child: TextButton(
-              onPressed: toggleExpansion,
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.grey[600],
-              ),
-              child: Text(
-                isExpanded ? 'See Less' : 'See More',
-                style: AppTypography.smallBodyRegular,
+          return Container(
+            color: backgroundColor,
+            padding: const EdgeInsets.symmetric(vertical: 6.0),
+            child: isTeamResults
+                ? _buildTeamResultRow(item as TeamRecord)
+                : _buildIndividualResultRow(item as ResultsRecord),
+          );
+        }).toList(),
+        
+        // "See more"/"See less" button if needed
+        if (widget.results.length > widget.initialVisibleCount) 
+          Padding(
+            padding: const EdgeInsets.only(top: 16.0),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: toggleExpansion,
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.grey[600],
+                ),
+                child: Text(
+                  isExpanded ? 'See Less' : 'See More',
+                  style: AppTypography.smallBodyRegular,
+                ),
               ),
             ),
           ),
-        ],
       ],
     );
   }
 
   Widget _buildIndividualResultsHeader() {
-    return const Row(
-      children: [
-        SizedBox(
-            width: 50, child: Text('Place', style: AppTypography.bodySemibold)),
-        Expanded(
-            flex: 1, child: Text('Name', style: AppTypography.bodySemibold)),
-        Expanded(
-            flex: 1, child: Text('School', style: AppTypography.bodySemibold)),
-        Expanded(
-            flex: 1, child: Text('Time', style: AppTypography.bodySemibold)),
-      ],
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 50, 
+            child: Text('Place', style: AppTypography.bodySemibold)
+          ),
+          Expanded(
+            child: Text('Name', style: AppTypography.bodySemibold)
+          ),
+          Expanded(
+            child: Text('School', style: AppTypography.bodySemibold)
+          ),
+          SizedBox(
+            width: 70, 
+            child: Text('Time', style: AppTypography.bodySemibold)
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildTeamResultsHeader() {
-    return const Row(
-      children: [
-        SizedBox(
-            width: 50, child: Text('Place', style: AppTypography.bodySemibold)),
-        Expanded(
-            flex: 1, child: Text('School', style: AppTypography.bodySemibold)),
-        Expanded(
-            flex: 1, child: Text('Score', style: AppTypography.bodySemibold)),
-        Expanded(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 50, 
+            child: Text('Place', style: AppTypography.bodySemibold)
+          ),
+          Expanded(
             flex: 2,
-            child: Text('Scorer Places', style: AppTypography.bodySemibold)),
-      ],
+            child: Text('School', style: AppTypography.bodySemibold)
+          ),
+          Expanded(
+            flex: 3,
+            child: Text('Places', style: AppTypography.bodySemibold)
+          ),
+          SizedBox(
+            width: 70, 
+            child: Text('Score', style: AppTypography.bodySemibold)
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildIndividualResultRow(ResultsRecord runner) {
+  Widget _buildIndividualResultRow(ResultsRecord result) {
     return Row(
       children: [
         SizedBox(
           width: 50,
-          child: Text(
-            '${runner.place}',
-            style: AppTypography.bodyRegular,
-          ),
+          child: Text('${result.place}', style: AppTypography.bodyRegular),
         ),
         Expanded(
-          flex: 3,
-          child: Text(
-            runner.name,
-            style: AppTypography.bodyRegular,
-          ),
+          child: Text(result.name, style: AppTypography.bodyRegular, overflow: TextOverflow.ellipsis)
         ),
         Expanded(
-          flex: 2,
-          child: Text(
-            runner.school,
-            style: AppTypography.bodyRegular,
-            overflow: TextOverflow.ellipsis,
-          ),
+          child: Text(result.school, style: AppTypography.bodyRegular, overflow: TextOverflow.ellipsis)
         ),
-        Expanded(
-          flex: 1,
-          child: Text(
-            runner.formattedFinishTime,
-            style: AppTypography.bodyRegular,
-          ),
+        SizedBox(
+          width: 70,
+          child: Text(result.formattedFinishTime, style: AppTypography.bodyRegular),
         ),
       ],
     );
@@ -164,38 +177,28 @@ class _CollapsibleResultsWidgetState extends State<CollapsibleResultsWidget> {
     final scorerPlaces = team.scorers.isEmpty
         ? 'N/A'
         : team.scorers.map((scorer) => scorer.place.toString()).join(', ');
-
+        
     return Row(
       children: [
         SizedBox(
           width: 50,
-          child: Text(
-            team.place?.toString() ?? '-',
-            style: AppTypography.bodyRegular,
-          ),
-        ),
-        Expanded(
-          flex: 1,
-          child: Text(
-            team.school,
-            style: AppTypography.bodyRegular,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        Expanded(
-          flex: 1,
-          child: Text(
-            team.score.toString(),
-            style: AppTypography.bodyRegular,
-          ),
+          child: Text(team.place != null ? '${team.place}' : '-', style: AppTypography.bodyRegular),
         ),
         Expanded(
           flex: 2,
+          child: Text(team.school, style: AppTypography.bodyRegular, overflow: TextOverflow.ellipsis)
+        ),
+        Expanded(
+          flex: 3,
           child: Text(
-            scorerPlaces,
+            scorerPlaces, 
             style: AppTypography.bodyRegular,
-            overflow: TextOverflow.ellipsis,
-          ),
+            overflow: TextOverflow.ellipsis
+          )
+        ),
+        SizedBox(
+          width: 70,
+          child: Text('${team.score}', style: AppTypography.bodyRegular),
         ),
       ],
     );

@@ -1,31 +1,31 @@
 import 'package:flutter/material.dart';
-import 'package:xcelerate/coach/merge_conflicts/model/timing_data.dart';
-import '../../../../../race_screen/widgets/runner_record.dart'
-    show RunnerRecord;
 import 'review_header.dart';
 import 'results_table.dart';
+import '../../../../../race_results/model/results_record.dart';
 
+/// Widget that displays the review of race results
 class ResultsReviewWidget extends StatelessWidget {
-  final TimingData? timingData;
-  final List<RunnerRecord>? runnerRecords;
+  /// The race results to display
+  final List<ResultsRecord> results;
 
   const ResultsReviewWidget({
     super.key,
-    required this.timingData,
-    required this.runnerRecords,
+    required this.results,
   });
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const ReviewHeader(),
-            ResultsTable(timingData: timingData),
-          ],
-        ),
+    // Simple vertical layout without unnecessary nesting
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const ReviewHeader(),
+          const SizedBox(height: 16),
+          ResultsTable(results: results),
+        ],
       ),
     );
   }

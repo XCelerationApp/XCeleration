@@ -1,8 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
-import 'package:xcelerate/coach/merge_conflicts/model/timing_data.dart';
 import 'package:xcelerate/assistant/race_timer/model/timing_record.dart';
-import 'package:xcelerate/utils/enums.dart' show RecordType;
 import '../../../shared/models/race.dart';
 import 'package:flutter/foundation.dart';
 
@@ -29,7 +27,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -84,8 +82,12 @@ class DatabaseHelper {
         result_id INTEGER PRIMARY KEY AUTOINCREMENT,
         race_id INTEGER NOT NULL,
         runner_id INTEGER NOT NULL,
+        bib_number TEXT,
         place INTEGER,
         finish_time TEXT,
+        name TEXT,
+        school TEXT,
+        grade INTEGER,
         FOREIGN KEY (race_id) REFERENCES races(race_id)
         FOREIGN KEY (runner_id) REFERENCES race_runners (runner_id)
       )
@@ -124,13 +126,13 @@ class DatabaseHelper {
     //     )
     //   ''');
     // }
-
+    
     // Add version 3 upgrade to rename the column
     if (oldVersion < 3) {
       try {
         // SQLite doesn't directly support column renaming in older versions
         // We need to create a new table with the correct structure and copy data
-
+        
         // 1. Create a temporary table with the new structure
         await db.execute('''
           CREATE TABLE race_runners_new (
@@ -144,19 +146,19 @@ class DatabaseHelper {
             UNIQUE(race_id, bib_number)
           )
         ''');
-
+        
         // 2. Copy data from the old table to the new one, mapping race_runner_id to runner_id
         await db.execute('''
           INSERT INTO race_runners_new (runner_id, race_id, bib_number, name, school, grade)
           SELECT race_runner_id, race_id, bib_number, name, school, grade FROM race_runners
         ''');
-
+        
         // 3. Drop the old table
         await db.execute('DROP TABLE race_runners');
-
+        
         // 4. Rename the new table to the original name
         await db.execute('ALTER TABLE race_runners_new RENAME TO race_runners');
-
+        
         print('Successfully migrated race_runners table with renamed column');
       } catch (e) {
         print('Error during migration: $e');
@@ -181,6 +183,7 @@ class DatabaseHelper {
     );
   }
 
+
   Future<List<RunnerRecord>> getAllTeamRunners() async {
     final db = await instance.database;
     final List<Map<String, dynamic>> maps = await db.query('team_runners');
@@ -199,6 +202,7 @@ class DatabaseHelper {
     return results.isNotEmpty ? RunnerRecord.fromMap(results.first) : null;
   }
 
+  
   // Delete a team runner
   Future<int> deleteTeamRunner(String bib) async {
     final db = await instance.database;
@@ -209,12 +213,13 @@ class DatabaseHelper {
     );
   }
 
+
   // Races Methods
   Future<int> insertRace(Race race) async {
     final db = await instance.database;
     return await db.insert('races', race.toMap(database: true));
   }
-
+  
   Future<int> updateRace(Race race) async {
     final db = await instance.database;
     return await db.update(
@@ -233,7 +238,7 @@ class DatabaseHelper {
     );
 
     List<Race> result = [];
-
+    
     for (var map in maps) {
       result.add(Race.fromJson(map));
     }
@@ -248,9 +253,9 @@ class DatabaseHelper {
       where: 'race_id = ?',
       whereArgs: [id],
     );
-
+    
     if (results.isEmpty) return null;
-
+    
     return Race.fromJson(results.first);
   }
 
@@ -260,8 +265,7 @@ class DatabaseHelper {
     return await db.insert(
       'race_runners',
       runner.toMap(database: true),
-      conflictAlgorithm:
-          ConflictAlgorithm.replace, // Replace if bib number exists in race
+      conflictAlgorithm: ConflictAlgorithm.replace, // Replace if bib number exists in race
     );
   }
 
@@ -278,10 +282,12 @@ class DatabaseHelper {
 
   Future<String> getEncodedRunnersData(int raceId) async {
     final runners = await getRaceRunners(raceId);
-    return runners
-        .map((runner) =>
-            [runner.bib, runner.name, runner.school, runner.grade].join(','))
-        .join(' ');
+    return runners.map((runner) => [
+      runner.bib,
+      runner.name,
+      runner.school,
+      runner.grade
+    ].join(',')).join(' ');
   }
 
   Future<RunnerRecord?> getRaceRunnerByBib(int raceId, String bibNumber) async {
@@ -292,13 +298,11 @@ class DatabaseHelper {
       whereArgs: [raceId, bibNumber],
     );
 
-    final Map<String, dynamic>? runner =
-        results.isNotEmpty ? results.first : null;
+    final Map<String, dynamic>? runner = results.isNotEmpty ? results.first : null;
     return runner == null ? null : RunnerRecord.fromMap(runner);
   }
 
-  Future<List<RunnerRecord>> getRaceRunnersByBibs(
-      int raceId, List<String> bibNumbers) async {
+  Future<List<RunnerRecord>> getRaceRunnersByBibs(int raceId, List<String> bibNumbers) async {
     List<RunnerRecord> results = [];
     for (int i = 0; i < bibNumbers.length; i++) {
       final runner = await getRaceRunnerByBib(raceId, bibNumbers[i]);
@@ -309,6 +313,7 @@ class DatabaseHelper {
     }
     return results;
   }
+
 
   Future<void> updateRaceRunner(RunnerRecord runner) async {
     final db = await instance.database;
@@ -329,14 +334,12 @@ class DatabaseHelper {
     );
   }
 
-  Future<List<RunnerRecord>> searchRaceRunners(int raceId, String query,
-      [String searchParameter = 'all']) async {
+  Future<List<RunnerRecord>> searchRaceRunners(int raceId, String query, [String searchParameter = 'all']) async {
     final db = await instance.database;
     String whereClause;
     List<dynamic> whereArgs = [raceId, '%$query%'];
     if (searchParameter == 'all') {
-      whereClause =
-          'race_id = ? AND (name LIKE ? OR grade LIKE ? OR bib_number LIKE ?)';
+      whereClause = 'race_id = ? AND (name LIKE ? OR grade LIKE ? OR bib_number LIKE ?)';
       whereArgs.add('%$query%');
       whereArgs.add('%$query%');
     } else {
@@ -348,20 +351,6 @@ class DatabaseHelper {
       whereArgs: whereArgs,
     );
     return results.map((map) => RunnerRecord.fromMap(map)).toList();
-  }
-
-  Future<void> insertRaceResult(RunnerRecord result) async {
-    // Check if the runner exists in team runners or race runners
-    bool runnerExists =
-        result.runnerId == null ? false : await _runnerExists(result.runnerId!);
-    final db = await instance.database;
-
-    if (runnerExists) {
-      // Insert into race_results
-      await db.insert('race_results', result.toMap());
-    } else {
-      throw Exception('Runner does not exist in either database.');
-    }
   }
 
   Future<bool> _runnerExists(int raceRunnerId) async {
@@ -401,29 +390,28 @@ class DatabaseHelper {
   Future<List<ResultsRecord>> getRaceResults(int raceId) async {
     final db = await instance.database;
     late final List<Map<String, dynamic>>? rawResults;
-
+    
     try {
-      // Use the correct column name runner_id instead of race_runner_id
+      // Simplified query to directly get results from race_results table
       rawResults = await db.rawQuery('''
         SELECT 
-          rr.runner_id AS runner_id, 
-          rr.bib_number, 
-          rr.name, 
-          rr.school, 
-          rr.grade, 
-          r.place, 
-          r.finish_time
-        FROM race_results r
-        LEFT JOIN race_runners rr ON rr.runner_id = r.runner_id
-        WHERE rr.race_id = ?
-      ''', [raceId]);
+          runner_id, 
+          bib_number, 
+          name, 
+          school, 
+          grade, 
+          place, 
+          finish_time
+        FROM race_results
+        WHERE race_id = ?
+      ''', [raceId]); 
     } catch (e) {
       print('Query error: $e');
     }
     if (rawResults != null && rawResults.isNotEmpty) {
       final results = rawResults.map((r) => ResultsRecord.fromMap(r)).toList();
       results.sort((a, b) => a.finishTime.compareTo(b.finishTime));
-      // return results;
+      return results;
     }
     // Fallback to test data if query fails or for other race IDs
     List<ResultsRecord> results = [];
@@ -448,6 +436,8 @@ class DatabaseHelper {
     return results.map((r) => TimingRecord.fromMap(r, database: true)).toList();
   }
 
+
+
   Future<String> getRaceState(int raceId, {race}) async {
     final raceResults = await instance.getRaceResults(raceId);
     if (raceResults.isEmpty) return 'in_progress';
@@ -465,7 +455,7 @@ class DatabaseHelper {
   }
 
   // Save race results
-  Future<void> saveRaceResults(int raceId, TimingData timingData) async {
+  Future<void> saveRaceResults(int raceId, List<ResultsRecord> resultRecords) async {
     final db = await instance.database;
 
     try {
@@ -475,16 +465,15 @@ class DatabaseHelper {
         where: 'race_id = ?',
         whereArgs: [raceId],
       );
-
+      
       // Then insert all the new results
       final batch = db.batch();
-      for (final result in timingData.raceResults) {
+      for (final result in resultRecords) {
         batch.insert('race_results', result.toMap());
       }
       await batch.commit();
-
-      print(
-          'Successfully saved ${timingData.raceResults.length} race results for race $raceId');
+      
+      print('Successfully saved ${resultRecords.length} race results for race $raceId');
     } catch (e) {
       print('Error saving race results: $e');
       rethrow;
@@ -492,42 +481,18 @@ class DatabaseHelper {
   }
 
   // Get race results
-  Future<TimingData?> getRaceResultsData(int raceId) async {
+  Future<List<ResultsRecord>?> getRaceResultsData(int raceId) async {
     final db = await instance.database;
-
+    
     final results = await db.query(
       'race_results',
       where: 'race_id = ?',
       whereArgs: [raceId],
     );
-
+    
     if (results.isEmpty) return null;
-
-    final raceResults = results.map((r) => RaceResult.fromMap(r)).toList();
-    final runnerRecords = await getRaceRunners(raceId);
-    final endTime = raceResults.last.finishTime;
-    final timingData = TimingData(
-      records: [],
-      startTime: null,
-      endTime: endTime,
-    );
-
-    for (final result in raceResults) {
-      final runner =
-          runnerRecords.firstWhere((r) => r.runnerId == result.runnerId);
-
-      timingData.mergeRunnerData(
-          TimingRecord(
-            elapsedTime: result.finishTime,
-            isConfirmed: true,
-            conflict: null,
-            type: RecordType.runnerTime,
-            place: result.place,
-            textColor: null,
-          ),
-          runner);
-    }
-    return timingData;
+    
+    return results.map((r) => ResultsRecord.fromMap(r)).toList();
   }
 
   // Cleanup Methods
@@ -535,10 +500,8 @@ class DatabaseHelper {
     final db = await instance.database;
     await db.transaction((txn) async {
       // Delete related records first
-      await txn
-          .delete('race_results', where: 'race_id = ?', whereArgs: [raceId]);
-      await txn
-          .delete('race_runners', where: 'race_id = ?', whereArgs: [raceId]);
+      await txn.delete('race_results', where: 'race_id = ?', whereArgs: [raceId]);
+      await txn.delete('race_runners', where: 'race_id = ?', whereArgs: [raceId]);
       await txn.delete('races', where: 'race_id = ?', whereArgs: [raceId]);
     });
   }
@@ -556,19 +519,17 @@ class DatabaseHelper {
     final db = await instance.database;
     await db.transaction((txn) async {
       // Delete related race results first (due to foreign key constraint)
-      await txn
-          .delete('race_results', where: 'race_id = ?', whereArgs: [raceId]);
+      await txn.delete('race_results', where: 'race_id = ?', whereArgs: [raceId]);
       // Then delete all runners for this race
-      await txn
-          .delete('race_runners', where: 'race_id = ?', whereArgs: [raceId]);
+      await txn.delete('race_runners', where: 'race_id = ?', whereArgs: [raceId]);
     });
   }
-
+  
   Future<void> clearTeamRunners() async {
     final db = await instance.database;
-    await db.rawUpdate(
-        'UPDATE team_runners SET name = \'\', school = \'\', grade = 0, bib_number = 0');
+    await db.rawUpdate('UPDATE team_runners SET name = \'\', school = \'\', grade = 0, bib_number = 0');
   }
+
 
   Future<void> deleteDatabase() async {
     debugPrint('deleting database');

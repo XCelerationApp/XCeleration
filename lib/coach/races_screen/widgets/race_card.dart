@@ -111,104 +111,102 @@ class RaceCard extends StatelessWidget {
           child: InkWell(
             onTap: () =>
                 RaceScreenController.showRaceScreen(context, race.race_id),
-            child: Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(
-                    left: 24.0, right: 24.0, top: 16.0, bottom: 16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            race.raceName,
-                            style: AppTypography.headerSemibold,
-                          ),
+            child: Padding(
+              padding: const EdgeInsets.only(
+                  left: 24.0, right: 24.0, top: 16.0, bottom: 16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          race.raceName,
+                          style: AppTypography.headerSemibold,
                         ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color:
+                              flowStateColor.withAlpha((0.1 * 255).round()),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
                             color:
-                                flowStateColor.withAlpha((0.1 * 255).round()),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color:
-                                  flowStateColor.withAlpha((0.5 * 255).round()),
-                              width: 1,
-                            ),
-                          ),
-                          child: Text(
-                            flowStateText,
-                            style: TextStyle(
-                              color: flowStateColor,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
+                                flowStateColor.withAlpha((0.5 * 255).round()),
+                            width: 1,
                           ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.location_on,
-                          size: 20,
-                          color: primaryColor,
+                        child: Text(
+                          flowStateText,
+                          style: TextStyle(
+                            color: flowStateColor,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            race.location,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.location_on,
+                        size: 20,
+                        color: primaryColor,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          race.location,
+                          style: AppTypography.bodyRegular
+                              .copyWith(color: Colors.black54),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.calendar_today,
+                            size: 20,
+                            color: primaryColor,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            DateFormat('MMM d, y').format(race.race_date),
                             style: AppTypography.bodyRegular
                                 .copyWith(color: Colors.black54),
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.calendar_today,
-                              size: 20,
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.straighten_rounded,
+                            size: 20,
+                            color: primaryColor,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${race.distance} ${race.distanceUnit}',
+                            style: AppTypography.headerSemibold.copyWith(
                               color: primaryColor,
                             ),
-                            const SizedBox(width: 8),
-                            Text(
-                              DateFormat('MMM d, y').format(race.race_date),
-                              style: AppTypography.bodyRegular
-                                  .copyWith(color: Colors.black54),
-                            ),
-                          ],
-                        ),
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.straighten_rounded,
-                              size: 20,
-                              color: primaryColor,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              '${race.distance} ${race.distanceUnit}',
-                              style: AppTypography.headerSemibold.copyWith(
-                                color: primaryColor,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),

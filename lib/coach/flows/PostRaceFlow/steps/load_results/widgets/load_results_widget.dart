@@ -1,35 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:xcelerate/core/components/device_connection_widget.dart';
-import 'package:xcelerate/core/services/device_connection_service.dart';
 import 'conflict_button.dart';
 import 'success_message.dart';
 import 'reload_button.dart';
+import '../controller/load_results_controller.dart';
 
 /// Widget that handles loading and displaying race results
-class LoadResultsWidget extends StatefulWidget {
-  /// Whether race results have been loaded
-  final bool resultsLoaded;
-
-  /// Whether there are bib conflicts in the loaded results
-  final bool hasBibConflicts;
-
-  /// Whether there are timing conflicts in the loaded results
-  final bool hasTimingConflicts;
-
-  /// Map of connected devices and their data
-  final DevicesManager devices;
-
-  /// Function to call when reload button is pressed
-  final VoidCallback onReloadPressed;
-
-  /// Function to call when bib conflicts button is pressed
-  final Function(BuildContext) onBibConflictsPressed;
-
-  /// Function to call when timing conflicts button is pressed
-  final Function(BuildContext) onTimingConflictsPressed;
-
-  /// Function to call when results are loaded from devices
-  final Function(BuildContext) onResultsLoaded;
+class LoadResultsWidget extends StatelessWidget {
+  /// Controller for loading and managing race results
+  final LoadResultsController controller;
 
   /// Whether to immediately load test data (for development/testing)
   final bool testMode;
@@ -39,96 +18,56 @@ class LoadResultsWidget extends StatefulWidget {
 
   const LoadResultsWidget({
     super.key,
-    required this.resultsLoaded,
-    required this.hasBibConflicts,
-    required this.hasTimingConflicts,
-    required this.devices,
-    required this.onReloadPressed,
-    required this.onBibConflictsPressed,
-    required this.onTimingConflictsPressed,
-    required this.onResultsLoaded,
+    required this.controller,
     this.closeWhenDone = false,
     this.testMode = false,
   });
 
   @override
-  State<LoadResultsWidget> createState() => _LoadResultsWidgetState();
-}
-
-class _LoadResultsWidgetState extends State<LoadResultsWidget> {
-  @override
-  void initState() {
-    super.initState();
-
-    // Automatically load test data if in test mode
-    if (widget.testMode && !widget.resultsLoaded) {
-      // Use a small delay to ensure the widget is fully built
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          print('Loading test data...');
-          widget.onResultsLoaded(context);
-        }
-      });
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return Container(
-      // constraints: const BoxConstraints(maxWidth: 600),
+    return Padding(
       padding: const EdgeInsets.symmetric(vertical: 16),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (!widget.testMode)
-            Center(
-              child: deviceConnectionWidget(
-                context,
-                widget.devices,
-                callback: () => widget.onResultsLoaded(context),
-                inSheet: widget.closeWhenDone,
-              ),
-            )
-          else if (!widget.resultsLoaded)
-            Center(
-              child: Column(
-                children: [
-                  const CircularProgressIndicator(),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Loading test data...',
-                    style: Theme.of(context).textTheme.bodyLarge,
-                  ),
-                ],
-              ),
-            ),
+          // Display device connection widget
+          deviceConnectionWidget(
+            context,
+            controller.devices,
+            callback: () => controller.processReceivedData(context),
+            inSheet: closeWhenDone,
+          ),
+            
           const SizedBox(height: 24),
-          if (widget.resultsLoaded) ...[
-            if (widget.hasBibConflicts) ...[
+          
+          // Display conflicts or success message
+          if (controller.resultsLoaded) ...[
+            if (controller.hasBibConflicts)
               ConflictButton(
                 title: 'Bib Numbers Not Found',
                 description:
                     'Some runners have unfound bib numbers. Please resolve these conflicts before proceeding.',
                 buttonText: 'Resolve Bib Numbers',
-                onPressed: () => widget.onBibConflictsPressed(context),
-              ),
-            ] else if (widget.hasTimingConflicts) ...[
+                onPressed: () => controller.showBibConflictsSheet(context),
+              )
+            else if (controller.hasTimingConflicts)
               ConflictButton(
-                title: 'Timing Cofnflicts',
+                title: 'Timing Conflicts',
                 description:
                     'There are conflicts in the race timing data. Please review and resolve these conflicts.',
                 buttonText: 'Resolve Timing Conflicts',
-                onPressed: () => widget.onTimingConflictsPressed(context),
-              ),
-            ],
-            if (!widget.hasBibConflicts && !widget.hasTimingConflicts) ...[
+                onPressed: () => controller.showTimingConflictsSheet(context),
+              )
+            else
               const SuccessMessage(),
-            ],
+              
             const SizedBox(height: 16),
           ],
-          if (widget.resultsLoaded)
-            ReloadButton(onPressed: widget.onReloadPressed)
+          
+          // Reload button
+          if (controller.resultsLoaded)
+            ReloadButton(onPressed: controller.resetDevices)
           else
             const SizedBox.shrink(),
         ],

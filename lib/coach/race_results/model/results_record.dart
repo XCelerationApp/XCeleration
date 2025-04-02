@@ -40,6 +40,17 @@ class ResultsRecord {
     _finishTime = value;
   }
 
+  Map<String, dynamic> toMap() {
+    return {
+      'place': place,
+      'name': name,
+      'school': school,
+      'grade': grade,
+      'bib_number': bib,
+      'finish_time': TimeFormatter.formatDuration(_finishTime),
+    };
+  }
+
   factory ResultsRecord.fromMap(Map<String, dynamic> map) {
     return ResultsRecord(
       place: map['place'] ?? 0,

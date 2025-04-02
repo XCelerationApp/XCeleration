@@ -20,7 +20,7 @@ class ReviewHeader extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         Text(
-          'Make sure all times and placements are correct.',
+          'Make sure all times and placements are correct. When you click next, you will not be able to reload or modify the results.',
           style: AppTypography.bodyRegular
               .copyWith(color: AppColors.darkColor.withOpacity(0.7)),
           textAlign: TextAlign.center,
