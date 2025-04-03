@@ -77,7 +77,7 @@ class _CollapsibleResultsWidgetState extends State<CollapsibleResultsWidget> {
                 ? _buildTeamResultRow(item as TeamRecord)
                 : _buildIndividualResultRow(item as ResultsRecord),
           );
-        }).toList(),
+        }),
         
         // "See more"/"See less" button if needed
         if (widget.results.length > widget.initialVisibleCount) 
