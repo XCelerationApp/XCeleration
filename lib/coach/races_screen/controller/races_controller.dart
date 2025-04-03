@@ -9,8 +9,13 @@ import 'package:xcelerate/utils/database_helper.dart' show DatabaseHelper;
 import 'package:xcelerate/utils/sheet_utils.dart' show sheet;
 import '../../../shared/models/race.dart';
 import '../../../core/services/tutorial_manager.dart';
+import '../../../core/services/event_bus.dart';
+import 'dart:async';
 
 class RacesController with ChangeNotifier {
+  // Subscription to event bus events
+  StreamSubscription? _eventSubscription;
+
   List<Race> races = [];
   bool isLocationButtonVisible = true;
   final TextEditingController nameController = TextEditingController();
@@ -54,6 +59,12 @@ class RacesController with ChangeNotifier {
     teamColors.add(Colors.white);
     unitController.text = 'mi';
     setupTutorials();
+    
+    // Subscribe to race flow state change events
+    _eventSubscription = EventBus.instance.on(EventTypes.raceFlowStateChanged, (event) {
+      // Reload races when any race's flow state changes
+      loadRaces();
+    });
   }
 
   Future<void> loadRaces() async {
@@ -385,6 +396,7 @@ class RacesController with ChangeNotifier {
     teamColors.clear();
     tutorialManager.dispose();
     _context = null;
+    _eventSubscription?.cancel();
     super.dispose();
   }
 }

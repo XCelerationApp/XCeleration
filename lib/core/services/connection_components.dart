@@ -6,7 +6,6 @@ import 'dart:async';
 import 'package:flutter_nearby_connections/flutter_nearby_connections.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:barcode_scan2/barcode_scan2.dart';
 import '../services/device_connection_service.dart';
 import '../utils/data_protocol.dart';
 import '../components/dialog_utils.dart';
@@ -338,36 +337,52 @@ class _QRConnectionState extends State<QRConnectionWidget> {
 
   Future<void> _scanQRCodes() async {
     try {
-      final result = await BarcodeScanner.scan();
-      if (!mounted) return;
+      // Create a method channel directly to ensure we have control over the plugin communication
+      const platform = MethodChannel('de.mintware.barcode_scan/scan');
+      
+      // Configure scan options as a Map
+      final Map<String, dynamic> options = {
+        'restrictFormat': [0], // 0 = QR Code format
+        'useCamera': -1,       // Use default camera
+        'autoEnableFlash': false
+      };
+      
+      // Invoke the platform method directly instead of using plugin method
+      final result = await platform.invokeMethod('scan', options);
+      
+      // Process the raw result
+      if (result != null && result is Map) {
+        if (result['type'] == 'Barcode') {
+          final rawContent = result['rawContent']?.toString() ?? '';
+          if (rawContent.isNotEmpty) {
+            final parts = rawContent.split(':');
+            
+            DeviceName? scannedDeviceName;
+            try {
+              scannedDeviceName = widget.otherDevices.keys.firstWhere(
+                  (element) => getDeviceNameString(element) == parts[0]);
+            } catch (e) {
+              // No match found, scanDeviceName remains null
+            }
 
-      if (result.type == ResultType.Barcode) {
-        final parts = result.rawContent.split(':');
-
-        DeviceName? scannedDeviceName;
-        try {
-          scannedDeviceName = widget.otherDevices.keys.firstWhere(
-              (element) => getDeviceNameString(element) == parts[0]);
-        } catch (e) {
-          // No match found, scanDeviceName remains null
+            if (parts.isEmpty || scannedDeviceName == null) {
+              DialogUtils.showErrorDialog(context,
+                  message: 'Incorrect QR Code Scanned');
+              return;
+            }
+            try {
+              await _audioPlayer.play(AssetSource('sounds/completed_ding.mp3'));
+            } catch (e) {
+              debugPrint('Error playing completion sound: $e');
+            }
+            setState(() {
+              widget.otherDevices[scannedDeviceName]!['status'] =
+                  ConnectionStatus.finished;
+              widget.otherDevices[scannedDeviceName]!['data'] =
+                  parts.sublist(1).join(':');
+            });
+          }
         }
-
-        if (parts.isEmpty || scannedDeviceName == null) {
-          DialogUtils.showErrorDialog(context,
-              message: 'Incorrect QR Code Scanned');
-          return;
-        }
-        try {
-          await _audioPlayer.play(AssetSource('sounds/completed_ding.mp3'));
-        } catch (e) {
-          debugPrint('Error playing completion sound: $e');
-        }
-        setState(() {
-          widget.otherDevices[scannedDeviceName]!['status'] =
-              ConnectionStatus.finished;
-          widget.otherDevices[scannedDeviceName]!['data'] =
-              parts.sublist(1).join(':');
-        });
       }
     } on MissingPluginException {
       if (!mounted) return;

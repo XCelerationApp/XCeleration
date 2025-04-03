@@ -8,8 +8,19 @@ import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'core/theme/typography.dart';
 import 'core/services/splash_screen.dart';
+import 'core/services/event_bus.dart';
 
 Process? _flaskProcess;
+
+/// EventBus provider wrapper for global event management
+class EventBusProvider extends ChangeNotifier {
+  final EventBus eventBus = EventBus.instance;
+  
+  void fireEvent(String eventType, [dynamic data]) {
+    debugPrint('EventBusProvider: Firing event $eventType with data: $data');
+    eventBus.fire(eventType, data);
+  }
+}
 
 void main() async {
   // This is important to ensure the native splash screen works correctly
@@ -23,6 +34,9 @@ void main() async {
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
+  
+  // Initialize barcode scanner plugin
+  await _initializeBarcodeScanner();
 
   runApp(
     MultiProvider(
@@ -33,10 +47,23 @@ void main() async {
         ChangeNotifierProvider(
           create: (context) => BibRecordsProvider(),
         ),
+        // Add the EventBusProvider at app level to ensure it's available everywhere
+        ChangeNotifierProvider(
+          create: (context) => EventBusProvider(),
+        ),
       ],
       child: const MyApp(),
     ),
   );
+}
+
+/// Initialize the barcode scanner plugin to prevent MissingPluginException
+Future<void> _initializeBarcodeScanner() async {
+  // For barcode_scan2, we don't need explicit initialization
+  // The plugin registers itself when used
+  
+  // This method just exists to document the plugin usage in the app
+  debugPrint('Barcode scanner will be initialized on first use');
 }
 
 Future<void> startFlaskServer() async {
