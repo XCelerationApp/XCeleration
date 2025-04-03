@@ -12,11 +12,11 @@ import 'package:xcelerate/coach/resolve_bib_number_screen/widgets/bib_conflicts_
 import 'package:xcelerate/coach/merge_conflicts/screen/merge_conflicts_screen.dart';
 
 /// Controller that manages loading and processing of race results
-class LoadResultsController {
+class LoadResultsController with ChangeNotifier {
   final int raceId;
-  bool resultsLoaded = false;
-  bool hasBibConflicts = false;
-  bool hasTimingConflicts = false;
+  bool _resultsLoaded = false;
+  bool _hasBibConflicts = false;
+  bool _hasTimingConflicts = false;
   List<ResultsRecord> results = [];
   TimingData? timingData;
   List<RunnerRecord>? runnerRecords;
@@ -37,6 +37,25 @@ class LoadResultsController {
       loadResults();
     });
   }
+  
+  bool get resultsLoaded => _resultsLoaded;
+  bool get hasBibConflicts => _hasBibConflicts;
+  bool get hasTimingConflicts => _hasTimingConflicts;
+
+  set resultsLoaded(bool value) {
+    _resultsLoaded = value;
+    notifyListeners();
+  }
+
+  set hasBibConflicts(bool value) {
+    _hasBibConflicts = value;
+    notifyListeners();
+  }
+
+  set hasTimingConflicts(bool value) {
+    _hasTimingConflicts = value;
+    notifyListeners();
+  }
 
   /// Resets devices and clears state
   void resetDevices() {
@@ -45,15 +64,18 @@ class LoadResultsController {
     hasBibConflicts = false;
     hasTimingConflicts = false;
     results = [];
+    notifyListeners();
   }
 
   /// Loads saved results from the database
   Future<void> loadResults() async {
     final List<ResultsRecord>? savedResults =
         await DatabaseHelper.instance.getRaceResultsData(raceId);
+    print('Loaded ${savedResults?.length} results for race $raceId');
     if (savedResults != null) {
       resultsLoaded = true;
       results = savedResults;
+      notifyListeners();
     }
   }
 
@@ -77,6 +99,7 @@ class LoadResultsController {
       timingData = await processEncodedTimingData(finishTimesData, context);
 
       resultsLoaded = true;
+      notifyListeners();
       await _checkForConflictsAndSaveResults();
     }
   }
@@ -85,11 +108,13 @@ class LoadResultsController {
     hasBibConflicts = containsBibConflicts(runnerRecords!);
     hasTimingConflicts = timingData != null ? 
         containsTimingConflicts(timingData!) : false;
+    notifyListeners();
 
     if (!hasBibConflicts && !hasTimingConflicts && timingData != null && runnerRecords != null) {
       final List<ResultsRecord> mergedResults = await _mergeRunnerRecordsWithTimingData(
           timingData!, runnerRecords!);
       results = mergedResults;
+      notifyListeners();
       await saveRaceResults(mergedResults);
       callback();
     }
