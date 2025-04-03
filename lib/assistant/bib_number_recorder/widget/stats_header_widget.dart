@@ -31,13 +31,13 @@ class _StatsHeaderWidgetState extends State<StatsHeaderWidget>
   void initState() {
     super.initState();
     _countAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 500),
       vsync: this,
     );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.15).animate(
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.2).animate(
       CurvedAnimation(
         parent: _countAnimationController,
-        curve: Curves.easeOutBack,
+        curve: Curves.elasticOut,
       ),
     )..addStatusListener((status) {
         if (status == AnimationStatus.completed) {
@@ -64,16 +64,23 @@ class _StatsHeaderWidgetState extends State<StatsHeaderWidget>
           _previousCount = currentCount;
         }
 
+        // Determine color based on count
+        Color countColor = Colors.black;
+        if (currentCount > 0) {
+          countColor = AppColors.primaryColor;
+        }
+
         return Container(
-          margin: const EdgeInsets.fromLTRB(0.0, 16.0, 0.0, 8.0),
+          margin: const EdgeInsets.fromLTRB(0.0, 16.0, 0.0, 16.0),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.grey.withOpacity(0.1),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
+                color: Colors.grey.withOpacity(0.2),
+                blurRadius: 15,
+                offset: const Offset(0, 5),
+                spreadRadius: 1,
               ),
             ],
           ),
@@ -83,19 +90,6 @@ class _StatsHeaderWidgetState extends State<StatsHeaderWidget>
                 padding: const EdgeInsets.all(24.0),
                 child: Column(
                   children: [
-                    // // Title
-                    // Text(
-                    //   'Bib Numbers',
-                    //   style: TextStyle(
-                    //     color: Colors.grey[600],
-                    //     fontSize: 16,
-                    //     fontWeight: FontWeight.w500,
-                    //     letterSpacing: 0.5,
-                    //   ),
-                    // ),
-
-                    // const SizedBox(height: 12),
-
                     // Animated bib count - the primary focus
                     ScaleTransition(
                       scale: _scaleAnimation,
@@ -106,8 +100,8 @@ class _StatsHeaderWidgetState extends State<StatsHeaderWidget>
                         children: [
                           Text(
                             '$currentCount',
-                            style: const TextStyle(
-                              color: Color(0xFF2D3142),
+                            style: TextStyle(
+                              color: countColor,
                               fontSize: 54,
                               fontWeight: FontWeight.bold,
                               height: 1.1,
@@ -135,24 +129,31 @@ class _StatsHeaderWidgetState extends State<StatsHeaderWidget>
                         // Runners count
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 8),
+                              horizontal: 16, vertical: 8),
                           decoration: BoxDecoration(
                             color: Colors.grey[100],
                             borderRadius: BorderRadius.circular(24),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
                           child: Row(
                             children: [
                               Icon(
                                 Icons.people_outline,
-                                size: 18,
-                                color: Colors.grey[700],
+                                size: 20,
+                                color: Colors.grey[800],
                               ),
                               const SizedBox(width: 8),
                               Text(
                                 'Runners: ${widget.runners.length}',
                                 style: TextStyle(
                                   color: Colors.grey[800],
-                                  fontSize: 14,
+                                  fontSize: 15,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -163,33 +164,41 @@ class _StatsHeaderWidgetState extends State<StatsHeaderWidget>
                         // Reset button - less prominent but accessible
                         Material(
                           color: Colors.transparent,
+                          borderRadius: BorderRadius.circular(24),
                           child: InkWell(
-                            onTap: widget.onReset,
+                            onTap: currentCount > 0 ? widget.onReset : null,
                             borderRadius: BorderRadius.circular(24),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: AppColors.primaryColor,
-                                borderRadius: BorderRadius.circular(24),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(
-                                    Icons.refresh,
-                                    size: 18,
-                                    color: Colors.white,
+                            child: Opacity(
+                              opacity: currentCount > 0 ? 1.0 : 0.5,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[200],
+                                  borderRadius: BorderRadius.circular(24),
+                                  border: Border.all(
+                                    color: Colors.grey[300]!,
+                                    width: 1,
                                   ),
-                                  const SizedBox(width: 8),
-                                  const Text(
-                                    'Reset',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w500,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.refresh,
+                                      size: 18,
+                                      color: AppColors.primaryColor,
                                     ),
-                                  ),
-                                ],
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Reset',
+                                      style: TextStyle(
+                                        color: AppColors.primaryColor,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),

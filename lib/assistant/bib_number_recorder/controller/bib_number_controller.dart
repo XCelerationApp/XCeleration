@@ -1,15 +1,19 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:xcelerate/coach/race_screen/widgets/runner_record.dart';
-import 'package:xcelerate/core/services/device_connection_service.dart';
-import '../model/bib_records_provider.dart';
-import '../../../../core/components/dialog_utils.dart';
 import 'package:provider/provider.dart';
+import '../model/bib_records_provider.dart';
+import '../../../coach/race_screen/widgets/runner_record.dart';
+import '../../../core/components/dialog_utils.dart';
+import '../../../core/services/device_connection_service.dart';
 
 class BibNumberController {
   final BuildContext context;
   final List<RunnerRecord> runners;
   final ScrollController scrollController;
-  DevicesManager devices;
+  final DevicesManager devices;
+  
+  // Debounce timer for validations
+  Timer? _debounceTimer;
 
   BibNumberController({
     required this.context,
@@ -18,125 +22,141 @@ class BibNumberController {
     required this.devices,
   });
 
-  // Runner management methods
-  RunnerRecord? getRunnerByBib(String bibNumber) {
-    try {
-      final runner = runners.firstWhere(
-        (runner) => runner.bib == bibNumber,
-        orElse: () =>
-            RunnerRecord(bib: '', name: '', raceId: -1, grade: -1, school: ''),
-      );
-      print('Runner found: ${runner.toMap()}');
-      return (runner.raceId != -1) ? runner : null;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  List<RunnerRecord> decodeRunners(String encodedRunners, int raceId) {
-    List<RunnerRecord> decodedRunners = [];
-    for (var runner in encodedRunners.split(' ')) {
-      if (runner.isNotEmpty) {
-        List<String> runnerValues = runner.split(',');
-        if (runnerValues.length == 4) {
-          decodedRunners.add(RunnerRecord(
-            raceId: raceId,
-            bib: runnerValues[0],
-            name: runnerValues[1],
-            grade: int.parse(runnerValues[3]),
-            school: runnerValues[2],
-          ));
-          //   'bib_number': runnerValues[0],
-          //   'name': runnerValues[1],
-          //   'school': runnerValues[2],
-          //   'grade': runnerValues[3],
-          // });
-        }
+  /// Gets a runner by bib number if it exists in the list of runners
+  RunnerRecord? getRunnerByBib(String bib) {
+    for (final runner in runners) {
+      if (runner.bib == bib) {
+        return runner;
       }
     }
-    return decodedRunners;
+    return null;
   }
 
   // Bib number validation and handling
   Future<void> validateBibNumber(
       int index, String bibNumber, List<double>? confidences) async {
+    // If the index is out of bounds, don't try to validate
     final provider = Provider.of<BibRecordsProvider>(context, listen: false);
-    final record = provider.bibRecords[index];
-
-    // Reset all flags by creating a new RunnerRecordFlags object
-    record.flags = const RunnerRecordFlags(
-      lowConfidenceScore: false,
-      notInDatabase: false,
-      duplicateBibNumber: false,
-    );
-    record.name = '';
-    record.school = '';
-
-    // If bibNumber is empty, clear all flags and return
-    if (bibNumber.isEmpty) {
+    if (index < 0 || index >= provider.bibRecords.length) {
       return;
     }
 
-    bool lowConfidence = false;
-    bool notInDb = false;
-    bool duplicateBib = false;
-
-    // Check confidence scores
-    if (confidences?.any((score) => score < 0.9) ?? false) {
-      lowConfidence = true;
+    // Get the record to update
+    final record = provider.bibRecords[index];
+    
+    // Special handling for empty inputs
+    if (bibNumber.isEmpty) {
+      record.name = '';
+      record.school = '';
+      record.flags = const RunnerRecordFlags(
+        notInDatabase: false,
+        duplicateBibNumber: false,
+        lowConfidenceScore: false,
+      );
+      provider.updateBibRecord(index, record);
+      return;
     }
 
-    // Check database
-    final runner = getRunnerByBib(bibNumber);
-    if (runner == null) {
-      notInDb = true;
+    // Try to parse the bib number
+    if (!bibNumber.contains(RegExp(r'^[0-9]+$'))) {
+      // Not a valid number
+      record.name = '';
+      record.school = '';
+      record.flags = RunnerRecordFlags(
+        notInDatabase: true,
+        duplicateBibNumber: false,
+        lowConfidenceScore: confidences != null && 
+            confidences.any((score) => score < 0.85),
+      );
+      provider.updateBibRecord(index, record);
+      return;
+    }
+
+    // Check for a matching runner
+    RunnerRecord? matchedRunner = getRunnerByBib(bibNumber);
+    
+    if (matchedRunner != null) {
+      // Found a match in database
+      record.name = matchedRunner.name;
+      record.school = matchedRunner.school;
+      record.grade = matchedRunner.grade;
+      record.raceId = matchedRunner.raceId;
+      
+      // Check for duplicate entries
+      bool isDuplicate = false;
+      int count = 0;
+      for (var i = 0; i < provider.bibRecords.length; i++) {
+        if (provider.bibRecords[i].bib == bibNumber) {
+          count++;
+          if (count > 1 && i == index) {
+            isDuplicate = true;
+            break;
+          }
+        }
+      }
+      
+      record.flags = RunnerRecordFlags(
+        notInDatabase: false,
+        duplicateBibNumber: isDuplicate,
+        lowConfidenceScore: confidences != null && 
+            confidences.any((score) => score < 0.85),
+      );
+      
+      print('Runner found: $matchedRunner');
     } else {
-      record.name = runner.name;
-      record.school = runner.school;
+      // No match in database
+      record.name = '';
+      record.school = '';
+      record.grade = -1;
+      record.raceId = -1;
+      record.flags = RunnerRecordFlags(
+        notInDatabase: true,
+        duplicateBibNumber: false,
+        lowConfidenceScore: confidences != null && 
+            confidences.any((score) => score < 0.85),
+      );
     }
-
-    // Check duplicates
-    final duplicateIndexes = provider.bibRecords
-        .asMap()
-        .entries
-        .where((e) => e.value.bib == bibNumber && e.value.bib.isNotEmpty)
-        .map((e) => e.key)
-        .toList();
-
-    if (duplicateIndexes.length > 1) {
-      // Mark as duplicate if this is not the first occurrence
-      duplicateBib = duplicateIndexes.indexOf(index) > 0;
-    }
-
-    // Set all flags at once with a new object
-    record.flags = RunnerRecordFlags(
-      lowConfidenceScore: lowConfidence,
-      notInDatabase: notInDb,
-      duplicateBibNumber: duplicateBib,
-    );
+    
+    // Update the bib record with the runner information
+    provider.updateBibRecord(index, record);
   }
 
   void onBibRecordRemoved(int index) {
-    final provider = Provider.of<BibRecordsProvider>(context, listen: false);
-    provider.removeBibRecord(index);
-
-    // Revalidate all remaining bib numbers to update duplicate flags
-    for (var i = 0; i < provider.bibRecords.length; i++) {
-      validateBibNumber(i, provider.bibRecords[i].bib, null);
-    }
+    Provider.of<BibRecordsProvider>(context, listen: false)
+        .removeBibRecord(index);
   }
 
+  /// Handles bib number changes with optimizations to prevent UI jumping
   Future<void> handleBibNumber(
     String bibNumber, {
     List<double>? confidences,
     int? index,
   }) async {
+    // Cancel any pending debounce timer
+    _debounceTimer?.cancel();
+    
     final provider = Provider.of<BibRecordsProvider>(context, listen: false);
 
     if (index != null) {
-      await validateBibNumber(index, bibNumber, confidences);
-      provider.updateBibRecord(index, bibNumber);
+      // Update existing record (immediately update the text but debounce validation)
+      if (index < provider.bibRecords.length) {
+        final record = provider.bibRecords[index];
+        
+        // Update text immediately without revalidating
+        record.bib = bibNumber;
+        provider.updateBibRecord(index, record);
+        
+        // Debounce the validation to prevent rapid UI updates while typing
+        _debounceTimer = Timer(const Duration(milliseconds: 300), () async {
+          // Only validate if we still have focus to prevent unnecessary updates
+          if (provider.focusNodes.length > index && 
+              provider.focusNodes[index].hasFocus) {
+            await validateBibNumber(index, bibNumber, confidences);
+          }
+        });
+      }
     } else {
+      // Add new record
       provider.addBibRecord(RunnerRecord(
         bib: bibNumber,
         name: '',
@@ -149,43 +169,67 @@ class BibNumberController {
           lowConfidenceScore: false,
         ),
       ));
-      // Scroll to bottom when adding new bib
+      
+      // Scroll to bottom when adding new bib (but after animation completes)
       WidgetsBinding.instance.addPostFrameCallback((_) => scrollToBottom());
+      
+      // After adding a new record, we don't need to immediately validate
+      _debounceTimer = Timer(const Duration(milliseconds: 300), () async {
+        final newIndex = provider.bibRecords.length - 1;
+        if (newIndex >= 0) {
+          await validateBibNumber(newIndex, bibNumber, confidences);
+        }
+      });
     }
 
-    // Validate all bib numbers to update duplicate states
-    for (var i = 0; i < provider.bibRecords.length; i++) {
-      await validateBibNumber(
-          i, provider.bibRecords[i].bib, i == index ? confidences : null);
+    // We don't want to revalidate all items on every keystroke
+    // Only do this on explicit user actions like adding/removing items
+    if (index == null) {
+      // Validate all bib numbers to update duplicate states after a delay
+      _debounceTimer = Timer(const Duration(milliseconds: 400), () async {
+        for (var i = 0; i < provider.bibRecords.length; i++) {
+          if (i != index) { // Skip the one we're currently editing
+            await validateBibNumber(
+                i, provider.bibRecords[i].bib, i == index ? confidences : null);
+          }
+        }
+      });
     }
 
-    if (runners.isNotEmpty) {
-      Provider.of<BibRecordsProvider>(context, listen: false)
-          .focusNodes[index ?? provider.bibRecords.length - 1]
-          .requestFocus();
+    if (runners.isNotEmpty && index == null) {
+      // Safely determine focus index for new additions
+      final focusIndex = provider.bibRecords.length - 1;
+      
+      // Only request focus if the index is valid
+      if (focusIndex >= 0 && focusIndex < provider.focusNodes.length) {
+        // Request focus after a slight delay to allow the UI to settle
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          provider.focusNodes[focusIndex].requestFocus();
+        });
+      }
     }
   }
 
   void scrollToBottom() {
     if (scrollController.hasClients) {
+      // Use a safe scroll position calculation
+      final scrollPosition = scrollController.position.maxScrollExtent;
+      
+      // Add padding to ensure the bottom item is fully visible
+      final targetPosition = scrollPosition + 100;
+      
       scrollController.animateTo(
-        scrollController.position.maxScrollExtent,
+        targetPosition,
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeOut,
       );
+    } else {
+      // Try again in the next frame if the scroll controller is not ready
+      WidgetsBinding.instance.addPostFrameCallback((_) => scrollToBottom());
     }
   }
 
-  // Sharing and data validation methods
-  String getEncodedBibData() {
-    final bibRecordsProvider =
-        Provider.of<BibRecordsProvider>(context, listen: false);
-    return bibRecordsProvider.bibRecords
-        .map((record) => record.bib)
-        .toList()
-        .join(' ');
-  }
-
+  /// Restores the focus abilities for all focus nodes
   void restoreFocusability() {
     final provider = Provider.of<BibRecordsProvider>(context, listen: false);
     for (var node in provider.focusNodes) {
@@ -193,57 +237,88 @@ class BibNumberController {
     }
   }
 
-  Future<bool> cleanEmptyRecords() async {
+  /// Gets the encoded bib data for sharing
+  String getEncodedBibData() {
     final provider = Provider.of<BibRecordsProvider>(context, listen: false);
-    final emptyRecords =
-        provider.bibRecords.where((bib) => bib.bib.isEmpty).length;
+    final bibNumbers = provider.bibRecords.map((e) => e.bib).toList();
+    return bibNumbers.join(',');
+  }
 
-    if (emptyRecords > 0) {
-      final confirmed = await DialogUtils.showConfirmationDialog(
-        context,
-        title: 'Clean Empty Records',
-        content:
-            'There are $emptyRecords empty bib numbers that will be deleted. Continue?',
-      );
-
-      if (confirmed) {
-        provider.bibRecords.removeWhere((bib) => bib.bib.isEmpty);
+  /// Returns all unique bib numbers and the corresponding runner records
+  Map<String, RunnerRecord> getBibsAndRunners() {
+    final provider = Provider.of<BibRecordsProvider>(context, listen: false);
+    final map = <String, RunnerRecord>{};
+    for (final record in provider.bibRecords) {
+      if (record.bib.isNotEmpty) {
+        map[record.bib] = record;
       }
-      return confirmed;
     }
-    return true;
+    return map;
   }
 
   Future<bool> checkDuplicateRecords() async {
     final provider = Provider.of<BibRecordsProvider>(context, listen: false);
-    final duplicateRecords =
-        provider.bibRecords.where((bib) => bib.flags.duplicateBibNumber).length;
+    final records = provider.bibRecords;
 
-    if (duplicateRecords > 0) {
-      final confirmed = await DialogUtils.showConfirmationDialog(
-        context,
-        title: 'Duplicate Bib Numbers',
-        content:
-            'There are $duplicateRecords duplicate bib numbers. Do you want to continue?',
-      );
-      return confirmed;
+    // Find all duplicate bib numbers
+    final duplicates = <String>{};
+    final seen = <String>{};
+
+    for (final record in records) {
+      final bib = record.bib;
+      if (bib.isEmpty) continue;
+
+      if (seen.contains(bib)) {
+        duplicates.add(bib);
+      } else {
+        seen.add(bib);
+      }
     }
-    return true;
+
+    if (duplicates.isEmpty) {
+      return true;
+    }
+
+    return await DialogUtils.showConfirmationDialog(
+      context,
+      title: 'Duplicate Bib Numbers',
+      content: 'There are duplicate bib numbers in the list: ${duplicates.join(', ')}. Do you want to continue?',
+    );
   }
 
   Future<bool> checkUnknownRecords() async {
     final provider = Provider.of<BibRecordsProvider>(context, listen: false);
-    final unknownRecords =
-        provider.bibRecords.where((bib) => bib.flags.notInDatabase).length;
+    final records = provider.bibRecords;
 
-    if (unknownRecords > 0) {
-      final confirmed = await DialogUtils.showConfirmationDialog(
-        context,
-        title: 'Unknown Bib Numbers',
-        content:
-            'There are $unknownRecords bib numbers that are not in the database. Do you want to continue?',
-      );
-      return confirmed;
+    bool hasUnknown = false;
+    for (final record in records) {
+      if (record.flags.notInDatabase) {
+        hasUnknown = true;
+        break;
+      }
+    }
+
+    if (!hasUnknown) {
+      return true;
+    }
+
+    return await DialogUtils.showConfirmationDialog(
+      context,
+      title: 'Unknown Bib Numbers',
+      content: 'There are bib numbers in the list that do not match any runners in the database. Do you want to continue?',
+    );
+  }
+
+  Future<bool> cleanEmptyRecords() async {
+    final provider = Provider.of<BibRecordsProvider>(context, listen: false);
+    final emptyRecords =
+        provider.bibRecords.where((bib) => bib.bib.isEmpty).toList();
+
+    for (var i = emptyRecords.length - 1; i >= 0; i--) {
+      final index = provider.bibRecords.indexOf(emptyRecords[i]);
+      if (index >= 0) {
+        provider.removeBibRecord(index);
+      }
     }
     return true;
   }
