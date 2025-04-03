@@ -280,16 +280,6 @@ class DatabaseHelper {
     return maps.map((map) => RunnerRecord.fromMap(map)).toList();
   }
 
-  Future<String> getEncodedRunnersData(int raceId) async {
-    final runners = await getRaceRunners(raceId);
-    return runners.map((runner) => [
-      runner.bib,
-      runner.name,
-      runner.school,
-      runner.grade
-    ].join(',')).join(' ');
-  }
-
   Future<RunnerRecord?> getRaceRunnerByBib(int raceId, String bibNumber) async {
     final db = await instance.database;
     final results = await db.query(
@@ -351,19 +341,6 @@ class DatabaseHelper {
       whereArgs: whereArgs,
     );
     return results.map((map) => RunnerRecord.fromMap(map)).toList();
-  }
-
-  Future<bool> _runnerExists(int raceRunnerId) async {
-    final db = await instance.database;
-    // Check in race runners
-    final raceRunnerCheck = await db.query('race_runners',
-        where: 'runner_id = ?', whereArgs: [raceRunnerId]);
-
-    // Check in team runners
-    final teamRunnerCheck = await db.query('team_runners',
-        where: 'runner_id = ?', whereArgs: [raceRunnerId]);
-
-    return raceRunnerCheck.isNotEmpty || teamRunnerCheck.isNotEmpty;
   }
 
   // Future<void> insertRaceResults(List<RunnerRecord> results) async {

@@ -3,7 +3,7 @@ import '../../model/flow_model.dart';
 import 'package:flutter/material.dart';
 import '../../../../utils/enums.dart';
 import '../../../../core/services/device_connection_service.dart';
-import '../../../../utils/database_helper.dart';
+import '../../../../utils/encode_utils.dart' as encode_utils;
 import '../steps/review_runners/review_runners_step.dart';
 import '../steps/share_runners/share_runners_step.dart';
 import '../steps/flow_complete/pre_race_flow_complete.dart';
@@ -27,7 +27,7 @@ class PreRaceController {
   void _initializeSteps() {
     _reviewRunnersStep = ReviewRunnersStep(raceId, () async {
       final encoded =
-          await DatabaseHelper.instance.getEncodedRunnersData(raceId);
+          await encode_utils.getEncodedRunnersData(raceId);
       devices.bibRecorder!.data = encoded;
     });
     _shareRunnersStep = ShareRunnersStep(devices: devices);

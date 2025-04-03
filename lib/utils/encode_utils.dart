@@ -174,3 +174,14 @@ Future<List<RunnerRecord>?> decodeEncodedRunners(
     return null;
   }
 }
+
+
+Future<String> getEncodedRunnersData(int raceId) async {
+    final runners = await DatabaseHelper.instance.getRaceRunners(raceId);
+    return runners.map((runner) => [
+      runner.bib,
+      runner.name,
+      runner.school,
+      runner.grade
+    ].join(',')).join(' ');
+  }
