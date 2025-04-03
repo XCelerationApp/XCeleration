@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:xcelerate/core/components/textfield_utils.dart';
 import '../widgets/action_button.dart';
 import '../widgets/search_results.dart';
 import '../../../core/theme/app_colors.dart';
@@ -15,12 +16,12 @@ class ResolveBibNumberScreen extends StatefulWidget {
   final Function(RunnerRecord) onComplete;
 
   const ResolveBibNumberScreen({
-    Key? key,
+    super.key,
     required this.records,
     required this.raceId,
     required this.record,
     required this.onComplete,
-  }) : super(key: key);
+  });
 
   @override
   State<ResolveBibNumberScreen> createState() => _ResolveBibNumberScreenState();
@@ -204,34 +205,12 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
                       ? Expanded(
                           child: Column(
                             children: [
-                              TextField(
+                              buildTextField(
+                                context: context,
                                 controller: controller.searchController,
-                                decoration: InputDecoration(
-                                  labelText: 'Search runners',
-                                  prefixIcon: const Icon(Icons.search),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(
-                                      color: AppColors.primaryColor.withAlpha((0.2 * 255).round()),
-                                    ),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(
-                                      color: AppColors.primaryColor.withAlpha((0.2 * 255).round()),
-                                    ),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(
-                                      color: AppColors.primaryColor,
-                                      width: 2,
-                                    ),
-                                  ),
-                                  filled: true,
-                                  fillColor: Colors.white,
-                                ),
+                                hint: 'Search runners',
                                 onChanged: (value) => controller.searchRunners(value),
+                                setSheetState: setState,
                               ),
                               const SizedBox(height: 16),
                               Expanded(
