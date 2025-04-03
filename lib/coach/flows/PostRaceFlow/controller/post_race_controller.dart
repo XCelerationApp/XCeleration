@@ -36,6 +36,7 @@ class PostRaceController {
   
   /// Update ReviewResultsStep with latest results from LoadResultsController
   void _updateReviewStep() {
+    print('Updating ReviewResultsStep with latest results');
     _reviewResultsStep.results = _loadResultsController.results;
   }
 

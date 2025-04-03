@@ -414,6 +414,7 @@ class DatabaseHelper {
       return results;
     }
     // Fallback to test data if query fails or for other race IDs
+    debugPrint('Query failed or no results found for race ID $raceId');
     List<ResultsRecord> results = [];
     for (int i = 0; i < 20; i++) {
       results.add(
