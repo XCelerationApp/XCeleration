@@ -29,9 +29,9 @@ class BibInputWidget extends StatelessWidget {
         provider.focusNodes[index].requestFocus();
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: index % 2 == 0 ? Colors.white : Colors.grey.shade50,
           border: Border(
             bottom: BorderSide(
               color: Colors.grey.shade300,
@@ -65,34 +65,97 @@ class BibInputWidget extends StatelessWidget {
 
   Widget _buildBibTextField(BuildContext context) {
     final provider = Provider.of<BibRecordsProvider>(context);
+    final index = this.index;
+    
+    // Use a more neutral gray color for the border
+    final borderColor = Colors.grey.shade400;
+    
+    // Determine error styling based on flags
+    final hasErrors = record.flags.notInDatabase || 
+                     record.flags.duplicateBibNumber;
+    
     return TextField(
-      focusNode: provider.focusNodes[index],
+      key: ValueKey('bibTextField_$index'),
       controller: provider.controllers[index],
+      focusNode: provider.focusNodes[index],
       keyboardType: TextInputType.number,
-      style: AppTypography.bodyRegular,
-      textAlign: TextAlign.start,
+      textInputAction: TextInputAction.next,
+      style: TextStyle(
+        fontSize: 20, // Smaller text size
+        fontWeight: FontWeight.bold,
+      ),
+      onChanged: (value) {
+        onBibNumberChanged(value, index: index);
+      },
+      onSubmitted: (value) {
+        onSubmitted();
+      },
       decoration: InputDecoration(
         labelText: 'Bib #',
-        labelStyle: AppTypography.bodyRegular,
-        border: const OutlineInputBorder(),
+        labelStyle: TextStyle(
+          color: Colors.grey.shade700,
+          fontSize: 12, // Smaller label text
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 10.0, // Smaller padding
+          horizontal: 12.0, // Smaller padding
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(6.0), // Smaller radius
+          borderSide: BorderSide(
+            color: borderColor,
+            width: 1.0, // Thinner border
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(6.0),
+          borderSide: BorderSide(
+            color: Colors.grey.shade600, // Darker gray when focused
+            width: 1.5,
+          ),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(6.0),
+          borderSide: BorderSide(
+            color: borderColor.withOpacity(0.7),
+            width: 1.0,
+          ),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(6.0),
+          borderSide: BorderSide(
+            color: hasErrors ? Colors.red : borderColor,
+            width: 1.0,
+          ),
+        ),
       ),
-      inputFormatters: [
-        FilteringTextInputFormatter.digitsOnly,
-      ],
-      onSubmitted: (_) async {
-        await onSubmitted();
-      },
-      onChanged: (value) => onBibNumberChanged(value, index: index),
-      keyboardAppearance: Brightness.light,
     );
   }
 
   Widget _buildRunnerInfo() {
     if (record.flags.notInDatabase == false && record.bib.isNotEmpty) {
-      return Text(
-        '${record.name}, ${record.school}',
-        textAlign: TextAlign.center,
-        style: AppTypography.bodyRegular,
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Show a visual indicator of successful match
+          Container(
+            width: 8,
+            height: 8,
+            margin: const EdgeInsets.only(right: 8),
+            decoration: const BoxDecoration(
+              color: Colors.green,
+              shape: BoxShape.circle,
+            ),
+          ),
+          Flexible(
+            child: Text(
+              '${record.name}, ${record.school}',
+              textAlign: TextAlign.center,
+              style: AppTypography.bodyRegular,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
       );
     }
     return const SizedBox.shrink();
