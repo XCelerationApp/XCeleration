@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:xcelerate/shared/settings_screen.dart';
 import '../../../shared/models/race.dart';
-import '../../../utils/database_helper.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../flows/widgets/flow_section_header.dart';
 import '../../../core/theme/typography.dart';
@@ -102,27 +101,17 @@ class RacesScreenState extends State<RacesScreen> {
                       ),
                       RaceCoachMark(
                         controller: _controller,
-                        child: FutureBuilder<List<Race>>(
-                          future: DatabaseHelper.instance.getAllRaces(),
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState ==
-                                ConnectionState.waiting) {
-                              return const Center(
-                                  child: CircularProgressIndicator());
-                            }
-                            if (snapshot.hasError) {
-                              return Center(
-                                  child: Text('Error: ${snapshot.error}',
-                                      style: AppTypography.bodyRegular
-                                          .copyWith(color: Colors.red)));
-                            } else if (!snapshot.hasData ||
-                                snapshot.data!.isEmpty) {
+                        child: AnimatedBuilder(
+                          animation: _controller,
+                          builder: (context, _) {
+                            // Show loading indicator while races are being loaded
+                            if (_controller.races.isEmpty) {
                               return Center(
                                   child: Text('No races found.',
                                       style: AppTypography.bodyRegular));
                             }
 
-                            final List<Race> raceData = snapshot.data ?? [];
+                            final List<Race> raceData = _controller.races;
                             final finishedRaces = raceData
                                 .where((race) => race.flowState == 'finished')
                                 .toList();

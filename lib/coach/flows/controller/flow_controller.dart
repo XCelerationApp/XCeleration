@@ -13,6 +13,7 @@ import 'dart:async';
 import '../../../utils/database_helper.dart';
 import '../../../coach/race_screen/controller/race_screen_controller.dart';
 import '../../../utils/enums.dart';
+import '../../../core/services/event_bus.dart';
 // import '../../share_race/controller/share_race_controller.dart';
 // import '../../../utils/time_formatter.dart';
 // import '../../race_screen/widgets/runner_record.dart';
@@ -63,7 +64,17 @@ class MasterFlowController {
     if (race != null) {
       race = race!.copyWith(flowState: newState);
     }
+    
+    debugPrint('MasterFlowController: Flow state changed to $newState for race: $raceId');
+    
+    // Fire event (for components that use the event bus)
+    EventBus.instance.fire(EventTypes.raceFlowStateChanged, {
+      'raceId': raceId,
+      'newState': newState,
+      'race': race,
+    });
   }
+  
 
   /// Setup the race with runners
   /// Shows a flow with the provided steps and handles user progression

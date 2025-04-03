@@ -4,8 +4,9 @@ import 'package:xcelerate/utils/sheet_utils.dart' show sheet;
 import '../../../utils/enums.dart';
 import '../../../utils/database_helper.dart';
 import '../../../shared/models/race.dart';
+import '../../flows/controller/flow_controller.dart';
 import '../../../core/services/device_connection_service.dart';
-import '../../../coach/flows/controller/flow_controller.dart';
+import '../../../core/services/event_bus.dart';
 
 /// Controller class for the RaceScreen that handles all business logic
 class RaceScreenController with ChangeNotifier {
@@ -43,9 +44,6 @@ class RaceScreenController with ChangeNotifier {
     race = await loadRace();
     flowController = MasterFlowController(raceId: raceId, race: race);
     notifyListeners();
-    if (race != null) {
-      await continueRaceFlow(context);
-    }
   }
 
   /// Load the race data and any saved results
@@ -59,6 +57,13 @@ class RaceScreenController with ChangeNotifier {
     await DatabaseHelper.instance.updateRaceFlowState(raceId, newState);
     race = race?.copyWith(flowState: newState);
     notifyListeners();
+    
+    // Publish an event when race flow state changes
+    EventBus.instance.fire(EventTypes.raceFlowStateChanged, {
+      'raceId': raceId,
+      'newState': newState,
+      'race': race,
+    });
   }
 
   /// Continue the race flow based on the current state

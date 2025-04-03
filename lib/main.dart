@@ -8,8 +8,19 @@ import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'core/theme/typography.dart';
 import 'core/services/splash_screen.dart';
+import 'core/services/event_bus.dart';
 
 Process? _flaskProcess;
+
+/// EventBus provider wrapper for global event management
+class EventBusProvider extends ChangeNotifier {
+  final EventBus eventBus = EventBus.instance;
+  
+  void fireEvent(String eventType, [dynamic data]) {
+    debugPrint('EventBusProvider: Firing event $eventType with data: $data');
+    eventBus.fire(eventType, data);
+  }
+}
 
 void main() async {
   // This is important to ensure the native splash screen works correctly
@@ -32,6 +43,10 @@ void main() async {
         ),
         ChangeNotifierProvider(
           create: (context) => BibRecordsProvider(),
+        ),
+        // Add the EventBusProvider at app level to ensure it's available everywhere
+        ChangeNotifierProvider(
+          create: (context) => EventBusProvider(),
         ),
       ],
       child: const MyApp(),

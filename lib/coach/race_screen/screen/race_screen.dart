@@ -5,6 +5,8 @@ import '../widgets/tab_bar.dart';
 import '../widgets/tab_bar_view.dart';
 import '../widgets/race_header.dart';
 import '../widgets/race_details_tab.dart';
+import '../../../core/services/event_bus.dart';
+import 'dart:async';
 
 class RaceScreen extends StatefulWidget {
   final int raceId;
@@ -23,6 +25,7 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
   // Controller
   late RaceScreenController _controller;
   bool _isLoading = true;
+  StreamSubscription? _flowStateSubscription;
 
   @override
   void initState() {
@@ -41,11 +44,20 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
     });
 
     _loadRaceData();
+    
+    // Subscribe to flow state changes to refresh UI when needed
+    _flowStateSubscription = EventBus.instance.on(EventTypes.raceFlowStateChanged, (event) {
+      // Only handle events for this race
+      if (event.data != null && event.data['raceId'] == widget.raceId) {
+        _refreshRaceData();
+      }
+    });
   }
 
   @override
   void dispose() {
     _controller.tabController.dispose();
+    _flowStateSubscription?.cancel();
     super.dispose();
   }
 
@@ -53,6 +65,22 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
     await _controller.init(context);
     if (mounted) {
       setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+  
+  // Refresh race data when flow state changes
+  Future<void> _refreshRaceData() async {
+    setState(() {
+      _isLoading = true;
+    });
+    
+    final updatedRace = await _controller.loadRace();
+    
+    if (mounted && updatedRace != null) {
+      setState(() {
+        _controller.race = updatedRace;
         _isLoading = false;
       });
     }
