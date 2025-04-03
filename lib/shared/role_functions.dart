@@ -103,6 +103,34 @@ Widget _buildRoleTitle(RoleOption role, String currentRole) {
   );
 }
 
+Future<bool> showRoleChangeConfirmation(BuildContext context, String currentRole) async {
+  // Default to proceeding
+  bool shouldProceed = true;
+  
+  // Show confirmation dialog when leaving bib number screen
+  if (currentRole == 'bib recorder') {
+    shouldProceed = await DialogUtils.showConfirmationDialog(
+      context,
+      title: 'Leave Bib Number Screen?',
+      content: 'All bib numbers will be lost if you leave this screen. Do you want to continue?',
+      confirmText: 'Continue',
+      cancelText: 'Stay',
+    );
+  }
+  // Show confirmation dialog when leaving timing screen
+  else if (currentRole == 'timer') {
+    shouldProceed = await DialogUtils.showConfirmationDialog(
+      context,
+      title: 'Leave Timing Screen?',
+      content: 'All race times will be lost if you leave this screen. Do you want to continue?',
+      confirmText: 'Continue',
+      cancelText: 'Stay',
+    );
+  }
+  
+  return shouldProceed;
+}
+
 Widget _buildRoleListTile(
     BuildContext context, RoleOption role, String currentRole) {
   return Padding(
@@ -118,30 +146,7 @@ Widget _buildRoleListTile(
         if (value == currentRole) return;
 
         // Add confirmation for leaving bib number screen or timing screen
-        bool shouldProceed = true;
-
-        // Show confirmation dialog when leaving bib number screen
-        if (currentRole == 'bib recorder') {
-          shouldProceed = await DialogUtils.showConfirmationDialog(
-            context,
-            title: 'Leave Bib Number Screen?',
-            content:
-                'All bib numbers will be lost if you leave this screen. Do you want to continue?',
-            confirmText: 'Continue',
-            cancelText: 'Stay',
-          );
-        }
-        // Show confirmation dialog when leaving timing screen
-        else if (currentRole == 'timer') {
-          shouldProceed = await DialogUtils.showConfirmationDialog(
-            context,
-            title: 'Leave Timing Screen?',
-            content:
-                'All race times will be lost if you leave this screen. Do you want to continue?',
-            confirmText: 'Continue',
-            cancelText: 'Stay',
-          );
-        }
+        bool shouldProceed = await showRoleChangeConfirmation(context, currentRole);
 
         // Only navigate if user confirms
         if (shouldProceed && context.mounted) {
@@ -232,13 +237,18 @@ Widget buildRoleBar(
                   backgroundColor: Color(0xFF1976D2),
                   elevation: 12,
                 ),
-                child: buildRoleButton(context, currentRole)),
+                child: buildRoleButton(context, currentRole, tutorialManager)),
             const SizedBox(width: 8),
             // Settings button
             IconButton(
               icon: Icon(Icons.settings, color: AppColors.darkColor, size: 48),
-              onPressed: () {
+              onPressed: () async {
                 final role = (currentRole == 'coach') ? 'coach' : 'assistant';
+                if (role == 'assistant') {
+                  // Check if we need to show confirmation dialog
+                  bool shouldProceed = await showRoleChangeConfirmation(context, currentRole);
+                  if (shouldProceed == false) return;
+                }
                 Navigator.of(context).push(
                   MaterialPageRoute(
                       builder: (context) => SettingsScreen(currentRole: role)),
@@ -257,42 +267,10 @@ Widget buildTopUnusableSpaceSpacing(BuildContext context) {
   return SizedBox(height: 50);
 }
 
-Widget buildRoleButton(BuildContext context, String currentRole) {
-  final TutorialManager tutorialManager = TutorialManager();
-  return CoachMark(
-    id: 'role_bar_tutorial',
-    tutorialManager: tutorialManager,
-    config: const CoachMarkConfig(
-      title: 'Switch Roles',
-      alignmentX: AlignmentX.left,
-      alignmentY: AlignmentY.bottom,
-      description: 'Click here to switch between Coach and Assistant roles',
-      icon: Icons.touch_app,
-      type: CoachMarkType.targeted,
-      backgroundColor: Color(0xFF1976D2),
-      elevation: 12,
-    ),
-    child: GestureDetector(
-        onTap: () {
-          changeRole(context, currentRole);
-        },
-        child:
-            Icon(Icons.person_outline, color: AppColors.darkColor, size: 56)),
-  );
-  // return TextButton(
-  //   onPressed: () => changeRole(context, currentRole),
-  //   child: Row(
-  //     children: [
-  //       Text(
-  //         '${currentRole[0].toUpperCase()}${currentRole.substring(1)}',
-  //         style: TextStyle(fontSize: 20, color: AppColors.navBarTextColor),
-  //       ),
-  //       Icon(
-  //         Icons.keyboard_arrow_down,
-  //         size: 30,
-  //         color: AppColors.navBarTextColor,
-  //       ),
-  //     ],
-  //   ),
-  // );
+Widget buildRoleButton(BuildContext context, String currentRole, TutorialManager tutorialManager) {
+  return GestureDetector(
+      onTap: () {
+        changeRole(context, currentRole);
+      },
+      child: Icon(Icons.person_outline, color: AppColors.darkColor, size: 56));
 }

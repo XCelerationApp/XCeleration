@@ -167,7 +167,8 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
                 const SizedBox(height: 24),
                 Row(
                   children: [
-                    Expanded(
+                    Flexible(
+                      flex: 1,
                       child: ActionButton(
                         label: 'Choose Existing Runner',
                         icon: Icons.person_search,
@@ -181,7 +182,8 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
                       ),
                     ),
                     const SizedBox(width: 16),
-                    Expanded(
+                    Flexible(
+                      flex: 1,
                       child: ActionButton(
                         label: 'Create New Runner',
                         icon: Icons.person_add,

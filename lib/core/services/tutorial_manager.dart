@@ -5,9 +5,7 @@ import 'dart:io';
 
 /// Manages the tutorial system and coach marks
 class TutorialManager extends ChangeNotifier {
-  static final TutorialManager _instance = TutorialManager._internal();
-  factory TutorialManager() => _instance;
-  TutorialManager._internal();
+  TutorialManager();
 
   final Map<String, bool> _hasSeenTutorial = {};
   String? _activeCoachMark;
