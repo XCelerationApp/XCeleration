@@ -132,6 +132,10 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
       setState(() {
         bibError = 'Please enter a valid bib number';
       });
+    } else if (int.parse(value) < 1) {
+      setState(() {
+        bibError = 'Please enter a bib number greater than 0';
+      });
     } else {
       setState(() {
         bibError = null;

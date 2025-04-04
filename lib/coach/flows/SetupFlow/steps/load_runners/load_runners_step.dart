@@ -7,17 +7,30 @@ class LoadRunnersStep extends FlowStep {
   bool _canProceed = false;
 
   LoadRunnersStep({required this.raceId})
-      : super(
-          title: 'Load Runners',
-          description:
-              'Add runners to your race by entering their information or importing from a previous race. Each team needs at least 5 runners to proceed.',
-          content: RunnersManagementScreen(
-            raceId: raceId,
-            showHeader: false,
-            onBack: null,
-          ),
-          canProceed: () => false,
-        );
+    : super(
+    title: 'Load Runners',
+    description:
+        'Add runners to your race by entering their information or importing from a previous race. Each team needs at least 5 runners to proceed.',
+    content: RunnersManagementScreen(
+      raceId: raceId,
+      showHeader: false,
+      onBack: null,
+    ),
+    canProceed: () => false,
+  ) {
+    // Initialize with the current state
+    checkRunners();
+  }
+
+  Future<void> checkRunners() async {
+    final hasEnoughRunners =
+        await RunnersManagementScreen.checkMinimumRunnersLoaded(raceId);
+    debugPrint('Has enough runners: $hasEnoughRunners');
+    if (_canProceed != hasEnoughRunners) {
+      _canProceed = hasEnoughRunners;
+      notifyContentChanged();
+    }
+  }
 
   @override
   Widget get content {
@@ -27,15 +40,7 @@ class LoadRunnersStep extends FlowStep {
       onBack: null,
       onContentChanged: () async {
         // Check if we have enough runners
-        final hasEnoughRunners =
-            await RunnersManagementScreen.checkMinimumRunnersLoaded(raceId);
-
-        // Only update and notify if the state has changed
-        if (_canProceed != hasEnoughRunners) {
-          _canProceed = hasEnoughRunners;
-          // Notify the flow controller that our state has changed
-          notifyContentChanged();
-        }
+        checkRunners();
       },
     );
   }

@@ -334,7 +334,7 @@ class RunnersManagementController with ChangeNotifier {
                 elevation: 0,
                 // shadowColor: Colors.black.withOpacity(0.1),
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
                   side: BorderSide(
@@ -397,7 +397,7 @@ class RunnersManagementController with ChangeNotifier {
                     ),
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
 
                 // Import Button
                 Expanded(
@@ -408,7 +408,7 @@ class RunnersManagementController with ChangeNotifier {
                       foregroundColor: Colors.white,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(
-                          vertical: 16, horizontal: 24),
+                          vertical: 16, horizontal: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(24),
                       ),
@@ -423,10 +423,10 @@ class RunnersManagementController with ChangeNotifier {
                             color: Colors.white), // Ensuring color consistency
                         const SizedBox(width: 8),
                         Text(
-                          'Import Now',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
+                            'Import Now',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
                             color: Colors.white, // Ensuring color consistency
                           ),
                         ),
