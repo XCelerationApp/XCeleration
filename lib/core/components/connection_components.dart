@@ -3,8 +3,10 @@ import '../utils/connection_utils.dart';
 import '../../utils/enums.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter_nearby_connections/flutter_nearby_connections.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:barcode_scan2/barcode_scan2.dart';
 import '../services/device_connection_service.dart';
 import '../utils/data_protocol.dart';
 import 'dialog_utils.dart';
@@ -333,62 +335,71 @@ class _QRConnectionState extends State<QRConnectionWidget> {
 
   Future<void> _scanQRCodes() async {
     try {
-      // Create a method channel directly to ensure we have control over the plugin communication
-      const platform = MethodChannel('de.mintware.barcode_scan/scan');
+      // Check if the device is a mobile device (iOS or Android)
+      if (!Platform.isIOS && !Platform.isAndroid) {
+        DialogUtils.showErrorDialog(
+          context,
+          message: 'QR scanner is not available on this device. Please use a mobile device.',
+        );
+        return;
+      }
       
-      // Configure scan options as a Map
-      final Map<String, dynamic> options = {
-        'restrictFormat': [0], // 0 = QR Code format
-        'useCamera': -1,       // Use default camera
-        'autoEnableFlash': false
-      };
-      
-      // Invoke the platform method directly instead of using plugin method
-      final dynamic scanResult = await platform.invokeMethod('scan', options);
+      // Use the barcode_scan2 package for scanning
+      final result = await BarcodeScanner.scan();
       
       if (!mounted) return;
       
-      // Process the raw result
-      if (scanResult != null && scanResult is Map) {
-        final String rawContent = scanResult['rawContent'] ?? '';
-        final String type = scanResult['type'] ?? '';
+      if (result.type == ResultType.Barcode) {
+        final parts = result.rawContent.split(':');
         
-        if (type == 'Barcode' && rawContent.isNotEmpty) {
-          final parts = rawContent.split(':');
-
-          DeviceName? scannedDeviceName;
-          try {
-            scannedDeviceName =
-                widget.devices.getDevice(getDeviceNameFromString(parts[0]))?.name;
-          } catch (e) {
-            // No match found, scannedDeviceName remains null
-          }
-
-          if (parts.isEmpty || scannedDeviceName == null) {
-            DialogUtils.showErrorDialog(context,
-                message: 'Incorrect QR Code Scanned');
-            return;
-          }
-
-          widget.devices.getDevice(scannedDeviceName)!.status =
-              ConnectionStatus.finished;
-          widget.devices.getDevice(scannedDeviceName)!.data =
-              parts.sublist(1).join(':');
-
-          // Call the callback function if provided
-          if (widget.devices.allDevicesFinished()) {
-            widget.callback();
-          }
+        DeviceName? scannedDeviceName;
+        try {
+          scannedDeviceName =
+              widget.devices.getDevice(getDeviceNameFromString(parts[0]))?.name;
+        } catch (e) {
+          // No match found, scannedDeviceName remains null
+        }
+        
+        if (parts.isEmpty || scannedDeviceName == null) {
+          DialogUtils.showErrorDialog(context,
+              message: 'Incorrect QR Code Scanned');
+          return;
+        }
+        
+        widget.devices.getDevice(scannedDeviceName)!.status =
+            ConnectionStatus.finished;
+        widget.devices.getDevice(scannedDeviceName)!.data =
+            parts.sublist(1).join(':');
+            
+        // Call the callback function if provided
+        if (widget.devices.allDevicesFinished()) {
+          widget.callback();
         }
       }
-    } on MissingPluginException {
-      if (!mounted) return;
-      DialogUtils.showErrorDialog(context,
-          message: 'The QR code scanner is not available on this device.');
+    } on PlatformException catch (e) {
+      if (e.code == 'PERMISSION_NOT_GRANTED') {
+        DialogUtils.showErrorDialog(
+          context,
+          message: 'Camera permission is required to scan QR codes.',
+        );
+      } else if (e.code == 'MissingPluginException') {
+        DialogUtils.showErrorDialog(
+          context, 
+          message: 'QR scanner is not available on this device. Please use a different connection method.',
+        );
+      } else {
+        debugPrint('Error scanning QR code: ${e.message}');
+        DialogUtils.showErrorDialog(
+          context,
+          message: 'Error scanning QR code',
+        );
+      }
     } catch (e) {
-      if (!mounted) return;
-      DialogUtils.showErrorDialog(context,
-          message: 'An unknown error occurred: $e');
+      debugPrint('Error scanning QR code: $e');
+      DialogUtils.showErrorDialog(
+        context,
+        message: 'An error occurred while scanning the QR code. Please try again.',
+      );
     }
   }
 

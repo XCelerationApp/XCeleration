@@ -7,20 +7,33 @@ class ReviewRunnersStep extends FlowStep {
   final int raceId;
 
   ReviewRunnersStep(this.raceId, VoidCallback onNext)
-      : super(
-          title: 'Review Runners',
-          description:
-              'Make sure all runner information is correct before the race starts. You can make any last-minute changes here.',
-          content: Column(children: [
-            RunnersManagementScreen(
-              raceId: raceId,
-              showHeader: false,
-              onBack: null,
-            )
-          ]),
-          canProceed: () => true,
-          onNext: onNext,
-        );
+    : super(
+    title: 'Review Runners',
+    description:
+        'Make sure all runner information is correct before the race starts. You can make any last-minute changes here.',
+    content: Column(children: [
+      RunnersManagementScreen(
+        raceId: raceId,
+        showHeader: false,
+        onBack: null,
+      )
+    ]),
+    canProceed: () => true,
+    onNext: onNext,
+  ) {
+    // Initialize with the current state
+    checkRunners();
+  }
+
+  Future<void> checkRunners() async {
+    final hasEnoughRunners =
+        await RunnersManagementScreen.checkMinimumRunnersLoaded(raceId);
+    debugPrint('Has enough runners: $hasEnoughRunners');
+    if (_canProceed != hasEnoughRunners) {
+      _canProceed = hasEnoughRunners;
+      notifyContentChanged();
+    }
+  }
 
   @override
   Widget get content {
@@ -30,16 +43,7 @@ class ReviewRunnersStep extends FlowStep {
         showHeader: false,
         onBack: null,
         onContentChanged: () async {
-          // Check if we have enough runners
-          final hasEnoughRunners =
-              await RunnersManagementScreen.checkMinimumRunnersLoaded(raceId);
-
-          // Only update and notify if the state has changed
-          if (_canProceed != hasEnoughRunners) {
-            _canProceed = hasEnoughRunners;
-            // Notify the flow controller that our state has changed
-            notifyContentChanged();
-          }
+          checkRunners();
         },
       )
     ]);

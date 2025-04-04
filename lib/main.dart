@@ -34,9 +34,6 @@ void main() async {
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
-  
-  // Initialize barcode scanner plugin
-  await _initializeBarcodeScanner();
 
   runApp(
     MultiProvider(
@@ -57,14 +54,6 @@ void main() async {
   );
 }
 
-/// Initialize the barcode scanner plugin to prevent MissingPluginException
-Future<void> _initializeBarcodeScanner() async {
-  // For barcode_scan2, we don't need explicit initialization
-  // The plugin registers itself when used
-  
-  // This method just exists to document the plugin usage in the app
-  debugPrint('Barcode scanner will be initialized on first use');
-}
 
 Future<void> startFlaskServer() async {
   debugPrint('Starting Flask Server...');
