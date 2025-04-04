@@ -96,7 +96,7 @@ bool isValidTimingData(TimingData data) {
 
 Future<List<RunnerRecord>> decodeBibRecordsString(
     String encodedBibRecords, int raceId) async {
-  final List<String> bibNumbers = encodedBibRecords.split(' ');
+  final List<String> bibNumbers = encodedBibRecords.split(',');
   List<RunnerRecord> bibRecords = [];
   for (var bibNumber in bibNumbers) {
     if (bibNumber.isNotEmpty) {

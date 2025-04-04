@@ -61,7 +61,7 @@ class _BibListWidgetState extends State<BibListWidget> with TickerProviderStateM
                       )
                     : ListView.builder(
                         controller: widget.scrollController,
-                        itemCount: provider.bibRecords.length,
+                        itemCount: provider.bibRecords.length + 1,
                         itemBuilder: (context, index) {
                           if (index < provider.bibRecords.length) {
                             return Dismissible(
@@ -102,19 +102,28 @@ class _BibListWidgetState extends State<BibListWidget> with TickerProviderStateM
                               ),
                             );
                           }
+                          if (index == provider.bibRecords.length) {
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0),
+                              child: AddButtonWidget(
+                                tutorialManager: widget.tutorialManager,
+                                onTap: () => widget.controller.handleBibNumber(''),
+                              ),
+                            );
+                          }
                           return const SizedBox.shrink(); // Fallback, should never happen
                         },
                       ),
               ),
               
-              // Add button - always visible at the bottom
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0),
-                child: AddButtonWidget(
-                  tutorialManager: widget.tutorialManager,
-                  onTap: () => widget.controller.handleBibNumber(''),
-                ),
-              ),
+              // // Add button - always visible at the bottom
+              // Padding(
+              //   padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0),
+              //   child: AddButtonWidget(
+              //     tutorialManager: widget.tutorialManager,
+              //     onTap: () => widget.controller.handleBibNumber(''),
+              //   ),
+              // ),
             ],
           ),
         );
