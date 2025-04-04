@@ -60,18 +60,24 @@ class ResultsRecord {
   }
 
   factory ResultsRecord.fromMap(Map<String, dynamic> map) {
+    // Check if finish_time is null before using it
+    final finishTimeValue = map['finish_time'];
+    final Duration processedFinishTime = finishTimeValue == null
+        ? Duration.zero
+        : finishTimeValue.runtimeType == Duration
+            ? finishTimeValue
+            : TimeFormatter.loadDurationFromString(finishTimeValue) ??
+                Duration.zero;
+    
     return ResultsRecord(
       place: map['place'] ?? 0,
-      name: map['name'],
-      school: map['school'],
-      grade: map['grade'],
-      bib: map['bib_number'],
-      raceId: map['race_id'],
-      runnerId: map['runner_id'],
-      finishTime: map['finish_time'].runtimeType == Duration
-          ? map['finish_time']
-          : TimeFormatter.loadDurationFromString(map['finish_time']) ??
-              Duration.zero,
+      name: map['name'] ?? 'Unknown',
+      school: map['school'] ?? 'Unknown',
+      grade: map['grade'] ?? 0,
+      bib: map['bib_number'] ?? '',
+      raceId: map['race_id'] ?? 0,
+      runnerId: map['runner_id'] ?? 0,
+      finishTime: processedFinishTime,
     );
   }
 }

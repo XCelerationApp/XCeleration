@@ -37,6 +37,8 @@ class RaceScreenController with ChangeNotifier {
         raceId: raceId,
         page: page,
       ),
+      takeUpScreen: false, // Allow sheet to size according to content
+      showHeader: true, // Keep the handle
     );
   }
 
