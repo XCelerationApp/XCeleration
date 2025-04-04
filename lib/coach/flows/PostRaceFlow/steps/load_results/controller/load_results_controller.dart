@@ -8,6 +8,7 @@ import '../../../../../../assistant/race_timer/model/timing_record.dart';
 import '../../../../../../utils/database_helper.dart';
 import '../../../../../race_results/model/results_record.dart';
 import 'package:xcelerate/utils/sheet_utils.dart';
+import 'package:xcelerate/utils/time_formatter.dart' as TimeFormatter;
 import 'package:xcelerate/coach/resolve_bib_number_screen/widgets/bib_conflicts_overview.dart';
 import 'package:xcelerate/coach/merge_conflicts/screen/merge_conflicts_screen.dart';
 
@@ -81,44 +82,58 @@ class LoadResultsController with ChangeNotifier {
 
   /// Saves race results to the database
   Future<void> saveRaceResults(List<ResultsRecord> resultRecords) async {
-    await DatabaseHelper.instance.saveRaceResults(
-      raceId,
-      resultRecords,
-    );
-    results = resultRecords;
+    try {
+      await DatabaseHelper.instance.saveRaceResults(
+        raceId,
+        resultRecords,
+      );
+      results = resultRecords;
+    } catch (e) {
+      print('Error in saveRaceResults: $e');
+      rethrow;
+    }
   }
 
   /// Processes data received from devices
   Future<void> processReceivedData(BuildContext context) async {
     String? bibRecordsData = devices.bibRecorder?.data;
     String? finishTimesData = devices.raceTimer?.data;
+    print('Bib records data: ${bibRecordsData != null ? "Available" : "Null"}');
+    print('Finish times data: ${finishTimesData != null ? "Available" : "Null"}');
+    
     if (bibRecordsData != null && finishTimesData != null) {
       runnerRecords = await processEncodedBibRecordsData(
           bibRecordsData, context, raceId);
+      print('Processed runner records: ${runnerRecords?.length ?? 0}');
 
       timingData = await processEncodedTimingData(finishTimesData, context);
+      print('Processed timing data: ${timingData?.records.length ?? 0} records');
 
       resultsLoaded = true;
       notifyListeners();
       await _checkForConflictsAndSaveResults();
+    } else {
+      print('Missing data source: bibRecordsData or finishTimesData is null');
     }
   }
 
   Future<void> _checkForConflictsAndSaveResults() async {
-    hasBibConflicts = containsBibConflicts(runnerRecords!);
-    hasTimingConflicts = timingData != null ? 
-        containsTimingConflicts(timingData!) : false;
+    hasBibConflicts = runnerRecords != null ? containsBibConflicts(runnerRecords!) : false;
+    hasTimingConflicts = timingData != null ? containsTimingConflicts(timingData!) : false;
     notifyListeners();
 
     if (!hasBibConflicts && !hasTimingConflicts && timingData != null && runnerRecords != null) {
       final List<ResultsRecord> mergedResults = await _mergeRunnerRecordsWithTimingData(
           timingData!, runnerRecords!);
+      print('Data merged, created ${mergedResults.length} result records');
+      
       results = mergedResults;
       notifyListeners();
       await saveRaceResults(mergedResults);
       callback();
     }
   }
+
   /// Merges runner records with timing data
   Future<List<ResultsRecord>> _mergeRunnerRecordsWithTimingData(
       TimingData timingData, List<RunnerRecord> runnerRecords) async {
@@ -133,16 +148,47 @@ class LoadResultsController with ChangeNotifier {
       final runnerRecord = runnerRecords[i];
       final timingRecord = records[i];
       
+      // Convert elapsed time string to Duration
+      Duration finishDuration;
+      finishDuration = TimeFormatter.loadDurationFromString(timingRecord.elapsedTime) ?? Duration.zero;
+      
+      // Get or create runner ID
+      int runnerId = runnerRecord.runnerId ?? await _findRunnerId(runnerRecord);
+      
       mergedRecords.add(ResultsRecord(
         bib: runnerRecord.bib,
         place: timingRecord.place!,
         name: runnerRecord.name,
         school: runnerRecord.school,
         grade: runnerRecord.grade,
-        finishTime: timingRecord.elapsedTime,
+        finishTime: finishDuration,
+        raceId: raceId,
+        runnerId: runnerId,
       ));
     }
     return mergedRecords;
+  }
+
+  /// Gets an existing runner ID or creates a new one if needed
+  Future<int> _findRunnerId(RunnerRecord record) async {
+    if (record.runnerId != null) {
+      return record.runnerId!;
+    }
+    
+    try {
+      // Try to find runner by bib number in this race
+      final runner = await DatabaseHelper.instance.getRaceRunnerByBib(raceId, record.bib);
+      if (runner != null && runner.runnerId != null) {
+        print('Found existing runner ID: ${runner.runnerId} for bib ${record.bib}');
+        return runner.runnerId!;
+      }
+      
+      print('No runner ID found for bib ${record.bib}, using 0 as fallback');
+      return 0; // Fallback ID if we can't find a valid ID
+    } catch (e) {
+      print('Error finding runner ID: $e');
+      return 0; // Fallback ID in case of error
+    }
   }
 
   /// Loads test data for development purposes

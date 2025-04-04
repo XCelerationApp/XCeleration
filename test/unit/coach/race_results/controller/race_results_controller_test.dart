@@ -17,6 +17,8 @@ class MockDatabaseHelper extends Mock implements DatabaseHelper {
           finishTime: Duration(minutes: 20),
           grade: 12,
           bib: '102',
+          raceId: raceId,
+          runnerId: 102,
         ),
         ResultsRecord(
           place: 0,
@@ -25,6 +27,8 @@ class MockDatabaseHelper extends Mock implements DatabaseHelper {
           finishTime: Duration(minutes: 16, seconds: 40),
           grade: 11,
           bib: '101',
+          raceId: raceId,
+          runnerId: 101,
         ),
       ];
     } else {

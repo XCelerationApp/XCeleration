@@ -6,6 +6,8 @@ class ResultsRecord {
   final String school;
   final int grade;
   final String bib;
+  final int raceId;
+  final int runnerId;
   late Duration _finishTime;
   String _formattedFinishTime = '';
 
@@ -15,6 +17,8 @@ class ResultsRecord {
     required this.school,
     required this.grade,
     required this.bib,
+    required this.raceId,
+    required this.runnerId,
     required finishTime,
   }) {
     _finishTime = finishTime;
@@ -27,7 +31,9 @@ class ResultsRecord {
         name = other.name,
         school = other.school,
         grade = other.grade,
-        bib = other.bib {
+        bib = other.bib,
+        raceId = other.raceId,
+        runnerId = other.runnerId {
     _finishTime = other._finishTime;
     _formattedFinishTime = other._formattedFinishTime;
   }
@@ -47,6 +53,8 @@ class ResultsRecord {
       'school': school,
       'grade': grade,
       'bib_number': bib,
+      'race_id': raceId,
+      'runner_id': runnerId,
       'finish_time': TimeFormatter.formatDuration(_finishTime),
     };
   }
@@ -58,6 +66,8 @@ class ResultsRecord {
       school: map['school'],
       grade: map['grade'],
       bib: map['bib_number'],
+      raceId: map['race_id'],
+      runnerId: map['runner_id'],
       finishTime: map['finish_time'].runtimeType == Duration
           ? map['finish_time']
           : TimeFormatter.loadDurationFromString(map['finish_time']) ??

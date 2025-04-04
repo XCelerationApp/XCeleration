@@ -402,6 +402,8 @@ class DatabaseHelper {
           grade: 9,
           place: i + 1,
           finishTime: Duration(seconds: 5 + i),
+          raceId: raceId,
+          runnerId: 1000 + i, // Using a predictable ID based on index
         ),
       );
     }
@@ -458,7 +460,6 @@ class DatabaseHelper {
     }
   }
 
-  // Get race results
   Future<List<ResultsRecord>?> getRaceResultsData(int raceId) async {
     final db = await instance.database;
     
