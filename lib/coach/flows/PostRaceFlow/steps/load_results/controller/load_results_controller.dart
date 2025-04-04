@@ -65,6 +65,8 @@ class LoadResultsController with ChangeNotifier {
     hasBibConflicts = false;
     hasTimingConflicts = false;
     results = [];
+    timingData = null;
+    runnerRecords = null;
     notifyListeners();
   }
 
@@ -72,12 +74,9 @@ class LoadResultsController with ChangeNotifier {
   Future<void> loadResults() async {
     final List<ResultsRecord>? savedResults =
         await DatabaseHelper.instance.getRaceResultsData(raceId);
-    print('Loaded ${savedResults?.length} results for race $raceId');
-    if (savedResults != null) {
-      resultsLoaded = true;
-      results = savedResults;
-      notifyListeners();
-    }
+    results = savedResults ?? [];
+    resultsLoaded = savedResults != null && savedResults.isNotEmpty;
+    notifyListeners();
   }
 
   /// Saves race results to the database
@@ -87,7 +86,6 @@ class LoadResultsController with ChangeNotifier {
         raceId,
         resultRecords,
       );
-      results = resultRecords;
     } catch (e) {
       print('Error in saveRaceResults: $e');
       rethrow;
