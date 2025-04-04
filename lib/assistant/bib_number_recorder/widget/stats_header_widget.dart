@@ -71,7 +71,7 @@ class _StatsHeaderWidgetState extends State<StatsHeaderWidget>
         }
 
         return Container(
-          margin: const EdgeInsets.fromLTRB(0.0, 16.0, 0.0, 16.0),
+          margin: const EdgeInsets.fromLTRB(0.0, 8.0, 0.0, 8.0), // Reduced margins
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
@@ -84,131 +84,132 @@ class _StatsHeaderWidgetState extends State<StatsHeaderWidget>
               ),
             ],
           ),
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Animated bib count - centered
+                ScaleTransition(
+                  scale: _scaleAnimation,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Text(
+                        '$currentCount',
+                        style: TextStyle(
+                          color: countColor,
+                          fontSize: 40, // Slightly reduced
+                          fontWeight: FontWeight.bold,
+                          height: 1.0,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Bibs Recorded',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 14,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                const SizedBox(height: 8), // Small vertical space
+                
+                // Bottom row - wrap in a flexible layout
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Animated bib count - the primary focus
-                    ScaleTransition(
-                      scale: _scaleAnimation,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
-                        children: [
-                          Text(
-                            '$currentCount',
-                            style: TextStyle(
-                              color: countColor,
-                              fontSize: 54,
-                              fontWeight: FontWeight.bold,
-                              height: 1.1,
-                            ),
+                    // Runners count
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(18),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
                           ),
-                          const SizedBox(width: 10),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.people_outline,
+                            size: 16,
+                            color: Colors.grey[800],
+                          ),
+                          const SizedBox(width: 6),
                           Text(
-                            'Bibs Recorded',
+                            'Runners: ${widget.runners.length}',
                             style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 16,
-                              fontWeight: FontWeight.w400,
+                              color: Colors.grey[800],
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],
                       ),
                     ),
 
-                    const SizedBox(height: 24),
+                    const SizedBox(width: 12),
 
-                    // Bottom row with secondary information and actions
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        // Runners count
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[100],
-                            borderRadius: BorderRadius.circular(24),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
+                    // Reset button
+                    Material(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(18),
+                      child: InkWell(
+                        onTap: currentCount > 0 ? widget.onReset : null,
+                        borderRadius: BorderRadius.circular(18),
+                        child: Opacity(
+                          opacity: currentCount > 0 ? 1.0 : 0.5,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[200],
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(
+                                color: Colors.grey[300]!,
+                                width: 1,
                               ),
-                            ],
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.people_outline,
-                                size: 20,
-                                color: Colors.grey[800],
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Runners: ${widget.runners.length}',
-                                style: TextStyle(
-                                  color: Colors.grey[800],
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w500,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.refresh,
+                                  size: 16,
+                                  color: AppColors.primaryColor,
                                 ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        // Reset button - less prominent but accessible
-                        Material(
-                          color: Colors.transparent,
-                          borderRadius: BorderRadius.circular(24),
-                          child: InkWell(
-                            onTap: currentCount > 0 ? widget.onReset : null,
-                            borderRadius: BorderRadius.circular(24),
-                            child: Opacity(
-                              opacity: currentCount > 0 ? 1.0 : 0.5,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 16, vertical: 10),
-                                decoration: BoxDecoration(
-                                  color: Colors.grey[200],
-                                  borderRadius: BorderRadius.circular(24),
-                                  border: Border.all(
-                                    color: Colors.grey[300]!,
-                                    width: 1,
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Reset',
+                                  style: TextStyle(
+                                    color: AppColors.primaryColor,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
                                   ),
                                 ),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.refresh,
-                                      size: 18,
-                                      color: AppColors.primaryColor,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      'Reset',
-                                      style: TextStyle(
-                                        color: AppColors.primaryColor,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                              ],
                             ),
                           ),
                         ),
-                      ],
+                      ),
                     ),
                   ],
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },
