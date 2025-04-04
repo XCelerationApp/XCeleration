@@ -95,6 +95,7 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
     }
 
     return Column(
+      mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // Race Header
