@@ -93,26 +93,19 @@ class _TabBarViewWidgetState extends State<TabBarViewWidget> {
   
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: _currentHeight + 30, // Add some padding
+    return Expanded(
       child: TabBarView(
         controller: widget.controller.tabController,
         children: [
-          // Race details content - wrap in container with key for measurement
-          SingleChildScrollView(
-            child: Container(
-              key: _detailsKey,
-              child: RaceDetailsTab(controller: widget.controller),
-            ),
+          Container(
+            key: _detailsKey,
+            child: RaceDetailsTab(controller: widget.controller),
           ),
 
-          // Results content - wrap in container with key for measurement
-          SingleChildScrollView(
-            child: Container(
-              key: _resultsKey,
-              child: ResultsScreen(
-                raceId: widget.controller.raceId,
-              ),
+          Container(
+            key: _resultsKey,
+            child: ResultsScreen(
+              raceId: widget.controller.raceId,
             ),
           ),
         ],
