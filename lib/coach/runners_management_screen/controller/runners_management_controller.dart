@@ -447,7 +447,13 @@ class RunnersManagementController with ChangeNotifier {
     if (confirmed == null || !confirmed) return;
     final List<RunnerRecord> runnerData =
         await processSpreadsheet(raceId, false);
+    
+    final schools = (await DatabaseHelper.instance.getRaceById(raceId))?.teams;
+
+    
     final overwriteRunners = [];
+    final runnersFromDifferentSchool = [];
+    final runnersToAdd = [];
     for (final runner in runnerData) {
       dynamic existingRunner;
       existingRunner =
@@ -460,13 +466,34 @@ class RunnersManagementController with ChangeNotifier {
         continue;
       }
 
+      if (schools != null && !schools.contains(runner.school)) {
+        runnersFromDifferentSchool.add(runner);
+        continue;
+      }
       if (existingRunner != null) {
         overwriteRunners.add(runner);
       } else {
-        await DatabaseHelper.instance.insertRaceRunner(runner);
+        runnersToAdd.add(runner);
       }
     }
+    
+    if (runnersFromDifferentSchool.isNotEmpty) {
+      final schools = runnersFromDifferentSchool.map((runner) => runner.school).toSet();
+      final schoolsList = schools.toList();
+      final schoolsString = schoolsList.join(', ');
+      final runnersFromDifferentSchoolDialog = await DialogUtils.showConfirmationDialog(
+        context,
+        title: 'Runners from Different Schools',
+        content: '${runnersFromDifferentSchool.length} runners are from different schools: $schoolsString. They will not be imported. Do you want to continue?',
+      );
+      if (!runnersFromDifferentSchoolDialog) return;
+    }
+
+    for (final runner in runnersToAdd) {
+      await DatabaseHelper.instance.insertRaceRunner(runner);
+    }
     await loadRunners();
+
     if (overwriteRunners.isEmpty) return;
     final overwriteRunnersBibs =
         overwriteRunners.map((runner) => runner['bib_number']).toList();

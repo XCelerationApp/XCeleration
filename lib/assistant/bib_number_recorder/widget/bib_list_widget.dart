@@ -49,17 +49,7 @@ class _BibListWidgetState extends State<BibListWidget> with TickerProviderStateM
             children: [
               // List of bib records
               Expanded(
-                child: provider.bibRecords.isEmpty
-                    ? Center(
-                        child: Text(
-                          'No bib numbers recorded yet',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 16,
-                          ),
-                        ),
-                      )
-                    : ListView.builder(
+                child: ListView.builder(
                         controller: widget.scrollController,
                         itemCount: provider.bibRecords.length + 1,
                         itemBuilder: (context, index) {
