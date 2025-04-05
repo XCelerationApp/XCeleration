@@ -30,30 +30,6 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Header with back button
-          // Padding(
-          //   padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          //   child: InkWell(
-          //     onTap: _toggleView,
-          //     child: Row(
-          //       children: [
-          //         Icon(
-          //           Icons.arrow_back_ios,
-          //           color: Theme.of(context).primaryColor,
-          //         ),
-          //         const SizedBox(width: 8),
-          //         Text(
-          //           'Back to race details',
-          //           style: TextStyle(
-          //             fontSize: 16,
-          //             fontWeight: FontWeight.w500,
-          //             color: Theme.of(context).primaryColor,
-          //           ),
-          //         ),
-          //       ],
-          //     ),
-          //   ),
-          // ),
           Align(
             alignment: Alignment.centerLeft,
             child: createBackArrow(context, onBack: _toggleView),
@@ -107,7 +83,7 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
               const SizedBox(height: 16),
               // Clickable runners row with chevron - using custom layout
               InkWell(
-                onTap: _toggleView,
+                onTap: widget.controller.race?.flowState == 'finished' ? _toggleView : null,
                 child: Container(
                   margin: const EdgeInsets.only(bottom: 16),
                   child: Row(
@@ -151,13 +127,19 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
                           ],
                         ),
                       ),
-                      // Chevron icon - explicitly positioned
-                      const SizedBox(width: 8),
-                      Icon(
-                        Icons.chevron_right,
-                        color: AppColors.primaryColor,
-                        size: 28,
-                      ),
+                      // Chevron icon - only show when race is finished
+                      if (widget.controller.race?.flowState == 'finished')
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const SizedBox(width: 8),
+                            Icon(
+                              Icons.chevron_right,
+                              color: AppColors.primaryColor,
+                              size: 28,
+                            ),
+                          ],
+                        ),
                     ],
                   ),
                 ),
