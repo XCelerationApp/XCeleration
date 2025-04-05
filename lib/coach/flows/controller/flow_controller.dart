@@ -81,17 +81,32 @@ class MasterFlowController {
   Future<bool> _setupFlow(BuildContext context) async {
     final bool completed = await setupController.showSetupFlow(context, true);
     if (!completed) return false;
+
     await updateRaceFlowState('pre-race');
+
+    // Add a short delay to let the UI settle before showing the next flow
+    await Future.delayed(const Duration(milliseconds: 500));
+    
+    // Check if context is still valid after the delay
+    if (!context.mounted) return false;
+    
     return _preRaceFlow(context);
   }
 
   /// Pre-race setup flow
   /// Shows a flow for pre-race setup and coordination
   Future<bool> _preRaceFlow(BuildContext context) async {
-    final bool completed =
-        await preRaceController.showPreRaceFlow(context, true);
+    final bool completed = await preRaceController.showPreRaceFlow(context, true);
     if (!completed) return false;
+    
     await updateRaceFlowState('post-race');
+    
+    // Add a short delay to let the UI settle before showing the next flow
+    await Future.delayed(const Duration(milliseconds: 500));
+    
+    // Check if context is still valid after the delay
+    if (!context.mounted) return false;
+    
     return _postRaceFlow(context);
   }
 
@@ -101,7 +116,15 @@ class MasterFlowController {
     final bool completed =
         await postRaceController.showPostRaceFlow(context, true);
     if (!completed) return false;
+
     await updateRaceFlowState('finished');
+
+    // Add a short delay to let the UI settle before showing the next flow
+    await Future.delayed(const Duration(milliseconds: 500));
+    
+    // Check if context is still valid after the delay
+    if (!context.mounted) return false;
+    
     if (context.mounted) {
       RaceScreenController.showRaceScreen(context, raceId,
           page: RaceScreenPage.results);

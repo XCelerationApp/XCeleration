@@ -43,18 +43,18 @@ class ActionButton extends StatelessWidget {
           teamColors: controller.teamColors,
           flowState: 'setup',
         );
-
+        int newRaceId = race.raceId;
         if (isEditing && raceId != null) {
           final flowState =
               (await DatabaseHelper.instance.getRaceById(raceId!))!.flowState;
           await DatabaseHelper.instance
               .updateRace(race.copyWith(flowState: flowState));
         } else {
-          await DatabaseHelper.instance.insertRace(race);
+          newRaceId = await DatabaseHelper.instance.insertRace(race);
         }
         await controller.loadRaces();
-
-        Navigator.pop(context);
+        if (!context.mounted) return;
+        Navigator.pop(context, newRaceId);
       },
       style: ElevatedButton.styleFrom(
         padding: const EdgeInsets.symmetric(vertical: 16),
