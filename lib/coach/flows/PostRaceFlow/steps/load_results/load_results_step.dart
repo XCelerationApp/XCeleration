@@ -17,7 +17,21 @@ class LoadResultsStep extends FlowStep {
             'Load the results of the race from the assistant devices.',
         // Initialize with a placeholder
         content: SizedBox.shrink(),
-      );
+      ) {
+    // Listen to controller changes and notify the flow system
+    controller.addListener(_onControllerUpdate);
+  }
+
+  @override
+  void dispose() {
+    controller.removeListener(_onControllerUpdate);
+    super.dispose();
+  }
+
+  // Notify the flow system when controller state changes
+  void _onControllerUpdate() {
+    notifyContentChanged();
+  }
 
   @override
   Widget get content => LoadResultsWidget(controller: controller);
