@@ -11,6 +11,7 @@ import '../../../shared/models/race.dart';
 import '../../../core/services/tutorial_manager.dart';
 import '../../../core/services/event_bus.dart';
 import 'dart:async';
+import '../../race_screen/controller/race_screen_controller.dart';
 
 class RacesController with ChangeNotifier {
   // Subscription to event bus events
@@ -93,10 +94,11 @@ class RacesController with ChangeNotifier {
     notifyListeners();
   }
 
-  void showCreateRaceSheet(BuildContext context) {
+  Future<void> showCreateRaceSheet(BuildContext context) async {
     resetControllers();
 
-    sheet(
+    // Show the race creation sheet and await the returned race ID
+    final int? newRaceId = await sheet(
       context: context,
       title: 'Create New Race',
       body: StatefulBuilder(
@@ -111,6 +113,17 @@ class RacesController with ChangeNotifier {
         },
       ),
     );
+    
+    // If a valid race ID was returned and the context is still mounted,
+    // navigate to the race screen
+    if (newRaceId != null && context.mounted) {
+      // Add a small delay to let the UI settle after sheet dismissal
+      await Future.delayed(const Duration(milliseconds: 300));
+      
+      if (context.mounted) {
+        RaceScreenController.showRaceScreen(context, newRaceId);
+      }
+    }
   }
 
   void validateName(name, StateSetter setSheetState) {
@@ -344,7 +357,7 @@ class RacesController with ChangeNotifier {
     }
 
     // Show the edit sheet
-    await sheet(
+    final int? returnedRaceId = await sheet(
       context: context,
       title: 'Edit Race',
       body: StatefulBuilder(
@@ -361,6 +374,17 @@ class RacesController with ChangeNotifier {
         },
       ),
     );
+    
+    // If a valid race ID was returned and the context is still mounted,
+    // navigate to the race screen
+    if (returnedRaceId != null && context.mounted) {
+      // Add a small delay to let the UI settle after sheet dismissal
+      await Future.delayed(const Duration(milliseconds: 300));
+      
+      if (context.mounted) {
+        RaceScreenController.showRaceScreen(context, returnedRaceId);
+      }
+    }
 
     // Reload races after editing
     await loadRaces();
