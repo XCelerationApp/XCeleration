@@ -237,26 +237,11 @@ Future<bool> showFlow({
                 ),
               ),
               Expanded(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    return SingleChildScrollView(
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          minHeight: constraints.maxHeight -
-                              120, // Account for bottom padding and button
-                        ),
-                        child: Padding(
-                          padding: EdgeInsets.zero,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              currentStep.content,
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  },
+                child: Padding(
+                  padding: EdgeInsets.zero,
+                  child: SingleChildScrollView(
+                    child: currentStep.content,
+                  ),
                 ),
               ),
               Padding(
