@@ -95,13 +95,17 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
     }
 
     return Column(
-      mainAxisSize: MainAxisSize.min,
+      mainAxisSize: MainAxisSize.max,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // Race Header
         RaceHeader(controller: _controller),
         if (_controller.race!.flowState != 'finished') ...[
-          RaceDetailsTab(controller: _controller)
+          Expanded(
+            child: SingleChildScrollView(
+              child: RaceDetailsTab(controller: _controller),
+            ),
+          )
         ] else ...[
           // Tab Bar
           TabBarWidget(controller: _controller),

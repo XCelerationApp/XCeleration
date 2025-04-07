@@ -1,17 +1,15 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/typography.dart';
+import '../../../../core/components/button_components.dart';
 
-/// A custom action button widget
-
-class ActionButton extends StatefulWidget {
+/// A custom animated action button widget
+class ShareActionButton extends StatefulWidget {
   final IconData icon;
   final String label;
   final VoidCallback? onPressed;
   final bool isPrimary;
   final String? tooltip;
 
-  const ActionButton({
+  const ShareActionButton({
     super.key,
     required this.icon,
     required this.label,
@@ -21,10 +19,10 @@ class ActionButton extends StatefulWidget {
   });
 
   @override
-  State<ActionButton> createState() => _ActionButtonState();
+  State<ShareActionButton> createState() => _ShareActionButtonState();
 }
 
-class _ActionButtonState extends State<ActionButton>
+class _ShareActionButtonState extends State<ShareActionButton>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
@@ -55,59 +53,54 @@ class _ActionButtonState extends State<ActionButton>
         margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         child: ScaleTransition(
           scale: _scaleAnimation,
-          child: ElevatedButton(
-            onPressed: () {
-              if (widget.onPressed != null) {
-                _controller.forward().then((_) {
-                  _controller.reverse();
-                  widget.onPressed!();
-                });
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-              backgroundColor:
-                  widget.isPrimary ? AppColors.primaryColor : Colors.white,
-              foregroundColor:
-                  widget.isPrimary ? Colors.white : AppColors.primaryColor,
-              elevation: widget.isPrimary ? 0 : 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              side: widget.isPrimary
-                  ? BorderSide.none
-                  : BorderSide(
-                      color: AppColors.primaryColor.withOpacity(0.5), width: 1),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  widget.icon,
-                  size: 18,
-                  color:
-                      widget.isPrimary ? Colors.white : AppColors.primaryColor,
+          child: widget.isPrimary
+              ? PrimaryButton(
+                  text: widget.label,
+                  icon: widget.icon,
+                  borderRadius: 12,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                  iconSize: 18,
+                  onPressed: () {
+                    if (widget.onPressed != null) {
+                      _controller.forward().then((_) {
+                        _controller.reverse();
+                        widget.onPressed!();
+                      });
+                    }
+                  },
+                )
+              : SecondaryButton(
+                  text: widget.label,
+                  icon: widget.icon,
+                  borderRadius: 12,
+                  elevation: 2,
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                  iconSize: 18,
+                  onPressed: () {
+                    if (widget.onPressed != null) {
+                      _controller.forward().then((_) {
+                        _controller.reverse();
+                        widget.onPressed!();
+                      });
+                    }
+                  },
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    widget.label,
-                    style: AppTypography.bodyRegular.copyWith(
-                      color: widget.isPrimary
-                          ? Colors.white
-                          : AppColors.primaryColor,
-                      fontWeight:
-                          widget.isPrimary ? FontWeight.w600 : FontWeight.w400,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-          ),
         ),
       ),
     );
   }
+}
+
+// Renamed to avoid conflicts with other ActionButton components
+// This is a backwards-compatibility class
+class ActionButton extends ShareActionButton {
+  const ActionButton({
+    super.key,
+    required super.icon,
+    required super.label,
+    required super.onPressed,
+    super.isPrimary = false,
+    super.tooltip,
+  });
 }

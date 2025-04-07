@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 import './textfield_utils.dart' as textfield_utils;
 import '../../coach/race_screen/widgets/runner_record.dart';
+import '../components/button_components.dart';
 
 /// A shared widget for runner input form used across the app
 class RunnerInputForm extends StatefulWidget {
@@ -274,24 +274,13 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
         SizedBox(
           width: double.infinity,
           height: 50,
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: hasErrors()
-                ? AppColors.primaryColor.withAlpha((0.5 * 255).round())
-                : AppColors.primaryColor,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            onPressed: hasErrors() ? null : handleSubmit,
-            child: Text(
-              widget.submitButtonText,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+          child: FullWidthButton(
+            text: widget.submitButtonText,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            borderRadius: 8,
+            isEnabled: !hasErrors(),
+            onPressed: handleSubmit,
           ),
         ),
       ],

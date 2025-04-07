@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import '../../../core/components/button_utils.dart';
-import '../../../core/theme/app_colors.dart';
+import 'package:xcelerate/core/theme/app_colors.dart';
 import '../../../utils/sheet_utils.dart';
 import '../../../core/components/device_connection_widget.dart';
 import '../../../core/services/device_connection_service.dart';
 import '../model/timing_data.dart';
 import '../../../utils/enums.dart';
+import '../../../core/components/button_components.dart';
 
 class RaceControlsWidget extends StatelessWidget {
   final DateTime? startTime;
@@ -46,13 +46,13 @@ class RaceControlsWidget extends StatelessWidget {
     final hasStoppedRace = startTime == null && endTime != null && hasRecords;
 
     final buttonText =
-        startTime != null ? 'Stop' : (hasStoppedRace ? 'Continue' : 'Start');
+        startTime != null ? 'Stop' : (hasStoppedRace ? 'Resume' : 'Start');
     final buttonColor = startTime == null ? Colors.green : Colors.red;
 
     return CircularButton(
       text: buttonText,
       color: buttonColor,
-      fontSize: 18,
+      fontSize: hasStoppedRace ? 16 : 18,
       fontWeight: FontWeight.w600,
       onPressed: startTime == null ? onStartRace : onStopRace,
     );
@@ -64,7 +64,19 @@ class RaceControlsWidget extends StatelessWidget {
         padding: const EdgeInsets.all(8.0),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            return ElevatedButton(
+            return ActionButton(
+              height: 70,
+              text: 'Share Times',
+              icon: Icons.share,
+              iconSize: 18,
+              fontSize: 18,
+              textColor: AppColors.mediumColor,
+              backgroundColor: AppColors.backgroundColor,
+              borderColor: AppColors.mediumColor,
+              fontWeight: FontWeight.w500,
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+              borderRadius: 30,
+              isPrimary: false,
               onPressed: () => sheet(
                 context: context,
                 title: 'Share Times',
@@ -76,32 +88,6 @@ class RaceControlsWidget extends StatelessWidget {
                     data: timingData.encode(),
                   ),
                 ),
-              ),
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size(0, 78),
-                padding: EdgeInsets.zero,
-                backgroundColor: Colors.white,
-                foregroundColor: AppColors.darkColor,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(39),
-                  side: BorderSide(color: Colors.grey.withOpacity(0.2)),
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.share, size: 18),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Share Times',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.darkColor,
-                    ),
-                    maxLines: 1,
-                  ),
-                ],
               ),
             );
           },

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:xcelerate/core/theme/app_colors.dart';
 import 'package:xcelerate/core/theme/typography.dart';
+import 'package:xcelerate/core/components/button_components.dart';
 
 class ConflictButton extends StatelessWidget {
   final String title;
@@ -47,19 +48,13 @@ class ConflictButton extends StatelessWidget {
                 .copyWith(color: AppColors.darkColor.withOpacity(0.8)),
           ),
           const SizedBox(height: 16),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.amber.shade700,
-              minimumSize: const Size(120, 40),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-            ),
+          PrimaryButton(
+            text: buttonText,
+            borderRadius: 20,
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
             onPressed: onPressed,
-            child: Text(
-              buttonText,
-              style: AppTypography.buttonText.copyWith(color: Colors.white),
-            ),
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
           ),
         ],
       ),

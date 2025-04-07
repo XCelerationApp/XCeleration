@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:xcelerate/core/components/button_components.dart';
 import '../model/flow_model.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
@@ -237,35 +238,25 @@ Future<bool> showFlow({
                 ),
               ),
               Expanded(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    return SingleChildScrollView(
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          minHeight: constraints.maxHeight -
-                              120, // Account for bottom padding and button
-                        ),
-                        child: Padding(
-                          padding: EdgeInsets.zero,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              currentStep.content,
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  },
+                child: Padding(
+                  padding: EdgeInsets.zero,
+                  child: SingleChildScrollView(
+                    child: currentStep.content,
+                  ),
                 ),
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(0, 16, 0, 24),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton(
-                    onPressed: () async {
+                child: FullWidthButton(
+                  text: 'Next',
+                  borderRadius: 6,
+                  fontSize: 16,
+                  textColor: Colors.white,
+                  backgroundColor: controller.canProceed
+                      ? AppColors.primaryColor
+                      : Colors.grey,
+                  fontWeight: FontWeight.w600,
+                  onPressed: () async {
                       if (controller.canGoForward) {
                         await controller.goToNext();
                       } else if (controller.isLastStep) {
@@ -273,25 +264,6 @@ Future<bool> showFlow({
                         completed = true;
                       }
                     },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: controller.canProceed
-                          ? AppColors.primaryColor
-                          : Colors.grey,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      elevation: 0,
-                      padding: EdgeInsets.zero,
-                    ),
-                    child: Text(
-                      'Next',
-                      style: AppTypography.bodySemibold.copyWith(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
                 ),
               ),
             ],

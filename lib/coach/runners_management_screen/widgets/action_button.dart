@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-
-import '../../../core/theme/app_colors.dart';
+import '../../../core/components/button_components.dart';
 
 class ActionButton extends StatelessWidget {
   final String text;
@@ -16,37 +15,12 @@ class ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ElevatedButton(
+    return PrimaryButton(
+      text: text,
       onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
-        fixedSize: const Size(160, 48),
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        backgroundColor: AppColors.primaryColor,
-        foregroundColor: Colors.white,
-        elevation: 2,
-        shadowColor: AppColors.primaryColor.withOpacity(0.5),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: 18, color: Colors.white),
-            const SizedBox(width: 6),
-          ],
-          Text(
-            text,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: Colors.white,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
+      icon: icon,
+      size: ButtonSize.medium,
+      borderRadius: 10,
     );
   }
 }
