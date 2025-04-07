@@ -18,12 +18,6 @@ class RaceResultsController {
     _calculateResults();
   }
 
-  // Get top N runners from individual results
-  List<ResultsRecord> getTopRunners(int count) {
-    if (individualResults.isEmpty) return [];
-    return individualResults.take(count).toList();
-  }
-
   Future<void> _calculateResults() async {
     // Get race results from database
     final List<ResultsRecord> results =
@@ -41,23 +35,23 @@ class RaceResultsController {
 
     // Calculate teams from the original results (don't reuse individualResults to avoid cross-contamination)
     // Using original results ensures team calculations don't affect individual results
-    final List<TeamRecord> teamResults = _calculateTeams(results);
+    final List<TeamRecord> teamResults = _calculateTeamResults(results);
 
     sortAndPlaceTeams(teamResults);
 
-    // DEEP COPY: Create completely independent copies for overall team results
-    overallTeamResults = teamResults.map((r) => TeamRecord.from(r)).toList();
-    if (teamResults.length > 3 || teamResults.length < 2) {
+    final List<TeamRecord> scoringTeams = teamResults.map((r) => TeamRecord.from(r)).toList().where((r) => r.score != 0).toList();
+
+    if (scoringTeams.length > 3 || scoringTeams.length < 2) {
       isLoading = false;
       return;
     }
     // Calculate head-to-head matchups
     final List<List<TeamRecord>> headToHeadResults = [];
-    for (var i = 0; i < teamResults.length; i++) {
-      for (var j = i + 1; j < teamResults.length; j++) {
+    for (var i = 0; i < scoringTeams.length; i++) {
+      for (var j = i + 1; j < scoringTeams.length; j++) {
         // DEEP COPY: Create independent copies for each head-to-head matchup
-        final teamA = TeamRecord.from(teamResults[i]);
-        final teamB = TeamRecord.from(teamResults[j]);
+        final teamA = TeamRecord.from(scoringTeams[i]);
+        final teamB = TeamRecord.from(scoringTeams[j]);
 
         // Combine and sort runners for this specific matchup
         // These are already deep copies from TeamRecord.from
@@ -79,7 +73,7 @@ class RaceResultsController {
     isLoading = false;
   }
 
-  List<TeamRecord> _calculateTeams(List<ResultsRecord> allResults) {
+  List<TeamRecord> _calculateTeamResults(List<ResultsRecord> allResults) {
     final List<TeamRecord> teams = [];
     for (var team in groupBy(allResults, (result) => result.school).entries) {
       final teamRecord = TeamRecord(
@@ -102,7 +96,12 @@ class RaceResultsController {
   }
 
   void sortAndPlaceTeams(List<TeamRecord> teams) {
-    teams.sort((a, b) => a.score - b.score);
+    teams.sort((a, b) {
+      if (a.score == 0 && b.score == 0) return 0;
+      if (a.score == 0) return 1;
+      if (b.score == 0) return -1;
+      return a.score - b.score;
+    });
     for (int i = 0; i < teams.length; i++) {
       teams[i].place = i + 1;
     }

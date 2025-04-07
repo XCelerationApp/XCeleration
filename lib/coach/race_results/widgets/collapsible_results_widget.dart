@@ -198,7 +198,7 @@ class _CollapsibleResultsWidgetState extends State<CollapsibleResultsWidget> {
         ),
         SizedBox(
           width: 70,
-          child: Text('${team.score}', style: AppTypography.bodyRegular),
+          child: Text('${team.score != 0 ? team.score : 'N/A'}', style: AppTypography.bodyRegular),
         ),
       ],
     );

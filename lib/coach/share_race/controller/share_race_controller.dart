@@ -65,8 +65,9 @@ class ShareRaceController extends ChangeNotifier {
     buffer.writeln('Team Results');
     buffer.writeln('Place\tSchool\tScore\tSplit Time\tAverage Time');
     for (final team in controller.overallTeamResults) {
-      buffer.writeln('${team.place}\t${team.school}\t${team.score}\t'
-          '${team.split}\t${team.avgTime}');
+      buffer.writeln('${team.place}\t${team.school}\t${team.score != 0 ? team.score : 'N/A'}\t'
+          '${team.split != Duration.zero ? team.split.toString() : 'N/A'}\t'
+          '${team.avgTime != Duration.zero ? team.avgTime.toString() : 'N/A'}');
     }
 
     // Individual Results Section
@@ -89,10 +90,12 @@ class ShareRaceController extends ChangeNotifier {
       ...controller.overallTeamResults.map((team) => [
             team.place,
             team.school,
-            team.score,
-            team.scorers.map((scorer) => scorer.place.toString()).join(', '),
-            team.split,
-            team.avgTime,
+            team.score != 0 ? team.score : 'N/A',
+            team.scorers.isEmpty
+                ? 'N/A'
+                : team.scorers.map((scorer) => scorer.place.toString()).join(', '),
+            team.split != Duration.zero ? team.split.toString() : 'N/A',
+            team.avgTime != Duration.zero ? team.avgTime.toString() : 'N/A',
           ]),
 
       // Spacing
@@ -138,7 +141,9 @@ class ShareRaceController extends ChangeNotifier {
           }
 
           // Summary row
-          final summaryRow = ['Score', '${team1.score}', '${team2.score}'];
+          final summaryRow = ['Score',
+            '${team1.score != 0 ? team1.score : 'N/A'}',
+            '${team2.score != 0 ? team2.score : 'N/A'}'];
 
           return [
             matchupHeader,
@@ -191,12 +196,18 @@ class ShareRaceController extends ChangeNotifier {
                 .map((team) => [
                       team.place.toString(),
                       team.school.toString(),
-                      team.score.toString(),
-                      team.scorers
-                          .map((scorer) => scorer.place.toString())
-                          .join(', '),
-                      team.split.toString(),
-                      team.avgTime.toString(),
+                      team.score != 0 ? team.score.toString() : 'N/A',
+                      team.scorers.isNotEmpty
+                          ? team.scorers
+                              .map((scorer) => scorer.place.toString())
+                              .join(', ')
+                          : 'N/A',
+                      team.split != Duration.zero
+                          ? team.split.toString()
+                          : 'N/A',
+                      team.avgTime != Duration.zero
+                          ? team.avgTime.toString()
+                          : 'N/A',
                     ])
                 .toList(),
           ),
@@ -273,7 +284,9 @@ class ShareRaceController extends ChangeNotifier {
     }
 
     // Add summary row
-    rows.add(['Score', '${team1.score}', '${team2.score}']);
+    rows.add(['Score',
+      '${team1.score != 0 ? team1.score : 'N/A'}',
+      '${team2.score != 0 ? team2.score : 'N/A'}']);
 
     return rows;
   }
