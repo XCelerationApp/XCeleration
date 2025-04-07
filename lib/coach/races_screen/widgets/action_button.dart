@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:xcelerate/core/components/dialog_utils.dart';
 import 'package:xcelerate/utils/database_helper.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../shared/models/race.dart';
 import '../controller/races_controller.dart';
+import '../../../core/components/button_components.dart';
 
 class ActionButton extends StatelessWidget {
   final RacesController controller;
@@ -18,7 +18,10 @@ class ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ElevatedButton(
+    return FullWidthButton(
+      text: isEditing ? 'Save Changes' : 'Create Race',
+      fontSize: 24,
+      borderRadius: 16,
       onPressed: () async {
         final error = controller.getFirstError();
         if (error != null) {
@@ -56,18 +59,6 @@ class ActionButton extends StatelessWidget {
         if (!context.mounted) return;
         Navigator.pop(context, newRaceId);
       },
-      style: ElevatedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        backgroundColor: AppColors.primaryColor,
-        fixedSize: const Size.fromHeight(64),
-      ),
-      child: Text(
-        isEditing ? 'Save Changes' : 'Create Race',
-        style: const TextStyle(fontSize: 24, color: Colors.white),
-      ),
     );
   }
 }

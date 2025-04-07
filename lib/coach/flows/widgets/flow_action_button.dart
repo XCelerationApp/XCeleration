@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/typography.dart';
+import '../../../core/components/button_components.dart';
 
 class FlowActionButton extends StatelessWidget {
   final String label;
@@ -15,39 +15,26 @@ class FlowActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 56,
-      child: ElevatedButton(
-        onPressed: isEnabled ? onPressed : null,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFFFF5722),
-          disabledBackgroundColor: const Color(0xFFFF5722).withOpacity(0.5),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(28),
-          ),
-          elevation: 0,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-        ),
-        child: Text(
-          label,
-          style: AppTypography.bodySemibold.copyWith(
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
+    return FullWidthButton(
+      text: label,
+      onPressed: onPressed,
+      isEnabled: isEnabled,
+      borderRadius: 28, 
+      backgroundColor: const Color(0xFFFF5722), 
+      fontSize: 16,
+      fontWeight: FontWeight.w600,
     );
   }
 }
 
-class ActionButton extends StatefulWidget {
+// This class was renamed from ActionButton to FlowOptionButton to avoid
+// naming conflicts with the new button components
+class FlowOptionButton extends StatefulWidget {
   final String label;
   final VoidCallback? onTap;
   final IconData? icon;
 
-  const ActionButton({
+  const FlowOptionButton({
     super.key,
     required this.label,
     this.onTap,
@@ -55,44 +42,23 @@ class ActionButton extends StatefulWidget {
   });
 
   @override
-  State<ActionButton> createState() => _ActionButtonState();
+  State<FlowOptionButton> createState() => _FlowOptionButtonState();
 }
 
-class _ActionButtonState extends State<ActionButton> {
+class _FlowOptionButtonState extends State<FlowOptionButton> {
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: widget.onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            border: Border.all(color: const Color(0xFFE0E0E0)),
-            borderRadius: BorderRadius.circular(12),
-            color: Colors.white,
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          child: Row(
-            children: [
-              Icon(
-                widget.icon,
-                color: Colors.black54,
-                size: 24,
-              ),
-              const SizedBox(width: 16),
-              Text(
-                widget.label,
-                style: const TextStyle(
-                  fontSize: 17,
-                  color: Colors.black87,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+    // Using SecondaryButton to implement the flow option button
+    return SecondaryButton(
+      text: widget.label,
+      onPressed: widget.onTap,
+      icon: widget.icon,
+      iconLeading: true,
+      size: ButtonSize.fullWidth,
+      elevation: 0,
+      borderRadius: 12,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      fontSize: 17,
     );
   }
 }

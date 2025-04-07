@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
+import '../../../core/components/button_components.dart';
 // import '../database_helper.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -44,12 +45,11 @@ class ProfileScreenState extends State<ProfileScreen> {
             ],
           ),
           const SizedBox(height: 24),
-          ElevatedButton(
+          PrimaryButton(
+            text: 'Sign Out',
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
             onPressed: () {},
-            child: Text(
-              'Sign Out',
-              style: AppTypography.bodySemibold.copyWith(color: Colors.white),
-            ),
           ),
         ],
       ),

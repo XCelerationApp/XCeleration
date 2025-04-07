@@ -30,19 +30,22 @@ Widget buildRoleButton({
 }) {
   return Padding(
     padding: const EdgeInsets.symmetric(horizontal: 20.0),
-    child: ElevatedButton(
-      onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
-        padding: const EdgeInsets.all(20.0),
-        fixedSize: const Size(300, 75),
-        elevation: 5,
-        shadowColor: Colors.black,
-      ),
-      child: Text(
-        text,
-        style: AppTypography.displaySmall.copyWith(
-          fontWeight: FontWeight.w400,
-          color: AppColors.selectedRoleTextColor,
+    child: SizedBox(
+      width: 300,
+      height: 75,
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          padding: const EdgeInsets.all(20.0),
+          elevation: 5,
+          shadowColor: Colors.black,
+        ),
+        child: Text(
+          text,
+          style: AppTypography.displaySmall.copyWith(
+            fontWeight: FontWeight.w400,
+            color: AppColors.selectedRoleTextColor,
+          ),
         ),
       ),
     ),

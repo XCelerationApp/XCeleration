@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../../core/components/dialog_utils.dart';
 import '../../../core/components/runner_input_form.dart';
+import '../../../core/components/button_components.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../utils/database_helper.dart';
 import '../../../utils/file_processing.dart';
@@ -326,44 +327,15 @@ class RunnersManagementController with ChangeNotifier {
             const SizedBox(height: 24), // Adjusted spacing for balance
 
             // See Example button - with rounded corners and shadow
-            ElevatedButton(
+            SecondaryButton(
+              text: 'See Example',
+              icon: Icons.description_outlined,
+              iconSize: 20,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              borderRadius: 30,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               onPressed: () async => await showSampleSpreadsheet(),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: AppColors.primaryColor,
-                elevation: 0,
-                // shadowColor: Colors.black.withOpacity(0.1),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
-                  side: BorderSide(
-                    color: AppColors.primaryColor,
-                    width: 1,
-                  ),
-                ),
-                minimumSize:
-                    const Size(double.infinity, 56), // Full width button
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.description_outlined,
-                      size: 24,
-                      color:
-                          AppColors.primaryColor), // Ensuring color consistency
-                  const SizedBox(width: 12),
-                  Text(
-                    'See Example Format',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color:
-                          AppColors.primaryColor, // Ensuring color consistency
-                    ),
-                  ),
-                ],
-              ),
             ),
             const SizedBox(height: 24), // Adjusted spacing for balance
 
