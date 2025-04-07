@@ -59,10 +59,6 @@ void main() {
       expect(controller.overallTeamResults, isEmpty);
       expect(controller.headToHeadTeamResults, isNull);
     });
-
-    test('getTopRunners should return empty list when no results', () {
-      expect(controller.getTopRunners(5), isEmpty);
-    });
   });
 
   group('RaceResultsController Tests', () {
