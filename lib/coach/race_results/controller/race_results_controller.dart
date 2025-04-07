@@ -39,6 +39,9 @@ class RaceResultsController {
 
     sortAndPlaceTeams(teamResults);
 
+    // DEEP COPY: Create completely independent copies for team results
+    overallTeamResults = teamResults.map((r) => TeamRecord.from(r)).toList();
+
     final List<TeamRecord> scoringTeams = teamResults.map((r) => TeamRecord.from(r)).toList().where((r) => r.score != 0).toList();
 
     if (scoringTeams.length > 3 || scoringTeams.length < 2) {

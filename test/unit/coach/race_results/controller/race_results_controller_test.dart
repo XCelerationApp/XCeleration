@@ -89,8 +89,7 @@ void main() {
     });
 
     test('should handle teams with no scorers', () {
-      expect(controller.individualResults, isNotEmpty);
-      expect(controller.overallTeamResults, isNotEmpty);
+      expect(controller.individualResults.length, 2);
       expect(controller.overallTeamResults.length, 2);
       expect(controller.overallTeamResults[0].score, 0);
       expect(controller.overallTeamResults[1].score, 0);
