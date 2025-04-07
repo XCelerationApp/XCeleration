@@ -31,6 +31,8 @@ class MockDatabaseHelper extends Mock implements DatabaseHelper {
           runnerId: 101,
         ),
       ];
+    } else if (raceId == 2) {
+      return [];
     } else {
       return [];
     }
@@ -84,6 +86,17 @@ void main() {
       expect(controller.individualResults[0].place, 1); // Should be place 1
       expect(controller.individualResults[1].name, 'Runner B');
       expect(controller.individualResults[1].place, 2); // Should be place 2
+    });
+
+    test('should handle teams with no scorers', () {
+      expect(controller.individualResults, isNotEmpty);
+      expect(controller.overallTeamResults, isNotEmpty);
+      expect(controller.overallTeamResults.length, 2);
+      expect(controller.overallTeamResults[0].score, 0);
+      expect(controller.overallTeamResults[1].score, 0);
+      expect(controller.overallTeamResults[0].avgTime, Duration.zero);
+      expect(controller.overallTeamResults[1].split, Duration.zero);
+      expect(controller.headToHeadTeamResults, isNull);
     });
   });
 }
