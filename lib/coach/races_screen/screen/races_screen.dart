@@ -53,7 +53,6 @@ class RacesScreenState extends State<RacesScreen> {
               ),
               child: FloatingActionButton(
                 onPressed: () => _controller.showCreateRaceSheet(context),
-                // tooltip: 'Create new race',
                 backgroundColor: AppColors.primaryColor,
                 child: Icon(Icons.add),
               ),

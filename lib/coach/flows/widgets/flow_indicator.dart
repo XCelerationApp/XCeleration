@@ -18,7 +18,6 @@ class EnhancedFlowIndicator extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       height: 32,
-      // margin: const EdgeInsets.only(top: 8),
       child: Stack(
         fit: StackFit.expand,
         children: [

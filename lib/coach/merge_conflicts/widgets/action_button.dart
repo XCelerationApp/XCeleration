@@ -17,7 +17,7 @@ class ActionButton extends StatelessWidget {
       onPressed: onPressed,
       icon: Icons.sync_problem,
       borderRadius: 12,
-      elevation: 4, // Adding a bit more elevation to match the original shadow
+      elevation: 4,
       fontSize: 16,
       fontWeight: FontWeight.w600,
     );

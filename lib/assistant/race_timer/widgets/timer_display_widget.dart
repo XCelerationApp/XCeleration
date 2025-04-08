@@ -29,7 +29,7 @@ class TimerDisplayWidget extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Text(
-              formatDurationWithZeros(elapsed),
+              TimeFormatter.formatDurationWithZeros(elapsed),
               style: TextStyle(
                 fontSize: MediaQuery.of(context).size.width * 0.135,
                 fontFamily: 'RobotoMono',

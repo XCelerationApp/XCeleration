@@ -21,12 +21,6 @@ class BibNumberModel {
 
   bool get hasRunners => runners.isNotEmpty;
 
-  // // Helper for checking if a record exists with flag
-  // bool hasRecordsWithFlag(BuildContext context, String flagName) {
-  //   final provider = Provider.of<BibRecordsProvider>(context, listen: false);
-  //   return provider.bibRecords.any((bib) => bib.flags[flagName] == true);
-  // }
-
   // Helper to check if we have any non-empty bib numbers
   bool hasNonEmptyBibNumbers(BuildContext context) {
     final provider = Provider.of<BibRecordsProvider>(context, listen: false);

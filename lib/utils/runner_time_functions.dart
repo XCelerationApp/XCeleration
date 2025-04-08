@@ -123,13 +123,6 @@ List<TimingRecord> extraRunnerTime(
       },
     ),
   ));
-  // records.add({
-  //   'finish_time': finishTime,
-  //   'type': RecordType.extraRunner.toString(),
-  //   'text_color': color,
-  //   'numTimes': correcttedNumTimes,
-  //   'offBy': offBy,
-  // });
   return records;
 }
 

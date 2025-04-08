@@ -75,7 +75,6 @@ class TimingData with ChangeNotifier {
   }
 
   String encode() {
-    // final String encodedRecords = encodeTimingRecords();
     List<String> recordMaps = _records
         .map((record) => (record.type == RecordType.runnerTime)
             ? record.elapsedTime

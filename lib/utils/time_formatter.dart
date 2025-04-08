@@ -1,97 +1,84 @@
-String formatDuration(Duration duration) {
-  final hours = duration.inHours;
-  final minutes = (duration.inMinutes % 60);
-  // Format seconds with exactly 2 decimal places
-  final seconds = ((duration.inMilliseconds / 1000) % 60).toStringAsFixed(2);
+/// A utility class for formatting and parsing time durations.
+class TimeFormatter {
+  /// Formats a duration into a string with conditional formatting:
+  /// - For durations with hours: "h:mm:ss.xx"
+  /// - For durations with minutes (no hours): "m:ss.xx"
+  /// - For durations with seconds only: "ss.xx"
+  static String formatDuration(Duration duration) {
+    final hours = duration.inHours;
+    final minutes = (duration.inMinutes % 60);
+    // Format seconds with exactly 2 decimal places
+    final seconds = ((duration.inMilliseconds / 1000) % 60).toStringAsFixed(2);
 
-  if (hours > 0) {
-    return '$hours:${minutes.toString().padLeft(2, '0')}:${seconds.padLeft(5, '0')}';
-  } else if (minutes > 0) {
-    return '$minutes:${seconds.padLeft(5, '0')}';
-  } else {
-    return seconds;
+    if (hours > 0) {
+      return '$hours:${minutes.toString().padLeft(2, '0')}:${seconds.padLeft(5, '0')}';
+    } else if (minutes > 0) {
+      return '$minutes:${seconds.padLeft(5, '0')}';
+    } else {
+      return seconds;
+    }
   }
-}
 
-String formatDurationWithZeros(Duration duration) {
-  final hours = duration.inHours;
-  final hoursString = hours.toString().padLeft(2, '0');
-  final minutes = (duration.inMinutes % 60);
+  /// Formats a duration into a string with consistent "hh:mm:ss.xx" format,
+  /// always including hours and using leading zeros.
+  static String formatDurationWithZeros(Duration duration) {
+    final hours = duration.inHours;
+    final hoursString = hours.toString().padLeft(2, '0');
+    final minutes = (duration.inMinutes % 60);
 
-  final minutesString = minutes.toString().padLeft(2, '0');
-  // Format seconds with exactly 2 decimal places
-  final seconds = ((duration.inMilliseconds / 1000) % 60).toStringAsFixed(2);
-  final secondsString = seconds.padLeft(5, '0');
+    final minutesString = minutes.toString().padLeft(2, '0');
+    // Format seconds with exactly 2 decimal places
+    final seconds = ((duration.inMilliseconds / 1000) % 60).toStringAsFixed(2);
+    final secondsString = seconds.padLeft(5, '0');
 
-  return '$hoursString:$minutesString:$secondsString';
-}
+    return '$hoursString:$minutesString:$secondsString';
+  }
 
-// Duration? loadDurationFromString(String durationString) {
-//   try {
-//     List<String> parts = durationString.split(':');
-//     int hours = parts.length == 3 ? int.parse(parts[0]) : 0; // First part is hours
-//     int minutes = parts.length == 3 ? int.parse(parts[1]) : (parts.length == 2 ? int.parse(parts[0]) : 0); // Second part is minutes
+  /// Parses a time string into a Duration object.
+  /// 
+  /// Supports various formats:
+  /// - "ss.xx" (seconds only)
+  /// - "mm:ss.xx" (minutes and seconds)
+  /// - "hh:mm:ss.xx" (hours, minutes, and seconds)
+  /// 
+  /// Returns null if the string is empty, 'manual', or not in a valid format.
+  static Duration? loadDurationFromString(String input) {
+    try {
+      if (input.isEmpty || input == '' || input == 'manual') return null;
 
-//     // Handle milliseconds if present
-//     int milliseconds = 0;
-//     int seconds = 0;
-//     if (parts.last.contains('.')) {
-//         List<String> secondsParts = parts.last.split('.');
-//         seconds = int.parse(secondsParts[0]);
-//         milliseconds = (int.parse(secondsParts[1]) * (1000 ~/ 100)); // Convert to milliseconds
-//     }
-//     else {
-//       seconds = int.parse(parts.last);
-//     }
+      final parts = input.split(':');
+      final timeString = switch (parts.length) {
+        1 => '00:00:$input',
+        2 => '00:$input',
+        3 => input,
+        _ => null
+      };
 
-//     return Duration(
-//         hours: hours,
-//         minutes: minutes,
-//         seconds: seconds,
-//         milliseconds: milliseconds
-//     );
-//   } catch (e) {
-//     print('Error parsing duration string: $e');
-//     return null;
-//   }
-// }
+      if (timeString == null) return null;
 
-Duration? loadDurationFromString(String input) {
-  try {
-    if (input.isEmpty || input == '' || input == 'manual') return null;
+      final millisecondParts = timeString.split('.');
+      if (millisecondParts.length > 2) return null;
 
-    final parts = input.split(':');
-    final timeString = switch (parts.length) {
-      1 => '00:00:$input',
-      2 => '00:$input',
-      3 => input,
-      _ => null
-    };
+      final millisString = millisecondParts.length > 1
+          ? millisecondParts[1].padRight(3, '0')
+          : '0';
 
-    if (timeString == null) return null;
+      final timeParts = timeString.split(':');
 
-    final millisecondParts = timeString.split('.');
-    if (millisecondParts.length > 2) return null;
+      final hours = int.parse(timeParts[0]);
+      final minutes = int.parse(timeParts[1]);
+      final seconds = int.parse(timeParts[2].split('.')[0]);
+      final milliseconds = int.parse(millisString);
 
-    final millisString = millisecondParts.length > 1
-        ? millisecondParts[1].padRight(3, '0')
-        : '0';
-
-    final timeParts = timeString.split(':');
-
-    final hours = int.parse(timeParts[0]);
-    final minutes = int.parse(timeParts[1]);
-    final seconds = int.parse(timeParts[2].split('.')[0]);
-    final milliseconds = int.parse(millisString);
-
-    return Duration(
-      hours: hours,
-      minutes: minutes,
-      seconds: seconds,
-      milliseconds: milliseconds,
-    );
-  } catch (e) {
-    print('Error parsing duration string: $e');
-    return null;
+      return Duration(
+        hours: hours,
+        minutes: minutes,
+        seconds: seconds,
+        milliseconds: milliseconds,
+      );
+    } catch (e) {
+      print('Error parsing duration string: $e');
+      return null;
+    }
   }
 }

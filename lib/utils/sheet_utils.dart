@@ -5,21 +5,6 @@ Widget createSheetHandle({double height = 10.0, double width = 50.0}) {
   return Container(
     padding: const EdgeInsets.all(0),
     alignment: Alignment.topCenter,
-    // width: 50.0,
-    // decoration: BoxDecoration(
-    //   border: Border(
-    //     top: BorderSide(
-    //       width: 5.0,
-    //       color: Colors.transparent,
-    //       style: BorderStyle.solid,
-    //     ),
-    //     bottom: BorderSide(
-    //       width: 5.0,
-    //       color: Colors.transparent,
-    //       style: BorderStyle.solid,
-    //     ),
-    //   ),
-    // ),
     child: ClipRRect(
       borderRadius: BorderRadius.circular(10.0),
       child: Container(
@@ -44,28 +29,6 @@ Widget createBackArrow(BuildContext context, {VoidCallback? onBack}) {
     },
   );
 }
-
-// Widget createBackArrowBar(BuildContext context) {
-//   return Container(
-//     alignment: Alignment.topLeft,
-//     // width: 50.0,
-//     decoration: BoxDecoration(
-//       border: Border(
-//         top: BorderSide(
-//           width: 5.0,
-//           color: Colors.transparent,
-//           style: BorderStyle.solid,
-//         ),
-//         bottom: BorderSide(
-//           width: 5.0,
-//           color: Colors.transparent,
-//           style: BorderStyle.solid,
-//         ),
-//       ),
-//     ),
-//     child: createBackArrow(context),
-//   );
-// }
 
 Widget createSheetHeader(
   String? title, {

@@ -223,14 +223,6 @@ class _TimingScreenState extends State<TimingScreen>
     );
   }
 
-  // Widget _buildConflictRecord(TimingRecord record, int index) {
-  //   return ConflictRecordItem(
-  //     record: record,
-  //     index: index,
-  //     context: context,
-  //   );
-  // }
-
   Widget _buildBottomControls() {
     return BottomControlsWidget(
       onConfirmRunnerNumber: _controller.confirmRunnerNumber,

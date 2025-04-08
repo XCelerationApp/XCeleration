@@ -119,7 +119,6 @@ class TimingData {
   }
 
   String encode() {
-    // final String encodedRecords = encodeTimingRecords();
     List<String> recordMaps = records
         .map((record) => (record.type == RecordType.runnerTime)
             ? record.elapsedTime

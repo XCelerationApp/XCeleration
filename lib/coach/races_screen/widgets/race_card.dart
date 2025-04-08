@@ -29,18 +29,12 @@ class RaceCard extends StatelessWidget {
         }[race.flowState] ??
         'Setup Required';
 
-    // final flowStateColor = {
-    //   'setup': Colors.orange,
-    //   'pre-race': Colors.blue,
-    //   'post-race': Colors.purple,
-    //   'finished': AppColors.primaryColor,
-    // }[race.flowState] ?? Colors.orange;
 
     final flowStateColor = AppColors.primaryColor;
 
-    // Updated color to match design
-    const primaryColor = Color(0xFFE2572B);
-    const backgroundColor = Color(0xFFFFF0EA);
+    // // Updated color to match design
+    // const primaryColor = Color(0xFFE2572B);
+    // const backgroundColor = Color(0xFFFFF0EA);
 
     return Slidable(
       key: Key(race.race_id.toString()),
@@ -97,7 +91,7 @@ class RaceCard extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 12),
         width: double.infinity,
         decoration: BoxDecoration(
-          color: backgroundColor,
+          color: AppColors.backgroundColor,
           borderRadius: BorderRadius.circular(16),
           border: Border(
             left: BorderSide(
@@ -155,7 +149,7 @@ class RaceCard extends StatelessWidget {
                       Icon(
                         Icons.location_on,
                         size: 20,
-                        color: primaryColor,
+                        color: AppColors.primaryColor,
                       ),
                       const SizedBox(width: 8),
                       Expanded(
@@ -178,7 +172,7 @@ class RaceCard extends StatelessWidget {
                           Icon(
                             Icons.calendar_today,
                             size: 20,
-                            color: primaryColor,
+                            color: AppColors.primaryColor,
                           ),
                           const SizedBox(width: 8),
                           Text(
@@ -193,13 +187,13 @@ class RaceCard extends StatelessWidget {
                           const Icon(
                             Icons.straighten_rounded,
                             size: 20,
-                            color: primaryColor,
+                            color: AppColors.primaryColor,
                           ),
                           const SizedBox(width: 8),
                           Text(
                             '${race.distance} ${race.distanceUnit}',
                             style: AppTypography.headerSemibold.copyWith(
-                              color: primaryColor,
+                              color: AppColors.primaryColor,
                             ),
                           ),
                         ],
