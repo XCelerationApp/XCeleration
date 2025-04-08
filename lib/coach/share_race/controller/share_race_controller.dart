@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'package:xcelerate/utils/time_formatter.dart';
+
 import '../../../utils/enums.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -66,8 +68,8 @@ class ShareRaceController extends ChangeNotifier {
     buffer.writeln('Place\tSchool\tScore\tSplit Time\tAverage Time');
     for (final team in controller.overallTeamResults) {
       buffer.writeln('${team.place}\t${team.school}\t${team.score != 0 ? team.score : 'N/A'}\t'
-          '${team.split != Duration.zero ? team.split.toString() : 'N/A'}\t'
-          '${team.avgTime != Duration.zero ? team.avgTime.toString() : 'N/A'}');
+          '${team.split != Duration.zero ? TimeFormatter.formatDuration(team.split) : 'N/A'}\t'
+          '${team.avgTime != Duration.zero ? TimeFormatter.formatDuration(team.avgTime) : 'N/A'}');
     }
 
     // Individual Results Section
@@ -75,7 +77,7 @@ class ShareRaceController extends ChangeNotifier {
     buffer.writeln('Place\tName\tSchool\tTime');
     for (final runner in controller.individualResults) {
       buffer.writeln('${runner.place}\t${runner.name}\t${runner.school}\t'
-          '${runner.finishTime}');
+          '${TimeFormatter.formatDuration(runner.finishTime)}');
     }
 
     return buffer.toString();
@@ -94,8 +96,8 @@ class ShareRaceController extends ChangeNotifier {
             team.scorers.isEmpty
                 ? 'N/A'
                 : team.scorers.map((scorer) => scorer.place.toString()).join(', '),
-            team.split != Duration.zero ? team.split.toString() : 'N/A',
-            team.avgTime != Duration.zero ? team.avgTime.toString() : 'N/A',
+            team.split != Duration.zero ? TimeFormatter.formatDuration(team.split) : 'N/A',
+            team.avgTime != Duration.zero ? TimeFormatter.formatDuration(team.avgTime) : 'N/A',
           ]),
 
       // Spacing
@@ -203,10 +205,10 @@ class ShareRaceController extends ChangeNotifier {
                               .join(', ')
                           : 'N/A',
                       team.split != Duration.zero
-                          ? team.split.toString()
+                          ? TimeFormatter.formatDuration(team.split)
                           : 'N/A',
                       team.avgTime != Duration.zero
-                          ? team.avgTime.toString()
+                          ? TimeFormatter.formatDuration(team.avgTime)
                           : 'N/A',
                     ])
                 .toList(),
@@ -247,7 +249,7 @@ class ShareRaceController extends ChangeNotifier {
                       runner.place.toString(),
                       runner.name.toString(),
                       runner.school.toString(),
-                      runner.finishTime.toString(),
+                      TimeFormatter.formatDuration(runner.finishTime),
                     ])
                 .toList(),
           ),
