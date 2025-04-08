@@ -44,7 +44,7 @@ class RaceScreenController with ChangeNotifier {
 
   Future<void> init(BuildContext context) async {
     race = await loadRace();
-    flowController = MasterFlowController(raceId: raceId, race: race);
+    flowController = MasterFlowController(raceController: this);
     notifyListeners();
   }
 

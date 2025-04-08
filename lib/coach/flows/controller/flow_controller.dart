@@ -8,40 +8,36 @@ import '../../flows/widgets/flow_indicator.dart';
 import '../SetupFlow/controller/setup_controller.dart';
 import '../PreRaceFlow/controller/pre_race_controller.dart';
 import '../PostRaceFlow/controller/post_race_controller.dart';
-import '../../../shared/models/race.dart';
 import 'dart:async';
 import '../../../utils/database_helper.dart';
 import '../../../coach/race_screen/controller/race_screen_controller.dart';
-import '../../../utils/enums.dart';
 import '../../../core/services/event_bus.dart';
 
 /// Controller class for handling all flow-related operations
 class MasterFlowController {
-  final int raceId;
-  Race? race;
+  final RaceScreenController raceController;
   late SetupController setupController;
   late PreRaceController preRaceController;
   late PostRaceController postRaceController;
 
-  MasterFlowController({required this.raceId, Race? race}) {
-    race = race;
-    setupController = SetupController(raceId: raceId);
-    preRaceController = PreRaceController(raceId: raceId);
-    postRaceController = PostRaceController(raceId: raceId, useTestData: true);
+  MasterFlowController({required this.raceController}) {
+    setupController = SetupController(raceId: raceController.raceId);
+    preRaceController = PreRaceController(raceId: raceController.raceId);
+    postRaceController = PostRaceController(raceId: raceController.raceId, useTestData: true);
   }
 
   /// Continue the race flow based on the current state
   Future<void> continueRaceFlow(BuildContext context) async {
-    if (race == null) {
+    if (raceController.race == null) {
       // If race is null, try to load it
-      race = await DatabaseHelper.instance.getRaceById(raceId);
-      if (race == null) {
+      raceController.race = await DatabaseHelper.instance.getRaceById(raceController.raceId);
+      if (raceController.race == null) {
         debugPrint('Error: Race not found');
         return;
       }
     }
 
-    switch (race!.flowState) {
+    switch (raceController.race!.flowState) {
       case 'setup':
         await _setupFlow(context);
         break;
@@ -56,18 +52,18 @@ class MasterFlowController {
 
   /// Update the race flow state
   Future<void> updateRaceFlowState(String newState) async {
-    await DatabaseHelper.instance.updateRaceFlowState(raceId, newState);
-    if (race != null) {
-      race = race!.copyWith(flowState: newState);
+    await DatabaseHelper.instance.updateRaceFlowState(raceController.raceId, newState);
+    if (raceController.race != null) {
+      raceController.race = raceController.race!.copyWith(flowState: newState);
     }
     
-    debugPrint('MasterFlowController: Flow state changed to $newState for race: $raceId');
+    debugPrint('MasterFlowController: Flow state changed to $newState for race: ${raceController.raceId}');
     
     // Fire event (for components that use the event bus)
     EventBus.instance.fire(EventTypes.raceFlowStateChanged, {
-      'raceId': raceId,
+      'raceId': raceController.raceId,
       'newState': newState,
-      'race': race,
+      'race': raceController.race,
     });
   }
   
@@ -122,8 +118,7 @@ class MasterFlowController {
     if (!context.mounted) return false;
     
     if (context.mounted) {
-      RaceScreenController.showRaceScreen(context, raceId,
-          page: RaceScreenPage.results);
+      raceController.tabController.animateTo(1);
     }
     return true;
   }
