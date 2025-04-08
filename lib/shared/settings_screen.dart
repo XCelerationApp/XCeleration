@@ -68,11 +68,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // Role Selection Section
               _buildSectionHeader('Role'),
               _buildRoleSelection(context),
-
-              const Divider(),
-
-              // Add more settings sections here if needed
-              // For example: app preferences, notifications, etc.
             ],
           ),
         ],

@@ -199,15 +199,6 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
                         letterSpacing: 0.1,
                       ),
                     ),
-                    // const SizedBox(height: 4),
-                    // Text(
-                    //   record.error ?? 'Bib number not found',
-                    //   style: AppTypography.bodyRegular.copyWith(
-                    //     color: AppColors.mediumColor,
-                    //     fontSize: 12,
-                    //     height: 1.4,
-                    //   ),
-                    // ),
                   ],
                 ),
               ),

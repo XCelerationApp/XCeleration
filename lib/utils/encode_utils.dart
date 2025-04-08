@@ -17,7 +17,7 @@ Future<TimingData> decodeRaceTimesString(String encodedData) async {
   List<TimingRecord> records = [];
   int place = 0;
   for (var recordString in condensedRecords) {
-    if (loadDurationFromString(recordString) != null || recordString == 'TBD') {
+    if (TimeFormatter.loadDurationFromString(recordString) != null || recordString == 'TBD') {
       place++;
       records.add(TimingRecord(
           elapsedTime: recordString,

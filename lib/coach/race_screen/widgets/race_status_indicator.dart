@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-// import '../../../core/theme/typography.dart';
 
 class RaceStatusIndicator extends StatelessWidget {
   final String flowState;
@@ -24,21 +23,6 @@ class RaceStatusIndicator extends StatelessWidget {
     }
   }
 
-  // IconData _getStatusIcon(String flowState) {
-  //   switch (flowState) {
-  //     case 'setup':
-  //       return Icons.settings;
-  //     case 'pre-race':
-  //       return Icons.timer;
-  //     case 'post-race':
-  //       return Icons.flag;
-  //     case 'finished':
-  //       return Icons.check_circle;
-  //     default:
-  //       return Icons.help;
-  //   }
-  // }
-
   String _getStatusText(String flowState) {
     switch (flowState) {
       case 'setup':
@@ -57,7 +41,6 @@ class RaceStatusIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final flowStateColor = _getStatusColor(flowState);
-    // final flowStateIcon = _getStatusIcon(flowState);
     final flowStateText = _getStatusText(flowState);
 
     return Container(

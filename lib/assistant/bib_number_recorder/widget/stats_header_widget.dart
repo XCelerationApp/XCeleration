@@ -71,7 +71,7 @@ class _StatsHeaderWidgetState extends State<StatsHeaderWidget>
         }
 
         return Container(
-          margin: const EdgeInsets.fromLTRB(0.0, 8.0, 0.0, 8.0), // Reduced margins
+          margin: const EdgeInsets.fromLTRB(0.0, 8.0, 0.0, 8.0),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
@@ -101,7 +101,7 @@ class _StatsHeaderWidgetState extends State<StatsHeaderWidget>
                         '$currentCount',
                         style: TextStyle(
                           color: countColor,
-                          fontSize: 40, // Slightly reduced
+                          fontSize: 40,
                           fontWeight: FontWeight.bold,
                           height: 1.0,
                         ),
@@ -119,7 +119,7 @@ class _StatsHeaderWidgetState extends State<StatsHeaderWidget>
                   ),
                 ),
                 
-                const SizedBox(height: 8), // Small vertical space
+                const SizedBox(height: 8),
                 
                 // Bottom row - wrap in a flexible layout
                 Row(

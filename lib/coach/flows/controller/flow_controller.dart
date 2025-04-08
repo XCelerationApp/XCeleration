@@ -4,7 +4,6 @@ import '../model/flow_model.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../utils/sheet_utils.dart';
-import '../../../core/theme/typography.dart';
 import '../../flows/widgets/flow_indicator.dart';
 import '../SetupFlow/controller/setup_controller.dart';
 import '../PreRaceFlow/controller/pre_race_controller.dart';
@@ -15,10 +14,6 @@ import '../../../utils/database_helper.dart';
 import '../../../coach/race_screen/controller/race_screen_controller.dart';
 import '../../../utils/enums.dart';
 import '../../../core/services/event_bus.dart';
-// import '../../share_race/controller/share_race_controller.dart';
-// import '../../../utils/time_formatter.dart';
-// import '../../race_screen/widgets/runner_record.dart';
-// import '../../../assistant/race_timer/timing_screen/model/timing_record.dart';
 
 /// Controller class for handling all flow-related operations
 class MasterFlowController {

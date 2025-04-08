@@ -34,18 +34,6 @@ class DatabaseHelper {
   }
 
   Future<void> _createDB(Database db, int version) async {
-    // Create team runners table
-    // await db.execute('''
-    //   CREATE TABLE team_runners (
-    //     runner_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    //     name TEXT NOT NULL,
-    //     school TEXT,
-    //     grade INTEGER,
-    //     bib_number TEXT NOT NULL UNIQUE,
-    //     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    //   )
-    // ''');
-
     // Create races table
     await db.execute('''
       CREATE TABLE races (
@@ -92,41 +80,9 @@ class DatabaseHelper {
         FOREIGN KEY (runner_id) REFERENCES race_runners (runner_id)
       )
     ''');
-
-    // // Create race results data table
-    // await db.execute('''
-    //   CREATE TABLE race_results_data (
-    //     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    //     race_id INTEGER NOT NULL,
-    //     runner_id INTEGER NOT NULL,
-    //     finish_time INTEGER,
-    //     finish_position INTEGER,
-    //     team TEXT,
-    //     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    //     FOREIGN KEY (race_id) REFERENCES races (race_id),
-    //     FOREIGN KEY (runner_id) REFERENCES team_runners (runner_id)
-    //   )
-    // ''');
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    // if (oldVersion < 2) {
-    //   // Create race results data table if it doesn't exist
-    //   await db.execute('''
-    //     CREATE TABLE IF NOT EXISTS race_results_data (
-    //       id INTEGER PRIMARY KEY AUTOINCREMENT,
-    //       race_id INTEGER NOT NULL,
-    //       runner_id INTEGER NOT NULL,
-    //       finish_time INTEGER,
-    //       finish_position INTEGER,
-    //       team TEXT,
-    //       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    //       FOREIGN KEY (race_id) REFERENCES races (race_id),
-    //       FOREIGN KEY (runner_id) REFERENCES team_runners (runner_id)
-    //     )
-    //   ''');
-    // }
-    
     // Add version 3 upgrade to rename the column
     if (oldVersion < 3) {
       try {
@@ -342,17 +298,6 @@ class DatabaseHelper {
     );
     return results.map((map) => RunnerRecord.fromMap(map)).toList();
   }
-
-  // Future<void> insertRaceResults(List<RunnerRecord> results) async {
-  //   final db = await instance.database;
-  //   final batch = db.batch();
-  //   for (var result in results) {
-  //     debugPrint(result.toString());
-  //     batch.insert('race_results', result.toMap());
-  //   }
-  //   await batch.commit();
-  //   return;
-  // }
 
   Future<void> insertRaceResults(List<RaceResult> results) async {
     final db = await instance.database;

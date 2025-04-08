@@ -105,15 +105,6 @@ class _BibListWidgetState extends State<BibListWidget> with TickerProviderStateM
                         },
                       ),
               ),
-              
-              // // Add button - always visible at the bottom
-              // Padding(
-              //   padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0),
-              //   child: AddButtonWidget(
-              //     tutorialManager: widget.tutorialManager,
-              //     onTap: () => widget.controller.handleBibNumber(''),
-              //   ),
-              // ),
             ],
           ),
         );

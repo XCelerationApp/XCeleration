@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../model/timing_data.dart';
 import '../model/timing_record.dart';
-import '../../../utils/time_formatter.dart' as time_formatter;
+import '../../../utils/time_formatter.dart';
 import '../../../utils/runner_time_functions.dart' as runner_functions;
 import '../../../core/components/dialog_utils.dart';
 import '../../../utils/enums.dart';
@@ -159,7 +159,7 @@ class TimingController extends ChangeNotifier {
 
     final difference = DateTime.now().difference(startTime);
     timingData.addRecord(
-      time_formatter.formatDuration(difference),
+      TimeFormatter.formatDuration(difference),
       place: runner_functions.getNumberOfTimes(records) + 1,
     );
     scrollToBottom(scrollController);
@@ -182,7 +182,7 @@ class TimingController extends ChangeNotifier {
 
     // Use the imported utility function by using a namespace prefix
     timingData.records = runner_functions.confirmRunnerNumber(
-        records, numTimes, time_formatter.formatDuration(difference));
+        records, numTimes, TimeFormatter.formatDuration(difference));
     scrollToBottom(scrollController);
     notifyListeners();
   }
@@ -204,7 +204,7 @@ class TimingController extends ChangeNotifier {
     }
 
     timingData.records = runner_functions.extraRunnerTime(
-        offBy, records, numTimes, time_formatter.formatDuration(difference));
+        offBy, records, numTimes, TimeFormatter.formatDuration(difference));
     scrollToBottom(scrollController);
     notifyListeners();
   }
@@ -284,7 +284,7 @@ class TimingController extends ChangeNotifier {
     }
 
     timingData.records = runner_functions.missingRunnerTime(
-        offBy, records, numTimes, time_formatter.formatDuration(difference));
+        offBy, records, numTimes, TimeFormatter.formatDuration(difference));
     scrollToBottom(scrollController);
     notifyListeners();
   }

@@ -20,25 +20,8 @@ class FlowNotification extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-        // decoration: BoxDecoration(
-        //   borderRadius: BorderRadius.circular(6),
-        //   color: AppColors.primaryColor,
-        // ),
         child: Row(
           children: [
-            // Container(
-            //   padding: const EdgeInsets.all(4),
-            //   // decoration: BoxDecoration(
-            //   //   color: Colors.white.withOpacity(0.2),
-            //   //   borderRadius: BorderRadius.circular(8),
-            //   // ),
-            //   child: Icon(
-            //     icon,
-            //     color: color,
-            //     size: 14,
-            //   ),
-            // ),
-            // const SizedBox(width: 8),
             Text(
               '$flowState Not Completed',
               style: TextStyle(
@@ -48,32 +31,6 @@ class FlowNotification extends StatelessWidget {
               ),
             ),
             const Spacer(),
-            // Container(
-            //   decoration: BoxDecoration(
-            //     color: Colors.white,
-            //     borderRadius: BorderRadius.circular(16),
-            //   ),
-            //   child: ClipRRect(
-            //     borderRadius: BorderRadius.circular(16),
-            //     child: Material(
-            //       color: Colors.transparent,
-            //       child: InkWell(
-            //         onTap: continueAction,
-            //         child: Padding(
-            //           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            //           child: Text(
-            //             'Continue',
-            //             style: TextStyle(
-            //               color: AppColors.primaryColor,
-            //               fontWeight: FontWeight.bold,
-            //               fontSize: 13,
-            //             ),
-            //           ),
-            //         ),
-            //       ),
-            //     ),
-            //   ),
-            // ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
               decoration: BoxDecoration(

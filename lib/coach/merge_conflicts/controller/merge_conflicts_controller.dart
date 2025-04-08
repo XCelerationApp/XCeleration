@@ -2,29 +2,16 @@ import '../model/timing_data.dart';
 import 'package:xcelerate/coach/race_screen/widgets/runner_record.dart';
 import '../model/chunk.dart';
 import 'package:flutter/material.dart';
-// import 'package:xcelerate/coach/merge_conflicts/model/chunk.dart';
 import 'package:xcelerate/coach/merge_conflicts/model/resolve_information.dart';
-// import 'package:xcelerate/coach/race_screen/widgets/runner_record.dart';
 import '../../../utils/time_formatter.dart';
-// import '../../../core/theme/typography.dart';
-// import 'dart:math';
-// import '../../../utils/database_helper.dart';
-// import '../../races_screen/screen/races_screen.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/components/dialog_utils.dart';
-// import '../../../utils/runner_time_functions.dart';
-// import '../utils/timing_utils.dart';
 import '../../../utils/enums.dart';
-// import '../model/timing_data.dart';
-// import '../model/joined_record.dart';
 import '../../../assistant/race_timer/model/timing_record.dart';
-// import '../../../core/components/instruction_card.dart';
-// import '../../race_screen/model/race_result.dart';
 
 class MergeConflictsController with ChangeNotifier {
   late final int raceId;
   late final TimingData timingData;
-  // late List<Map<String, dynamic>> runners;
   late List<RunnerRecord> runnerRecords;
   List<Chunk> chunks = [];
   Map<int, dynamic> selectedTimes = {};
@@ -114,13 +101,9 @@ class MergeConflictsController with ChangeNotifier {
     final newChunks = <Chunk>[];
     var startIndex = 0;
     var place = 1;
-    // for (final record in records) {
-    //   print('\n\nRecord: ${record.toMap()}');
-    // }
 
     for (int i = 0; i < records.length; i += 1) {
       if (i >= records.length - 1 || records[i].type != RecordType.runnerTime) {
-        // print('startIndex: $startIndex, i: $i, place: $place, conflict: ${records[i].conflict}, numTimes: ${records[i].conflict?.data?['numTimes']}, place: ${records[i].place}');
         newChunks.add(Chunk(
           records: records.sublist(startIndex, i + 1),
           type: records[i].type,
@@ -135,17 +118,6 @@ class MergeConflictsController with ChangeNotifier {
 
     for (int i = 0; i < newChunks.length; i += 1) {
       selectedTimes[newChunks[i].conflictIndex] = [];
-      // final runners = chunks[i].runners;
-      // final records = chunks[i].records;
-      // debugPrint('chunk ${i + 1}: ${chunks[i]}');
-      // debugPrint('-----------------------------');
-      // debugPrint('runners length: ${runners.length}');
-      // debugPrint('records length: ${records.length}');
-      // chunks[i].joinedRecords = List.generate(
-      //   runners.length,
-      //   (j) => [runners[j], records[j]],
-      // );
-      // chunks[i].controllers = {'timeControllers': List.generate(runners.length, (j) => TextEditingController()), 'manualControllers': List.generate(runners.length, (j) => TextEditingController())};
       await newChunks[i].setResolveInformation(
           resolveTooManyRunnerTimes, resolveTooFewRunnerTimes);
     }
@@ -178,17 +150,12 @@ class MergeConflictsController with ChangeNotifier {
 
   bool validateTimes(List<String> times, List<RunnerRecord> runners,
       TimingRecord lastConfirmed, TimingRecord conflictRecord) {
-    Duration? lastConfirmedTime = lastConfirmed.elapsedTime == ''
+    Duration lastConfirmedTime = lastConfirmed.elapsedTime == ''
         ? Duration.zero
-        : loadDurationFromString(lastConfirmed.elapsedTime);
-    lastConfirmedTime ??= Duration.zero;
-
-    // debugPrint('\n\ntimes: $times');
-    // debugPrint('runners: $runners');
-    // debugPrint('lastConfirmed time: $lastConfirmedTime');
+        : TimeFormatter.loadDurationFromString(lastConfirmed.elapsedTime)!;
 
     for (var i = 0; i < times.length; i++) {
-      final time = loadDurationFromString(times[i]);
+      final time = TimeFormatter.loadDurationFromString(times[i]);
       final runner = i > runners.length - 1 ? runners.last : runners[i];
       debugPrint('time: $time');
 
@@ -200,22 +167,17 @@ class MergeConflictsController with ChangeNotifier {
 
       if (time <= lastConfirmedTime ||
           time >=
-              (loadDurationFromString(conflictRecord.elapsedTime) ??
+              (TimeFormatter.loadDurationFromString(conflictRecord.elapsedTime) ??
                   Duration.zero)) {
         DialogUtils.showErrorDialog(context,
             message:
                 'Time for ${runner.name} must be after ${lastConfirmed.elapsedTime} and before ${conflictRecord.elapsedTime}');
         return false;
       }
-
-      // if (time >= (loadDurationFromString(conflictRecord.elapsedTime) ?? Duration.zero)) {
-      //   DialogUtils.showErrorDialog(context, message: 'Time for ${runner.name} must be before ${conflictRecord.elapsedTime}');
-      //   return false;
-      // }
     }
 
     if (!isAscendingOrder(
-        times.map((time) => loadDurationFromString(time)!).toList())) {
+        times.map((time) => TimeFormatter.loadDurationFromString(time)!).toList())) {
       DialogUtils.showErrorDialog(context,
           message: 'Times must be in ascending order');
       return false;
@@ -231,35 +193,18 @@ class MergeConflictsController with ChangeNotifier {
     return true;
   }
 
-  // bool checkIfAllRunnersResolved() {
-  //   final records = timingData['records']?.cast<Map<String, dynamic>>() ?? [];
-  //   return records.every((runner) =>
-  //     runner['bib_number'] != null && runner['is_confirmed'] == true
-  //   );
-  // }
-
   Future<ResolveInformation> resolveTooFewRunnerTimes(int conflictIndex) async {
     var records = timingData.records;
     final bibData =
         runnerRecords.map((runner) => runner.bib.toString()).toList();
     final conflictRecord = records[conflictIndex];
 
-    // final lastConfirmedIndex = records.sublist(0, conflictIndex)
-    //     .lastIndexWhere((record) => record['is_confirmed'] == true);
-    // if (conflictIndex == -1) return {};
-
-    // final lastConfirmedRecord = lastConfirmedIndex == -1 ? {} : records[lastConfirmedIndex];
     final lastConfirmedIndex = records
         .sublist(0, conflictIndex)
         .lastIndexWhere((record) => record.type != RecordType.runnerTime);
-    // if (conflictIndex == -1) return {};
 
-    // final lastConfirmedRecord = lastConfirmedIndex == -1 ? {} : records[lastConfirmedIndex];
     final lastConfirmedPlace =
         lastConfirmedIndex == -1 ? 0 : records[lastConfirmedIndex].place;
-    // debugPrint('Last confirmed record: $lastConfirmedPlace');
-    // final nextConfirmedRecord = records.sublist(conflictIndex + 1)
-    //     .firstWhere((record) => record['is_confirmed'] == true, orElse: () => {}.cast<String, dynamic>());
 
     final firstConflictingRecordIndex = records
             .sublist(lastConfirmedIndex + 1, conflictIndex)
@@ -271,21 +216,13 @@ class MergeConflictsController with ChangeNotifier {
     }
 
     final startingIndex = lastConfirmedPlace ?? 0;
-    // debugPrint('Starting index: $startingIndex');
 
     final spaceBetweenConfirmedAndConflict = lastConfirmedIndex == -1
         ? 1
         : firstConflictingRecordIndex - lastConfirmedIndex;
-    // debugPrint('firstConflictingRecordIndex: $firstConflictingRecordIndex');
-    debugPrint('lastConfirmedIndex here: $lastConfirmedIndex');
-    // debugPrint('');
-    // debugPrint('');
-    // debugPrint('Space between confirmed and conflict: $spaceBetweenConfirmedAndConflict');
 
     final List<TimingRecord> conflictingRecords = records.sublist(
         lastConfirmedIndex + spaceBetweenConfirmedAndConflict, conflictIndex);
-
-    // debugPrint('Conflicting records: $conflictingRecords');
 
     final List<String> conflictingTimes = conflictingRecords
         .where((record) => record.elapsedTime != '')
@@ -302,7 +239,6 @@ class MergeConflictsController with ChangeNotifier {
       availableTimes: conflictingTimes,
       allowManualEntry: true,
       conflictRecord: conflictRecord,
-      // selectedTimes: [],
       lastConfirmedRecord: records[lastConfirmedIndex],
       bibData: bibData,
     );
@@ -318,18 +254,12 @@ class MergeConflictsController with ChangeNotifier {
     final lastConfirmedIndex = records
         .sublist(0, conflictIndex)
         .lastIndexWhere((record) => record.type != RecordType.runnerTime);
-    // if (conflictIndex == -1) return {};
-
-    // final lastConfirmedRecord = lastConfirmedIndex == -1 ? {} : records[lastConfirmedIndex];
+    
     final lastConfirmedPlace =
         lastConfirmedIndex == -1 ? 0 : records[lastConfirmedIndex].place ?? 0;
-    // final nextConfirmedRecord = records.sublist(conflictIndex + 1)
-    //     .firstWhere((record) => record['type'] == 'runner_time', orElse: () => {}.cast<String, dynamic>());
 
     final List<TimingRecord> conflictingRecords =
         records.sublist(lastConfirmedIndex + 1, conflictIndex);
-
-    // debugPrint('Conflicting records: $conflictingRecords');
 
     final List<String> conflictingTimes = conflictingRecords
         .where((record) => record.elapsedTime != '')
@@ -357,7 +287,7 @@ class MergeConflictsController with ChangeNotifier {
   ) async {
     final resolveData = chunk.resolve;
     if (resolveData == null) throw Exception('No resolve data found');
-    // final bibData = resolveData['bibData'];
+    
     final runners = chunk.runners;
     final List<String> times = chunk.controllers['timeControllers']!
         .map((controller) => controller.text.toString())
@@ -429,14 +359,11 @@ class MergeConflictsController with ChangeNotifier {
     List<TimingRecord> records = chunk.records;
     final resolveData = chunk.resolve;
     if (resolveData == null) throw Exception('No resolve data found');
-    // final bibData = resolveData['bibData'] ?? [];
     final availableTimes = resolveData.availableTimes;
-    // final lastConfirmedRecord = resolveData['lastConfirmedRecord'] ?? {};
     final TimingRecord conflictRecord = resolveData.conflictRecord;
     final lastConfirmedIndex = resolveData.lastConfirmedIndex ?? -1;
     final lastConfirmedPlace = resolveData.lastConfirmedPlace;
     debugPrint('lastConfirmedPlace: $lastConfirmedPlace');
-    // final spaceBetweenConfirmedAndConflict = resolveData['spaceBetweenConfirmedAndConflict'] ?? -1;
     List<RunnerRecord> runners = resolveData.conflictingRunners;
 
     if (!validateTimes(
@@ -453,7 +380,6 @@ class MergeConflictsController with ChangeNotifier {
       return;
     }
     debugPrint('Unused times: $unusedTimes');
-    // final List<Map<String, dynamic>> typedRecords = List<Map<String, dynamic>>.from(records);
     final List<TimingRecord> unusedRecords = records
         .where((record) => unusedTimes.contains(record.elapsedTime))
         .toList();
@@ -465,11 +391,9 @@ class MergeConflictsController with ChangeNotifier {
     records = timingData.records
         .where((record) => !unusedTimes.contains(record.elapsedTime))
         .toList();
-    // runners = runners.where((runner) => !unusedTimes.contains(runner.elapsedTime)).toList();
     notifyListeners();
     records = timingData.records;
 
-    // final lastConfirmedRunnerPlace = lastConfirmedRecord.isEmpty ? 0 : lastConfirmedRecord['place'] as int;
     debugPrint('runners: $runners');
     for (int i = 0; i < runners.length; i++) {
       final num currentPlace = i + lastConfirmedPlace + 1;
@@ -507,13 +431,11 @@ class MergeConflictsController with ChangeNotifier {
         records.indexOf(record) > lastConflictIndex &&
         records.indexOf(record) < conflictIndex);
 
-    // Navigator.pop(context);
     showSuccessMessage();
     await createChunks();
   }
 
   void updateConflictRecord(TimingRecord record, int numTimes) {
-    // record['numTimes'] = numTimes;
     record.type = RecordType.confirmRunner;
     record.place = numTimes;
     record.textColor = Colors.green;

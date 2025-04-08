@@ -8,7 +8,7 @@ import '../../../../../../assistant/race_timer/model/timing_record.dart';
 import '../../../../../../utils/database_helper.dart';
 import '../../../../../race_results/model/results_record.dart';
 import 'package:xcelerate/utils/sheet_utils.dart';
-import 'package:xcelerate/utils/time_formatter.dart' as TimeFormatter;
+import 'package:xcelerate/utils/time_formatter.dart';
 import 'package:xcelerate/coach/resolve_bib_number_screen/widgets/bib_conflicts_overview.dart';
 import 'package:xcelerate/coach/merge_conflicts/screen/merge_conflicts_screen.dart';
 
