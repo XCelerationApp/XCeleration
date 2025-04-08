@@ -62,7 +62,8 @@ class ResultsScreenState extends State<ResultsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             if (_controller.headToHeadTeamResults != null &&
-                                _controller.headToHeadTeamResults!.isNotEmpty) ...[
+                                _controller.headToHeadTeamResults!.isNotEmpty &&
+                                _controller.overallTeamResults.length == 2) ...[
                               // Head to Head Results
                               HeadToHeadResults(
                                 controller: _controller,
