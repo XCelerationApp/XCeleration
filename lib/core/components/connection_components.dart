@@ -370,6 +370,7 @@ class _QRConnectionState extends State<QRConnectionWidget> {
             ConnectionStatus.finished;
         widget.devices.getDevice(scannedDeviceName)!.data =
             parts.sublist(1).join(':');
+        debugPrint('Data received: ${widget.devices.getDevice(scannedDeviceName)!.data}');
             
         // Call the callback function if provided
         if (widget.devices.allDevicesFinished()) {

@@ -35,7 +35,7 @@ class HeadToHeadResults extends StatelessWidget {
               style: AppTypography.titleSemibold,
             ),
             const SizedBox(height: 16),
-            if (controller.headToHeadTeamResults != null &&
+            if (controller.headToHeadTeamResults == null ||
                 controller.headToHeadTeamResults!.isEmpty)
               const Center(
                 child: Padding(

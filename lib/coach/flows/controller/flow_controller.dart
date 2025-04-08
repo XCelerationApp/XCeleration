@@ -4,7 +4,6 @@ import '../model/flow_model.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../utils/sheet_utils.dart';
-import '../../../core/theme/typography.dart';
 import '../../flows/widgets/flow_indicator.dart';
 import '../SetupFlow/controller/setup_controller.dart';
 import '../PreRaceFlow/controller/pre_race_controller.dart';
