@@ -94,7 +94,7 @@ class _WirelessConnectionButtonState extends State<WirelessConnectionButton> {
           _getStatusText(),
           style: TextStyle(
             fontSize: 16,
-            color: Colors.grey[400],
+            color: Colors.grey[600],
           ),
         ),
       ],
