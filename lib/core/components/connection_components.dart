@@ -15,38 +15,39 @@ import '../../utils/enums.dart'
     show DeviceName, DeviceType, ConnectionStatus, WirelessConnectionError;
 
 class WirelessConnectionButton extends StatefulWidget {
-  final DeviceName deviceName;
+  final ConnectedDevice device;
   final IconData? icon;
-  final ConnectionStatus connectionStatus;
   final Function()? onRetry;
   final String? errorMessage;
   final bool isLoading;
 
   const WirelessConnectionButton({
     super.key,
-    required this.deviceName,
+    required this.device,
     this.icon = Icons.person,
-    required this.connectionStatus,
     this.onRetry,
     this.errorMessage,
     this.isLoading = false,
   });
 
   WirelessConnectionButton get skeleton => WirelessConnectionButton(
-        deviceName: deviceName,
+        device: device,
         icon: icon,
-        connectionStatus: connectionStatus,
         isLoading: true,
       );
 
-  WirelessConnectionButton error(String message, {Function()? retryAction}) =>
-      WirelessConnectionButton(
-        deviceName: deviceName,
-        icon: Icons.error_outline,
-        connectionStatus: ConnectionStatus.error,
-        errorMessage: message,
-        onRetry: retryAction,
-      );
+  WirelessConnectionButton error({WirelessConnectionError error = WirelessConnectionError.unknown, Function()? retryAction}) {
+    String message = error == WirelessConnectionError.unavailable
+        ? 'Wireless connection is not available on this device.'
+        : 'An unknown error occurred.';
+    device.status = ConnectionStatus.error;
+    return WirelessConnectionButton(
+      device: device,
+      icon: Icons.error_outline,
+      errorMessage: message,
+      onRetry: retryAction,
+    );
+  }
 
   @override
   State<WirelessConnectionButton> createState() =>
@@ -54,6 +55,70 @@ class WirelessConnectionButton extends StatefulWidget {
 }
 
 class _WirelessConnectionButtonState extends State<WirelessConnectionButton> {
+  @override
+  void initState() {
+    super.initState();
+    widget.device.addListener(_deviceStatusChanged);
+  }
+
+  void _deviceStatusChanged() {
+    if (mounted) {
+      setState(() {
+        // Just trigger a rebuild
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.device.removeListener(_deviceStatusChanged);
+    super.dispose();
+  }
+
+  Widget _buildStatusIndicator() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          width: 16,
+          height: 16,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            valueColor: AlwaysStoppedAnimation<Color>(
+              Colors.grey[400]!,
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          _getStatusText(),
+          style: TextStyle(
+            fontSize: 16,
+            color: Colors.grey[400],
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _getStatusText() {
+    switch (widget.device.status) {
+      case ConnectionStatus.connected:
+        return 'Connected';
+      case ConnectionStatus.sending:
+        return 'Sending';
+      case ConnectionStatus.receiving:
+        return 'Receiving';
+      case ConnectionStatus.found:
+        return 'Found';
+      case ConnectionStatus.connecting:
+        return 'Connecting';
+      case ConnectionStatus.searching:
+      default:
+        return 'Searching';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (widget.isLoading) {
@@ -98,8 +163,7 @@ class _WirelessConnectionButtonState extends State<WirelessConnectionButton> {
       );
     }
 
-    if (widget.connectionStatus == ConnectionStatus.error &&
-        widget.errorMessage != null) {
+    if (widget.device.status == ConnectionStatus.error) {
       return Container(
         width: double.infinity,
         decoration: BoxDecoration(
@@ -131,7 +195,7 @@ class _WirelessConnectionButtonState extends State<WirelessConnectionButton> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    widget.errorMessage ?? 'An error occurred',
+                    widget.errorMessage ?? 'An unknown error occurred',
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey[600],
@@ -173,7 +237,7 @@ class _WirelessConnectionButtonState extends State<WirelessConnectionButton> {
           ),
           const SizedBox(width: 16),
           Text(
-            getDeviceNameString(widget.deviceName),
+            getDeviceNameString(widget.device.name),
             style: const TextStyle(
               fontSize: 17,
               color: Colors.black87,
@@ -183,7 +247,7 @@ class _WirelessConnectionButtonState extends State<WirelessConnectionButton> {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (widget.connectionStatus == ConnectionStatus.finished) ...[
+              if (widget.device.status == ConnectionStatus.finished) ...[
                 Icon(
                   Icons.check_circle_outline,
                   color: Colors.green,
@@ -198,23 +262,7 @@ class _WirelessConnectionButtonState extends State<WirelessConnectionButton> {
                   ),
                 ),
               ] else ...[
-                SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor:
-                        AlwaysStoppedAnimation<Color>(Colors.grey[400]!),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Searching',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey[600],
-                  ),
-                ),
+                _buildStatusIndicator()
               ],
             ],
           ),
@@ -679,19 +727,16 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
           Padding(
               padding: const EdgeInsets.only(bottom: 8.0),
               child: WirelessConnectionButton(
-                  deviceName: widget.devices.currentDeviceName,
-                  connectionStatus: ConnectionStatus.error,
-                  errorMessage: _wirelessConnectionError ==
-                          WirelessConnectionError.unavailable
-                      ? 'Wireless connection is not available on this device.'
-                      : 'An unknown error occurred.',
-                  onRetry: () {
+                  device: ConnectedDevice(DeviceName.coach),
+                ).error(
+                  retryAction: () {
                     setState(() {
                       _wirelessConnectionError = null;
                       _isInitialized = false;
                     });
                     _initialize();
-                  })),
+                  })
+              ),
         ],
       );
     }
@@ -704,12 +749,10 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
             padding: const EdgeInsets.only(bottom: 16.0),
             child: !_isInitialized
                 ? WirelessConnectionButton(
-                    deviceName: device.name,
-                    connectionStatus: ConnectionStatus.searching,
+                    device: device,
                   ).skeleton
                 : WirelessConnectionButton(
-                    deviceName: device.name,
-                    connectionStatus: device.status,
+                    device: device,
                   ),
           ),
       ],
