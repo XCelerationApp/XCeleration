@@ -6,7 +6,7 @@ import '../../utils/enums.dart';
 import 'package:flutter/foundation.dart';
 
 /// Represents a connected device with its properties
-class ConnectedDevice {
+class ConnectedDevice extends ChangeNotifier {
   final DeviceName _deviceName;
   ConnectionStatus _status;
   String? _data;
@@ -22,13 +22,16 @@ class ConnectedDevice {
   ConnectionStatus get status => _status;
   set status(ConnectionStatus value) {
     _status = value;
+    notifyListeners();
   }
-
+  
   /// Data associated with this device
   String? get data => _data;
   set data(String? value) {
     _data = value;
+    notifyListeners();
   }
+
 
   /// Check if the device is finished
   bool get isFinished => _status == ConnectionStatus.finished;
@@ -36,9 +39,11 @@ class ConnectedDevice {
   /// Check if the device is in error state
   bool get isError => _status == ConnectionStatus.error;
 
+  /// Reset the device to initial state
   void reset() {
     _status = ConnectionStatus.searching;
     _data = null;
+    notifyListeners();
   }
 
   @override
