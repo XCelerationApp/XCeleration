@@ -23,10 +23,7 @@ class RaceInfoHeaderWidget extends StatelessWidget {
         final currentRecords = timingData.records;
 
         final hasRace =
-            startTime != null || (endTime != null && currentRecords.isNotEmpty);
-        final isRaceFinished =
-            startTime == null && endTime != null && currentRecords.isNotEmpty;
-
+            timingData.raceStopped == false || (endTime != null && currentRecords.isNotEmpty);
         // Calculate runner count by explicitly counting each type
         final runnerTimeCount = currentRecords
             .where((r) => r.type == RecordType.runnerTime && r.place != null)
@@ -36,23 +33,23 @@ class RaceInfoHeaderWidget extends StatelessWidget {
         return Container(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
           decoration: BoxDecoration(
-            color: hasRace ? const Color(0xFFF5F5F5) : Colors.transparent,
+            color: const Color(0xFFF5F5F5),
             borderRadius: BorderRadius.circular(10),
-            border: hasRace
-                ? Border.all(color: Colors.grey.withOpacity(0.2))
-                : null,
+            border: Border.all(color: Colors.grey.withOpacity(0.2)),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                isRaceFinished
-                    ? 'Race finished'
-                    : (hasRace ? 'Race in progress' : 'Ready to start'),
+                startTime == null
+                    ? 'Ready to start'
+                    : timingData.raceStopped
+                        ? 'Race finished'
+                        : 'Race in progress',
                 style: AppTypography.bodyRegular.copyWith(
                   fontSize: 16,
                   color: hasRace
-                      ? isRaceFinished
+                      ? timingData.raceStopped
                           ? Colors.green[700]
                           : AppColors.primaryColor
                       : Colors.black54,
