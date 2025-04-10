@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:xcelerate/coach/race_screen/widgets/runner_record.dart'
     show RunnerRecord;
 import 'dart:io';
+import '../../../core/theme/app_colors.dart';
 import '../model/bib_number_model.dart';
 import '../model/bib_records_provider.dart';
 import '../controller/bib_number_controller.dart';
@@ -17,8 +18,8 @@ import '../../../core/services/tutorial_manager.dart';
 import '../../../utils/enums.dart';
 import '../../../utils/sheet_utils.dart';
 import '../../../shared/role_functions.dart';
-import '../../../utils/encode_utils.dart';
 import '../../../utils/database_helper.dart';
+import '../../../utils/encode_utils.dart';
 
 class BibNumberScreen extends StatefulWidget {
   const BibNumberScreen({super.key});
@@ -39,8 +40,8 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
 
   // Store provider reference for safe disposal
   late BibRecordsProvider _providerReference;
-  late BibNumberModel _model;
   late BibNumberController _controller;
+  late BibNumberModel _model;
 
   @override
   void didChangeDependencies() {
@@ -52,7 +53,10 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
   @override
   void initState() {
     super.initState();
-    _model = BibNumberModel(initialRunners: _runners, initialDevices: devices);
+    _model = BibNumberModel(
+      initialRunners: _runners,
+      initialDevices: devices,
+    );
 
     _controller = BibNumberController(
       context: context,
@@ -80,6 +84,14 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     _runners.addAll(await DatabaseHelper.instance.getRaceRunners(2));
     _runners.addAll(await DatabaseHelper.instance.getRaceRunners(1));
     setState(() {});
+    
+    // Show the runners loaded sheet
+    if (_runners.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showRunnersLoadedSheet();
+      });
+    }
+    
     return;
     if (_runners.isEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -90,7 +102,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
             return AlertDialog(
               title: const Text('No Runners Loaded'),
               content: const Text(
-                  'There are no runners loaded in the system. Please load runners to continue.'),
+                  'There are no runners loaded on this phone. Please load runners to continue.'),
               actions: [
                 TextButton(
                   child: const Text('Return to Home'),
@@ -164,6 +176,11 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
         if (_runners.isNotEmpty && mounted) {
           // Close the "No Runners Loaded" dialog
           Navigator.of(context).pop();
+
+          // Show the runners loaded sheet
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _showRunnersLoadedSheet();
+          });
 
           // Setup tutorials after UI has settled
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -245,12 +262,205 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     }
   }
 
+  void _showRunnersLoadedSheet() {
+    sheet(
+      context: context,
+      body: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Loaded Runners (${_runners.length})',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Material(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(18),
+                child: InkWell(
+                  onTap: () {
+                    // Close the sheet
+                    Navigator.of(context).pop();
+                    // Clear the runners
+                    setState(() {
+                      _runners.clear();
+                    });
+                    // Reopen the check for runners popup
+                    _checkForRunners();
+                  },
+                  borderRadius: BorderRadius.circular(18),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12, 
+                      vertical: 6
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[200],
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                        color: Colors.grey[300]!,
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.refresh,
+                          size: 16,
+                          color: AppColors.primaryColor,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Reload',
+                          style: TextStyle(
+                            color: Colors.grey[800],
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          
+          // Table Header
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: Colors.grey[300]!),
+              ),
+            ),
+            child: Row(
+              children: const [
+                Expanded(
+                  flex: 3,
+                  child: Text(
+                    'Name',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    'School',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    'Gr.',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    'Bib',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          // Table Rows
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.5,
+            ),
+            child: ListView.builder(
+              shrinkWrap: true,
+              physics: const AlwaysScrollableScrollPhysics(),
+              itemCount: _runners.length,
+              itemBuilder: (context, index) {
+                final runner = _runners[index];
+                return Container(
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(color: Colors.grey[300]!),
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: Text(
+                            runner.name,
+                            style: const TextStyle(fontSize: 15),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            runner.school,
+                            style: const TextStyle(fontSize: 15),
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            runner.grade.toString(),
+                            style: const TextStyle(fontSize: 15),
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            runner.bib,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   void dispose() {
-    _scrollController.dispose();
+    // Safely dispose ScrollController
+    if (_scrollController.hasClients) {
+      _scrollController.dispose();
+    }
+    
     // Use the stored reference instead of accessing Provider in dispose
-    _providerReference.dispose();
+    if (mounted) {
+      _providerReference.dispose();
+    }
+    
     tutorialManager.dispose();
+    
     super.dispose();
   }
 
@@ -290,6 +500,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                       runners: _runners,
                       model: _model,
                       onReset: _resetLoadedRunners,
+                      onShowRunnersList: _showRunnersLoadedSheet,
                     ),
                     // Bib input list section
                     Expanded(

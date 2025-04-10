@@ -106,7 +106,7 @@ class RacesScreenState extends State<RacesScreen> {
                             // Show loading indicator while races are being loaded
                             if (_controller.races.isEmpty) {
                               return Center(
-                                  child: Text('No races found.',
+                                  child: Text('No races.',
                                       style: AppTypography.bodyRegular));
                             }
 

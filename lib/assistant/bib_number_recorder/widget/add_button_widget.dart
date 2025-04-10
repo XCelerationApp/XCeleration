@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/services/tutorial_manager.dart';
 import '../../../../core/components/coach_mark.dart';
+import '../../../core/theme/typography.dart';
 
 class AddButtonWidget extends StatelessWidget {
   final TutorialManager tutorialManager;
@@ -59,11 +60,12 @@ class AddButtonWidget extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 'Add New Bib Number',
-                style: TextStyle(
-                  color: Colors.grey[800],
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: AppTypography.bodyMedium,
+                // style: TextStyle(
+                //   color: Colors.grey[800],
+                //   fontSize: 14,
+                //   fontWeight: FontWeight.w500,
+                // ),
               ),
             ],
           ),
