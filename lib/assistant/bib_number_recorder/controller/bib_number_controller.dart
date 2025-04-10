@@ -1,26 +1,229 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:xcelerate/utils/database_helper.dart';
+import 'package:xcelerate/utils/enums.dart';
 import '../model/bib_records_provider.dart';
 import '../../../coach/race_screen/widgets/runner_record.dart';
 import '../../../core/components/dialog_utils.dart';
+import '../../../core/services/tutorial_manager.dart';
+import '../model/bib_number_model.dart';
+import '../../../utils/encode_utils.dart';
+import '../../../utils/sheet_utils.dart';
+import '../../../core/components/device_connection_widget.dart';
 import '../../../core/services/device_connection_service.dart';
+import 'package:xcelerate/coach/race_screen/widgets/runner_record.dart'
+    show RunnerRecord;
 
-class BibNumberController {
+
+
+class BibNumberController with ChangeNotifier {
   final BuildContext context;
-  final List<RunnerRecord> runners;
-  final ScrollController scrollController;
-  final DevicesManager devices;
+  late final List<RunnerRecord> runners;
+  late final ScrollController scrollController;
+  late BibNumberModel model;
+
+  late final DevicesManager devices;
   
   // Debounce timer for validations
   Timer? _debounceTimer;
 
   BibNumberController({
     required this.context,
-    required this.runners,
-    required this.scrollController,
-    required this.devices,
-  });
+  }) {
+    runners = [];
+    scrollController = ScrollController();
+    devices = DeviceConnectionService.createDevices(
+      DeviceName.bibRecorder,
+      DeviceType.browserDevice,
+    );
+    model = BibNumberModel(initialRunners: runners);
+    _checkForRunners(context);
+  }
+
+  final tutorialManager = TutorialManager();
+
+  bool raceStarted = false;
+
+
+  void setupTutorials() {
+    tutorialManager.startTutorial([
+      // 'swipe_tutorial',
+      'role_bar_tutorial',
+      'add_button_tutorial'
+    ]);
+  }
+
+  Future<void> _checkForRunners(BuildContext context) async {
+    // debugPrint('Checking for runners');
+    // debugPrint('Checking for runners');
+    debugPrint((await DatabaseHelper.instance.getAllRaces()).map((race) => race.raceId).toString());
+    runners.addAll(await DatabaseHelper.instance.getRaceRunners(3));
+    runners.addAll(await DatabaseHelper.instance.getRaceRunners(2));
+    runners.addAll(await DatabaseHelper.instance.getRaceRunners(1));
+    // return;
+    if (runners.isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('No Runners Loaded'),
+              content: const Text(
+                  'There are no runners loaded in the system. Please load runners to continue.'),
+              actions: [
+                TextButton(
+                  child: const Text('Return to Home'),
+                  onPressed: () {
+                    Navigator.of(context).popUntil((route) => route.isFirst);
+                  },
+                ),
+                TextButton(
+                  child: const Text('Load Runners'),
+                  onPressed: () async {
+                    sheet(
+                      context: context,
+                      title: 'Load Runners',
+                      body: deviceConnectionWidget(
+                        context,
+                        devices,
+                        callback: () {
+                          Navigator.pop(context);
+                          loadRunners(context);
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      });
+    }
+  }
+
+  Future<void> loadRunners(BuildContext context) async {
+    final data = devices.coach?.data;
+
+    if (data != null) {
+      try {
+        // Process data outside of setState
+        final runners = await decodeEncodedRunners(data, context);
+
+        if (runners == null || runners.isEmpty) {
+          DialogUtils.showErrorDialog(context,
+              message:
+                  'Invalid data received from bib recorder. Please try again.');
+          return;
+        }
+
+        final runnerInCorrectFormat = runners.every((runner) =>
+            runner.bib.isNotEmpty &&
+            runner.name.isNotEmpty &&
+            runner.school.isNotEmpty &&
+            runner.grade > 0);
+
+        if (!runnerInCorrectFormat) {
+          DialogUtils.showErrorDialog(context,
+              message:
+                  'Invalid data format received from bib recorder. Please try again.');
+          return;
+        }
+
+        if (runners.isNotEmpty) {
+          runners.clear();
+        }
+        runners.addAll(runners);
+        notifyListeners();
+
+
+        debugPrint('Runners loaded: $runners');
+
+        // Close dialog and handle UI updates after state is set
+        if (runners.isNotEmpty && context.mounted) {
+          // Close the "No Runners Loaded" dialog
+          Navigator.of(context).pop();
+
+          // Setup tutorials after UI has settled
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (context.mounted) setupTutorials();
+          });
+
+          // Reset the bib number field
+          handleBibNumber('');
+        }
+      } catch (e) {
+        debugPrint('Error loading runners: $e');
+        DialogUtils.showErrorDialog(context,
+            message: 'Error processing runner data: $e');
+      }
+    } else {
+      DialogUtils.showErrorDialog(context,
+          message: 'No data received from bib recorder. Please try again.');
+    }
+  }
+
+  Future<void> showShareBibNumbersPopup() async {
+    // Clear all focus nodes to prevent focus restoration
+    final provider = Provider.of<BibRecordsProvider>(context, listen: false);
+    for (var node in provider.focusNodes) {
+      node.unfocus();
+      // Disable focus restoration for this node
+      node.canRequestFocus = false;
+    }
+
+    bool confirmed = await cleanEmptyRecords();
+    if (!confirmed) {
+      restoreFocusability();
+      return;
+    }
+
+    confirmed = await checkDuplicateRecords();
+    if (!confirmed) {
+      restoreFocusability();
+      return;
+    }
+
+    confirmed = await checkUnknownRecords();
+    if (!confirmed) {
+      restoreFocusability();
+      return;
+    }
+
+    if (!context.mounted) return;
+    sheet(
+      context: context,
+      title: 'Share Bib Numbers',
+      body: deviceConnectionWidget(
+        context,
+        DeviceConnectionService.createDevices(
+          DeviceName.bibRecorder,
+          DeviceType.advertiserDevice,
+          data: getEncodedBibData(),
+        ),
+      ),
+    );
+
+    restoreFocusability();
+  }
+
+  void resetLoadedRunners(BuildContext context) async {
+    bool confirmed = await DialogUtils.showConfirmationDialog(
+      context,
+      title: 'Reset Loaded Runners',
+      content: 'Are you sure you want to reset all loaded runners?',
+    );
+    if (confirmed && context.mounted) {
+      runners.clear();
+      notifyListeners();
+      // Reset related bib data
+      Provider.of<BibRecordsProvider>(context, listen: false)
+          .clearBibRecords();
+      _checkForRunners(context);
+    }
+  }
 
   /// Gets a runner by bib number if it exists in the list of runners
   RunnerRecord? getRunnerByBib(String bib) {
@@ -101,8 +304,6 @@ class BibNumberController {
         lowConfidenceScore: confidences != null && 
             confidences.any((score) => score < 0.85),
       );
-      
-      print('Runner found: $matchedRunner');
     } else {
       // No match in database
       record.name = '';
@@ -321,5 +522,13 @@ class BibNumberController {
       }
     }
     return true;
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _debounceTimer?.cancel();
+    tutorialManager.dispose();
+    scrollController.dispose();
   }
 }
