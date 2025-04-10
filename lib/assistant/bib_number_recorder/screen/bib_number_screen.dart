@@ -62,53 +62,59 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
           tutorialManager: _controller.tutorialManager,
           child: GestureDetector(
             onTap: () => FocusScope.of(context).unfocus(),
-            child: Scaffold(
-              resizeToAvoidBottomInset: true,
-              body: Padding(
-                padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
-                child: Column(
-                  children: [
-                    buildRoleBar(context, 'bib recorder', _controller.tutorialManager),
-                    // Stats header with bib count and runner stats
-                    StatsHeaderWidget(
-                      runners: _controller.runners,
-                      model: _controller.model,
-                      onReset: () => _controller.resetLoadedRunners(context),
+            child: AnimatedBuilder(
+              animation: _controller,
+              builder: (context, child) {
+                return Scaffold(
+                  resizeToAvoidBottomInset: true,
+                  body: Padding(
+                    padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
+                    child: Column(
+                      children: [
+                        buildRoleBar(context, 'bib recorder', _controller.tutorialManager),
+                        // Stats header with bib count and runner stats
+                        StatsHeaderWidget(
+                          runners: _controller.runners,
+                          model: _controller.model,
+                          onReset: () => _controller.resetLoadedRunners(context),
+                          onShowRunnersList: () => _controller.showRunnersLoadedSheet(context),
+                        ),
+                        // Bib input list section
+                        Expanded(
+                          child: BibListWidget(
+                            scrollController: _controller.scrollController,
+                            controller: _controller,
+                            tutorialManager: _controller.tutorialManager,
+                          ),
+                        ),
+                        // Action buttons at the bottom
+                        Consumer<BibRecordsProvider>(
+                          builder: (context, provider, _) {
+                            return provider.isKeyboardVisible
+                                ? const SizedBox.shrink()
+                                : BottomActionButtonsWidget(
+                                    onShareBibNumbers: _controller.showShareBibNumbersPopup,
+                                  );
+                          },
+                        ),
+                        // Keyboard accessory bar for mobile devices
+                        Consumer<BibRecordsProvider>(
+                          builder: (context, provider, _) {
+                            if (!(Platform.isIOS || Platform.isAndroid) ||
+                                !provider.isKeyboardVisible ||
+                                provider.bibRecords.isEmpty) {
+                              return const SizedBox.shrink();
+                            }
+                            return KeyboardAccessoryBar(
+                              onDone: () => FocusScope.of(context).unfocus(),
+                            );
+                          },
+                        ),
+                      ],
                     ),
-                    // Bib input list section
-                    Expanded(
-                      child: BibListWidget(
-                        scrollController: _controller.scrollController,
-                        controller: _controller,
-                        tutorialManager: _controller.tutorialManager,
-                      ),
-                    ),
-                    // Action buttons at the bottom
-                    Consumer<BibRecordsProvider>(
-                      builder: (context, provider, _) {
-                        return provider.isKeyboardVisible
-                            ? const SizedBox.shrink()
-                            : BottomActionButtonsWidget(
-                                onShareBibNumbers: _controller.showShareBibNumbersPopup,
-                              );
-                      },
-                    ),
-                    // Keyboard accessory bar for mobile devices
-                    Consumer<BibRecordsProvider>(
-                      builder: (context, provider, _) {
-                        if (!(Platform.isIOS || Platform.isAndroid) ||
-                            !provider.isKeyboardVisible ||
-                            provider.bibRecords.isEmpty) {
-                          return const SizedBox.shrink();
-                        }
-                        return KeyboardAccessoryBar(
-                          onDone: () => FocusScope.of(context).unfocus(),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
+                  ),
+                );
+              },
             ),
           ),
         ),

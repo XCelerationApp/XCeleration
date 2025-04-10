@@ -7,6 +7,7 @@ class TimingData with ChangeNotifier {
   List<TimingRecord> _records = [];
   DateTime? _startTime;
   Duration? _endTime;
+  bool _raceStopped = true;
 
   List<TimingRecord> get records => _records;
   set records(List<TimingRecord> value) {
@@ -16,6 +17,11 @@ class TimingData with ChangeNotifier {
 
   DateTime? get startTime => _startTime;
   Duration? get endTime => _endTime;
+  bool get raceStopped => _raceStopped;
+  set raceStopped(bool value) {
+    _raceStopped = value;
+    notifyListeners();
+  }
 
   void addRecord(String elapsedTime,
       {String? runnerNumber,

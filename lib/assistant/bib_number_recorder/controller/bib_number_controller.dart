@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:xcelerate/core/theme/app_colors.dart';
 import 'package:xcelerate/utils/database_helper.dart';
 import 'package:xcelerate/utils/enums.dart';
 import '../model/bib_records_provider.dart';
@@ -61,6 +62,7 @@ class BibNumberController with ChangeNotifier {
     runners.addAll(await DatabaseHelper.instance.getRaceRunners(3));
     runners.addAll(await DatabaseHelper.instance.getRaceRunners(2));
     runners.addAll(await DatabaseHelper.instance.getRaceRunners(1));
+    notifyListeners();
     // return;
     if (runners.isEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -71,7 +73,7 @@ class BibNumberController with ChangeNotifier {
             return AlertDialog(
               title: const Text('No Runners Loaded'),
               content: const Text(
-                  'There are no runners loaded in the system. Please load runners to continue.'),
+                  'There are no runners loaded on this phone. Please load runners to continue.'),
               actions: [
                 TextButton(
                   child: const Text('Return to Home'),
@@ -146,6 +148,10 @@ class BibNumberController with ChangeNotifier {
           // Close the "No Runners Loaded" dialog
           Navigator.of(context).pop();
 
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            showRunnersLoadedSheet(context);
+          });
+
           // Setup tutorials after UI has settled
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (context.mounted) setupTutorials();
@@ -163,6 +169,191 @@ class BibNumberController with ChangeNotifier {
       DialogUtils.showErrorDialog(context,
           message: 'No data received from bib recorder. Please try again.');
     }
+  }
+
+  void showRunnersLoadedSheet(BuildContext context) {
+    sheet(
+      context: context,
+      body: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Loaded Runners (${runners.length})',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Material(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(18),
+                child: InkWell(
+                  onTap: () {
+                    // Close the sheet
+                    Navigator.of(context).pop();
+                    // Clear the runners
+                    runners.clear();
+                    notifyListeners();
+                    // Reopen the check for runners popup
+                    _checkForRunners(context);
+                  },
+                  borderRadius: BorderRadius.circular(18),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12, 
+                      vertical: 6
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[200],
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                        color: Colors.grey[300]!,
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.refresh,
+                          size: 16,
+                          color: AppColors.primaryColor,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Reload',
+                          style: TextStyle(
+                            color: Colors.grey[800],
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          
+          // Table Header
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: Colors.grey[300]!),
+              ),
+            ),
+            child: Row(
+              children: const [
+                Expanded(
+                  flex: 3,
+                  child: Text(
+                    'Name',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    'School',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    'Gr.',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    'Bib',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          
+          // Table Rows
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.5,
+            ),
+            child: ListView.builder(
+              shrinkWrap: true,
+              physics: const AlwaysScrollableScrollPhysics(),
+              itemCount: runners.length,
+              itemBuilder: (context, index) {
+                final runner = runners[index];
+                return Container(
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(color: Colors.grey[300]!),
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: Text(
+                            runner.name,
+                            style: const TextStyle(fontSize: 15),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            runner.school,
+                            style: const TextStyle(fontSize: 15),
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            runner.grade.toString(),
+                            style: const TextStyle(fontSize: 15),
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            runner.bib,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> showShareBibNumbersPopup() async {
@@ -529,6 +720,8 @@ class BibNumberController with ChangeNotifier {
     super.dispose();
     _debounceTimer?.cancel();
     tutorialManager.dispose();
-    scrollController.dispose();
+    if (scrollController.hasClients) {
+      scrollController.dispose();
+    }
   }
 }

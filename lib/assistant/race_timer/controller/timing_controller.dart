@@ -76,11 +76,11 @@ class TimingController extends ChangeNotifier {
 
     // Calculate a new start time that maintains the same elapsed time
     // when the race was stopped
-    final now = DateTime.now();
-    final newStartTime = now.subtract(endTime);
+    // final now = DateTime.now();
+    // final newStartTime = now.subtract(endTime);
 
-    timingData.changeStartTime(newStartTime);
-    timingData.changeEndTime(null);
+    // timingData.changeStartTime(newStartTime);
+    timingData.raceStopped = false;
     notifyListeners();
   }
 
@@ -115,18 +115,18 @@ class TimingController extends ChangeNotifier {
   void _initializeNewRace() {
     timingData.clearRecords();
     timingData.changeStartTime(DateTime.now());
-    timingData.changeEndTime(null);
+    timingData.raceStopped = false;
     notifyListeners();
   }
 
   void _finalizeRace() {
     final startTime = timingData.startTime;
-    if (startTime != null) {
+    if (timingData.raceStopped == false && startTime != null) {
       final now = DateTime.now();
       final difference = now.difference(startTime);
 
       timingData.changeEndTime(difference);
-      timingData.changeStartTime(null);
+      timingData.raceStopped = true;
       notifyListeners();
     }
   }
@@ -149,10 +149,10 @@ class TimingController extends ChangeNotifier {
 
   void logTime() {
     final startTime = timingData.startTime;
-    if (startTime == null) {
+    if (startTime == null || timingData.raceStopped) {
       if (_context != null) {
         DialogUtils.showErrorDialog(_context!,
-            message: 'Start time cannot be null.');
+            message: 'Start time cannot be null or race stopped.');
       }
       return;
     }
@@ -172,7 +172,7 @@ class TimingController extends ChangeNotifier {
         getCurrentDuration(timingData.startTime, timingData.endTime);
 
     final startTime = timingData.startTime;
-    if (startTime == null) {
+    if (startTime == null || timingData.raceStopped) {
       if (_context != null) {
         DialogUtils.showErrorDialog(_context!,
             message: 'Race must be started to confirm a runner number.');
@@ -195,7 +195,7 @@ class TimingController extends ChangeNotifier {
     final difference =
         getCurrentDuration(timingData.startTime, timingData.endTime);
     final startTime = timingData.startTime;
-    if (startTime == null) {
+    if (startTime == null || timingData.raceStopped) {
       if (_context != null) {
         DialogUtils.showErrorDialog(_context!,
             message: 'Race must be started to mark an extra runner time.');
@@ -291,6 +291,10 @@ class TimingController extends ChangeNotifier {
 
   void undoLastConflict() {
     try {
+      if (records.last.type == RecordType.confirmRunner) {
+        _undoConfirmRunner();
+        return;
+      }
       final lastConflict = records.lastWhere(
         (r) => r.hasConflict() && !r.isResolved(),
         orElse: () => throw Exception('No undoable conflict found'),
@@ -308,6 +312,17 @@ class TimingController extends ChangeNotifier {
     }
   }
 
+  void _undoConfirmRunner() {
+    if (records.last.type != RecordType.confirmRunner) throw Exception('Last record is not a confirm runner');
+    records.removeLast();
+    timingData.records = runner_functions.updateTextColor(null, records,
+        confirmed: false,
+        endIndex: records.length,
+        clearConflictColor: true);
+    scrollToBottom(scrollController);
+    notifyListeners();
+  }
+
   List<TimingRecord> _undoExtraRunnerConflict(
       TimingRecord lastConflict, List<TimingRecord> records) {
     if (lastConflict.isResolved()) {
@@ -315,23 +330,39 @@ class TimingController extends ChangeNotifier {
     }
     final lastConflictIndex = records.indexOf(lastConflict);
     final runnersBeforeConflict = records
-        .sublist(0, lastConflictIndex)
-        .where((r) => r.type == RecordType.runnerTime)
-        .toList();
-    final offBy = lastConflict.conflict?.data?['offBy'];
+          .sublist(0, lastConflictIndex)
+          .where((r) => r.type == RecordType.runnerTime)
+          .toList();
+    final offBy = lastConflict.conflict?.data?['offBy'] ?? 0;
 
-    records = runner_functions.updateTextColor(null, records,
+    final lastConfirmIndexBeforeConflict = records.sublist(0, lastConflictIndex)
+        .lastIndexWhere((r) => r.type == RecordType.confirmRunner);
+
+    final newRecords = runner_functions.updateTextColor(null, records.sublist(lastConfirmIndexBeforeConflict + 1, lastConflictIndex),
         confirmed: false,
-        endIndex: lastConflictIndex,
         clearConflictColor: true);
+    
+    // Replace the records in the specified range
+    // First remove the existing elements in that range
+    records.removeRange(lastConfirmIndexBeforeConflict + 1, lastConflictIndex);
+    // Then insert the new elements at the correct position
+    records.insertAll(lastConfirmIndexBeforeConflict + 1, newRecords);
+
+
+    // Safely update previous place for affected records
     for (int i = 0; i < offBy; i++) {
-      final record =
-          runnersBeforeConflict[runnersBeforeConflict.length - 1 - i];
-      record.previousPlace = record.place;
-      print('Record: $record');
+      if (i < runnersBeforeConflict.length) {
+        final recordIndex = lastConflictIndex - 1 - i;
+        if (recordIndex >= 0 && recordIndex < records.length) {
+          final record = records[recordIndex];
+          record.place = record.previousPlace;
+        }
+      }
     }
 
-    records.removeWhere((record) => record.runnerId == lastConflict.runnerId);
+    records.removeAt(lastConflictIndex);
+    notifyListeners();
+    
     return records;
   }
 
@@ -345,7 +376,7 @@ class TimingController extends ChangeNotifier {
         .sublist(0, lastConflictIndex)
         .where((r) => r.type == RecordType.runnerTime)
         .toList();
-    final offBy = lastConflict.conflict?.data?['offBy'];
+    final offBy = lastConflict.conflict?.data?['offBy'] ?? 0;
 
     records = runner_functions.updateTextColor(null, records,
         confirmed: false,
@@ -353,24 +384,29 @@ class TimingController extends ChangeNotifier {
         clearConflictColor: true);
 
     // Store the IDs of records to remove
-    final recordIdsToRemove = <int>[];
+    final recordIndicesToRemove = <int>[];
 
     for (int i = 0; i < offBy; i++) {
-      final record =
-          runnersBeforeConflict[runnersBeforeConflict.length - 1 - i];
-      recordIdsToRemove.add(record.runnerId!);
-      print('Adding record ID to remove: ${record.runnerId}');
+      if (i < runnersBeforeConflict.length) {
+        final record =
+            runnersBeforeConflict[runnersBeforeConflict.length - 1 - i];
+        // Only add runnerId to removal list if it's not null
+        recordIndicesToRemove.add(records.indexWhere((r) => r.elapsedTime == record.elapsedTime));
+        print('Adding record index to remove: ${records.indexOf(record)}');
+      }
     }
 
-    recordIdsToRemove.add(lastConflict.runnerId!);
-    // Remove records by ID
-    records
-        .removeWhere((record) => recordIdsToRemove.contains(record.runnerId));
-
-    if (records.isNotEmpty) {
-      print('Last record after removals: ${records.last.toMap()}');
+    // Only add lastConflict.runnerId if it's not null
+    recordIndicesToRemove.add(lastConflictIndex);
+    
+    // Remove records by Index
+    for (int index in recordIndicesToRemove.reversed) {
+      print('Removing record at index: $index');
+      if (index >= 0 && index < records.length) {
+        records.removeAt(index);
+      }
     }
-
+    
     return records;
   }
 
@@ -410,8 +446,8 @@ class TimingController extends ChangeNotifier {
 
   bool hasUndoableConflict() {
     return records.isNotEmpty &&
-        records.last.hasConflict() &&
-        !records.last.isResolved();
+        ((records.last.hasConflict() &&
+        !records.last.isResolved()) || records.last.type == RecordType.confirmRunner);
   }
 
   Future<bool> confirmRecordDismiss(TimingRecord record) async {
@@ -474,17 +510,34 @@ class TimingController extends ChangeNotifier {
   }
 
   void onDismissRunnerTimeRecord(TimingRecord record, int index) {
-    timingData.removeRecord(record.runnerId!);
+    // When removing a record, we need to handle records with no runnerId differently
+    if (record.runnerId != null) {
+      timingData.removeRecord(record.runnerId!);
+    } else {
+      // For records without a runnerId (like manual entries or unidentified runners)
+      // Remove directly from the records list by index
+      final records = List<TimingRecord>.from(timingData.records);
+      if (index >= 0 && index < records.length) {
+        records.removeAt(index);
+        timingData.records = records;
+      }
+    }
 
     // Update places for subsequent records
     for (var i = index; i < records.length; i++) {
       if (records[i].type == RecordType.runnerTime) {
         if (records[i].place != null) {
-          timingData.updateRecord(records[i].runnerId!,
-              place: records[i].place! - 1);
+          // Only try to update if runnerId is not null
+          if (records[i].runnerId != null) {
+            timingData.updateRecord(records[i].runnerId!,
+                place: records[i].place! - 1);
+          }
         } else if (records[i].previousPlace != null) {
-          timingData.updateRecord(records[i].runnerId!,
-              previousPlace: records[i].previousPlace! - 1);
+          // Only try to update if runnerId is not null
+          if (records[i].runnerId != null) {
+            timingData.updateRecord(records[i].runnerId!,
+                previousPlace: records[i].previousPlace! - 1);
+          }
         }
       }
     }

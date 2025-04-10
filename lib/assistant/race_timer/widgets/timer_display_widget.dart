@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import '../../../utils/time_formatter.dart';
+import '../model/timing_data.dart';
 
 class TimerDisplayWidget extends StatelessWidget {
   final DateTime? startTime;
   final Duration? endTime;
+  final TimingData timingData;
 
   const TimerDisplayWidget({
     super.key,
     required this.startTime,
     required this.endTime,
+    required this.timingData,
   });
 
   @override
@@ -16,26 +19,22 @@ class TimerDisplayWidget extends StatelessWidget {
     return StreamBuilder(
       stream: Stream.periodic(const Duration(milliseconds: 10)),
       builder: (context, _) {
-        final elapsed = _calculateElapsedTime(startTime, endTime);
+        final elapsed = _calculateElapsedTime(startTime, endTime, timingData);
         return Container(
           alignment: Alignment.centerLeft,
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          padding: const EdgeInsets.symmetric(vertical: 8),
           margin: const EdgeInsets.symmetric(vertical: 8),
           width: MediaQuery.of(context).size.width * 0.9,
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Text(
-              TimeFormatter.formatDurationWithZeros(elapsed),
-              style: TextStyle(
-                fontSize: MediaQuery.of(context).size.width * 0.135,
-                fontFamily: 'RobotoMono',
-                fontWeight: FontWeight.w600,
-                letterSpacing: -0.5,
-              ),
+          child: Text(
+            TimeFormatter.formatDurationWithZeros(elapsed),
+            style: TextStyle(
+              fontSize: MediaQuery.of(context).size.width * 0.11,
+              fontWeight: FontWeight.w600,
+              letterSpacing: -0.5,
             ),
           ),
         );
@@ -43,8 +42,8 @@ class TimerDisplayWidget extends StatelessWidget {
     );
   }
 
-  Duration _calculateElapsedTime(DateTime? startTime, Duration? endTime) {
-    if (startTime == null) {
+  Duration _calculateElapsedTime(DateTime? startTime, Duration? endTime, TimingData timingData) {
+    if (timingData.raceStopped || startTime == null) {
       return endTime ?? Duration.zero;
     }
     return DateTime.now().difference(startTime);

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:xcelerate/core/theme/app_colors.dart';
 import '../../../utils/sheet_utils.dart';
 import '../../../core/components/device_connection_widget.dart';
@@ -35,26 +36,23 @@ class RaceControlsWidget extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         _buildRaceControlButton(context),
-        if (startTime == null && hasRecords) _buildShareButton(context),
+        if (timingData.raceStopped == true && hasRecords) _buildShareButton(context),
         _buildLogButton(context),
       ],
     );
   }
 
   Widget _buildRaceControlButton(BuildContext context) {
-    final endTime = timingData.endTime;
-    final hasStoppedRace = startTime == null && endTime != null && hasRecords;
-
     final buttonText =
-        startTime != null ? 'Stop' : (hasStoppedRace ? 'Resume' : 'Start');
-    final buttonColor = startTime == null ? Colors.green : Colors.red;
+        timingData.raceStopped == false ? 'Stop' : (startTime != null ? 'Resume' : 'Start');
+    final buttonColor = timingData.raceStopped ? Colors.green : Colors.red;
 
     return CircularButton(
       text: buttonText,
       color: buttonColor,
-      fontSize: hasStoppedRace ? 16 : 18,
+      fontSize: timingData.raceStopped ? 16 : 18,
       fontWeight: FontWeight.w600,
-      onPressed: startTime == null ? onStartRace : onStopRace,
+      onPressed: timingData.raceStopped ? onStartRace : onStopRace,
     );
   }
 
@@ -97,16 +95,20 @@ class RaceControlsWidget extends StatelessWidget {
   }
 
   Widget _buildLogButton(BuildContext context) {
-    return CircularButton(
-      text: (!hasRecords || startTime != null) ? 'Log' : 'Clear',
-      color: (!hasRecords && startTime == null)
-          ? const Color.fromARGB(255, 201, 201, 201)
-          : const Color(0xFF777777),
-      fontSize: 18,
-      fontWeight: FontWeight.w600,
-      onPressed: (hasRecords && startTime == null)
-          ? onClearRaceTimes
-          : (startTime != null ? onLogButtonPress : null),
+    return Consumer<TimingData>(
+      builder: (context, timingData, child) {
+        return CircularButton(
+          text: (!hasRecords || timingData.raceStopped == false) ? 'Log' : 'Clear',
+          color: (!hasRecords && timingData.raceStopped)
+              ? const Color.fromARGB(255, 201, 201, 201)
+              : const Color(0xFF777777),
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          onPressed: (hasRecords && timingData.raceStopped)
+              ? onClearRaceTimes
+              : (timingData.raceStopped ? null : onLogButtonPress),
+        );
+      },
     );
   }
 }

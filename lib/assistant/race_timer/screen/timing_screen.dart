@@ -85,7 +85,7 @@ class _TimingScreenState extends State<TimingScreen>
                         if (_controller.records.isNotEmpty)
                           const SizedBox(height: 30),
                         Expanded(child: _buildRecordsList()),
-                        if (_controller.timingData.startTime != null &&
+                        if (_controller.timingData.raceStopped == false &&
                             _controller.records.isNotEmpty)
                           _buildBottomControls(),
                       ],
@@ -109,6 +109,7 @@ class _TimingScreenState extends State<TimingScreen>
     return TimerDisplayWidget(
       startTime: _controller.timingData.startTime,
       endTime: _controller.timingData.endTime,
+      timingData: _controller.timingData,
     );
   }
 
@@ -228,10 +229,7 @@ class _TimingScreenState extends State<TimingScreen>
       onConfirmRunnerNumber: _controller.confirmRunnerNumber,
       onMissingRunnerTime: () => _controller.missingRunnerTime(),
       onExtraRunnerTime: () => _controller.extraRunnerTime(),
-      onUndoLastConflict: _controller.hasUndoableConflict()
-          ? _controller.undoLastConflict
-          : null,
-      hasUndoableConflict: _controller.hasUndoableConflict(),
+      controller: _controller,
     );
   }
 

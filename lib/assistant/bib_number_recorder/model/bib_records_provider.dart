@@ -29,7 +29,9 @@ class BibRecordsProvider with ChangeNotifier {
       
       // Clear and dispose all existing controllers and focus nodes
       for (var controller in controllers) {
-        controller.dispose();
+        if (controller.hasListeners) {
+          controller.dispose();
+        }
       }
       controllers.clear();
       
@@ -133,12 +135,29 @@ class BibRecordsProvider with ChangeNotifier {
   void dispose() {
     // Clean up controllers and focus nodes
     for (var controller in controllers) {
-      controller.dispose();
+      try {
+        controller.dispose();
+      } catch (e) {
+        // Controller might already be disposed
+        print('Error disposing controller: $e');
+      }
     }
     
     for (var node in focusNodes) {
-      node.dispose();
+      try {
+        if (node.hasFocus || node.hasPrimaryFocus) {
+          node.unfocus();
+        }
+        node.dispose();
+      } catch (e) {
+        // FocusNode might already be disposed
+        print('Error disposing focus node: $e');
+      }
     }
+    
+    controllers.clear();
+    focusNodes.clear();
+    _bibRecords.clear();
     
     super.dispose();
   }

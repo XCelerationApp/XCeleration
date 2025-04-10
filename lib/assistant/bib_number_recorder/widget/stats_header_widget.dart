@@ -9,12 +9,14 @@ class StatsHeaderWidget extends StatefulWidget {
   final List<RunnerRecord> runners;
   final BibNumberModel model;
   final Function() onReset;
+  final VoidCallback onShowRunnersList;
 
   const StatsHeaderWidget({
     super.key,
     required this.runners,
     required this.model,
     required this.onReset,
+    required this.onShowRunnersList,
   });
 
   @override
@@ -65,10 +67,10 @@ class _StatsHeaderWidgetState extends State<StatsHeaderWidget>
         }
 
         // Determine color based on count
-        Color countColor = Colors.black;
-        if (currentCount > 0) {
-          countColor = AppColors.primaryColor;
-        }
+        Color countColor = AppColors.darkColor;
+        // if (currentCount > 0) {
+        //   countColor = AppColors.primaryColor;
+        // }
 
         return Container(
           margin: const EdgeInsets.fromLTRB(0.0, 8.0, 0.0, 8.0),
@@ -126,38 +128,51 @@ class _StatsHeaderWidgetState extends State<StatsHeaderWidget>
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     // Runners count
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[100],
+                    Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: widget.onShowRunnersList,
                         borderRadius: BorderRadius.circular(18),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[100],
+                            borderRadius: BorderRadius.circular(18),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.people_outline,
-                            size: 16,
-                            color: Colors.grey[800],
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.people_outline,
+                                size: 16,
+                                color: Colors.grey[800],
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Runners: ${widget.runners.length}',
+                                style: TextStyle(
+                                  color: Colors.grey[800],
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Icon(
+                                Icons.arrow_drop_down,
+                                size: 14,
+                                color: Colors.grey[600],
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'Runners: ${widget.runners.length}',
-                            style: TextStyle(
-                              color: Colors.grey[800],
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     ),
 
@@ -168,10 +183,10 @@ class _StatsHeaderWidgetState extends State<StatsHeaderWidget>
                       color: Colors.transparent,
                       borderRadius: BorderRadius.circular(18),
                       child: InkWell(
-                        onTap: currentCount > 0 ? widget.onReset : null,
+                        onTap: currentCount > 0 || widget.model.runners.isNotEmpty ? widget.onReset : null,
                         borderRadius: BorderRadius.circular(18),
                         child: Opacity(
-                          opacity: currentCount > 0 ? 1.0 : 0.5,
+                          opacity: currentCount > 0 || widget.model.runners.isNotEmpty ? 1.0 : 0.5,
                           child: Container(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 6),
