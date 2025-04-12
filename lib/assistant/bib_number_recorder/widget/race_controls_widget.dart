@@ -78,7 +78,7 @@ class RaceControlsWidget extends StatelessWidget {
             controller.clearBibRecords();
           }
         } else if (controller.isRecording && controller.canAddBib) {
-          controller.handleBibNumber('');
+          controller.addBib();
         }
       },
     );

@@ -55,7 +55,7 @@ class BibNumberController with ChangeNotifier {
   bool get canAddBib {
     if (_bibRecords.isEmpty) return true;
     final RunnerRecord lastBib = _bibRecords.last;
-    if (lastBib.bib.isEmpty) return false;
+    if (lastBib.bib.isEmpty && focusNodes.last.hasPrimaryFocus) return false;
     return true;
   }
 
@@ -200,6 +200,7 @@ class BibNumberController with ChangeNotifier {
     runners.addAll(await DatabaseHelper.instance.getRaceRunners(3));
     runners.addAll(await DatabaseHelper.instance.getRaceRunners(2));
     runners.addAll(await DatabaseHelper.instance.getRaceRunners(1));
+    runners.add(RunnerRecord(bib: '1', name: 'Teo Donnelley', raceId: 0, grade: 11, school: 'AW'));
     notifyListeners();
     // return;
     if (runners.isEmpty) {
@@ -294,9 +295,6 @@ class BibNumberController with ChangeNotifier {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (context.mounted) setupTutorials();
           });
-
-          // Reset the bib number field
-          handleBibNumber('');
         }
       } catch (e) {
         debugPrint('Error loading runners: $e');
@@ -651,6 +649,16 @@ class BibNumberController with ChangeNotifier {
     removeBibRecord(index);
   }
 
+  void addBib() {
+    if (bibRecords.isEmpty) {
+      handleBibNumber('');
+    } else if (bibRecords.last.bib.isEmpty) {
+      focusNodes.last.requestFocus();
+    } else {
+      handleBibNumber('');
+    }
+  }
+
   /// Handles bib number changes with optimizations to prevent UI jumping
   Future<void> handleBibNumber(
     String bibNumber, {
@@ -693,8 +701,10 @@ class BibNumberController with ChangeNotifier {
         ),
       ));
       
-      // Scroll to bottom when adding new bib (but after animation completes)
-      WidgetsBinding.instance.addPostFrameCallback((_) => scrollToBottom());
+      // Only scroll if necessary - check if we need to scroll to make new item visible
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollToLastItemIfNeeded();
+      });
       
       // After adding a new record, we don't need to immediately validate
       _debounceTimer = Timer(const Duration(milliseconds: 300), () async {
@@ -733,22 +743,24 @@ class BibNumberController with ChangeNotifier {
     }
   }
 
-  void scrollToBottom() {
-    if (scrollController.hasClients) {
-      // Use a safe scroll position calculation
-      final scrollPosition = scrollController.position.maxScrollExtent;
-      
-      // Add padding to ensure the bottom item is fully visible
-      final targetPosition = scrollPosition + 100;
-      
+  /// Only scrolls when the last item isn't already visible
+  void _scrollToLastItemIfNeeded() {
+    // Only attempt to scroll if we have a non-empty list and a valid scroll controller
+    if (_bibRecords.isEmpty || !scrollController.hasClients) return;
+    
+    // Check if we're already near the bottom
+    final position = scrollController.position;
+    final viewportDimension = position.viewportDimension;
+    final maxScrollExtent = position.maxScrollExtent;
+    final currentOffset = position.pixels;
+    
+    // If we're not already seeing the bottom part of the list, scroll to make new item visible
+    if (maxScrollExtent > 0 && (maxScrollExtent - currentOffset) > (viewportDimension / 2)) {
       scrollController.animateTo(
-        targetPosition,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
+        maxScrollExtent,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.fastOutSlowIn,
       );
-    } else {
-      // Try again in the next frame if the scroll controller is not ready
-      WidgetsBinding.instance.addPostFrameCallback((_) => scrollToBottom());
     }
   }
 
@@ -871,12 +883,44 @@ class BibNumberController with ChangeNotifier {
 
   @override
   void dispose() {
-    super.dispose();
+    // Cancel timer first before any other cleanup
     _debounceTimer?.cancel();
+    
+    // Dispose of tutorial manager
     tutorialManager.dispose();
+    
+    // Dispose of scroll controller
     if (scrollController.hasClients) {
       scrollController.dispose();
     }
-    clearBibRecords();
+    
+    // Dispose of focus nodes
+    for (var node in focusNodes) {
+      try {
+        // Try to remove listeners first to prevent callbacks during dispose
+        node.removeListener(() {});
+        node.dispose();
+      } catch (e) {
+        // Node may already be disposed, ignore the error
+        debugPrint('Warning: Error disposing focus node: $e');
+      }
+    }
+    
+    // Dispose of text controllers
+    for (var controller in controllers) {
+      try {
+        controller.dispose();
+      } catch (e) {
+        // Controller may already be disposed, ignore the error
+        debugPrint('Warning: Error disposing text controller: $e');
+      }
+    }
+    
+    // Clear collections but don't notify listeners since we're disposing
+    _bibRecords.clear();
+    controllers.clear();
+    focusNodes.clear();
+    
+    super.dispose();
   }
 }

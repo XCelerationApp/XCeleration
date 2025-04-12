@@ -81,6 +81,7 @@ class _BibListWidgetState extends State<BibListWidget> with TickerProviderStateM
               },
             ),
           ),
+          const SizedBox(height: 4)
         ],
       ),
     );
