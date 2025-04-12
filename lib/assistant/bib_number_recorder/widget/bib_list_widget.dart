@@ -71,7 +71,7 @@ class _BibListWidgetState extends State<BibListWidget> with TickerProviderStateM
                     return delete;
                   },
                   onDismissed: (direction) {
-                    widget.controller.onBibRecordRemoved(index);
+                    widget.controller.removeBibRecord(index);
                   },
                   child: BibInputWidget(
                     index: index,

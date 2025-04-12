@@ -57,7 +57,7 @@ class RaceControlsWidget extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
               borderRadius: 30,
               isPrimary: false,
-              onPressed: () => controller.showShareBibNumbersPopup(),
+              onPressed: () => controller.showShareBibNumbersPopup(context),
             );
           },
         ),
