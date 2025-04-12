@@ -5,17 +5,11 @@ import '../components/button_components.dart';
 
 /// A shared widget for runner input form used across the app
 class RunnerInputForm extends StatefulWidget {
-  /// Controller for name input
-  final TextEditingController? nameController;
-  
-  /// Controller for grade input
-  final TextEditingController? gradeController;
-  
-  /// Controller for school input
-  final TextEditingController? schoolController;
-  
-  /// Controller for bib input
-  final TextEditingController? bibController;
+  /// Initial values for the form fields
+  final String? initialName;
+  final String? initialGrade;
+  final String? initialSchool;
+  final String? initialBib;
   
   /// List of available school/team names
   final List<String> schoolOptions;
@@ -40,10 +34,10 @@ class RunnerInputForm extends StatefulWidget {
 
   const RunnerInputForm({
     super.key,
-    required this.nameController,
-    required this.gradeController,
-    required this.schoolController,
-    required this.bibController,
+    this.initialName,
+    this.initialGrade,
+    this.initialSchool,
+    this.initialBib,
     required this.schoolOptions,
     required this.onSubmit,
     required this.raceId,
@@ -58,6 +52,12 @@ class RunnerInputForm extends StatefulWidget {
 }
 
 class _RunnerInputFormState extends State<RunnerInputForm> {
+  // Internal controllers that will be managed by this widget
+  late TextEditingController nameController;
+  late TextEditingController gradeController;
+  late TextEditingController schoolController;
+  late TextEditingController bibController;
+  
   String? nameError;
   String? gradeError;
   String? schoolError;
@@ -67,13 +67,35 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
   void initState() {
     super.initState();
     
+    // Initialize controllers
+    nameController = TextEditingController();
+    gradeController = TextEditingController();
+    schoolController = TextEditingController();
+    bibController = TextEditingController();
+    
     // Initialize with existing data if editing
     if (widget.initialRunner != null) {
-      widget.nameController?.text = widget.initialRunner!.name;
-      widget.gradeController?.text = widget.initialRunner!.grade.toString();
-      widget.schoolController?.text = widget.initialRunner!.school;
-      widget.bibController?.text = widget.initialRunner!.bib;
+      nameController.text = widget.initialRunner!.name;
+      gradeController.text = widget.initialRunner!.grade.toString();
+      schoolController.text = widget.initialRunner!.school;
+      bibController.text = widget.initialRunner!.bib;
+    } else {
+      // Use initial values if provided
+      if (widget.initialName != null) nameController.text = widget.initialName!;
+      if (widget.initialGrade != null) gradeController.text = widget.initialGrade!;
+      if (widget.initialSchool != null) schoolController.text = widget.initialSchool!;
+      if (widget.initialBib != null) bibController.text = widget.initialBib!;
     }
+  }
+  
+  @override
+  void dispose() {
+    // Clean up controllers when the widget is disposed
+    nameController.dispose();
+    gradeController.dispose();
+    schoolController.dispose();
+    bibController.dispose();
+    super.dispose();
   }
 
   void validateName(String value) {
@@ -132,9 +154,9 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
       setState(() {
         bibError = 'Please enter a valid bib number';
       });
-    } else if (int.parse(value) < 1) {
+    } else if (int.parse(value) < 0) {
       setState(() {
-        bibError = 'Please enter a bib number greater than 0';
+        bibError = 'Please enter a bib number greater than or equal to 0';
       });
     } else {
       setState(() {
@@ -148,10 +170,10 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
         bibError != null ||
         gradeError != null ||
         nameError != null ||
-        widget.nameController!.text.isEmpty ||
-        widget.gradeController!.text.isEmpty ||
-        widget.schoolController!.text.isEmpty ||
-        widget.bibController!.text.isEmpty;
+        nameController.text.isEmpty ||
+        gradeController.text.isEmpty ||
+        schoolController.text.isEmpty ||
+        bibController.text.isEmpty;
   }
 
   void handleSubmit() {
@@ -161,10 +183,10 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
     
     try {
       final runner = RunnerRecord(
-        name: widget.nameController!.text,
-        grade: int.tryParse(widget.gradeController!.text) ?? 0,
-        school: widget.schoolController!.text,
-        bib: widget.bibController!.text,
+        name: nameController.text,
+        grade: int.tryParse(gradeController.text) ?? 0,
+        school: schoolController.text,
+        bib: bibController.text,
         raceId: widget.raceId,
       );
       
@@ -215,7 +237,7 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
           'Name',
           textfield_utils.buildTextField(
             context: context,
-            controller: widget.nameController ?? TextEditingController(),
+            controller: nameController,
             hint: 'John Doe',
             error: nameError,
             onChanged: validateName,
@@ -227,7 +249,7 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
           'Grade',
           textfield_utils.buildTextField(
             context: context,
-            controller: widget.gradeController ?? TextEditingController(),
+            controller: gradeController,
             hint: '9',
             keyboardType: TextInputType.number,
             error: gradeError,
@@ -241,14 +263,14 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
           widget.schoolOptions.isEmpty
             ? textfield_utils.buildTextField(
                 context: context,
-                controller: widget.schoolController ?? TextEditingController(),
+                controller: schoolController,
                 hint: 'Enter school name',
                 error: schoolError,
                 onChanged: validateSchool,
                 setSheetState: setState,
               )
             : textfield_utils.buildDropdown(
-                controller: widget.schoolController ?? TextEditingController(),
+                controller: schoolController,
                 hint: 'Select School',
                 error: schoolError,
                 onChanged: validateSchool,
@@ -262,7 +284,7 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
             'Bib #',
             textfield_utils.buildTextField(
               context: context,
-              controller: widget.bibController ?? TextEditingController(),
+              controller: bibController,
               hint: '1234',
               error: bibError,
               onChanged: validateBib,

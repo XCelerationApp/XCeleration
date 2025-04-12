@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:intl/intl.dart';
 import 'package:xcelerate/coach/races_screen/widgets/race_creation_sheet.dart';
+import 'package:xcelerate/coach/runners_management_screen/screen/runners_management_screen.dart';
 import 'package:xcelerate/core/components/dialog_utils.dart';
 import 'package:xcelerate/utils/database_helper.dart' show DatabaseHelper;
 import 'package:xcelerate/utils/sheet_utils.dart' show sheet;
@@ -103,12 +103,9 @@ class RacesController with ChangeNotifier {
       title: 'Create New Race',
       body: StatefulBuilder(
         builder: (BuildContext context, StateSetter setSheetState) {
-          return SizedBox(
-            height: MediaQuery.of(context).size.height * 0.92,
-            child: RaceCreationSheet(
-              controller: this,
-              setSheetState: setSheetState,
-            ),
+          return RaceCreationSheet(
+            controller: this,
+            setSheetState: setSheetState,
           );
         },
       ),
@@ -119,7 +116,7 @@ class RacesController with ChangeNotifier {
     if (newRaceId != null && context.mounted) {
       // Add a small delay to let the UI settle after sheet dismissal
       await Future.delayed(const Duration(milliseconds: 300));
-      
+
       if (context.mounted) {
         RaceScreenController.showRaceScreen(context, newRaceId);
       }
@@ -246,6 +243,45 @@ class RacesController with ChangeNotifier {
     dateError = null;
     distanceError = null;
     teamsError = null;
+    
+    notifyListeners();
+  }
+
+  bool validateRaceName() {
+    if (nameController.text.trim().isEmpty) {
+      nameError = 'Race name is required';
+      notifyListeners();
+      return false;
+    }
+    nameError = null;
+    notifyListeners();
+    return true;
+  }
+  
+  // For simplified creation, we only validate the race name
+  bool validateRaceCreation() {
+    return validateRaceName();
+  }
+
+  // Checks if all required fields are filled for a complete setup
+  Future<bool> isSetupComplete(Race race) async {
+    final moreThanFiveRunnersPerTeam = await RunnersManagementScreen.checkMinimumRunnersLoaded(race.raceId);
+    return race.raceName.isNotEmpty && 
+           race.location.isNotEmpty && 
+           race.raceDate != null && 
+           race.distance > 0 &&
+           race.distanceUnit.isNotEmpty && 
+           race.teams.isNotEmpty &&
+           race.teamColors.isNotEmpty &&
+           moreThanFiveRunnersPerTeam;
+  }
+  
+  // Update race flow state based on field completion
+  Future<void> updateRaceSetupStatus(Race race) async {
+    if (await isSetupComplete(race) && race.flowState == 'setup') {
+      await DatabaseHelper.instance.updateRaceFlowState(race.raceId, 'setup-completed');
+      await loadRaces(); // Refresh races list
+    }
   }
 
   Future<void> getCurrentLocation() async {
@@ -337,24 +373,24 @@ class RacesController with ChangeNotifier {
   Future<void> editRace(Race race) async {
     // Pre-fill the controllers with race data
     nameController.text = race.raceName;
-    locationController.text = race.location;
-    dateController.text = DateFormat('yyyy-MM-dd').format(race.raceDate);
-    distanceController.text = race.distance.toString();
-    unitController.text = race.distanceUnit;
+    // locationController.text = race.location;
+    // dateController.text = DateFormat('yyyy-MM-dd').format(race.raceDate);
+    // distanceController.text = race.distance.toString();
+    // unitController.text = race.distanceUnit;
 
-    // Clear existing team controllers
-    for (var controller in teamControllers) {
-      controller.dispose();
-    }
-    teamControllers.clear();
-    teamColors.clear();
+    // // Clear existing team controllers
+    // for (var controller in teamControllers) {
+    //   controller.dispose();
+    // }
+    // teamControllers.clear();
+    // teamColors.clear();
 
-    // Add team controllers for existing teams
-    for (var i = 0; i < race.teams.length; i++) {
-      var controller = TextEditingController(text: race.teams[i]);
-      teamControllers.add(controller);
-      teamColors.add(race.teamColors[i]);
-    }
+    // // Add team controllers for existing teams
+    // for (var i = 0; i < race.teams.length; i++) {
+    //   var controller = TextEditingController(text: race.teams[i]);
+    //   teamControllers.add(controller);
+    //   teamColors.add(race.teamColors[i]);
+    // }
 
     // Show the edit sheet
     final int? returnedRaceId = await sheet(
@@ -404,6 +440,19 @@ class RacesController with ChangeNotifier {
       await DatabaseHelper.instance.deleteRace(race.raceId);
       await loadRaces();
     }
+  }
+
+  // Create a new race with minimal information
+  Future<int> createRace(Race race) async {
+    final newRaceId = await DatabaseHelper.instance.insertRace(race);
+    await loadRaces(); // Refresh the races list
+    return newRaceId;
+  }
+  
+  // Update an existing race
+  Future<void> updateRace(Race race) async {
+    await DatabaseHelper.instance.updateRace(race);
+    await loadRaces(); // Refresh the races list
   }
 
   @override

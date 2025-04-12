@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-// import '../../../core/theme/app_colors.dart';
 
 class FlowNotification extends StatelessWidget {
   final String flowState;
@@ -13,6 +12,29 @@ class FlowNotification extends StatelessWidget {
       required this.color,
       required this.icon,
       required this.continueAction});
+      
+  // Get appropriate button text based on the flow state
+  String _getButtonText() {
+    // For completed states, show "Begin X" instead of "Continue"
+    if (flowState == 'Setup Completed') {
+      return 'Begin Pre-Race';
+    } else if (flowState == 'Pre-Race Completed') {
+      return 'Begin Post-Race';
+    } else if (flowState == 'Post-Race Completed') {
+      return 'Finish Race';
+    } else {
+      return 'Continue';
+    }
+  }
+  
+  // Get appropriate status text
+  String _getStatusText() {
+    if (flowState.contains('Completed')) {
+      return flowState;
+    } else {
+      return '$flowState Not Completed';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +45,7 @@ class FlowNotification extends StatelessWidget {
         child: Row(
           children: [
             Text(
-              '$flowState Not Completed',
+              _getStatusText(),
               style: TextStyle(
                 color: color,
                 fontWeight: FontWeight.w600,
@@ -32,7 +54,7 @@ class FlowNotification extends StatelessWidget {
             ),
             const Spacer(),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 color: color.withAlpha((0.1 * 255).round()),
                 borderRadius: BorderRadius.circular(16),
@@ -44,7 +66,7 @@ class FlowNotification extends StatelessWidget {
               child: InkWell(
                 onTap: continueAction,
                 child: Text(
-                  'Continue',
+                  _getButtonText(),
                   style: TextStyle(
                     color: color,
                     fontSize: 14,

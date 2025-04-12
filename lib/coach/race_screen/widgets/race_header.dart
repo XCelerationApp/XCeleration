@@ -7,13 +7,20 @@ String _getStatusText(String flowState) {
   switch (flowState) {
     case 'setup':
       return 'Setup';
+    case 'setup-completed':
+      return 'Setup Completed';
     case 'pre-race':
       return 'Pre-Race';
+    case 'pre-race-completed':
+      return 'Pre-Race Completed';
     case 'post-race':
       return 'Post-Race';
+    case 'post-race-completed':
+      return 'Post-Race Completed';
     case 'finished':
       return 'Finished';
     default:
+      print('Flow state: $flowState');
       return 'Unknown';
   }
 }
@@ -22,9 +29,15 @@ Color _getStatusColor(String flowState) {
   switch (flowState) {
     case 'setup':
       return Colors.amber;
+    case 'setup-completed':
+      return Colors.amber;
     case 'pre-race':
       return Colors.blue;
+    case 'pre-race-completed':
+      return Colors.blue;
     case 'post-race':
+      return Colors.purple;
+    case 'post-race-completed':
       return Colors.purple;
     case 'finished':
       return Colors.green;
@@ -37,9 +50,15 @@ IconData _getStatusIcon(String flowState) {
   switch (flowState) {
     case 'setup':
       return Icons.settings;
+    case 'setup-completed':
+      return Icons.settings;
     case 'pre-race':
       return Icons.timer;
+    case 'pre-race-completed':
+      return Icons.timer;
     case 'post-race':
+      return Icons.flag;
+    case 'post-race-completed':
       return Icons.flag;
     case 'finished':
       return Icons.check_circle;
