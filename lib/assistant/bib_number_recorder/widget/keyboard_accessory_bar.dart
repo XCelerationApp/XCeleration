@@ -1,18 +1,25 @@
 import 'package:flutter/material.dart';
-// import 'dart:io';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/typography.dart';
+import '../controller/bib_number_controller.dart';
+import 'dart:io';
 
 class KeyboardAccessoryBar extends StatelessWidget {
   final VoidCallback onDone;
+  final BibNumberController controller;
 
   const KeyboardAccessoryBar({
     super.key,
+    required this.controller,
     required this.onDone,
   });
 
   @override
   Widget build(BuildContext context) {
+    if (controller.isRecording || !(Platform.isIOS || Platform.isAndroid) || !controller.isKeyboardVisible ||
+        controller.bibRecords.isEmpty) {
+      return const SizedBox.shrink();
+    }
     return Container(
       height: 44,
       decoration: const BoxDecoration(
