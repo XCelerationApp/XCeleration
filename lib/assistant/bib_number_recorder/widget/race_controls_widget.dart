@@ -73,7 +73,7 @@ class RaceControlsWidget extends StatelessWidget {
       fontWeight: FontWeight.w600,
       onPressed: () async {
         if (controller.bibRecords.isNotEmpty && !controller.isRecording) {
-          final bool confirmation = await DialogUtils.showConfirmationDialog(context, title: 'Confirm Deletion', content: 'Are you sure you want to delete all');
+          final bool confirmation = await DialogUtils.showConfirmationDialog(context, title: 'Confirm Deletion', content: 'Are you sure you want to clear all the recorded bibs?');
           if (confirmation) {
             controller.clearBibRecords();
           }
