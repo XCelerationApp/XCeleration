@@ -9,20 +9,15 @@ import '../../../core/components/dialog_utils.dart';
 import '../../../utils/enums.dart';
 import '../model/timing_utils.dart';
 
-class TimingController extends ChangeNotifier {
+class TimingController extends TimingData {
   final ScrollController scrollController = ScrollController();
   late final AudioPlayer audioPlayer;
   bool isAudioPlayerReady = false;
-  late TimingData timingData;
   BuildContext? _context;
 
-  TimingController({TimingData? timingData}) {
-    this.timingData = timingData ?? TimingData();
+  TimingController() : super() {
     _initializeControllers();
   }
-
-  // Getter for records
-  List<TimingRecord> get records => timingData.records;
 
   void setContext(BuildContext context) {
     _context = context;
@@ -55,7 +50,6 @@ class TimingController extends ChangeNotifier {
   }
 
   void startRace() {
-    final endTime = timingData.endTime;
     final hasStoppedRace = endTime != null && records.isNotEmpty;
 
     if (hasStoppedRace) {
@@ -71,23 +65,14 @@ class TimingController extends ChangeNotifier {
   }
 
   void _continueRace() {
-    final endTime = timingData.endTime;
     if (endTime == null) return;
-
-    // Calculate a new start time that maintains the same elapsed time
-    // when the race was stopped
-    // final now = DateTime.now();
-    // final newStartTime = now.subtract(endTime);
-
-    // timingData.changeStartTime(newStartTime);
-    timingData.raceStopped = false;
+    raceStopped = false;
     notifyListeners();
   }
 
   Future<void> _showStartRaceDialog() async {
     if (_context == null) return;
 
-    final records = timingData.records;
     if (records.isNotEmpty) {
       final confirmed = await DialogUtils.showConfirmationDialog(
         _context!,
@@ -113,20 +98,20 @@ class TimingController extends ChangeNotifier {
   }
 
   void _initializeNewRace() {
-    timingData.clearRecords();
-    timingData.changeStartTime(DateTime.now());
-    timingData.raceStopped = false;
+    clearRecords();
+    changeStartTime(DateTime.now());
+    raceStopped = false;
     notifyListeners();
   }
 
   void _finalizeRace() {
-    final startTime = timingData.startTime;
-    if (timingData.raceStopped == false && startTime != null) {
+    final currentStartTime = startTime;
+    if (raceStopped == false && currentStartTime != null) {
       final now = DateTime.now();
-      final difference = now.difference(startTime);
+      final difference = now.difference(currentStartTime);
 
-      timingData.changeEndTime(difference);
-      timingData.raceStopped = true;
+      changeEndTime(difference);
+      raceStopped = true;
       notifyListeners();
     }
   }
@@ -148,8 +133,7 @@ class TimingController extends ChangeNotifier {
   }
 
   void logTime() {
-    final startTime = timingData.startTime;
-    if (startTime == null || timingData.raceStopped) {
+    if (startTime == null || raceStopped) {
       if (_context != null) {
         DialogUtils.showErrorDialog(_context!,
             message: 'Start time cannot be null or race stopped.');
@@ -157,8 +141,8 @@ class TimingController extends ChangeNotifier {
       return;
     }
 
-    final difference = DateTime.now().difference(startTime);
-    timingData.addRecord(
+    final difference = DateTime.now().difference(startTime!);
+    addRecord(
       TimeFormatter.formatDuration(difference),
       place: runner_functions.getNumberOfTimes(records) + 1,
     );
@@ -168,11 +152,9 @@ class TimingController extends ChangeNotifier {
 
   void confirmRunnerNumber() {
     final numTimes = runner_functions.getNumberOfTimes(records);
-    final difference =
-        getCurrentDuration(timingData.startTime, timingData.endTime);
+    final difference = getCurrentDuration(startTime, endTime);
 
-    final startTime = timingData.startTime;
-    if (startTime == null || timingData.raceStopped) {
+    if (startTime == null || raceStopped) {
       if (_context != null) {
         DialogUtils.showErrorDialog(_context!,
             message: 'Race must be started to confirm a runner number.');
@@ -181,7 +163,7 @@ class TimingController extends ChangeNotifier {
     }
 
     // Use the imported utility function by using a namespace prefix
-    timingData.records = runner_functions.confirmRunnerNumber(
+    records = runner_functions.confirmRunnerNumber(
         records, numTimes, TimeFormatter.formatDuration(difference));
     scrollToBottom(scrollController);
     notifyListeners();
@@ -191,11 +173,9 @@ class TimingController extends ChangeNotifier {
     final numTimes = runner_functions.getNumberOfTimes(records);
 
     if (!_validateExtraRunnerTime(numTimes, offBy)) return;
-
-    final difference =
-        getCurrentDuration(timingData.startTime, timingData.endTime);
-    final startTime = timingData.startTime;
-    if (startTime == null || timingData.raceStopped) {
+    final difference = getCurrentDuration(startTime, endTime);
+    
+    if (startTime == null || raceStopped) {
       if (_context != null) {
         DialogUtils.showErrorDialog(_context!,
             message: 'Race must be started to mark an extra runner time.');
@@ -203,7 +183,7 @@ class TimingController extends ChangeNotifier {
       return;
     }
 
-    timingData.records = runner_functions.extraRunnerTime(
+    records = runner_functions.extraRunnerTime(
         offBy, records, numTimes, TimeFormatter.formatDuration(difference));
     scrollToBottom(scrollController);
     notifyListeners();
@@ -261,7 +241,7 @@ class TimingController extends ChangeNotifier {
         final index =
             records.indexWhere((record) => record.runnerId == runnerId);
         if (index >= 0) {
-          timingData.removeRecord(runnerId);
+          removeRecord(runnerId);
         }
       }
       notifyListeners();
@@ -270,10 +250,7 @@ class TimingController extends ChangeNotifier {
 
   void missingRunnerTime({int offBy = 1}) {
     final numTimes = runner_functions.getNumberOfTimes(records);
-    final difference =
-        getCurrentDuration(timingData.startTime, timingData.endTime);
-
-    final startTime = timingData.startTime;
+    final difference = getCurrentDuration(startTime, endTime);
 
     if (startTime == null) {
       if (_context != null) {
@@ -283,7 +260,7 @@ class TimingController extends ChangeNotifier {
       return;
     }
 
-    timingData.records = runner_functions.missingRunnerTime(
+    records = runner_functions.missingRunnerTime(
         offBy, records, numTimes, TimeFormatter.formatDuration(difference));
     scrollToBottom(scrollController);
     notifyListeners();
@@ -301,9 +278,9 @@ class TimingController extends ChangeNotifier {
       );
 
       if (lastConflict.conflict?.type == RecordType.extraRunner) {
-        timingData.records = _undoExtraRunnerConflict(lastConflict, records);
+        records = _undoExtraRunnerConflict(lastConflict, records);
       } else if (lastConflict.conflict?.type == RecordType.missingRunner) {
-        timingData.records = _undoMissingRunnerConflict(lastConflict, records);
+        records = _undoMissingRunnerConflict(lastConflict, records);
       }
       scrollToBottom(scrollController);
       notifyListeners();
@@ -315,7 +292,7 @@ class TimingController extends ChangeNotifier {
   void _undoConfirmRunner() {
     if (records.last.type != RecordType.confirmRunner) throw Exception('Last record is not a confirm runner');
     records.removeLast();
-    timingData.records = runner_functions.updateTextColor(null, records,
+    records = runner_functions.updateTextColor(null, records,
         confirmed: false,
         endIndex: records.length,
         clearConflictColor: true);
@@ -391,7 +368,7 @@ class TimingController extends ChangeNotifier {
         final record =
             runnersBeforeConflict[runnersBeforeConflict.length - 1 - i];
         // Only add runnerId to removal list if it's not null
-        recordIndicesToRemove.add(records.indexWhere((r) => r.elapsedTime == record.elapsedTime));
+        recordIndicesToRemove.add(records.indexOf(record));
         print('Adding record index to remove: ${records.indexOf(record)}');
       }
     }
@@ -431,7 +408,7 @@ class TimingController extends ChangeNotifier {
       ),
     ).then((confirmed) {
       if (confirmed ?? false) {
-        timingData.clearRecords();
+        clearRecords();
         notifyListeners();
       }
     });
@@ -512,14 +489,14 @@ class TimingController extends ChangeNotifier {
   void onDismissRunnerTimeRecord(TimingRecord record, int index) {
     // When removing a record, we need to handle records with no runnerId differently
     if (record.runnerId != null) {
-      timingData.removeRecord(record.runnerId!);
+      removeRecord(record.runnerId!);
     } else {
       // For records without a runnerId (like manual entries or unidentified runners)
       // Remove directly from the records list by index
-      final records = List<TimingRecord>.from(timingData.records);
+      final records = List<TimingRecord>.from(this.records);
       if (index >= 0 && index < records.length) {
         records.removeAt(index);
-        timingData.records = records;
+        this.records = records;
       }
     }
 
@@ -529,13 +506,13 @@ class TimingController extends ChangeNotifier {
         if (records[i].place != null) {
           // Only try to update if runnerId is not null
           if (records[i].runnerId != null) {
-            timingData.updateRecord(records[i].runnerId!,
+            updateRecord(records[i].runnerId!,
                 place: records[i].place! - 1);
           }
         } else if (records[i].previousPlace != null) {
           // Only try to update if runnerId is not null
           if (records[i].runnerId != null) {
-            timingData.updateRecord(records[i].runnerId!,
+            updateRecord(records[i].runnerId!,
                 previousPlace: records[i].previousPlace! - 1);
           }
         }
@@ -546,8 +523,8 @@ class TimingController extends ChangeNotifier {
   }
 
   void onDismissConfirmationRecord(TimingRecord record, int index) {
-    timingData.removeRecord(record.runnerId!);
-    timingData.records =
+    removeRecord(record.runnerId!);
+    records =
         runner_functions.updateTextColor(null, records, endIndex: index);
     scrollToBottom(scrollController);
     notifyListeners();

@@ -1,74 +1,63 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../../utils/enums.dart';
-import '../model/timing_data.dart';
+import '../controller/timing_controller.dart';
 
 class RaceInfoHeaderWidget extends StatelessWidget {
-  final DateTime? startTime;
-  final Duration? endTime;
-
+  final TimingController controller;
   const RaceInfoHeaderWidget({
     super.key,
-    required this.startTime,
-    required this.endTime,
+    required this.controller,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Use Consumer for more reliable rebuilds when TimingData changes
-    return Consumer<TimingData>(
-      builder: (context, timingData, child) {
-        final currentRecords = timingData.records;
+    final hasRace =
+        controller.raceStopped == false || (controller.endTime != null && controller.records.isNotEmpty);
+    // Calculate runner count by explicitly counting each type
+    final runnerTimeCount = controller.records
+        .where((r) => r.type == RecordType.runnerTime && r.place != null)
+        .length;
+    final runnerCount = runnerTimeCount;
 
-        final hasRace =
-            timingData.raceStopped == false || (endTime != null && currentRecords.isNotEmpty);
-        // Calculate runner count by explicitly counting each type
-        final runnerTimeCount = currentRecords
-            .where((r) => r.type == RecordType.runnerTime && r.place != null)
-            .length;
-        final runnerCount = runnerTimeCount;
-
-        return Container(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF5F5F5),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: Colors.grey.withOpacity(0.2)),
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F5F5),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.grey.withOpacity(0.2)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            controller.startTime == null
+                ? 'Ready to start'
+                : controller.raceStopped
+                    ? 'Race finished'
+                    : 'Race in progress',
+            style: AppTypography.bodyRegular.copyWith(
+              fontSize: 16,
+              color: hasRace
+                  ? controller.raceStopped
+                      ? Colors.green[700]
+                      : AppColors.primaryColor
+                  : Colors.black54,
+              fontWeight: hasRace ? FontWeight.w600 : FontWeight.normal,
+            ),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                startTime == null
-                    ? 'Ready to start'
-                    : timingData.raceStopped
-                        ? 'Race finished'
-                        : 'Race in progress',
-                style: AppTypography.bodyRegular.copyWith(
-                  fontSize: 16,
-                  color: hasRace
-                      ? timingData.raceStopped
-                          ? Colors.green[700]
-                          : AppColors.primaryColor
-                      : Colors.black54,
-                  fontWeight: hasRace ? FontWeight.w600 : FontWeight.normal,
-                ),
+          if (controller.records.isNotEmpty)
+            Text(
+              'Runners: $runnerCount',
+              style: AppTypography.bodyRegular.copyWith(
+                fontSize: 16,
+                color: Colors.black87,
+                fontWeight: FontWeight.w600,
               ),
-              if (currentRecords.isNotEmpty)
-                Text(
-                  'Runners: $runnerCount',
-                  style: AppTypography.bodyRegular.copyWith(
-                    fontSize: 16,
-                    color: Colors.black87,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-            ],
-          ),
-        );
-      },
+            ),
+        ],
+      ),
     );
   }
 }

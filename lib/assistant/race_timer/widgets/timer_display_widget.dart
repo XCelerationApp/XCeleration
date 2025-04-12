@@ -1,17 +1,13 @@
 import 'package:flutter/material.dart';
 import '../../../utils/time_formatter.dart';
 import '../model/timing_data.dart';
+import '../controller/timing_controller.dart';
 
 class TimerDisplayWidget extends StatelessWidget {
-  final DateTime? startTime;
-  final Duration? endTime;
-  final TimingData timingData;
-
+  final TimingController controller;
   const TimerDisplayWidget({
     super.key,
-    required this.startTime,
-    required this.endTime,
-    required this.timingData,
+    required this.controller,
   });
 
   @override
@@ -19,7 +15,7 @@ class TimerDisplayWidget extends StatelessWidget {
     return StreamBuilder(
       stream: Stream.periodic(const Duration(milliseconds: 10)),
       builder: (context, _) {
-        final elapsed = _calculateElapsedTime(startTime, endTime, timingData);
+        final elapsed = _calculateElapsedTime(controller.startTime, controller.endTime, controller);
         return Container(
           alignment: Alignment.centerLeft,
           padding: const EdgeInsets.symmetric(vertical: 8),

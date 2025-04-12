@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'assistant/race_timer/model/timing_data.dart';
 import 'core/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
@@ -37,9 +36,6 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(
-          create: (context) => TimingData(),
-        ),
         // Add the EventBusProvider at app level to ensure it's available everywhere
         ChangeNotifierProvider(
           create: (context) => EventBusProvider(),

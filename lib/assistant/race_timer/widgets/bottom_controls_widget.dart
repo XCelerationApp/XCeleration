@@ -6,16 +6,10 @@ import '../controller/timing_controller.dart';
 import '../model/timing_data.dart';
 
 class BottomControlsWidget extends StatelessWidget {
-  final VoidCallback onConfirmRunnerNumber;
-  final VoidCallback onMissingRunnerTime;
-  final VoidCallback onExtraRunnerTime;
   final TimingController controller;
 
   const BottomControlsWidget({
     super.key,
-    required this.onConfirmRunnerNumber,
-    required this.onMissingRunnerTime,
-    required this.onExtraRunnerTime,
     required this.controller,
   });
 
@@ -43,7 +37,7 @@ class BottomControlsWidget extends StatelessWidget {
               _buildControlButton(
                 icon: Icons.check,
                 color: Colors.green,
-                onTap: onConfirmRunnerNumber,
+                onTap: controller.confirmRunnerNumber,
               ),
               Container(
                 height: 30,
@@ -95,14 +89,14 @@ class BottomControlsWidget extends StatelessWidget {
           child: PopupMenuButton<void>(
             itemBuilder: (BuildContext context) => <PopupMenuEntry<void>>[
               PopupMenuItem<void>(
-                onTap: onMissingRunnerTime,
+                onTap: controller.missingRunnerTime,
                 child: Text(
                   '+ (Add finish time)',
                   style: AppTypography.bodyRegular.copyWith(fontSize: 17),
                 ),
               ),
               PopupMenuItem<void>(
-                onTap: onExtraRunnerTime,
+                onTap: controller.extraRunnerTime,
                 child: Text(
                   '- (Remove finish time)',
                   style: AppTypography.bodyRegular.copyWith(fontSize: 17),
