@@ -31,6 +31,7 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _controller = RaceScreenController(raceId: widget.raceId);
+    _controller.setContext(context);
     _controller.tabController = TabController(length: 2, vsync: this);
 
     // Navigate to results page if specified

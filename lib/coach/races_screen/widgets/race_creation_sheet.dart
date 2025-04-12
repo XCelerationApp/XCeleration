@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import '../controller/races_controller.dart';
 import 'action_button.dart';
-import 'competing_teams_field.dart';
-import 'race_date_field.dart';
-import 'race_location_field.dart';
+// import 'competing_teams_field.dart';
+// import 'race_date_field.dart';
+// import 'race_location_field.dart';
 import 'race_name_field.dart';
-import 'race_distance_field.dart';
+// import 'race_distance_field.dart';
 
 class RaceCreationSheet extends StatelessWidget {
   final StateSetter setSheetState;
@@ -22,27 +22,26 @@ class RaceCreationSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          RaceNameField(controller: controller, setSheetState: setSheetState),
-          const SizedBox(height: 12),
-          CompetingTeamsField(
-              controller: controller, setSheetState: setSheetState),
-          const SizedBox(height: 12),
-          RaceLocationField(
-              controller: controller, setSheetState: setSheetState),
-          const SizedBox(height: 12),
-          RaceDateField(controller: controller, setSheetState: setSheetState),
-          const SizedBox(height: 12),
-          RaceDistanceField(
-              controller: controller, setSheetState: setSheetState),
-          const SizedBox(height: 12),
-          ActionButton(
-              controller: controller, isEditing: isEditing, raceId: raceId),
-        ],
-      ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        RaceNameField(controller: controller, setSheetState: setSheetState),
+          // const SizedBox(height: 12),
+          // CompetingTeamsField(
+          //     controller: controller, setSheetState: setSheetState),
+          // const SizedBox(height: 12),
+          // RaceLocationField(
+          //     controller: controller, setSheetState: setSheetState),
+          // const SizedBox(height: 12),
+          // RaceDateField(controller: controller, setSheetState: setSheetState),
+          // const SizedBox(height: 12),
+          // RaceDistanceField(
+          //     controller: controller, setSheetState: setSheetState),
+        const SizedBox(height: 12),
+        ActionButton(
+            controller: controller, isEditing: isEditing, raceId: raceId),
+      ],
     );
   }
 }

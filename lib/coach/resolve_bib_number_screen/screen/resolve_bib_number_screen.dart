@@ -65,13 +65,10 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
   }
 
   void _handleSubmitRunner(RunnerRecord runner) {
-    // Transfer form data to controllers
+    // Transfer form data to controller for resolution
     _controller.nameController.text = runner.name;
     _controller.gradeController.text = runner.grade.toString();
     _controller.schoolController.text = runner.school;
-    
-    // The resolve bib number controller needs the bib from the record being resolved
-    // not from the form (which might be hidden anyway)
     
     // Now call the controller's method to create the runner
     _controller.createNewRunner();
@@ -81,10 +78,10 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
     return Expanded(
       child: SingleChildScrollView(
         child: RunnerInputForm(
-          nameController: _controller.nameController,
-          gradeController: _controller.gradeController,
-          schoolController: _controller.schoolController,
-          bibController: TextEditingController(text: _controller.record.bib),
+          initialName: _controller.nameController.text,
+          initialGrade: _controller.gradeController.text,
+          initialSchool: _controller.schoolController.text,
+          initialBib: _controller.record.bib,
           schoolOptions: _schools,
           raceId: _controller.raceId,
           onSubmit: _handleSubmitRunner,

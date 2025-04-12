@@ -67,6 +67,30 @@ class MasterFlowController {
     });
   }
   
+  /// Navigate to the appropriate screen based on flow state
+  Future<bool> handleFlowNavigation(BuildContext context, String flowState) async {
+    // For completed states, just return to race screen (already there)
+    if (flowState.contains('completed') || flowState == 'finished') {
+      // Make sure we're on the race details tab
+      if (raceController.tabController.index != 0) {
+        raceController.tabController.animateTo(0);
+      }
+      return true;
+    }
+    
+    // For regular states, use the existing flow methods
+    switch (flowState) {
+      case 'setup':
+        return _setupFlow(context);
+      case 'pre-race':
+        return _preRaceFlow(context);
+      case 'post-race':
+        return _postRaceFlow(context);
+      default:
+        debugPrint('Unknown flow state: $flowState');
+        return false;
+    }
+  }
 
   /// Setup the race with runners
   /// Shows a flow with the provided steps and handles user progression
@@ -74,15 +98,11 @@ class MasterFlowController {
     final bool completed = await setupController.showSetupFlow(context, true);
     if (!completed) return false;
 
-    await updateRaceFlowState('pre-race');
+    // Mark as setup-completed instead of moving directly to pre-race
+    await updateRaceFlowState('setup-completed');
 
-    // Add a short delay to let the UI settle before showing the next flow
-    await Future.delayed(const Duration(milliseconds: 500));
-    
-    // Check if context is still valid after the delay
-    if (!context.mounted) return false;
-    
-    return _preRaceFlow(context);
+    // Return to race screen without starting the next flow automatically
+    return true;
   }
 
   /// Pre-race setup flow
@@ -91,34 +111,30 @@ class MasterFlowController {
     final bool completed = await preRaceController.showPreRaceFlow(context, true);
     if (!completed) return false;
     
-    await updateRaceFlowState('post-race');
+    // Mark as pre-race-completed instead of moving directly to post-race
+    await updateRaceFlowState('pre-race-completed');
     
-    // Add a short delay to let the UI settle before showing the next flow
-    await Future.delayed(const Duration(milliseconds: 500));
-    
-    // Check if context is still valid after the delay
-    if (!context.mounted) return false;
-    
-    return _postRaceFlow(context);
+    // Return to race screen without starting the next flow automatically
+    return true;
   }
 
   /// Post-race setup flow
   /// Shows a flow for post-race data collection and result processing
   Future<bool> _postRaceFlow(BuildContext context) async {
-    final bool completed =
-        await postRaceController.showPostRaceFlow(context, true);
+    final bool completed = await postRaceController.showPostRaceFlow(context, true);
     if (!completed) return false;
 
-    await updateRaceFlowState('finished');
+    await updateRaceFlowState('post-race-completed');
 
-    // Add a short delay to let the UI settle before showing the next flow
+    // Add a short delay to let the UI settle
     await Future.delayed(const Duration(milliseconds: 500));
     
     // Check if context is still valid after the delay
     if (!context.mounted) return false;
     
+    // Return to race details tab
     if (context.mounted) {
-      raceController.tabController.animateTo(1);
+      raceController.tabController.animateTo(0);
     }
     return true;
   }

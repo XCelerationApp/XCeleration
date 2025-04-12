@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:xcelerate/coach/races_screen/controller/races_controller.dart';
 import '../../race_screen/controller/race_screen_controller.dart';
 import '../../../shared/models/race.dart';
@@ -10,33 +11,37 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 class RaceCard extends StatelessWidget {
   final Race race;
   final String flowState;
-  final RacesController controller;
 
   const RaceCard({
     super.key,
     required this.race,
     required this.flowState,
-    required this.controller,
   });
 
   @override
   Widget build(BuildContext context) {
+    // Updated flow state text with setup-completed state
     final flowStateText = {
           'setup': 'Setup Required',
+          'setup-completed': 'Setup Completed',
           'pre-race': 'Pre-Race Setup',
           'post-race': 'Post-Race',
           'finished': 'Completed',
         }[race.flowState] ??
         'Setup Required';
 
+    // Different colors based on the flow state
+    final flowStateColor = {
+          'setup': AppColors.primaryColor.withOpacity(0.7),
+          'setup-completed': AppColors.primaryColor.withOpacity(0.7),
+          'pre-race': AppColors.primaryColor,
+          'post-race': AppColors.primaryColor,
+          'finished': Colors.blue,
+        }[race.flowState] ??
+        AppColors.primaryColor;
 
-    final flowStateColor = AppColors.primaryColor;
-
-    // // Updated color to match design
-    // const primaryColor = Color(0xFFE2572B);
-    // const backgroundColor = Color(0xFFFFF0EA);
-
-    return Slidable(
+    return Consumer<RacesController>(
+      builder: (context, controller, child) => Slidable(
       key: Key(race.race_id.toString()),
       endActionPane: ActionPane(
         extentRatio: 0.5,
@@ -54,6 +59,7 @@ class RaceCard extends StatelessWidget {
               children: [
                 Icon(
                   Icons.edit_outlined,
+                  color: Colors.white,
                   size: 24,
                 ),
                 const SizedBox(height: 4),
@@ -76,6 +82,7 @@ class RaceCard extends StatelessWidget {
                 Icon(
                   Icons.delete_outline,
                   size: 24,
+                  color: Colors.white,
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -91,7 +98,7 @@ class RaceCard extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 12),
         width: double.infinity,
         decoration: BoxDecoration(
-          color: AppColors.backgroundColor,
+          color: AppColors.lightColor.withOpacity(.5),
           borderRadius: BorderRadius.circular(16),
           border: Border(
             left: BorderSide(
@@ -143,69 +150,77 @@ class RaceCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.location_on,
-                        size: 20,
-                        color: AppColors.primaryColor,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          race.location,
-                          style: AppTypography.bodyRegular
-                              .copyWith(color: Colors.black54),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
+
+                  // Only show location if not empty
+                  if (race.location.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.location_on,
+                          size: 20,
+                          color: AppColors.primaryColor,
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.calendar_today,
-                            size: 20,
-                            color: AppColors.primaryColor,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            DateFormat('MMM d, y').format(race.race_date),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            race.location,
                             style: AppTypography.bodyRegular
                                 .copyWith(color: Colors.black54),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
                           ),
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.straighten_rounded,
-                            size: 20,
+                        ),
+                      ],
+                    ),
+                  ],
+                  
+                  // Only show date if not null
+                  if (race.race_date != null) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.calendar_today,
+                          size: 20,
+                          color: AppColors.primaryColor,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          DateFormat('MMM d, y').format(race.race_date!),
+                          style: AppTypography.bodyRegular
+                              .copyWith(color: Colors.black54),
+                        ),
+                      ],
+                    ),
+                  ],
+                  
+                  // Only show distance if greater than 0
+                  if (race.distance > 0) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.straighten_rounded,
+                          size: 20,
+                          color: AppColors.primaryColor,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${race.distance} ${race.distanceUnit}',
+                          style: AppTypography.headerSemibold.copyWith(
                             color: AppColors.primaryColor,
                           ),
-                          const SizedBox(width: 8),
-                          Text(
-                            '${race.distance} ${race.distanceUnit}',
-                            style: AppTypography.headerSemibold.copyWith(
-                              color: AppColors.primaryColor,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
           ),
         ),
       ),
-    );
+    ));
   }
 }

@@ -157,29 +157,33 @@ class RunnersManagementController with ChangeNotifier {
   }) async {
     final title = runner == null ? 'Add Runner' : 'Edit Runner';
 
-    // Initialize controllers
-    initControllers();
-
-    if (runner != null) {
-      nameController?.text = runner.name;
-      gradeController?.text = runner.grade.toString();
-      schoolController?.text = runner.school;
-      bibController?.text = runner.bib;
-    }
-
     try {
       await sheet(
           context: context,
           body: RunnerInputForm(
-            nameController: nameController,
-            gradeController: gradeController,
-            schoolController: schoolController,
-            bibController: bibController,
+            initialName: runner?.name,
+            initialGrade: runner?.grade.toString(),
+            initialSchool: runner?.school,
+            initialBib: runner?.bib,
             schoolOptions: teams.map((team) => team.name).toList()..sort(),
             raceId: raceId,
             initialRunner: runner,
             onSubmit: (RunnerRecord runner) async {
-              await handleRunnerSubmission(runner);
+              // Make a copy of the runner data to avoid any issues
+              final RunnerRecord runnerCopy = RunnerRecord(
+                bib: runner.bib,
+                name: runner.name,
+                grade: runner.grade,
+                school: runner.school,
+                raceId: runner.raceId,
+                runnerId: runner.runnerId,
+                flags: runner.flags,
+              );
+              
+              // Use post-frame callback to ensure form is fully done
+              WidgetsBinding.instance.addPostFrameCallback((_) async {
+                await handleRunnerSubmission(runnerCopy);
+              });
             },
             submitButtonText: runner == null ? 'Create' : 'Save',
             useSheetLayout: true,
@@ -187,8 +191,7 @@ class RunnersManagementController with ChangeNotifier {
           ),
           title: title);
     } finally {
-      // Always dispose controllers when sheet is closed
-      disposeControllers();
+      // No need to dispose controllers as the form manages them internally now
     }
   }
 
@@ -326,9 +329,9 @@ class RunnersManagementController with ChangeNotifier {
             ),
             const SizedBox(height: 24), // Adjusted spacing for balance
 
-            // See Example button - with rounded corners and shadow
+            // See Format button - with rounded corners and shadow
             SecondaryButton(
-              text: 'See Example',
+              text: 'See Format',
               icon: Icons.description_outlined,
               iconSize: 20,
               fontSize: 16,

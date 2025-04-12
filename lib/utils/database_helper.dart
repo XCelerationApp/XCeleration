@@ -3,6 +3,7 @@ import 'package:path/path.dart';
 import 'package:xcelerate/assistant/race_timer/model/timing_record.dart';
 import '../../../shared/models/race.dart';
 import 'package:flutter/foundation.dart';
+import 'dart:convert'; // Import jsonEncode
 
 import '../coach/race_screen/widgets/runner_record.dart' show RunnerRecord;
 import '../coach/race_screen/model/race_result.dart';
@@ -419,7 +420,70 @@ class DatabaseHelper {
     return results.map((r) => ResultsRecord.fromMap(r)).toList();
   }
 
-  // Cleanup Methods
+  // Update individual fields of a race
+  Future<void> updateRaceField(int raceId, String field, dynamic value) async {
+    final db = await instance.database;
+    
+    // Convert field name to database column name format
+    final String dbField = field.replaceAllMapped(
+      RegExp(r'[A-Z]'),
+      (match) => '_${match.group(0)!.toLowerCase()}'
+    );
+    
+    // Special handling for list fields
+    if (field == 'teams' || field == 'teamColors') {
+      // Get current race data
+      final race = await getRaceById(raceId);
+      if (race == null) return;
+      
+      // Update the race with the new field value
+      Map<String, dynamic> raceMap = race.toMap(database: true);
+      
+      if (field == 'teams') {
+        // Ensure teams is properly encoded as JSON string
+        raceMap['teams'] = jsonEncode(value);
+      } else if (field == 'teamColors') {
+        // Ensure teamColors is properly encoded as JSON string
+        raceMap['team_colors'] = jsonEncode(value);
+      }
+      
+      // Update the entire race
+      await db.update(
+        'races',
+        raceMap,
+        where: 'race_id = ?',
+        whereArgs: [raceId],
+      );
+    } else {
+      // For non-list fields, update just the specific field
+      await db.update(
+        'races',
+        {dbField: value},
+        where: 'race_id = ?',
+        whereArgs: [raceId],
+      );
+    }
+    
+    // Check if all required fields are filled to update status to setup-completed
+    final race = await getRaceById(raceId);
+    if (race != null && 
+        race.flowState == 'setup' &&
+        race.raceName.isNotEmpty &&
+        race.location.isNotEmpty &&
+        race.raceDate != null &&
+        race.distance > 0 &&
+        race.distanceUnit.isNotEmpty &&
+        race.teams.isNotEmpty &&
+        race.teamColors.isNotEmpty) {
+      
+      // Also check for runners
+      final raceRunners = await getRaceRunners(raceId);
+      if (raceRunners.isNotEmpty) {
+        await updateRaceFlowState(raceId, 'setup-completed');
+      }
+    }
+  }
+
   Future<void> deleteRace(int raceId) async {
     final db = await instance.database;
     await db.transaction((txn) async {
