@@ -61,7 +61,7 @@ class RaceInfoHeaderWidget extends StatelessWidget {
                   'Runners: $runnerCount',
                   style: AppTypography.bodyRegular.copyWith(
                     fontSize: 16,
-                    color: hasRace ? Colors.black87 : Colors.black54,
+                    color: Colors.black87,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
