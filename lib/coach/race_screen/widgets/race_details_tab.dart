@@ -66,9 +66,10 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider.value(
       value: widget.controller,
-      child: Consumer<RaceScreenController>(
-        builder: (context, controller, _) {
-          final race = controller.race!;
+      child: AnimatedBuilder(
+        animation: widget.controller,
+        builder: (context, _) {
+          final race = widget.controller.race!;
           final isSetup = race.flowState == 'setup';
           final hasTeams = race.teams.isNotEmpty;
           int runnerCount = 0;

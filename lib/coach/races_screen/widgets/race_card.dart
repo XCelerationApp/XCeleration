@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:xcelerate/coach/races_screen/controller/races_controller.dart';
 import '../../race_screen/controller/race_screen_controller.dart';
 import '../../../shared/models/race.dart';
@@ -11,11 +10,13 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 class RaceCard extends StatelessWidget {
   final Race race;
   final String flowState;
+  final RacesController controller;
 
   const RaceCard({
     super.key,
     required this.race,
     required this.flowState,
+    required this.controller,
   });
 
   @override
@@ -40,8 +41,7 @@ class RaceCard extends StatelessWidget {
         }[race.flowState] ??
         AppColors.primaryColor;
 
-    return Consumer<RacesController>(
-      builder: (context, controller, child) => Slidable(
+    return Slidable(
       key: Key(race.race_id.toString()),
       endActionPane: ActionPane(
         extentRatio: 0.5,
@@ -221,6 +221,6 @@ class RaceCard extends StatelessWidget {
           ),
         ),
       ),
-    ));
+    );
   }
 }

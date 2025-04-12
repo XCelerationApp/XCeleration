@@ -13,7 +13,7 @@ import '../../../core/services/event_bus.dart';
 import 'dart:async';
 import '../../race_screen/controller/race_screen_controller.dart';
 
-class RacesController with ChangeNotifier {
+class RacesController extends ChangeNotifier {
   // Subscription to event bus events
   StreamSubscription? _eventSubscription;
 

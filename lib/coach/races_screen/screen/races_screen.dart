@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:xcelerate/shared/settings_screen.dart';
 import '../../../shared/models/race.dart';
 import '../../../core/theme/app_colors.dart';
@@ -36,138 +35,139 @@ class RacesScreenState extends State<RacesScreen> {
   
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider<RacesController>.value(
-      value: _controller,
-      child: Consumer<RacesController>(
-        builder: (context, controller, child) {
-          controller.setContext(context);
-          return TutorialRoot(
-            tutorialManager: controller.tutorialManager,
-            child: Scaffold(
-              floatingActionButton: CoachMark(
-                id: 'create_race_button_tutorial',
-                tutorialManager: controller.tutorialManager,
-                config: const CoachMarkConfig(
-                  title: 'Create Race',
-                  alignmentX: AlignmentX.left,
-                  alignmentY: AlignmentY.top,
-                  description: 'Click here to create a new race',
-                  icon: Icons.add,
-                  type: CoachMarkType.targeted,
-                  backgroundColor: Color(0xFF1976D2),
-                  elevation: 12,
-                ),
-                child: FloatingActionButton(
-                  onPressed: () => controller.showCreateRaceSheet(context),
-                  backgroundColor: AppColors.primaryColor,
-                  child: Icon(Icons.add),
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        _controller.setContext(context);
+        return TutorialRoot(
+          tutorialManager: _controller.tutorialManager,
+          child: Scaffold(
+            floatingActionButton: CoachMark(
+              id: 'create_race_button_tutorial',
+              tutorialManager: _controller.tutorialManager,
+              config: const CoachMarkConfig(
+                title: 'Create Race',
+                alignmentX: AlignmentX.left,
+                alignmentY: AlignmentY.top,
+                description: 'Click here to create a new race',
+                icon: Icons.add,
+                type: CoachMarkType.targeted,
+                backgroundColor: Color(0xFF1976D2),
+                elevation: 12,
+              ),
+              child: FloatingActionButton(
+                onPressed: () => _controller.showCreateRaceSheet(context),
+                backgroundColor: AppColors.primaryColor,
+                child: Icon(Icons.add),
+              ),
+            ),
+            body: Padding(
+              padding: EdgeInsets.fromLTRB(24.0, 56.0, 24.0, 24.0),
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Races',
+                          style: AppTypography.displaySmall,
+                        ),
+                        Row(children: [
+                          CoachMark(
+                            id: 'settings_button_tutorial',
+                            tutorialManager: _controller.tutorialManager,
+                            config: const CoachMarkConfig(
+                              title: 'Settings',
+                              alignmentX: AlignmentX.left,
+                              alignmentY: AlignmentY.bottom,
+                              description: 'Click here to open settings',
+                              icon: Icons.settings,
+                              type: CoachMarkType.targeted,
+                              backgroundColor: Color(0xFF1976D2),
+                              elevation: 12,
+                            ),
+                            child: GestureDetector(
+                                onTap: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                        builder: (context) => SettingsScreen(
+                                            currentRole: 'coach')),
+                                  );
+                                },
+                                child: Icon(Icons.settings,
+                                    color: AppColors.darkColor, size: 36)),
+                          )
+                        ]),
+                      ],
+                    ),
+                    RaceCoachMark(
+                      controller: _controller,
+                      child: AnimatedBuilder(
+                        animation: _controller,
+                        builder: (context, _) {
+                          // Show loading indicator while races are being loaded
+                          if (_controller.races.isEmpty) {
+                            return Center(
+                                child: Text('No races.',
+                                    style: AppTypography.bodyRegular));
+                          }
+
+                          final List<Race> raceData = _controller.races;
+                          final finishedRaces = raceData
+                              .where((race) => race.flowState == 'finished')
+                              .toList();
+                          final raceInProgress = raceData
+                              .where((race) =>
+                                  race.flowState == 'post-race' ||
+                                  race.flowState == 'pre-race' ||
+                                  race.flowState == 'pre-race-completed' ||
+                                  race.flowState == 'post-race-completed')
+                              .toList();
+                          final upcomingRaces = raceData
+                              .where((race) => race.flowState == 'setup' || race.flowState == 'setup-completed')
+                              .toList();
+                          return SingleChildScrollView(
+                            controller: ScrollController(),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (raceInProgress.isNotEmpty) ...[
+                                  FlowSectionHeader(title: 'In Progress'),
+                                  ...raceInProgress.map((race) => RaceCard(
+                                      race: race,
+                                      flowState: race.flowState,
+                                      controller: _controller)),
+                                ],
+                                if (upcomingRaces.isNotEmpty) ...[
+                                  FlowSectionHeader(title: 'Upcoming'),
+                                  ...upcomingRaces.map((race) => RaceCard(
+                                      race: race,
+                                      flowState: race.flowState,
+                                      controller: _controller)),
+                                ],
+                                if (finishedRaces.isNotEmpty) ...[
+                                  FlowSectionHeader(title: 'Finished'),
+                                  ...finishedRaces.map((race) => RaceCard(
+                                      race: race,
+                                      flowState: race.flowState,
+                                      controller: _controller)),
+                                ],
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ]
                 ),
               ),
-              body: Padding(
-                padding: EdgeInsets.fromLTRB(24.0, 56.0, 24.0, 24.0),
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Races',
-                            style: AppTypography.displaySmall,
-                          ),
-                          Row(children: [
-                            CoachMark(
-                              id: 'settings_button_tutorial',
-                              tutorialManager: controller.tutorialManager,
-                              config: const CoachMarkConfig(
-                                title: 'Settings',
-                                alignmentX: AlignmentX.left,
-                                alignmentY: AlignmentY.bottom,
-                                description: 'Click here to open settings',
-                                icon: Icons.settings,
-                                type: CoachMarkType.targeted,
-                                backgroundColor: Color(0xFF1976D2),
-                                elevation: 12,
-                              ),
-                              child: GestureDetector(
-                                  onTap: () {
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                          builder: (context) => SettingsScreen(
-                                              currentRole: 'coach')),
-                                    );
-                                  },
-                                  child: Icon(Icons.settings,
-                                      color: AppColors.darkColor, size: 36)),
-                            )
-                          ]),
-                        ],
-                      ),
-                      RaceCoachMark(
-                        controller: controller,
-                        child: AnimatedBuilder(
-                          animation: controller,
-                          builder: (context, _) {
-                            // Show loading indicator while races are being loaded
-                            if (controller.races.isEmpty) {
-                              return Center(
-                                  child: Text('No races.',
-                                      style: AppTypography.bodyRegular));
-                            }
-
-                            final List<Race> raceData = controller.races;
-                            final finishedRaces = raceData
-                                .where((race) => race.flowState == 'finished')
-                                .toList();
-                            final raceInProgress = raceData
-                                .where((race) =>
-                                    race.flowState == 'post-race' ||
-                                    race.flowState == 'pre-race' ||
-                                    race.flowState == 'pre-race-completed' ||
-                                    race.flowState == 'post-race-completed')
-                                .toList();
-                            final upcomingRaces = raceData
-                                .where((race) => race.flowState == 'setup' || race.flowState == 'setup-completed')
-                                .toList();
-                            return SingleChildScrollView(
-                              controller: ScrollController(),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  if (raceInProgress.isNotEmpty) ...[
-                                    FlowSectionHeader(title: 'In Progress'),
-                                    ...raceInProgress.map((race) => RaceCard(
-                                        race: race,
-                                        flowState: race.flowState)),
-                                  ],
-                                  if (upcomingRaces.isNotEmpty) ...[
-                                    FlowSectionHeader(title: 'Upcoming'),
-                                    ...upcomingRaces.map((race) => RaceCard(
-                                        race: race,
-                                        flowState: race.flowState)),
-                                  ],
-                                  if (finishedRaces.isNotEmpty) ...[
-                                    FlowSectionHeader(title: 'Finished'),
-                                    ...finishedRaces.map((race) => RaceCard(
-                                        race: race,
-                                        flowState: race.flowState)),
-                                  ],
-                                ],
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ]
-                  ),
-                ),
-              )
             )
-          );
-        },
-      ),
+          )
+        );
+      },
     );
   }
 }

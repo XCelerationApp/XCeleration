@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
 import '../controller/timing_controller.dart';
-import '../model/timing_data.dart';
 
 class BottomControlsWidget extends StatelessWidget {
   final TimingController controller;
@@ -15,46 +13,42 @@ class BottomControlsWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<TimingData>(
-      builder: (context, timingData, child) {
-        return Container(
-          margin: const EdgeInsets.symmetric(vertical: 8.0),
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, -2),
-              ),
-            ],
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8.0),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildControlButton(
-                icon: Icons.check,
-                color: Colors.green,
-                onTap: controller.confirmRunnerNumber,
-              ),
-              Container(
-                height: 30,
-                width: 1,
-                color: Colors.grey.withOpacity(0.3),
-              ),
-              _buildAdjustTimesButton(context),
-              if (controller.hasUndoableConflict())
-                _buildControlButton(
-                  icon: Icons.undo,
-                  color: AppColors.mediumColor,
-                  onTap: controller.undoLastConflict,
-                ),
-            ],
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _buildControlButton(
+            icon: Icons.check,
+            color: Colors.green,
+            onTap: controller.confirmRunnerNumber,
           ),
-        );
-      },
+          Container(
+            height: 30,
+            width: 1,
+            color: Colors.grey.withOpacity(0.3),
+          ),
+          _buildAdjustTimesButton(context),
+          if (controller.hasUndoableConflict())
+            _buildControlButton(
+              icon: Icons.undo,
+              color: AppColors.mediumColor,
+              onTap: controller.undoLastConflict,
+            ),
+        ],
+      ),
     );
   }
 
@@ -82,34 +76,30 @@ class BottomControlsWidget extends StatelessWidget {
   }
 
   Widget _buildAdjustTimesButton(BuildContext context) {
-    return Consumer<TimingData>(
-      builder: (context, timingData, child) {
-        return Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: PopupMenuButton<void>(
-            itemBuilder: (BuildContext context) => <PopupMenuEntry<void>>[
-              PopupMenuItem<void>(
-                onTap: controller.missingRunnerTime,
-                child: Text(
-                  '+ (Add finish time)',
-                  style: AppTypography.bodyRegular.copyWith(fontSize: 17),
-                ),
-              ),
-              PopupMenuItem<void>(
-                onTap: controller.extraRunnerTime,
-                child: Text(
-                  '- (Remove finish time)',
-                  style: AppTypography.bodyRegular.copyWith(fontSize: 17),
-                ),
-              ),
-            ],
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: PopupMenuButton<void>(
+        itemBuilder: (BuildContext context) => <PopupMenuEntry<void>>[
+          PopupMenuItem<void>(
+            onTap: controller.missingRunnerTime,
             child: Text(
-              'Adjust # of times',
-              style: AppTypography.bodyRegular.copyWith(fontSize: 20),
+              '+ (Add finish time)',
+              style: AppTypography.bodyRegular.copyWith(fontSize: 17),
             ),
           ),
-        );
-      },
+          PopupMenuItem<void>(
+            onTap: controller.extraRunnerTime,
+            child: Text(
+              '- (Remove finish time)',
+              style: AppTypography.bodyRegular.copyWith(fontSize: 17),
+            ),
+          ),
+        ],
+        child: Text(
+          'Adjust # of times',
+          style: AppTypography.bodyRegular.copyWith(fontSize: 20),
+        ),
+      ),
     );
   }
 }
