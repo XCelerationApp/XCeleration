@@ -323,14 +323,18 @@ class RaceScreenController with ChangeNotifier {
   
   /// Helper method to get a user-friendly name for a flow state
   String _getFlowDisplayName(String flowState) {
-    if (flowState == Race.FLOW_SETUP || flowState == Race.FLOW_SETUP_COMPLETED) 
+    if (flowState == Race.FLOW_SETUP || flowState == Race.FLOW_SETUP_COMPLETED) {
       return 'Setup';
-    if (flowState == Race.FLOW_PRE_RACE || flowState == Race.FLOW_PRE_RACE_COMPLETED) 
+    }
+    if (flowState == Race.FLOW_PRE_RACE || flowState == Race.FLOW_PRE_RACE_COMPLETED) {
       return 'Pre-Race';
-    if (flowState == Race.FLOW_POST_RACE || flowState == Race.FLOW_POST_RACE_COMPLETED) 
+    }
+    if (flowState == Race.FLOW_POST_RACE || flowState == Race.FLOW_POST_RACE_COMPLETED) {
       return 'Post-Race';
-    if (flowState == Race.FLOW_FINISHED) 
+    }
+    if (flowState == Race.FLOW_FINISHED) {
       return 'Race';
+    }
     return flowState.replaceAll('-', ' ').split(' ').map((s) => s.isEmpty ? '' : '${s[0].toUpperCase()}${s.substring(1)}').join(' ');
   }
 
