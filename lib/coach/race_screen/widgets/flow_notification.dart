@@ -41,7 +41,7 @@ class FlowNotification extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+        padding: const EdgeInsets.symmetric(vertical: 8),
         child: Row(
           children: [
             Text(
@@ -52,29 +52,31 @@ class FlowNotification extends StatelessWidget {
                 fontSize: 16,
               ),
             ),
-            const Spacer(),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: color.withAlpha((0.1 * 255).round()),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: color.withAlpha((0.5 * 255).round()),
-                  width: 1,
-                ),
-              ),
-              child: InkWell(
-                onTap: continueAction,
-                child: Text(
-                  _getButtonText(),
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
+            if (flowState != 'Setup') ...[
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: color.withAlpha((0.1 * 255).round()),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: color.withAlpha((0.5 * 255).round()),
+                    width: 1,
                   ),
                 ),
-              ),
-            )
+                child: InkWell(
+                  onTap: continueAction,
+                  child: Text(
+                    _getButtonText(),
+                    style: TextStyle(
+                      color: color,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              )
+            ]
           ],
         ),
       ),

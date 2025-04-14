@@ -12,6 +12,7 @@ import 'race_location_field.dart';
 import 'race_date_field.dart';
 import 'race_distance_field.dart';
 import 'package:provider/provider.dart';
+import 'dart:async';
 
 class RaceDetailsTab extends StatefulWidget {
   final RaceScreenController controller;
@@ -28,7 +29,16 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
   final TextEditingController _distanceController = TextEditingController();
   final TextEditingController _unitController = TextEditingController();
   final TextEditingController _teamsController = TextEditingController();
-  
+
+  Timer? _debounce;
+
+  void _debouncedSave() {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 800), () {
+      widget.controller.saveRaceDetails();
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -102,26 +112,31 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
                                 RaceNameField(
                                   controller: widget.controller,
                                   setSheetState: setState,
+                                  onChanged: (_) => _debouncedSave(),
                                 ),
                                 const SizedBox(height: 12),
                                 RaceLocationField(
                                   controller: widget.controller,
                                   setSheetState: setState,
+                                  onChanged: (_) => _debouncedSave(),
                                 ),
                                 const SizedBox(height: 12),
                                 RaceDateField(
                                   controller: widget.controller,
                                   setSheetState: setState,
+                                  onChanged: (_) => _debouncedSave(),
                                 ),
                                 const SizedBox(height: 12),
                                 RaceDistanceField(
                                   controller: widget.controller,
                                   setSheetState: setState,
+                                  onChanged: (_) => _debouncedSave(),
                                 ),
                                 const SizedBox(height: 12),
                                 CompetingTeamsField(
                                   controller: widget.controller,
                                   setSheetState: setState,
+                                  onChanged: (_) => _debouncedSave(),
                                 ),
                               ],
                             )
@@ -233,18 +248,6 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
                       )
                     ],
                   ),
-                  
-                  // Save button when in setup
-                  if (isSetup)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 20),
-                      child: PrimaryButton(
-                        text: 'Save Race Details',
-                        icon: Icons.save,
-                        fontSize: 12,
-                        onPressed: widget.controller.saveRaceDetails,
-                      ),
-                    ),
                 ],
               );
             },

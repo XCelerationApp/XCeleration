@@ -5,9 +5,14 @@ import '../controller/race_screen_controller.dart';
 class RaceNameField extends StatelessWidget {
   final RaceScreenController controller;
   final StateSetter setSheetState;
+  final ValueChanged<String>? onChanged;
 
-  const RaceNameField(
-      {required this.controller, required this.setSheetState, super.key});
+  const RaceNameField({
+    required this.controller,
+    required this.setSheetState,
+    this.onChanged,
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -18,8 +23,10 @@ class RaceNameField extends StatelessWidget {
         controller: controller.nameController,
         hint: 'Enter race name',
         error: controller.nameError,
-        onChanged: (_) => controller.validateName(
-            controller.nameController.text, setSheetState),
+        onChanged: (value) {
+          controller.validateName(controller.nameController.text, setSheetState);
+          if (onChanged != null) onChanged!(value);
+        },
         setSheetState: setSheetState,
       ),
     );

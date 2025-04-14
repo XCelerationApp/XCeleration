@@ -5,9 +5,14 @@ import '../controller/race_screen_controller.dart';
 class RaceDistanceField extends StatelessWidget {
   final RaceScreenController controller;
   final StateSetter setSheetState;
+  final ValueChanged<String>? onChanged;
 
-  const RaceDistanceField(
-      {required this.controller, required this.setSheetState, super.key});
+  const RaceDistanceField({
+    required this.controller,
+    required this.setSheetState,
+    this.onChanged,
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -23,8 +28,10 @@ class RaceDistanceField extends StatelessWidget {
               hint: '0.0',
               error: controller.distanceError,
               setSheetState: setSheetState,
-              onChanged: (_) => controller.validateDistance(
-                  controller.distanceController.text, setSheetState),
+              onChanged: (value) {
+                controller.validateDistance(controller.distanceController.text, setSheetState);
+                if (onChanged != null) onChanged!(value);
+              },
               keyboardType: TextInputType.numberWithOptions(decimal: true),
             ),
           ),
@@ -37,7 +44,10 @@ class RaceDistanceField extends StatelessWidget {
               error: null,
               setSheetState: setSheetState,
               items: ['mi', 'km'],
-              onChanged: (value) => controller.unitController.text = value,
+              onChanged: (value) {
+                controller.unitController.text = value;
+                if (onChanged != null) onChanged!(value);
+              },
             ),
           ),
         ],

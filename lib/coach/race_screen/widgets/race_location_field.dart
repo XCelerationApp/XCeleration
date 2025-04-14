@@ -8,9 +8,14 @@ import '../controller/race_screen_controller.dart';
 class RaceLocationField extends StatelessWidget {
   final RaceScreenController controller;
   final StateSetter setSheetState;
+  final ValueChanged<String>? onChanged;
 
-  const RaceLocationField(
-      {required this.controller, required this.setSheetState, super.key});
+  const RaceLocationField({
+    required this.controller,
+    required this.setSheetState,
+    this.onChanged,
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -28,8 +33,10 @@ class RaceLocationField extends StatelessWidget {
                   : 'Enter race location',
               error: controller.locationError,
               setSheetState: setSheetState,
-              onChanged: (_) => controller.validateLocation(
-                  controller.locationController.text, setSheetState),
+              onChanged: (value) {
+                controller.validateLocation(controller.locationController.text, setSheetState);
+                if (onChanged != null) onChanged!(value);
+              },
               keyboardType: TextInputType.text,
             ),
           ),

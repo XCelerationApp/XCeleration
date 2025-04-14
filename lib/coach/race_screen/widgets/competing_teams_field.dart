@@ -7,9 +7,14 @@ import '../controller/race_screen_controller.dart';
 class CompetingTeamsField extends StatelessWidget {
   final RaceScreenController controller;
   final StateSetter setSheetState;
+  final ValueChanged<String>? onChanged;
 
-  const CompetingTeamsField(
-      {required this.controller, required this.setSheetState, super.key});
+  const CompetingTeamsField({
+    required this.controller,
+    required this.setSheetState,
+    this.onChanged,
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -54,6 +59,7 @@ class CompetingTeamsField extends StatelessWidget {
                             ? 'Please enter in team name'
                             : null;
                       });
+                      if (onChanged != null) onChanged!(value);
                     },
                     setSheetState: setSheetState,
                   ),
@@ -88,6 +94,7 @@ class CompetingTeamsField extends StatelessWidget {
                         controller.teamControllers.removeAt(index);
                         controller.teamColors.removeAt(index);
                       });
+                      if (onChanged != null) onChanged!("");
                     },
                   ),
               ],
@@ -100,6 +107,7 @@ class CompetingTeamsField extends StatelessWidget {
             setSheetState(() {
               controller.addTeamField();
             });
+            if (onChanged != null) onChanged!("");
           },
           icon: const Icon(Icons.add_circle_outline,
               color: AppColors.primaryColor),
