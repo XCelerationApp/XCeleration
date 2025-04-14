@@ -6,9 +6,9 @@ import '../widgets/record_list_item.dart';
 
 class RecordsListWidget extends StatelessWidget {
   const RecordsListWidget({
-    Key? key,
+    super.key,
     required this.controller,
-  }) : super(key: key);
+  });
 
   final TimingController controller;
 
