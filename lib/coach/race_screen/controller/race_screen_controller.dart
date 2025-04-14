@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:xcelerate/coach/race_screen/screen/race_screen.dart';
+import 'package:xcelerate/coach/runners_management_screen/screen/runners_management_screen.dart';
 import 'package:xcelerate/utils/sheet_utils.dart' show sheet;
 import '../../../core/components/dialog_utils.dart';
 import '../../../utils/enums.dart';
@@ -175,6 +176,11 @@ class RaceScreenController with ChangeNotifier {
     notifyListeners();
     
     SnackBar(content: Text('Race details saved!'));
+    if (await RunnersManagementScreen.checkMinimumRunnersLoaded(raceId)) {
+      if (race?.flowState == 'setup') {
+        await updateRaceFlowState('setup_complete');
+      }
+    }
   }
 
 

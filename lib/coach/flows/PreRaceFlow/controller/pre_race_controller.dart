@@ -13,6 +13,7 @@ class PreRaceController {
   late ReviewRunnersStep _reviewRunnersStep;
   late ShareRunnersStep _shareRunnersStep;
   late PreRaceFlowCompleteStep _preRaceFlowCompleteStep;
+  int? _lastStepIndex;
 
   DevicesManager devices = DeviceConnectionService.createDevices(
     DeviceName.coach,
@@ -36,10 +37,15 @@ class PreRaceController {
 
   Future<bool> showPreRaceFlow(
       BuildContext context, bool showProgressIndicator) {
+    final int startIndex = _lastStepIndex ?? 0;
     return showFlow(
       context: context,
       showProgressIndicator: showProgressIndicator,
       steps: _getSteps(context),
+      initialIndex: startIndex,
+      onDismiss: (lastIndex) {
+        _lastStepIndex = lastIndex;
+      },
     );
   }
 

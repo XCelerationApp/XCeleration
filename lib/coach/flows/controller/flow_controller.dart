@@ -141,11 +141,12 @@ class MasterFlowController {
 }
 
 class FlowController extends ChangeNotifier {
-  int _currentIndex = 0;
+  int _currentIndex;
   final List<FlowStep> steps;
   StreamSubscription<void>? _contentChangeSubscription;
+  final StepChangedCallback? onStepChanged;
 
-  FlowController(this.steps) {
+  FlowController(this.steps, {int initialIndex = 0, this.onStepChanged}) : _currentIndex = initialIndex {
     _subscribeToCurrentStep();
   }
 
@@ -170,6 +171,7 @@ class FlowController extends ChangeNotifier {
     _currentIndex++;
     _subscribeToCurrentStep();
     notifyListeners();
+    if (onStepChanged != null) onStepChanged!(_currentIndex);
   }
 
   void goBack() {
@@ -178,6 +180,7 @@ class FlowController extends ChangeNotifier {
       _currentIndex--;
       _subscribeToCurrentStep();
       notifyListeners();
+      if (onStepChanged != null) onStepChanged!(_currentIndex);
     }
   }
 
@@ -195,8 +198,15 @@ Future<bool> showFlow({
   required BuildContext context,
   required List<FlowStep> steps,
   bool showProgressIndicator = true,
+  int initialIndex = 0,
+  StepChangedCallback? onStepChanged,
+  void Function(int lastIndex)? onDismiss,
 }) async {
-  final controller = FlowController(steps);
+  final controller = FlowController(
+    steps,
+    initialIndex: initialIndex,
+    onStepChanged: onStepChanged,
+  );
   bool completed = false;
 
   await sheet(
@@ -279,6 +289,9 @@ Future<bool> showFlow({
     ),
   );
 
+  if (onDismiss != null) {
+    onDismiss(controller.currentIndex);
+  }
   controller.dispose();
   return completed;
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 
+typedef StepChangedCallback = void Function(int currentIndex);
+
 class FlowStep {
   final String title;
   final String description;

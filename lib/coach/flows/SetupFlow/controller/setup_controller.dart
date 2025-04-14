@@ -8,6 +8,7 @@ class SetupController {
   final int raceId;
   late LoadRunnersStep _loadRunnersStep;
   late SetupCompleteStep _setupCompleteStep;
+  int? _lastStepIndex;
 
   SetupController({required this.raceId}) {
     _initializeSteps();
@@ -23,11 +24,16 @@ class SetupController {
   Future<bool> showSetupFlow(
       BuildContext context, bool showProgressIndicator) async {
     final steps = _getSteps();
+    final int startIndex = _lastStepIndex ?? 0;
 
     return await showFlow(
       context: context,
       showProgressIndicator: showProgressIndicator,
       steps: steps,
+      initialIndex: startIndex,
+      onDismiss: (lastIndex) {
+        _lastStepIndex = lastIndex;
+      },
     );
   }
 

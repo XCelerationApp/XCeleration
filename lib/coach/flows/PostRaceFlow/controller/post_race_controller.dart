@@ -15,6 +15,9 @@ class PostRaceController {
   // Flow steps
   late final LoadResultsStep _loadResultsStep;
   late final ReviewResultsStep _reviewResultsStep;
+  
+  // Track flow position
+  int? _lastStepIndex;
 
   /// Constructor
   PostRaceController({required this.raceId, bool useTestData = false}) {
@@ -44,12 +47,17 @@ class PostRaceController {
   Future<bool> showPostRaceFlow(BuildContext context, bool dismissible) async {
     // Get steps
     final steps = _getSteps();
+    final int startIndex = _lastStepIndex ?? 0;
 
     // Show the flow
     return await showFlow(
       context: context,
       steps: steps,
       showProgressIndicator: dismissible,
+      initialIndex: startIndex,
+      onDismiss: (lastIndex) {
+        _lastStepIndex = lastIndex;
+      },
     );
   }
 
