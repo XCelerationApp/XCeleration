@@ -15,13 +15,13 @@ class FlowNotification extends StatelessWidget {
       
   // Get appropriate button text based on the flow state
   String _getButtonText() {
-    // For completed states, show "Begin X" instead of "Continue"
+    // For completed states, show action-specific buttons
     if (flowState == 'Setup Completed') {
-      return 'Begin Pre-Race';
-    } else if (flowState == 'Pre-Race Completed') {
-      return 'Begin Post-Race';
-    } else if (flowState == 'Post-Race Completed') {
-      return 'Finish Race';
+      return 'Share Runner Data';
+    } else if (flowState == 'Ready for Results') {
+      return 'Process Results';
+    } else if (flowState == 'Ready to Finalize') {
+      return 'Finalize Race';
     } else {
       return 'Continue';
     }
@@ -29,10 +29,30 @@ class FlowNotification extends StatelessWidget {
   
   // Get appropriate status text
   String _getStatusText() {
-    if (flowState.contains('Completed')) {
+    if (flowState == 'Setup Completed') {
+      return 'Ready to Share';
+    } else if (flowState == 'Pre-Race Sharing Completed') {
+      return 'Ready for Results';
+    } else if (flowState == 'Post-Race Completed') {
+      return 'Ready to Finalize';  
+    } else if (flowState == 'Setup') {
+      return 'Runner Setup';
+    } else if (flowState == 'Runner Setup') {
+      return 'Runner Setup In Progress';
+    } else if (flowState == 'Pre-Race Sharing') {
+      return 'Sharing Runners';
+    } else if (flowState == 'Sharing Runners') {
+      return 'Sharing Runners In Progress';
+    } else if (flowState == 'Post-Race') {
+      return 'Processing Results';
+    } else if (flowState == 'Processing Results') {
+      return 'Processing Results In Progress';
+    } else if (flowState.contains('Completed')) {
+      return flowState.replaceAll('Completed', 'Complete');
+    } else if (flowState.contains('In Progress')) {
       return flowState;
     } else {
-      return '$flowState Not Completed';
+      return flowState;
     }
   }
 

@@ -6,19 +6,19 @@ import '../widgets/flow_notification.dart';
 String _getStatusText(String flowState) {
   switch (flowState) {
     case 'setup':
-      return 'Setup';
+      return 'Runner Setup';
     case 'setup-completed':
-      return 'Setup Completed';
+      return 'Ready to Share';
     case 'pre-race':
-      return 'Pre-Race';
+      return 'Sharing Runners';
     case 'pre-race-completed':
-      return 'Pre-Race Completed';
+      return 'Ready for Results';
     case 'post-race':
-      return 'Post-Race';
+      return 'Processing Results';
     case 'post-race-completed':
-      return 'Post-Race Completed';
+      return 'Ready to Finalize';
     case 'finished':
-      return 'Finished';
+      return 'Race Complete';
     default:
       print('Flow state: $flowState');
       return 'Unknown';

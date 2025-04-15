@@ -95,7 +95,7 @@ class RaceScreenController with ChangeNotifier {
       dateController.text = race!.raceDate != null
           ? DateFormat('yyyy-MM-dd').format(race!.raceDate!)
           : '';
-      distanceController.text = race!.distance != -1 ? race!.distance.toString() : '';
+      distanceController.text = race!.distance > 0 ? race!.distance.toString() : '';
       unitController.text = race!.distanceUnit;
       _initializeTeamControllers();
     }
@@ -151,17 +151,18 @@ class RaceScreenController with ChangeNotifier {
       return;
     }
     
-    // Parse distance
-    double distance = -1;
+    // Parse distance - use -1 as sentinel value for empty/unset
+    double distance = -1; // Default to sentinel value
     try {
       if (distanceController.text.isNotEmpty) {
-        distance = double.parse(distanceController.text);
+        final parsedDistance = double.parse(distanceController.text);
+        // Only store positive values, otherwise keep as -1 sentinel
+        distance = parsedDistance > 0 ? parsedDistance : -1;
       }
     } catch (e) {
       SnackBar(content: Text('Invalid distance format'));
       return;
     }
-    
     
     // Update the race in database
     await DatabaseHelper.instance.updateRaceField(raceId, 'location', locationController.text);
@@ -421,12 +422,24 @@ class RaceScreenController with ChangeNotifier {
 
     try {
       final distance = double.parse(distanceString);
-      setSheetState(() {
-        distanceError = distance <= 0 ? 'Distance must be greater than 0' : null;
-      });
+      if (distance <= 0) {
+        setSheetState(() {
+          distanceError = 'Distance must be greater than 0';
+          // Reset negative values to empty string to prevent -1 from being displayed
+          if (distance < 0) {
+            distanceController.text = '';
+          }
+        });
+      } else {
+        setSheetState(() {
+          distanceError = null;
+        });
+      }
     } catch (e) {
       setSheetState(() {
         distanceError = 'Please enter a valid number';
+        // Reset invalid values to empty string
+        distanceController.text = '';
       });
     }
   }

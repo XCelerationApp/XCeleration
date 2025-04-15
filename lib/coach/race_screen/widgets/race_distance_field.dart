@@ -30,7 +30,10 @@ class RaceDistanceField extends StatelessWidget {
               setSheetState: setSheetState,
               onChanged: (value) {
                 controller.validateDistance(controller.distanceController.text, setSheetState);
-                if (onChanged != null) onChanged!(value);
+                // Only trigger autosave when we have valid input
+                if (value.isNotEmpty && controller.distanceError == null) {
+                  if (onChanged != null) onChanged!(value);
+                }
               },
               keyboardType: TextInputType.numberWithOptions(decimal: true),
             ),

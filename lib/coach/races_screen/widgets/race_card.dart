@@ -23,13 +23,15 @@ class RaceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     // Updated flow state text with setup-completed state
     final flowStateText = {
-          'setup': 'Setup Required',
-          'setup-completed': 'Setup Completed',
-          'pre-race': 'Pre-Race Setup',
-          'post-race': 'Post-Race',
-          'finished': 'Completed',
+          'setup': 'Runner Setup',
+          'setup-completed': 'Ready to Share',
+          'pre-race': 'Sharing Runners',
+          'pre-race-completed': 'Ready for Results',
+          'post-race': 'Processing Results',
+          'post-race-completed': 'Ready to Finalize',
+          'finished': 'Race Complete',
         }[race.flowState] ??
-        'Setup Required';
+        'Runner Setup';
 
     // Different colors based on the flow state
     final flowStateColor = {
