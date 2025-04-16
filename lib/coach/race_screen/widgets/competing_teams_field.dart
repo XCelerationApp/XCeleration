@@ -94,7 +94,7 @@ class CompetingTeamsField extends StatelessWidget {
                         controller.teamControllers.removeAt(index);
                         controller.teamColors.removeAt(index);
                       });
-                      if (onChanged != null) onChanged!("");
+                      if (onChanged != null) onChanged!('');
                     },
                   ),
               ],
@@ -107,7 +107,7 @@ class CompetingTeamsField extends StatelessWidget {
             setSheetState(() {
               controller.addTeamField();
             });
-            if (onChanged != null) onChanged!("");
+            if (onChanged != null) onChanged!('');
           },
           icon: const Icon(Icons.add_circle_outline,
               color: AppColors.primaryColor),
