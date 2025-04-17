@@ -21,6 +21,9 @@ class Race {
   static const String FLOW_POST_RACE_COMPLETED = 'post-race-completed';
   static const String FLOW_FINISHED = 'finished';
   
+  // Suffix for completed states
+  static const String FLOW_COMPLETED_SUFFIX = '-completed';
+  
   // Flow sequence for progression
   static const List<String> FLOW_SEQUENCE = [
     FLOW_SETUP,
@@ -147,13 +150,13 @@ class Race {
   
   // Returns true if the current flow state is a completed state
   bool get isCurrentFlowCompleted {
-    return flowState.contains('completed') || flowState == FLOW_FINISHED;
+    return flowState.contains(FLOW_COMPLETED_SUFFIX) || flowState == FLOW_FINISHED;
   }
   
   // Returns the current flow name without the '-completed' suffix
   String get currentFlowBase {
-    if (flowState.contains('completed')) {
-      return flowState.split('-').first;
+    if (flowState.contains(FLOW_COMPLETED_SUFFIX)) {
+      return flowState.split(FLOW_COMPLETED_SUFFIX).first;
     }
     return flowState;
   }

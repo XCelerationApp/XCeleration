@@ -211,7 +211,7 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      '$runnerCount runners',
+                                      '$runnerCount runner${runnerCount == 1 ? '' : 's'}',
                                       style: AppTypography.bodySemibold.copyWith(
                                         color: AppColors.darkColor,
                                       ),
@@ -238,7 +238,7 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
                                 SecondaryButton(
                                   text: 'Load Runners',
                                   icon: Icons.person_add,
-                                  onPressed: () => widget.controller.continueRaceFlow(context),
+                                  onPressed: () => widget.controller.loadRunnersManagementScreen(context),
                                 ),
                               ]
 

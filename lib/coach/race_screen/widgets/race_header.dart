@@ -1,66 +1,41 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../shared/models/race.dart';
 import '../controller/race_screen_controller.dart';
 import '../widgets/flow_notification.dart';
 
-String _getStatusText(String flowState) {
-  switch (flowState) {
-    case 'setup':
-      return 'Runner Setup';
-    case 'setup-completed':
-      return 'Ready to Share';
-    case 'pre-race':
-      return 'Sharing Runners';
-    case 'pre-race-completed':
-      return 'Ready for Results';
-    case 'post-race':
-      return 'Processing Results';
-    case 'post-race-completed':
-      return 'Ready to Finalize';
-    case 'finished':
-      return 'Race Complete';
-    default:
-      print('Flow state: $flowState');
-      return 'Unknown';
-  }
-}
-
+// Simplified color function
 Color _getStatusColor(String flowState) {
   switch (flowState) {
-    case 'setup':
+    case Race.FLOW_SETUP:
+    case Race.FLOW_SETUP_COMPLETED:
       return Colors.amber;
-    case 'setup-completed':
-      return Colors.amber;
-    case 'pre-race':
+    case Race.FLOW_PRE_RACE:
+    case Race.FLOW_PRE_RACE_COMPLETED:
       return Colors.blue;
-    case 'pre-race-completed':
-      return Colors.blue;
-    case 'post-race':
+    case Race.FLOW_POST_RACE:
       return Colors.purple;
-    case 'post-race-completed':
-      return Colors.purple;
-    case 'finished':
+    case Race.FLOW_POST_RACE_COMPLETED:
+    case Race.FLOW_FINISHED:
       return Colors.green;
     default:
       return Colors.grey;
   }
 }
 
+// Simplified icon function
 IconData _getStatusIcon(String flowState) {
   switch (flowState) {
-    case 'setup':
+    case Race.FLOW_SETUP:
+    case Race.FLOW_SETUP_COMPLETED:
       return Icons.settings;
-    case 'setup-completed':
-      return Icons.settings;
-    case 'pre-race':
+    case Race.FLOW_PRE_RACE:
+    case Race.FLOW_PRE_RACE_COMPLETED:
       return Icons.timer;
-    case 'pre-race-completed':
-      return Icons.timer;
-    case 'post-race':
+    case Race.FLOW_POST_RACE:
       return Icons.flag;
-    case 'post-race-completed':
-      return Icons.flag;
-    case 'finished':
+    case Race.FLOW_POST_RACE_COMPLETED:
+    case Race.FLOW_FINISHED:
       return Icons.check_circle;
     default:
       return Icons.help;
@@ -87,10 +62,11 @@ class RaceHeader extends StatelessWidget {
           textAlign: TextAlign.center,
         )),
 
-        // Action button area - updated color
-        if (controller.race!.flowState != 'finished')
+        // Only show flow notification for non-setup and non-finished states
+        if (controller.race!.flowState != Race.FLOW_FINISHED && 
+            controller.race!.flowState != Race.FLOW_SETUP)
           FlowNotification(
-            flowState: _getStatusText(controller.race!.flowState),
+            flowState: controller.race!.flowState,
             color: _getStatusColor(controller.race!.flowState),
             icon: _getStatusIcon(controller.race!.flowState),
             continueAction: () => controller.continueRaceFlow(context),
