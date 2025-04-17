@@ -69,41 +69,7 @@ class RacesScreenState extends State<RacesScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Races',
-                            style: AppTypography.displaySmall,
-                          ),
-                          Row(children: [
-                            CoachMark(
-                              id: 'settings_button_tutorial',
-                              tutorialManager: controller.tutorialManager,
-                              config: const CoachMarkConfig(
-                                title: 'Settings',
-                                alignmentX: AlignmentX.left,
-                                alignmentY: AlignmentY.bottom,
-                                description: 'Click here to open settings',
-                                icon: Icons.settings,
-                                type: CoachMarkType.targeted,
-                                backgroundColor: Color(0xFF1976D2),
-                                elevation: 12,
-                              ),
-                              child: GestureDetector(
-                                  onTap: () {
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                          builder: (context) => SettingsScreen(
-                                              currentRole: 'coach')),
-                                    );
-                                  },
-                                  child: Icon(Icons.settings,
-                                      color: AppColors.darkColor, size: 36)),
-                            )
-                          ]),
-                        ],
-                      ),
+                      RoleBar(currentRole: Role.coach, tutorialManager: controller.tutorialManager),
                       RaceCoachMark(
                         controller: controller,
                         child: _buildRacesList(controller),
