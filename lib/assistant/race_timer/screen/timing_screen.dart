@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-import '../../../shared/role_functions.dart';
+import '../../../shared/role_bar/role_bar.dart';
 import '../../../core/services/tutorial_manager.dart';
-import '../../../core/components/dialog_utils.dart';
 import '../widgets/timer_display_widget.dart';
 import '../widgets/race_controls_widget.dart';
 import '../widgets/race_info_header_widget.dart';
 import '../widgets/bottom_controls_widget.dart';
 import '../controller/timing_controller.dart';
 import '../widgets/records_list_widget.dart';
+import '../../../shared/role_bar/models/role_enums.dart';
 
 class TimingScreen extends StatefulWidget {
   const TimingScreen({super.key});
@@ -50,54 +50,45 @@ class _TimingScreenState extends State<TimingScreen>
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
-        return WillPopScope(
-          onWillPop: () async {
-            // Show confirmation dialog
-            bool shouldPop = await DialogUtils.showConfirmationDialog(
-              context,
-              title: 'Leave Timing Screen?',
-              content:
-                  'All race times will be lost if you leave this screen. Do you want to continue?',
-              confirmText: 'Continue',
-              cancelText: 'Stay',
-            );
-            return shouldPop;
-          },
-          child: TutorialRoot(
-            tutorialManager: tutorialManager,
-            child: Scaffold(
-              body: Padding(
-                padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    buildRoleBar(context, 'timer', tutorialManager),
-                    const SizedBox(height: 8),
-                    RaceInfoHeaderWidget(
-                      controller: _controller
-                    ),
-                    const SizedBox(height: 8),
-                    TimerDisplayWidget(
-                      controller: _controller,
-                    ),
-                    RaceControlsWidget(
-                      controller: _controller
-                    ),
-                    if (_controller.records.isNotEmpty)
-                      const SizedBox(height: 30),
-                    Expanded(child: RecordsListWidget(controller: _controller)),
-                    if (_controller.raceStopped == false &&
-                        _controller.records.isNotEmpty)
-                     BottomControlsWidget(
-                      controller: _controller,
-                    ),
-                  ],
-                ),
+        return TutorialRoot(
+          tutorialManager: tutorialManager,
+          child: Scaffold(
+            body: Padding(
+              padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  RoleBar(
+                    currentRole: Role.timer,
+                    tutorialManager: tutorialManager,
+                  ),
+                  const SizedBox(height: 16),
+                  RaceInfoHeaderWidget(
+                    controller: _controller
+                  ),
+                  const SizedBox(height: 8),
+                  TimerDisplayWidget(
+                    controller: _controller,
+                  ),
+                  const SizedBox(height: 8),
+                  RaceControlsWidget(
+                    controller: _controller
+                  ),
+                  if (_controller.records.isNotEmpty)
+                    const SizedBox(height: 30),
+                  Expanded(child: RecordsListWidget(controller: _controller)),
+                  if (_controller.raceStopped == false &&
+                      _controller.records.isNotEmpty)
+                    BottomControlsWidget(
+                    controller: _controller,
+                  ),
+                ],
               ),
-            )),
-          );
-        },
-      );
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override

@@ -19,7 +19,6 @@ class TimerDisplayWidget extends StatelessWidget {
         return Container(
           alignment: Alignment.centerLeft,
           padding: const EdgeInsets.symmetric(vertical: 8),
-          margin: const EdgeInsets.symmetric(vertical: 8),
           width: MediaQuery.of(context).size.width * 0.9,
           decoration: BoxDecoration(
             color: Colors.white,

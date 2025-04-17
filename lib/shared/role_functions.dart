@@ -222,6 +222,9 @@ Widget buildRoleBar(
           mainAxisAlignment: MainAxisAlignment.end,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            // Instructions banner
+            // InstructionsBanner(),
+            const Spacer(),
             // Role button
             CoachMark(
                 id: 'role_bar_tutorial',
