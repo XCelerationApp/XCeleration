@@ -1,6 +1,30 @@
 import 'package:flutter/material.dart';
+import '../theme/typography.dart';
 
 class DialogUtils {
+  
+  /// Simple dialog that just shows a message and an ok button
+  static Future<void> showMessageDialog(
+    BuildContext context, {
+    required String title,
+    required String message,
+  }) async {
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            child: const Text('OK', style: AppTypography.bodySemibold),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ],
+      ),
+    );
+  }
+  
+
   static Future<bool> showConfirmationDialog(
     BuildContext context, {
     required String title,
