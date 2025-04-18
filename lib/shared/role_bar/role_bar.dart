@@ -77,4 +77,8 @@ class RoleBar extends StatelessWidget {
     final topPadding = MediaQuery.of(context).padding.top;
     return SizedBox(height: topPadding);
   }
+
+  static Future<void> showInstructionsSheet(BuildContext context, Role role) async {
+    await InstructionsBanner.showInstructionsSheet(context, role);
+  }
 }

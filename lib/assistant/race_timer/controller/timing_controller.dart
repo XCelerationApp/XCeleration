@@ -538,7 +538,6 @@ class TimingController extends TimingData {
 
   @override
   void dispose() {
-    debugPrint('TimingController disposed');
     scrollController.dispose();
     audioPlayer.dispose();
     super.dispose();

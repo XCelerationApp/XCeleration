@@ -11,6 +11,8 @@ import '../../../shared/models/race.dart';
 import '../../../core/services/tutorial_manager.dart';
 import '../../../core/services/event_bus.dart';
 import 'dart:async';
+import '../../../shared/role_bar/models/role_enums.dart';
+import '../../../shared/role_bar/role_bar.dart';
 import '../../race_screen/controller/race_screen_controller.dart';
 
 class RacesController extends ChangeNotifier {
@@ -59,7 +61,11 @@ class RacesController extends ChangeNotifier {
     teamColors.add(Colors.white);
     teamColors.add(Colors.white);
     unitController.text = 'mi';
-    setupTutorials();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      RoleBar.showInstructionsSheet(context, Role.coach).then((_) {
+        if (context.mounted) setupTutorials();
+      });
+    });
     
     // Subscribe to race flow state change events
     _eventSubscription = EventBus.instance.on(EventTypes.raceFlowStateChanged, (event) {

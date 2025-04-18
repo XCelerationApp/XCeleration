@@ -29,8 +29,9 @@ class _TimingScreenState extends State<TimingScreen>
     _controller = TimingController();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      _setupTutorials();
+      RoleBar.showInstructionsSheet(context, Role.timer).then((_) {
+        if (context.mounted) _setupTutorials();
+      });
     });
   }
 

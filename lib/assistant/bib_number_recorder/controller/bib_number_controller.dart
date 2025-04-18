@@ -6,6 +6,8 @@ import 'package:xcelerate/utils/enums.dart';
 import '../../../coach/race_screen/widgets/runner_record.dart';
 import '../../../core/components/dialog_utils.dart';
 import '../../../core/services/tutorial_manager.dart';
+import '../../../shared/role_bar/models/role_enums.dart';
+import '../../../shared/role_bar/role_bar.dart';
 import '../../../utils/encode_utils.dart';
 import '../../../utils/sheet_utils.dart';
 import '../../../core/components/device_connection_widget.dart';
@@ -31,7 +33,7 @@ class BibNumberController extends BibNumberDataController {
       DeviceName.bibRecorder,
       DeviceType.browserDevice,
     );
-    _checkForRunners(context);
+    init(context);
   }
 
   final tutorialManager = TutorialManager();
@@ -62,15 +64,23 @@ class BibNumberController extends BibNumberDataController {
     ]);
   }
 
+  void init(BuildContext context) async {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      RoleBar.showInstructionsSheet(context, Role.bibRecorder).then((_) {
+        if (context.mounted) _checkForRunners(context);
+      });
+    });
+  }
+
   Future<void> _checkForRunners(BuildContext context) async {
     // debugPrint('Checking for runners');
     // debugPrint('Checking for runners');
-    debugPrint((await DatabaseHelper.instance.getAllRaces()).map((race) => race.raceId).toString());
-    runners.addAll(await DatabaseHelper.instance.getRaceRunners(3));
-    runners.addAll(await DatabaseHelper.instance.getRaceRunners(2));
-    runners.addAll(await DatabaseHelper.instance.getRaceRunners(1));
-    runners.add(RunnerRecord(bib: '1', name: 'Teo Donnelley', raceId: 0, grade: 11, school: 'AW'));
-    notifyListeners();
+    // debugPrint((await DatabaseHelper.instance.getAllRaces()).map((race) => race.raceId).toString());
+    // runners.addAll(await DatabaseHelper.instance.getRaceRunners(3));
+    // runners.addAll(await DatabaseHelper.instance.getRaceRunners(2));
+    // runners.addAll(await DatabaseHelper.instance.getRaceRunners(1));
+    // runners.add(RunnerRecord(bib: '1', name: 'Teo Donnelley', raceId: 0, grade: 11, school: 'AW'));
+    // notifyListeners();
     // return;
     if (runners.isEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -132,8 +142,7 @@ class BibNumberController extends BibNumberDataController {
         final runnerInCorrectFormat = runners.every((runner) =>
             runner.bib.isNotEmpty &&
             runner.name.isNotEmpty &&
-            runner.school.isNotEmpty &&
-            runner.grade > 0);
+            runner.school.isNotEmpty);
 
         if (!runnerInCorrectFormat) {
           DialogUtils.showErrorDialog(context,
