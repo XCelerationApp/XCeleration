@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:xcelerate/coach/races_screen/controller/races_controller.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
+import '../controller/races_controller.dart';
 import '../../race_screen/controller/race_screen_controller.dart';
-import '../../../shared/models/race.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../shared/models/race.dart';
 import '../../../core/theme/typography.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter_slidable/flutter_slidable.dart';
 
 class RaceCard extends StatelessWidget {
   final Race race;
@@ -21,25 +21,27 @@ class RaceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Updated flow state text with setup-completed state
+    // State text based on flow state
     final flowStateText = {
-          'setup': 'Runner Setup',
-          'setup-completed': 'Ready to Share',
-          'pre-race': 'Sharing Runners',
-          'pre-race-completed': 'Ready for Results',
-          'post-race': 'Processing Results',
-          'post-race-completed': 'Ready to Finalize',
-          'finished': 'Race Complete',
+          Race.FLOW_SETUP: 'Setting up',
+          Race.FLOW_SETUP_COMPLETED: 'Ready to Share',
+          Race.FLOW_PRE_RACE: 'Sharing Runners',
+          Race.FLOW_PRE_RACE_COMPLETED: 'Ready for Results',
+          Race.FLOW_POST_RACE: 'Processing Results',
+          Race.FLOW_POST_RACE_COMPLETED: 'Race Complete',
+          Race.FLOW_FINISHED: 'Race Complete',
         }[race.flowState] ??
-        'Runner Setup';
+        'Setting up';
 
     // Different colors based on the flow state
     final flowStateColor = {
-          'setup': AppColors.primaryColor.withOpacity(0.7),
-          'setup-completed': AppColors.primaryColor.withOpacity(0.7),
-          'pre-race': AppColors.primaryColor,
-          'post-race': AppColors.primaryColor,
-          'finished': Colors.blue,
+          Race.FLOW_SETUP: AppColors.primaryColor.withOpacity(0.7),
+          Race.FLOW_SETUP_COMPLETED: AppColors.primaryColor.withOpacity(0.7),
+          Race.FLOW_PRE_RACE: AppColors.primaryColor,
+          Race.FLOW_PRE_RACE_COMPLETED: AppColors.primaryColor,
+          Race.FLOW_POST_RACE: AppColors.primaryColor,
+          Race.FLOW_POST_RACE_COMPLETED: Colors.blue,
+          Race.FLOW_FINISHED: Colors.blue,
         }[race.flowState] ??
         AppColors.primaryColor;
 

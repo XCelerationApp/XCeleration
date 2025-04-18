@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../shared/models/race.dart'; // Import Race model for constants
 
 class FlowNotification extends StatelessWidget {
   final String flowState;
@@ -15,13 +16,10 @@ class FlowNotification extends StatelessWidget {
       
   // Get appropriate button text based on the flow state
   String _getButtonText() {
-    // For completed states, show action-specific buttons
-    if (flowState == 'Setup Completed') {
+    if (flowState == Race.FLOW_SETUP_COMPLETED) {
       return 'Share Runner Data';
-    } else if (flowState == 'Ready for Results') {
+    } else if (flowState == Race.FLOW_PRE_RACE_COMPLETED) {
       return 'Process Results';
-    } else if (flowState == 'Ready to Finalize') {
-      return 'Finalize Race';
     } else {
       return 'Continue';
     }
@@ -29,30 +27,30 @@ class FlowNotification extends StatelessWidget {
   
   // Get appropriate status text
   String _getStatusText() {
-    if (flowState == 'Setup Completed') {
-      return 'Ready to Share';
-    } else if (flowState == 'Pre-Race Sharing Completed') {
-      return 'Ready for Results';
-    } else if (flowState == 'Post-Race Completed') {
-      return 'Ready to Finalize';  
-    } else if (flowState == 'Setup') {
-      return 'Runner Setup';
-    } else if (flowState == 'Runner Setup') {
-      return 'Runner Setup In Progress';
-    } else if (flowState == 'Pre-Race Sharing') {
-      return 'Sharing Runners';
-    } else if (flowState == 'Sharing Runners') {
-      return 'Sharing Runners In Progress';
-    } else if (flowState == 'Post-Race') {
-      return 'Processing Results';
-    } else if (flowState == 'Processing Results') {
-      return 'Processing Results In Progress';
-    } else if (flowState.contains('Completed')) {
-      return flowState.replaceAll('Completed', 'Complete');
-    } else if (flowState.contains('In Progress')) {
-      return flowState;
-    } else {
-      return flowState;
+    // Simplified status text based on flow state
+    switch (flowState) {
+      case Race.FLOW_SETUP:
+        return 'Race Setup';
+      case Race.FLOW_SETUP_COMPLETED:
+        return 'Ready to Share';
+      case Race.FLOW_PRE_RACE:
+        return 'Sharing Runners';
+      case Race.FLOW_PRE_RACE_COMPLETED:
+        return 'Ready for Results';
+      case Race.FLOW_POST_RACE:
+        return 'Processing Results';
+      case Race.FLOW_POST_RACE_COMPLETED:
+      case Race.FLOW_FINISHED:
+        return 'Race Complete';
+      default:
+        // For backward compatibility or custom states
+        if (flowState.contains(Race.FLOW_COMPLETED_SUFFIX)) {
+          final baseState = flowState.split(Race.FLOW_COMPLETED_SUFFIX).first;
+          if (baseState == Race.FLOW_POST_RACE.split('-').first) {
+            return 'Race Complete';
+          }
+        }
+        return flowState;
     }
   }
 
@@ -72,8 +70,10 @@ class FlowNotification extends StatelessWidget {
                 fontSize: 16,
               ),
             ),
-            if (flowState != 'Setup') ...[
-              const Spacer(),
+            const Spacer(),
+            // Don't show action button for post-race completed or finished states
+            if (flowState != Race.FLOW_POST_RACE_COMPLETED && 
+                flowState != Race.FLOW_FINISHED) 
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
@@ -96,7 +96,6 @@ class FlowNotification extends StatelessWidget {
                   ),
                 ),
               )
-            ]
           ],
         ),
       ),

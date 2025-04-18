@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:xcelerate/utils/enums.dart';
+import 'package:provider/provider.dart';
 import '../controller/race_screen_controller.dart';
 import '../widgets/tab_bar.dart';
 import '../widgets/tab_bar_view.dart';
 import '../widgets/race_header.dart';
 import '../widgets/race_details_tab.dart';
 import '../../../core/services/event_bus.dart';
+import '../../../shared/models/race.dart';
 import 'dart:async';
 
 class RaceScreen extends StatefulWidget {
@@ -95,25 +97,32 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
       );
     }
 
-    return Column(
-      mainAxisSize: MainAxisSize.max,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // Race Header
-        RaceHeader(controller: _controller),
-        if (_controller.race!.flowState != 'finished') ...[
-          Expanded(
-            child: SingleChildScrollView(
-              child: RaceDetailsTab(controller: _controller),
-            ),
-          )
-        ] else ...[
-          // Tab Bar
-          TabBarWidget(controller: _controller),
-          // Tab Bar View
-          TabBarViewWidget(controller: _controller),
-        ],
-      ],
+    return ChangeNotifierProvider.value(
+      value: _controller,
+      child: Consumer<RaceScreenController>(
+        builder: (context, controller, child) {
+          return Column(
+            mainAxisSize: MainAxisSize.max,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Race Header
+              RaceHeader(controller: controller),
+              if (controller.race!.flowState != Race.FLOW_FINISHED) ...[
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: RaceDetailsTab(controller: controller),
+                  ),
+                )
+              ] else ...[
+                // Tab Bar for finished races
+                TabBarWidget(controller: controller),
+                // Tab Bar View
+                TabBarViewWidget(controller: controller),
+              ],
+            ],
+          );
+        },
+      ),
     );
   }
 }

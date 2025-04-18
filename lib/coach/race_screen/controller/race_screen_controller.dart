@@ -84,6 +84,12 @@ class RaceScreenController with ChangeNotifier {
     _initializeControllers();
     flowController = MasterFlowController(raceController: this);
     loadRunnersCount();
+    
+    // Set initial flow state to setup if it's a new race
+    if (race != null && race!.flowState.isEmpty) {
+      await updateRaceFlowState(Race.FLOW_SETUP);
+    }
+    
     notifyListeners();
   }
 
@@ -177,13 +183,34 @@ class RaceScreenController with ChangeNotifier {
     notifyListeners();
     
     SnackBar(content: Text('Race details saved!'));
-    if (await RunnersManagementScreen.checkMinimumRunnersLoaded(raceId)) {
-      if (race?.flowState == 'setup') {
-        await updateRaceFlowState('setup_complete');
-      }
-    }
+    
+    // Check if we can move to setup_complete
+    await checkSetupComplete();
   }
 
+  /// Check if all requirements are met to advance to setup_complete
+  Future<bool> checkSetupComplete() async {
+    if (race?.flowState != Race.FLOW_SETUP) return false;
+    
+    // Check for minimum runners
+    final hasMinimumRunners = await RunnersManagementScreen.checkMinimumRunnersLoaded(raceId);
+    
+    // Check if essential race fields are filled
+    final fieldsComplete = 
+        nameController.text.isNotEmpty &&
+        locationController.text.isNotEmpty &&
+        dateController.text.isNotEmpty &&
+        distanceController.text.isNotEmpty &&
+        teamControllers.where((controller) => controller.text.isNotEmpty).isNotEmpty;
+    
+    // If all requirements are met, advance to setup_complete
+    if (hasMinimumRunners && fieldsComplete) {
+      await updateRaceFlowState(Race.FLOW_SETUP_COMPLETED);
+      return true;
+    }
+    
+    return false;
+  }
 
   /// Save team data to database
   Future<void> saveTeamData() async {
@@ -302,7 +329,7 @@ class RaceScreenController with ChangeNotifier {
     String nextState = race!.nextFlowState;
     
     // If the next state is a completed state, skip to the one after that
-    if (nextState.contains('completed')) {
+    if (nextState.contains(Race.FLOW_COMPLETED_SUFFIX)) {
       int nextIndex = Race.FLOW_SEQUENCE.indexOf(nextState) + 1;
       if (nextIndex < Race.FLOW_SEQUENCE.length) {
         nextState = Race.FLOW_SEQUENCE[nextIndex];
@@ -351,8 +378,21 @@ class RaceScreenController with ChangeNotifier {
     
     String currentState = race!.flowState;
     
+    // Handle setup state differently - don't treat it as a flow
+    if (currentState == Race.FLOW_SETUP) {
+      // Just check if we can advance to setup_complete
+      final canAdvance = await checkSetupComplete();
+      if (!canAdvance) {
+        // Show message about missing requirements
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please complete race details and load runners before continuing'))
+        );
+      }
+      return;
+    }
+    
     // If the current state is a completed state, move to the next non-completed state
-    if (currentState.contains('-completed')) {
+    if (currentState.contains(Race.FLOW_COMPLETED_SUFFIX)) {
       String nextState;
       
       if (currentState == Race.FLOW_SETUP_COMPLETED) {
@@ -376,6 +416,27 @@ class RaceScreenController with ChangeNotifier {
     
     // Use the flow controller to handle the navigation
     await flowController.handleFlowNavigation(context, race!.flowState);
+  }
+
+  /// Load runners management screen
+  void loadRunnersManagementScreen(BuildContext context) {
+    sheet(
+      context: context,
+      takeUpScreen: true,
+      title: 'Load Runners',
+      body: RunnersManagementScreen(
+        raceId: raceId,
+        showHeader: false,
+        onContentChanged: () async {
+          // Refresh race data when runners are changed
+          race = await loadRace();
+          notifyListeners();
+          // Check if we can move to setup_complete
+          await checkSetupComplete();
+        },
+      ),
+      showHeader: true,
+    );
   }
 
   // Validation methods for form fields
