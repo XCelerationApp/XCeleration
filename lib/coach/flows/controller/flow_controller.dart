@@ -11,6 +11,7 @@ import 'dart:async';
 import '../../../utils/database_helper.dart';
 import '../../../coach/race_screen/controller/race_screen_controller.dart';
 import '../../../core/services/event_bus.dart';
+import '../../../shared/models/race.dart';
 
 /// Controller class for handling all flow-related operations
 class MasterFlowController {
@@ -35,10 +36,10 @@ class MasterFlowController {
     }
 
     switch (raceController.race!.flowState) {
-      case 'pre-race':
+      case Race.FLOW_PRE_RACE:
         await _preRaceFlow(context);
         break;
-      case 'post-race':
+      case Race.FLOW_POST_RACE:
         await _postRaceFlow(context);
         break;
     }
@@ -64,7 +65,7 @@ class MasterFlowController {
   /// Navigate to the appropriate screen based on flow state
   Future<bool> handleFlowNavigation(BuildContext context, String flowState) async {
     // For completed states, just return to race screen (already there)
-    if (flowState.contains('completed') || flowState == 'finished') {
+    if (flowState.contains(Race.FLOW_COMPLETED_SUFFIX) || flowState == Race.FLOW_FINISHED) {
       // Make sure we're on the race details tab
       if (raceController.tabController.index != 0) {
         raceController.tabController.animateTo(0);
@@ -74,9 +75,9 @@ class MasterFlowController {
     
     // For regular states, use the existing flow methods
     switch (flowState) {
-      case 'pre-race':
+      case Race.FLOW_PRE_RACE:
         return _preRaceFlow(context);
-      case 'post-race':
+      case Race.FLOW_POST_RACE:
         return _postRaceFlow(context);
       default:
         debugPrint('Unknown flow state: $flowState');
@@ -93,7 +94,7 @@ class MasterFlowController {
     if (!completed) return false;
     
     // Mark as pre-race-completed instead of moving directly to post-race
-    await updateRaceFlowState('pre-race-completed');
+    await updateRaceFlowState(Race.FLOW_PRE_RACE_COMPLETED);
     
     // Return to race screen without starting the next flow automatically
     return true;
@@ -105,7 +106,7 @@ class MasterFlowController {
     final bool completed = await postRaceController.showPostRaceFlow(context, true);
     if (!completed) return false;
 
-    await updateRaceFlowState('post-race-completed');
+    await updateRaceFlowState(Race.FLOW_POST_RACE_COMPLETED);
 
     // Add a short delay to let the UI settle
     await Future.delayed(const Duration(milliseconds: 500));
