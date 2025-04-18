@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../utils/sheet_utils.dart';
 import '../../flows/widgets/flow_indicator.dart';
-import '../SetupFlow/controller/setup_controller.dart';
 import '../PreRaceFlow/controller/pre_race_controller.dart';
 import '../PostRaceFlow/controller/post_race_controller.dart';
 import 'dart:async';
@@ -16,12 +15,10 @@ import '../../../core/services/event_bus.dart';
 /// Controller class for handling all flow-related operations
 class MasterFlowController {
   final RaceScreenController raceController;
-  late SetupController setupController;
   late PreRaceController preRaceController;
   late PostRaceController postRaceController;
 
   MasterFlowController({required this.raceController}) {
-    setupController = SetupController(raceId: raceController.raceId);
     preRaceController = PreRaceController(raceId: raceController.raceId);
     postRaceController = PostRaceController(raceId: raceController.raceId, useTestData: true);
   }
@@ -38,9 +35,6 @@ class MasterFlowController {
     }
 
     switch (raceController.race!.flowState) {
-      case 'setup':
-        await _setupFlow(context);
-        break;
       case 'pre-race':
         await _preRaceFlow(context);
         break;
@@ -80,8 +74,6 @@ class MasterFlowController {
     
     // For regular states, use the existing flow methods
     switch (flowState) {
-      case 'setup':
-        return _setupFlow(context);
       case 'pre-race':
         return _preRaceFlow(context);
       case 'post-race':
@@ -92,18 +84,7 @@ class MasterFlowController {
     }
   }
 
-  /// Setup the race with runners
-  /// Shows a flow with the provided steps and handles user progression
-  Future<bool> _setupFlow(BuildContext context) async {
-    final bool completed = await setupController.showSetupFlow(context, true);
-    if (!completed) return false;
-
-    // Mark as setup-completed instead of moving directly to pre-race
-    await updateRaceFlowState('setup-completed');
-
-    // Return to race screen without starting the next flow automatically
-    return true;
-  }
+  
 
   /// Pre-race setup flow
   /// Shows a flow for pre-race setup and coordination
