@@ -130,16 +130,18 @@ class BibNumberController extends BibNumberDataController {
     if (data != null) {
       try {
         // Process data outside of setState
-        final runners = await decodeEncodedRunners(data, context);
+        final loadedRunners = await decodeEncodedRunners(data, context);
 
-        if (runners == null || runners.isEmpty) {
+        if (loadedRunners == null || loadedRunners.isEmpty) {
           DialogUtils.showErrorDialog(context,
               message:
                   'Invalid data received from bib recorder. Please try again.');
           return;
         }
 
-        final runnerInCorrectFormat = runners.every((runner) =>
+        debugPrint('Runners received: $loadedRunners');
+
+        final runnerInCorrectFormat = loadedRunners.every((runner) =>
             runner.bib.isNotEmpty &&
             runner.name.isNotEmpty &&
             runner.school.isNotEmpty);
@@ -154,7 +156,7 @@ class BibNumberController extends BibNumberDataController {
         if (runners.isNotEmpty) {
           runners.clear();
         }
-        runners.addAll(runners);
+        runners.addAll(loadedRunners);
         notifyListeners();
 
 

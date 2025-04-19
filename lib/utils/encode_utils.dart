@@ -162,8 +162,8 @@ Future<List<RunnerRecord>?> decodeEncodedRunners(
             raceId: -1,
             bib: Uri.decodeComponent(runnerValues[0]),
             name: Uri.decodeComponent(runnerValues[1]),
-            grade: int.parse(Uri.decodeComponent(runnerValues[3])),
             school: Uri.decodeComponent(runnerValues[2]),
+            grade: int.parse(Uri.decodeComponent(runnerValues[3])),
           ));
         }
       }
