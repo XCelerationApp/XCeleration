@@ -160,10 +160,10 @@ Future<List<RunnerRecord>?> decodeEncodedRunners(
         if (runnerValues.length == 4) {
           decodedRunners.add(RunnerRecord(
             raceId: -1,
-            bib: runnerValues[0],
-            name: runnerValues[1],
-            grade: int.parse(runnerValues[3]),
-            school: runnerValues[2],
+            bib: Uri.decodeComponent(runnerValues[0]),
+            name: Uri.decodeComponent(runnerValues[1]),
+            grade: int.parse(Uri.decodeComponent(runnerValues[3])),
+            school: Uri.decodeComponent(runnerValues[2]),
           ));
         }
       }
@@ -179,9 +179,9 @@ Future<List<RunnerRecord>?> decodeEncodedRunners(
 Future<String> getEncodedRunnersData(int raceId) async {
     final runners = await DatabaseHelper.instance.getRaceRunners(raceId);
     return runners.map((runner) => [
-      runner.bib,
-      runner.name,
-      runner.school,
-      runner.grade
+      Uri.encodeComponent(runner.bib),
+      Uri.encodeComponent(runner.name),
+      Uri.encodeComponent(runner.school),
+      Uri.encodeComponent(runner.grade.toString()),
     ].join(',')).join(' ');
   }
