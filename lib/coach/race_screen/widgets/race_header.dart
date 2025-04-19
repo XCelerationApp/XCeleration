@@ -8,11 +8,11 @@ import '../widgets/flow_notification.dart';
 Color _getStatusColor(String flowState) {
   switch (flowState) {
     case Race.FLOW_SETUP:
-    case Race.FLOW_SETUP_COMPLETED:
       return Colors.amber;
+    case Race.FLOW_SETUP_COMPLETED:
     case Race.FLOW_PRE_RACE:
-    case Race.FLOW_PRE_RACE_COMPLETED:
       return Colors.blue;
+    case Race.FLOW_PRE_RACE_COMPLETED:
     case Race.FLOW_POST_RACE:
       return Colors.purple;
     case Race.FLOW_POST_RACE_COMPLETED:
