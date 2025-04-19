@@ -43,7 +43,7 @@ IconData _getStatusIcon(String flowState) {
 }
 
 class RaceHeader extends StatelessWidget {
-  final RaceScreenController controller;
+  final RaceController controller;
   const RaceHeader({super.key, required this.controller});
   @override
   Widget build(BuildContext context) {

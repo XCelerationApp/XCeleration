@@ -6,7 +6,7 @@ import '../../../core/theme/app_colors.dart';
 import '../controller/race_screen_controller.dart';
 
 class RaceLocationField extends StatelessWidget {
-  final RaceScreenController controller;
+  final RaceController controller;
   final StateSetter setSheetState;
   final ValueChanged<String>? onChanged;
 

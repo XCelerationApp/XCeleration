@@ -124,7 +124,7 @@ class RacesController extends ChangeNotifier {
       await Future.delayed(const Duration(milliseconds: 300));
 
       if (context.mounted) {
-        RaceScreenController.showRaceScreen(context, newRaceId);
+        await RaceController.showRaceScreen(context, this, newRaceId);
       }
     }
   }
@@ -377,59 +377,7 @@ class RacesController extends ChangeNotifier {
   }
 
   Future<void> editRace(Race race) async {
-    // Pre-fill the controllers with race data
-    nameController.text = race.raceName;
-    // locationController.text = race.location;
-    // dateController.text = DateFormat('yyyy-MM-dd').format(race.raceDate);
-    // distanceController.text = race.distance.toString();
-    // unitController.text = race.distanceUnit;
-
-    // // Clear existing team controllers
-    // for (var controller in teamControllers) {
-    //   controller.dispose();
-    // }
-    // teamControllers.clear();
-    // teamColors.clear();
-
-    // // Add team controllers for existing teams
-    // for (var i = 0; i < race.teams.length; i++) {
-    //   var controller = TextEditingController(text: race.teams[i]);
-    //   teamControllers.add(controller);
-    //   teamColors.add(race.teamColors[i]);
-    // }
-
-    // Show the edit sheet
-    final int? returnedRaceId = await sheet(
-      context: context,
-      title: 'Edit Race',
-      body: StatefulBuilder(
-        builder: (BuildContext context, StateSetter setSheetState) {
-          return SizedBox(
-            height: MediaQuery.of(context).size.height * 0.92,
-            child: RaceCreationSheet(
-              controller: this,
-              setSheetState: setSheetState,
-              isEditing: true,
-              raceId: race.raceId,
-            ),
-          );
-        },
-      ),
-    );
-    
-    // If a valid race ID was returned and the context is still mounted,
-    // navigate to the race screen
-    if (returnedRaceId != null && context.mounted) {
-      // Add a small delay to let the UI settle after sheet dismissal
-      await Future.delayed(const Duration(milliseconds: 300));
-      
-      if (context.mounted) {
-        RaceScreenController.showRaceScreen(context, returnedRaceId);
-      }
-    }
-
-    // Reload races after editing
-    await loadRaces();
+    await RaceController.showRaceScreen(context, this, race.raceId);
   }
 
   Future<void> deleteRace(Race race) async {

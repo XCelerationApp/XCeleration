@@ -13,9 +13,10 @@ import '../../../core/services/event_bus.dart';
 import 'package:intl/intl.dart'; // Import the intl package for date formatting
 import 'package:flutter_colorpicker/flutter_colorpicker.dart'; // Import for color picker
 import 'package:geolocator/geolocator.dart'; // Import for geolocation
+import '../../races_screen/controller/races_controller.dart';
 
 /// Controller class for the RaceScreen that handles all business logic
-class RaceScreenController with ChangeNotifier {
+class RaceController with ChangeNotifier {
   // Race data
   Race? race;
   int raceId;
@@ -54,7 +55,9 @@ class RaceScreenController with ChangeNotifier {
 
   BuildContext? _context;
 
-  RaceScreenController({required this.raceId});
+  RacesController parentController;
+  
+  RaceController({required this.raceId, required this.parentController});
 
   void setContext(BuildContext context) {
     _context = context;
@@ -62,21 +65,23 @@ class RaceScreenController with ChangeNotifier {
 
   BuildContext get context {
     assert(_context != null,
-        'Context not set in RaceScreenController. Call setContext() first.');
+        'Context not set in RaceController. Call setContext() first.');
     return _context!;
   }
 
-  static void showRaceScreen(BuildContext context, int raceId,
-      {RaceScreenPage page = RaceScreenPage.main}) {
-    sheet(
+  static Future<void> showRaceScreen(BuildContext context, RacesController parentController, int raceId,
+      {RaceScreenPage page = RaceScreenPage.main}) async {
+    await sheet(
       context: context,
       body: RaceScreen(
         raceId: raceId,
+        parentController: parentController,
         page: page,
       ),
       takeUpScreen: false, // Allow sheet to size according to content
       showHeader: true, // Keep the handle
     );
+    await parentController.loadRaces();
   }
 
   Future<void> init(BuildContext context) async {

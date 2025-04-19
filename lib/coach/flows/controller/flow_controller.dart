@@ -14,7 +14,7 @@ import '../../../core/services/event_bus.dart';
 
 /// Controller class for handling all flow-related operations
 class MasterFlowController {
-  final RaceScreenController raceController;
+  final RaceController raceController;
   late PreRaceController preRaceController;
   late PostRaceController postRaceController;
 

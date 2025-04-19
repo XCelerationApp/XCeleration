@@ -4,7 +4,7 @@ import '../widgets/race_details_tab.dart';
 import '../controller/race_screen_controller.dart';
 
 class TabBarViewWidget extends StatefulWidget {
-  final RaceScreenController controller;
+  final RaceController controller;
   const TabBarViewWidget({super.key, required this.controller});
 
   @override

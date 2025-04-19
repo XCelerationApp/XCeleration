@@ -3,7 +3,7 @@ import 'package:xcelerate/core/components/textfield_utils.dart';
 import '../controller/race_screen_controller.dart';
 
 class RaceDistanceField extends StatelessWidget {
-  final RaceScreenController controller;
+  final RaceController controller;
   final StateSetter setSheetState;
   final ValueChanged<String>? onChanged;
 

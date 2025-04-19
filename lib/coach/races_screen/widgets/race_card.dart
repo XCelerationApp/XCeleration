@@ -11,40 +11,42 @@ class RaceCard extends StatelessWidget {
   final Race race;
   final String flowState;
   final RacesController controller;
+  late final String flowStateText;
+  late final Color flowStateColor;
 
-  const RaceCard({
+  RaceCard({
     super.key,
     required this.race,
     required this.flowState,
     required this.controller,
-  });
+  }) {
+    // State text based on flow state
+    flowStateText = {
+      Race.FLOW_SETUP: 'Setting up',
+      Race.FLOW_SETUP_COMPLETED: 'Ready to Share',
+      Race.FLOW_PRE_RACE: 'Sharing Runners',
+      Race.FLOW_PRE_RACE_COMPLETED: 'Ready for Results',
+      Race.FLOW_POST_RACE: 'Processing Results',
+      Race.FLOW_POST_RACE_COMPLETED: 'Race Complete',
+      Race.FLOW_FINISHED: 'Race Complete',
+    }[race.flowState] ??
+    'Setting up';
+
+    // Different colors based on the flow state
+    flowStateColor = {
+      Race.FLOW_SETUP: AppColors.primaryColor.withOpacity(0.7),
+      Race.FLOW_SETUP_COMPLETED: AppColors.primaryColor.withOpacity(0.7),
+      Race.FLOW_PRE_RACE: AppColors.primaryColor,
+      Race.FLOW_PRE_RACE_COMPLETED: AppColors.primaryColor,
+      Race.FLOW_POST_RACE: AppColors.primaryColor,
+      Race.FLOW_POST_RACE_COMPLETED: Colors.blue,
+      Race.FLOW_FINISHED: Colors.blue,
+    }[race.flowState] ??
+    AppColors.primaryColor;
+  }
 
   @override
   Widget build(BuildContext context) {
-    // State text based on flow state
-    final flowStateText = {
-          Race.FLOW_SETUP: 'Setting up',
-          Race.FLOW_SETUP_COMPLETED: 'Ready to Share',
-          Race.FLOW_PRE_RACE: 'Sharing Runners',
-          Race.FLOW_PRE_RACE_COMPLETED: 'Ready for Results',
-          Race.FLOW_POST_RACE: 'Processing Results',
-          Race.FLOW_POST_RACE_COMPLETED: 'Race Complete',
-          Race.FLOW_FINISHED: 'Race Complete',
-        }[race.flowState] ??
-        'Setting up';
-
-    // Different colors based on the flow state
-    final flowStateColor = {
-          Race.FLOW_SETUP: AppColors.primaryColor.withOpacity(0.7),
-          Race.FLOW_SETUP_COMPLETED: AppColors.primaryColor.withOpacity(0.7),
-          Race.FLOW_PRE_RACE: AppColors.primaryColor,
-          Race.FLOW_PRE_RACE_COMPLETED: AppColors.primaryColor,
-          Race.FLOW_POST_RACE: AppColors.primaryColor,
-          Race.FLOW_POST_RACE_COMPLETED: Colors.blue,
-          Race.FLOW_FINISHED: Colors.blue,
-        }[race.flowState] ??
-        AppColors.primaryColor;
-
     return Slidable(
       key: Key(race.race_id.toString()),
       endActionPane: ActionPane(
@@ -115,7 +117,7 @@ class RaceCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           child: InkWell(
             onTap: () =>
-                RaceScreenController.showRaceScreen(context, race.race_id),
+                RaceController.showRaceScreen(context, controller, race.race_id),
             child: Padding(
               padding: const EdgeInsets.only(
                   left: 24.0, right: 24.0, top: 16.0, bottom: 16.0),

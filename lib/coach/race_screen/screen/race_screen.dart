@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:xcelerate/utils/enums.dart';
-import 'package:provider/provider.dart';
 import '../controller/race_screen_controller.dart';
 import '../widgets/tab_bar.dart';
 import '../widgets/tab_bar_view.dart';
@@ -9,12 +8,15 @@ import '../widgets/race_details_tab.dart';
 import '../../../core/services/event_bus.dart';
 import '../../../shared/models/race.dart';
 import 'dart:async';
+import '../../races_screen/controller/races_controller.dart';
 
 class RaceScreen extends StatefulWidget {
+  final RacesController parentController;
   final int raceId;
   final RaceScreenPage page;
   const RaceScreen({
     super.key,
+    required this.parentController,
     required this.raceId,
     this.page = RaceScreenPage.main,
   });
@@ -25,14 +27,14 @@ class RaceScreen extends StatefulWidget {
 
 class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
   // Controller
-  late RaceScreenController _controller;
+  late RaceController _controller;
   bool _isLoading = true;
   StreamSubscription? _flowStateSubscription;
 
   @override
   void initState() {
     super.initState();
-    _controller = RaceScreenController(raceId: widget.raceId);
+    _controller = RaceController(parentController: widget.parentController, raceId: widget.raceId);
     _controller.setContext(context);
     _controller.tabController = TabController(length: 2, vsync: this);
 
@@ -97,32 +99,30 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
       );
     }
 
-    return ChangeNotifierProvider.value(
-      value: _controller,
-      child: Consumer<RaceScreenController>(
-        builder: (context, controller, child) {
-          return Column(
-            mainAxisSize: MainAxisSize.max,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Race Header
-              RaceHeader(controller: controller),
-              if (controller.race!.flowState != Race.FLOW_FINISHED) ...[
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: RaceDetailsTab(controller: controller),
-                  ),
-                )
-              ] else ...[
-                // Tab Bar for finished races
-                TabBarWidget(controller: controller),
-                // Tab Bar View
-                TabBarViewWidget(controller: controller),
-              ],
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Column(
+          mainAxisSize: MainAxisSize.max,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Race Header
+            RaceHeader(controller: _controller),
+            if (_controller.race!.flowState != Race.FLOW_FINISHED) ...[
+              Expanded(
+                child: SingleChildScrollView(
+                  child: RaceDetailsTab(controller: _controller),
+                ),
+              )
+            ] else ...[
+              // Tab Bar for finished races
+              TabBarWidget(controller: _controller),
+              // Tab Bar View
+              TabBarViewWidget(controller: _controller),
             ],
-          );
-        },
-      ),
+          ],
+        );
+      },
     );
   }
 }

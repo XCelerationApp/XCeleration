@@ -5,7 +5,7 @@ import '../../../core/components/textfield_utils.dart';
 import '../controller/race_screen_controller.dart';
 
 class CompetingTeamsField extends StatelessWidget {
-  final RaceScreenController controller;
+  final RaceController controller;
   final StateSetter setSheetState;
   final ValueChanged<String>? onChanged;
 

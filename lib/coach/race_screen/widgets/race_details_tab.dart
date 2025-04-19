@@ -15,7 +15,7 @@ import 'package:provider/provider.dart';
 import 'dart:async';
 
 class RaceDetailsTab extends StatefulWidget {
-  final RaceScreenController controller;
+  final RaceController controller;
   const RaceDetailsTab({super.key, required this.controller});
 
   @override

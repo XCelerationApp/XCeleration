@@ -3,7 +3,7 @@ import '../../../core/theme/app_colors.dart';
 import '../controller/race_screen_controller.dart';
 
 class TabBarWidget extends StatelessWidget {
-  final RaceScreenController controller;
+  final RaceController controller;
   const TabBarWidget({super.key, required this.controller});
   @override
   Widget build(BuildContext context) {
