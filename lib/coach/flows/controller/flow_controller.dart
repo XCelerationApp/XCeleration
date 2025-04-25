@@ -106,7 +106,8 @@ class MasterFlowController {
     final bool completed = await postRaceController.showPostRaceFlow(context, true);
     if (!completed) return false;
 
-    await updateRaceFlowState(Race.FLOW_POST_RACE_COMPLETED);
+    // Set the race state directly to finished after post-race flow completes
+    await updateRaceFlowState(Race.FLOW_FINISHED);
 
     // Add a short delay to let the UI settle
     await Future.delayed(const Duration(milliseconds: 500));

@@ -30,7 +30,7 @@ class ActionButton extends StatelessWidget {
         raceName: controller.nameController.text,
         location: '',
         raceDate: null,
-        distance: -1,
+        distance: 0,
         distanceUnit: 'mi',
         teams: [],
         teamColors: [],

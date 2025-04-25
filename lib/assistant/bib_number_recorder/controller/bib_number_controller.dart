@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:xcelerate/core/theme/app_colors.dart';
-import 'package:xcelerate/utils/database_helper.dart';
 import 'package:xcelerate/utils/enums.dart';
 import '../../../coach/race_screen/widgets/runner_record.dart';
 import '../../../core/components/dialog_utils.dart';

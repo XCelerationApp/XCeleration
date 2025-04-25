@@ -162,13 +162,13 @@ class RaceController with ChangeNotifier {
       return;
     }
     
-    // Parse distance - use -1 as sentinel value for empty/unset
-    double distance = -1; // Default to sentinel value
+    // Parse distance - use 0 as sentinel value for empty/unset
+    double distance = 0; // Default to sentinel value
     try {
       if (distanceController.text.isNotEmpty) {
         final parsedDistance = double.parse(distanceController.text);
-        // Only store positive values, otherwise keep as -1 sentinel
-        distance = parsedDistance > 0 ? parsedDistance : -1;
+        // Only store positive values, otherwise keep as 0 sentinel
+        distance = parsedDistance > 0 ? parsedDistance : 0;
       }
     } catch (e) {
       SnackBar(content: Text('Invalid distance format'));
@@ -368,7 +368,7 @@ class RaceController with ChangeNotifier {
     if (flowState == Race.FLOW_PRE_RACE || flowState == Race.FLOW_PRE_RACE_COMPLETED) {
       return 'Pre-Race';
     }
-    if (flowState == Race.FLOW_POST_RACE || flowState == Race.FLOW_POST_RACE_COMPLETED) {
+    if (flowState == Race.FLOW_POST_RACE) {
       return 'Post-Race';
     }
     if (flowState == Race.FLOW_FINISHED) {
@@ -404,8 +404,8 @@ class RaceController with ChangeNotifier {
         nextState = Race.FLOW_PRE_RACE;
       } else if (currentState == Race.FLOW_PRE_RACE_COMPLETED) {
         nextState = Race.FLOW_POST_RACE;
-      } else if (currentState == Race.FLOW_POST_RACE_COMPLETED) {
-        nextState = Race.FLOW_FINISHED;
+      // } else if (currentState == Race.FLOW_POST_RACE_COMPLETED) {
+      //   nextState = Race.FLOW_FINISHED;
       } else {
         return; // Unknown completed state
       }

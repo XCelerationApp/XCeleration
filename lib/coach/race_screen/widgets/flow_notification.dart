@@ -39,7 +39,7 @@ class FlowNotification extends StatelessWidget {
         return 'Ready for Results';
       case Race.FLOW_POST_RACE:
         return 'Processing Results';
-      case Race.FLOW_POST_RACE_COMPLETED:
+      // case Race.FLOW_POST_RACE_COMPLETED:
       case Race.FLOW_FINISHED:
         return 'Race Complete';
       default:
@@ -72,8 +72,7 @@ class FlowNotification extends StatelessWidget {
             ),
             const Spacer(),
             // Don't show action button for post-race completed or finished states
-            if (flowState != Race.FLOW_POST_RACE_COMPLETED && 
-                flowState != Race.FLOW_FINISHED) 
+            if (flowState != Race.FLOW_FINISHED) 
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
