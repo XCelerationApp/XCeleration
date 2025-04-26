@@ -12,8 +12,11 @@ class RacesList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (controller.races.isEmpty) {
-      return Center(
-        child: Text('No races.', style: AppTypography.bodyRegular),
+      return Padding(
+        padding: const EdgeInsets.only(top: 16),
+        child: Center(
+          child: Text('No races.', style: AppTypography.bodyRegular),
+        ),
       );
     }
 
