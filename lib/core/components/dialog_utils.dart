@@ -1,5 +1,48 @@
 import 'package:flutter/material.dart';
 import '../theme/typography.dart';
+import '../theme/app_colors.dart';
+
+/// Custom alert dialog with app theme styling applied
+class BasicAlertDialog extends StatelessWidget {
+  final String title;
+  final String content;
+  final List<Widget> actions;
+  final double backgroundTint;
+
+  const BasicAlertDialog({
+    super.key,
+    required this.title,
+    required this.content,
+    required this.actions,
+    this.backgroundTint = 1.0,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16.0),
+      ),
+      backgroundColor: AppColors.backgroundColor,
+      titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+      contentPadding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+      title: Text(
+        title,
+        style: AppTypography.titleSemibold.copyWith(
+          color: AppColors.primaryColor,
+        ),
+      ),
+      content: Text(
+        content,
+        style: AppTypography.bodyRegular.copyWith(
+          color: AppColors.mediumColor,
+        ),
+      ),
+      actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      actions: actions,
+    );
+  }
+}
 
 class DialogUtils {
   
@@ -8,15 +51,18 @@ class DialogUtils {
     BuildContext context, {
     required String title,
     required String message,
+    final String doneText = 'OK',
+    double barrierTint = .54,
   }) async {
     await showDialog<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Text(message),
+      barrierColor: Colors.black.withAlpha((barrierTint * 255).round()),
+      builder: (context) => BasicAlertDialog(
+        title: title,
+        content: message,
         actions: [
           TextButton(
-            child: const Text('OK', style: AppTypography.bodySemibold),
+            child: Text(doneText, style: AppTypography.buttonText),
             onPressed: () => Navigator.of(context).pop(),
           ),
         ],
@@ -31,20 +77,22 @@ class DialogUtils {
     required String content,
     String confirmText = 'Yes',
     String cancelText = 'No',
+    Color barrierColor = Colors.black54,
   }) async {
     return await showDialog<bool>(
           context: context,
-          builder: (context) => AlertDialog(
-            title: Text(title),
-            content: Text(content),
+          barrierColor: barrierColor,
+          builder: (context) => BasicAlertDialog(
+            title: title,
+            content: content,
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
-                child: Text(cancelText),
+                child: Text(cancelText, style: AppTypography.buttonText),
               ),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(true),
-                child: Text(confirmText),
+                child: Text(confirmText, style: AppTypography.buttonText),
               ),
             ],
           ),

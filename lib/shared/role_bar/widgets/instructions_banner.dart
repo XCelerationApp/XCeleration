@@ -45,6 +45,8 @@ class InstructionsBanner extends StatelessWidget {
       context,
       title: 'Instructions',
       message: _getInstructions(role),
+      doneText: 'Got it',
+      barrierTint: 0.3,
     );
   }
 

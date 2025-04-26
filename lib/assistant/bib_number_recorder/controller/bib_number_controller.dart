@@ -1,12 +1,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:xcelerate/core/theme/app_colors.dart';
+import 'package:xcelerate/core/theme/typography.dart';
 import 'package:xcelerate/utils/enums.dart';
 import '../../../coach/race_screen/widgets/runner_record.dart';
 import '../../../core/components/dialog_utils.dart';
 import '../../../core/services/tutorial_manager.dart';
 import '../../../shared/role_bar/models/role_enums.dart';
 import '../../../shared/role_bar/role_bar.dart';
+import '../../../shared/role_bar/widgets/role_selector_sheet.dart';
 import '../../../utils/encode_utils.dart';
 import '../../../utils/sheet_utils.dart';
 import '../../../core/components/device_connection_widget.dart';
@@ -86,20 +88,20 @@ class BibNumberController extends BibNumberDataController {
         showDialog(
           context: context,
           barrierDismissible: false,
+          barrierColor: Colors.black54,
           builder: (BuildContext context) {
-            return AlertDialog(
-              title: const Text('No Runners Loaded'),
-              content: const Text(
-                  'There are no runners loaded on this phone. Please load runners to continue.'),
+            return BasicAlertDialog(
+              title: 'No Runners Loaded',
+              content: 'There are no runners loaded on this phone. Please load runners to continue.',
               actions: [
                 TextButton(
-                  child: const Text('Return to Home'),
+                  child: const Text('Switch to a Different Role', style: AppTypography.buttonText),
                   onPressed: () {
-                    Navigator.of(context).popUntil((route) => route.isFirst);
+                    RoleSelectorSheet.showRoleSelection(context, Role.bibRecorder);
                   },
                 ),
                 TextButton(
-                  child: const Text('Load Runners'),
+                  child: const Text('Load Runners', style: AppTypography.buttonText),
                   onPressed: () async {
                     sheet(
                       context: context,
