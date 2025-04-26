@@ -15,7 +15,7 @@ Color _getStatusColor(String flowState) {
     case Race.FLOW_PRE_RACE_COMPLETED:
     case Race.FLOW_POST_RACE:
       return Colors.purple;
-    case Race.FLOW_POST_RACE_COMPLETED:
+    // case Race.FLOW_POST_RACE_COMPLETED:
     case Race.FLOW_FINISHED:
       return Colors.green;
     default:
@@ -34,7 +34,7 @@ IconData _getStatusIcon(String flowState) {
       return Icons.timer;
     case Race.FLOW_POST_RACE:
       return Icons.flag;
-    case Race.FLOW_POST_RACE_COMPLETED:
+    // case Race.FLOW_POST_RACE_COMPLETED:
     case Race.FLOW_FINISHED:
       return Icons.check_circle;
     default:

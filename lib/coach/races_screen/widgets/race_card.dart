@@ -27,7 +27,7 @@ class RaceCard extends StatelessWidget {
       Race.FLOW_PRE_RACE: 'Sharing Runners',
       Race.FLOW_PRE_RACE_COMPLETED: 'Ready for Results',
       Race.FLOW_POST_RACE: 'Processing Results',
-      Race.FLOW_POST_RACE_COMPLETED: 'Race Complete',
+      // Race.FLOW_POST_RACE_COMPLETED: 'Race Complete',
       Race.FLOW_FINISHED: 'Race Complete',
     }[race.flowState] ??
     'Setting up';
@@ -39,7 +39,7 @@ class RaceCard extends StatelessWidget {
       Race.FLOW_PRE_RACE: AppColors.primaryColor,
       Race.FLOW_PRE_RACE_COMPLETED: AppColors.primaryColor,
       Race.FLOW_POST_RACE: AppColors.primaryColor,
-      Race.FLOW_POST_RACE_COMPLETED: Colors.blue,
+      // Race.FLOW_POST_RACE_COMPLETED: Colors.blue,
       Race.FLOW_FINISHED: Colors.blue,
     }[race.flowState] ??
     AppColors.primaryColor;

@@ -18,7 +18,6 @@ class Race {
   static const String FLOW_PRE_RACE = 'pre-race';
   static const String FLOW_PRE_RACE_COMPLETED = 'pre-race-completed';
   static const String FLOW_POST_RACE = 'post-race';
-  static const String FLOW_POST_RACE_COMPLETED = 'post-race-completed';
   static const String FLOW_FINISHED = 'finished';
   
   // Suffix for completed states
@@ -31,7 +30,6 @@ class Race {
     FLOW_PRE_RACE,
     FLOW_PRE_RACE_COMPLETED,
     FLOW_POST_RACE,
-    FLOW_POST_RACE_COMPLETED,
     FLOW_FINISHED
   ];
 
@@ -168,7 +166,7 @@ class Race {
     if (flowState == FLOW_PRE_RACE) return 'Post-Race';
     if (flowState == FLOW_PRE_RACE_COMPLETED) return 'Post-Race';
     if (flowState == FLOW_POST_RACE) return 'Finishing';
-    if (flowState == FLOW_POST_RACE_COMPLETED) return 'Finishing';
+    // if (flowState == FLOW_POST_RACE_COMPLETED) return 'Finishing';
     return '';
   }
   
@@ -185,7 +183,7 @@ class Race {
   String get completedFlowState {
     if (flowState == FLOW_SETUP) return FLOW_SETUP_COMPLETED;
     if (flowState == FLOW_PRE_RACE) return FLOW_PRE_RACE_COMPLETED;
-    if (flowState == FLOW_POST_RACE) return FLOW_POST_RACE_COMPLETED;
+    // if (flowState == FLOW_POST_RACE) return FLOW_POST_RACE_COMPLETED;
     // Already completed or at finished state
     return flowState;
   }

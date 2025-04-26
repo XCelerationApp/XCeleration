@@ -81,7 +81,7 @@ class RaceControlsWidget extends StatelessWidget {
 
   Widget _buildLogButton(BuildContext context) {
     return CircularButton(
-      text: (controller.records.isNotEmpty || controller.raceStopped == false) ? 'Log' : 'Clear',
+      text: (controller.records.isNotEmpty && controller.raceStopped) ? 'Clear' : 'Log',
       color: (controller.records.isEmpty && controller.raceStopped)
           ? const Color.fromARGB(255, 201, 201, 201)
           : const Color(0xFF777777),

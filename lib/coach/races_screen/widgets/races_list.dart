@@ -25,8 +25,8 @@ class RacesList extends StatelessWidget {
         .where((race) =>
             race.flowState == Race.FLOW_POST_RACE ||
             race.flowState == Race.FLOW_PRE_RACE ||
-            race.flowState == Race.FLOW_PRE_RACE_COMPLETED ||
-            race.flowState == Race.FLOW_POST_RACE_COMPLETED)
+            race.flowState == Race.FLOW_PRE_RACE_COMPLETED)
+            // race.flowState == Race.FLOW_POST_RACE_COMPLETED)
         .toList();
     final upcomingRaces = raceData
         .where((race) => race.flowState == Race.FLOW_SETUP || race.flowState == Race.FLOW_SETUP_COMPLETED)
