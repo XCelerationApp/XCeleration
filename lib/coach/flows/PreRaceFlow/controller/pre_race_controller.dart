@@ -26,11 +26,14 @@ class PreRaceController {
   }
 
   void _initializeSteps() {
-    _reviewRunnersStep = ReviewRunnersStep(raceId, () async {
-      final encoded =
-          await encode_utils.getEncodedRunnersData(raceId);
-      devices.bibRecorder!.data = encoded;
-    });
+    _reviewRunnersStep = ReviewRunnersStep(
+      raceId: raceId,
+      onNext: () async {
+        final encoded =
+            await encode_utils.getEncodedRunnersData(raceId);
+        devices.bibRecorder!.data = encoded;
+      },
+    );
     _shareRunnersStep = ShareRunnersStep(devices: devices);
     _preRaceFlowCompleteStep = PreRaceFlowCompleteStep();
   }

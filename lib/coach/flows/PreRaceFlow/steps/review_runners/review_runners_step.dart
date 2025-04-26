@@ -6,18 +6,19 @@ class ReviewRunnersStep extends FlowStep {
   bool _canProceed = false;
   final int raceId;
 
-  ReviewRunnersStep(this.raceId, VoidCallback onNext)
-    : super(
+  ReviewRunnersStep({
+    required this.raceId,
+    required VoidCallback onNext,
+  }) : super(
     title: 'Review Runners',
     description:
         'Make sure all runner information is correct before the race starts. You can make any last-minute changes here.',
-    content: Column(children: [
-      RunnersManagementScreen(
-        raceId: raceId,
-        showHeader: false,
-        onBack: null,
-      )
-    ]),
+    content: RunnersManagementScreen(
+      raceId: raceId,
+      showHeader: false,
+      onBack: null,
+    ),
+    canScroll: false,
     canProceed: () => true,
     onNext: onNext,
   ) {
@@ -37,20 +38,18 @@ class ReviewRunnersStep extends FlowStep {
 
   @override
   Widget get content {
-    return Column(children: [
-      RunnersManagementScreen(
-        raceId: raceId,
-        showHeader: false,
-        onBack: null,
-        onContentChanged: () async {
+    return RunnersManagementScreen(
+      raceId: raceId,
+      showHeader: false,
+      onBack: null,
+      onContentChanged: () async {
           checkRunners();
         },
-      )
-    ]);
+      );
   }
 
   @override
-  bool Function()? get canProceed {
+  bool Function() get canProceed {
     return () => _canProceed;
   }
 }

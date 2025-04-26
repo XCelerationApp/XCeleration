@@ -7,6 +7,7 @@ class FlowStep {
   final String title;
   final String description;
   final Widget content;
+  final bool canScroll;
   final bool Function()? canProceed;
   final VoidCallback? onNext;
   final VoidCallback? onBack;
@@ -16,6 +17,7 @@ class FlowStep {
     required this.title,
     required this.description,
     required this.content,
+    this.canScroll = true,
     this.canProceed,
     this.onNext,
     this.onBack,

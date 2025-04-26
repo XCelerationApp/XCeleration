@@ -23,7 +23,7 @@ class RunnersList extends StatelessWidget {
     if (controller.filteredRunners.isEmpty) {
       return Center(
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisSize: MainAxisSize.max,
           children: [
             Icon(
               Icons.person_off_outlined,
@@ -73,6 +73,7 @@ class RunnersList extends StatelessWidget {
       child: ListView.builder(
         shrinkWrap: true,
         physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.only(bottom: 8),
         itemCount: sortedSchools.length,
         itemBuilder: (context, index) {
           final school = sortedSchools[index];

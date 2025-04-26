@@ -431,19 +431,21 @@ class RaceController with ChangeNotifier {
       takeUpScreen: true,
       title: 'Load Runners',
       body: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          RunnersManagementScreen(
-            raceId: raceId,
-            showHeader: false,
-            onContentChanged: () async {
-              // Refresh race data when runners are changed
-              race = await loadRace();
-              notifyListeners();
-              // Check if we can move to setup_complete
-              await checkSetupComplete();
-            },
+          Flexible(
+            child: RunnersManagementScreen(
+              raceId: raceId,
+              showHeader: false,
+              onContentChanged: () async {
+                // Refresh race data when runners are changed
+                race = await loadRace();
+                notifyListeners();
+                // Check if we can move to setup_complete
+                await checkSetupComplete();
+              },
+            ),
           ),
-          const Spacer(),
           const SizedBox(height: 16),
           FullWidthButton(
             text: 'Done',

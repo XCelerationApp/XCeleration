@@ -115,9 +115,9 @@ class MasterFlowController {
     // Check if context is still valid after the delay
     if (!context.mounted) return false;
     
-    // Return to race details tab
+    // Return to race results tab
     if (context.mounted) {
-      raceController.tabController.animateTo(0);
+      raceController.tabController.animateTo(1);
     }
     return true;
   }
@@ -239,9 +239,9 @@ Future<bool> showFlow({
               Expanded(
                 child: Padding(
                   padding: EdgeInsets.zero,
-                  child: SingleChildScrollView(
+                  child: currentStep.canScroll ? SingleChildScrollView(
                     child: currentStep.content,
-                  ),
+                  ) : currentStep.content,
                 ),
               ),
               Padding(
