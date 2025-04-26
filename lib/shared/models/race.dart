@@ -79,6 +79,7 @@ class Race {
         teamsList = [];
       }
     }
+    debugPrint(race['flow_state']);
 
     return Race(
       raceId: int.parse(race['race_id'].toString()),

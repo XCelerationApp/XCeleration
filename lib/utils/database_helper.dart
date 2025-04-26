@@ -16,7 +16,7 @@ class DatabaseHelper {
   DatabaseHelper._init();
 
   Future<Database> get database async {
-    // deleteDatabase();
+    // await deleteDatabase();
     if (_database != null) return _database!;
     _database = await _initDB('races.db');
     return _database!;

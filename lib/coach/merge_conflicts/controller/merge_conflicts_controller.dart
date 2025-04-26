@@ -103,6 +103,7 @@ class MergeConflictsController with ChangeNotifier {
     var place = 1;
 
     for (int i = 0; i < records.length; i += 1) {
+      debugPrint('Processing record: ${records[i]}');
       if (i >= records.length - 1 || records[i].type != RecordType.runnerTime) {
         newChunks.add(Chunk(
           records: records.sublist(startIndex, i + 1),
@@ -115,6 +116,8 @@ class MergeConflictsController with ChangeNotifier {
         place = records[i].conflict?.data?['numTimes'] ?? records[i].place! + 1;
       }
     }
+
+    debugPrint('Chunks created: $newChunks');
 
     for (int i = 0; i < newChunks.length; i += 1) {
       selectedTimes[newChunks[i].conflictIndex] = [];

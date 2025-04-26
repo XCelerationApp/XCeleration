@@ -21,6 +21,7 @@ class RacesList extends StatelessWidget {
     }
 
     final List<Race> raceData = controller.races;
+    debugPrint(raceData.toString());
     final finishedRaces = raceData
         .where((race) => race.flowState == Race.FLOW_FINISHED)
         .toList();
@@ -29,40 +30,40 @@ class RacesList extends StatelessWidget {
             race.flowState == Race.FLOW_POST_RACE ||
             race.flowState == Race.FLOW_PRE_RACE ||
             race.flowState == Race.FLOW_PRE_RACE_COMPLETED)
-            // race.flowState == Race.FLOW_POST_RACE_COMPLETED)
+        // race.flowState == Race.FLOW_POST_RACE_COMPLETED)
         .toList();
     final upcomingRaces = raceData
         .where((race) => race.flowState == Race.FLOW_SETUP || race.flowState == Race.FLOW_SETUP_COMPLETED)
         .toList();
     return SingleChildScrollView(
       controller: ScrollController(),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (raceInProgress.isNotEmpty) ...[
-            FlowSectionHeader(title: 'In Progress'),
-            ...raceInProgress.map((race) => RaceCard(
-                race: race,
-                flowState: race.flowState,
-                controller: controller)),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (raceInProgress.isNotEmpty) ...[
+              FlowSectionHeader(title: 'In Progress'),
+              ...raceInProgress.map((race) => RaceCard(
+                  race: race,
+                  flowState: race.flowState,
+                  controller: controller)),
+            ],
+            if (upcomingRaces.isNotEmpty) ...[
+              FlowSectionHeader(title: 'Upcoming'),
+              ...upcomingRaces.map((race) => RaceCard(
+                  race: race,
+                  flowState: race.flowState,
+                  controller: controller)),
+            ],
+            if (finishedRaces.isNotEmpty) ...[
+              FlowSectionHeader(title: 'Finished'),
+              ...finishedRaces.map((race) => RaceCard(
+                  race: race,
+                  flowState: race.flowState,
+                  controller: controller)),
+            ],
           ],
-          if (upcomingRaces.isNotEmpty) ...[
-            FlowSectionHeader(title: 'Upcoming'),
-            ...upcomingRaces.map((race) => RaceCard(
-                race: race,
-                flowState: race.flowState,
-                controller: controller)),
-          ],
-          if (finishedRaces.isNotEmpty) ...[
-            FlowSectionHeader(title: 'Finished'),
-            ...finishedRaces.map((race) => RaceCard(
-                race: race,
-                flowState: race.flowState,
-                controller: controller)),
-          ],
-        ],
-      ),
+        ),
     );
   }
 }

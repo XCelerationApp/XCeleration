@@ -33,6 +33,7 @@ class ShareFormatSelectionWidget extends StatelessWidget {
               selectedFormat: controller.selectedFormat,
               onFormatSelected: (format) {
                 controller.selectedFormat = format;
+                Navigator.of(context).pop();
                 controller.sendSms(context, controller.selectedFormat!);
               },
             ),
