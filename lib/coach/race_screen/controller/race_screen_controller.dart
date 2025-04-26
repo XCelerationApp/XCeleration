@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:xcelerate/coach/race_screen/screen/race_screen.dart';
 import 'package:xcelerate/coach/runners_management_screen/screen/runners_management_screen.dart';
+import 'package:xcelerate/core/components/button_components.dart';
 import 'package:xcelerate/utils/sheet_utils.dart' show sheet;
 import '../../../core/components/dialog_utils.dart';
 import '../../../utils/enums.dart';
@@ -429,16 +430,29 @@ class RaceController with ChangeNotifier {
       context: context,
       takeUpScreen: true,
       title: 'Load Runners',
-      body: RunnersManagementScreen(
-        raceId: raceId,
-        showHeader: false,
-        onContentChanged: () async {
-          // Refresh race data when runners are changed
-          race = await loadRace();
-          notifyListeners();
-          // Check if we can move to setup_complete
-          await checkSetupComplete();
-        },
+      body: Column(
+        children: [
+          RunnersManagementScreen(
+            raceId: raceId,
+            showHeader: false,
+            onContentChanged: () async {
+              // Refresh race data when runners are changed
+              race = await loadRace();
+              notifyListeners();
+              // Check if we can move to setup_complete
+              await checkSetupComplete();
+            },
+          ),
+          const Spacer(),
+          const SizedBox(height: 16),
+          FullWidthButton(
+            text: 'Done',
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
+          const SizedBox(height: 16),
+        ],
       ),
       showHeader: true,
     );
