@@ -29,8 +29,7 @@ class RaceInfoHeaderWidget extends StatelessWidget {
                 : controller.bibRecords.isNotEmpty
                     ? 'Race finished'
                     : 'Ready to start',
-            style: AppTypography.bodyRegular.copyWith(
-              fontSize: 16,
+            style: AppTypography.bodySemibold.copyWith(
               color: controller.isRecording
                   ? AppColors.primaryColor
                   : controller.bibRecords.isNotEmpty
@@ -52,10 +51,8 @@ class RaceInfoHeaderWidget extends StatelessWidget {
                     children: [
                       Text(
                         'Runners: ${controller.runners.length}',
-                        style: AppTypography.bodyRegular.copyWith(
-                          fontSize: 16,
+                        style: AppTypography.bodySemibold.copyWith(
                           color: Colors.black87,
-                          fontWeight: FontWeight.w600,
                         ),
                       ),
                       const SizedBox(width: 4),
@@ -71,10 +68,8 @@ class RaceInfoHeaderWidget extends StatelessWidget {
             ),
           Text(
             'Bibs: ${controller.countNonEmptyBibNumbers()}',
-            style: AppTypography.bodyRegular.copyWith(
-              fontSize: 16,
+            style: AppTypography.bodySemibold.copyWith(
               color: Colors.black87,
-              fontWeight: FontWeight.w600,
             ),
           ),
         ],

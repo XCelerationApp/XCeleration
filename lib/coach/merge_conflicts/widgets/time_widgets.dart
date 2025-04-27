@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/typography.dart';
 import '../controller/merge_conflicts_controller.dart';
 
 class TimeSelector extends StatelessWidget {
@@ -47,10 +48,8 @@ class TimeSelector extends StatelessWidget {
               : null,
           hint: Text(
             timeController.text.isEmpty ? 'Select Time' : timeController.text,
-            style: TextStyle(
+            style: AppTypography.smallBodySemibold.copyWith(
               color: AppColors.darkColor,
-              fontWeight: FontWeight.w500,
-              fontSize: 15,
             ),
           ),
           items: [
@@ -61,16 +60,14 @@ class TimeSelector extends StatelessWidget {
                   width: MediaQuery.of(context).size.width * 0.25,
                   child: TextField(
                     controller: manualController,
-                    style: TextStyle(
+                    style: AppTypography.smallBodySemibold.copyWith(
                       color: AppColors.darkColor,
-                      fontWeight: FontWeight.w500,
                     ),
                     cursorColor: AppColors.primaryColor,
                     decoration: InputDecoration(
                       hintText: 'Enter time',
-                      hintStyle: TextStyle(
+                      hintStyle: AppTypography.smallBodyRegular.copyWith(
                         color: Colors.grey[500],
-                        fontSize: 15,
                       ),
                       border: InputBorder.none,
                     ),
@@ -89,10 +86,8 @@ class TimeSelector extends StatelessWidget {
                   value: time,
                   child: Text(
                     time,
-                    style: TextStyle(
+                    style: AppTypography.smallBodySemibold.copyWith(
                       color: AppColors.darkColor,
-                      fontWeight: FontWeight.w500,
-                      fontSize: 15,
                     ),
                   ),
                 )),
@@ -138,10 +133,9 @@ class ConfirmedTime extends StatelessWidget {
         children: [
           Text(
             time,
-            style: TextStyle(
+            style: AppTypography.smallBodySemibold.copyWith(
               color: AppColors.darkColor,
               fontWeight: FontWeight.w700,
-              fontSize: 15,
               letterSpacing: -0.2,
             ),
           ),

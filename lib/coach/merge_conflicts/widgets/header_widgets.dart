@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/typography.dart';
 import '../../../utils/enums.dart';
 import '../../../assistant/race_timer/model/timing_record.dart';
 
@@ -58,18 +59,15 @@ class ConflictHeader extends StatelessWidget {
               children: [
                 Text(
                   '$title at ${conflictRecord.elapsedTime}',
-                  style: TextStyle(
+                  style: AppTypography.bodySemibold.copyWith(
                     color: AppColors.primaryColor,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   description,
-                  style: TextStyle(
+                  style: AppTypography.smallBodyRegular.copyWith(
                     color: AppColors.primaryColor.withOpacity(0.8),
-                    fontSize: 14,
                   ),
                 ),
               ],
@@ -122,18 +120,15 @@ class ConfirmHeader extends StatelessWidget {
               children: [
                 Text(
                   'Confirmed Results at ${confirmRecord.elapsedTime}',
-                  style: TextStyle(
+                  style: AppTypography.bodySemibold.copyWith(
                     color: Colors.green,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'These runner results have been confirmed',
-                  style: TextStyle(
+                  style: AppTypography.smallBodyRegular.copyWith(
                     color: Colors.green.withOpacity(0.8),
-                    fontSize: 14,
                   ),
                 ),
               ],
@@ -186,7 +181,7 @@ class ConfirmationRecord extends StatelessWidget {
               const SizedBox(width: 12),
               Text(
                 'Confirmed',
-                style: TextStyle(
+                style: AppTypography.bodyRegular.copyWith(
                   color: Colors.green[700],
                   fontWeight: FontWeight.w600,
                 ),
@@ -208,10 +203,8 @@ class ConfirmationRecord extends StatelessWidget {
             ),
             child: Text(
               timeRecord.elapsedTime,
-              style: TextStyle(
+              style: AppTypography.bodySemibold.copyWith(
                 color: AppColors.darkColor,
-                fontWeight: FontWeight.w600,
-                fontSize: 16,
               ),
             ),
           ),

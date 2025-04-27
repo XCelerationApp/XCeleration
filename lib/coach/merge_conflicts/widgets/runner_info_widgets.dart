@@ -28,10 +28,9 @@ class PlaceNumber extends StatelessWidget {
       child: Center(
         child: Text(
           '#$place',
-          style: TextStyle(
+          style: AppTypography.smallCaption.copyWith(
             color: color.withOpacity(0.9),
             fontWeight: FontWeight.w600,
-            fontSize: 11,
           ),
         ),
       ),
@@ -56,9 +55,8 @@ class RunnerInfo extends StatelessWidget {
       children: [
         Text(
           runner.name,
-          style: AppTypography.bodySemibold.copyWith(
+          style: AppTypography.smallBodySemibold.copyWith(
             color: AppColors.darkColor,
-            fontSize: 14,
             letterSpacing: -0.1,
           ),
           overflow: TextOverflow.ellipsis,
@@ -100,10 +98,9 @@ class InfoChip extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(
+        style: AppTypography.smallCaption.copyWith(
           color: color,
           fontWeight: FontWeight.w500,
-          fontSize: 11,
           letterSpacing: -0.1,
         ),
         overflow: TextOverflow.ellipsis,

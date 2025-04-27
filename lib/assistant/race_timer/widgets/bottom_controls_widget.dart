@@ -84,20 +84,20 @@ class BottomControlsWidget extends StatelessWidget {
             onTap: controller.missingRunnerTime,
             child: Text(
               '+ (Add finish time)',
-              style: AppTypography.bodyRegular.copyWith(fontSize: 17),
+              style: AppTypography.bodySemibold,
             ),
           ),
           PopupMenuItem<void>(
             onTap: controller.extraRunnerTime,
             child: Text(
               '- (Remove finish time)',
-              style: AppTypography.bodyRegular.copyWith(fontSize: 17),
+              style: AppTypography.bodySemibold,
             ),
           ),
         ],
         child: Text(
           'Adjust # of times',
-          style: AppTypography.bodyRegular.copyWith(fontSize: 20),
+          style: AppTypography.titleRegular,
         ),
       ),
     );

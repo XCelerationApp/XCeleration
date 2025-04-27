@@ -147,10 +147,8 @@ class RaceCard extends StatelessWidget {
                         ),
                         child: Text(
                           flowStateText,
-                          style: TextStyle(
+                          style: AppTypography.smallBodySemibold.copyWith(
                             color: flowStateColor,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ),

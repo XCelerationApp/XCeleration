@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../shared/models/race.dart'; // Import Race model for constants
+import '../../../core/theme/typography.dart';
 
 class FlowNotification extends StatelessWidget {
   final String flowState;
@@ -64,10 +65,8 @@ class FlowNotification extends StatelessWidget {
           children: [
             Text(
               _getStatusText(),
-              style: TextStyle(
+              style: AppTypography.bodySemibold.copyWith(
                 color: color,
-                fontWeight: FontWeight.w600,
-                fontSize: 16,
               ),
             ),
             const Spacer(),
@@ -87,10 +86,8 @@ class FlowNotification extends StatelessWidget {
                   onTap: continueAction,
                   child: Text(
                     _getButtonText(),
-                    style: TextStyle(
+                    style: AppTypography.smallBodySemibold.copyWith(
                       color: color,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),

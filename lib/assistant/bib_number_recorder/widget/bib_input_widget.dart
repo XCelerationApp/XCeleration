@@ -67,8 +67,7 @@ class BibInputWidget extends StatelessWidget {
       focusNode: controller.focusNodes[index],
       keyboardType: TextInputType.number,
       textInputAction: TextInputAction.next,
-      style: TextStyle(
-        fontSize: 20, // Smaller text size
+      style: AppTypography.titleRegular.copyWith(
         fontWeight: FontWeight.bold,
       ),
       onChanged: (value) {
@@ -81,15 +80,12 @@ class BibInputWidget extends StatelessWidget {
       },
       decoration: InputDecoration(
         // labelText: 'Bib #',
-        labelStyle: TextStyle(
+        labelStyle: AppTypography.caption.copyWith(
           color: Colors.grey.shade700,
-          fontSize: 12, // Smaller label text
         ),
         hintText: 'Enter bib',
-        hintStyle: TextStyle(
+        hintStyle: AppTypography.bodyRegular.copyWith(
           color: Colors.grey.shade700,
-          fontSize: 16,
-          fontWeight: FontWeight.normal,
         ),
         border: InputBorder.none,
         focusedBorder: UnderlineInputBorder(
@@ -148,9 +144,8 @@ class BibInputWidget extends StatelessWidget {
         if (errors.isNotEmpty) const SizedBox(width: 4),
         Text(
           errors.join(' • '),
-          style: AppTypography.bodyRegular.copyWith(
+          style: AppTypography.caption.copyWith(
             color: Colors.red,
-            fontSize: 12,
           ),
         ),
       ],
