@@ -52,11 +52,10 @@ class HeadToHeadResultsWidget extends StatelessWidget {
                     color: Colors.grey.shade200,
                     shape: BoxShape.circle,
                   ),
-                  child: const Center(
+                  child: Center(
                     child: Text(
                       'VS',
-                      style: TextStyle(
-                        fontSize: 10,
+                      style: AppTypography.smallCaption.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                     ),

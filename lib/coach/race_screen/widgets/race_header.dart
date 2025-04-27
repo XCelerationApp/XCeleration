@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/typography.dart';
 import '../../../shared/models/race.dart';
 import '../controller/race_screen_controller.dart';
 import '../widgets/flow_notification.dart';
@@ -52,10 +53,8 @@ class RaceHeader extends StatelessWidget {
         Center(
             child: Text(
           controller.race!.race_name,
-          style: TextStyle(
+          style: AppTypography.titleLarge.copyWith(
             color: AppColors.primaryColor,
-            fontWeight: FontWeight.bold,
-            fontSize: 24,
           ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,

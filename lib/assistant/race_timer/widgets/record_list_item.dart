@@ -35,9 +35,7 @@ class RunnerTimeRecordItem extends StatelessWidget {
         children: [
           Text(
             '${record.place ?? ''}',
-            style: AppTypography.bodySemibold.copyWith(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
+            style: AppTypography.headerSemibold.copyWith(
               color: record.textColor != null
                   ? AppColors.confirmRunnerColor
                   : null,
@@ -45,9 +43,7 @@ class RunnerTimeRecordItem extends StatelessWidget {
           ),
           Text(
             record.elapsedTime,
-            style: AppTypography.bodySemibold.copyWith(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
+            style: AppTypography.headerSemibold.copyWith(
               color: record.conflict == null
                   ? (record.isConfirmed == true
                       ? AppColors.confirmRunnerColor
@@ -94,8 +90,7 @@ class ConfirmationRecordItem extends StatelessWidget {
         children: [
           Text(
             'Confirmed: ${record.elapsedTime}',
-            style: AppTypography.bodySemibold.copyWith(
-              fontSize: 18,
+            style: AppTypography.headerSemibold.copyWith(
               color: Colors.green[700],
             ),
           ),
@@ -138,8 +133,7 @@ class ConflictRecordItem extends StatelessWidget {
             record.type == RecordType.missingRunner
                 ? 'Missing Runner at ${record.elapsedTime}'
                 : 'Extra Runner at ${record.elapsedTime}',
-            style: AppTypography.bodySemibold.copyWith(
-              fontSize: 18,
+            style: AppTypography.headerSemibold.copyWith(
               color: AppColors.redColor,
             ),
           ),

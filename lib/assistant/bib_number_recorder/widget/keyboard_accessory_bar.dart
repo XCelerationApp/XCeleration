@@ -49,9 +49,7 @@ class KeyboardAccessoryBar extends StatelessWidget {
                     ),
                     child: Text(
                       'Done',
-                      style: AppTypography.bodyRegular.copyWith(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w600,
+                      style: AppTypography.bodySemibold.copyWith(
                         color: AppColors.darkColor,
                       ),
                     ),

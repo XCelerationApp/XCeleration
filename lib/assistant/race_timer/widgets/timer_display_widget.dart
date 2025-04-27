@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../utils/time_formatter.dart';
+import '../../../core/theme/typography.dart';
 import '../model/timing_data.dart';
 import '../controller/timing_controller.dart';
 
@@ -26,9 +27,8 @@ class TimerDisplayWidget extends StatelessWidget {
           ),
           child: Text(
             TimeFormatter.formatDurationWithZeros(elapsed),
-            style: TextStyle(
+            style: AppTypography.displayLarge.copyWith(
               fontSize: MediaQuery.of(context).size.width * 0.11,
-              fontWeight: FontWeight.w600,
               letterSpacing: -0.5,
             ),
           ),

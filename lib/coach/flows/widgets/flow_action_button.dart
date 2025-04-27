@@ -21,7 +21,6 @@ class FlowActionButton extends StatelessWidget {
       isEnabled: isEnabled,
       borderRadius: 28, 
       backgroundColor: const Color(0xFFFF5722), 
-      fontSize: 16,
       fontWeight: FontWeight.w600,
     );
   }
@@ -58,7 +57,6 @@ class _FlowOptionButtonState extends State<FlowOptionButton> {
       elevation: 0,
       borderRadius: 12,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      fontSize: 17,
     );
   }
 }

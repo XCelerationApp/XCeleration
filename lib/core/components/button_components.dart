@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
+import '../theme/typography.dart';
 
 /// Size presets for buttons
 enum ButtonSize {
@@ -428,11 +429,17 @@ class CircularButton extends StatelessWidget {
           ),
           child: Text(
             text,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: fontSize,
-              fontWeight: fontWeight ?? FontWeight.normal,
-            ),
+            style: fontSize <= 16 
+                ? AppTypography.bodySemibold.copyWith(
+                    color: Colors.white,
+                    fontSize: fontSize,
+                    fontWeight: fontWeight,
+                  )
+                : AppTypography.titleSemibold.copyWith(
+                    color: Colors.white,
+                    fontSize: fontSize,
+                    fontWeight: fontWeight,
+                  ),
             maxLines: 1,
           ),
         ),
@@ -493,10 +500,15 @@ class RoundedRectangleButton extends StatelessWidget {
           ),
           child: Text(
             text,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: fontSize,
-            ),
+            style: fontSize <= 16 
+                ? AppTypography.bodySemibold.copyWith(
+                    color: Colors.white,
+                    fontSize: fontSize,
+                  )
+                : AppTypography.titleSemibold.copyWith(
+                    color: Colors.white,
+                    fontSize: fontSize,
+                  ),
             maxLines: 1,
           ),
         ),

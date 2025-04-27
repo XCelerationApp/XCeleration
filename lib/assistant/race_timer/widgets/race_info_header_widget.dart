@@ -37,8 +37,7 @@ class RaceInfoHeaderWidget extends StatelessWidget {
                 : controller.raceStopped
                     ? 'Race finished'
                     : 'Race in progress',
-            style: AppTypography.bodyRegular.copyWith(
-              fontSize: 16,
+            style: AppTypography.bodySemibold.copyWith(
               color: hasRace
                   ? controller.raceStopped
                       ? Colors.green[700]
@@ -50,10 +49,8 @@ class RaceInfoHeaderWidget extends StatelessWidget {
           if (controller.records.isNotEmpty)
             Text(
               'Runners: $runnerCount',
-              style: AppTypography.bodyRegular.copyWith(
-                fontSize: 16,
+              style: AppTypography.bodySemibold.copyWith(
                 color: Colors.black87,
-                fontWeight: FontWeight.w600,
               ),
             ),
         ],

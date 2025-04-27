@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/typography.dart';
 import '../controller/merge_conflicts_controller.dart';
 
 class SaveButton extends StatelessWidget {
@@ -40,9 +41,7 @@ class SaveButton extends StatelessWidget {
                   const SizedBox(width: 12),
                   Text(
                     'Finished Merging Conflicts',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                    style: AppTypography.buttonText.copyWith(
                       color: Colors.white,
                       letterSpacing: -0.2,
                     ),
