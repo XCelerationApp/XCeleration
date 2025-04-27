@@ -281,14 +281,6 @@ class RacesController extends ChangeNotifier {
            race.teamColors.isNotEmpty &&
            moreThanFiveRunnersPerTeam;
   }
-  
-  // Update race flow state based on field completion
-  Future<void> updateRaceSetupStatus(Race race) async {
-    if (await isSetupComplete(race) && race.flowState == 'setup') {
-      await DatabaseHelper.instance.updateRaceFlowState(race.raceId, 'setup-completed');
-      await loadRaces(); // Refresh races list
-    }
-  }
 
   Future<void> getCurrentLocation() async {
     try {

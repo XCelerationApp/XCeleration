@@ -12,7 +12,6 @@ import 'race_location_field.dart';
 import 'race_date_field.dart';
 import 'race_distance_field.dart';
 import 'package:provider/provider.dart';
-import 'dart:async';
 
 class RaceDetailsTab extends StatefulWidget {
   final RaceController controller;
@@ -23,21 +22,13 @@ class RaceDetailsTab extends StatefulWidget {
 }
 
 class _RaceDetailsTabState extends State<RaceDetailsTab> {
+  bool detailsChanged = false;
   bool _showingRunners = false;
   final TextEditingController _dateController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
   final TextEditingController _distanceController = TextEditingController();
   final TextEditingController _unitController = TextEditingController();
   final TextEditingController _teamsController = TextEditingController();
-
-  Timer? _debounce;
-
-  void _debouncedSave() {
-    if (_debounce?.isActive ?? false) _debounce!.cancel();
-    _debounce = Timer(const Duration(milliseconds: 800), () {
-      widget.controller.saveRaceDetails();
-    });
-  }
 
   @override
   void initState() {
@@ -112,31 +103,51 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
                                 RaceNameField(
                                   controller: widget.controller,
                                   setSheetState: setState,
-                                  onChanged: (_) => _debouncedSave(),
+                                  onChanged: (_) {
+                                    setState(() {
+                                      detailsChanged = true;
+                                    });
+                                  },
                                 ),
                                 const SizedBox(height: 12),
                                 RaceLocationField(
                                   controller: widget.controller,
                                   setSheetState: setState,
-                                  onChanged: (_) => _debouncedSave(),
+                                  onChanged: (_) {
+                                    setState(() {
+                                      detailsChanged = true;
+                                    });
+                                  },
                                 ),
                                 const SizedBox(height: 12),
                                 RaceDateField(
                                   controller: widget.controller,
                                   setSheetState: setState,
-                                  onChanged: (_) => _debouncedSave(),
+                                  onChanged: (_) {
+                                    setState(() {
+                                      detailsChanged = true;
+                                    });
+                                  },
                                 ),
                                 const SizedBox(height: 12),
                                 RaceDistanceField(
                                   controller: widget.controller,
                                   setSheetState: setState,
-                                  onChanged: (_) => _debouncedSave(),
+                                  onChanged: (_) {
+                                    setState(() {
+                                      detailsChanged = true;
+                                    });
+                                  },
                                 ),
                                 const SizedBox(height: 12),
                                 CompetingTeamsField(
                                   controller: widget.controller,
                                   setSheetState: setState,
-                                  onChanged: (_) => _debouncedSave(),
+                                  onChanged: (_) {
+                                    setState(() {
+                                      detailsChanged = true;
+                                    });
+                                  },
                                 ),
                               ],
                             )
@@ -248,6 +259,20 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
                       )
                     ],
                   ),
+                  // Add Save Changes button at the bottom when in setup mode
+                  if (isSetup) ...[
+                    const SizedBox(height: 24),
+                    FullWidthButton(
+                      text: 'Save Changes',
+                      onPressed: () {
+                        setState(() {
+                          detailsChanged = false;
+                        });
+                        widget.controller.saveRaceDetails(context);
+                      },
+                      isEnabled: detailsChanged,
+                    ),
+                  ],
                 ],
               );
             },

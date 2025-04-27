@@ -464,24 +464,6 @@ class DatabaseHelper {
       );
     }
     
-    // Check if all required fields are filled to update status to setup-completed
-    final race = await getRaceById(raceId);
-    if (race != null && 
-        race.flowState == 'setup' &&
-        race.raceName.isNotEmpty &&
-        race.location.isNotEmpty &&
-        race.raceDate != null &&
-        race.distance > 0 &&
-        race.distanceUnit.isNotEmpty &&
-        race.teams.isNotEmpty &&
-        race.teamColors.isNotEmpty) {
-      
-      // Also check for runners
-      final raceRunners = await getRaceRunners(raceId);
-      if (raceRunners.isNotEmpty) {
-        await updateRaceFlowState(raceId, 'setup-completed');
-      }
-    }
   }
 
   Future<void> deleteRace(int raceId) async {

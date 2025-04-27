@@ -93,7 +93,7 @@ class RaceController with ChangeNotifier {
     
     // Set initial flow state to setup if it's a new race
     if (race != null && race!.flowState.isEmpty) {
-      await updateRaceFlowState(Race.FLOW_SETUP);
+      await updateRaceFlowState(context, Race.FLOW_SETUP);
     }
     
     notifyListeners();
@@ -149,7 +149,7 @@ class RaceController with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> saveRaceDetails() async {    
+  Future<void> saveRaceDetails(BuildContext context) async {    
     // Capture the context in a local variable before any async operations
     
     // Parse date
@@ -185,10 +185,8 @@ class RaceController with ChangeNotifier {
     await saveTeamData();
     
     // Refresh the race data
-    await loadRace();
+    race = await loadRace();
     notifyListeners();
-    
-    SnackBar(content: Text('Race details saved!'));
     
     // Check if we can move to setup_complete
     await checkSetupComplete();
@@ -211,7 +209,7 @@ class RaceController with ChangeNotifier {
     
     // If all requirements are met, advance to setup_complete
     if (hasMinimumRunners && fieldsComplete) {
-      await updateRaceFlowState(Race.FLOW_SETUP_COMPLETED);
+      await updateRaceFlowState(context, Race.FLOW_SETUP_COMPLETED);
       return true;
     }
     
@@ -232,10 +230,6 @@ class RaceController with ChangeNotifier {
     
     await DatabaseHelper.instance.updateRaceField(race!.raceId, 'teams', teams);
     await DatabaseHelper.instance.updateRaceField(race!.raceId, 'teamColors', colors);
-    
-    // Reload race to update state
-    race = await loadRace();
-    notifyListeners();
   }
 
   /// Show color picker dialog for team color
@@ -300,10 +294,25 @@ class RaceController with ChangeNotifier {
   }
 
   /// Update the race flow state
-  Future<void> updateRaceFlowState(String newState) async {
+  Future<void> updateRaceFlowState(BuildContext? context, String newState) async {
+    String previousState = race?.flowState ?? '';
     await DatabaseHelper.instance.updateRaceFlowState(raceId, newState);
     race = race?.copyWith(flowState: newState);
     notifyListeners();
+    
+    // Show setup completion dialog if transitioning from setup to setup-completed
+    if (previousState == Race.FLOW_SETUP && newState == Race.FLOW_SETUP_COMPLETED) {
+      // Need to use a delay to ensure context is ready after state updates
+      Future.delayed(Duration.zero, () {
+        if (context != null && context.mounted) {
+          DialogUtils.showMessageDialog(context, 
+            title: 'Setup Complete', 
+            message: 'You completed setting up your race!\n\nBefore race day, make sure you have two assistants with this app installed on their phones to help time the race.\nBegin the Sharing Runners step once you are at the race with your assistants.', 
+            doneText: 'Got it'
+          );
+        }
+      });
+    }
     
     // Publish an event when race flow state changes
     EventBus.instance.fire(EventTypes.raceFlowStateChanged, {
@@ -319,7 +328,7 @@ class RaceController with ChangeNotifier {
     
     // Update to the completed state for the current flow
     String completedState = race!.completedFlowState;
-    await updateRaceFlowState(completedState);
+    await updateRaceFlowState(context, completedState);
     
     // Show a confirmation snackbar
     ScaffoldMessenger.of(context).showSnackBar(
@@ -343,7 +352,7 @@ class RaceController with ChangeNotifier {
     }
     
     // Update to the next flow state
-    await updateRaceFlowState(nextState);
+    await updateRaceFlowState(context, nextState);
     
     // If the race is now finished, show a final success message
     if (nextState == Race.FLOW_FINISHED) {
@@ -412,7 +421,7 @@ class RaceController with ChangeNotifier {
       }
       
       // Update to the next flow state
-      await updateRaceFlowState(nextState);
+      await updateRaceFlowState(context, nextState);
       
       // Show a message about which flow we're starting
       ScaffoldMessenger.of(context).showSnackBar(
@@ -441,8 +450,6 @@ class RaceController with ChangeNotifier {
                 // Refresh race data when runners are changed
                 race = await loadRace();
                 notifyListeners();
-                // Check if we can move to setup_complete
-                await checkSetupComplete();
               },
             ),
           ),
@@ -589,8 +596,7 @@ class RaceController with ChangeNotifier {
       notifyListeners();
       updateLocationButtonVisibility();
     } catch (e) {
-      debugPrint('Error getting location: $e');
-      DialogUtils.showErrorDialog(context, message: 'Could not get location');
+      debugPrint('Error getting location: $e');      DialogUtils.showErrorDialog(context, message: 'Could not get location');
     }
   }
 
