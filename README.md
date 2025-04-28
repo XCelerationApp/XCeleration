@@ -68,4 +68,4 @@ This project is proprietary and confidential. Unauthorized copying, distribution
 
 ## Contact
 
-For support or inquiries, please contact [your-email@example.com](mailto:your-email@example.com).
+For support or inquiries, please contact [xceleration.co@gmail.com](mailto:xceleration.co@gmail.com).

@@ -67,12 +67,13 @@ class RoleScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const SizedBox(height: 20),
-              Text(
-                'Welcome to XCeleration',
-                style: AppTypography.displayLarge.copyWith(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+              Center(
+                child: Text(
+                  'Welcome to XCeleration',
+                  style: AppTypography.displaySmall.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
               ),
               const SizedBox(height: 40, width: double.infinity),
