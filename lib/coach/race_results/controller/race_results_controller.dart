@@ -42,7 +42,7 @@ class RaceResultsController {
     // DEEP COPY: Create completely independent copies for team results
     overallTeamResults = teamResults.map((r) => TeamRecord.from(r)).toList();
 
-    final List<TeamRecord> scoringTeams = teamResults.map((r) => TeamRecord.from(r)).toList().where((r) => r.score != 0).toList();
+    final List<TeamRecord> scoringTeams = teamResults.where((r) => r.score != 0).toList();
 
     if (scoringTeams.length > 3 || scoringTeams.length < 2) {
       isLoading = false;
@@ -58,7 +58,7 @@ class RaceResultsController {
 
         // Combine and sort runners for this specific matchup
         // These are already deep copies from TeamRecord.from
-        final filteredRunners = [...teamA.runners, ...teamB.runners];
+        final filteredRunners = [...teamA.topSeven, ...teamB.topSeven];
         filteredRunners.sort((a, b) => a.finishTime.compareTo(b.finishTime));
         updateResultsPlaces(filteredRunners);
 
@@ -77,8 +77,20 @@ class RaceResultsController {
   }
 
   List<TeamRecord> _calculateTeamResults(List<ResultsRecord> allResults) {
+    final teams = _getTeamsFromResults(allResults);
+    final teamCopy = teams.map((r) => TeamRecord.from(r)).toList();
+    final scoringRunners = teamCopy.where((r) => r.score != 0).map((r) => r.topSeven).expand((r) => r).toList();
+    updateResultsPlaces(scoringRunners);
+    final scoredTeams = _getTeamsFromResults(allResults);
+    for (var i = 0; i < teams.length; i++) {
+      teams[i].score = scoredTeams[i].score;
+      teams[i].place = scoredTeams[i].place;
+    }
+    return teams;
+  }
+  List<TeamRecord> _getTeamsFromResults(List<ResultsRecord> results) {
     final List<TeamRecord> teams = [];
-    for (var team in groupBy(allResults, (result) => result.school).entries) {
+    for (var team in groupBy(results, (result) => result.school).entries) {
       final teamRecord = TeamRecord(
         school: team.key,
         runners: team.value,

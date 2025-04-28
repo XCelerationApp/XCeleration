@@ -16,7 +16,7 @@ class HeadToHeadResultsWidget extends StatelessWidget {
     teamB = matchup[1];
 
     // We'll show a selection of top 3 runners combined from both teams
-    allResults = [...teamA.scorers, ...teamB.scorers];
+    allResults = [...teamA.topSeven, ...teamB.topSeven];
     allResults.sort((a, b) => a.place.compareTo(b.place));
   }
 

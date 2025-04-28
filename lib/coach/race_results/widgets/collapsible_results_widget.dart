@@ -140,7 +140,7 @@ class _CollapsibleResultsWidgetState extends State<CollapsibleResultsWidget> {
           ),
           Expanded(
             flex: 3,
-            child: Text('Places', style: AppTypography.bodySemibold)
+            child: Text('Scorers', style: AppTypography.bodySemibold)
           ),
           SizedBox(
             width: 70, 
@@ -174,9 +174,12 @@ class _CollapsibleResultsWidgetState extends State<CollapsibleResultsWidget> {
 
   Widget _buildTeamResultRow(TeamRecord team) {
     // Format the scorer places as a string (e.g., "1, 4, 7, 12, 15")
-    final scorerPlaces = team.scorers.isEmpty
-        ? 'N/A'
-        : team.scorers.map((scorer) => scorer.place.toString()).join(', ');
+    final scorerPlaces = team.scorers.isNotEmpty
+      ? [
+          ...team.scorers.map((scorer) => scorer.place.toString()),
+          if (team.topSeven.length > 5) '(${team.topSeven.sublist(5, team.topSeven.length).map((runner) => runner.place.toString()).join(', ')})'
+        ].join(', ')
+      : 'N/A';
         
     return Row(
       children: [

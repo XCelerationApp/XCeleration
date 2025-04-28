@@ -93,9 +93,12 @@ class ShareRaceController extends ChangeNotifier {
             team.place,
             team.school,
             team.score != 0 ? team.score : 'N/A',
-            team.scorers.isEmpty
-                ? 'N/A'
-                : team.scorers.map((scorer) => scorer.place.toString()).join(', '),
+            team.scorers.isNotEmpty
+                ? [
+                    ...team.scorers.map((scorer) => scorer.place.toString()),
+                    if (team.topSeven.length > 5) '(${team.topSeven.sublist(5, team.topSeven.length).map((runner) => runner.place.toString()).join(', ')})'
+                  ].join(', ')
+                : 'N/A',
             team.split != Duration.zero ? TimeFormatter.formatDuration(team.split) : 'N/A',
             team.avgTime != Duration.zero ? TimeFormatter.formatDuration(team.avgTime) : 'N/A',
           ]),
@@ -110,9 +113,9 @@ class ShareRaceController extends ChangeNotifier {
           final team2 = matchup[1];
 
           // Get the max number of runners to show
-          final maxRunners = team1.runners.length > team2.runners.length
-              ? team1.runners.length
-              : team2.runners.length;
+          final maxRunners = team1.topSeven.length > team2.topSeven.length
+              ? team1.topSeven.length
+              : team2.topSeven.length;
 
           // Create a header for this matchup
           final matchupHeader = ['${team1.school} vs ${team2.school}', '', ''];
@@ -125,15 +128,15 @@ class ShareRaceController extends ChangeNotifier {
           for (int i = 0; i < maxRunners; i++) {
             // Runner from first team (if exists)
             String team1Place =
-                i < team1.runners.length ? '#${team1.runners[i].place}' : '';
+                i < team1.topSeven.length ? '#${team1.topSeven[i].place}' : '';
             String team1Name =
-                i < team1.runners.length ? team1.runners[i].name : '';
+                i < team1.topSeven.length ? team1.topSeven[i].name : '';
 
             // Runner from second team (if exists)
             String team2Place =
-                i < team2.runners.length ? '#${team2.runners[i].place}' : '';
+                i < team2.topSeven.length ? '#${team2.topSeven[i].place}' : '';
             String team2Name =
-                i < team2.runners.length ? team2.runners[i].name : '';
+                i < team2.topSeven.length ? team2.topSeven[i].name : '';
 
             runnerRows.add([
               '${i + 1}',
@@ -200,10 +203,11 @@ class ShareRaceController extends ChangeNotifier {
                       team.school.toString(),
                       team.score != 0 ? team.score.toString() : 'N/A',
                       team.scorers.isNotEmpty
-                          ? team.scorers
-                              .map((scorer) => scorer.place.toString())
-                              .join(', ')
-                          : 'N/A',
+                ? [
+                    ...team.scorers.map((scorer) => scorer.place.toString()),
+                    if (team.topSeven.length > 5) '(${team.topSeven.sublist(5, team.topSeven.length).map((runner) => runner.place.toString()).join(', ')})'
+                  ].join(', ')
+                : 'N/A',
                       team.split != Duration.zero
                           ? TimeFormatter.formatDuration(team.split)
                           : 'N/A',
@@ -263,20 +267,20 @@ class ShareRaceController extends ChangeNotifier {
   List<List<String>> _generateHeadToHeadRows(
       TeamRecord team1, TeamRecord team2) {
     final List<List<String>> rows = [];
-    final maxRunners = team1.runners.length > team2.runners.length
-        ? team1.runners.length
-        : team2.runners.length;
+    final maxRunners = team1.topSeven.length > team2.topSeven.length
+        ? team1.topSeven.length
+        : team2.topSeven.length;
 
     for (int i = 0; i < maxRunners; i++) {
       // Runner from first team (if exists)
       String team1Place =
-          i < team1.runners.length ? '#${team1.runners[i].place}' : '';
-      String team1Name = i < team1.runners.length ? team1.runners[i].name : '';
+          i < team1.topSeven.length ? '#${team1.topSeven[i].place}' : '';
+      String team1Name = i < team1.topSeven.length ? team1.topSeven[i].name : '';
 
       // Runner from second team (if exists)
       String team2Place =
-          i < team2.runners.length ? '#${team2.runners[i].place}' : '';
-      String team2Name = i < team2.runners.length ? team2.runners[i].name : '';
+          i < team2.topSeven.length ? '#${team2.topSeven[i].place}' : '';
+      String team2Name = i < team2.topSeven.length ? team2.topSeven[i].name : '';
 
       rows.add([
         '${i + 1}',

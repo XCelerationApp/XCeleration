@@ -21,6 +21,8 @@ class TeamRecord {
     updateStats();
   }
 
+  List<ResultsRecord> get topSeven => runners.take(7).toList();
+
   factory TeamRecord.from(TeamRecord other) => TeamRecord(
         school: other.school,
         // Create deep copies of all runners to prevent reference issues
