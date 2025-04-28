@@ -64,7 +64,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'XCelerate',
+      title: 'XCeleration',
       theme: ThemeData(
         primaryColor: AppColors.backgroundColor,
         colorScheme: ColorScheme.fromSwatch(

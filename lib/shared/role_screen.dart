@@ -68,7 +68,7 @@ class RoleScreen extends StatelessWidget {
             children: [
               const SizedBox(height: 20),
               Text(
-                'Welcome to XCelerate',
+                'Welcome to XCeleration',
                 style: AppTypography.displayLarge.copyWith(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,

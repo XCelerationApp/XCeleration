@@ -1,8 +1,8 @@
-# XCelerate - Race Timing and Management App
+# XCeleration - Race Timing and Management App
 
-<img src="assets/icon/XCelerate_icon.png" alt="XCelerate Logo" width="120"/>
+<img src="assets/icon/XCelerate_icon.png" alt="XCeleration Logo" width="120"/>
 
-XCelerate is a comprehensive race timing and management application built with Flutter, designed for cross-country, track, and other running events. The app provides tools for both coaches and race assistants to streamline the entire race management process.
+XCeleration is a comprehensive race timing and management application built with Flutter, designed for cross-country, track, and other running events. The app provides tools for both coaches and race assistants to streamline the entire race management process.
 
 ## Features
 

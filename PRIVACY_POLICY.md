@@ -1,10 +1,10 @@
-# Privacy Policy for XCelerate
+# Privacy Policy for XCeleration
 
 **Effective Date:** March 22, 2025
 
 ## Introduction
 
-This Privacy Policy describes how XCelerate ("we", "our", or "us") collects, uses, and discloses your information when you use our mobile application ("XCelerate" or the "App").
+This Privacy Policy describes how XCeleration ("we", "our", or "us") collects, uses, and discloses your information when you use our mobile application ("XCeleration" or the "App").
 
 We are committed to protecting your privacy and ensuring you have a positive experience when using our application.
 

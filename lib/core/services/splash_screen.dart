@@ -158,7 +158,7 @@ class SplashScreenState extends State<SplashScreen>
                       child: Column(
                         children: [
                           Text(
-                            'XCelerate',
+                            'XCeleration',
                             style: TextStyle(
                               fontSize: 42,
                               fontWeight: FontWeight.bold,
