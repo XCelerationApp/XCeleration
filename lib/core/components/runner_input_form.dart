@@ -293,17 +293,13 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
           ),
         ],
         const SizedBox(height: 24),
-        SizedBox(
-          width: double.infinity,
-          height: 50,
-          child: FullWidthButton(
-            text: widget.submitButtonText,
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            borderRadius: 8,
-            isEnabled: !hasErrors(),
-            onPressed: handleSubmit,
-          ),
+        FullWidthButton(
+          text: widget.submitButtonText,
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          borderRadius: 8,
+          isEnabled: !hasErrors(),
+          onPressed: handleSubmit,
         ),
       ],
     );
