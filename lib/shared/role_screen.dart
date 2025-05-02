@@ -30,22 +30,20 @@ Widget buildRoleButton({
 }) {
   return Padding(
     padding: const EdgeInsets.symmetric(horizontal: 20.0),
-    child: SizedBox(
-      width: 300,
-      height: 75,
-      child: ElevatedButton(
-        onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          padding: const EdgeInsets.all(20.0),
-          elevation: 5,
-          shadowColor: Colors.black,
-        ),
-        child: Text(
-          text,
-          style: AppTypography.displaySmall.copyWith(
-            fontWeight: FontWeight.w400,
-            color: AppColors.selectedRoleTextColor,
-          ),
+    child: ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        padding: const EdgeInsets.all(20.0),
+        elevation: 5,
+        shadowColor: Colors.black,
+        minimumSize: const Size(300, 75),
+      ),
+      child: Text(
+        text,
+        style: AppTypography.displaySmall.copyWith(
+          fontWeight: FontWeight.w400,
+          // fontSize: AppTypography.titleLargeSize,
+          color: AppColors.selectedRoleTextColor,
         ),
       ),
     ),
@@ -65,18 +63,17 @@ class RoleScreen extends StatelessWidget {
         child: SafeArea(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const SizedBox(height: 20),
-              Center(
-                child: Text(
-                  'Welcome to XCeleration',
-                  style: AppTypography.displaySmall.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
+              Text(
+                'Welcome to XCeleration',
+                style: AppTypography.displaySmall.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
                 ),
+                textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 40, width: double.infinity),
+              const SizedBox(height: 30, width: double.infinity),
               Text(
                 'Please select your role',
                 style: AppTypography.titleRegular.copyWith(
@@ -84,7 +81,7 @@ class RoleScreen extends StatelessWidget {
                     color: AppColors.backgroundColor),
                 textAlign: TextAlign.center,
               ),
-              SizedBox(height: 30),
+              SizedBox(height: 40),
               buildRoleButton(
                 text: 'Coach',
                 onPressed: () {
@@ -127,15 +124,16 @@ class AssistantRoleScreen extends StatelessWidget {
             child: SafeArea(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  const SizedBox(height: 20),
                   Text(
                     'Assistant Role',
                     style: AppTypography.displayMedium.copyWith(
                       color: Colors.white,
                     ),
+                    textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 40, width: double.infinity),
+                  const SizedBox(height: 30, width: double.infinity),
                   Text(
                     'Please select your role',
                     style: AppTypography.titleRegular.copyWith(
@@ -143,7 +141,7 @@ class AssistantRoleScreen extends StatelessWidget {
                         color: AppColors.backgroundColor),
                     textAlign: TextAlign.center,
                   ),
-                  SizedBox(height: 30),
+                  SizedBox(height: 40),
                   buildRoleButton(
                     text: 'Timer',
                     onPressed: () {
