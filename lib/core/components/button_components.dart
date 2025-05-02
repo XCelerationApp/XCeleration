@@ -81,7 +81,6 @@ class ActionButton extends StatelessWidget {
 
     return SizedBox(
       width: size == ButtonSize.fullWidth ? double.infinity : buttonSize.width,
-      height: height ?? buttonSize.height,
       child: Container(
         decoration: BoxDecoration(
           color: borderColor ?? backgroundColor,
@@ -106,6 +105,7 @@ class ActionButton extends StatelessWidget {
             disabledForegroundColor: effectiveTextColor.withOpacity(0.5),
             elevation: 0,
             padding: buttonPadding,
+            minimumSize: Size(0, height ?? buttonSize.height),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(effectiveBorderRadius),
               side: isPrimary 
