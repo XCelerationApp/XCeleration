@@ -63,60 +63,65 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'XCeleration',
-      theme: ThemeData(
-        primaryColor: AppColors.backgroundColor,
-        colorScheme: ColorScheme.fromSwatch(
-          primarySwatch: Colors.deepOrange,
-        ).copyWith(
-          secondary: AppColors.backgroundColor,
-          onPrimary: AppColors.lightColor,
-        ),
-        scaffoldBackgroundColor: AppColors.backgroundColor,
-        textSelectionTheme: TextSelectionThemeData(
-          cursorColor: AppColors.darkColor,
-          selectionColor: Colors.grey[300],
-          selectionHandleColor: AppColors.mediumColor,
-        ),
-        appBarTheme: AppBarTheme(
-          backgroundColor: AppColors.navBarColor,
-          foregroundColor: AppColors.navBarTextColor,
-          titleTextStyle: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-        tabBarTheme: TabBarTheme(
-          labelColor: AppColors.navBarTextColor,
-          unselectedLabelColor: AppColors.backgroundColor,
-          indicator: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(color: AppColors.navBarTextColor, width: 0),
+    return MediaQuery(
+      data: MediaQuery.of(context).copyWith(
+        textScaler: TextScaler.linear(1.0),
+      ),
+      child: MaterialApp(
+        title: 'XCeleration',
+        theme: ThemeData(
+          primaryColor: AppColors.backgroundColor,
+          colorScheme: ColorScheme.fromSwatch(
+            primarySwatch: Colors.deepOrange,
+          ).copyWith(
+            secondary: AppColors.backgroundColor,
+            onPrimary: AppColors.lightColor,
+          ),
+          scaffoldBackgroundColor: AppColors.backgroundColor,
+          textSelectionTheme: TextSelectionThemeData(
+            cursorColor: AppColors.darkColor,
+            selectionColor: Colors.grey[300],
+            selectionHandleColor: AppColors.mediumColor,
+          ),
+          appBarTheme: AppBarTheme(
+            backgroundColor: AppColors.navBarColor,
+            foregroundColor: AppColors.navBarTextColor,
+            titleTextStyle: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          tabBarTheme: TabBarTheme(
+            labelColor: AppColors.navBarTextColor,
+            unselectedLabelColor: AppColors.backgroundColor,
+            indicator: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: AppColors.navBarTextColor, width: 0),
+              ),
+            ),
+          ),
+          textTheme: TextTheme(
+            displayLarge: AppTypography.displayLarge,
+            titleLarge: AppTypography.titleSemibold,
+            bodyLarge: AppTypography.bodyRegular,
+            bodyMedium: AppTypography.bodyRegular,
+            labelLarge: AppTypography.bodySemibold,
+            bodySmall: TextStyle(color: AppColors.mediumColor),
+          ),
+          buttonTheme: ButtonThemeData(
+            buttonColor: AppColors.navBarTextColor,
+            textTheme: ButtonTextTheme.primary,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8.0),
+            ),
+          ),
+          iconTheme: IconThemeData(color: AppColors.mediumColor),
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(
+              textStyle: TextStyle(color: AppColors.darkColor),
+              foregroundColor: AppColors.darkColor,
             ),
           ),
         ),
-        textTheme: TextTheme(
-          displayLarge: AppTypography.displayLarge,
-          titleLarge: AppTypography.titleSemibold,
-          bodyLarge: AppTypography.bodyRegular,
-          bodyMedium: AppTypography.bodyRegular,
-          labelLarge: AppTypography.bodySemibold,
-          bodySmall: TextStyle(color: AppColors.mediumColor),
-        ),
-        buttonTheme: ButtonThemeData(
-          buttonColor: AppColors.navBarTextColor,
-          textTheme: ButtonTextTheme.primary,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8.0),
-          ),
-        ),
-        iconTheme: IconThemeData(color: AppColors.mediumColor),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            textStyle: TextStyle(color: AppColors.darkColor),
-            foregroundColor: AppColors.darkColor,
-          ),
-        ),
-      ),
-      home: const SplashScreen(),
+        home: const SplashScreen(),
+      )
     );
   }
 }
