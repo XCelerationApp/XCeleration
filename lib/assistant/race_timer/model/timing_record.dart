@@ -1,5 +1,5 @@
-import 'package:xcelerate/coach/race_screen/widgets/runner_record.dart';
-import 'package:xcelerate/utils/enums.dart';
+import 'package:xceleration/coach/race_screen/widgets/runner_record.dart';
+import 'package:xceleration/utils/enums.dart';
 
 /// Represents a record of a runner's time in a race.
 class TimingRecord {

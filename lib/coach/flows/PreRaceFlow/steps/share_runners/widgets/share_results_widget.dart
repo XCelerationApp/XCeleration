@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:xcelerate/core/components/device_connection_widget.dart';
-import 'package:xcelerate/core/services/device_connection_service.dart';
+import 'package:xceleration/core/components/device_connection_widget.dart';
+import 'package:xceleration/core/services/device_connection_service.dart';
 
 class ShareResultsWidget extends StatelessWidget {
   final DevicesManager devices;

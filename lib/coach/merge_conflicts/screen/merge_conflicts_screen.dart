@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:xcelerate/coach/merge_conflicts/controller/merge_conflicts_controller.dart';
-import 'package:xcelerate/coach/merge_conflicts/widgets/save_button.dart';
-import 'package:xcelerate/coach/race_screen/widgets/runner_record.dart';
+import 'package:xceleration/coach/merge_conflicts/controller/merge_conflicts_controller.dart';
+import 'package:xceleration/coach/merge_conflicts/widgets/save_button.dart';
+import 'package:xceleration/coach/race_screen/widgets/runner_record.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/theme/app_colors.dart';
 import '../model/timing_data.dart';

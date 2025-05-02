@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:xcelerate/utils/time_formatter.dart';
+import 'package:xceleration/utils/time_formatter.dart';
 
 import '../../../utils/enums.dart';
 import 'package:flutter/material.dart';

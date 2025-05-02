@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:xcelerate/core/components/button_components.dart';
+import 'package:xceleration/core/components/button_components.dart';
 
 /// A styled button for reloading race results
 class ReloadButton extends StatelessWidget {

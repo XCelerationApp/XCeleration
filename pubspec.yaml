@@ -1,4 +1,4 @@
-name: xcelerate
+name: xceleration
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -73,10 +73,10 @@ dev_dependencies:
 
 flutter_native_splash:
   color: "#E2572B"
-  image: "assets/icon/XCelerate_text.png"
+  image: "assets/icon/XCeleration_text.png"
   
   android_12:
-    image: assets/icon/XCelerate_text.png
+    image: assets/icon/XCeleration_text.png
     icon_background_color: "#E2572B"
   
   # Splash screen configuration with better styling
@@ -142,14 +142,14 @@ flutter:
 flutter_icons:
   android: true
   ios: true
-  image_path: "assets/icon/XCelerate_icon.png"
+  image_path: "assets/icon/XCeleration_icon.png"
   macos:
     generate: true
-    image_path: "assets/icon/XCelerate_icon.png"
+    image_path: "assets/icon/XCeleration_icon.png"
 
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
-  image_path: "assets/icon/XCelerate_icon.png"
+  image_path: "assets/icon/XCeleration_icon.png"
   min_sdk_android: 21
   remove_alpha_ios: true

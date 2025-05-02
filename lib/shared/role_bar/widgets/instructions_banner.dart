@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:xcelerate/core/components/dialog_utils.dart';
-import 'package:xcelerate/core/theme/typography.dart';
+import 'package:xceleration/core/components/dialog_utils.dart';
+import 'package:xceleration/core/theme/typography.dart';
 import '../../../shared/role_bar/models/role_enums.dart';
 
 /// Banner widget that displays a tappable instructions prompt.

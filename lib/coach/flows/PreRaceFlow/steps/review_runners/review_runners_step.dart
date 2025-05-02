@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:xcelerate/coach/flows/model/flow_model.dart';
+import 'package:xceleration/coach/flows/model/flow_model.dart';
 import '../../../../runners_management_screen/screen/runners_management_screen.dart';
 
 class ReviewRunnersStep extends FlowStep {

@@ -3,7 +3,7 @@ import 'package:csv/csv.dart';
 import 'package:excel/excel.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:xcelerate/coach/race_screen/widgets/runner_record.dart';
+import 'package:xceleration/coach/race_screen/widgets/runner_record.dart';
 
 Future<List<RunnerRecord>> processSpreadsheet(int raceId, bool isTeam) async {
   FilePickerResult? result = await FilePicker.platform.pickFiles(

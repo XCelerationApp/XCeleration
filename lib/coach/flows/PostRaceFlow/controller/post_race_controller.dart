@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:xcelerate/coach/flows/model/flow_model.dart';
-import 'package:xcelerate/coach/flows/PostRaceFlow/steps/load_results/load_results_step.dart';
-import 'package:xcelerate/coach/flows/PostRaceFlow/steps/review_results/review_results_step.dart';
+import 'package:xceleration/coach/flows/model/flow_model.dart';
+import 'package:xceleration/coach/flows/PostRaceFlow/steps/load_results/load_results_step.dart';
+import 'package:xceleration/coach/flows/PostRaceFlow/steps/review_results/review_results_step.dart';
 import '../../controller/flow_controller.dart';
 import '../steps/load_results/controller/load_results_controller.dart';
 

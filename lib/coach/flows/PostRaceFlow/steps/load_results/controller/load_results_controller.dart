@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:xcelerate/core/services/device_connection_service.dart';
-import 'package:xcelerate/utils/encode_utils.dart';
-import 'package:xcelerate/utils/enums.dart';
-import 'package:xcelerate/coach/race_screen/widgets/runner_record.dart';
-import 'package:xcelerate/coach/merge_conflicts/model/timing_data.dart';
+import 'package:xceleration/core/services/device_connection_service.dart';
+import 'package:xceleration/utils/encode_utils.dart';
+import 'package:xceleration/utils/enums.dart';
+import 'package:xceleration/coach/race_screen/widgets/runner_record.dart';
+import 'package:xceleration/coach/merge_conflicts/model/timing_data.dart';
 import '../../../../../../assistant/race_timer/model/timing_record.dart';
 import '../../../../../../utils/database_helper.dart';
 import '../../../../../race_results/model/results_record.dart';
-import 'package:xcelerate/utils/sheet_utils.dart';
-import 'package:xcelerate/utils/time_formatter.dart';
-import 'package:xcelerate/coach/resolve_bib_number_screen/widgets/bib_conflicts_overview.dart';
-import 'package:xcelerate/coach/merge_conflicts/screen/merge_conflicts_screen.dart';
+import 'package:xceleration/utils/sheet_utils.dart';
+import 'package:xceleration/utils/time_formatter.dart';
+import 'package:xceleration/coach/resolve_bib_number_screen/widgets/bib_conflicts_overview.dart';
+import 'package:xceleration/coach/merge_conflicts/screen/merge_conflicts_screen.dart';
 
 /// Controller that manages loading and processing of race results
 class LoadResultsController with ChangeNotifier {

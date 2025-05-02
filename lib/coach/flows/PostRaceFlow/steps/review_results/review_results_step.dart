@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:xcelerate/coach/flows/model/flow_model.dart';
+import 'package:xceleration/coach/flows/model/flow_model.dart';
 import 'widgets/results_review_widget.dart';
 import '../../../../race_results/model/results_record.dart';
 

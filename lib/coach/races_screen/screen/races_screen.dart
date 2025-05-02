@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:xcelerate/shared/role_bar/role_bar.dart';
+import 'package:xceleration/shared/role_bar/role_bar.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/role_bar/models/role_enums.dart';
 import '../../../core/services/tutorial_manager.dart';

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:xcelerate/utils/enums.dart';
+import 'package:xceleration/utils/enums.dart';
 import '../controller/timing_controller.dart';
 import '../widgets/record_list_item.dart';
 
