@@ -72,7 +72,7 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
         builder: (context, _) {
           final race = widget.controller.race!;
           final isSetup = race.flowState == 'setup';
-          final hasTeams = race.teams.isNotEmpty;
+          bool hasTeams = race.teams.isNotEmpty;
           int runnerCount = 0;
           
         return FutureBuilder(
@@ -143,10 +143,12 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
                                 CompetingTeamsField(
                                   controller: widget.controller,
                                   setSheetState: setState,
-                                  onChanged: (_) {
+                                  onChanged: (value) {
                                     setState(() {
                                       detailsChanged = true;
+                                      hasTeams = value.isNotEmpty;
                                     });
+                                    print('Has teams: $hasTeams');
                                   },
                                 ),
                               ],

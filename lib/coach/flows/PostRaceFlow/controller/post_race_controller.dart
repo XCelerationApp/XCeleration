@@ -4,6 +4,7 @@ import 'package:xcelerate/coach/flows/PostRaceFlow/steps/load_results/load_resul
 import 'package:xcelerate/coach/flows/PostRaceFlow/steps/review_results/review_results_step.dart';
 import '../../controller/flow_controller.dart';
 import '../steps/load_results/controller/load_results_controller.dart';
+import '../steps/reconnect/reconnect_step.dart';
 
 /// Controller for managing the post-race flow
 class PostRaceController {
@@ -13,6 +14,7 @@ class PostRaceController {
   late final LoadResultsController _loadResultsController;
 
   // Flow steps
+  late final ReconnectStep _reconnectStep;
   late final LoadResultsStep _loadResultsStep;
   late final ReviewResultsStep _reviewResultsStep;
   
@@ -30,6 +32,7 @@ class PostRaceController {
     _loadResultsController = LoadResultsController(raceId: raceId, callback: _updateReviewStep);
     
     // Create steps with the controllers
+    _reconnectStep = ReconnectStep();
     _loadResultsStep = LoadResultsStep(
       controller: _loadResultsController,
     );
@@ -64,6 +67,7 @@ class PostRaceController {
   /// Get the flow steps
   List<FlowStep> _getSteps() {
     return [
+      _reconnectStep,
       _loadResultsStep,
       _reviewResultsStep,
     ];
