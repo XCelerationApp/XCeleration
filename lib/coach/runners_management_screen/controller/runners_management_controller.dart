@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:xceleration/core/theme/typography.dart';
 
 import '../../../core/components/dialog_utils.dart';
 import '../../../core/components/runner_input_form.dart';
@@ -328,10 +329,7 @@ class RunnersManagementController with ChangeNotifier {
             // Description
             const Text(
               'Import your runners from a CSV or Excel spreadsheet. The file should have Name, Grade, School, and Bib Number columns in that order.',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.black54,
-              ),
+              style: AppTypography.bodyMedium,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 20),
@@ -343,12 +341,7 @@ class RunnersManagementController with ChangeNotifier {
               ),
               child: const Text(
                 'View Sample Spreadsheet',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  decoration: TextDecoration.underline,
-                  color: Color(0xFFE2572B),
-                ),
+                style: AppTypography.bodyMedium,
               ),
             ),
             const SizedBox(height: 24),
@@ -367,10 +360,7 @@ class RunnersManagementController with ChangeNotifier {
                 ),
                 child: const Text(
                   'Cancel',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: AppTypography.bodyMedium,
                 ),
               ),
             ),
@@ -394,14 +384,11 @@ class RunnersManagementController with ChangeNotifier {
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.folder_open, size: 20),
+                    Icon(Icons.folder_open, size: 20, color: Colors.white),
                     SizedBox(width: 8),
                     Text(
                       'Choose Local File',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
+                      style: AppTypography.bodyMedium,
                     ),
                   ],
                 ),
@@ -416,7 +403,7 @@ class RunnersManagementController with ChangeNotifier {
                   Navigator.pop(context, {'useGoogleDrive': true});
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1A73E8), // Google blue
+                  backgroundColor: const Color(0xFFE2572B), // Match app's accent color
                   foregroundColor: Colors.white,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(vertical: 16),
@@ -427,14 +414,11 @@ class RunnersManagementController with ChangeNotifier {
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.cloud, size: 20),
+                    Icon(Icons.cloud, size: 20, color: Colors.white),
                     SizedBox(width: 8),
                     Text(
                       'Choose from Google Drive',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
+                      style: AppTypography.bodyMedium,
                     ),
                   ],
                 ),
