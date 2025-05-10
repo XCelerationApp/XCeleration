@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:xcelerate/core/theme/app_colors.dart';
-import 'package:xcelerate/core/theme/typography.dart';
-import 'package:xcelerate/core/components/button_components.dart';
+import 'package:xceleration/core/theme/app_colors.dart';
+import 'package:xceleration/core/theme/typography.dart';
+import 'package:xceleration/core/components/button_components.dart';
 
 class ConflictButton extends StatelessWidget {
   final String title;

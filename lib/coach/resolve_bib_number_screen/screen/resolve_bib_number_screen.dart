@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:xcelerate/core/components/textfield_utils.dart';
+import 'package:xceleration/core/components/textfield_utils.dart';
 import '../widgets/action_button.dart';
 import '../widgets/search_results.dart';
 import '../../../core/theme/app_colors.dart';

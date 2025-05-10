@@ -1,4 +1,4 @@
-import 'package:xcelerate/coach/flows/model/flow_model.dart';
+import 'package:xceleration/coach/flows/model/flow_model.dart';
 import '../../../../../core/services/device_connection_service.dart';
 import 'widgets/share_results_widget.dart';
 

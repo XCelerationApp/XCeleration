@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:xcelerate/core/theme/typography.dart';
-import 'package:xcelerate/utils/sheet_utils.dart';
+import 'package:xceleration/core/theme/typography.dart';
+import 'package:xceleration/utils/sheet_utils.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/components/dialog_utils.dart';
 import '../models/role_enums.dart';

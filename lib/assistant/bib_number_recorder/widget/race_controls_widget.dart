@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:xcelerate/core/theme/app_colors.dart';
+import 'package:xceleration/core/theme/app_colors.dart';
 import '../../../core/components/button_components.dart';
 import '../../../core/components/dialog_utils.dart';
 import '../controller/bib_number_controller.dart';

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:xcelerate/coach/race_results/widgets/collapsible_results_widget.dart';
+import 'package:xceleration/coach/race_results/widgets/collapsible_results_widget.dart';
 import '../../../core/theme/typography.dart';
 import '../controller/race_results_controller.dart';
 

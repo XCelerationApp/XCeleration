@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:xcelerate/core/components/textfield_utils.dart';
+import 'package:xceleration/core/components/textfield_utils.dart';
 import '../../../core/theme/app_colors.dart';
 import '../controller/races_controller.dart';
 

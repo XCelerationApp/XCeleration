@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:xcelerate/core/components/button_components.dart';
+import 'package:xceleration/core/components/button_components.dart';
 import '../model/flow_model.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';

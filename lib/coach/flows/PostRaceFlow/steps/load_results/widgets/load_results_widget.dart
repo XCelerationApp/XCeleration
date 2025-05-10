@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:xcelerate/core/components/device_connection_widget.dart';
+import 'package:xceleration/core/components/device_connection_widget.dart';
 import 'conflict_button.dart';
 import 'success_message.dart';
 import 'reload_button.dart';

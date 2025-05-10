@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:xcelerate/coach/race_results/controller/race_results_controller.dart';
+import 'package:xceleration/coach/race_results/controller/race_results_controller.dart';
 import 'package:mockito/mockito.dart';
-import 'package:xcelerate/utils/database_helper.dart';
-import 'package:xcelerate/coach/race_results/model/results_record.dart';
+import 'package:xceleration/utils/database_helper.dart';
+import 'package:xceleration/coach/race_results/model/results_record.dart';
 
 // Manual mock class
 class MockDatabaseHelper extends Mock implements DatabaseHelper {

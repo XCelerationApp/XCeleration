@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:xcelerate/utils/sheet_utils.dart';
+import 'package:xceleration/utils/sheet_utils.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../race_screen/widgets/runner_record.dart';

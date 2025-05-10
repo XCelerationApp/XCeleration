@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:xcelerate/coach/race_screen/widgets/runner_record.dart';
+import 'package:xceleration/coach/race_screen/widgets/runner_record.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
 

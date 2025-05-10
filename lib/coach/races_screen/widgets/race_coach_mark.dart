@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:xcelerate/core/components/coach_mark.dart';
+import 'package:xceleration/core/components/coach_mark.dart';
 import '../controller/races_controller.dart';
 
 class RaceCoachMark extends StatelessWidget {

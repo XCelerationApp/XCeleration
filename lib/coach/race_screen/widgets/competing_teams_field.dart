@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:xcelerate/core/theme/app_colors.dart';
-import 'package:xcelerate/core/theme/typography.dart';
+import 'package:xceleration/core/theme/app_colors.dart';
+import 'package:xceleration/core/theme/typography.dart';
 import '../../../core/components/textfield_utils.dart';
 import '../controller/race_screen_controller.dart';
 

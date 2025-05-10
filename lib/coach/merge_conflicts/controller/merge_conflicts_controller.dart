@@ -1,8 +1,8 @@
 import '../model/timing_data.dart';
-import 'package:xcelerate/coach/race_screen/widgets/runner_record.dart';
+import 'package:xceleration/coach/race_screen/widgets/runner_record.dart';
 import '../model/chunk.dart';
 import 'package:flutter/material.dart';
-import 'package:xcelerate/coach/merge_conflicts/model/resolve_information.dart';
+import 'package:xceleration/coach/merge_conflicts/model/resolve_information.dart';
 import '../../../utils/time_formatter.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/components/dialog_utils.dart';
