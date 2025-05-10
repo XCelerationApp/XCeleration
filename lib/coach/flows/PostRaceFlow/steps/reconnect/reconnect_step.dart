@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:xcelerate/coach/flows/model/flow_model.dart';
+import 'package:xceleration/coach/flows/model/flow_model.dart';
 
 /// A FlowStep implementation for the reconnect step in the post-race flow
 class ReconnectStep extends FlowStep {
