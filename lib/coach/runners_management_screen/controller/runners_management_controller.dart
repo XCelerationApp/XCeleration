@@ -3,8 +3,6 @@ import 'package:flutter/services.dart';
 
 import '../../../core/components/dialog_utils.dart';
 import '../../../core/components/runner_input_form.dart';
-import '../../../core/components/button_components.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../utils/database_helper.dart';
 import '../../../utils/file_processing.dart';
 import '../../../utils/sheet_utils.dart';
@@ -289,14 +287,14 @@ class RunnersManagementController with ChangeNotifier {
     return;
   }
 
-  Future<bool?> showSpreadsheetLoadSheet(BuildContext context) async {
+  Future<Map<String, dynamic>?> showSpreadsheetLoadSheet(BuildContext context) async {
     return await sheet(
       context: context,
       title: 'Import Runners',
       titleSize: 24,
       body: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -306,110 +304,141 @@ class RunnersManagementController with ChangeNotifier {
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: AppColors.primaryColor.withOpacity(0.1),
-                shape: BoxShape.circle,
+                color: const Color(0xFFF2F2F2),
+                borderRadius: BorderRadius.circular(40),
               ),
-              child: Icon(
-                Icons.file_upload_outlined,
+              child: const Icon(
+                Icons.insert_drive_file_outlined,
+                color: Color(0xFFE2572B),
                 size: 40,
-                color: AppColors.primaryColor,
               ),
             ),
-            const SizedBox(height: 24), // Adjusted spacing for balance
-
-            // Description text
-            Text(
-              'Import your runners from a CSV or Excel spreadsheet to quickly set up your race.',
-              textAlign: TextAlign.center,
+            const SizedBox(height: 20),
+            // Title
+            const Text(
+              'Import Runners from Spreadsheet',
               style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey[700],
-                height: 1.4,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.black,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            // Description
+            const Text(
+              'Import your runners from a CSV or Excel spreadsheet. The file should have Name, Grade, School, and Bib Number columns in that order.',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.black54,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            // View Sample Button
+            TextButton(
+              onPressed: showSampleSpreadsheet,
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFFE2572B),
+              ),
+              child: const Text(
+                'View Sample Spreadsheet',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  decoration: TextDecoration.underline,
+                  color: Color(0xFFE2572B),
+                ),
               ),
             ),
-            const SizedBox(height: 24), // Adjusted spacing for balance
-
-            // See Format button - with rounded corners and shadow
-            SecondaryButton(
-              text: 'See Format',
-              icon: Icons.description_outlined,
-              iconSize: 20,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              borderRadius: 30,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              onPressed: () async => await showSampleSpreadsheet(),
+            const SizedBox(height: 24),
+            // Cancel Button
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.grey[700],
+                  side: BorderSide(color: Colors.grey[400]!),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
             ),
-            const SizedBox(height: 24), // Adjusted spacing for balance
-
-            // Action Buttons
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                // Cancel Button
-                Expanded(
-                  child: TextButton(
-                    onPressed: () => Navigator.of(context).pop(false),
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                        side: BorderSide(
-                          color: Colors.grey[600]!, // Adding subtle border
-                          width: 1,
-                        ),
-                      ),
-                      minimumSize:
-                          const Size(double.infinity, 56), // Full width button
-                    ),
-                    child: Text(
-                      'Cancel',
+            const SizedBox(height: 12),
+            // Local File Button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context, {'useGoogleDrive': false});
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFE2572B),
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.folder_open, size: 20),
+                    SizedBox(width: 8),
+                    Text(
+                      'Choose Local File',
                       style: TextStyle(
-                        color: Colors.grey[700],
                         fontSize: 16,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            // Google Drive Button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context, {'useGoogleDrive': true});
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1A73E8), // Google blue
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                const SizedBox(width: 12),
-
-                // Import Button
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.of(context).pop(true),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryColor,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 16, horizontal: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(24),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.cloud, size: 20),
+                    SizedBox(width: 8),
+                    Text(
+                      'Choose from Google Drive',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
                       ),
-                      minimumSize:
-                          const Size(double.infinity, 56), // Full width button
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.cloud_upload_outlined,
-                            size: 20,
-                            color: Colors.white), // Ensuring color consistency
-                        const SizedBox(width: 8),
-                        Text(
-                            'Import Now',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            color: Colors.white, // Ensuring color consistency
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ],
         ),
@@ -418,10 +447,13 @@ class RunnersManagementController with ChangeNotifier {
   }
 
   Future<void> handleSpreadsheetLoad() async {
-    final confirmed = await showSpreadsheetLoadSheet(context);
-    if (confirmed == null || !confirmed) return;
+    final result = await showSpreadsheetLoadSheet(context);
+    if (result == null) return;
+    
+    final bool useGoogleDrive = result['useGoogleDrive'] ?? false;
+    
     final List<RunnerRecord> runnerData =
-        await processSpreadsheet(raceId, false);
+        await processSpreadsheet(raceId, false, context: context, useGoogleDrive: useGoogleDrive);
     
     final schools = (await DatabaseHelper.instance.getRaceById(raceId))?.teams;
 
@@ -471,7 +503,7 @@ class RunnersManagementController with ChangeNotifier {
 
     if (overwriteRunners.isEmpty) return;
     final overwriteRunnersBibs =
-        overwriteRunners.map((runner) => runner['bib_number']).toList();
+        overwriteRunners.map((runner) => runner.bib).toList();
     final overwriteExistingRunners = await DialogUtils.showConfirmationDialog(
       context,
       title: 'Confirm Overwrite',
@@ -481,7 +513,7 @@ class RunnersManagementController with ChangeNotifier {
     if (!overwriteExistingRunners) return;
     for (final runner in overwriteRunners) {
       await DatabaseHelper.instance
-          .deleteRaceRunner(raceId, runner['bib_number']);
+          .deleteRaceRunner(raceId, runner.bib);
       await DatabaseHelper.instance.insertRaceRunner(runner);
     }
     await loadRunners();
