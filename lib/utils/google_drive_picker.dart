@@ -50,7 +50,7 @@ class GoogleDrivePicker {
       }
       
       // Show download dialog
-      _showDownloadDialog(context);
+      _showLoadingDialog(context, message: 'Loading ${selectedFile.name}...');
       
       // Download the file
       final tempFile = await _driveService.downloadFile(
@@ -101,7 +101,7 @@ class GoogleDrivePicker {
     );
   }
   
-  AlertDialog _showLoadingDialog(BuildContext context) {
+  AlertDialog _showLoadingDialog(BuildContext context, {String message = 'Loading files from Google Drive...'}) {
     AlertDialog alert = AlertDialog(
       content: Row(
         children: [
@@ -111,39 +111,7 @@ class GoogleDrivePicker {
           const SizedBox(width: 16),
           Expanded(
             child: Text(
-              'Loading files from Google Drive...',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[800],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-    
-    showDialog(
-      barrierDismissible: false,
-      context: context,
-      builder: (BuildContext context) {
-        return alert;
-      },
-    );
-    
-    return alert;
-  }
-  
-  AlertDialog _showDownloadDialog(BuildContext context) {
-    AlertDialog alert = AlertDialog(
-      content: Row(
-        children: [
-          const CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFE2572B)),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Text(
-              "Downloading file...",
+              message,
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.grey[800],
@@ -181,10 +149,10 @@ class _DriveFilePickerDialog extends StatefulWidget {
   final Widget Function(String?) fileIconBuilder;
 
   const _DriveFilePickerDialog({
-    Key? key,
+    super.key,
     required this.driveFiles,
     required this.fileIconBuilder,
-  }) : super(key: key);
+  });
 
   @override
   _DriveFilePickerDialogState createState() => _DriveFilePickerDialogState();
@@ -252,7 +220,7 @@ class _DriveFilePickerDialogState extends State<_DriveFilePickerDialog> {
   Widget build(BuildContext context) {
     return Theme(
       data: Theme.of(context).copyWith(
-        dialogBackgroundColor: Colors.white,
+        dialogTheme: DialogThemeData(backgroundColor: Colors.white),
       ),
       child: Dialog(
         shape: RoundedRectangleBorder(
@@ -260,7 +228,7 @@ class _DriveFilePickerDialogState extends State<_DriveFilePickerDialog> {
         ),
         elevation: 0,
         child: Container(
-          width: MediaQuery.of(context).size.width * 0.9,
+          width: MediaQuery.of(context).size.width * 0.95,
           height: MediaQuery.of(context).size.height * 0.7,
           padding: const EdgeInsets.all(0),
           child: Column(

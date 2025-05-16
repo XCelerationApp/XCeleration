@@ -289,143 +289,194 @@ class RunnersManagementController with ChangeNotifier {
   }
 
   Future<Map<String, dynamic>?> showSpreadsheetLoadSheet(BuildContext context) async {
+    bool showSourceOptions = false;
     return await sheet(
       context: context,
       title: 'Import Runners',
       titleSize: 24,
-      body: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Icon
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF2F2F2),
-                borderRadius: BorderRadius.circular(40),
-              ),
-              child: const Icon(
-                Icons.insert_drive_file_outlined,
-                color: Color(0xFFE2572B),
-                size: 40,
-              ),
-            ),
-            const SizedBox(height: 20),
-            // Title
-            const Text(
-              'Import Runners from Spreadsheet',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Colors.black,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 12),
-            // Description
-            const Text(
-              'Import your runners from a CSV or Excel spreadsheet. The file should have Name, Grade, School, and Bib Number columns in that order.',
-              style: AppTypography.bodyMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 20),
-            // View Sample Button
-            TextButton(
-              onPressed: showSampleSpreadsheet,
-              style: TextButton.styleFrom(
-                foregroundColor: const Color(0xFFE2572B),
-              ),
-              child: const Text(
-                'View Sample Spreadsheet',
-                style: AppTypography.bodyMedium,
-              ),
-            ),
-            const SizedBox(height: 24),
-            // Cancel Button
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: () => Navigator.of(context).pop(),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.grey[700],
-                  side: BorderSide(color: Colors.grey[400]!),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+      body: StatefulBuilder(
+        builder: (BuildContext context, StateSetter setState) {
+          
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Icon
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF2F2F2),
+                    borderRadius: BorderRadius.circular(40),
+                  ),
+                  child: const Icon(
+                    Icons.insert_drive_file_outlined,
+                    color: Color(0xFFE2572B),
+                    size: 40,
                   ),
                 ),
-                child: const Text(
-                  'Cancel',
+                const SizedBox(height: 20),
+                // Title
+                const Text(
+                  'Import Runners from Spreadsheet',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                // Description
+                const Text(
+                  'Import your runners from a CSV or Excel spreadsheet. The file should have Name, Grade, School, and Bib Number columns in that order.',
                   style: AppTypography.bodyMedium,
+                  textAlign: TextAlign.center,
                 ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            // Local File Button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context, {'useGoogleDrive': false});
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFE2572B),
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                const SizedBox(height: 20),
+                // View Sample Button
+                TextButton(
+                  onPressed: showSampleSpreadsheet,
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFFE2572B),
+                  ),
+                  child: const Text(
+                    'View Sample Spreadsheet',
+                    style: AppTypography.bodyMedium,
                   ),
                 ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.folder_open, size: 20, color: Colors.white),
-                    SizedBox(width: 8),
-                    Text(
-                      'Choose Local File',
-                      style: AppTypography.bodyMedium,
+                const SizedBox(height: 24),
+                
+                // Conditional UI based on state
+                if (showSourceOptions) ...[
+                  // Local File Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context, {'useGoogleDrive': false});
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFF5F5F5),
+                        foregroundColor: Colors.black87,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.folder_open, size: 20, color: Color(0xFFE2572B)),
+                          SizedBox(width: 8),
+                          Text(
+                            'Choose Local File',
+                            style: AppTypography.bodyMedium,
+                          ),
+                        ],
+                      ),
                     ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            // Google Drive Button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context, {'useGoogleDrive': true});
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFE2572B), // Match app's accent color
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
                   ),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.cloud, size: 20, color: Colors.white),
-                    SizedBox(width: 8),
-                    Text(
-                      'Choose from Google Drive',
-                      style: AppTypography.bodyMedium,
+                  const SizedBox(height: 12),
+                  // Google Drive Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context, {'useGoogleDrive': true});
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFF5F5F5),
+                        foregroundColor: Colors.black87,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.cloud, size: 20, color: Color(0xFFE2572B)),
+                          SizedBox(width: 8),
+                          Text(
+                            'Google Drive',
+                            style: AppTypography.bodyMedium,
+                          ),
+                        ],
+                      ),
                     ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Cancel source selection
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        showSourceOptions = false;
+                      });
+                    },
+                    child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+                  ),
+                ] else ...[
+                  // Cancel Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.grey[700],
+                        side: BorderSide(color: Colors.grey[400]!),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Text(
+                        'Cancel',
+                        style: AppTypography.bodyMedium,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Combined Import Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          showSourceOptions = true;
+                        });
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFE2572B),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.file_upload, size: 20, color: Colors.white),
+                          SizedBox(width: 8),
+                          Text(
+                            'Import Spreadsheet',
+                            style: AppTypography.bodyMedium,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ]),
+          );
+        },
       ),
     );
   }
