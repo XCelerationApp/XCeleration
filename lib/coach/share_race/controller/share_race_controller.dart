@@ -150,7 +150,9 @@ class ShareResultsController {
 
       if (format == ResultFormat.pdf) {
         final pdfData = _formattedResultsController.formattedPdf;
+        DialogUtils.showLoadingDialog(context, message: 'Creating PDF...');
         final bytes = await pdfData.save();
+        Navigator.of(context, rootNavigator: true).pop();
 
         final String pdfFileName = '$title.pdf';
         final xFile = XFile.fromData(

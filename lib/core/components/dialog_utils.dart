@@ -214,4 +214,42 @@ class DialogUtils {
       overlayEntry.remove();
     });
   }
+
+  /// Shows a loading dialog with a progress indicator and custom message
+  /// Returns the AlertDialog instance that was created
+  static AlertDialog showLoadingDialog(
+    BuildContext context, {
+    required String message,
+    Color indicatorColor = const Color(0xFFE2572B),
+  }) {
+    AlertDialog alert = AlertDialog(
+      content: Row(
+        children: [
+          CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(indicatorColor),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[800],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    
+    showDialog(
+      barrierDismissible: false,
+      context: context,
+      builder: (BuildContext context) {
+        return alert;
+      },
+    );
+    
+    return alert;
+  }
 }

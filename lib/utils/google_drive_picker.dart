@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'google_drive_service.dart';
+import '../core/components/dialog_utils.dart';
 
 class GoogleDrivePicker {
   static final GoogleDrivePicker _instance = GoogleDrivePicker._internal();
@@ -24,15 +25,13 @@ class GoogleDrivePicker {
       }
       
       // Show a loading dialog
-      _showLoadingDialog(context);
+      DialogUtils.showLoadingDialog(context, message: 'Loading files from Google Drive...');
       
       // Get files from Google Drive
       final driveFiles = await _driveService.listSpreadsheetFiles();
       
       // Dismiss loading dialog
-      if (Navigator.of(context, rootNavigator: true).canPop()) {
-        Navigator.of(context, rootNavigator: true).pop();
-      }
+      Navigator.of(context, rootNavigator: true).pop();
       
       if (driveFiles.isEmpty) {
         _showMessage(context, 'No spreadsheet files found in your Google Drive');
@@ -50,7 +49,7 @@ class GoogleDrivePicker {
       }
       
       // Show download dialog
-      _showDownloadDialog(context);
+      DialogUtils.showLoadingDialog(context, message: 'Downloading...');
       
       // Download the file
       final tempFile = await _driveService.downloadFile(
@@ -59,16 +58,12 @@ class GoogleDrivePicker {
       );
       
       // Dismiss download dialog
-      if (Navigator.of(context, rootNavigator: true).canPop()) {
-        Navigator.of(context, rootNavigator: true).pop();
-      }
+      Navigator.of(context, rootNavigator: true).pop();
       
       return tempFile;
     } catch (e) {
       // Make sure to dismiss dialog if there was an error
-      if (Navigator.of(context, rootNavigator: true).canPop()) {
-        Navigator.of(context, rootNavigator: true).pop();
-      }
+      Navigator.of(context, rootNavigator: true).pop();
       
       _showMessage(context, 'Error picking file: $e');
       return null;
@@ -79,13 +74,12 @@ class GoogleDrivePicker {
   Widget _getFileIcon(String? mimeType) {
     IconData iconData;
     Color iconColor;
-    
     if (mimeType == 'application/vnd.google-apps.spreadsheet') {
-      iconData = Icons.table_chart;
+      iconData = Icons.table_chart_rounded;
       iconColor = Colors.green;
     } else if (mimeType?.contains('spreadsheet') == true || 
               mimeType?.contains('excel') == true) {
-      iconData = Icons.table_chart;
+      iconData = Icons.table_chart_rounded;
       iconColor = Colors.green;
     } else if (mimeType?.contains('csv') == true) {
       iconData = Icons.insert_drive_file;
@@ -99,70 +93,6 @@ class GoogleDrivePicker {
       iconData,
       color: iconColor,
     );
-  }
-  
-  AlertDialog _showLoadingDialog(BuildContext context) {
-    AlertDialog alert = AlertDialog(
-      content: Row(
-        children: [
-          const CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFE2572B)),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Text(
-              'Loading files from Google Drive...',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[800],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-    
-    showDialog(
-      barrierDismissible: false,
-      context: context,
-      builder: (BuildContext context) {
-        return alert;
-      },
-    );
-    
-    return alert;
-  }
-  
-  AlertDialog _showDownloadDialog(BuildContext context) {
-    AlertDialog alert = AlertDialog(
-      content: Row(
-        children: [
-          const CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFE2572B)),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Text(
-              "Downloading file...",
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[800],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-    
-    showDialog(
-      barrierDismissible: false,
-      context: context,
-      builder: (BuildContext context) {
-        return alert;
-      },
-    );
-    
-    return alert;
   }
   
   void _showMessage(BuildContext context, String message) {
@@ -181,10 +111,10 @@ class _DriveFilePickerDialog extends StatefulWidget {
   final Widget Function(String?) fileIconBuilder;
 
   const _DriveFilePickerDialog({
-    Key? key,
+    super.key,
     required this.driveFiles,
     required this.fileIconBuilder,
-  }) : super(key: key);
+  });
 
   @override
   _DriveFilePickerDialogState createState() => _DriveFilePickerDialogState();
@@ -252,7 +182,7 @@ class _DriveFilePickerDialogState extends State<_DriveFilePickerDialog> {
   Widget build(BuildContext context) {
     return Theme(
       data: Theme.of(context).copyWith(
-        dialogBackgroundColor: Colors.white,
+        dialogTheme: DialogThemeData(backgroundColor: Colors.white),
       ),
       child: Dialog(
         shape: RoundedRectangleBorder(

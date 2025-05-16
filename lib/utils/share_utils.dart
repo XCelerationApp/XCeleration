@@ -20,13 +20,14 @@ class ShareUtils {
         return null;
       }
 
+      DialogUtils.showLoadingDialog(context, message: 'Creating Google Sheet...');
       // Try to create the spreadsheet
       final url = await GoogleSheetsUtils.createSpreadsheet(
         context,
         title: title,
         data: sheetsData,
       );
-
+      Navigator.of(context, rootNavigator: true).pop();
       if (url != null) {
         return Uri.parse(url);
       }
