@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/components/dropup_button.dart';
 import 'package:flutter/services.dart';
 import 'package:xceleration/core/theme/typography.dart';
 
@@ -289,7 +290,6 @@ class RunnersManagementController with ChangeNotifier {
   }
 
   Future<Map<String, dynamic>?> showSpreadsheetLoadSheet(BuildContext context) async {
-    bool showSourceOptions = false;
     return await sheet(
       context: context,
       title: 'Import Runners',
@@ -299,7 +299,7 @@ class RunnersManagementController with ChangeNotifier {
           
           return Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            padding: const EdgeInsets.symmetric(vertical: 16),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.center,
@@ -350,131 +350,87 @@ class RunnersManagementController with ChangeNotifier {
                 ),
                 const SizedBox(height: 24),
                 
-                // Conditional UI based on state
-                if (showSourceOptions) ...[
-                  // Local File Button
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context, {'useGoogleDrive': false});
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFF5F5F5),
-                        foregroundColor: Colors.black87,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.folder_open, size: 20, color: Color(0xFFE2572B)),
-                          SizedBox(width: 8),
-                          Text(
-                            'Choose Local File',
-                            style: AppTypography.bodyMedium,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  // Google Drive Button
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context, {'useGoogleDrive': true});
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFF5F5F5),
-                        foregroundColor: Colors.black87,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.cloud, size: 20, color: Color(0xFFE2572B)),
-                          SizedBox(width: 8),
-                          Text(
-                            'Google Drive',
-                            style: AppTypography.bodyMedium,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  // Cancel source selection
-                  TextButton(
-                    onPressed: () {
-                      setState(() {
-                        showSourceOptions = false;
-                      });
+                // Import Button with Dropup Menu
+                SizedBox(
+                  width: double.infinity,
+                  child: DropupButton<Map<String, dynamic>>(
+                    onSelected: (result) {
+                      if (result != null) {
+                        Navigator.pop(context, result);
+                      }
                     },
-                    child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-                  ),
-                ] else ...[
-                  // Cancel Button
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.grey[700],
-                        side: BorderSide(color: Colors.grey[400]!),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: const Text(
-                        'Cancel',
-                        style: AppTypography.bodyMedium,
+                    verticalOffset: 0,
+                    elevation: 8,
+                    menuShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    menuColor: Colors.white,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFE2572B),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  // Combined Import Button
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        setState(() {
-                          showSourceOptions = true;
-                        });
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFE2572B),
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                    items: [
+                      PopupMenuItem<Map<String, dynamic>>(
+                        value: {'useGoogleDrive': true},
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            // Icon(Icons.cloud, color: Color(0xFFE2572B), size: 20),
+                            Text('Select Google Sheet', style: TextStyle(fontWeight: FontWeight.w500)),
+                            Icon(Icons.arrow_forward_ios, color: Color(0xFFE2572B), size: 20),
+                          ],
                         ),
                       ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.file_upload, size: 20, color: Colors.white),
-                          SizedBox(width: 8),
-                          Text(
-                            'Import Spreadsheet',
-                            style: AppTypography.bodyMedium,
-                          ),
-                        ],
+                      PopupMenuItem<Map<String, dynamic>>(
+                        value: {'useGoogleDrive': false},
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('Select Local File', style: TextStyle(fontWeight: FontWeight.w500)),
+                            // Icon(Icons.folder_open, color: Color(0xFFE2572B), size: 20),
+                            Icon(Icons.arrow_forward_ios, color: Color(0xFFE2572B), size: 20),
+                          ],
+                        ),
                       ),
+                    ],
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.file_upload, size: 20, color: Colors.white),
+                        SizedBox(width: 8),
+                        Text(
+                          'Import Spreadsheet',
+                          style: AppTypography.bodyMedium,
+                        ),
+                      ],
                     ),
                   ),
+                ),
+                // const SizedBox(height: 12),
+                
+                // SizedBox(
+                //   width: double.infinity,
+                //   child: OutlinedButton(
+                //     onPressed: () => Navigator.of(context).pop(),
+                //     style: OutlinedButton.styleFrom(
+                //       foregroundColor: Colors.grey[700],
+                //       side: BorderSide(color: Colors.grey[400]!),
+                //       padding: const EdgeInsets.symmetric(vertical: 12),
+                //       shape: RoundedRectangleBorder(
+                //         borderRadius: BorderRadius.circular(8),
+                //       ),
+                //     ),
+                //     child: const Text(
+                //       'Cancel',
+                //       style: AppTypography.bodyMedium,
+                //     ),
+                //   ),
+                // ),
               ],
-            ]),
+            ),
           );
         },
       ),

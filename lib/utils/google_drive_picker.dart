@@ -95,69 +95,69 @@ class GoogleDrivePicker {
     );
   }
   
-  AlertDialog _showLoadingDialog(BuildContext context) {
-    AlertDialog alert = AlertDialog(
-      content: Row(
-        children: [
-          const CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFE2572B)),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Text(
-              'Loading files from Google Drive...',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[800],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+  // AlertDialog _showLoadingDialog(BuildContext context) {
+  //   AlertDialog alert = AlertDialog(
+  //     content: Row(
+  //       children: [
+  //         const CircularProgressIndicator(
+  //           valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFE2572B)),
+  //         ),
+  //         const SizedBox(width: 16),
+  //         Expanded(
+  //           child: Text(
+  //             'Loading files from Google Drive...',
+  //             style: TextStyle(
+  //               fontSize: 14,
+  //               color: Colors.grey[800],
+  //             ),
+  //           ),
+  //         ),
+  //       ],
+  //     ),
+  //   );
     
-    showDialog(
-      barrierDismissible: false,
-      context: context,
-      builder: (BuildContext context) {
-        return alert;
-      },
-    );
+  //   showDialog(
+  //     barrierDismissible: false,
+  //     context: context,
+  //     builder: (BuildContext context) {
+  //       return alert;
+  //     },
+  //   );
     
-    return alert;
-  }
+  //   return alert;
+  // }
   
-  AlertDialog _showDownloadDialog(BuildContext context) {
-    AlertDialog alert = AlertDialog(
-      content: Row(
-        children: [
-          const CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFE2572B)),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Text(
-              "Downloading file...",
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[800],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+  // AlertDialog _showDownloadDialog(BuildContext context) {
+  //   AlertDialog alert = AlertDialog(
+  //     content: Row(
+  //       children: [
+  //         const CircularProgressIndicator(
+  //           valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFE2572B)),
+  //         ),
+  //         const SizedBox(width: 16),
+  //         Expanded(
+  //           child: Text(
+  //             "Downloading file...",
+  //             style: TextStyle(
+  //               fontSize: 14,
+  //               color: Colors.grey[800],
+  //             ),
+  //           ),
+  //         ),
+  //       ],
+  //     ),
+  //   );
     
-    showDialog(
-      barrierDismissible: false,
-      context: context,
-      builder: (BuildContext context) {
-        return alert;
-      },
-    );
+  //   showDialog(
+  //     barrierDismissible: false,
+  //     context: context,
+  //     builder: (BuildContext context) {
+  //       return alert;
+  //     },
+  //   );
     
-    return alert;
-  }
+  //   return alert;
+  // }
   
   void _showMessage(BuildContext context, String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -175,7 +175,6 @@ class _DriveFilePickerDialog extends StatefulWidget {
   final Widget Function(String?) fileIconBuilder;
 
   const _DriveFilePickerDialog({
-    super.key,
     required this.driveFiles,
     required this.fileIconBuilder,
   });
