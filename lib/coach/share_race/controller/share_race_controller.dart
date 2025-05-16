@@ -4,13 +4,8 @@ import 'package:xceleration/utils/time_formatter.dart';
 import '../../../utils/enums.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:path/path.dart' as path;
-import 'package:url_launcher/url_launcher.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
-import 'dart:io';
-import 'dart:convert';
 import '../../../../../utils/sheet_utils.dart';
 import '../../../../../utils/share_utils.dart';
 import '../../../../../core/components/dialog_utils.dart';
@@ -20,27 +15,16 @@ import '../../race_results/model/team_record.dart';
 
 /// Controller class responsible for all sharing logic in the app
 class ShareRaceController extends ChangeNotifier {
-  late final RaceResultsController controller;
-
-  late String _formattedResultsText;
-  late List<List<dynamic>> _formattedSheetsData;
-  late pw.Document _formattedPdf;
+  late FormattedResultsController _formattedResultsController;
+  late ShareResultsController _shareResultsController;
 
   ShareRaceController({
-    required this.controller,
+    required RaceResultsController controller,
   }) {
-    _formattedResultsText = _getFormattedText();
-    _formattedSheetsData = _getSheetsData();
-    _formattedPdf = _getPdfDocument();
-  }
-
-  ResultFormat? _selectedFormat;
-
-  ResultFormat? get selectedFormat => _selectedFormat;
-
-  set selectedFormat(ResultFormat? format) {
-    _selectedFormat = format;
-    notifyListeners();
+    _formattedResultsController = FormattedResultsController(controller: controller);
+    _shareResultsController = ShareResultsController(
+      formattedResultsController: _formattedResultsController,
+    );
   }
 
   /// Show the share race bottom sheet
@@ -57,6 +41,177 @@ class ShareRaceController extends ChangeNotifier {
         ),
       ),
     );
+  }
+
+  /// Share the results
+  Future<void> shareResults(
+    BuildContext context,
+    ResultFormat format,
+  ) async {
+    await _shareResultsController.shareResults(context, format);
+  }
+  
+  /// Copy the results to clipboard
+  Future<void> copyToClipboard(
+    BuildContext context,
+    ResultFormat format,
+  ) async {
+    await _shareResultsController.copyToClipboard(context, format);
+  }
+
+}
+
+class ShareResultsController {
+  late FormattedResultsController _formattedResultsController;
+  late String title;
+
+  ShareResultsController({
+    required FormattedResultsController formattedResultsController,
+  }) {
+    _formattedResultsController = formattedResultsController;
+    title = '${formattedResultsController.raceName} Results';
+  }
+
+
+  /// Copy the results to clipboard
+  Future<void> copyToClipboard(
+    BuildContext context,
+    ResultFormat format,
+  ) async {
+    try {
+      switch (format) {
+        case ResultFormat.googleSheet:
+          final sheetUri = await ShareUtils.createGoogleSheet(
+            context,
+            _formattedResultsController.formattedSheetsData,
+            title,
+          );
+          if (sheetUri != null) {
+            await Clipboard.setData(ClipboardData(text: sheetUri.toString()));
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Link Copied!')),
+              );
+            }
+          } else if (context.mounted) {
+            DialogUtils.showErrorDialog(context, 
+                message: 'Failed to create Google Sheet');
+          }
+          break;
+
+        case ResultFormat.pdf:
+          DialogUtils.showErrorDialog(context,
+              message:
+                  'PDF format cannot be copied to clipboard. Please use Share option instead.');
+          return;
+
+        case ResultFormat.plainText:
+          await Clipboard.setData(ClipboardData(text: _formattedResultsController.formattedResultsText));
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Results Copied!')),
+            );
+          }
+          break;
+      }
+    } catch (e) {
+      if (context.mounted) {
+        DialogUtils.showErrorDialog(context,
+            message: 'Failed to copy to clipboard: $e');
+      }
+    }
+  }
+
+  /// Share results via Share.share
+  Future<void> shareResults(
+    BuildContext context,
+    ResultFormat format,
+  ) async {
+    final share = SharePlus.instance;
+    late ShareParams params;
+    try {
+      if (format == ResultFormat.googleSheet) {
+        final sheetUri = await ShareUtils.createGoogleSheet(
+          context,
+          _formattedResultsController.formattedSheetsData,
+          title,
+        );
+        if (sheetUri != null) {
+          params = ShareParams(
+            uri: sheetUri,
+            subject: title,
+            title: title,
+          );
+        } else if (context.mounted) {
+          DialogUtils.showErrorDialog(context,
+              message: 'Failed to create Google Sheet');
+        }
+      }
+
+      if (format == ResultFormat.pdf) {
+        final pdfData = _formattedResultsController.formattedPdf;
+        DialogUtils.showLoadingDialog(context, message: 'Creating PDF...');
+        final bytes = await pdfData.save();
+        Navigator.of(context, rootNavigator: true).pop();
+
+        final String pdfFileName = '$title.pdf';
+        final xFile = XFile.fromData(
+          bytes,
+          name: pdfFileName,
+          mimeType: 'application/pdf',
+        );
+        
+        params = ShareParams(
+          files: [xFile],
+          subject: title,
+          title: title,
+          fileNameOverrides: [pdfFileName],
+        );
+      }
+
+      if (format == ResultFormat.plainText) {
+        params = ShareParams(
+          text: _formattedResultsController.formattedResultsText,
+          subject: title,
+          title: title,
+        );
+      }
+
+      await share.share(params);
+    } catch (e) {
+      if (context.mounted) {
+        DialogUtils.showErrorDialog(context, message: 'Failed to share: $e');
+      }
+    }
+  }
+}
+
+
+class FormattedResultsController {
+  final RaceResultsController controller;
+  late String formattedResultsText;
+  late List<List<dynamic>> formattedSheetsData;
+  late pw.Document formattedPdf;
+  late String raceName;
+
+  FormattedResultsController({
+    required this.controller,
+  }) {
+    // Get race name from the database
+    _initRaceName();
+    formattedResultsText = _getFormattedText();
+    formattedSheetsData = _getSheetsData();
+    formattedPdf = _getPdfDocument();
+  }
+  
+  void _initRaceName() {
+    // Default fallback name in case we can't get the actual race name
+    raceName = 'Race Results';
+    
+    // Try to get the actual race name from controller
+    if (controller.raceName.isNotEmpty) {
+      raceName = controller.raceName;
+    }
   }
 
   // Text Formatting Methods
@@ -295,207 +450,5 @@ class ShareRaceController extends ChangeNotifier {
       '${team2.score != 0 ? team2.score : 'N/A'}']);
 
     return rows;
-  }
-
-  /// Export the results to Google Sheets
-  Future<String?> exportToGoogleSheets(
-    BuildContext context,
-  ) async {
-    return await ShareUtils.exportToGoogleSheets(context, _formattedSheetsData);
-  }
-
-  /// Save results locally to a file
-  Future<void> saveLocally(
-    BuildContext context,
-    ResultFormat format,
-  ) async {
-    try {
-      final String? selectedDirectory =
-          await FilePicker.platform.getDirectoryPath();
-      if (selectedDirectory == null) return;
-
-      final String extension = format == ResultFormat.pdf ? 'pdf' : 'txt';
-      final file =
-          File(path.join(selectedDirectory, 'race_results.$extension'));
-
-      if (format == ResultFormat.pdf) {
-        await file.writeAsBytes(await _formattedPdf.save());
-      } else {
-        await file.writeAsString(_formattedResultsText);
-      }
-
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Saved to ${file.path}')),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        DialogUtils.showErrorDialog(context,
-            message: 'Failed to save file: $e');
-      }
-    }
-  }
-
-  /// Copy the results to clipboard
-  Future<void> copyToClipboard(
-    BuildContext context,
-    ResultFormat format,
-  ) async {
-    try {
-      switch (format) {
-        case ResultFormat.googleSheet:
-          final sheetUrl = await exportToGoogleSheets(context);
-          if (sheetUrl != null) {
-            await Clipboard.setData(ClipboardData(text: sheetUrl));
-          }
-          break;
-
-        case ResultFormat.pdf:
-          DialogUtils.showErrorDialog(context,
-              message:
-                  'PDF format cannot be copied to clipboard. Please use Save or Email options instead.');
-          return;
-
-        case ResultFormat.plainText:
-          await Clipboard.setData(ClipboardData(text: _formattedResultsText));
-          break;
-      }
-
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Copied to clipboard')),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        DialogUtils.showErrorDialog(context,
-            message: 'Failed to copy to clipboard: $e');
-      }
-    }
-  }
-
-  /// Share results via email
-  Future<void> sendEmail(
-    BuildContext context,
-    ResultFormat format,
-  ) async {
-    try {
-      switch (format) {
-        case ResultFormat.googleSheet:
-          final sheetUrl = await exportToGoogleSheets(context);
-          if (sheetUrl != null) {
-            await _launchEmail(
-              context: context,
-              subject: 'Race Results',
-              body:
-                  'Race results are available in the following Google Sheet:\n\n$sheetUrl',
-            );
-          }
-          break;
-
-        case ResultFormat.pdf:
-          final pdfData = _formattedPdf;
-          final bytes = await pdfData.save();
-          final base64Pdf = base64Encode(bytes);
-
-          await _launchEmail(
-            context: context,
-            subject: 'Race Results',
-            body: 'Please find attached the race results PDF.',
-            attachment: 'data:application/pdf;base64,$base64Pdf',
-          );
-          break;
-
-        case ResultFormat.plainText:
-          await _launchEmail(
-            context: context,
-            subject: 'Race Results',
-            body: _formattedResultsText,
-          );
-          break;
-      }
-    } catch (e) {
-      if (context.mounted) {
-        DialogUtils.showErrorDialog(context,
-            message: 'Failed to send email: $e');
-      }
-    }
-  }
-
-  /// Share results via SMS
-  Future<void> sendSms(
-    BuildContext context,
-    ResultFormat format,
-  ) async {
-    try {
-      if (format == ResultFormat.googleSheet) {
-        final sheetUrl = await exportToGoogleSheets(context);
-        if (sheetUrl != null) {
-          await Share.share(sheetUrl);
-        } else if (context.mounted) {
-          DialogUtils.showErrorDialog(context,
-              message: 'Failed to create Google Sheet');
-        }
-        return;
-      }
-
-      if (format == ResultFormat.pdf) {
-        final pdfData = _formattedPdf;
-        final bytes = await pdfData.save();
-
-        await Share.shareXFiles([
-          XFile.fromData(
-            bytes,
-            name: 'race_results.pdf',
-            mimeType: 'application/pdf',
-          )
-        ]);
-        return;
-      }
-
-      // For plain text, use the formatted text
-      await Share.share(_formattedResultsText);
-    } catch (e) {
-      if (context.mounted) {
-        DialogUtils.showErrorDialog(context, message: 'Failed to share: $e');
-      }
-    }
-  }
-
-  // Helper method to launch email
-  Future<void> _launchEmail({
-    required BuildContext context,
-    required String subject,
-    required String body,
-    String? attachment,
-  }) async {
-    final Map<String, String> params = {
-      'subject': subject,
-      'body': body,
-    };
-    if (attachment != null) {
-      params['attachment'] = attachment;
-    }
-
-    final Uri emailLaunchUri = Uri(
-      scheme: 'mailto',
-      query: _encodeQueryParameters(params),
-    );
-
-    if (await canLaunchUrl(emailLaunchUri)) {
-      await launchUrl(emailLaunchUri);
-    } else if (context.mounted) {
-      DialogUtils.showErrorDialog(context,
-          message: 'Could not launch email client');
-    }
-  }
-
-  // Helper method to encode query parameters
-  String _encodeQueryParameters(Map<String, String> params) {
-    return params.entries
-        .map((e) =>
-            '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
-        .join('&');
   }
 }

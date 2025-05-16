@@ -7,9 +7,12 @@ class RaceResultsController {
   final int raceId;
   final DatabaseHelper dbHelper;
   bool isLoading = true;
+  String _raceName = 'Race Results';
   List<ResultsRecord> individualResults = [];
   List<TeamRecord> overallTeamResults = [];
   List<List<TeamRecord>>? headToHeadTeamResults;
+  
+  String get raceName => _raceName;
 
   RaceResultsController({
     required this.raceId,
@@ -19,6 +22,18 @@ class RaceResultsController {
   }
 
   Future<void> _calculateResults() async {
+    // Get race name from database
+    try {
+      final race = await dbHelper.getRaceById(raceId);
+      if (race != null) {
+        _raceName = race.raceName;
+      } else {
+        _raceName = 'Race Results';
+      }
+    } catch (e) {
+      _raceName = 'Race Results';
+    }
+    
     // Get race results from database
     final List<ResultsRecord> results =
         await dbHelper.getRaceResults(raceId);

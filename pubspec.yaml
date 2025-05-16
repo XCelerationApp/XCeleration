@@ -43,7 +43,7 @@ dependencies:
   crypto: ^3.0.3
   flutter_nearby_connections: ^1.1.2
   audioplayers: ^6.1.0
-  share_plus: ^7.2.1
+  share_plus: ^11.0.0
   flutter_svg: ^2.0.9
   url_launcher: ^6.1.10
   pdf: ^3.10.7

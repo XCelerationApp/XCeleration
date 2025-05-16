@@ -3,13 +3,13 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../utils/enums.dart';
 
 class FormatSelectionWidget extends StatelessWidget {
-  final ResultFormat? selectedFormat;
-  final void Function(ResultFormat) onFormatSelected;
+  final void Function(ResultFormat) onShareSelected;
+  final void Function(ResultFormat) onCopySelected;
 
   const FormatSelectionWidget({
     super.key,
-    required this.selectedFormat,
-    required this.onFormatSelected,
+    required this.onShareSelected,
+    required this.onCopySelected,
   });
 
   @override
@@ -72,69 +72,112 @@ class FormatSelectionWidget extends StatelessWidget {
     required IconData icon,
     required String description,
   }) {
-    final isSelected = format == selectedFormat;
-
-    return InkWell(
-      onTap: () => onFormatSelected(format),
-      borderRadius: BorderRadius.circular(16),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.primaryColor.withOpacity(0.15)
-              : AppColors.backgroundColor,
-          borderRadius: BorderRadius.circular(16),
-          border: isSelected
-              ? Border.all(
-                  color: AppColors.primaryColor,
-                  width: 1.5,
-                )
-              : null,
+    // If it's plainText, clicking anywhere copies it
+    if (format == ResultFormat.plainText) {
+      return InkWell(
+        onTap: () => onCopySelected(format),
+        borderRadius: BorderRadius.circular(16),
+        child: _buildFormatContainer(
+          icon: icon,
+          label: label,
+          description: description,
+          showCopyButton: false,
         ),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              size: 24,
-              color: isSelected
-                  ? AppColors.primaryColor
-                  : Colors.black54.withOpacity(0.8),
+      );
+    }
+    
+    // For Google Sheet, show Copy button
+    if (format == ResultFormat.googleSheet) {
+      return InkWell(
+        onTap: () => onShareSelected(format),
+        borderRadius: BorderRadius.circular(16),
+        child: _buildFormatContainer(
+          icon: icon,
+          label: label,
+          description: description,
+          showCopyButton: true,
+          onCopyPressed: () => onCopySelected(format),
+        ),
+      );
+    }
+    
+    // For other formats (like PDF), standard behavior
+    return InkWell(
+      onTap: () => onShareSelected(format),
+      borderRadius: BorderRadius.circular(16),
+      child: _buildFormatContainer(
+        icon: icon,
+        label: label,
+        description: description,
+        showCopyButton: false,
+      ),
+    );
+  }
+  
+  Widget _buildFormatContainer({
+    required IconData icon,
+    required String label,
+    required String description,
+    required bool showCopyButton,
+    VoidCallback? onCopyPressed,
+  }) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            size: 24,
+            color: Colors.black54.withOpacity(0.8),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87.withOpacity(0.9),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.black54.withOpacity(0.7),
+                    fontWeight: FontWeight.w400,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: isSelected
-                          ? AppColors.primaryColor
-                          : Colors.black87.withOpacity(0.9),
-                    ),
+          ),
+          if (showCopyButton) ...[  
+            const SizedBox(width: 8),
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(20),
+                onTap: onCopyPressed,
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Icon(
+                    Icons.content_copy,
+                    size: 20,
+                    color: Colors.black54.withOpacity(0.7),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    description,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: isSelected
-                          ? AppColors.primaryColor.withOpacity(0.8)
-                          : Colors.black54.withOpacity(0.7),
-                      fontWeight: FontWeight.w400,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+                ),
               ),
             ),
           ],
-        ),
+        ],
       ),
     );
   }

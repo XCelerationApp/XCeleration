@@ -30,11 +30,13 @@ class ShareFormatSelectionWidget extends StatelessWidget {
               ),
             ),
             child: FormatSelectionWidget(
-              selectedFormat: controller.selectedFormat,
-              onFormatSelected: (format) {
-                controller.selectedFormat = format;
+              onShareSelected: (format) {
                 Navigator.of(context).pop();
-                controller.sendSms(context, controller.selectedFormat!);
+                controller.shareResults(context, format);
+              },
+              onCopySelected: (format) {
+                Navigator.of(context).pop();
+                controller.copyToClipboard(context, format); 
               },
             ),
           ),
