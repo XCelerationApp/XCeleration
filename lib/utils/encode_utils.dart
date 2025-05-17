@@ -141,7 +141,6 @@ Future<List<RunnerRecord>> processEncodedBibRecordsData(
 }
 
 bool isValidBibData(RunnerRecord data) {
-  print(data.toMap());
   return data.error == 'Runner not found' ||
       data.bib.isNotEmpty &&
           data.name.isNotEmpty &&

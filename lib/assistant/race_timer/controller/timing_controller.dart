@@ -369,7 +369,7 @@ class TimingController extends TimingData {
             runnersBeforeConflict[runnersBeforeConflict.length - 1 - i];
         // Only add runnerId to removal list if it's not null
         recordIndicesToRemove.add(records.indexOf(record));
-        print('Adding record index to remove: ${records.indexOf(record)}');
+        debugPrint('Adding record index to remove: ${records.indexOf(record)}');
       }
     }
 
@@ -378,7 +378,7 @@ class TimingController extends TimingData {
     
     // Remove records by Index
     for (int index in recordIndicesToRemove.reversed) {
-      print('Removing record at index: $index');
+      debugPrint('Removing record at index: $index');
       if (index >= 0 && index < records.length) {
         records.removeAt(index);
       }

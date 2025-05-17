@@ -200,7 +200,7 @@ class RunnersManagementController with ChangeNotifier {
       dynamic existingRunner;
       existingRunner =
           await DatabaseHelper.instance.getRaceRunnerByBib(raceId, runner.bib);
-      print('existingRunner: $existingRunner');
+      debugPrint('existingRunner: $existingRunner');
 
       if (existingRunner != null) {
         // If we're updating the same runner (same ID), just update
@@ -235,7 +235,7 @@ class RunnersManagementController with ChangeNotifier {
   }
 
   Future<void> insertRunner(RunnerRecord runner) async {
-    print('Inserting runner: ${runner.toMap()}');
+    debugPrint('Inserting runner: ${runner.toMap()}');
     await DatabaseHelper.instance.insertRaceRunner(runner);
   }
 

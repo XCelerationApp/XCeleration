@@ -36,21 +36,21 @@ class ResolveBibNumberController with ChangeNotifier {
   }
 
   Future<void> searchRunners(String query) async {
-    print('Searching runners...');
-    print('Query: $query');
-    print('Race ID: $raceId');
+    debugPrint('Searching runners...');
+    debugPrint('Query: $query');
+    debugPrint('Race ID: $raceId');
     if (query.isEmpty) {
       final results = await databaseHelper.getRaceRunners(raceId);
       searchResults = results;
       notifyListeners();
-      print('Search results: ${searchResults.map((r) => r.bib).join(', ')}');
+      debugPrint('Search results: ${searchResults.map((r) => r.bib).join(', ')}');
       return;
     }
 
     final results = await databaseHelper.searchRaceRunners(raceId, query);
     searchResults = results;
     notifyListeners();
-    print('Search results: ${searchResults.map((r) => r.bib).join(', ')}');
+    debugPrint('Search results: ${searchResults.map((r) => r.bib).join(', ')}');
   }
 
   Future<void> createNewRunner() async {

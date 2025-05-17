@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 /// A utility class for formatting and parsing time durations.
 class TimeFormatter {
   /// Formats a duration into a string with conditional formatting:
@@ -77,7 +79,7 @@ class TimeFormatter {
         milliseconds: milliseconds,
       );
     } catch (e) {
-      print('Error parsing duration string: $e');
+      debugPrint('Error parsing duration string: $e');
       return null;
     }
   }

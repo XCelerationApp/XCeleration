@@ -21,7 +21,7 @@ class MasterFlowController {
 
   MasterFlowController({required this.raceController}) {
     preRaceController = PreRaceController(raceId: raceController.raceId);
-    postRaceController = PostRaceController(raceId: raceController.raceId, useTestData: true);
+    postRaceController = PostRaceController(raceId: raceController.raceId);
   }
 
   /// Continue the race flow based on the current state

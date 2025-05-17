@@ -22,12 +22,12 @@ class PostRaceController {
   int? _lastStepIndex;
 
   /// Constructor
-  PostRaceController({required this.raceId, bool useTestData = false}) {
-    _initializeSteps(useTestData);
+  PostRaceController({required this.raceId}) {
+    _initializeSteps();
   }
 
   /// Initialize the flow steps
-  void _initializeSteps([bool useTestData = false]) {
+  void _initializeSteps() {
     // Create controllers first so they can be shared between steps
     _loadResultsController = LoadResultsController(raceId: raceId, callback: _updateReviewStep);
     
@@ -42,7 +42,7 @@ class PostRaceController {
   
   /// Update ReviewResultsStep with latest results from LoadResultsController
   void _updateReviewStep() {
-    print('Updating ReviewResultsStep with latest results');
+    debugPrint('Updating ReviewResultsStep with latest results');
     _reviewResultsStep.results = _loadResultsController.results;
   }
 

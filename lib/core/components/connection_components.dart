@@ -361,7 +361,7 @@ class _QRConnectionState extends State<QRConnectionWidget> {
   Future<void> _showQR(BuildContext context, DeviceName device) async {
     // Get the data and handle the case where it might be a Future
     String rawData = widget.devices.getDevice(device)!.data!;
-    print('Raw data: $rawData');
+    debugPrint('Raw data: $rawData');
     String qrData =
         '${getDeviceNameString(widget.devices.currentDeviceName)}:$rawData';
 

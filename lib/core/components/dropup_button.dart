@@ -65,12 +65,12 @@ class DropupButton<T> extends StatelessWidget {
     double itemsHeightOffset = 0;
     for (var item in items) {
       itemsHeightOffset -= item.height;
-      print('item height: ${item.height}');
+      debugPrint('item height: ${item.height}');
     }
 
-    print('edgeInsetsHeight: $edgeInsetsHeight');
+    debugPrint('edgeInsetsHeight: $edgeInsetsHeight');
     itemsHeightOffset -= (edgeInsetsHeight);
-    print('itemsHeightOffset: $itemsHeightOffset');
+    debugPrint('itemsHeightOffset: $itemsHeightOffset');
     
     // Position directly above the button with the same width
     showMenu<T>(

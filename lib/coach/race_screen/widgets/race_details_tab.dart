@@ -148,7 +148,7 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
                                       detailsChanged = true;
                                       hasTeams = value.isNotEmpty;
                                     });
-                                    print('Has teams: $hasTeams');
+                                    debugPrint('Has teams: $hasTeams');
                                   },
                                 ),
                               ],

@@ -116,9 +116,9 @@ class DatabaseHelper {
         // 4. Rename the new table to the original name
         await db.execute('ALTER TABLE race_runners_new RENAME TO race_runners');
         
-        print('Successfully migrated race_runners table with renamed column');
+        debugPrint('Successfully migrated race_runners table with renamed column');
       } catch (e) {
-        print('Error during migration: $e');
+        debugPrint('Error during migration: $e');
       }
     }
   }
@@ -329,7 +329,7 @@ class DatabaseHelper {
         WHERE race_id = ?
       ''', [raceId]); 
     } catch (e) {
-      print('Query error: $e');
+      debugPrint('Query error: $e');
     }
     if (rawResults != null && rawResults.isNotEmpty) {
       final results = rawResults.map((r) => ResultsRecord.fromMap(r)).toList();
@@ -399,9 +399,9 @@ class DatabaseHelper {
       }
       await batch.commit();
       
-      print('Successfully saved ${resultRecords.length} race results for race $raceId');
+      debugPrint('Successfully saved ${resultRecords.length} race results for race $raceId');
     } catch (e) {
-      print('Error saving race results: $e');
+      debugPrint('Error saving race results: $e');
       rethrow;
     }
   }

@@ -59,7 +59,7 @@ class ActionButton extends StatelessWidget {
       }
     } catch (e) {
       // Handle errors without using ScaffoldMessenger directly
-      print('Error in race creation: $e');
+      debugPrint('Error in race creation: $e');
       
       // Only show error dialog if context is still mounted
       if (context.mounted) {

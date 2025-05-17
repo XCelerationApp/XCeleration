@@ -105,7 +105,7 @@ class DialogUtils {
     required String message,
     String? title,
   }) {
-    print(message);
+    debugPrint(message);
     final overlay = Overlay.of(context);
     final overlayEntry = OverlayEntry(
       builder: (context) => Positioned(

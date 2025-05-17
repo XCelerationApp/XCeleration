@@ -105,7 +105,7 @@ void main() async {
   await saveWidgetAsImage(
       androidSplash, 'splash_android_landscape.png', 1920, 1080);
 
-  print('Splash screen assets generated successfully!');
+  debugPrint('Splash screen assets generated successfully!');
   exit(0);
 }
 
@@ -165,5 +165,5 @@ Future<void> saveWidgetAsImage(
   final file = File('${directory.path}/$fileName');
   await file.writeAsBytes(buffer);
 
-  print('Saved $fileName to ${file.path}');
+  debugPrint('Saved $fileName to ${file.path}');
 }

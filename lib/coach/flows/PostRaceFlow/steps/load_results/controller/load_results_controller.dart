@@ -87,7 +87,7 @@ class LoadResultsController with ChangeNotifier {
         resultRecords,
       );
     } catch (e) {
-      print('Error in saveRaceResults: $e');
+      debugPrint('Error in saveRaceResults: $e');
       rethrow;
     }
   }
@@ -96,22 +96,22 @@ class LoadResultsController with ChangeNotifier {
   Future<void> processReceivedData(BuildContext context) async {
     String? bibRecordsData = devices.bibRecorder?.data;
     String? finishTimesData = devices.raceTimer?.data;
-    print('Bib records data: ${bibRecordsData != null ? "Available" : "Null"}');
-    print('Finish times data: ${finishTimesData != null ? "Available" : "Null"}');
+    debugPrint('Bib records data: ${bibRecordsData != null ? "Available" : "Null"}');
+    debugPrint('Finish times data: ${finishTimesData != null ? "Available" : "Null"}');
     
     if (bibRecordsData != null && finishTimesData != null) {
       runnerRecords = await processEncodedBibRecordsData(
           bibRecordsData, context, raceId);
-      print('Processed runner records: ${runnerRecords?.length ?? 0}');
+      debugPrint('Processed runner records: ${runnerRecords?.length ?? 0}');
 
       timingData = await processEncodedTimingData(finishTimesData, context);
-      print('Processed timing data: ${timingData?.records.length ?? 0} records');
+      debugPrint('Processed timing data: ${timingData?.records.length ?? 0} records');
 
       resultsLoaded = true;
       notifyListeners();
       await _checkForConflictsAndSaveResults();
     } else {
-      print('Missing data source: bibRecordsData or finishTimesData is null');
+      debugPrint('Missing data source: bibRecordsData or finishTimesData is null');
     }
   }
 
@@ -123,7 +123,7 @@ class LoadResultsController with ChangeNotifier {
     if (!hasBibConflicts && !hasTimingConflicts && timingData != null && runnerRecords != null) {
       final List<ResultsRecord> mergedResults = await _mergeRunnerRecordsWithTimingData(
           timingData!, runnerRecords!);
-      print('Data merged, created ${mergedResults.length} result records');
+      debugPrint('Data merged, created ${mergedResults.length} result records');
       
       results = mergedResults;
       notifyListeners();
@@ -177,14 +177,14 @@ class LoadResultsController with ChangeNotifier {
       // Try to find runner by bib number in this race
       final runner = await DatabaseHelper.instance.getRaceRunnerByBib(raceId, record.bib);
       if (runner != null && runner.runnerId != null) {
-        print('Found existing runner ID: ${runner.runnerId} for bib ${record.bib}');
+        debugPrint('Found existing runner ID: ${runner.runnerId} for bib ${record.bib}');
         return runner.runnerId!;
       }
       
-      print('No runner ID found for bib ${record.bib}, using 0 as fallback');
+      debugPrint('No runner ID found for bib ${record.bib}, using 0 as fallback');
       return 0; // Fallback ID if we can't find a valid ID
     } catch (e) {
-      print('Error finding runner ID: $e');
+      debugPrint('Error finding runner ID: $e');
       return 0; // Fallback ID in case of error
     }
   }
