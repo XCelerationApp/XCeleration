@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
+import 'package:xceleration/core/utils/color_utils.dart';
 
 class InstructionCard extends StatelessWidget {
   final String title;
@@ -28,7 +29,7 @@ class InstructionCard extends StatelessWidget {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
           side: BorderSide(
-            color: color.withOpacity(0.3),
+            color: Color.fromRGBO(color.r.toInt(), color.g.toInt(), color.b.toInt(), 0.3),
             width: 0.5,
           ),
         ),
@@ -40,7 +41,7 @@ class InstructionCard extends StatelessWidget {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: Color.fromRGBO(color.r.toInt(), color.g.toInt(), color.b.toInt(), 0.1),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Icon(
@@ -104,7 +105,7 @@ class InstructionItem extends StatelessWidget {
             width: 24,
             height: 24,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: Color.fromRGBO(color.r.toInt(), color.g.toInt(), color.b.toInt(), 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Center(

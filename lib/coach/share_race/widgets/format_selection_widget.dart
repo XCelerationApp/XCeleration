@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../utils/enums.dart';
+import 'package:xceleration/core/utils/color_utils.dart';
 
 class FormatSelectionWidget extends StatelessWidget {
   final void Function(ResultFormat) onShareSelected;
@@ -25,7 +26,7 @@ class FormatSelectionWidget extends StatelessWidget {
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: ColorUtils.withOpacity(Color.fromRGBO(0, 0, 0, 1.0), 0.05),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -130,7 +131,7 @@ class FormatSelectionWidget extends StatelessWidget {
           Icon(
             icon,
             size: 24,
-            color: Colors.black54.withOpacity(0.8),
+            color: Color.fromRGBO(0, 0, 0, 0.8 * 0.54),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -142,7 +143,7 @@ class FormatSelectionWidget extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Colors.black87.withOpacity(0.9),
+                    color: Color.fromRGBO(0, 0, 0, 0.9 * 0.87),
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -150,7 +151,7 @@ class FormatSelectionWidget extends StatelessWidget {
                   description,
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.black54.withOpacity(0.7),
+                    color: const Color.fromRGBO(0, 0, 0, 0.54 * 0.7),
                     fontWeight: FontWeight.w400,
                   ),
                   maxLines: 2,
@@ -171,7 +172,7 @@ class FormatSelectionWidget extends StatelessWidget {
                   child: Icon(
                     Icons.content_copy,
                     size: 20,
-                    color: Colors.black54.withOpacity(0.7),
+                    color: const Color.fromRGBO(0, 0, 0, 0.54 * 0.7),
                   ),
                 ),
               ),

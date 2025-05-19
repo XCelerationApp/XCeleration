@@ -3,6 +3,7 @@ import '../theme/app_colors.dart';
 import '../theme/app_loading.dart';
 import '../../shared/role_screen.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'package:xceleration/core/utils/color_utils.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -91,7 +92,7 @@ class SplashScreenState extends State<SplashScreen>
                       end: Alignment.bottomCenter,
                       colors: [
                         AppColors.primaryColor,
-                        AppColors.primaryColor.withOpacity(0.85),
+                        ColorUtils.withOpacity(AppColors.primaryColor, 0.85),
                       ],
                     ),
                   ),
@@ -118,7 +119,7 @@ class SplashScreenState extends State<SplashScreen>
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.2),
+                                color: ColorUtils.withOpacity(Color.fromRGBO(0, 0, 0, 1.0), 0.2),
                                 blurRadius: 15,
                                 spreadRadius: 1,
                                 offset: const Offset(0, 4),
@@ -167,7 +168,7 @@ class SplashScreenState extends State<SplashScreen>
                               shadows: [
                                 Shadow(
                                   blurRadius: 3.0,
-                                  color: Colors.black.withOpacity(0.2),
+                                  color: ColorUtils.withOpacity(Color.fromRGBO(0, 0, 0, 1.0), 0.2),
                                   offset: const Offset(0, 2),
                                 ),
                               ],
@@ -179,7 +180,7 @@ class SplashScreenState extends State<SplashScreen>
                             style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.w500,
-                              color: Colors.white.withOpacity(0.9),
+                              color: ColorUtils.withOpacity(Color.fromRGBO(255, 255, 255, 1.0), 0.9),
                             ),
                           ),
                         ],

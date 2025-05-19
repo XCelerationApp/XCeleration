@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/theme/app_colors.dart';
+import 'package:xceleration/core/utils/color_utils.dart';
 
 class DetailCard extends StatelessWidget {
   final String label;
@@ -36,7 +37,7 @@ class DetailCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: iconColor.withOpacity(0.2),
+                  color: Color.fromRGBO(iconColor.r.toInt(), iconColor.g.toInt(), iconColor.b.toInt(), 0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(icon, color: iconColor, size: 24),

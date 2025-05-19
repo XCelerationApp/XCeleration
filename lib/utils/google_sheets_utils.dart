@@ -196,6 +196,10 @@ class GoogleSheetsUtils {
       }
 
       debugPrint('Getting SheetsApi');
+      
+      // Check if context is still mounted before using it
+      if (!context.mounted) return null;
+      
       final sheetsApi = await _getSheetsApi(context);
       debugPrint(
           'SheetsApi result: ${sheetsApi != null ? 'success' : 'failed'}');
@@ -221,7 +225,15 @@ class GoogleSheetsUtils {
 
       // Set the spreadsheet to be accessible to anyone with the link
       debugPrint('Setting spreadsheet permissions');
+      
+      // Check if context is still mounted before using it
+      if (!context.mounted) return null;
+      
       final driveApi = await _getDriveApi(context);
+      
+      // Check if context is still mounted after getting the Drive API
+      if (!context.mounted) return null;
+      
       if (driveApi != null && spreadsheet.spreadsheetId != null) {
         try {
           await driveApi.permissions.create(

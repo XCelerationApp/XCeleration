@@ -35,6 +35,9 @@ class MasterFlowController {
       }
     }
 
+    // Check if context is still mounted after async operation
+    if (!context.mounted) return;
+
     switch (raceController.race!.flowState) {
       case Race.FLOW_PRE_RACE:
         await _preRaceFlow(context);
@@ -91,10 +94,17 @@ class MasterFlowController {
   /// Shows a flow for pre-race setup and coordination
   Future<bool> _preRaceFlow(BuildContext context) async {
     final bool completed = await preRaceController.showPreRaceFlow(context, true);
+    
+    // Check if context is still mounted after async operation
+    if (!context.mounted) return false;
+    
     if (!completed) return false;
     
     // Mark as pre-race-completed instead of moving directly to post-race
     await updateRaceFlowState(Race.FLOW_PRE_RACE_COMPLETED);
+    
+    // Check if context is still valid after the async operations
+    if (!context.mounted) return false;
     
     // Return to race screen without starting the next flow automatically
     return true;
@@ -104,6 +114,10 @@ class MasterFlowController {
   /// Shows a flow for post-race data collection and result processing
   Future<bool> _postRaceFlow(BuildContext context) async {
     final bool completed = await postRaceController.showPostRaceFlow(context, true);
+    
+    // Check if context is still mounted after async operation
+    if (!context.mounted) return false;
+    
     if (!completed) return false;
 
     // Set the race state directly to finished after post-race flow completes
@@ -112,13 +126,8 @@ class MasterFlowController {
     // Add a short delay to let the UI settle
     await Future.delayed(const Duration(milliseconds: 500));
     
-    // Check if context is still valid after the delay
-    if (!context.mounted) return false;
-    
     // Return to race results tab
-    if (context.mounted) {
-      raceController.tabController.animateTo(1);
-    }
+    raceController.tabController.animateTo(1);
     return true;
   }
 }

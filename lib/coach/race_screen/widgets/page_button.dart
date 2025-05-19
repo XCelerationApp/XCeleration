@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/typography.dart';
+import 'package:xceleration/core/utils/color_utils.dart';
 
 class PageButton extends StatelessWidget {
   final String title;
@@ -39,7 +40,7 @@ class PageButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: ColorUtils.withOpacity(Colors.black, 0.05),
               blurRadius: 10,
               offset: const Offset(0, 2),
             ),

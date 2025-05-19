@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/theme/app_colors.dart';
+import 'package:xceleration/core/utils/color_utils.dart';
 
 class ModernDetailRow extends StatelessWidget {
   final String label;
@@ -27,7 +28,7 @@ class ModernDetailRow extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: AppColors.primaryColor.withOpacity(0.2),
+              color: ColorUtils.withOpacity(AppColors.primaryColor, 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(icon, color: AppColors.primaryColor, size: 22),
@@ -40,7 +41,7 @@ class ModernDetailRow extends StatelessWidget {
                 Text(
                   label,
                   style: AppTypography.bodyRegular.copyWith(
-                    color: AppColors.darkColor.withOpacity(0.6),
+                    color: ColorUtils.withOpacity(AppColors.lightColor, 0.6),
                   ),
                 ),
                 const SizedBox(height: 4),

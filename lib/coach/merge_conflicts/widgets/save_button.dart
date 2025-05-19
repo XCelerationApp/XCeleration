@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
 import '../controller/merge_conflicts_controller.dart';
+import 'package:xceleration/core/utils/color_utils.dart';
 
 class SaveButton extends StatelessWidget {
   const SaveButton({super.key, required this.controller});
@@ -22,7 +23,7 @@ class SaveButton extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.primaryColor.withOpacity(0.2),
+                  color: ColorUtils.withOpacity(AppColors.primaryColor, 0.2),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),

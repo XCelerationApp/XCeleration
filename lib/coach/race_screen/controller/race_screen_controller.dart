@@ -87,15 +87,22 @@ class RaceController with ChangeNotifier {
 
   Future<void> init(BuildContext context) async {
     race = await loadRace();
+  
+    // Check if context is still mounted after loading race
+    if (!context.mounted) return;
+  
     _initializeControllers();
     flowController = MasterFlowController(raceController: this);
     loadRunnersCount();
-    
+  
     // Set initial flow state to setup if it's a new race
     if (race != null && race!.flowState.isEmpty) {
       await updateRaceFlowState(context, Race.FLOW_SETUP);
+  
+      // Check if context is still mounted after updating race flow state
+      if (!context.mounted) return;
     }
-    
+  
     notifyListeners();
   }
 
@@ -209,7 +216,12 @@ class RaceController with ChangeNotifier {
     
     // If all requirements are met, advance to setup_complete
     if (hasMinimumRunners && fieldsComplete) {
+      // Check if context is still mounted before using it
+      if (!context.mounted) return false;
+      
       await updateRaceFlowState(context, Race.FLOW_SETUP_COMPLETED);
+      // Check if the context is still mounted after the async operation
+      if (!context.mounted) return false;
       return true;
     }
     
@@ -226,7 +238,7 @@ class RaceController with ChangeNotifier {
         .toList();
     
     // Convert Color objects to integer values for database storage
-    final colors = teamColors.map((color) => color.value).toList();
+    final colors = teamColors.map((color) => color.toARGB32()).toList();
     
     await DatabaseHelper.instance.updateRaceField(race!.raceId, 'teams', teams);
     await DatabaseHelper.instance.updateRaceField(race!.raceId, 'teamColors', colors);
@@ -330,6 +342,9 @@ class RaceController with ChangeNotifier {
     String completedState = race!.completedFlowState;
     await updateRaceFlowState(context, completedState);
     
+    // Check if the context is still mounted before using ScaffoldMessenger
+    if (!context.mounted) return;
+    
     // Show a confirmation snackbar
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('${_getFlowDisplayName(race!.flowState)} completed!'))
@@ -354,6 +369,9 @@ class RaceController with ChangeNotifier {
     // Update to the next flow state
     await updateRaceFlowState(context, nextState);
     
+    // Check if context is still valid after the async operation
+    if (!context.mounted) return;
+    
     // If the race is now finished, show a final success message
     if (nextState == Race.FLOW_FINISHED) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -368,6 +386,10 @@ class RaceController with ChangeNotifier {
     
     // Navigate to the appropriate screen based on the flow
     await flowController.handleFlowNavigation(context, nextState);
+    
+    // We should ideally add another context.mounted check here, but since this is
+    // the last statement and we're not using the context after this, we'll leave it
+    // to the flowController to handle context checking internally
   }
   
   /// Helper method to get a user-friendly name for a flow state
@@ -397,6 +419,10 @@ class RaceController with ChangeNotifier {
     if (currentState == Race.FLOW_SETUP) {
       // Just check if we can advance to setup_complete
       final canAdvance = await checkSetupComplete();
+      
+      // Check if context is still mounted after async operation
+      if (!context.mounted) return;
+      
       if (!canAdvance) {
         // Show message about missing requirements
         ScaffoldMessenger.of(context).showSnackBar(
@@ -423,11 +449,17 @@ class RaceController with ChangeNotifier {
       // Update to the next flow state
       await updateRaceFlowState(context, nextState);
       
+      // Check if context is still mounted after async operation
+      if (!context.mounted) return;
+      
       // Show a message about which flow we're starting
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Beginning ${_getFlowDisplayName(nextState)}'))
       );
     }
+    
+    // Check if context is still valid before navigation
+    if (!context.mounted) return;
     
     // Use the flow controller to handle the navigation
     await flowController.handleFlowNavigation(context, race!.flowState);
@@ -563,8 +595,11 @@ class RaceController with ChangeNotifier {
   Future<void> getCurrentLocation() async {
     try {
       LocationPermission permission = await Geolocator.checkPermission();
+      if (!context.mounted) return; // Check if context is still valid
+      
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
+        if (!context.mounted) return; // Check if context is still valid after async request
       }
 
       if (permission == LocationPermission.deniedForever) {
@@ -579,15 +614,22 @@ class RaceController with ChangeNotifier {
         return;
       }
 
-      if (!await Geolocator.isLocationServiceEnabled()) {
+      bool locationEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!context.mounted) return; // Check if context is still valid
+      
+      if (!locationEnabled) {
         DialogUtils.showErrorDialog(context,
             message: 'Location services are disabled');
         return;
       }
 
       final position = await Geolocator.getCurrentPosition();
+      if (!context.mounted) return; // Check if context is still valid
+      
       final placemarks =
           await placemarkFromCoordinates(position.latitude, position.longitude);
+      if (!context.mounted) return; // Check if context is still valid
+      
       final placemark = placemarks.first;
       locationController.text =
           '${placemark.subThoroughfare} ${placemark.thoroughfare}, ${placemark.locality}, ${placemark.administrativeArea} ${placemark.postalCode}';

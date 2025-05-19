@@ -4,6 +4,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/components/button_components.dart';
 import '../../../utils/database_helper.dart';
+import 'package:xceleration/core/utils/color_utils.dart';
 import 'competing_teams_field.dart';
 import 'modern_detail_row.dart';
 import '../controller/race_screen_controller.dart';
@@ -201,7 +202,7 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
                               Container(
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color: AppColors.primaryColor.withOpacity(0.2),
+                                  color: ColorUtils.withOpacity(AppColors.primaryColor, 0.1),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: Icon(
@@ -219,7 +220,7 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
                                     Text(
                                       'Runners',
                                       style: AppTypography.bodyRegular.copyWith(
-                                        color: AppColors.darkColor.withOpacity(0.6),
+                                        color: ColorUtils.withOpacity(AppColors.darkColor, 0.6),
                                       ),
                                     ),
                                     const SizedBox(height: 4),

@@ -6,6 +6,7 @@ import '../../../core/theme/app_colors.dart';
 import 'runner_info_widgets.dart';
 import 'time_widgets.dart';
 import '../../../utils/enums.dart';
+import 'package:xceleration/core/utils/color_utils.dart';
 
 class RunnerTimeRecord extends StatelessWidget {
   const RunnerTimeRecord({
@@ -30,8 +31,8 @@ class RunnerTimeRecord extends StatelessWidget {
 
     final Color conflictColor =
         hasConflict ? AppColors.primaryColor : Colors.green;
-    final Color bgColor = conflictColor.withOpacity(0.05);
-    final Color borderColor = conflictColor.withOpacity(0.5);
+    final Color bgColor = Color.fromRGBO(conflictColor.r.toInt(), conflictColor.g.toInt(), conflictColor.b.toInt(), 0.05);
+    final Color borderColor = Color.fromRGBO(conflictColor.r.toInt(), conflictColor.g.toInt(), conflictColor.b.toInt(), 0.5);
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4),

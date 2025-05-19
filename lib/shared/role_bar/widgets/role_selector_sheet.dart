@@ -30,6 +30,10 @@ class RoleSelectorSheet {
         confirmText: 'Continue',
         cancelText: 'Stay',
       );
+      
+      // Check if context is still mounted after the async dialog
+      if (!context.mounted) return;
+      
       if (confirmChange) {
         _navigateToRoleScreen(context, newRole);
       }

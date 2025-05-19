@@ -20,13 +20,24 @@ class ShareUtils {
         return null;
       }
 
+      // Check if context is still mounted before showing dialog
+      if (!context.mounted) return null;
+      
       DialogUtils.showLoadingDialog(context, message: 'Creating Google Sheet...');
+      
       // Try to create the spreadsheet
+      // Check if context is still mounted before calling APIs
+      if (!context.mounted) return null;
+      
       final url = await GoogleSheetsUtils.createSpreadsheet(
         context,
         title: title,
         data: sheetsData,
       );
+      
+      // Check if context is still mounted after spreadsheet creation
+      if (!context.mounted) return null;
+      
       Navigator.of(context, rootNavigator: true).pop();
       if (url != null) {
         return Uri.parse(url);

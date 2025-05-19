@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
+import 'package:xceleration/core/utils/color_utils.dart';
 
 class RunnerSearchBar extends StatelessWidget {
   final TextEditingController controller;
@@ -34,7 +35,7 @@ class RunnerSearchBar extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
+                        color: ColorUtils.withOpacity(Colors.black, 0.05),
                         spreadRadius: 1,
                         blurRadius: 3,
                         offset: const Offset(0, 1),
@@ -46,9 +47,9 @@ class RunnerSearchBar extends StatelessWidget {
                     decoration: InputDecoration(
                       hintText: 'Search',
                       hintStyle:
-                          TextStyle(color: AppColors.mediumColor.withOpacity(0.7)),
+                          TextStyle(color: ColorUtils.withOpacity(AppColors.mediumColor, 0.7)),
                       prefixIcon: Icon(Icons.search,
-                          color: AppColors.primaryColor.withOpacity(0.8)),
+                          color: ColorUtils.withOpacity(AppColors.primaryColor, 0.8)),
                       fillColor: Colors.white,
                       filled: true,
                       contentPadding: const EdgeInsets.symmetric(vertical: 12),
@@ -80,7 +81,7 @@ class RunnerSearchBar extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
+                        color: ColorUtils.withOpacity(Color.fromRGBO(0, 0, 0, 1.0), 0.05),
                         spreadRadius: 1,
                         blurRadius: 3,
                         offset: const Offset(0, 1),
@@ -127,7 +128,7 @@ class RunnerSearchBar extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
+                        color: ColorUtils.withOpacity(Color.fromRGBO(0, 0, 0, 1.0), 0.05),
                         spreadRadius: 1,
                         blurRadius: 3,
                         offset: const Offset(0, 1),

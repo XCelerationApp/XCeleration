@@ -18,7 +18,10 @@ Widget deviceConnectionWidget(BuildContext context, DevicesManager devices,
     }
     if (inSheet) {
       Future.delayed(const Duration(seconds: 1), () {
-        Navigator.pop(context);
+        // Check if the context is still valid before using Navigator
+        if (context.mounted) {
+          Navigator.pop(context);
+        }
       });
     }
   }

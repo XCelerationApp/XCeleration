@@ -150,8 +150,15 @@ class ShareResultsController {
 
       if (format == ResultFormat.pdf) {
         final pdfData = _formattedResultsController.formattedPdf;
+        
+        // Check if context is still mounted before showing dialog
+        if (!context.mounted) return;
+        
         DialogUtils.showLoadingDialog(context, message: 'Creating PDF...');
         final bytes = await pdfData.save();
+        
+        // Check if context is still mounted after async operation
+        if (!context.mounted) return;
         Navigator.of(context, rootNavigator: true).pop();
 
         final String pdfFileName = '$title.pdf';

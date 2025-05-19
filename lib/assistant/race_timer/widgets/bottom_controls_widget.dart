@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
 import '../controller/timing_controller.dart';
+import 'package:xceleration/core/utils/color_utils.dart';
 
 class BottomControlsWidget extends StatelessWidget {
   final TimingController controller;
@@ -21,7 +22,7 @@ class BottomControlsWidget extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: ColorUtils.withOpacity(Colors.black, 0.05),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
@@ -38,7 +39,7 @@ class BottomControlsWidget extends StatelessWidget {
           Container(
             height: 30,
             width: 1,
-            color: Colors.grey.withOpacity(0.3),
+            color: ColorUtils.withOpacity(Colors.grey, 0.3),
           ),
           _buildAdjustTimesButton(context),
           if (controller.hasUndoableConflict())
@@ -63,7 +64,7 @@ class BottomControlsWidget extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: Color.fromRGBO(color.r.toInt(), color.g.toInt(), color.b.toInt(), 0.1),
           shape: BoxShape.circle,
         ),
         child: Icon(

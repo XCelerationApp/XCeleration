@@ -19,6 +19,10 @@ class GoogleDrivePicker {
     try {
       // Sign in to Google
       final signInSuccess = await _driveService.signInAndSetup();
+      
+      // Check if context is still mounted after the async operation
+      if (!context.mounted) return null;
+      
       if (!signInSuccess) {
         _showMessage(context, 'Failed to sign in to Google Drive');
         return null;
@@ -29,6 +33,9 @@ class GoogleDrivePicker {
       
       // Get files from Google Drive
       final driveFiles = await _driveService.listSpreadsheetFiles();
+      
+      // Check if context is still mounted after the async operation
+      if (!context.mounted) return null;
       
       // Dismiss loading dialog
       Navigator.of(context, rootNavigator: true).pop();
@@ -44,6 +51,9 @@ class GoogleDrivePicker {
         builder: (context) => _DriveFilePickerDialog(driveFiles: driveFiles, fileIconBuilder: _getFileIcon),
       );
       
+      // Check if context is still mounted after dialog
+      if (!context.mounted) return null;
+      
       if (selectedFile == null) {
         return null;
       }
@@ -56,6 +66,9 @@ class GoogleDrivePicker {
         selectedFile.id!,
         selectedFile.name ?? 'spreadsheet'
       );
+      
+      // Check if context is still mounted after download
+      if (!context.mounted) return null;
       
       // Dismiss download dialog
       Navigator.of(context, rootNavigator: true).pop();
