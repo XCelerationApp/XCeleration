@@ -56,7 +56,7 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
               width: 100,
               height: 100,
               decoration: BoxDecoration(
-                color: ColorUtils.withOpacity(Color.fromRGBO(76, 175, 80, 1.0), 0.1),
+                color: ColorUtils.withOpacity(Colors.green, 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -212,7 +212,7 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
                   borderRadius: BorderRadius.circular(18),
                   boxShadow: [
                     BoxShadow(
-                      color: ColorUtils.withOpacity(Color.fromRGBO(0, 0, 0, 1.0), 0.05),
+                      color: ColorUtils.withOpacity(Colors.black, 0.05),
                       blurRadius: 4,
                       offset: const Offset(0, 1),
                     ),

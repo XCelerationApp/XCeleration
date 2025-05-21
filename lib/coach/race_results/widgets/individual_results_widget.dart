@@ -23,7 +23,7 @@ class IndividualResultsWidget extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: ColorUtils.withOpacity(Color.fromRGBO(0, 0, 0, 1.0), 0.05),
+            color: ColorUtils.withOpacity(Colors.black, 0.05),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),

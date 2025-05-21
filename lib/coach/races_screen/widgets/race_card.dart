@@ -103,7 +103,7 @@ class RaceCard extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 12),
         width: double.infinity,
         decoration: BoxDecoration(
-          color: ColorUtils.withOpacity(AppColors.lightColor, 0.05),
+          color: ColorUtils.withOpacity(AppColors.mediumColor, 0.1),
           borderRadius: BorderRadius.circular(16),
           border: Border(
             left: BorderSide(
@@ -136,7 +136,7 @@ class RaceCard extends StatelessWidget {
                             horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
                           color:
-                              flowStateColor.withAlpha((0.05 * 255).round()),
+                              flowStateColor.withAlpha((0.1 * 255).round()),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
                             color:

@@ -11,11 +11,7 @@ class ColorUtils {
   /// ColorUtils.withOpacity(Colors.black, 0.5)
   /// ```
   static Color withOpacity(Color color, double opacity) {
-    return Color.fromRGBO(
-      color.r.toInt(), 
-      color.g.toInt(), 
-      color.b.toInt(), 
-      opacity
-    );
+    // Use withValues to avoid precision loss as recommended by Flutter
+    return color.withAlpha((opacity * 255).round());
   }
 }

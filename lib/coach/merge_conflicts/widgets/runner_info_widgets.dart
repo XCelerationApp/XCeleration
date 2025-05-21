@@ -19,10 +19,10 @@ class PlaceNumber extends StatelessWidget {
       width: 26,
       height: 26,
       decoration: BoxDecoration(
-        color: Color.fromRGBO(color.r.toInt(), color.g.toInt(), color.b.toInt(), 0.1),
+        color: ColorUtils.withOpacity(color, 0.1),
         borderRadius: BorderRadius.circular(13),
         border: Border.all(
-          color: Color.fromRGBO(color.r.toInt(), color.g.toInt(), color.b.toInt(), 0.4),
+          color: ColorUtils.withOpacity(color, 0.4),
           width: 0.5,
         ),
       ),
@@ -30,7 +30,7 @@ class PlaceNumber extends StatelessWidget {
         child: Text(
           '#$place',
           style: AppTypography.smallCaption.copyWith(
-            color: Color.fromRGBO(color.r.toInt(), color.g.toInt(), color.b.toInt(), 0.9),
+            color: ColorUtils.withOpacity(color, 0.9),
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -94,7 +94,7 @@ class InfoChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
       decoration: BoxDecoration(
-        color: Color.fromRGBO(color.r.toInt(), color.g.toInt(), color.b.toInt(), 0.08),
+        color: ColorUtils.withOpacity(color, 0.08),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(

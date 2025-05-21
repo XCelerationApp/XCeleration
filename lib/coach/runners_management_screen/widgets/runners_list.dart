@@ -124,7 +124,7 @@ class RunnersList extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
-                          color: schoolColor != null ? Color.fromRGBO(schoolColor.r.toInt(), schoolColor.g.toInt(), schoolColor.b.toInt(), 0.15) : null,
+                          color: schoolColor != null ? ColorUtils.withOpacity(schoolColor, 0.15) : null,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(

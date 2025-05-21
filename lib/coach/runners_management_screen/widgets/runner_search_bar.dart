@@ -81,7 +81,7 @@ class RunnerSearchBar extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: ColorUtils.withOpacity(Color.fromRGBO(0, 0, 0, 1.0), 0.05),
+                        color: ColorUtils.withOpacity(Colors.black, 0.05),
                         spreadRadius: 1,
                         blurRadius: 3,
                         offset: const Offset(0, 1),
@@ -128,7 +128,7 @@ class RunnerSearchBar extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: ColorUtils.withOpacity(Color.fromRGBO(0, 0, 0, 1.0), 0.05),
+                        color: ColorUtils.withOpacity(Colors.black, 0.05),
                         spreadRadius: 1,
                         blurRadius: 3,
                         offset: const Offset(0, 1),

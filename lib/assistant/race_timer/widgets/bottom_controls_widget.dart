@@ -64,7 +64,7 @@ class BottomControlsWidget extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: Color.fromRGBO(color.r.toInt(), color.g.toInt(), color.b.toInt(), 0.1),
+          color: ColorUtils.withOpacity(color, 0.1),
           shape: BoxShape.circle,
         ),
         child: Icon(

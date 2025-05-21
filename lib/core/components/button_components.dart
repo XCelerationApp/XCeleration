@@ -89,7 +89,7 @@ class ActionButton extends StatelessWidget {
           boxShadow: elevation > 0
               ? [
                   BoxShadow(
-                    color: Color.fromRGBO(effectiveBackgroundColor.r.toInt(), effectiveBackgroundColor.g.toInt(), effectiveBackgroundColor.b.toInt(), 0.3),
+                    color: ColorUtils.withOpacity(effectiveBackgroundColor, 0.3),
                     spreadRadius: 0,
                     blurRadius: elevation * 2,
                     offset: Offset(0, elevation),
@@ -102,8 +102,8 @@ class ActionButton extends StatelessWidget {
           style: ElevatedButton.styleFrom(
             backgroundColor: effectiveBackgroundColor,
             foregroundColor: effectiveTextColor,
-            disabledBackgroundColor: Color.fromRGBO(effectiveBackgroundColor.r.toInt(), effectiveBackgroundColor.g.toInt(), effectiveBackgroundColor.b.toInt(), 0.5),
-            disabledForegroundColor: Color.fromRGBO(effectiveTextColor.r.toInt(), effectiveTextColor.g.toInt(), effectiveTextColor.b.toInt(), 0.5),
+            disabledBackgroundColor: ColorUtils.withOpacity(effectiveBackgroundColor, 0.5),
+            disabledForegroundColor: ColorUtils.withOpacity(effectiveTextColor, 0.5),
             elevation: 0,
             padding: buttonPadding,
             minimumSize: Size(0, height ?? buttonSize.height),
@@ -325,7 +325,7 @@ class CircleIconButton extends StatelessWidget {
           boxShadow: elevation > 0
               ? [
                   BoxShadow(
-                    color: ColorUtils.withOpacity(Color.fromRGBO(0, 0, 0, 1.0), 0.1),
+                    color: ColorUtils.withOpacity(Colors.black, 0.1),
                     spreadRadius: 0,
                     blurRadius: elevation * 2,
                     offset: elevation > 0 ? const Offset(0, 2) : Offset.zero,
@@ -338,8 +338,8 @@ class CircleIconButton extends StatelessWidget {
           style: ElevatedButton.styleFrom(
             backgroundColor: effectiveBackgroundColor,
             foregroundColor: effectiveIconColor,
-            disabledBackgroundColor: Color.fromRGBO(effectiveBackgroundColor.r.toInt(), effectiveBackgroundColor.g.toInt(), effectiveBackgroundColor.b.toInt(), 0.5),
-            disabledForegroundColor: Color.fromRGBO(effectiveIconColor.r.toInt(), effectiveIconColor.g.toInt(), effectiveIconColor.b.toInt(), 0.5),
+            disabledBackgroundColor: ColorUtils.withOpacity(effectiveBackgroundColor, 0.5),
+            disabledForegroundColor: ColorUtils.withOpacity(effectiveIconColor, 0.5),
             padding: EdgeInsets.zero,
             shape: const CircleBorder(),
             elevation: 0,

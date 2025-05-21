@@ -92,10 +92,10 @@ class ConfirmHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: ColorUtils.withOpacity(Color.fromRGBO(76, 175, 80, 1.0), 0.1),
+        color: ColorUtils.withOpacity(Colors.green, 0.1),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: ColorUtils.withOpacity(Color.fromRGBO(76, 175, 80, 1.0), 0.5),
+          color: ColorUtils.withOpacity(Colors.green, 0.5),
           width: 1,
         ),
       ),
@@ -105,7 +105,7 @@ class ConfirmHeader extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: ColorUtils.withOpacity(Color.fromRGBO(0, 255, 0, 1.0), 0.2),
+              color: ColorUtils.withOpacity(Colors.green, 0.2),
               borderRadius: BorderRadius.circular(20),
             ),
             child: const Icon(
@@ -129,7 +129,7 @@ class ConfirmHeader extends StatelessWidget {
                 Text(
                   'These runner results have been confirmed',
                   style: AppTypography.smallBodyRegular.copyWith(
-                    color: ColorUtils.withOpacity(Color.fromRGBO(76, 175, 80, 1.0), 0.8),
+                    color: ColorUtils.withOpacity(Colors.green, 0.8),
                   ),
                 ),
               ],
@@ -154,10 +154,10 @@ class ConfirmationRecord extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(8, 4, 8, 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: ColorUtils.withOpacity(Color.fromRGBO(76, 175, 80, 1.0), 0.1),
+        color: ColorUtils.withOpacity(Colors.green, 0.1),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: ColorUtils.withOpacity(Color.fromRGBO(76, 175, 80, 1.0), 0.5),
+          color: ColorUtils.withOpacity(Colors.green, 0.5),
           width: 1,
         ),
       ),
@@ -170,7 +170,7 @@ class ConfirmationRecord extends StatelessWidget {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: ColorUtils.withOpacity(Color.fromRGBO(76, 175, 80, 1.0), 0.2),
+                  color: ColorUtils.withOpacity(Colors.green, 0.2),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: const Icon(
@@ -196,7 +196,7 @@ class ConfirmationRecord extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: ColorUtils.withOpacity(Color.fromRGBO(0, 0, 0, 1.0), 0.05),
+                  color: ColorUtils.withOpacity(Colors.black, 0.05),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),

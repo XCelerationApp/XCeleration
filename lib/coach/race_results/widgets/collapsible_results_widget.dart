@@ -69,7 +69,7 @@ class _CollapsibleResultsWidgetState extends State<CollapsibleResultsWidget> {
           // Use subtle alternate row colors for better readability
           final backgroundColor = index % 2 == 0
               ? Colors.transparent
-              : ColorUtils.withOpacity(Color.fromRGBO(158, 158, 158, 1.0), 0.05); // Colors.grey with 0.05 opacity
+              : ColorUtils.withOpacity(Colors.grey, 0.05);
 
           return Container(
             color: backgroundColor,

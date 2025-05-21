@@ -119,7 +119,7 @@ class SplashScreenState extends State<SplashScreen>
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: ColorUtils.withOpacity(Color.fromRGBO(0, 0, 0, 1.0), 0.2),
+                                color: ColorUtils.withOpacity(Colors.black, 0.2),
                                 blurRadius: 15,
                                 spreadRadius: 1,
                                 offset: const Offset(0, 4),
@@ -168,7 +168,7 @@ class SplashScreenState extends State<SplashScreen>
                               shadows: [
                                 Shadow(
                                   blurRadius: 3.0,
-                                  color: ColorUtils.withOpacity(Color.fromRGBO(0, 0, 0, 1.0), 0.2),
+                                  color: ColorUtils.withOpacity(Colors.black, 0.2),
                                   offset: const Offset(0, 2),
                                 ),
                               ],
@@ -180,7 +180,7 @@ class SplashScreenState extends State<SplashScreen>
                             style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.w500,
-                              color: ColorUtils.withOpacity(Color.fromRGBO(255, 255, 255, 1.0), 0.9),
+                              color: ColorUtils.withOpacity(Colors.white, 0.9),
                             ),
                           ),
                         ],
