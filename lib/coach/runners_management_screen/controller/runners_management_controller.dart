@@ -197,14 +197,15 @@ class RunnersManagementController with ChangeNotifier {
 
   Future<void> handleRunnerSubmission(RunnerRecord runner) async {
     try {
-      dynamic existingRunner;
+      RunnerRecord? existingRunner;
       existingRunner =
           await DatabaseHelper.instance.getRaceRunnerByBib(raceId, runner.bib);
-      debugPrint('existingRunner: $existingRunner');
+      debugPrint('existingRunner: ${existingRunner?.toMap()}');
 
       if (existingRunner != null) {
         // If we're updating the same runner (same ID), just update
-        if (existingRunner['runner_id'] == runner.runnerId) {
+        if (existingRunner.runnerId == runner.runnerId) {
+          debugPrint('Updating runner: ${runner.toMap()}');
           await updateRunner(runner);
         } else {
           // If a different runner exists with this bib, ask for confirmation

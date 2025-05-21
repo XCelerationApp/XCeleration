@@ -47,21 +47,15 @@ class LoadResultsWidget extends StatelessWidget {
               
               // Display conflicts or success message
               if (controller.resultsLoaded) ...[
-                if (controller.hasBibConflicts)
+                if (controller.hasBibConflicts || controller.hasTimingConflicts)
                   ConflictButton(
-                    title: 'Bib Numbers Not Found',
+                    title: 'Race Conflicts',
                     description:
-                        'Some runners have unfound bib numbers. Please resolve these conflicts before proceeding.',
-                    buttonText: 'Resolve Bib Numbers',
-                    onPressed: () => controller.showBibConflictsSheet(context),
-                  )
-                else if (controller.hasTimingConflicts)
-                  ConflictButton(
-                    title: 'Timing Conflicts',
-                    description:
-                        'There are conflicts in the race timing data. Please review and resolve these conflicts.',
-                    buttonText: 'Resolve Timing Conflicts',
-                    onPressed: () => controller.showTimingConflictsSheet(context),
+                        'Your race contains conflicts. Please resolve them before proceeding.',
+                    buttonText: 'Resolve',
+                    onPressed: () => controller.hasBibConflicts
+                        ? controller.showBibConflictsSheet(context)
+                        : controller.showTimingConflictsSheet(context),
                   )
                 else
                   const SuccessMessage(),

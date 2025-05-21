@@ -72,7 +72,7 @@ class RunnerInfo extends StatelessWidget {
             if (runner.school.isNotEmpty)
               InfoChip(
                   label: runner.school,
-                  color: ColorUtils.withOpacity(AppColors.mediumColor, 0.8)),
+                  color: accentColor),
           ],
         ),
       ],
