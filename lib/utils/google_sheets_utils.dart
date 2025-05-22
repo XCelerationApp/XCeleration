@@ -155,11 +155,7 @@ class GoogleSheetsUtils {
       );
       
       if (spreadsheetId == null) {
-        // Show error if sheet couldn't be created
-        if (context.mounted) {
-          DialogUtils.showErrorDialog(context, message: 'Failed to create Google Sheet. Please try again.');
-        }
-        return null;
+        throw Exception('Failed to create Google Sheet');
       }
       
       // Try to get the URL via API first, with a 5 second timeout
@@ -204,10 +200,7 @@ class GoogleSheetsUtils {
       return uri;
     } catch (e) {
       debugPrint('Error creating sheet and getting URI: $e');
-      if (context.mounted) {
-        DialogUtils.showErrorDialog(context, message: 'Error creating Google Sheet');
-      }
-      return null;
+      rethrow;
     }
   }
 
