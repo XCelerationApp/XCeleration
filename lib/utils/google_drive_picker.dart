@@ -40,10 +40,13 @@ class GoogleDrivePicker {
         return null;
       }
 
-      if (driveFiles.isEmpty) {
+      if (driveFiles.isEmpty && context.mounted) {
         _showMessage(context, 'No spreadsheet files found in your Google Drive');
         return null;
       }
+
+      // Check if context is still mounted before dialog
+      if (!context.mounted) return null;
       
       // Show a more native-looking file picker dialog with a proper StatefulWidget
       final selectedFile = await showDialog<drive.File>(

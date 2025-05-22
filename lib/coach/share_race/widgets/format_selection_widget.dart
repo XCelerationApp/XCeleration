@@ -83,7 +83,7 @@ class FormatSelectionWidget extends StatelessWidget {
             Icon(
               icon,
               size: 24,
-              color: Colors.black54.withOpacity(0.8),
+              color: ColorUtils.withOpacity(Colors.black54, 0.8),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -95,7 +95,7 @@ class FormatSelectionWidget extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: Colors.black87.withOpacity(0.9),
+                      color: ColorUtils.withOpacity(Colors.black87, 0.9),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -103,7 +103,7 @@ class FormatSelectionWidget extends StatelessWidget {
                     description,
                     style: TextStyle(
                       fontSize: 14,
-                      color: Colors.black54.withOpacity(0.7),
+                      color: ColorUtils.withOpacity(Colors.black54, 0.7),
                       fontWeight: FontWeight.w400,
                     ),
                     maxLines: 2,

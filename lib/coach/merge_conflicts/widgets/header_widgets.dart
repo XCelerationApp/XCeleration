@@ -25,8 +25,6 @@ class ConflictHeader extends StatelessWidget {
         : 'Missing Runner Times';
     final String description =
         '${type == RecordType.extraRunner ? 'There are more times recorded by the timing assistant than runners' : 'There are more runners than times recorded by the timing assistant'}. Please select or enter appropriate times between $startTime and $endTime to resolve the discrepancy between recorded times and runners.';
-    final IconData icon =
-        type == RecordType.extraRunner ? Icons.group_add : Icons.person_search;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -38,43 +36,25 @@ class ConflictHeader extends StatelessWidget {
           width: 1,
         ),
       ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: ColorUtils.withOpacity(AppColors.primaryColor, 0.2),
-              borderRadius: BorderRadius.circular(20),
+      child: Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '$title at ${conflictRecord.elapsedTime}',
+              style: AppTypography.bodySemibold.copyWith(
+                color: AppColors.primaryColor,
+              ),
             ),
-            child: Icon(
-              icon,
-              color: AppColors.primaryColor,
-              size: 24,
+            const SizedBox(height: 4),
+            Text(
+              description,
+              style: AppTypography.smallBodyRegular.copyWith(
+                color: ColorUtils.withOpacity(AppColors.primaryColor, 0.8),
+              ),
             ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '$title at ${conflictRecord.elapsedTime}',
-                  style: AppTypography.bodySemibold.copyWith(
-                    color: AppColors.primaryColor,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  description,
-                  style: AppTypography.smallBodyRegular.copyWith(
-                    color: ColorUtils.withOpacity(AppColors.primaryColor, 0.8),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

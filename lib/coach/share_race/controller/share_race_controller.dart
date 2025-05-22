@@ -135,6 +135,8 @@ class ShareResultsController {
         allowCancel: true, // Let user cancel if it's taking too long
         operation: () async {
         final List<List<dynamic>> data = await _formattedResultsController.formattedSheetsData;
+
+        if (!context.mounted) throw Exception('Context is not mounted');
         
         // Create Google Sheet
         final uri = await GoogleSheetsUtils.createSheetAndGetUri(
@@ -191,7 +193,7 @@ class ShareResultsController {
   /// Show options for Google Sheet (Copy Link, Open Sheet, Share)
   Future<void> _showGoogleSheetOptions(BuildContext context, Uri sheetUri) async {
     final result = await showGoogleSheetOptionsDialog(context, title: title, sheetUri: sheetUri);
-    
+    if (!context.mounted) return;
     // Handle the selected action if user selected an option
     if (result != null) {
       switch (result) {
