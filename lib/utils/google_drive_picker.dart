@@ -25,14 +25,17 @@ class GoogleDrivePicker {
       }
       
       // Show a loading dialog
-      DialogUtils.showLoadingDialog(context, message: 'Loading files from Google Drive...');
-      
-      // Get files from Google Drive
-      final driveFiles = await _driveService.listSpreadsheetFiles();
-      
-      // Dismiss loading dialog
-      Navigator.of(context, rootNavigator: true).pop();
-      
+      final driveFiles = await DialogUtils.executeWithLoadingDialog<List<drive.File>>(
+        context,
+        loadingMessage: 'Loading files from Google Drive...',
+        operation: () async {
+          return await _driveService.listSpreadsheetFiles();
+        }
+      );
+      if (driveFiles == null) {
+        return null;
+      }
+
       if (driveFiles.isEmpty) {
         _showMessage(context, 'No spreadsheet files found in your Google Drive');
         return null;
@@ -49,18 +52,16 @@ class GoogleDrivePicker {
       }
       
       // Show download dialog
-      DialogUtils.showLoadingDialog(context, message: 'Loading ${selectedFile.name}...');
-      
-      // Download the file
-      final tempFile = await _driveService.downloadFile(
-        selectedFile.id!,
-        selectedFile.name ?? 'spreadsheet'
+      return await DialogUtils.executeWithLoadingDialog<File?>(
+        context,
+        operation: () async {
+          return await _driveService.downloadFile(
+            selectedFile.id!,
+            selectedFile.name ?? 'spreadsheet'
+          );
+        },
+        loadingMessage: 'Loading ${selectedFile.name}...'
       );
-      
-      // Dismiss download dialog
-      Navigator.of(context, rootNavigator: true).pop();
-      
-      return tempFile;
     } catch (e) {
       // Make sure to dismiss dialog if there was an error
       Navigator.of(context, rootNavigator: true).pop();

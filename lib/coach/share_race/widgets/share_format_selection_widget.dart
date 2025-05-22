@@ -15,7 +15,7 @@ class ShareFormatSelectionWidget extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Choose Format',
+            'Choose Your Share Method',
             style: AppTypography.titleRegular,
           ),
           const SizedBox(height: 16),
@@ -33,10 +33,6 @@ class ShareFormatSelectionWidget extends StatelessWidget {
               onShareSelected: (format) {
                 Navigator.of(context).pop();
                 controller.shareResults(context, format);
-              },
-              onCopySelected: (format) {
-                Navigator.of(context).pop();
-                controller.copyToClipboard(context, format); 
               },
             ),
           ),

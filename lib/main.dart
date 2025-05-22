@@ -7,8 +7,12 @@ import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'core/theme/typography.dart';
 import 'core/services/splash_screen.dart';
 import 'core/services/event_bus.dart';
+import 'config/app_config.dart';
 
 Process? _flaskProcess;
+
+// Global app configuration that can be accessed throughout the app
+late AppConfig appConfig;
 
 /// EventBus provider wrapper for global event management
 class EventBusProvider extends ChangeNotifier {
@@ -20,7 +24,23 @@ class EventBusProvider extends ChangeNotifier {
   }
 }
 
-void main() async {
+// Production app entry point
+void main() {
+  // Use the configuration from environment variables or defaults
+  mainCommon(AppConfig.fromEnvironment());
+}
+
+// Development app entry point - also uses environment variables
+void mainDev() {
+  // The configuration is automatically determined from dart-define parameters
+  mainCommon(AppConfig.fromEnvironment());
+}
+
+// Common initialization for all flavors
+void mainCommon(AppConfig config) async {
+  // Store the config for later use
+  appConfig = config;
+
   // This is important to ensure the native splash screen works correctly
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
 
@@ -63,8 +83,9 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Use title from app configuration
     return MaterialApp(
-      title: 'XCeleration',
+      title: appConfig.appName,
       theme: ThemeData(
         primaryColor: AppColors.backgroundColor,
         colorScheme: ColorScheme.fromSwatch(

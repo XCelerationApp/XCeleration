@@ -2,6 +2,18 @@ import 'package:flutter/material.dart';
 import '../theme/typography.dart';
 import '../theme/app_colors.dart';
 
+import 'dart:async';
+
+/// Exception thrown when an operation is canceled
+class OperationCanceledException implements Exception {
+  final String message;
+  
+  OperationCanceledException([this.message = 'Operation was canceled']);
+  
+  @override
+  String toString() => message;
+}
+
 /// Custom alert dialog with app theme styling applied
 class BasicAlertDialog extends StatelessWidget {
   final String title;
@@ -80,24 +92,23 @@ class DialogUtils {
     Color barrierColor = Colors.black54,
   }) async {
     return await showDialog<bool>(
-          context: context,
-          barrierColor: barrierColor,
-          builder: (context) => BasicAlertDialog(
-            title: title,
-            content: content,
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: Text(cancelText, style: AppTypography.buttonText),
-              ),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                child: Text(confirmText, style: AppTypography.buttonText),
-              ),
-            ],
+      context: context,
+      barrierColor: barrierColor,
+      builder: (context) => BasicAlertDialog(
+        title: title,
+        content: content,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(cancelText, style: AppTypography.buttonText),
           ),
-        ) ??
-        false;
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(confirmText, style: AppTypography.buttonText),
+          ),
+        ],
+      ),
+    ) ?? false;
   }
 
   static void showErrorDialog(
@@ -106,56 +117,15 @@ class DialogUtils {
     String? title,
   }) {
     debugPrint(message);
-    final overlay = Overlay.of(context);
-    final overlayEntry = OverlayEntry(
-      builder: (context) => Positioned(
-        top: MediaQuery.of(context).viewInsets.top + 30,
-        left: MediaQuery.of(context).size.width * 0.05,
-        right: MediaQuery.of(context).size.width * 0.05,
-        child: Material(
-          color: Colors.transparent,
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.red.shade500,
-              borderRadius: BorderRadius.circular(8),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withAlpha((0.2 * 255).round()),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.error_outline,
-                  color: Colors.white,
-                  size: 24,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    message,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+    showOverlayNotification(
+      context,
+      message: message,
+      icon: Icons.error_outline,
+      backgroundColor: AppColors.lightColor,
+      textColor: Colors.red.shade500,
+      iconColor: Colors.red.shade500,
+      duration: const Duration(seconds: 3),
     );
-    overlay.insert(overlayEntry);
-
-    Future.delayed(const Duration(seconds: 3), () {
-      overlayEntry.remove();
-    });
   }
 
   static void showSuccessDialog(
@@ -163,93 +133,385 @@ class DialogUtils {
     required String message,
     String? title,
   }) {
-    final overlay = Overlay.of(context);
-    final overlayEntry = OverlayEntry(
-      builder: (context) => Positioned(
-        top: MediaQuery.of(context).viewInsets.top + 50,
-        left: MediaQuery.of(context).size.width * 0.05,
-        right: MediaQuery.of(context).size.width * 0.05,
-        child: Material(
-          color: Colors.transparent,
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.green.shade700,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withAlpha((0.2 * 255).round()),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.check_circle_outline,
-                  color: Colors.white,
-                  size: 24,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    message,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+    showOverlayNotification(
+      context,
+      message: message,
+      icon: Icons.check_circle_outline,
+      backgroundColor: AppColors.lightColor,
+      textColor: Colors.green.shade700,
+      iconColor: Colors.green.shade700,
+      duration: const Duration(seconds: 3),
     );
-    overlay.insert(overlayEntry);
-
-    Future.delayed(const Duration(seconds: 3), () {
-      overlayEntry.remove();
-    });
   }
 
-  /// Shows a loading dialog with a progress indicator and custom message
-  /// Returns the AlertDialog instance that was created
-  static AlertDialog showLoadingDialog(
+  
+  /// Executes an async function while showing a loading dialog
+  /// Returns the result of the operation or null if canceled
+  /// The operation is automatically canceled if the dialog is dismissed
+  static Future<T?> executeWithLoadingDialog<T>(
     BuildContext context, {
-    required String message,
-    Color indicatorColor = const Color(0xFFE2572B),
-  }) {
-    AlertDialog alert = AlertDialog(
-      content: Row(
-        children: [
-          CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(indicatorColor),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Text(
-              message,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[800],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+    required Future<T> Function() operation,
+    required String loadingMessage,
+    bool allowCancel = true,
+    String cancelButtonText = 'Cancel',
+    Color indicatorColor = AppColors.primaryColor,
+  }) async {
+    // Use a Completer to create a future we can complete manually
+    final Completer<T?> completer = Completer<T?>();
     
-    showDialog(
-      barrierDismissible: false,
-      context: context,
-      builder: (BuildContext context) {
-        return alert;
+    // Track whether the operation has been completed or canceled
+    bool isCompleted = false;
+    
+    // This value is returned to the caller when the dialog is dismissed
+    T? result;
+    
+    // Create a key to ensure we can always find and dismiss the dialog
+    final GlobalKey<State> dialogKey = GlobalKey<State>();
+    
+    // Show the loading dialog
+    LoadingDialog.show(context,
+      message: loadingMessage,
+      indicatorColor: indicatorColor,
+      showCancelButton: allowCancel,
+      cancelButtonText: cancelButtonText,
+      onCancel: () {
+        if (!isCompleted) {
+          isCompleted = true;
+          completer.completeError(OperationCanceledException());
+        }
+        Navigator.of(context).pop();
       },
     );
     
-    return alert;
+    // Execute the operation in a separate isolate or thread
+    // and handle completion/errors
+    runZonedGuarded(
+      () async {
+        try {
+          // Start the operation
+          final operationResult = await operation();
+          
+          // Check if operation was already canceled or completed
+          if (!isCompleted) {
+            isCompleted = true;
+            result = operationResult;
+            completer.complete(operationResult);
+          }
+        } catch (e) {
+          // Only propagate error if not already completed
+          if (!isCompleted) {
+            isCompleted = true;
+            completer.completeError(e);
+          }
+        }
+      },
+      (error, stack) {
+        // Handle any unexpected errors in the operation
+        if (!isCompleted) {
+          isCompleted = true;
+          completer.completeError(error);
+        }
+      },
+    );
+    
+    try {
+      // Wait for the operation to complete or be canceled
+      result = await completer.future;
+      
+      // Dismiss the dialog safely if it hasn't been dismissed already
+      if (dialogKey.currentContext != null) {
+        Navigator.of(dialogKey.currentContext!, rootNavigator: true).pop();
+      } else if (context.mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+      
+      return result;
+    } catch (e) {
+      // Dismiss dialog on error if it hasn't been dismissed already
+      if (dialogKey.currentContext != null) {
+        Navigator.of(dialogKey.currentContext!, rootNavigator: true).pop();
+      } else if (context.mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+      
+      // Return null if it was a cancellation, otherwise rethrow
+      if (e is OperationCanceledException) {
+        return null;
+      }
+      rethrow;
+    }
+  }
+  
+  /// Shows an overlay notification that appears above all other UI elements
+  /// and automatically dismisses after a set duration
+  /// 
+  /// This is useful for showing feedback messages without blocking the UI
+  /// and is visible even when dialogs are present
+  static void showOverlayNotification(
+    BuildContext context, {
+    required String message,
+    IconData? icon,
+    Color backgroundColor = AppColors.lightColor,
+    Color textColor = AppColors.darkColor,
+    Color iconColor = AppColors.darkColor,
+    Duration duration = const Duration(seconds: 2),
+    double topOffset = 50,
+    double horizontalPadding = 0.2, // Percentage of screen width (0.2 = 20%)
+  }) {
+    late final OverlayEntry overlay;
+    
+    overlay = OverlayEntry(
+      builder: (context) => _AnimatedNotification(
+        message: message,
+        icon: icon,
+        backgroundColor: backgroundColor,
+        textColor: textColor,
+        iconColor: iconColor,
+        duration: duration,
+        topOffset: topOffset,
+        horizontalPadding: horizontalPadding,
+        onComplete: () {
+          overlay.remove();
+        },
+      ),
+    );
+      
+    // Clear any existing snackbars to prevent UI clutter
+    ScaffoldMessenger.of(context).clearSnackBars();
+    
+    // Add the overlay
+    Overlay.of(context).insert(overlay);
+  }
+}
+
+/// A stateful widget that handles the notification animation
+class _AnimatedNotification extends StatefulWidget {
+  final String message;
+  final IconData? icon;
+  final Color backgroundColor;
+  final Color textColor;
+  final Color iconColor;
+  final Duration duration;
+  final double topOffset;
+  final double horizontalPadding;
+  final VoidCallback? onComplete;
+
+  const _AnimatedNotification({
+    required this.message,
+    this.icon,
+    required this.backgroundColor,
+    required this.textColor,
+    required this.iconColor,
+    required this.duration,
+    this.topOffset = 50,
+    this.horizontalPadding = 0.2,
+    this.onComplete,
+  });
+
+  @override
+  State<_AnimatedNotification> createState() => _AnimatedNotificationState();
+}
+
+class _AnimatedNotificationState extends State<_AnimatedNotification> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _slideAnimation;
+  late Animation<double> _fadeAnimation;
+  
+  @override
+  void initState() {
+    super.initState();
+    
+    // Set up the animation controller
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 150),
+    );
+    
+    // Create the slide-in animation (start from -50 to simulate coming from off-screen)
+    _slideAnimation = Tween<double>(begin: -50.0, end: widget.topOffset).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeOut,
+      ),
+    );
+    
+    // Add a fade-in effect
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeOut,
+      ),
+    );
+    
+    // Start the animation
+    _controller.forward();
+    
+    // Set up the timer to handle dismissal
+    Future.delayed(widget.duration, () {
+      // Animate back up
+      _controller.reverse().then((_) {
+        widget.onComplete?.call();
+      });
+    });
+  }
+  
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Positioned(
+          top: _slideAnimation.value,
+          left: MediaQuery.of(context).size.width * widget.horizontalPadding,
+          right: MediaQuery.of(context).size.width * widget.horizontalPadding,
+          child: Opacity(
+            opacity: _fadeAnimation.value,
+            child: Material(
+              elevation: 3,
+              borderRadius: BorderRadius.circular(8),
+              color: widget.backgroundColor,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (widget.icon != null) ...[
+                      Icon(widget.icon, color: widget.iconColor, size: 20),
+                      const SizedBox(width: 8),
+                    ],
+                    Flexible(
+                      child: Text(
+                        widget.message,
+                        style: AppTypography.bodyRegular.copyWith(
+                          color: widget.textColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// A customizable loading dialog with a title, loading indicator, message, and optional cancel button
+class LoadingDialog extends StatelessWidget {
+  final GlobalKey? dialogKey;
+  /// The title to display at the top of the dialog
+  final String title;
+  
+  /// The loading message to display below the indicator
+  final String message;
+  
+  /// The color of the loading indicator
+  final Color indicatorColor;
+  
+  /// Whether to show a cancel button
+  final bool showCancelButton;
+  
+  /// The text to display on the cancel button
+  final String cancelButtonText;
+  
+  /// Callback when the cancel button is pressed
+  final VoidCallback? onCancel;
+  
+  /// Create a loading dialog with a title, message, and optional cancel button
+  const LoadingDialog({
+    super.key,
+    this.dialogKey,
+    this.title = 'Please Wait',
+    required this.message,
+    this.indicatorColor = AppColors.primaryColor,
+    this.showCancelButton = false,
+    this.cancelButtonText = 'Cancel',
+    this.onCancel,
+  });
+  
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      key: dialogKey,
+      title: Text(
+        title,
+        style: AppTypography.titleSemibold.copyWith(
+          color: indicatorColor,
+        ),
+        textAlign: TextAlign.center,
+      ),
+      titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+      contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+      backgroundColor: AppColors.lightColor,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      content: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [ 
+          SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(indicatorColor),
+              strokeWidth: 3,
+            ),
+          ),
+          const SizedBox(width: 20),
+          Text(
+            message,
+            style: AppTypography.bodyRegular.copyWith(
+              color: AppColors.darkColor,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+      actions: showCancelButton ? [
+        TextButton(
+          onPressed: onCancel ?? () => Navigator.of(context).pop(),
+          child: Text(
+            cancelButtonText,
+            style: AppTypography.buttonText.copyWith(
+              color: indicatorColor,
+            ),
+          ),
+        ),
+      ] : null,
+      actionsPadding: showCancelButton 
+          ? const EdgeInsets.fromLTRB(16, 0, 16, 16)
+          : EdgeInsets.zero,
+    );
+  }
+  
+  /// Shows this loading dialog
+  static Future<T?> show<T>(
+    BuildContext context, {
+    required String message,
+    String title = 'Please Wait...',
+    Color indicatorColor = AppColors.primaryColor,
+    bool barrierDismissible = false,
+    bool showCancelButton = false,
+    String cancelButtonText = 'Cancel',
+    VoidCallback? onCancel,
+  }) {
+    return showDialog<T>(
+      context: context,
+      barrierDismissible: barrierDismissible,
+      builder: (context) => LoadingDialog(
+        title: title,
+        message: message,
+        indicatorColor: indicatorColor,
+        showCancelButton: showCancelButton,
+        cancelButtonText: cancelButtonText,
+        onCancel: onCancel,
+      ),
+    );
   }
 }

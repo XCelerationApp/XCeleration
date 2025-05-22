@@ -30,7 +30,7 @@ class DropupButton<T> extends StatelessWidget {
   final Color? menuColor;
 
   const DropupButton({
-    Key? key,
+    super.key,
     required this.child,
     required this.items,
     this.onSelected,
@@ -40,7 +40,7 @@ class DropupButton<T> extends StatelessWidget {
     this.elevation = 8.0,
     this.menuShape,
     this.menuColor,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

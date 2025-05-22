@@ -76,6 +76,7 @@ class LoadResultsController with ChangeNotifier {
         await DatabaseHelper.instance.getRaceResultsData(raceId);
     results = savedResults ?? [];
     resultsLoaded = savedResults != null && savedResults.isNotEmpty;
+    callback();
     notifyListeners();
   }
 

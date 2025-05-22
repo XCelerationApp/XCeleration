@@ -1,214 +1,224 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:googleapis/sheets/v4.dart' as sheets;
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
-import '../core/components/dialog_utils.dart';
+import 'package:xceleration/core/components/dialog_utils.dart';
 
 class GoogleSheetsUtils {
   static const _clientId =
       '529053126812-cuhlura1vskuup3lg6hpf6iup6mlje6v.apps.googleusercontent.com';
 
+  // Static instances to be reused across the app
   static GoogleSignIn? _googleSignIn;
+  static GoogleSignInAccount? _currentUser;
+  static String? _cachedAccessToken;
+  static DateTime? _tokenExpiry;
+  
+  // Initialize Google Sign In with required scopes
+  static GoogleSignIn get _signIn {
+    _googleSignIn ??= GoogleSignIn(
+      scopes: [
+        sheets.SheetsApi.spreadsheetsScope,
+        drive.DriveApi.driveFileScope,
+      ],
+      clientId: _clientId,
+    );
+    return _googleSignIn!;
+  }
 
-  static Future<bool> testSignIn(BuildContext context) async {
-    debugPrint('testSignIn called');
+  /// Check if the user is already authenticated with a valid token
+  static bool get _hasValidToken {
+    if (_cachedAccessToken == null || _tokenExpiry == null) return false;
+    // Add 5-minute buffer before token expiry
+    return DateTime.now().isBefore(_tokenExpiry!.subtract(const Duration(minutes: 5)));
+  }
+
+  /// Get an authenticated client with minimal sign-in prompts
+  /// Only prompts for sign-in when absolutely necessary
+  static Future<(http.Client?, GoogleSignInAccount?)> _getAuthClient(BuildContext context) async {
+    // 1. First, check if we already have a cached valid token
+    if (_hasValidToken && _currentUser != null) {
+      return (GoogleAuthClient(_cachedAccessToken!), _currentUser);
+    }
+
+    // 2. Try to get the current signed-in user silently (no UI)
+    _currentUser ??= await _signIn.signInSilently();
+    
+    // 3. If we have a user, get a fresh token
+    if (_currentUser != null) {
+      try {
+        final auth = await _currentUser!.authentication;
+        if (auth.accessToken != null) {
+          // Cache the token and set an approximate expiry (1 hour is typical)
+          _cachedAccessToken = auth.accessToken;
+          _tokenExpiry = DateTime.now().add(const Duration(minutes: 55));
+          return (GoogleAuthClient(_cachedAccessToken!), _currentUser);
+        }
+      } catch (e) {
+        // Token refresh failed, will try interactive sign-in
+        _currentUser = null;
+      }
+    }
+
+    // 4. Only prompt for interactive sign-in if necessary
     try {
-      // Initialize GoogleSignIn if not already done
-      _googleSignIn ??= GoogleSignIn(
-        scopes: [
-          sheets.SheetsApi.spreadsheetsScope,
-          drive.DriveApi.driveFileScope,
-        ],
-        clientId: _clientId,
-      );
-      debugPrint('GoogleSignIn initialized');
-
-      // Try to get existing account first
-      debugPrint('Attempting silent sign-in');
-      final account = await _googleSignIn!.signInSilently();
-      debugPrint(
-          'Silent sign-in result: ${account != null ? 'success' : 'failed'}');
-
-      if (account != null) {
-        debugPrint('Found existing account');
-        return true;
+      _currentUser = await _signIn.signIn();
+      if (_currentUser != null) {
+        final auth = await _currentUser!.authentication;
+        if (auth.accessToken != null) {
+          _cachedAccessToken = auth.accessToken;
+          _tokenExpiry = DateTime.now().add(const Duration(minutes: 55));
+          return (GoogleAuthClient(_cachedAccessToken!), _currentUser);
+        }
       }
+    } catch (e) {
+      debugPrint('Sign-in error: $e');
+    }
 
-      // If no existing account, try to sign in
-      debugPrint('No existing account, attempting regular sign-in');
-      final signedInAccount = await _googleSignIn!.signIn();
-      debugPrint(
-          'Regular sign-in result: ${signedInAccount != null ? 'success' : 'failed'}');
+    return (null, null);
+  }
 
-      if (signedInAccount == null) {
-        debugPrint('Sign in cancelled by user');
-        return false;
+  /// Get the Sheets API client - will only prompt for sign-in if necessary
+  static Future<sheets.SheetsApi?> _getSheetsApi(BuildContext context) async {
+    final (client, _) = await _getAuthClient(context);
+    return client != null ? sheets.SheetsApi(client) : null;
+  }
+
+  /// Get the Drive API client - will only prompt for sign-in if necessary
+  static Future<drive.DriveApi?> _getDriveApi(BuildContext context) async {
+    final (client, _) = await _getAuthClient(context);
+    return client != null ? drive.DriveApi(client) : null;
+  }
+
+  /// Check if the user is signed in without forcing a sign-in attempt
+  static Future<bool> isSignedIn() async {
+    if (_hasValidToken && _currentUser != null) return true;
+    _currentUser = await _signIn.signInSilently();
+    return _currentUser != null;
+  }
+
+  /// Sign in the user - only use this when explicitly requested by the user
+  static Future<bool> signIn() async {
+    try {
+      _currentUser = await _signIn.signIn();
+      if (_currentUser != null) {
+        final auth = await _currentUser!.authentication;
+        if (auth.accessToken != null) {
+          _cachedAccessToken = auth.accessToken;
+          _tokenExpiry = DateTime.now().add(const Duration(minutes: 55));
+          return true;
+        }
       }
-
-      return true;
+      return false;
     } catch (e) {
       debugPrint('Sign in error: $e');
       return false;
     }
   }
 
-  static Future<sheets.SheetsApi?> _getSheetsApi(BuildContext context) async {
-    debugPrint('_getSheetsApi called');
-    try {
-      _googleSignIn ??= GoogleSignIn(
-        scopes: [
-          sheets.SheetsApi.spreadsheetsScope,
-          drive.DriveApi.driveFileScope,
-        ],
-        clientId: _clientId,
-      );
-      debugPrint('GoogleSignIn instance: $_googleSignIn');
-
-      // Try to get existing account first
-      debugPrint('Attempting silent sign-in for SheetsApi');
-      final account = await _googleSignIn!.signInSilently();
-      debugPrint(
-          'Silent sign-in result: ${account != null ? 'success' : 'failed'}');
-
-      if (account != null) {
-        debugPrint('Found existing account');
-        final auth = await account.authentication;
-        debugPrint(
-            'Authentication result: ${auth.accessToken != null ? 'success' : 'failed'}');
-
-        if (auth.accessToken != null) {
-          debugPrint('Access token found');
-          final client = GoogleAuthClient(auth.accessToken!);
-          debugPrint('Creating SheetsApi client');
-          return sheets.SheetsApi(client);
-        }
-      }
-
-      // If no existing account or invalid credentials, sign in again
-      debugPrint('No valid credentials, attempting regular sign-in');
-      final signedInAccount = await _googleSignIn!.signIn();
-      debugPrint(
-          'Regular sign-in result: ${signedInAccount != null ? 'success' : 'failed'}');
-
-      if (signedInAccount == null) {
-        debugPrint('Sign in cancelled by user');
-        return null;
-      }
-
-      final auth = await signedInAccount.authentication;
-      debugPrint(
-          'Authentication result: ${auth.accessToken != null ? 'success' : 'failed'}');
-
-      if (auth.accessToken == null) {
-        debugPrint('Failed to get authentication');
-        return null;
-      }
-
-      final client = GoogleAuthClient(auth.accessToken!);
-      debugPrint('Creating SheetsApi client');
-      return sheets.SheetsApi(client);
-    } catch (e) {
-      debugPrint('Sheets API Error: $e');
-      return null;
-    }
+  /// Sign out the current user
+  static Future<void> signOut() async {
+    _cachedAccessToken = null;
+    _tokenExpiry = null;
+    _currentUser = null;
+    await _signIn.signOut();
   }
 
-  static Future<drive.DriveApi?> _getDriveApi(BuildContext context) async {
-    debugPrint('_getDriveApi called');
-    try {
-      _googleSignIn ??= GoogleSignIn(
-        scopes: [
-          sheets.SheetsApi.spreadsheetsScope,
-          drive.DriveApi.driveFileScope,
-        ],
-        clientId: _clientId,
-      );
-      debugPrint('GoogleSignIn instance: $_googleSignIn');
-
-      // Try to get existing account first
-      debugPrint('Attempting silent sign-in for DriveApi');
-      final account = await _googleSignIn!.signInSilently();
-      debugPrint(
-          'Silent sign-in result: ${account != null ? 'success' : 'failed'}');
-
-      if (account != null) {
-        debugPrint('Found existing account');
-        final auth = await account.authentication;
-        debugPrint(
-            'Authentication result: ${auth.accessToken != null ? 'success' : 'failed'}');
-
-        if (auth.accessToken != null) {
-          debugPrint('Access token found');
-          final client = GoogleAuthClient(auth.accessToken!);
-          debugPrint('Creating DriveApi client');
-          return drive.DriveApi(client);
-        }
-      }
-
-      // If no existing account or invalid credentials, sign in again
-      debugPrint('No valid credentials, attempting regular sign-in');
-      final signedInAccount = await _googleSignIn!.signIn();
-      debugPrint(
-          'Regular sign-in result: ${signedInAccount != null ? 'success' : 'failed'}');
-
-      if (signedInAccount == null) {
-        debugPrint('Sign in cancelled by user');
-        return null;
-      }
-
-      final auth = await signedInAccount.authentication;
-      debugPrint(
-          'Authentication result: ${auth.accessToken != null ? 'success' : 'failed'}');
-
-      if (auth.accessToken == null) {
-        debugPrint('Failed to get authentication');
-        return null;
-      }
-
-      final client = GoogleAuthClient(auth.accessToken!);
-      debugPrint('Creating DriveApi client');
-      return drive.DriveApi(client);
-    } catch (e) {
-      debugPrint('Drive API Error: $e');
-      return null;
-    }
-  }
-
-  static Future<String?> createSpreadsheet(
-    BuildContext context, {
+  /// Create a Google Sheet and return a Uri that can be used to view or share it
+  /// This is the recommended method for external components to use
+  static Future<Uri?> createSheetAndGetUri({
+    required BuildContext context,
     required String title,
     required List<List<dynamic>> data,
   }) async {
-    debugPrint('createSpreadsheet called');
+    // return Uri.parse('https://docs.google.com/spreadsheets/d/1nM8e3JJYquIVFU8i6M0EeAKslhAl2g3HIC2uYQHvNYY/edit?gid=0#gid=0');
     try {
-      // First check if we're signed in
-      debugPrint('Checking if signed in');
-      if (!await testSignIn(context)) {
-        debugPrint('Not signed in');
-        if (!context.mounted) return null;
-        DialogUtils.showErrorDialog(
-          context,
-          message:
-              'Please sign in to your Google account to export to Google Sheets',
-        );
+      // First check if we're already signed in
+      if (!await isSignedIn()) {
+        // Try explicit sign-in once if not already signed in
+        if (!await signIn()) {
+          if (!context.mounted) return null;
+          // Show error dialog
+          DialogUtils.showErrorDialog(context, message: 'Please sign in to your Google account to access Google Sheets');
+          return null;
+        }
+      }
+      
+      // Create the sheet
+      final spreadsheetId = await createSheet(
+        context: context,
+        title: title,
+        data: data,
+      );
+      
+      if (spreadsheetId == null) {
+        // Show error if sheet couldn't be created
+        if (context.mounted) {
+          DialogUtils.showErrorDialog(context, message: 'Failed to create Google Sheet. Please try again.');
+        }
         return null;
       }
+      
+      // Try to get the URL via API first, with a 5 second timeout
+      Uri? uri;
+      try {
+        // Create a completer to handle the timeout logic
+        final completer = Completer<Uri?>();
+        
+        // Start the API request
+        _getUrlFromApi(context, spreadsheetId).then((apiUrl) {
+          if (!completer.isCompleted) {
+            completer.complete(apiUrl != null ? Uri.parse(apiUrl) : null);
+          }
+        }).catchError((error) {
+          if (!completer.isCompleted) {
+            debugPrint('Error getting URL from API: $error');
+            completer.complete(null);
+          }
+        });
+        
+        // Set a timeout for the API request
+        Future.delayed(const Duration(seconds: 5), () {
+          if (!completer.isCompleted) {
+            debugPrint('API URL request timed out, using direct URL construction');
+            final directUrl = constructSharingUrl(spreadsheetId);
+            completer.complete(Uri.parse(directUrl));
+          }
+        });
+        
+        // Wait for either the API response or the timeout
+        uri = await completer.future;
+      } catch (e) {
+        debugPrint('Error in URL retrieval process: $e');
+        // Fall back to direct construction if there was an error
+        final directUrl = constructSharingUrl(spreadsheetId);
+        uri = Uri.parse(directUrl);
+      }
 
-      debugPrint('Getting SheetsApi');
+      debugPrint('Final Sheet URI: $uri');
+      return uri;
+    } catch (e) {
+      debugPrint('Error creating sheet and getting URI: $e');
+      if (context.mounted) {
+        DialogUtils.showErrorDialog(context, message: 'Error creating Google Sheet');
+      }
+      return null;
+    }
+  }
+
+  /// Internal method to create a Google Sheet with the given title and data
+  /// This method handles the actual API calls and returns the spreadsheet ID
+  static Future<String?> createSheet({
+    required BuildContext context,
+    required String title,
+    required List<List<dynamic>> data,
+  }) async {
+    try {
+      // Get the Sheets API client
       final sheetsApi = await _getSheetsApi(context);
-      debugPrint(
-          'SheetsApi result: ${sheetsApi != null ? 'success' : 'failed'}');
-
-      if (sheetsApi == null) {
-        debugPrint('Failed to get SheetsApi');
-        if (!context.mounted) return null;
-        DialogUtils.showErrorDialog(
-          context,
-          message: 'Failed to connect to Google Sheets',
-        );
-        return null;
-      }
+      if (sheetsApi == null) return null;
 
       // Create the spreadsheet
       debugPrint('Creating spreadsheet');
@@ -274,47 +284,48 @@ class GoogleSheetsUtils {
         spreadsheet.spreadsheetId!,
       );
 
-      // Get the sharing URL
-      debugPrint('Getting sharing URL');
-      final driveFile = await driveApi?.files.get(
-        spreadsheet.spreadsheetId!,
-        $fields: 'webViewLink',
-        supportsAllDrives: true,
-      );
-
-      if (driveFile == null) {
-        debugPrint('Failed to get drive file');
-        if (!context.mounted) return null;
-        DialogUtils.showErrorDialog(
-          context,
-          message: 'Failed to get sharing URL',
-        );
-        return null;
-      }
-
-      final webViewLink = (driveFile as drive.File).webViewLink;
-      if (webViewLink == null) {
-        debugPrint('Failed to get webViewLink');
-        if (!context.mounted) return null;
-        DialogUtils.showErrorDialog(
-          context,
-          message: 'Failed to get sharing URL',
-        );
-        return null;
-      }
-
-      return webViewLink;
+      return spreadsheet.spreadsheetId;
     } catch (e) {
       debugPrint('Error creating spreadsheet: $e');
-      if (!context.mounted) return null;
-      DialogUtils.showErrorDialog(
-        context,
-        message: 'Failed to create Google Sheet',
-      );
       return null;
     }
   }
+  
+  /// Get the URL for a spreadsheet from the Drive API
+  static Future<String?> _getUrlFromApi(BuildContext context, String spreadsheetId) async {
+    final driveApi = await _getDriveApi(context);
+    if (driveApi == null) return null;
+    
+    try {
+      debugPrint('Getting file metadata from Drive API');
+      final file = await driveApi.files.get(
+        spreadsheetId,
+        $fields: 'webViewLink',
+      ) as drive.File;
+      
+      if (file.webViewLink != null) {
+        debugPrint('Retrieved web view link: ${file.webViewLink}');
+        return file.webViewLink;
+      } else {
+        debugPrint('No web view link found in file metadata');
+        return null;
+      }
+    } catch (e) {
+      debugPrint('Error getting file metadata: $e');
+      return null;
+    }
+  }
+  
+  /// Construct a sharing URL directly from the spreadsheet ID
+  static String constructSharingUrl(String spreadsheetId) {
+    debugPrint('Constructing sharing URL directly');
+    final webViewLink = 'https://docs.google.com/spreadsheets/d/$spreadsheetId/edit?usp=sharing';
+    debugPrint('Direct sharing URL: $webViewLink');
+    return webViewLink;
+  }
 }
+
+
 
 class GoogleAuthClient extends http.BaseClient {
   final String accessToken;
@@ -325,8 +336,12 @@ class GoogleAuthClient extends http.BaseClient {
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) {
     request.headers['Authorization'] = 'Bearer $accessToken';
-    debugPrint(
-        'Sending request with token: ${accessToken.substring(0, 10)}...');
     return _client.send(request);
+  }
+
+  @override
+  void close() {
+    _client.close();
+    super.close();
   }
 }
