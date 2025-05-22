@@ -5,6 +5,7 @@ import '../../race_screen/controller/race_screen_controller.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/models/race.dart';
 import '../../../core/theme/typography.dart';
+import 'package:xceleration/core/utils/color_utils.dart';
 import 'package:intl/intl.dart';
 
 class RaceCard extends StatelessWidget {
@@ -27,19 +28,17 @@ class RaceCard extends StatelessWidget {
       Race.FLOW_PRE_RACE: 'Sharing Runners',
       Race.FLOW_PRE_RACE_COMPLETED: 'Ready for Results',
       Race.FLOW_POST_RACE: 'Processing Results',
-      // Race.FLOW_POST_RACE_COMPLETED: 'Race Complete',
       Race.FLOW_FINISHED: 'Race Complete',
     }[race.flowState] ??
     'Setting up';
 
     // Different colors based on the flow state
     flowStateColor = {
-      Race.FLOW_SETUP: AppColors.primaryColor.withOpacity(0.7),
-      Race.FLOW_SETUP_COMPLETED: AppColors.primaryColor.withOpacity(0.7),
+      Race.FLOW_SETUP: ColorUtils.withOpacity(AppColors.primaryColor, 0.5),
+      Race.FLOW_SETUP_COMPLETED: ColorUtils.withOpacity(AppColors.primaryColor, 0.5),
       Race.FLOW_PRE_RACE: AppColors.primaryColor,
       Race.FLOW_PRE_RACE_COMPLETED: AppColors.primaryColor,
       Race.FLOW_POST_RACE: AppColors.primaryColor,
-      // Race.FLOW_POST_RACE_COMPLETED: Colors.blue,
       Race.FLOW_FINISHED: Colors.blue,
     }[race.flowState] ??
     AppColors.primaryColor;
@@ -104,7 +103,7 @@ class RaceCard extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 12),
         width: double.infinity,
         decoration: BoxDecoration(
-          color: AppColors.lightColor.withOpacity(.5),
+          color: ColorUtils.withOpacity(AppColors.mediumColor, 0.1),
           borderRadius: BorderRadius.circular(16),
           border: Border(
             left: BorderSide(

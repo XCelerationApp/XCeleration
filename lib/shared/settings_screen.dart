@@ -4,6 +4,7 @@ import '../core/theme/typography.dart';
 import 'role_screen.dart';
 import '../coach/races_screen/screen/races_screen.dart';
 import '../core/components/dialog_utils.dart';
+import 'package:xceleration/core/utils/color_utils.dart';
 
 class SettingsScreen extends StatefulWidget {
   final String currentRole;
@@ -126,7 +127,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.primaryColor.withOpacity(0.1)
+              ? ColorUtils.withOpacity(AppColors.primaryColor, 0.1)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
         ),
@@ -138,7 +139,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               decoration: BoxDecoration(
                 color: isSelected
                     ? AppColors.primaryColor
-                    : AppColors.primaryColor.withOpacity(0.1),
+                    : ColorUtils.withOpacity(AppColors.primaryColor, 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(

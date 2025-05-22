@@ -5,6 +5,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../race_screen/widgets/runner_record.dart';
 import '../controller/runners_management_controller.dart';
 import 'runner_list_item.dart';
+import 'package:xceleration/core/utils/color_utils.dart';
 
 class RunnersList extends StatelessWidget {
   final RunnersManagementController controller;
@@ -28,7 +29,7 @@ class RunnersList extends StatelessWidget {
             Icon(
               Icons.person_off_outlined,
               size: 48,
-              color: AppColors.mediumColor.withOpacity(0.6),
+              color: ColorUtils.withOpacity(AppColors.mediumColor, 0.6),
             ),
             const SizedBox(height: 16),
             Text(
@@ -47,7 +48,7 @@ class RunnersList extends StatelessWidget {
                 'Try adjusting your search',
                 style: TextStyle(
                   fontSize: 16,
-                  color: AppColors.mediumColor.withOpacity(0.7),
+                  color: ColorUtils.withOpacity(AppColors.mediumColor, 0.7),
                 ),
               ),
             ],
@@ -123,7 +124,7 @@ class RunnersList extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
-                          color: schoolColor?.withOpacity(0.15),
+                          color: schoolColor != null ? ColorUtils.withOpacity(schoolColor, 0.15) : null,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(

@@ -71,7 +71,7 @@ Future<dynamic> sheet(
     required Widget body,
     String? title,
     double titleSize = 24,
-    Widget? action_buttons,
+    Widget? actionButtons,
     bool showHeader = true,
     bool takeUpScreen = false}) async {
   return await showModalBottomSheet(
@@ -102,7 +102,7 @@ Future<dynamic> sheet(
           children: [
             if (showHeader) createSheetHeader(title, titleSize: titleSize),
             Flexible(child: body),
-            if (action_buttons != null) action_buttons,
+            if (actionButtons != null) actionButtons,
           ],
         ),
       ),

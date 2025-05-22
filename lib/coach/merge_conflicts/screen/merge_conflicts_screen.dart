@@ -6,7 +6,7 @@ import '../../../core/theme/typography.dart';
 import '../../../core/theme/app_colors.dart';
 import '../model/timing_data.dart';
 import '../../../core/components/instruction_card.dart';
-import '../widgets/chunkList.dart';
+import '../widgets/chunk_list.dart';
 
 class MergeConflictsScreen extends StatefulWidget {
   final int raceId;

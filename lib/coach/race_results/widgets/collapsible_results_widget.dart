@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/typography.dart';
 import '../model/results_record.dart';
 import '../model/team_record.dart';
+import 'package:xceleration/core/utils/color_utils.dart';
 
 /// A widget that displays a collapsible list of race results
 /// Can handle both individual results (ResultsRecord) and team results (TeamRecord)
@@ -68,7 +69,7 @@ class _CollapsibleResultsWidgetState extends State<CollapsibleResultsWidget> {
           // Use subtle alternate row colors for better readability
           final backgroundColor = index % 2 == 0
               ? Colors.transparent
-              : Colors.grey.withOpacity(0.05);
+              : ColorUtils.withOpacity(Colors.grey, 0.05);
 
           return Container(
             color: backgroundColor,

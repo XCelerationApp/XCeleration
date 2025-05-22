@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
 import '../controller/merge_conflicts_controller.dart';
+import 'package:xceleration/core/utils/color_utils.dart';
 
 class TimeSelector extends StatelessWidget {
   const TimeSelector({
@@ -34,7 +35,7 @@ class TimeSelector extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: ColorUtils.withOpacity(Colors.black, 0.05),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -48,7 +49,7 @@ class TimeSelector extends StatelessWidget {
               : null,
           hint: Text(
             timeController.text.isEmpty ? 'Select Time' : timeController.text,
-            style: AppTypography.smallBodySemibold.copyWith(
+            style: AppTypography.bodySmall.copyWith(
               color: AppColors.darkColor,
             ),
           ),

@@ -197,17 +197,21 @@ class RunnersManagementController with ChangeNotifier {
 
   Future<void> handleRunnerSubmission(RunnerRecord runner) async {
     try {
-      dynamic existingRunner;
+      RunnerRecord? existingRunner;
       existingRunner =
           await DatabaseHelper.instance.getRaceRunnerByBib(raceId, runner.bib);
-      debugPrint('existingRunner: $existingRunner');
+      debugPrint('existingRunner: ${existingRunner?.toMap()}');
 
       if (existingRunner != null) {
         // If we're updating the same runner (same ID), just update
-        if (existingRunner['runner_id'] == runner.runnerId) {
+        if (existingRunner.runnerId == runner.runnerId) {
+          debugPrint('Updating runner: ${runner.toMap()}');
           await updateRunner(runner);
         } else {
           // If a different runner exists with this bib, ask for confirmation
+          // Check if context is still mounted before showing dialog
+          if (!context.mounted) return;
+          
           final shouldOverwrite = await DialogUtils.showConfirmationDialog(
             context,
             title: 'Overwrite Runner',
@@ -216,6 +220,9 @@ class RunnersManagementController with ChangeNotifier {
           );
 
           if (!shouldOverwrite) return;
+          
+          // Check if context is still mounted after confirmation dialog
+          if (!context.mounted) return;
 
           await DatabaseHelper.instance.deleteRaceRunner(raceId, runner.bib);
           await insertRunner(runner);
@@ -231,6 +238,9 @@ class RunnersManagementController with ChangeNotifier {
     } catch (e) {
       throw Exception('Failed to save runner: $e');
     }
+    
+    // Check if context is still mounted after async operations
+    if (!context.mounted) return;
     Navigator.of(context).pop();
   }
 
@@ -260,6 +270,10 @@ class RunnersManagementController with ChangeNotifier {
   Future<void> showSampleSpreadsheet() async {
     final file = await rootBundle
         .loadString('assets/sample_sheets/sample_spreadsheet.csv');
+        
+    // Check if context is still mounted after async operation
+    if (!context.mounted) return;
+    
     final lines = file.split('\n');
     final table = Table(
       border: TableBorder.all(color: Colors.grey),
@@ -441,12 +455,21 @@ class RunnersManagementController with ChangeNotifier {
     final result = await showSpreadsheetLoadSheet(context);
     if (result == null) return;
     
+    // Check if context is still mounted after sheet is closed
+    if (!context.mounted) return;
+    
     final bool useGoogleDrive = result['useGoogleDrive'] ?? false;
     
     final List<RunnerRecord> runnerData =
         await processSpreadsheet(raceId, false, context: context, useGoogleDrive: useGoogleDrive);
     
+    // Check if context is still mounted after processing spreadsheet
+    if (!context.mounted) return;
+    
     final schools = (await DatabaseHelper.instance.getRaceById(raceId))?.teams;
+    
+    // Check if context is still mounted after database query
+    if (!context.mounted) return;
 
     
     final overwriteRunners = [];
@@ -479,11 +502,19 @@ class RunnersManagementController with ChangeNotifier {
       final schools = runnersFromDifferentSchool.map((runner) => runner.school).toSet();
       final schoolsList = schools.toList();
       final schoolsString = schoolsList.join(', ');
+      
+      // Check if context is still mounted before showing dialog
+      if (!context.mounted) return;
+      
       final runnersFromDifferentSchoolDialog = await DialogUtils.showConfirmationDialog(
         context,
         title: 'Runners from Different Schools',
         content: '${runnersFromDifferentSchool.length} runners are from different schools: $schoolsString. They will not be imported. Do you want to continue?',
       );
+      
+      // Check if context is still mounted after async dialog
+      if (!context.mounted) return;
+      
       if (!runnersFromDifferentSchoolDialog) return;
     }
 
@@ -495,12 +526,19 @@ class RunnersManagementController with ChangeNotifier {
     if (overwriteRunners.isEmpty) return;
     final overwriteRunnersBibs =
         overwriteRunners.map((runner) => runner.bib).toList();
+    
+    // Check if context is still mounted before showing dialog
+    if (!context.mounted) return;
+    
     final overwriteExistingRunners = await DialogUtils.showConfirmationDialog(
       context,
       title: 'Confirm Overwrite',
       content:
           'Are you sure you want to overwrite the following runners with bib numbers: ${overwriteRunnersBibs.join(', ')}?',
     );
+    
+    // Check if context is still mounted after async dialog
+    if (!context.mounted) return;
     if (!overwriteExistingRunners) return;
     for (final runner in overwriteRunners) {
       await DatabaseHelper.instance

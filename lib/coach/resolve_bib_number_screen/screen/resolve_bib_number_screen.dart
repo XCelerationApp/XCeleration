@@ -8,6 +8,7 @@ import '../../race_screen/widgets/runner_record.dart';
 import '../../../core/components/runner_input_form.dart';
 import '../controller/resolve_bib_number_controller.dart';
 import '../../../utils/database_helper.dart';
+import 'package:xceleration/core/utils/color_utils.dart';
 
 class ResolveBibNumberScreen extends StatefulWidget {
   final List<RunnerRecord> records;
@@ -53,6 +54,10 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
   Future<void> _loadSchools() async {
     // Load schools from the database
     final race = await DatabaseHelper.instance.getRaceById(_controller.raceId);
+    
+    // Check if widget is still mounted before calling setState
+    if (!mounted) return;
+    
     if (race != null) {
       setState(() {
         _schools = race.teams;
@@ -96,7 +101,13 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
   @override
   Widget build(BuildContext context) {
     if (_controller.record.error == null) {
-      Future.microtask(() => Navigator.of(context).pop());
+      // Use a post-frame callback instead of Future.microtask
+      // This avoids the BuildContext async gap warning
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          Navigator.of(context).pop();
+        }
+      });
       return const Scaffold(
         body: Center(
           child: CircularProgressIndicator(),
@@ -117,7 +128,7 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                     side: BorderSide(
-                      color: AppColors.primaryColor.withOpacity(0.3),
+                      color: ColorUtils.withOpacity(AppColors.primaryColor, 0.3),
                       width: 0.5,
                     ),
                   ),
@@ -129,7 +140,7 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
                           width: 32,
                           height: 32,
                           decoration: BoxDecoration(
-                            color: AppColors.primaryColor.withOpacity(0.1),
+                            color: ColorUtils.withOpacity(AppColors.primaryColor, 0.1),
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: const Icon(

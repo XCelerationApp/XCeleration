@@ -3,6 +3,7 @@ import '../controller/merge_conflicts_controller.dart';
 import '../model/joined_record.dart';
 import '../model/chunk.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/color_utils.dart';
 import 'runner_info_widgets.dart';
 import 'time_widgets.dart';
 import '../../../utils/enums.dart';
@@ -30,8 +31,8 @@ class RunnerTimeRecord extends StatelessWidget {
 
     final Color conflictColor =
         hasConflict ? AppColors.primaryColor : Colors.green;
-    final Color bgColor = conflictColor.withOpacity(0.05);
-    final Color borderColor = conflictColor.withOpacity(0.5);
+    final Color bgColor = ColorUtils.withOpacity(conflictColor, 0.05);
+    final Color borderColor = ColorUtils.withOpacity(conflictColor, 0.5);
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4),

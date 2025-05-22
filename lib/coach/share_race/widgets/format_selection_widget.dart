@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../utils/enums.dart';
+import 'package:xceleration/core/utils/color_utils.dart';
 
 class FormatSelectionWidget extends StatelessWidget {
   final void Function(ResultFormat) onShareSelected;
@@ -23,7 +24,7 @@ class FormatSelectionWidget extends StatelessWidget {
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: ColorUtils.withOpacity(Colors.black, 0.05),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),

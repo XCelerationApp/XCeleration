@@ -19,6 +19,10 @@ class GoogleDrivePicker {
     try {
       // Sign in to Google
       final signInSuccess = await _driveService.signInAndSetup();
+      
+      // Check if context is still mounted after the async operation
+      if (!context.mounted) return null;
+      
       if (!signInSuccess) {
         _showMessage(context, 'Failed to sign in to Google Drive');
         return null;
@@ -46,6 +50,9 @@ class GoogleDrivePicker {
         context: context,
         builder: (context) => _DriveFilePickerDialog(driveFiles: driveFiles, fileIconBuilder: _getFileIcon),
       );
+      
+      // Check if context is still mounted after dialog
+      if (!context.mounted) return null;
       
       if (selectedFile == null) {
         return null;

@@ -103,9 +103,17 @@ class LoadResultsController with ChangeNotifier {
     if (bibRecordsData != null && finishTimesData != null) {
       runnerRecords = await processEncodedBibRecordsData(
           bibRecordsData, context, raceId);
+      
+      // Check if context is still mounted after async operation
+      if (!context.mounted) return;
+      
       debugPrint('Processed runner records: ${runnerRecords?.length ?? 0}');
 
       timingData = await processEncodedTimingData(finishTimesData, context);
+      
+      // Check if context is still mounted after second async operation
+      if (!context.mounted) return;
+      
       debugPrint('Processed timing data: ${timingData?.records.length ?? 0} records');
 
       resultsLoaded = true;

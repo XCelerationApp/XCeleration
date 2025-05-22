@@ -285,9 +285,16 @@ class RacesController extends ChangeNotifier {
   Future<void> getCurrentLocation() async {
     try {
       LocationPermission permission = await Geolocator.checkPermission();
+      
+      // Check if context is still mounted after async operation
+      if (!context.mounted) return;
+      
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
       }
+      
+      // Check if context is still mounted after async operation
+      if (!context.mounted) return;
 
       if (permission == LocationPermission.deniedForever) {
         DialogUtils.showErrorDialog(context,
@@ -301,15 +308,21 @@ class RacesController extends ChangeNotifier {
         return;
       }
 
-      if (!await Geolocator.isLocationServiceEnabled()) {
+      bool locationEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!context.mounted) return; // Check if context is still valid
+      
+      if (!locationEnabled) {
         DialogUtils.showErrorDialog(context,
             message: 'Location services are disabled');
         return;
       }
 
       final position = await Geolocator.getCurrentPosition();
+      if (!context.mounted) return; // Check if context is still valid
       final placemarks =
           await placemarkFromCoordinates(position.latitude, position.longitude);
+      if (!context.mounted) return; // Check if context is still valid
+      
       final placemark = placemarks.first;
       locationController.text =
           '${placemark.subThoroughfare} ${placemark.thoroughfare}, ${placemark.locality}, ${placemark.administrativeArea} ${placemark.postalCode}';

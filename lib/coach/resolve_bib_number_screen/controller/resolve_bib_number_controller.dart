@@ -93,7 +93,9 @@ class ResolveBibNumberController with ChangeNotifier {
         title: 'Assign Runner',
         content:
             'Are you sure this is the correct runner? \nName: ${runner.name} \nGrade: ${runner.grade} \nSchool: ${runner.school} \nBib Number: ${runner.bib}');
-    if (!confirmed) return;
+    
+    // Check if context is still mounted after the async operation
+    if (!context.mounted || !confirmed) return;
 
     // Update all fields from the selected runner
     record.bib = runner.bib;

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/theme/app_colors.dart';
 import 'package:xceleration/core/theme/typography.dart';
+import 'package:xceleration/core/utils/color_utils.dart';
 
 /// Header component for the results review screen
 class ReviewHeader extends StatelessWidget {
@@ -22,7 +23,7 @@ class ReviewHeader extends StatelessWidget {
         Text(
           'Make sure all times and placements are correct. When you click next, you will not be able to reload or modify the results.',
           style: AppTypography.bodyRegular
-              .copyWith(color: AppColors.darkColor.withOpacity(0.7)),
+              .copyWith(color: ColorUtils.withOpacity(AppColors.darkColor, 0.7)),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 32),

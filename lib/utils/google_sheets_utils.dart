@@ -133,7 +133,6 @@ class GoogleSheetsUtils {
     required String title,
     required List<List<dynamic>> data,
   }) async {
-    // return Uri.parse('https://docs.google.com/spreadsheets/d/1nM8e3JJYquIVFU8i6M0EeAKslhAl2g3HIC2uYQHvNYY/edit?gid=0#gid=0');
     try {
       // First check if we're already signed in
       if (!await isSignedIn()) {
@@ -231,7 +230,15 @@ class GoogleSheetsUtils {
 
       // Set the spreadsheet to be accessible to anyone with the link
       debugPrint('Setting spreadsheet permissions');
+      
+      // Check if context is still mounted before using it
+      if (!context.mounted) return null;
+      
       final driveApi = await _getDriveApi(context);
+      
+      // Check if context is still mounted after getting the Drive API
+      if (!context.mounted) return null;
+      
       if (driveApi != null && spreadsheet.spreadsheetId != null) {
         try {
           await driveApi.permissions.create(

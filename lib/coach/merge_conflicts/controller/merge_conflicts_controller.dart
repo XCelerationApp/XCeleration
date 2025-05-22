@@ -242,7 +242,7 @@ class MergeConflictsController with ChangeNotifier {
       availableTimes: conflictingTimes,
       allowManualEntry: true,
       conflictRecord: conflictRecord,
-      lastConfirmedRecord: records[lastConfirmedIndex],
+      lastConfirmedRecord: lastConfirmedIndex == -1 ? TimingRecord(place: -1, elapsedTime: '') : records[lastConfirmedIndex],
       bibData: bibData,
     );
   }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
+import 'package:xceleration/core/utils/color_utils.dart';
 
 class FlowStepContent extends StatelessWidget {
   final String title;
@@ -36,7 +37,7 @@ class FlowStepContent extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: isActive
                         ? AppColors.primaryColor
-                        : AppColors.primaryColor.withOpacity(0.2),
+                        : ColorUtils.withOpacity(AppColors.primaryColor, 0.2),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),

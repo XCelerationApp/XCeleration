@@ -18,9 +18,10 @@ class ReloadButton extends StatelessWidget {
       icon: Icons.download_sharp,
       iconSize: 18,
       onPressed: onPressed,
-      borderRadius: 28,
-      fontSize: 18,
+      borderRadius: 12,  // Less round for a cleaner look
+      fontSize: 16,
       fontWeight: FontWeight.w600,
+      elevation: 0.5, // Subtle shadow for modern look
     );
   }
 }

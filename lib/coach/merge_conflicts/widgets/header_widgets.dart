@@ -3,6 +3,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../../utils/enums.dart';
 import '../../../assistant/race_timer/model/timing_record.dart';
+import 'package:xceleration/core/utils/color_utils.dart';
 
 class ConflictHeader extends StatelessWidget {
   const ConflictHeader({
@@ -30,10 +31,10 @@ class ConflictHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.primaryColor.withOpacity(0.1),
+        color: ColorUtils.withOpacity(AppColors.primaryColor, 0.1),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.primaryColor.withOpacity(0.5),
+          color: ColorUtils.withOpacity(AppColors.primaryColor, 0.5),
           width: 1,
         ),
       ),
@@ -43,7 +44,7 @@ class ConflictHeader extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: AppColors.primaryColor.withOpacity(0.2),
+              color: ColorUtils.withOpacity(AppColors.primaryColor, 0.2),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Icon(
@@ -67,7 +68,7 @@ class ConflictHeader extends StatelessWidget {
                 Text(
                   description,
                   style: AppTypography.smallBodyRegular.copyWith(
-                    color: AppColors.primaryColor.withOpacity(0.8),
+                    color: ColorUtils.withOpacity(AppColors.primaryColor, 0.8),
                   ),
                 ),
               ],
@@ -91,10 +92,10 @@ class ConfirmHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.green.withOpacity(0.1),
+        color: ColorUtils.withOpacity(Colors.green, 0.1),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Colors.green.withOpacity(0.5),
+          color: ColorUtils.withOpacity(Colors.green, 0.5),
           width: 1,
         ),
       ),
@@ -104,7 +105,7 @@ class ConfirmHeader extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: Colors.green.withOpacity(0.2),
+              color: ColorUtils.withOpacity(Colors.green, 0.2),
               borderRadius: BorderRadius.circular(20),
             ),
             child: const Icon(
@@ -128,7 +129,7 @@ class ConfirmHeader extends StatelessWidget {
                 Text(
                   'These runner results have been confirmed',
                   style: AppTypography.smallBodyRegular.copyWith(
-                    color: Colors.green.withOpacity(0.8),
+                    color: ColorUtils.withOpacity(Colors.green, 0.8),
                   ),
                 ),
               ],
@@ -153,10 +154,10 @@ class ConfirmationRecord extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(8, 4, 8, 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.green.withOpacity(0.1),
+        color: ColorUtils.withOpacity(Colors.green, 0.1),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Colors.green.withOpacity(0.5),
+          color: ColorUtils.withOpacity(Colors.green, 0.5),
           width: 1,
         ),
       ),
@@ -169,7 +170,7 @@ class ConfirmationRecord extends StatelessWidget {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.2),
+                  color: ColorUtils.withOpacity(Colors.green, 0.2),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: const Icon(
@@ -195,7 +196,7 @@ class ConfirmationRecord extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: ColorUtils.withOpacity(Colors.black, 0.05),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),

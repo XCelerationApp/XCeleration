@@ -133,6 +133,9 @@ class BibNumberController extends BibNumberDataController {
         // Process data outside of setState
         final loadedRunners = await decodeEncodedRunners(data, context);
 
+        // Check if the widget is still mounted before using context
+        if (!context.mounted) return;
+
         if (loadedRunners == null || loadedRunners.isEmpty) {
           DialogUtils.showErrorDialog(context,
               message:
@@ -160,16 +163,18 @@ class BibNumberController extends BibNumberDataController {
         runners.addAll(loadedRunners);
         notifyListeners();
 
-
         debugPrint('Runners loaded: $runners');
 
+        // Check if the widget is still mounted before using context
+        if (!context.mounted) return;
+
         // Close dialog and handle UI updates after state is set
-        if (runners.isNotEmpty && context.mounted) {
+        if (runners.isNotEmpty) {
           // Close the "No Runners Loaded" dialog
           Navigator.of(context).pop();
 
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            showRunnersLoadedSheet(context);
+            if (context.mounted) showRunnersLoadedSheet(context);
           });
 
           // Setup tutorials after UI has settled
@@ -179,8 +184,11 @@ class BibNumberController extends BibNumberDataController {
         }
       } catch (e) {
         debugPrint('Error loading runners: $e');
-        DialogUtils.showErrorDialog(context,
-            message: 'Error processing runner data: $e');
+        // Check if the widget is still mounted before showing error dialog
+        if (context.mounted) {
+          DialogUtils.showErrorDialog(context,
+              message: 'Error processing runner data: $e');
+        }
       }
     } else {
       DialogUtils.showErrorDialog(context,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:xceleration/coach/race_results/widgets/collapsible_results_widget.dart';
 import '../../../core/theme/typography.dart';
 import '../controller/race_results_controller.dart';
+import 'package:xceleration/core/utils/color_utils.dart';
 
 class TeamResultsWidget extends StatelessWidget {
   final RaceResultsController controller;
@@ -20,7 +21,7 @@ class TeamResultsWidget extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: ColorUtils.withOpacity(Colors.black, 0.05),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),

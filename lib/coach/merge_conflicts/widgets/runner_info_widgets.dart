@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:xceleration/coach/race_screen/widgets/runner_record.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
+import 'package:xceleration/core/utils/color_utils.dart';
 
 class PlaceNumber extends StatelessWidget {
   const PlaceNumber({
@@ -18,10 +19,10 @@ class PlaceNumber extends StatelessWidget {
       width: 26,
       height: 26,
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: ColorUtils.withOpacity(color, 0.1),
         borderRadius: BorderRadius.circular(13),
         border: Border.all(
-          color: color.withOpacity(0.4),
+          color: ColorUtils.withOpacity(color, 0.4),
           width: 0.5,
         ),
       ),
@@ -29,7 +30,7 @@ class PlaceNumber extends StatelessWidget {
         child: Text(
           '#$place',
           style: AppTypography.smallCaption.copyWith(
-            color: color.withOpacity(0.9),
+            color: ColorUtils.withOpacity(color, 0.9),
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -71,7 +72,7 @@ class RunnerInfo extends StatelessWidget {
             if (runner.school.isNotEmpty)
               InfoChip(
                   label: runner.school,
-                  color: AppColors.mediumColor.withOpacity(0.8)),
+                  color: accentColor),
           ],
         ),
       ],
@@ -93,7 +94,7 @@ class InfoChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
+        color: ColorUtils.withOpacity(color, 0.08),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(

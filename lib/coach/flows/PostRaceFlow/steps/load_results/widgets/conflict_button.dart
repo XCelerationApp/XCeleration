@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:xceleration/core/theme/app_colors.dart';
 import 'package:xceleration/core/theme/typography.dart';
 import 'package:xceleration/core/components/button_components.dart';
+import 'package:xceleration/core/utils/color_utils.dart';
 
 class ConflictButton extends StatelessWidget {
   final String title;
@@ -45,16 +46,20 @@ class ConflictButton extends StatelessWidget {
           Text(
             description,
             style: AppTypography.bodyRegular
-                .copyWith(color: AppColors.darkColor.withOpacity(0.8)),
+                .copyWith(color: ColorUtils.withOpacity(AppColors.darkColor, 0.8)),
           ),
           const SizedBox(height: 16),
-          PrimaryButton(
-            text: buttonText,
-            borderRadius: 20,
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-            onPressed: onPressed,
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
+          SizedBox(
+            width: double.infinity, // Make button wider, full container width
+            child: PrimaryButton(
+              text: buttonText,
+              borderRadius: 12, // Match reload button's border radius
+              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+              onPressed: onPressed,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              elevation: 0.5, // Subtle shadow for modern look
+            ),
           ),
         ],
       ),

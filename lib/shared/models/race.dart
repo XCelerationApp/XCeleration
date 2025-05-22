@@ -1,3 +1,5 @@
+// ignore_for_file: constant_identifier_names, non_constant_identifier_names
+
 import 'package:flutter/material.dart';
 import 'dart:convert';
 
@@ -104,7 +106,7 @@ class Race {
         'location': location,
         'distance': distance,
         'distance_unit': distanceUnit,
-        'team_colors': jsonEncode(teamColors.map((c) => c.value).toList()),
+        'team_colors': jsonEncode(teamColors.map((c) => c.toARGB32()).toList()),
         'teams': jsonEncode(teams),
         'flow_state': flowState,
       };
@@ -116,7 +118,7 @@ class Race {
       'location': location,
       'distance': distance,
       'distance_unit': distanceUnit,
-      'team_colors': jsonEncode(teamColors.map((c) => c.value).toList()),
+      'team_colors': jsonEncode(teamColors.map((c) => c.toARGB32()).toList()),
       'teams': jsonEncode(teams),
       'flow_state': flowState,
     };

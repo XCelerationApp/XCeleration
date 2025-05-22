@@ -7,10 +7,10 @@ void main() {
   group('CollapsibleResultsWidget Tests', () {
     // This test verifies the widget correctly displays individual results
     /* testWidgets('renders individual results correctly', (WidgetTester tester) async {
-      // TODO: Create test data for individual results (ResultsRecord)
+      // todo: Create test data for individual results (ResultsRecord)
       // final resultsRecord = ResultsRecord(...);
       
-      // TODO: Build widget tree with the test data
+      // todo: Build widget tree with the test data
       // await tester.pumpWidget(MaterialApp(
       //   home: Scaffold(
       //     body: CollapsibleResultsWidget(
@@ -20,17 +20,17 @@ void main() {
       //   ),
       // ));
       
-      // TODO: Verify UI elements
+      // todo: Verify UI elements
       // expect(find.text(resultsRecord.name), findsOneWidget);
       // expect(find.text(resultsRecord.school), findsOneWidget);
     }); */
 
     // This test verifies the widget correctly displays team results
     /* testWidgets('renders team results correctly', (WidgetTester tester) async {
-      // TODO: Create test data for team results (TeamRecord)
+      // todo: Create test data for team results (TeamRecord)
       // final teamRecord = TeamRecord(...);
       
-      // TODO: Build widget tree with the test data
+      // todo: Build widget tree with the test data
       // await tester.pumpWidget(MaterialApp(
       //   home: Scaffold(
       //     body: CollapsibleResultsWidget(
@@ -40,13 +40,13 @@ void main() {
       //   ),
       // ));
       
-      // TODO: Verify UI elements
+      // todo: Verify UI elements
       // expect(find.text(teamRecord.school), findsOneWidget);
     }); */
 
     // This test verifies the collapsible behavior
     /* testWidgets('collapses and expands when tapped', (WidgetTester tester) async {
-      // TODO: Implement test for the collapsible functionality
+      // todo: Implement test for the collapsible functionality
       // 1. Create test data
       // 2. Build widget tree
       // 3. Verify initial collapsed state

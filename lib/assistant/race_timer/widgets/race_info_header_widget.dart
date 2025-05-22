@@ -3,6 +3,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../../utils/enums.dart';
 import '../controller/timing_controller.dart';
+import 'package:xceleration/core/utils/color_utils.dart';
 
 class RaceInfoHeaderWidget extends StatelessWidget {
   final TimingController controller;
@@ -26,7 +27,7 @@ class RaceInfoHeaderWidget extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFF5F5F5),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.withOpacity(0.2)),
+        border: Border.all(color: ColorUtils.withOpacity(Colors.grey, 0.2)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,

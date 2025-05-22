@@ -4,6 +4,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../race_screen/widgets/runner_record.dart';
 import '../screen/resolve_bib_number_screen.dart';
+import 'package:xceleration/core/utils/color_utils.dart';
 
 class BibConflictsOverview extends StatefulWidget {
   final List<RunnerRecord> records;
@@ -55,7 +56,7 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
               width: 100,
               height: 100,
               decoration: BoxDecoration(
-                color: Colors.green.withOpacity(0.1),
+                color: ColorUtils.withOpacity(Colors.green, 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -129,7 +130,7 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: AppColors.primaryColor.withOpacity(0.15),
+          color: ColorUtils.withOpacity(AppColors.primaryColor, 0.15),
           width: 1,
         ),
       ),
@@ -166,11 +167,11 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
                   width: 46,
                   height: 46,
                   decoration: BoxDecoration(
-                    color: AppColors.primaryColor.withOpacity(0.12),
+                    color: ColorUtils.withOpacity(AppColors.primaryColor, 0.12),
                     borderRadius: BorderRadius.circular(23),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.primaryColor.withOpacity(0.1),
+                        color: ColorUtils.withOpacity(AppColors.primaryColor, 0.1),
                         blurRadius: 4,
                         offset: const Offset(0, 2),
                       ),
@@ -211,7 +212,7 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
                   borderRadius: BorderRadius.circular(18),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: ColorUtils.withOpacity(Colors.black, 0.05),
                       blurRadius: 4,
                       offset: const Offset(0, 1),
                     ),
