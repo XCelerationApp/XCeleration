@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:xceleration/utils/time_formatter.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 import '../../../utils/enums.dart';
 import '../../race_results/model/team_record.dart';
@@ -183,8 +185,37 @@ class ShareResultsController {
     if (result != null) {
       switch (result) {
         case GoogleSheetAction.openSheet:
-          // URL Launcher code would go here
-          debugPrint('Would open URL: $sheetUri');
+          // Try to launch the URL in Google Sheets app first, fallback to browser
+          final url = sheetUri.toString();
+          
+          try {
+            // Check if we can launch with Google Sheets app scheme
+            final sheetsAppUri = Uri.parse('googlesheetsapp://spreadsheets.google.com/d/$url');
+            final canLaunchSheetsApp = await canLaunchUrl(sheetsAppUri);
+            
+            if (canLaunchSheetsApp) {
+              debugPrint('Opening in Google Sheets app');
+              // Open in Google Sheets app
+              await launchUrl(sheetsAppUri);
+            } else {
+              debugPrint('Opening in browser');
+              // Fallback to browser
+              await launchUrl(
+                sheetUri,
+                mode: LaunchMode.externalApplication,
+              );
+            }
+          } catch (e) {
+            debugPrint('Error launching URL: $e');
+            // Final fallback - try simple string launch
+            try {
+              await launchUrlString(url);
+            } catch (e) {
+              if (context.mounted) {
+                DialogUtils.showErrorDialog(context, message: 'Unable to open Google Sheet');
+              }
+            }
+          }
           break;
           
         case GoogleSheetAction.share:
