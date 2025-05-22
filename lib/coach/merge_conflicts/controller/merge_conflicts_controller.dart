@@ -448,9 +448,8 @@ class MergeConflictsController with ChangeNotifier {
   }
 
   void showSuccessMessage() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Successfully resolved conflict')),
-    );
+    DialogUtils.showSuccessDialog(context,
+        message: 'Successfully resolved conflict');
   }
 
   void updateSelectedTime(

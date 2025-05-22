@@ -42,3 +42,14 @@ android {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // Fix for audioplayers_android compatibility issues
+    constraints {
+        implementation('androidx.core:core-ktx') {
+            version {
+                strictly '1.9.0'
+            }
+        }
+    }
+}

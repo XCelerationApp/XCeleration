@@ -1,4 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Required for foreground services on Android 13+ -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
     <application
         android:label="XCeleration"
         android:name="${applicationName}"
@@ -30,6 +33,11 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+            
+        <!-- Define foreground service type for NearbyService -->
+        <service
+            android:name="com.nankai.flutter_nearby_connections.NearbyService"
+            android:foregroundServiceType="connectedDevice" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
