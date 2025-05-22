@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/typography.dart';
 import '../theme/app_colors.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 import 'dart:async';
 
@@ -242,7 +243,7 @@ class DialogUtils {
     }
   }
   
-  /// Shows an overlay notification that appears above all other UI elements
+  /// Shows a toast notification that appears above all other UI elements
   /// and automatically dismisses after a set duration
   /// 
   /// This is useful for showing feedback messages without blocking the UI
@@ -255,154 +256,54 @@ class DialogUtils {
     Color textColor = AppColors.darkColor,
     Color iconColor = AppColors.darkColor,
     Duration duration = const Duration(seconds: 2),
-    double topOffset = 50,
-    double horizontalPadding = 0.2, // Percentage of screen width (0.2 = 20%)
   }) {
-    late final OverlayEntry overlay;
+    // Log the message for debugging
+    debugPrint(message);
     
-    overlay = OverlayEntry(
-      builder: (context) => _AnimatedNotification(
-        message: message,
-        icon: icon,
-        backgroundColor: backgroundColor,
-        textColor: textColor,
-        iconColor: iconColor,
-        duration: duration,
-        topOffset: topOffset,
-        horizontalPadding: horizontalPadding,
-        onComplete: () {
-          overlay.remove();
-        },
-      ),
-    );
-      
-    // Clear any existing snackbars to prevent UI clutter
-    ScaffoldMessenger.of(context).clearSnackBars();
+    // Create FToast instance
+    final FToast fToast = FToast();
     
-    // Add the overlay
-    Overlay.of(context).insert(overlay);
-  }
-}
-
-/// A stateful widget that handles the notification animation
-class _AnimatedNotification extends StatefulWidget {
-  final String message;
-  final IconData? icon;
-  final Color backgroundColor;
-  final Color textColor;
-  final Color iconColor;
-  final Duration duration;
-  final double topOffset;
-  final double horizontalPadding;
-  final VoidCallback? onComplete;
-
-  const _AnimatedNotification({
-    required this.message,
-    this.icon,
-    required this.backgroundColor,
-    required this.textColor,
-    required this.iconColor,
-    required this.duration,
-    this.topOffset = 50,
-    this.horizontalPadding = 0.2,
-    this.onComplete,
-  });
-
-  @override
-  State<_AnimatedNotification> createState() => _AnimatedNotificationState();
-}
-
-class _AnimatedNotificationState extends State<_AnimatedNotification> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _slideAnimation;
-  late Animation<double> _fadeAnimation;
-  
-  @override
-  void initState() {
-    super.initState();
+    // Initialize fToast with context
+    fToast.init(context);
     
-    // Set up the animation controller
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 150),
-    );
-    
-    // Create the slide-in animation (start from -50 to simulate coming from off-screen)
-    _slideAnimation = Tween<double>(begin: -50.0, end: widget.topOffset).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: Curves.easeOut,
-      ),
-    );
-    
-    // Add a fade-in effect
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: Curves.easeOut,
-      ),
-    );
-    
-    // Start the animation
-    _controller.forward();
-    
-    // Set up the timer to handle dismissal
-    Future.delayed(widget.duration, () {
-      // Animate back up
-      _controller.reverse().then((_) {
-        widget.onComplete?.call();
-      });
-    });
-  }
-  
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-  
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        return Positioned(
-          top: _slideAnimation.value,
-          left: MediaQuery.of(context).size.width * widget.horizontalPadding,
-          right: MediaQuery.of(context).size.width * widget.horizontalPadding,
-          child: Opacity(
-            opacity: _fadeAnimation.value,
-            child: Material(
-              elevation: 3,
-              borderRadius: BorderRadius.circular(8),
-              color: widget.backgroundColor,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (widget.icon != null) ...[
-                      Icon(widget.icon, color: widget.iconColor, size: 20),
-                      const SizedBox(width: 8),
-                    ],
-                    Flexible(
-                      child: Text(
-                        widget.message,
-                        style: AppTypography.bodyRegular.copyWith(
-                          color: widget.textColor,
-                        ),
-                      ),
-                    ),
-                  ],
+    // Create custom toast widget
+    Widget toastWidget = Material(
+      elevation: 3.0,
+      borderRadius: BorderRadius.circular(8),
+      color: backgroundColor,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[  
+              Icon(icon, color: iconColor, size: 20),
+              const SizedBox(width: 8),
+            ],
+            Flexible(
+              child: Text(
+                message,
+                style: AppTypography.bodyRegular.copyWith(
+                  color: textColor,
                 ),
               ),
             ),
-          ),
-        );
-      },
+          ],
+        ),
+      ),
+    );
+    
+    // Show the custom toast at the top of the screen
+    fToast.showToast(
+      child: toastWidget,
+      gravity: ToastGravity.TOP,
+      toastDuration: duration,
+      fadeDuration: const Duration(milliseconds: 150),
     );
   }
 }
+
+
 
 /// A customizable loading dialog with a title, loading indicator, message, and optional cancel button
 class LoadingDialog extends StatelessWidget {

@@ -80,14 +80,13 @@ class ShareResultsController {
   /// Handle plain text format - copy to clipboard
   Future<void> _handlePlainTextCopy(BuildContext context) async {
     // Store navigator state early to handle context mounting issues
-    final navigatorState = Navigator.of(context, rootNavigator: true);
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
-    final globalContext = navigatorState.context;
+    // final navigatorState = Navigator.of(context, rootNavigator: true);
+    // final globalContext = navigatorState.context;
     
     try {
       // Execute text preparation with loading dialog
       final success = await DialogUtils.executeWithLoadingDialog<bool>(
-        globalContext,
+        context,
         loadingMessage: 'Preparing text...',
         operation: () async {
           // Get formatted text
@@ -102,31 +101,30 @@ class ShareResultsController {
       
       // Show success message if copying was successful
       if (success == true) {
-        if (scaffoldMessenger.context.mounted) {
-          scaffoldMessenger.showSnackBar(
-            const SnackBar(content: Text('Results Copied!')),
-          );
+        if (context.mounted) {
+          // Use the scaffoldMessenger's context which has access to Overlay
+          DialogUtils.showSuccessDialog(context, message: 'Results Copied!');
         }
       }
     } catch (e) {
       debugPrint('Error copying to clipboard: $e');
       
-      // Only show error dialog if context is still mounted and it's not a cancellation
-      if (globalContext.mounted && e is! OperationCanceledException) {
-        DialogUtils.showErrorDialog(globalContext, message: 'Failed to copy to clipboard');
+      // Only show error feedback if it's not a cancellation
+      if (e is! OperationCanceledException) {
+        // Use the scaffoldMessenger's context which has access to Overlay
+        if (context.mounted) {
+          DialogUtils.showErrorDialog(context, message: 'Failed to copy to clipboard');
+        }
       }
     }
   }
 
   /// Handle Google Sheet - create sheet and show options using robust dialog
   Future<void> _handleGoogleSheet(BuildContext context) async {
-    // Store navigator state early to handle context mounting issues
+        // Store navigator state early to handle context mounting issues
     final navigatorState = Navigator.of(context, rootNavigator: true);
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
-    
-    // Store the global context for overlays (for error dialogs)
     final globalContext = navigatorState.context;
-    
+
     try {
       // Execute the sheet creation with a loading dialog
       final sheetUri = await DialogUtils.executeWithLoadingDialog<Uri>(
@@ -134,18 +132,18 @@ class ShareResultsController {
         loadingMessage: 'Creating Google Sheet...',
         allowCancel: true, // Let user cancel if it's taking too long
         operation: () async {
-        final List<List<dynamic>> data = await _formattedResultsController.formattedSheetsData;
-        
-        // Create Google Sheet
-        final uri = await GoogleSheetsUtils.createSheetAndGetUri(
-          context: globalContext,
-          title: title,
-          data: data,
-        );
-        
-        if (uri == null) {
-          throw Exception('Failed to create Google Sheet');
-        }
+          final List<List<dynamic>> data = await _formattedResultsController.formattedSheetsData;
+          
+          // Create Google Sheet
+          final uri = await GoogleSheetsUtils.createSheetAndGetUri(
+            context: globalContext,
+            title: title,
+            data: data,
+          );
+          
+          if (uri == null) {
+            throw Exception('Failed to create Google Sheet');
+          }
         
           return uri;
         },
@@ -158,32 +156,20 @@ class ShareResultsController {
         if (globalContext.mounted) {
           await _showGoogleSheetOptions(globalContext, sheetUri);
         } else {
-          // If even the navigator context isn't mounted, show a success snackbar
-          debugPrint('Global context is not mounted, showing snackbar instead of options');
-          if (scaffoldMessenger.context.mounted) {
-            scaffoldMessenger.showSnackBar(
-              SnackBar(
-                content: Text('Google Sheet created'),
-                action: SnackBarAction(
-                  label: 'Share',
-                  onPressed: () {
-                    _share(scaffoldMessenger.context, ShareParams(
-                      text: sheetUri.toString(),
-                      subject: title,
-                    ));
-                  },
-                ),
-              ),
-            );
-          }
+          _share(globalContext, ShareParams(
+            text: sheetUri.toString(),
+            subject: title,
+            title: title,
+          ));
+          
         }
       }
     } catch (e) {
       debugPrint('Error in Google Sheet creation: $e');
       
       // Use the stored global context for showing error dialog
-      if (globalContext.mounted && e is! OperationCanceledException) {
-        DialogUtils.showErrorDialog(globalContext, message: 'Error creating Google Sheet');
+      if (context.mounted && e is! OperationCanceledException) {
+        DialogUtils.showErrorDialog(context, message: 'Error creating Google Sheet');
       }
     }
   }
@@ -204,6 +190,7 @@ class ShareResultsController {
           await _share(context, ShareParams(
             text: sheetUri.toString(),
             subject: title,
+            title: title,
           ));
           break;
           
@@ -218,15 +205,11 @@ class ShareResultsController {
   
   /// Handle PDF - create and share immediately
   Future<void> _handlePdf(BuildContext context) async {
-    // Store navigator state early to handle context mounting issues
-    final navigatorState = Navigator.of(context, rootNavigator: true);
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
-    final globalContext = navigatorState.context;
     
     try {
       // Execute PDF creation with loading dialog
       final xFile = await DialogUtils.executeWithLoadingDialog<XFile>(
-        globalContext,
+        context,
         loadingMessage: 'Creating PDF...',
         allowCancel: true,
         operation: () async {
@@ -248,24 +231,23 @@ class ShareResultsController {
       
       // Share PDF if creation was successful
       if (xFile != null) {
-        if (globalContext.mounted) {
-          await _share(globalContext, ShareParams(
+        if (context.mounted) {
+          await _share(context, ShareParams(
             files: [xFile],
             subject: title,
+            fileNameOverrides: [title],
+            title: title,
           ));
-        } else if (scaffoldMessenger.context.mounted) {
-          // Fallback to show a snackbar if we can't directly share
-          scaffoldMessenger.showSnackBar(
-            const SnackBar(content: Text('PDF created successfully')),
-          );
+        } else  {
+          debugPrint('Context not mounted, PDF not shared');
         }
       }
     } catch (e) {
       debugPrint('Error in PDF creation: $e');
       
       // Only show error dialog if context is still mounted and it's not a cancellation
-      if (globalContext.mounted && e is! OperationCanceledException) {
-        DialogUtils.showErrorDialog(globalContext, message: 'Error creating PDF');
+      if (context.mounted && e is! OperationCanceledException) {
+        DialogUtils.showErrorDialog(context, message: 'Error creating PDF');
       }
     }
   }
