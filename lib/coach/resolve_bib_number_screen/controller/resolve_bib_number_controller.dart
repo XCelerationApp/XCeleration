@@ -39,18 +39,26 @@ class ResolveBibNumberController with ChangeNotifier {
     debugPrint('Searching runners...');
     debugPrint('Query: $query');
     debugPrint('Race ID: $raceId');
+    
+    // Get already recorded runners for this race (runners that already have results)
+    final recordedBibs = records.map((result) => result.bib).toSet();
+    
+    debugPrint('Already recorded bibs: ${recordedBibs.join(', ')}');
+    
+    List<RunnerRecord> results;
     if (query.isEmpty) {
-      final results = await databaseHelper.getRaceRunners(raceId);
-      searchResults = results;
-      notifyListeners();
-      debugPrint('Search results: ${searchResults.map((r) => r.bib).join(', ')}');
-      return;
+      // Get all race runners
+      results = await databaseHelper.getRaceRunners(raceId);
+    } else {
+      // Search race runners by query
+      results = await databaseHelper.searchRaceRunners(raceId, query);
     }
-
-    final results = await databaseHelper.searchRaceRunners(raceId, query);
-    searchResults = results;
+    
+    // Filter out runners that have already been recorded
+    searchResults = results.where((runner) => !recordedBibs.contains(runner.bib)).toList();
+    
     notifyListeners();
-    debugPrint('Search results: ${searchResults.map((r) => r.bib).join(', ')}');
+    debugPrint('Filtered search results: ${searchResults.map((r) => r.bib).join(', ')}');
   }
 
   Future<void> createNewRunner() async {

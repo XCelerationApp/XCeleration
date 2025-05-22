@@ -19,16 +19,23 @@ class Chunk {
     required this.type,
     required this.runners,
     required this.conflictIndex,
-  })  : joinedRecords = List.generate(
-          runners.length,
-          (j) => JoinedRecord(runner: runners[j], timeRecord: records[j]),
-        ),
-        controllers = {
-          'timeControllers':
-              List.generate(runners.length, (_) => TextEditingController()),
-          'manualControllers':
-              List.generate(runners.length, (_) => TextEditingController()),
-        };
+  }) : joinedRecords = [], controllers = {} {
+    // Safely create joined records only for indices that exist in both lists
+    final int commonLength = runners.length < records.length ? runners.length : records.length;
+    
+    joinedRecords = List.generate(
+      commonLength,
+      (j) => JoinedRecord(runner: runners[j], timeRecord: records[j]),
+    );
+    
+    // Use runners.length for controllers since they're based on runners
+    controllers = {
+      'timeControllers':
+          List.generate(runners.length, (_) => TextEditingController()),
+      'manualControllers':
+          List.generate(runners.length, (_) => TextEditingController()),
+    };
+  }
 
   factory Chunk.fromMap(
       Map<String, dynamic> map, List<RunnerRecord> runnerRecords) {

@@ -164,7 +164,7 @@ class MergeConflictsController with ChangeNotifier {
 
       if (time == null) {
         DialogUtils.showErrorDialog(context,
-            message: 'Enter a valid time for ${runner.bib}');
+            message: 'Enter a valid time for runner with bib ${runner.bib}');
         return false;
       }
 

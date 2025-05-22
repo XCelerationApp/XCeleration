@@ -144,6 +144,8 @@ class GoogleSheetsUtils {
           return null;
         }
       }
+
+      if (!context.mounted) throw Exception('Context is not mounted');
       
       // Create the sheet
       final spreadsheetId = await createSheet(
@@ -162,6 +164,8 @@ class GoogleSheetsUtils {
         // Create a completer to handle the timeout logic
         final completer = Completer<Uri?>();
         
+        if (!context.mounted) throw Exception('Context is not mounted');
+
         // Start the API request
         _getUrlFromApi(context, spreadsheetId).then((apiUrl) {
           if (!completer.isCompleted) {
