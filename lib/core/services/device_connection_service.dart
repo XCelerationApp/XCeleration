@@ -21,17 +21,20 @@ class ConnectedDevice extends ChangeNotifier {
   /// The current connection status
   ConnectionStatus get status => _status;
   set status(ConnectionStatus value) {
-    _status = value;
-    notifyListeners();
+    if (_status != value) {
+      _status = value;
+      notifyListeners();
+    }
   }
   
   /// Data associated with this device
   String? get data => _data;
   set data(String? value) {
-    _data = value;
-    notifyListeners();
+    if (_data != value) {
+      _data = value;
+      notifyListeners();
+    }
   }
-
 
   /// Check if the device is finished
   bool get isFinished => _status == ConnectionStatus.finished;
@@ -155,61 +158,182 @@ class DeviceConnectionService {
   StreamSubscription? receivedDataSubscription;
   final List<Device> _connectedDevices = [];
   final Map<String, Function(Map<String, dynamic>)> _messageCallbacks = {};
+  
+  // Cancellation support
+  final Map<String, Completer<void>> _cancellationCompleters = {};
+  bool _isDisposed = false;
 
-  Future<bool> checkIfNearbyConnectionsWorks(
-      {Duration timeout = const Duration(seconds: 5)}) async {
-    Completer<bool> completer = Completer<bool>();
-    if (Platform.isAndroid || Platform.isIOS) {
-      try {
-        // Try to initialize NearbyService - this will fail if permissions are denied
-        final testService = NearbyService();
-        await testService.init(
-          serviceType: 'test',
-          deviceName: 'test',
-          strategy: Strategy.P2P_STAR,
-          callback: (isRunning) {
-            completer.complete(isRunning);
-          },
-        );
-        Timer(timeout, () {
+  /// Checks if the service can still be used (not disposed)
+  bool get isActive => !_isDisposed;
+
+  /// Creates a cancellation token for an operation that can be cancelled
+  String _createCancellationToken(String operationName) {
+    final token = '${operationName}_${DateTime.now().millisecondsSinceEpoch}';
+    _cancellationCompleters[token] = Completer<void>();
+    return token;
+  }
+
+  /// Checks if an operation with the given token should be cancelled
+  bool _shouldCancel(String token) {
+    return _isDisposed || (_cancellationCompleters[token]?.isCompleted ?? false);
+  }
+
+  /// Cancels an operation with the given token
+  void _cancelOperation(String token) {
+    if (!(_cancellationCompleters[token]?.isCompleted ?? true)) {
+      _cancellationCompleters[token]?.complete();
+    }
+  }
+
+  /// Cleans up a cancellation token
+  void _cleanupToken(String token) {
+    _cancellationCompleters.remove(token);
+  }
+
+  /// Check if nearby connections functionality works on this device
+  Future<bool> checkIfNearbyConnectionsWorks({
+    Duration timeout = const Duration(seconds: 5)
+  }) async {
+    // Don't proceed if the service is disposed
+    if (_isDisposed) return false;
+    
+    final token = _createCancellationToken('check_nearby');
+    final completer = Completer<bool>();
+    
+    try {
+      if (Platform.isAndroid || Platform.isIOS) {
+        // Create timeout timer
+        final timer = Timer(timeout, () {
           if (!completer.isCompleted) {
             completer.complete(false);
           }
         });
 
-        return completer.future;
-      } catch (e) {
-        debugPrint('Failed to initialize NearbyService: $e');
+        try {
+          // Try to initialize NearbyService - this will fail if permissions are denied
+          final testService = NearbyService();
+          await testService.init(
+            serviceType: 'test',
+            deviceName: 'test',
+            strategy: Strategy.P2P_STAR,
+            callback: (isRunning) {
+              if (!completer.isCompleted) {
+                completer.complete(isRunning);
+              }
+            },
+          );
+          
+          // Check for cancellation while waiting for result
+          await Future.any([
+            completer.future,
+            Future.doWhile(() async {
+              await Future.delayed(const Duration(milliseconds: 50));
+              if (_shouldCancel(token)) {
+                completer.complete(false);
+                return false;
+              }
+              return !completer.isCompleted;
+            })
+          ]);
+          
+          // Cleanup
+          timer.cancel();
+          testService.stopAdvertisingPeer();
+          testService.stopBrowsingForPeers();
+          
+          return completer.future;
+        } catch (e) {
+          debugPrint('Failed to initialize NearbyService: $e');
+          timer.cancel();
+          return false;
+        }
+      } else {
         return false;
       }
-    } else {
-      return false;
+    } finally {
+      _cleanupToken(token);
     }
   }
 
-  Future<void> init(
+  /// Initialize the connection service
+  Future<bool> init(
       String serviceType, String deviceName, DeviceType deviceType) async {
-    nearbyService = NearbyService();
-    receivedDataSubscription = null;
-    await nearbyService!.init(
-        serviceType: serviceType, //'wirelessconn'
+    // Don't proceed if the service is disposed
+    if (_isDisposed) return false;
+    
+    final token = _createCancellationToken('init');
+    final completer = Completer<bool>();
+    
+    try {
+      // Clean up any existing resources first
+      _cleanupResources();
+      
+      nearbyService = NearbyService();
+      receivedDataSubscription = null;
+      
+      await nearbyService!.init(
+        serviceType: serviceType,
         deviceName: deviceName,
         strategy: Strategy.P2P_STAR,
         callback: (isRunning) async {
-          if (isRunning) {
+          // Check if we've been disposed or cancelled while initializing
+          if (_shouldCancel(token) || !isRunning) {
+            completer.complete(false);
+            return;
+          }
+          
+          try {
             if (deviceType == DeviceType.browserDevice) {
               await nearbyService!.stopBrowsingForPeers();
-              await Future.delayed(Duration(microseconds: 200));
+              await Future.delayed(const Duration(milliseconds: 200));
+              if (_shouldCancel(token)) {
+                completer.complete(false);
+                return;
+              }
               await nearbyService!.startBrowsingForPeers();
             } else {
               await nearbyService!.stopAdvertisingPeer();
-              await Future.delayed(Duration(microseconds: 200));
+              await Future.delayed(const Duration(milliseconds: 200));
+              if (_shouldCancel(token)) {
+                completer.complete(false);
+                return;
+              }
               await nearbyService!.startAdvertisingPeer();
             }
+            
+            if (!completer.isCompleted) {
+              completer.complete(true);
+            }
+          } catch (e) {
+            debugPrint('Error during initialization: $e');
+            if (!completer.isCompleted) {
+              completer.complete(false);
+            }
           }
-        });
+        }
+      );
+      
+      // Set a timeout to prevent hanging
+      Timer(const Duration(seconds: 10), () {
+        if (!completer.isCompleted) {
+          debugPrint('Init timeout reached');
+          completer.complete(false);
+        }
+      });
+      
+      return await completer.future;
+    } catch (e) {
+      debugPrint('Error initializing NearbyService: $e');
+      if (!completer.isCompleted) {
+        completer.complete(false);
+      }
+      return false;
+    } finally {
+      _cleanupToken(token);
+    }
   }
 
+  /// Monitor device connection status with improved cancellation support
   Future<void> monitorDevicesConnectionStatus({
     required List<String> deviceNames,
     Future<void> Function(Device device)? deviceLostCallback,
@@ -218,94 +342,183 @@ class DeviceConnectionService {
     Future<void> Function(Device device)? deviceConnectedCallback,
     Duration timeout = const Duration(seconds: 60),
   }) async {
-    // Start monitoring
-
-    // Subscribe to state changes
-    deviceMonitorSubscription =
-        nearbyService!.stateChangedSubscription(callback: (devicesList) async {
-      for (var device in devicesList) {
-        if (!deviceNames.contains(device.deviceName)) {
-          debugPrint(
-              'Device not in list of expected devices: ${device.deviceName}');
-          continue; // Skip this device but continue processing others
-        }
-
-        debugPrint(
-            'Processing device ${device.deviceName} with state ${device.state}');
-
-        if (device.state == SessionState.notConnected) {
-          if (_connectedDevices.contains(device)) {
-            _connectedDevices.remove(device);
-            await deviceLostCallback?.call(device);
-          }
-          // Only call deviceFoundCallback for newly discovered devices
-          if (!_connectedDevices.contains(device)) {
-            await deviceFoundCallback?.call(device);
-          }
-        } else if (device.state == SessionState.connecting) {
-          await deviceConnectingCallback?.call(device);
-        } else if (device.state == SessionState.connected) {
-          if (!_connectedDevices.contains(device)) {
-            _connectedDevices.add(device);
-            await deviceConnectedCallback?.call(device);
-          }
-        }
-      }
-    });
-
-    // Add a timeout to prevent indefinite waiting
-    await Future.delayed(timeout);
-    await deviceMonitorSubscription?.cancel();
-  }
-
-  Future<void> inviteDevice(Device device) async {
-    if (device.state == SessionState.notConnected) {
-      debugPrint('Device found. Sending invite...');
-      await nearbyService!
-          .invitePeer(deviceID: device.deviceId, deviceName: device.deviceName);
-    } else if (device.state == SessionState.connected) {
-      debugPrint('Device is already connected: ${device.deviceName}');
-    } else {
-      debugPrint('Device is connecting, not sending invite: ${device.state}');
-    }
-  }
-
-  Future<void> disconnectDevice(Device device) async {
-    if (device.state != SessionState.connected) {
-      debugPrint('Device not connected');
-      return;
-    }
-    await nearbyService!.disconnectPeer(deviceID: device.deviceId);
-    debugPrint('Disconnected from device');
-  }
-
-  Future<void> sendMessageToDevice(Device device, Package package) async {
-    if (nearbyService == null) {
-      debugPrint('ERROR: nearbyService is null');
-      throw Exception('NearbyService not initialized');
-    }
-
-    if (device.state != SessionState.connected) {
-      debugPrint('Device not connected - Cannot send message');
-      return;
-    }
-    debugPrint('Sending message to device ${device.deviceName}}');
+    // Don't proceed if the service is disposed
+    if (_isDisposed || nearbyService == null) return;
+    
+    final token = _createCancellationToken('monitor_devices');
+    
     try {
+      // Cancel any existing subscription
+      await deviceMonitorSubscription?.cancel();
+      
+      // Create a new subscription
+      deviceMonitorSubscription =
+          nearbyService!.stateChangedSubscription(callback: (devicesList) async {
+        // Check if we've been cancelled
+        if (_shouldCancel(token)) return;
+        
+        for (var device in devicesList) {
+          // Skip if we're no longer active
+          if (_shouldCancel(token)) return;
+          
+          // Check if this is a device we're interested in
+          if (!deviceNames.contains(device.deviceName)) {
+            debugPrint('Device not in list of expected devices: ${device.deviceName}');
+            continue; // Skip this device but continue processing others
+          }
+
+          debugPrint('Processing device ${device.deviceName} with state ${device.state}');
+
+          if (device.state == SessionState.notConnected) {
+            if (_connectedDevices.contains(device)) {
+              _connectedDevices.remove(device);
+              if (!_shouldCancel(token) && deviceLostCallback != null) {
+                await deviceLostCallback(device);
+              }
+            }
+            // Only call deviceFoundCallback for newly discovered devices
+            if (!_connectedDevices.contains(device) && !_shouldCancel(token)) {
+              if (deviceFoundCallback != null) {
+                await deviceFoundCallback(device);
+              }
+            }
+          } else if (device.state == SessionState.connecting) {
+            if (!_shouldCancel(token) && deviceConnectingCallback != null) {
+              await deviceConnectingCallback(device);
+            }
+          } else if (device.state == SessionState.connected) {
+            if (!_connectedDevices.contains(device) && !_shouldCancel(token)) {
+              _connectedDevices.add(device);
+              if (deviceConnectedCallback != null) {
+                await deviceConnectedCallback(device);
+              }
+            }
+          }
+        }
+      });
+
+      // Set a timeout that will automatically cancel monitoring
+      if (timeout.inSeconds > 0) {
+        Timer(timeout, () {
+          if (!_shouldCancel(token)) {
+            _cancelOperation(token);
+          }
+        });
+      }
+      
+      // Wait for cancellation
+      while (!_shouldCancel(token)) {
+        await Future.delayed(const Duration(milliseconds: 100));
+      }
+      
+      // Cleanup
+      await deviceMonitorSubscription?.cancel();
+      deviceMonitorSubscription = null;
+    } catch (e) {
+      debugPrint('Error monitoring device connections: $e');
+    } finally {
+      _cleanupToken(token);
+    }
+  }
+
+  /// Invite a device to connect with improved error handling
+  Future<bool> inviteDevice(Device device) async {
+    // Don't proceed if the service is disposed
+    if (_isDisposed || nearbyService == null) return false;
+    
+    try {
+      if (device.state == SessionState.notConnected) {
+        debugPrint('Device found. Sending invite to ${device.deviceName}...');
+        await nearbyService!.invitePeer(
+          deviceID: device.deviceId, 
+          deviceName: device.deviceName
+        );
+        return true;
+      } else if (device.state == SessionState.connected) {
+        debugPrint('Device is already connected: ${device.deviceName}');
+        return true;
+      } else {
+        debugPrint('Device is connecting, not sending invite: ${device.state}');
+        return false;
+      }
+    } catch (e) {
+      debugPrint('Error inviting device ${device.deviceName}: $e');
+      return false;
+    }
+  }
+
+  /// Disconnect from a device with improved error handling
+  Future<bool> disconnectDevice(Device device) async {
+    // Don't proceed if the service is disposed
+    if (_isDisposed || nearbyService == null) return false;
+    
+    try {
+      if (device.state != SessionState.connected) {
+        debugPrint('Device not connected, cannot disconnect from ${device.deviceName}');
+        return false;
+      }
+      
+      await nearbyService!.disconnectPeer(deviceID: device.deviceId);
+      debugPrint('Disconnected from device ${device.deviceName}');
+      return true;
+    } catch (e) {
+      debugPrint('Error disconnecting from device ${device.deviceName}: $e');
+      return false;
+    }
+  }
+
+  /// Send a message to a device with improved error handling and cancellation
+  Future<bool> sendMessageToDevice(Device device, Package package) async {
+    // Don't proceed if the service is disposed
+    if (_isDisposed || nearbyService == null) {
+      debugPrint('Cannot send message - service inactive');
+      return false;
+    }
+
+    if (device.state != SessionState.connected) {
+      debugPrint('Device not connected - Cannot send message to ${device.deviceName}');
+      return false;
+    }
+    
+    final token = _createCancellationToken('send_message');
+    
+    try {
+      debugPrint('Sending message to device ${device.deviceName}');
+      
+      // Check for cancellation
+      if (_shouldCancel(token)) {
+        debugPrint('Send message operation cancelled');
+        return false;
+      }
+      
       await nearbyService!.sendMessage(device.deviceId, package.toString());
       debugPrint('Message sent successfully to ${device.deviceName}');
+      return true;
     } catch (e) {
       debugPrint('Error sending message to ${device.deviceName}: $e');
-      rethrow;
+      return false;
+    } finally {
+      _cleanupToken(token);
     }
   }
 
-  void monitorMessageReceives(Device device,
-      {required Function(Package, String) messageReceivedCallback}) {
-    debugPrint(
-        'Setting up message monitoring for device: ${device.deviceName}');
+  /// Monitor messages received from a device with improved error handling and cancellation
+  String monitorMessageReceives(Device device, {
+    required Function(Package, String) messageReceivedCallback
+  }) {
+    // Don't proceed if the service is disposed
+    if (_isDisposed || nearbyService == null) {
+      return '';
+    }
+    
+    final token = _createCancellationToken('monitor_messages');
+    debugPrint('Setting up message monitoring for device: ${device.deviceName}');
 
     // Store the callback for this specific device
     _messageCallbacks[device.deviceId] = (Map<String, dynamic>? data) async {
+      // Check for cancellation
+      if (_shouldCancel(token)) return;
+      
       try {
         debugPrint('Raw data received: $data');
         if (data == null ||
@@ -317,12 +530,17 @@ class DeviceConnectionService {
 
         // Parse the message string into a Package object
         try {
+          if (_shouldCancel(token)) return;
+          
           debugPrint('Attempting to parse message: ${data['message']}');
           final String packageString = data['message'];
 
           final package = Package.fromString(packageString);
           debugPrint('Successfully parsed package: ${package.type}');
-          await messageReceivedCallback(package, data['senderDeviceId']);
+          
+          if (!_shouldCancel(token)) {
+            await messageReceivedCallback(package, data['senderDeviceId']);
+          }
         } catch (e) {
           debugPrint('Error parsing package: $e');
         }
@@ -336,6 +554,9 @@ class DeviceConnectionService {
       debugPrint('Creating new data subscription');
       receivedDataSubscription =
           nearbyService!.dataReceivedSubscription(callback: (data) async {
+        // Check for cancellation
+        if (_shouldCancel(token)) return;
+            
         debugPrint('Data received in subscription: $data');
         try {
           final callback = _messageCallbacks[data['senderDeviceId']];
@@ -352,19 +573,55 @@ class DeviceConnectionService {
     } else {
       debugPrint('Using existing data subscription');
     }
+    
+    return token;
   }
 
-  void dispose() {
+  /// Stop monitoring messages for a specific operation
+  void stopMessageMonitoring(String token) {
+    if (token.isNotEmpty) {
+      _cancelOperation(token);
+    }
+  }
+
+  /// Clean up resources without fully disposing the service
+  void _cleanupResources() {
     receivedDataSubscription?.cancel();
     receivedDataSubscription = null;
-    _messageCallbacks.clear();
-    nearbyService?.stopBrowsingForPeers();
-    nearbyService?.stopAdvertisingPeer();
     deviceMonitorSubscription?.cancel();
-    for (var device in _connectedDevices) {
+    deviceMonitorSubscription = null;
+    _messageCallbacks.clear();
+    
+    // Disconnect from all connected devices
+    final devicesCopy = List<Device>.from(_connectedDevices);
+    for (var device in devicesCopy) {
       disconnectDevice(device);
     }
     _connectedDevices.clear();
+    
+    // Stop advertising and browsing
+    nearbyService?.stopBrowsingForPeers();
+    nearbyService?.stopAdvertisingPeer();
+  }
+
+  /// Fully dispose the service and all resources
+  void dispose() {
+    if (_isDisposed) return;
+    
+    debugPrint('Disposing DeviceConnectionService');
+    _isDisposed = true;
+    
+    // Cancel all pending operations
+    for (var token in _cancellationCompleters.keys) {
+      _cancelOperation(token);
+    }
+    
+    // Clean up resources
+    _cleanupResources();
+    
+    // Clear all state
+    _cancellationCompleters.clear();
+    nearbyService = null;
   }
 
   /// Creates a device manager for the specified device name and type
@@ -374,16 +631,31 @@ class DeviceConnectionService {
     return DevicesManager(deviceName, deviceType, data: data);
   }
 
+  /// Wait for data transfer to complete with proper cancellation support
   static Future<bool> waitForDataTransferCompletion(
-      DevicesManager devices) async {
+      DevicesManager devices, {Duration timeout = const Duration(seconds: 30)}) async {
     final completer = Completer<bool>();
-
-    Timer.periodic(const Duration(milliseconds: 100), (timer) {
+    Timer? timer;
+    
+    // Create a periodic timer to check completion status
+    timer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
       if (devices.allDevicesFinished()) {
         timer.cancel();
-        completer.complete(true);
+        if (!completer.isCompleted) {
+          completer.complete(true);
+        }
       }
     });
+    
+    // Add a timeout
+    if (timeout.inSeconds > 0) {
+      Future.delayed(timeout, () {
+        timer?.cancel();
+        if (!completer.isCompleted) {
+          completer.complete(false);
+        }
+      });
+    }
 
     return completer.future;
   }
