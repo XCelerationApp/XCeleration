@@ -159,11 +159,13 @@ class ShareResultsController {
         if (globalContext.mounted) {
           await _showGoogleSheetOptions(globalContext, sheetUri);
         } else {
-          _share(globalContext, ShareParams(
-            text: sheetUri.toString(),
-            subject: title,
-            title: title,
-          ));
+          if (context.mounted) {
+            _share(globalContext, ShareParams(
+              text: sheetUri.toString(),
+              subject: title,
+              title: title,
+            ));
+          }
           
         }
       }

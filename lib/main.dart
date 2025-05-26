@@ -105,7 +105,7 @@ class MyApp extends StatelessWidget {
           foregroundColor: AppColors.navBarTextColor,
           titleTextStyle: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
-        tabBarTheme: TabBarTheme(
+        tabBarTheme: TabBarThemeData(
           labelColor: AppColors.navBarTextColor,
           unselectedLabelColor: AppColors.backgroundColor,
           indicator: BoxDecoration(
