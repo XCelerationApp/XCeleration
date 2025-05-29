@@ -45,6 +45,15 @@ class Protocol {
   Protocol({required this.deviceConnectionService});
 
   void addDevice(Device device) {
+    // Check if this is a reconnection of a previously known device
+    final isReconnection = connectedDevices.containsKey(device.deviceId);
+    
+    if (isReconnection) {
+      // Device is reconnecting, reset its state
+      resetDeviceState(device.deviceId);
+      debugPrint('Device ${device.deviceId} reconnected - reset transfer state');
+    }
+    
     connectedDevices[device.deviceId] = device;
     _receivedPackages[device.deviceId] = {};
     _finishSequenceNumbers[device.deviceId] = 0;
@@ -295,6 +304,134 @@ class Protocol {
     }
   }
 
+  /// Comprehensive method to handle a complete data transfer with a device
+  /// This method handles both sending and receiving, with automatic reconnection support
+  /// Returns received data if this device is receiving, or null if this device is sending
+  /// 
+  /// The statusChecker parameter allows the caller to abort the transfer if device status changes
+  Future<String?> handleDataTransfer({
+    required String deviceId,
+    String? dataToSend,
+    bool isReceiving = false,
+    bool Function()? shouldContinueTransfer,
+  }) async {
+    if (_isTerminated) {
+      throw ProtocolTerminatedException('Protocol is terminated');
+    }
+
+    if (!connectedDevices.containsKey(deviceId)) {
+      throw Exception('Device $deviceId not connected');
+    }
+    
+    // Helper function to check if we should abort the transfer
+    bool shouldAbort() {
+      // If the caller provided a status check function, use it
+      if (shouldContinueTransfer != null && !shouldContinueTransfer()) {
+        debugPrint('Transfer aborted: device status changed');
+        return true;
+      }
+      // Otherwise continue the transfer
+      return false;
+    }
+
+    // Reset device state to ensure a clean transfer
+    resetDeviceState(deviceId);
+    debugPrint('Starting fresh data transfer with device $deviceId');
+
+    try {
+      // Handle sending data if we have data to send
+      if (dataToSend != null && !isReceiving) {
+        // Before starting to send, check if we should proceed
+        if (shouldAbort()) {
+          throw ProtocolTerminatedException('Transfer aborted: device status changed');
+        }
+        await sendData(dataToSend, deviceId);
+        return null; // Sender doesn't receive data
+      }
+      
+      // Handle receiving data
+      if (isReceiving) {
+        // Wait for either completion or termination
+        await Future.any([
+          Future.doWhile(() async {
+            if (_finishedDevices.contains(deviceId) || _isTerminated) {
+              return false;
+            }
+            
+            // Check if the device status has changed and we should abort
+            if (shouldAbort()) {
+              return false;
+            }
+            
+            await Future.delayed(Duration(milliseconds: 100));
+            return true;
+          }),
+          _terminationController.stream.first,
+        ]);
+        
+        // Check again in case we exited the loop due to status change
+        if (shouldAbort()) {
+          throw ProtocolTerminatedException('Transfer aborted: device status changed');
+        }
+
+        if (_isTerminated) {
+          debugPrint('Data reception terminated');
+          throw ProtocolTerminatedException('Data reception interrupted');
+        }
+        debugPrint('Data reception complete, gathering results');
+
+        // Process received packages
+        Map<int, Package> packages = _receivedPackages[deviceId] ?? {};
+        if (packages.isEmpty) {
+          throw Exception('No packages received from $deviceId');
+        }
+        
+        final List<Package> sortedPackages = packages.values.toList()
+          ..sort((a, b) => a.number.compareTo(b.number));
+
+        // Filter only DATA packages and verify sequence
+        final List<Package> dataPackages =
+            sortedPackages.where((p) => p.type == 'DATA').toList();
+
+        if (dataPackages.isEmpty) {
+          throw Exception('No DATA packages received from $deviceId');
+        }
+
+        // Verify we have all packages in sequence
+        bool hasAllPackages = true;
+        for (var i = 0; i < dataPackages.length; i++) {
+          if (dataPackages[i].number != i + 1) {
+            hasAllPackages = false;
+            break;
+          }
+        }
+
+        if (!hasAllPackages) {
+          throw Exception('Missing packages in sequence from $deviceId');
+        }
+
+        // Combine data chunks
+        final dataChunks = dataPackages
+            .where((p) => p.data != null)
+            .map((p) => p.data!)
+            .toList();
+
+        if (dataChunks.isEmpty) {
+          throw Exception('No valid DATA packages received from $deviceId');
+        }
+        return dataChunks.join();
+      }
+      
+      return null;
+    } catch (e) {
+      if (_isTerminated) {
+        rethrow;
+      }
+      debugPrint('Error in data transfer with device $deviceId: $e');
+      rethrow;
+    }
+  }
+
   Future<String> receiveDataFromDevice(String deviceId) async {
     if (_isTerminated) {
       throw ProtocolTerminatedException(
@@ -302,65 +439,17 @@ class Protocol {
     }
 
     try {
-      // Wait for either completion or termination
-      await Future.any([
-        Future.doWhile(() async {
-          if (_finishedDevices.contains(deviceId) || _isTerminated) {
-            return false;
-          }
-          await Future.delayed(
-              Duration(milliseconds: 100)); // Reduced delay for faster response
-          return true;
-        }),
-        _terminationController.stream.first,
-      ]);
-
-      if (_isTerminated) {
-        debugPrint('Data reception terminated');
-        throw ProtocolTerminatedException('Data reception interrupted');
+      // Use the new handleDataTransfer method with isReceiving=true
+      final result = await handleDataTransfer(
+        deviceId: deviceId,
+        isReceiving: true,
+      );
+      
+      if (result == null) {
+        throw Exception('No data received from device $deviceId');
       }
-      debugPrint('Data reception complete, gathering results');
-
-      Map<int, Package> packages = _receivedPackages[deviceId] ?? {};
-      if (packages.isEmpty) {
-        throw Exception('No packages received from $deviceId');
-      }
-      final List<Package> sortedPackages = _receivedPackages[deviceId]!
-          .values
-          .toList()
-        ..sort((a, b) => a.number.compareTo(b.number));
-
-      // Filter only DATA packages and verify sequence
-      final List<Package> dataPackages =
-          sortedPackages.where((p) => p.type == 'DATA').toList();
-
-      if (dataPackages.isEmpty) {
-        throw Exception('No DATA packages received from $deviceId');
-      }
-
-      // Verify we have all packages in sequence
-      bool hasAllPackages = true;
-      for (var i = 0; i < dataPackages.length; i++) {
-        if (dataPackages[i].number != i + 1) {
-          hasAllPackages = false;
-          break;
-        }
-      }
-
-      if (!hasAllPackages) {
-        throw Exception('Missing packages in sequence from $deviceId');
-      }
-
-      // Combine data chunks
-      final dataChunks = dataPackages
-          .where((p) => p.data != null)
-          .map((p) => p.data!)
-          .toList();
-
-      if (dataChunks.isEmpty) {
-        throw Exception('No valid DATA packages received from $deviceId');
-      }
-      return dataChunks.join();
+      
+      return result;
     } catch (e) {
       if (_isTerminated) {
         rethrow;
@@ -368,6 +457,22 @@ class Protocol {
       debugPrint('Error receiving data: $e');
       rethrow;
     }
+  }
+
+  /// Resets the state for a specific device, clearing any in-progress transfers
+  void resetDeviceState(String deviceId) {
+    // Remove from finished devices if present
+    _finishedDevices.remove(deviceId);
+    
+    // Clear received packages for this device
+    _receivedPackages[deviceId]?.clear();
+    
+    // Reset finish sequence number
+    _finishSequenceNumbers[deviceId] = 0;
+    
+    // Cancel any pending transmissions related to this device
+    // This is a simplification as we don't track which transmissions are for which device
+    // In a more sophisticated implementation, we would track device-specific transmissions
   }
 
   void clear() {

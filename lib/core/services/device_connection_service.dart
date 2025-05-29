@@ -4,6 +4,7 @@ import '../utils/data_package.dart';
 import 'dart:io';
 import '../../utils/enums.dart';
 import 'package:flutter/foundation.dart';
+import '../utils/connection_utils.dart';
 
 /// Represents a connected device with its properties
 class ConnectedDevice extends ChangeNotifier {
@@ -156,8 +157,17 @@ class DeviceConnectionService {
 
   StreamSubscription? deviceMonitorSubscription;
   StreamSubscription? receivedDataSubscription;
-  final List<Device> _connectedDevices = [];
+  
+  // Using a Map instead of List for better device tracking
+  final Map<String, Device> _deviceStateMap = {};
   final Map<String, Function(Map<String, dynamic>)> _messageCallbacks = {};
+  
+  // Debouncing support to prevent UI flicker
+  final Map<String, Timer> _debounceTimers = {};
+  
+  // Reconnection strategy support
+  final Map<String, int> _reconnectionAttempts = {};
+  final int maxReconnectionAttempts = 3;
   
   // Cancellation support
   final Map<String, Completer<void>> _cancellationCompleters = {};
@@ -188,6 +198,18 @@ class DeviceConnectionService {
   /// Cleans up a cancellation token
   void _cleanupToken(String token) {
     _cancellationCompleters.remove(token);
+  }
+  
+  /// Debounces a callback to prevent rapid UI updates
+  void _debounceCallback(String deviceId, Function callback, {Duration duration = const Duration(milliseconds: 300)}) {
+    if (_debounceTimers.containsKey(deviceId)) {
+      _debounceTimers[deviceId]?.cancel();
+    }
+    
+    _debounceTimers[deviceId] = Timer(duration, () {
+      callback();
+      _debounceTimers.remove(deviceId);
+    });
   }
 
   /// Check if nearby connections functionality works on this device
@@ -333,9 +355,9 @@ class DeviceConnectionService {
     }
   }
 
-  /// Monitor device connection status with improved cancellation support
+  /// Monitor device connection status with improved state tracking
   Future<void> monitorDevicesConnectionStatus({
-    required List<String> deviceNames,
+    required DevicesManager devicesManager,
     Future<void> Function(Device device)? deviceLostCallback,
     Future<void> Function(Device device)? deviceFoundCallback,
     Future<void> Function(Device device)? deviceConnectingCallback,
@@ -351,46 +373,115 @@ class DeviceConnectionService {
       // Cancel any existing subscription
       await deviceMonitorSubscription?.cancel();
       
-      // Create a new subscription
-      deviceMonitorSubscription =
-          nearbyService!.stateChangedSubscription(callback: (devicesList) async {
+      final otherDeviceNames = devicesManager.otherDevices
+          .map((device) => getDeviceNameString(device.name))
+          .toList();
+      
+      // Create a new subscription with improved state tracking
+      deviceMonitorSubscription = nearbyService!.stateChangedSubscription(callback: (devicesList) async {
         // Check if we've been cancelled
         if (_shouldCancel(token)) return;
         
+        final Map<String, Device> currentDevices = {};
+        
+        // First, process all devices in the new list and update their states
         for (var device in devicesList) {
-          // Skip if we're no longer active
           if (_shouldCancel(token)) return;
           
-          // Check if this is a device we're interested in
-          if (!deviceNames.contains(device.deviceName)) {
-            debugPrint('Device not in list of expected devices: ${device.deviceName}');
-            continue; // Skip this device but continue processing others
+          // Skip if device not in target list
+          if (!otherDeviceNames.contains(device.deviceName)) {
+            continue; // Skip devices not in our target list
           }
+          
+          currentDevices[device.deviceId] = device;
+          
+          // Check if this is a new device or state has changed
+          final existingDevice = _deviceStateMap[device.deviceId];
+          final bool isNewDevice = existingDevice == null;
+          final bool stateChanged = !isNewDevice && existingDevice.state != device.state;
+          
+          // Update our tracking map
+          _deviceStateMap[device.deviceId] = device;
 
-          debugPrint('Processing device ${device.deviceName} with state ${device.state}');
-
+          final deviceName = getDeviceNameFromString(device.deviceName);
+          
+          // Process different device states
           if (device.state == SessionState.notConnected) {
-            if (_connectedDevices.contains(device)) {
-              _connectedDevices.remove(device);
-              if (!_shouldCancel(token) && deviceLostCallback != null) {
-                await deviceLostCallback(device);
-              }
-            }
-            // Only call deviceFoundCallback for newly discovered devices
-            if (!_connectedDevices.contains(device) && !_shouldCancel(token)) {
-              if (deviceFoundCallback != null) {
-                await deviceFoundCallback(device);
-              }
+            // Handle device found state - new or state changed
+            if (isNewDevice || stateChanged) {
+              // Debounce the found callback to prevent UI flicker
+              _debounceCallback(device.deviceId, () async {
+                if (_shouldCancel(token)) return;
+                // Update ConnectedDevice if available
+                try {
+                  final connectedDevice = devicesManager.getDevice(deviceName);
+                  if (connectedDevice != null && connectedDevice.status != ConnectionStatus.found) {
+                    connectedDevice.status = ConnectionStatus.found;
+                  }
+                } catch (e) {
+                  // Silently handle invalid device names
+                }
+                if (deviceFoundCallback != null) {
+                  await deviceFoundCallback(device);
+                }
+              });
             }
           } else if (device.state == SessionState.connecting) {
-            if (!_shouldCancel(token) && deviceConnectingCallback != null) {
+            if (_shouldCancel(token)) return;
+              try {
+                final connectedDevice = devicesManager.getDevice(deviceName);
+                if (connectedDevice != null && connectedDevice.status != ConnectionStatus.connecting) {
+                  connectedDevice.status = ConnectionStatus.connecting;
+                }
+              } catch (e) {
+                // Silently handle invalid device names
+              }
+            if (deviceConnectingCallback != null) {
               await deviceConnectingCallback(device);
             }
           } else if (device.state == SessionState.connected) {
-            if (!_connectedDevices.contains(device) && !_shouldCancel(token)) {
-              _connectedDevices.add(device);
+            if ((isNewDevice || stateChanged) && !_shouldCancel(token)) {
+              // Reset reconnection attempts on successful connection
+              _reconnectionAttempts.remove(device.deviceId);
+
+              try {
+                final connectedDevice = devicesManager.getDevice(deviceName);
+                if (connectedDevice != null && connectedDevice.status != ConnectionStatus.connected) {
+                  connectedDevice.status = ConnectionStatus.connected;
+                }
+              } catch (e) {
+                // Silently handle invalid device names
+              }
+              
               if (deviceConnectedCallback != null) {
                 await deviceConnectedCallback(device);
+
+              }
+            }
+          }
+        }
+        
+        // Check for devices that were in our map but are no longer in the device list
+        // These are truly lost devices
+        final deviceIdsCopy = _deviceStateMap.keys.toList();
+        for (final deviceId in deviceIdsCopy) {
+          if (_shouldCancel(token)) return;
+          
+          if (!currentDevices.containsKey(deviceId)) {
+            final lostDevice = _deviceStateMap.remove(deviceId);
+            if (lostDevice != null && deviceLostCallback != null && !_shouldCancel(token)) {
+              await deviceLostCallback(lostDevice);
+              
+              // Update ConnectedDevice if available
+              try {
+                final deviceName = getDeviceNameFromString(lostDevice.deviceName);
+                final connectedDevice = devicesManager.getDevice(deviceName);
+                if (connectedDevice != null && connectedDevice.status != ConnectionStatus.searching) {
+                  connectedDevice.status = ConnectionStatus.searching;
+                }
+                debugPrint('Device lost: ${lostDevice.deviceName}');
+              } catch (e) {
+                // Silently handle invalid device names
               }
             }
           }
@@ -428,23 +519,48 @@ class DeviceConnectionService {
     
     try {
       if (device.state == SessionState.notConnected) {
-        debugPrint('Device found. Sending invite to ${device.deviceName}...');
         await nearbyService!.invitePeer(
           deviceID: device.deviceId, 
           deviceName: device.deviceName
         );
         return true;
       } else if (device.state == SessionState.connected) {
-        debugPrint('Device is already connected: ${device.deviceName}');
         return true;
       } else {
-        debugPrint('Device is connecting, not sending invite: ${device.state}');
         return false;
       }
     } catch (e) {
       debugPrint('Error inviting device ${device.deviceName}: $e');
       return false;
     }
+  }
+  
+  /// Attempt to reconnect to a device with exponential backoff
+  Future<bool> attemptReconnection(Device device) async {
+    if (_isDisposed || nearbyService == null) return false;
+    
+    final deviceId = device.deviceId;
+    
+    // Reset attempt count if this is a new reconnection
+    if (!_reconnectionAttempts.containsKey(deviceId)) {
+      _reconnectionAttempts[deviceId] = 0;
+    }
+    
+    // Check if we've reached max attempts
+    if ((_reconnectionAttempts[deviceId] ?? 0) >= maxReconnectionAttempts) {
+      _reconnectionAttempts.remove(deviceId);
+      return false;
+    }
+    
+    // Increment attempt count
+    _reconnectionAttempts[deviceId] = (_reconnectionAttempts[deviceId] ?? 0) + 1;
+    
+    // Implement exponential backoff
+    final delay = Duration(milliseconds: 500 * (1 << (_reconnectionAttempts[deviceId] ?? 0)));
+    await Future.delayed(delay);
+    
+    // Attempt to reconnect
+    return await inviteDevice(device);
   }
 
   /// Disconnect from a device with improved error handling
@@ -592,12 +708,21 @@ class DeviceConnectionService {
     deviceMonitorSubscription = null;
     _messageCallbacks.clear();
     
-    // Disconnect from all connected devices
-    final devicesCopy = List<Device>.from(_connectedDevices);
+    // Disconnect from all devices in the state map
+    final devicesCopy = _deviceStateMap.values.toList();
     for (var device in devicesCopy) {
       disconnectDevice(device);
     }
-    _connectedDevices.clear();
+    _deviceStateMap.clear();
+    
+    // Cancel all debounce timers
+    for (final timer in _debounceTimers.values) {
+      timer.cancel();
+    }
+    _debounceTimers.clear();
+    
+    // Clear reconnection attempts
+    _reconnectionAttempts.clear();
     
     // Stop advertising and browsing
     nearbyService?.stopBrowsingForPeers();

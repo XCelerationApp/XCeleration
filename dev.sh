@@ -4,36 +4,16 @@
 
 echo "Setting up development version of XCeleration..."
 
-# Backup original files to be safe
-mkdir -p ~/ios_backup
-cp -f ios/Runner.xcodeproj/project.pbxproj ~/ios_backup/project.pbxproj.bak 2>/dev/null || true
-cp -f ios/Runner/Info.plist ~/ios_backup/Info.plist.bak 2>/dev/null || true
+# Note: We're not modifying Info.plist anymore, just running the app
+# Make sure Info.plist has the display name you want manually set before running
 
-# Backup the original app icon set
-mkdir -p ~/ios_backup/AppIcon.appiconset
-cp -f ios/Runner/Assets.xcassets/AppIcon.appiconset/* ~/ios_backup/AppIcon.appiconset/ 2>/dev/null || true
+echo "Starting development version - using current Info.plist settings..."
 
-# Temporary files for sed operations
-TMP_FILE_1=$(mktemp)
-TMP_FILE_2=$(mktemp)
-
-# 1. Update bundle ID in project.pbxproj
-echo "Modifying bundle identifier..."
-cat ios/Runner.xcodeproj/project.pbxproj | sed 's/com\.owendonnelley\.xceleration/com.owendonnelley.xceleration.dev/g' > "$TMP_FILE_1"
-cp "$TMP_FILE_1" ios/Runner.xcodeproj/project.pbxproj
-
-# 2. Update app display name in Info.plist
-echo "Updating app display name..."
-cat ios/Runner/Info.plist | sed '/<key>CFBundleDisplayName<\/key>/,/<\/string>/ s/<string>.*<\/string>/<string>XCeleration Dev<\/string>/' > "$TMP_FILE_2"
-cp "$TMP_FILE_2" ios/Runner/Info.plist
-
-# 3. Also update CFBundleName in Info.plist
-echo "Updating bundle name..."
-cat ios/Runner/Info.plist | sed '/<key>CFBundleName<\/key>/,/<\/string>/ s/<string>.*<\/string>/<string>XCeleration Dev<\/string>/' > "$TMP_FILE_2"
-cp "$TMP_FILE_2" ios/Runner/Info.plist
-
-# Clean up temp files
-rm "$TMP_FILE_1" "$TMP_FILE_2"
+# For dev builds, manually ensure Info.plist has:
+# <key>CFBundleDisplayName</key>
+# <string>XCeleration Dev</string>
+# <key>CFBundleName</key>
+# <string>XCeleration Dev</string>
 
 # 4. Use the development app icon
 echo "Updating app icon to development version..."
@@ -87,7 +67,7 @@ if [ -z "$1" ]; then
   
   if [ -n "$DEVICE_ID" ]; then
     echo "Found iPhone device: $DEVICE_ID"
-    # Run the app with development entry point
+    # Run the app with development entry point and flavor
     echo "Building and installing development version..."
     flutter clean
     flutter run -d "$DEVICE_ID" -t lib/main_dev.dart --debug
@@ -95,7 +75,6 @@ if [ -z "$1" ]; then
     # Restore original files
     echo "Restoring original project files..."
     cp ~/ios_backup/project.pbxproj.bak ios/Runner.xcodeproj/project.pbxproj 2>/dev/null || true
-    cp ~/ios_backup/Info.plist.bak ios/Runner/Info.plist 2>/dev/null || true
     
     # Restore original app icons
     echo "Restoring original app icons..."
@@ -112,7 +91,6 @@ else
   # Restore original files
   echo "Restoring original project files..."
   cp ~/ios_backup/project.pbxproj.bak ios/Runner.xcodeproj/project.pbxproj 2>/dev/null || true
-  cp ~/ios_backup/Info.plist.bak ios/Runner/Info.plist 2>/dev/null || true
   
   # Restore original app icons
   echo "Restoring original app icons..."

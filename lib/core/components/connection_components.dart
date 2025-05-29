@@ -507,6 +507,8 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
   @override
   void initState() {
     super.initState();
+    // Reset devices when widget is first created
+    widget.devices.reset();
     _initialize();
   }
 
@@ -594,13 +596,12 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
   Future<void> _monitorDevices() async {
     try {
       await _deviceConnectionService.monitorDevicesConnectionStatus(
-        deviceNames: widget.devices.otherDevices
-            .map((device) => getDeviceNameString(device.name))
-            .toList(),
         deviceFoundCallback: _deviceFoundCallback,
         deviceLostCallback: _deviceLostCallback,
         deviceConnectingCallback: _deviceConnectingCallback,
         deviceConnectedCallback: _deviceConnectedCallback,
+        // Pass the devices manager for automatic state updates
+        devicesManager: widget.devices,
         // Shorter timeout to prevent resource leaks
         timeout: const Duration(seconds: 30),
       );
@@ -624,12 +625,6 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
       return;
     }
 
-    if (mounted) {
-      setState(() {
-        widget.devices.getDevice(deviceName)!.status = ConnectionStatus.found;
-      });
-    }
-
     // Skip invite if we're an advertiser
     if (widget.devices.currentDeviceType == DeviceType.advertiserDevice) return;
     
@@ -645,10 +640,16 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
     
     // Handle device lost
     final deviceName = getDeviceNameFromString(device.deviceName);
-    if (mounted && widget.devices.hasDevice(deviceName)) {
-      setState(() {
-        widget.devices.getDevice(deviceName)!.status = ConnectionStatus.error;
-      });
+    if (!widget.devices.hasDevice(deviceName) ||
+        widget.devices.getDevice(deviceName)!.isFinished) {
+      return;
+    }
+    
+    // Attempt to reconnect if appropriate
+    if (!_connectionCompleter.isCompleted && 
+        widget.devices.currentDeviceType == DeviceType.browserDevice) {
+      // Let the reconnection mechanism handle it
+      await _deviceConnectionService.attemptReconnection(device);
     }
   }
 
@@ -657,14 +658,11 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
     if (!mounted || _connectionCompleter.isCompleted) return;
     
     final deviceName = getDeviceNameFromString(device.deviceName);
-    if (widget.devices.getDevice(deviceName)!.isFinished) return;
-
-    if (mounted) {
-      setState(() {
-        widget.devices.getDevice(deviceName)!.status =
-            ConnectionStatus.connecting;
-      });
+    if (!widget.devices.hasDevice(deviceName) ||
+        widget.devices.getDevice(deviceName)!.isFinished) {
+      return;
     }
+    // No action needed for connecting state
   }
 
   Future<void> _deviceConnectedCallback(Device device) async {
@@ -672,15 +670,11 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
     if (!mounted || _connectionCompleter.isCompleted) return;
     
     final deviceName = getDeviceNameFromString(device.deviceName);
-    if (widget.devices.getDevice(deviceName)!.isFinished) return;
-
-    if (mounted) {
-      setState(() {
-        widget.devices.getDevice(deviceName)!.status =
-            ConnectionStatus.connected;
-      });
+    if (!widget.devices.hasDevice(deviceName) ||
+        widget.devices.getDevice(deviceName)!.isFinished) {
+      return;
     }
-
+    
     try {
       _protocol.addDevice(device);
 
@@ -694,97 +688,90 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
         },
       );
 
-      // Browser device receives data
-      if (widget.devices.currentDeviceType == DeviceType.browserDevice) {
+      // Get device reference once to avoid repetition
+      final connectedDevice = widget.devices.getDevice(deviceName);
+      if (connectedDevice == null) {
+        debugPrint('Device not found in connected devices list');
+        return;
+      }
+      
+      // Determine if this is a browser device (receiving) or advertiser (sending)
+      final isBrowserDevice = widget.devices.currentDeviceType == DeviceType.browserDevice;
+      
+      // Set initial status
+      if (mounted) {
+        setState(() {
+          connectedDevice.status = isBrowserDevice 
+              ? ConnectionStatus.receiving 
+              : ConnectionStatus.sending;
+        });
+      }
+      
+      // For advertiser device, check if we have data to send
+      if (!isBrowserDevice && connectedDevice.data == null) {
+        debugPrint('No data for advertiser device to send');
         if (mounted) {
           setState(() {
-            widget.devices.getDevice(deviceName)!.status =
-                ConnectionStatus.receiving;
+            connectedDevice.status = ConnectionStatus.error;
           });
         }
+        return;
+      }
 
-        try {
-          final results =
-              await _protocol.receiveDataFromDevice(device.deviceId);
+      try {
+        // Use the new comprehensive handleDataTransfer method for both sending and receiving
+        final results = await _protocol.handleDataTransfer(
+          deviceId: device.deviceId,
+          // If browser device, we're receiving; otherwise we're sending the device's data
+          isReceiving: isBrowserDevice,
+          dataToSend: isBrowserDevice ? null : connectedDevice.data,
+          // Check if we should continue the transfer based on device status
+          shouldContinueTransfer: () {
+            // Only continue if the device's status is still in receiving/sending state
+            if (!mounted) return false; // Abort if widget is no longer mounted
+            
+            final deviceStatus = widget.devices.getDevice(deviceName)?.status;
+            final expectedStatus = isBrowserDevice ? 
+              ConnectionStatus.receiving : ConnectionStatus.sending;
+              
+            // Continue if status is as expected, otherwise abort
+            return deviceStatus == expectedStatus;
+          },
+        );
 
-          // Skip updating UI if we're disposed
-          if (!mounted) return;
-          
-          setState(() {
-            widget.devices.getDevice(deviceName)!.data = results;
-            widget.devices.getDevice(deviceName)!.status =
-                ConnectionStatus.finished;
-          });
-
-          // Check if all devices have finished loading data
-          bool allDevicesFinished = widget.devices.allDevicesFinished();
-
-          // Call the callback if all devices are finished and callback is provided
-          if (allDevicesFinished && mounted) {
-            // Complete the connection to stop monitoring
-            if (!_connectionCompleter.isCompleted) {
-              _connectionCompleter.complete();
-            }
-            widget.callback();
+        // Skip updating UI if we're disposed
+        if (!mounted || _connectionCompleter.isCompleted) return;
+        
+        // Update device status and data if we're a browser device (and received data)
+        setState(() {
+          if (isBrowserDevice && results != null) {
+            connectedDevice.data = results;
           }
-        } catch (e) {
-          debugPrint('Error receiving data: $e');
-          if (mounted) {
-            setState(() {
-              widget.devices.getDevice(deviceName)!.status = ConnectionStatus.error;
-            });
+          connectedDevice.status = ConnectionStatus.finished;
+        });
+
+        // Check if all devices have finished loading data
+        bool allDevicesFinished = widget.devices.allDevicesFinished();
+
+        // Call the callback if all devices are finished
+        if (allDevicesFinished && mounted) {
+          // Complete the connection to stop monitoring
+          if (!_connectionCompleter.isCompleted) {
+            _connectionCompleter.complete();
           }
+          widget.callback();
         }
-      } 
-      // Advertiser device sends data
-      else {
-        if (widget.devices.getDevice(deviceName)!.data != null) {
-          if (mounted) {
-            setState(() {
-              widget.devices.getDevice(deviceName)!.status =
-                  ConnectionStatus.sending;
-            });
-          }
 
-          try {
-            final data = widget.devices.getDevice(deviceName)!.data!;
-            await _protocol.sendData(data, device.deviceId);
-            
-            // Skip updating UI if we're disposed
-            if (!mounted) return;
-            
-            setState(() {
-              widget.devices.getDevice(deviceName)!.status = ConnectionStatus.finished;
-            });
-
-            // Check if all devices have finished loading data
-            bool allDevicesFinished = widget.devices.allDevicesFinished();
-
-            // Call the callback if all devices are finished
-            if (allDevicesFinished && mounted) {
-              // Complete the connection to stop monitoring
-              if (!_connectionCompleter.isCompleted) {
-                _connectionCompleter.complete();
-              }
-              widget.callback();
-            }
-
+        // For advertiser devices, disconnect after sending
+        if (!isBrowserDevice) {
             await _deviceConnectionService.disconnectDevice(device);
-          } catch (e) {
-            debugPrint('Error sending data: $e');
-            if (mounted) {
-              setState(() {
-                widget.devices.getDevice(deviceName)!.status = ConnectionStatus.error;
-              });
-            }
-          }
-        } else {
-          debugPrint('No data for advertiser device to send');
-          if (mounted) {
-            setState(() {
-              widget.devices.getDevice(deviceName)!.status = ConnectionStatus.error;
-            });
-          }
+        }
+      } catch (e) {
+        debugPrint('Error ${isBrowserDevice ? "receiving" : "sending"} data: $e');
+        if (mounted) {
+          setState(() {
+            connectedDevice.status = ConnectionStatus.error;
+          });
         }
       }
       
