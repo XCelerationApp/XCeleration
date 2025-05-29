@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:xceleration/core/components/dialog_utils.dart';
 import 'package:xceleration/core/theme/app_colors.dart';
+import 'package:xceleration/core/utils/color_utils.dart';
 import '../services/permissions_service.dart';
 
 /// Dialog that shows the current status of all app permissions
@@ -320,10 +321,10 @@ class _PermissionRequestButtonState extends State<PermissionRequestButton> {
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
                 color: isGranted
-                    ? Colors.green.withOpacity(0.2)
+                    ? ColorUtils.withOpacity(Colors.green, 0.2)
                     : isPermanentlyDenied
-                        ? Colors.red.withOpacity(0.2)
-                        : Colors.orange.withOpacity(0.2),
+                        ? ColorUtils.withOpacity(Colors.red, 0.2)
+                        : ColorUtils.withOpacity(Colors.orange, 0.2),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
@@ -348,7 +349,7 @@ class _PermissionRequestButtonState extends State<PermissionRequestButton> {
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.primaryColor,
         foregroundColor: Colors.white,
-        disabledBackgroundColor: Colors.green.withOpacity(0.5),
+        disabledBackgroundColor: ColorUtils.withOpacity(Colors.green, 0.5),
         disabledForegroundColor: Colors.white,
       ),
     );
@@ -376,7 +377,7 @@ Future<bool> requestPermission(
     return true;
   }
   
-  if (message != null) {
+  if (message != null && context.mounted) {
     // ignore: use_build_context_synchronously
     final bool shouldRequest = await DialogUtils.showConfirmationDialog(
       context,

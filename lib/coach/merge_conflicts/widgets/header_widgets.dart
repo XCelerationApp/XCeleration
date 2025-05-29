@@ -36,25 +36,23 @@ class ConflictHeader extends StatelessWidget {
           width: 1,
         ),
       ),
-      child: Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '$title at ${conflictRecord.elapsedTime}',
-              style: AppTypography.bodySemibold.copyWith(
-                color: AppColors.primaryColor,
-              ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '$title at ${conflictRecord.elapsedTime}',
+            style: AppTypography.bodySemibold.copyWith(
+              color: AppColors.primaryColor,
             ),
-            const SizedBox(height: 4),
-            Text(
-              description,
-              style: AppTypography.smallBodyRegular.copyWith(
-                color: ColorUtils.withOpacity(AppColors.primaryColor, 0.8),
-              ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            description,
+            style: AppTypography.smallBodyRegular.copyWith(
+              color: ColorUtils.withOpacity(AppColors.primaryColor, 0.8),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

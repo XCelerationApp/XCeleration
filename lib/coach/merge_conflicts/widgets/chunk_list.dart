@@ -73,14 +73,15 @@ class ChunkItem extends StatelessWidget {
                 chunk: chunk,
                 controller: controller,
               );
-            } else if (joinedRecord.timeRecord.type ==
-                RecordType.confirmRunner) {
-              return ConfirmationRecord(
-                context,
-                chunk.joinedRecords.indexOf(joinedRecord),
-                joinedRecord.timeRecord,
-              );
             }
+            // } else if (joinedRecord.timeRecord.type ==
+            //     RecordType.confirmRunner) {
+            //   return ConfirmationRecord(
+            //     context,
+            //     chunk.joinedRecords.indexOf(joinedRecord),
+            //     joinedRecord.timeRecord,
+            //   );
+            // }
             return const SizedBox.shrink();
           }),
           if (chunkType == RecordType.extraRunner ||
