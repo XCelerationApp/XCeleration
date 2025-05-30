@@ -164,7 +164,7 @@ class Protocol {
   Future<void> _sendPackageWithRetry(Package package, String senderId) async {
     final startTime = DateTime.now();
     Logger.d(
-        '[${startTime.toString()}] Starting _sendPackageWithRetry for package ${package.number}');
+        '[${startTime.toString()}] Starting _sendPackageWithRetry for package ${package.number} with data ${package.data}');
 
     if (_isTerminated) {
       Logger.d('Protocol terminated, cannot send package');
@@ -180,7 +180,7 @@ class Protocol {
         if (!state.isCancelled && _isDeviceConnected(senderId)) {
           final attemptTime = DateTime.now();
           Logger.d(
-              '[${attemptTime.toString()}] Attempt ${state.retryCount + 1}/$maxSendAttempts to send package');
+              '[${attemptTime.toString()}] Attempt ${state.retryCount + 1}/$maxSendAttempts to send package ${package.number} with data ${package.data}');
           await deviceConnectionService.sendMessageToDevice(
               connectedDevices[senderId]!, package);
         } else if (!state.isCancelled && !_isDeviceConnected(senderId)) {
@@ -253,7 +253,7 @@ class Protocol {
     }
   }
 
-  Future<void> sendData(String data, String senderId) async {
+  Future<void> sendData(String? data, String senderId) async {
     if (_isTerminated) {
       throw ProtocolTerminatedException(
           'Cannot send data - protocol is terminated');
@@ -262,9 +262,23 @@ class Protocol {
     if (!connectedDevices.containsKey(senderId)) {
       throw Exception('Device $senderId not connected');
     }
+    
+    // Check if we have data to send
+    if (data == null || data.isEmpty) {
+      Logger.d('Warning: No data to send to device $senderId, sending empty data placeholder');
+      // Send a single empty DATA package to avoid protocol errors
+      _sequenceNumber++;
+      final emptyPackage = Package(
+        number: _sequenceNumber,
+        type: 'DATA',
+        data: '', // Empty data
+      );
+      await _sendPackageWithRetry(emptyPackage, senderId);
+      return;
+    }
 
     try {
-      Logger.d('Starting to send data to device $senderId');
+      Logger.d('Starting to send data to device $senderId (length: ${data.length})');
       // Split data into chunks
       final chunks = <String>[];
       for (var i = 0; i < data.length; i += chunkSize) {
@@ -313,7 +327,7 @@ class Protocol {
     required String deviceId,
     String? dataToSend,
     bool isReceiving = false,
-    bool Function()? shouldContinueTransfer,
+    required bool Function() shouldContinueTransfer,
   }) async {
     if (_isTerminated) {
       throw ProtocolTerminatedException('Protocol is terminated');
@@ -325,13 +339,12 @@ class Protocol {
     
     // Helper function to check if we should abort the transfer
     bool shouldAbort() {
-      // If the caller provided a status check function, use it
-      if (shouldContinueTransfer != null && !shouldContinueTransfer()) {
-        Logger.d('Transfer aborted: device status changed');
-        return true;
+      try {
+        return !shouldContinueTransfer();
+      } catch (e) {
+        Logger.d('Error in shouldContinueTransfer: $e');
+        return true; // Abort on error
       }
-      // Otherwise continue the transfer
-      return false;
     }
 
     // Reset device state to ensure a clean transfer
@@ -354,12 +367,7 @@ class Protocol {
         // Wait for either completion or termination
         await Future.any([
           Future.doWhile(() async {
-            if (_finishedDevices.contains(deviceId) || _isTerminated) {
-              return false;
-            }
-            
-            // Check if the device status has changed and we should abort
-            if (shouldAbort()) {
+            if (shouldAbort() || _finishedDevices.contains(deviceId) || _isTerminated) {
               return false;
             }
             
@@ -432,32 +440,6 @@ class Protocol {
     }
   }
 
-  Future<String> receiveDataFromDevice(String deviceId) async {
-    if (_isTerminated) {
-      throw ProtocolTerminatedException(
-          'Cannot receive data - protocol is terminated');
-    }
-
-    try {
-      // Use the new handleDataTransfer method with isReceiving=true
-      final result = await handleDataTransfer(
-        deviceId: deviceId,
-        isReceiving: true,
-      );
-      
-      if (result == null) {
-        throw Exception('No data received from device $deviceId');
-      }
-      
-      return result;
-    } catch (e) {
-      if (_isTerminated) {
-        rethrow;
-      }
-      Logger.d('Error receiving data: $e');
-      rethrow;
-    }
-  }
 
   /// Resets the state for a specific device, clearing any in-progress transfers
   void resetDeviceState(String deviceId) {

@@ -511,12 +511,18 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
     // Reset devices when widget is first created
     widget.devices.reset();
     _initialize();
+
   }
 
   Future<void> _initialize() async {
     if (!mounted) return;
     
-    _deviceConnectionService = DeviceConnectionService();
+    _deviceConnectionService = DeviceConnectionService(
+      widget.devices,
+      'wirelessconn',
+      getDeviceNameString(widget.devices.currentDeviceName),
+      widget.devices.currentDeviceType,
+    );
     _protocol = Protocol(deviceConnectionService: _deviceConnectionService);
 
     try {
@@ -534,11 +540,7 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
       }
 
       try {
-        final initSuccess = await _deviceConnectionService.init(
-          'wirelessconn',
-          getDeviceNameString(widget.devices.currentDeviceName),
-          widget.devices.currentDeviceType,
-        );
+        final initSuccess = await _deviceConnectionService.init();
         
         if (!mounted) return;
         
@@ -601,9 +603,6 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
         deviceLostCallback: _deviceLostCallback,
         deviceConnectingCallback: _deviceConnectingCallback,
         deviceConnectedCallback: _deviceConnectedCallback,
-        // Pass the devices manager for automatic state updates
-        devicesManager: widget.devices,
-        // Shorter timeout to prevent resource leaks
         timeout: const Duration(seconds: 30),
       );
     } catch (e) {
@@ -736,7 +735,11 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
               ConnectionStatus.receiving : ConnectionStatus.sending;
               
             // Continue if status is as expected, otherwise abort
-            return deviceStatus == expectedStatus;
+            bool shouldContinue = deviceStatus == expectedStatus;
+            if(!shouldContinue) {
+              debugPrint('Device status changed: ${deviceStatus} != $expectedStatus');
+            }
+            return shouldContinue;
           },
         );
 
@@ -764,8 +767,12 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
         }
 
         // For advertiser devices, disconnect after sending
-        if (!isBrowserDevice) {
-            await _deviceConnectionService.disconnectDevice(device);
+        if (!isBrowserDevice && mounted) {
+          Timer(const Duration(seconds: 1), () {
+            if (mounted) {
+              _deviceConnectionService.disconnectDevice(device);
+            }
+          });
         }
       } catch (e) {
         Logger.d('Error ${isBrowserDevice ? "receiving" : "sending"} data: $e');
@@ -793,19 +800,12 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
   @override
   void dispose() {
     Logger.d('Disposing WirelessConnectionWidget');
-    
-    // Complete the connection completer to signal all async operations to stop
+    if (_messageMonitorToken != null) {
+      _deviceConnectionService.stopMessageMonitoring(_messageMonitorToken!);
+    }
     if (!_connectionCompleter.isCompleted) {
       _connectionCompleter.complete();
     }
-    
-    // Stop message monitoring if active
-    if (_messageMonitorToken != null && _messageMonitorToken!.isNotEmpty) {
-      _deviceConnectionService.stopMessageMonitoring(_messageMonitorToken!);
-      _messageMonitorToken = null;
-    }
-    
-    // Dispose of services
     _deviceConnectionService.dispose();
     _protocol.dispose();
     
