@@ -17,11 +17,6 @@ class InstructionsBanner extends StatelessWidget {
       child: Container(
         width: 200,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        // decoration: BoxDecoration(
-        //   color: Colors.grey[100],
-        //   borderRadius: BorderRadius.circular(8.0),
-        //   border: Border.all(color: Colors.grey[300]!),
-        // ),
         child: Row(
           mainAxisSize: MainAxisSize.max,
           children: [

@@ -67,10 +67,10 @@ class CsvUtils {
         // Create the file in the selected directory
         final file = File('$selectedDirectory/$filename');
         await file.writeAsString(csvContent);
-        debugPrint('File saved at: ${file.path}');
+        Logger.d('File saved at: ${file.path}');
         return file.path;
       } else {
-        debugPrint('Directory selection was canceled.');
+        Logger.d('Directory selection was canceled.');
         return '';
       }
     } catch (e) {

@@ -5,6 +5,7 @@ import 'time_formatter.dart';
 import '../core/components/dialog_utils.dart';
 import 'runner_time_functions.dart';
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/utils/logger.dart';
 import 'database_helper.dart';
 import '../assistant/race_timer/model/timing_record.dart';
 import '../utils/enums.dart';
@@ -34,7 +35,7 @@ Future<TimingData> decodeRaceTimesString(String encodedData) async {
 
       int? offBy = int.tryParse(offByString);
       if (offBy == null) {
-        debugPrint('Failed to parse offBy: $offByString');
+        Logger.d('Failed to parse offBy: $offByString');
         continue;
       }
 
@@ -48,7 +49,7 @@ Future<TimingData> decodeRaceTimesString(String encodedData) async {
         records = extraRunnerTime(offBy, records, place, finishTime);
         place -= offBy;
       } else {
-        debugPrint('Unknown type: $type, string: $recordString');
+        Logger.d('Unknown type: $type, string: $recordString');
       }
     }
   }
@@ -60,11 +61,11 @@ Future<TimingData?> processEncodedTimingData(
     String data, BuildContext context) async {
   try {
     final TimingData timingData = await decodeRaceTimesString(data);
-    debugPrint(timingData.toString());
-    debugPrint(
+    Logger.d(timingData.toString());
+    Logger.d(
         'Has conflicts: ${timingData.records.any((record) => record.conflict != null)}');
     for (var record in timingData.records) {
-      debugPrint(record.toString());
+      Logger.d(record.toString());
     }
     if (!context.mounted) return null;
     if (isValidTimingData(timingData)) {
@@ -123,9 +124,9 @@ Future<List<RunnerRecord>> processEncodedBibRecordsData(
     String data, BuildContext context, int raceId) async {
   try {
     final bibData = await decodeBibRecordsString(data, raceId);
-    debugPrint(bibData.toString());
+    Logger.d(bibData.toString());
     for (var bibRecord in bibData) {
-      debugPrint(bibRecord.toString());
+      Logger.d(bibRecord.toString());
     }
     if (!context.mounted) return [];
     if (bibData.every((bibData) => isValidBibData(bibData))) {

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/utils/logger.dart';
 import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -105,7 +106,7 @@ void main() async {
   await saveWidgetAsImage(
       androidSplash, 'splash_android_landscape.png', 1920, 1080);
 
-  debugPrint('Splash screen assets generated successfully!');
+  Logger.d('Splash screen assets generated successfully!');
   exit(0);
 }
 
@@ -165,5 +166,5 @@ Future<void> saveWidgetAsImage(
   final file = File('${directory.path}/$fileName');
   await file.writeAsBytes(buffer);
 
-  debugPrint('Saved $fileName to ${file.path}');
+  Logger.d('Saved $fileName to ${file.path}');
 }

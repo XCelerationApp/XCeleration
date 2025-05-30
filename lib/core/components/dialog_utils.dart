@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/utils/logger.dart';
 import '../theme/typography.dart';
 import '../theme/app_colors.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -117,7 +118,7 @@ class DialogUtils {
     required String message,
     String? title,
   }) {
-    debugPrint(message);
+    Logger.d(message);
     showOverlayNotification(
       context,
       message: message,
@@ -258,7 +259,7 @@ class DialogUtils {
     Duration duration = const Duration(seconds: 2),
   }) {
     // Log the message for debugging
-    debugPrint(message);
+    Logger.d(message);
     
     // Create FToast instance
     final FToast fToast = FToast();

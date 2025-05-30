@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/utils/logger.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
@@ -331,7 +332,7 @@ class RacesController extends ChangeNotifier {
       notifyListeners();
       updateLocationButtonVisibility();
     } catch (e) {
-      debugPrint('Error getting location: $e');
+      Logger.d('Error getting location: $e');
       DialogUtils.showErrorDialog(context, message: 'Could not get location');
     }
   }

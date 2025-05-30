@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/utils/logger.dart';
 import '../../../core/components/dialog_utils.dart';
 import '../../../utils/database_helper.dart';
 import '../../race_screen/widgets/runner_record.dart';
@@ -36,14 +37,14 @@ class ResolveBibNumberController with ChangeNotifier {
   }
 
   Future<void> searchRunners(String query) async {
-    debugPrint('Searching runners...');
-    debugPrint('Query: $query');
-    debugPrint('Race ID: $raceId');
+    Logger.d('Searching runners...');
+    Logger.d('Query: $query');
+    Logger.d('Race ID: $raceId');
     
     // Get already recorded runners for this race (runners that already have results)
     final recordedBibs = records.map((result) => result.bib).toSet();
     
-    debugPrint('Already recorded bibs: ${recordedBibs.join(', ')}');
+    Logger.d('Already recorded bibs: ${recordedBibs.join(', ')}');
     
     List<RunnerRecord> results;
     if (query.isEmpty) {
@@ -58,7 +59,7 @@ class ResolveBibNumberController with ChangeNotifier {
     searchResults = results.where((runner) => !recordedBibs.contains(runner.bib)).toList();
     
     notifyListeners();
-    debugPrint('Filtered search results: ${searchResults.map((r) => r.bib).join(', ')}');
+    Logger.d('Filtered search results: ${searchResults.map((r) => r.bib).join(', ')}');
   }
 
   Future<void> createNewRunner() async {

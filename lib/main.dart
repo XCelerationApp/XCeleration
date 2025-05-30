@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/utils/logger.dart';
 import 'package:provider/provider.dart';
 import 'core/theme/app_colors.dart';
 import 'package:flutter/services.dart';
@@ -8,6 +9,7 @@ import 'core/theme/typography.dart';
 import 'core/services/splash_screen.dart';
 import 'core/services/event_bus.dart';
 import 'config/app_config.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
 Process? _flaskProcess;
 
@@ -19,21 +21,29 @@ class EventBusProvider extends ChangeNotifier {
   final EventBus eventBus = EventBus.instance;
   
   void fireEvent(String eventType, [dynamic data]) {
-    debugPrint('EventBusProvider: Firing event $eventType with data: $data');
+    Logger.d('EventBusProvider: Firing event $eventType with data: $data');
     eventBus.fire(eventType, data);
   }
 }
 
 // Production app entry point
-void main() {
-  // Use the configuration from environment variables or defaults
-  mainCommon(AppConfig.fromEnvironment());
+void main() async {
+  await SentryFlutter.init(
+    (options) {
+      options.dsn = 'https://e60d9543e8e01fb7bd562970f3bcc34c@o4509410228305920.ingest.us.sentry.io/4509410229420032';
+    },
+    appRunner: () => mainCommon(AppConfig.fromEnvironment()),
+  );
 }
 
 // Development app entry point - also uses environment variables
-void mainDev() {
-  // The configuration is automatically determined from dart-define parameters
-  mainCommon(AppConfig.fromEnvironment());
+void mainDev() async {
+  await SentryFlutter.init(
+    (options) {
+      options.dsn = 'https://e60d9543e8e01fb7bd562970f3bcc34c@o4509410228305920.ingest.us.sentry.io/4509410229420032';
+    },
+    appRunner: () => mainCommon(AppConfig.fromEnvironment()),
+  );
 }
 
 // Common initialization for all flavors
@@ -68,13 +78,13 @@ void mainCommon(AppConfig config) async {
 
 
 Future<void> startFlaskServer() async {
-  debugPrint('Starting Flask Server...');
+  Logger.d('Starting Flask Server...');
   _flaskProcess = await Process.start(
       'python', ['lib/server/mnist_image_classification.py']);
 }
 
 void stopFlaskServer() {
-  debugPrint('Stopping Flask Server');
+  Logger.d('Stopping Flask Server');
   _flaskProcess?.kill(); // Stop the Flask server
 }
 

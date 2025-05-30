@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/core/theme/app_colors.dart';
 import 'package:xceleration/core/theme/typography.dart';
 import 'package:xceleration/utils/enums.dart';
@@ -74,9 +75,9 @@ class BibNumberController extends BibNumberDataController {
   }
 
   Future<void> _checkForRunners(BuildContext context) async {
-    // debugPrint('Checking for runners');
-    // debugPrint('Checking for runners');
-    // debugPrint((await DatabaseHelper.instance.getAllRaces()).map((race) => race.raceId).toString());
+    // Logger.d('Checking for runners');
+    // Logger.d('Checking for runners');
+    // Logger.d((await DatabaseHelper.instance.getAllRaces()).map((race) => race.raceId).toString());
     // runners.addAll(await DatabaseHelper.instance.getRaceRunners(3));
     // runners.addAll(await DatabaseHelper.instance.getRaceRunners(2));
     // runners.addAll(await DatabaseHelper.instance.getRaceRunners(1));
@@ -143,7 +144,7 @@ class BibNumberController extends BibNumberDataController {
           return;
         }
 
-        debugPrint('Runners received: $loadedRunners');
+        Logger.d('Runners received: $loadedRunners');
 
         final runnerInCorrectFormat = loadedRunners.every((runner) =>
             runner.bib.isNotEmpty &&
@@ -163,7 +164,7 @@ class BibNumberController extends BibNumberDataController {
         runners.addAll(loadedRunners);
         notifyListeners();
 
-        debugPrint('Runners loaded: $runners');
+        Logger.d('Runners loaded: $runners');
 
         // Check if the widget is still mounted before using context
         if (!context.mounted) return;
@@ -183,7 +184,7 @@ class BibNumberController extends BibNumberDataController {
           });
         }
       } catch (e) {
-        debugPrint('Error loading runners: $e');
+        Logger.d('Error loading runners: $e');
         // Check if the widget is still mounted before showing error dialog
         if (context.mounted) {
           DialogUtils.showErrorDialog(context,
@@ -929,7 +930,7 @@ class BibNumberDataController extends ChangeNotifier {
         node.dispose();
       } catch (e) {
         // Node may already be disposed, ignore the error
-        debugPrint('Warning: Error disposing focus node: $e');
+        Logger.d('Warning: Error disposing focus node: $e');
       }
     }
     
@@ -939,7 +940,7 @@ class BibNumberDataController extends ChangeNotifier {
         controller.dispose();
       } catch (e) {
         // Controller may already be disposed, ignore the error
-        debugPrint('Warning: Error disposing text controller: $e');
+        Logger.d('Warning: Error disposing text controller: $e');
       }
     }
     

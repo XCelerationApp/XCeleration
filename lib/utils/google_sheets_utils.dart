@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/utils/logger.dart';
 import 'package:googleapis/sheets/v4.dart' as sheets;
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:google_sign_in/google_sign_in.dart';
@@ -74,7 +75,7 @@ class GoogleSheetsUtils {
         }
       }
     } catch (e) {
-      debugPrint('Sign-in error: $e');
+      Logger.d('Sign-in error: $e');
     }
 
     return (null, null);
@@ -113,7 +114,7 @@ class GoogleSheetsUtils {
       }
       return false;
     } catch (e) {
-      debugPrint('Sign in error: $e');
+      Logger.d('Sign in error: $e');
       return false;
     }
   }
@@ -173,7 +174,7 @@ class GoogleSheetsUtils {
           }
         }).catchError((error) {
           if (!completer.isCompleted) {
-            debugPrint('Error getting URL from API: $error');
+            Logger.d('Error getting URL from API: $error');
             completer.complete(null);
           }
         });
@@ -181,7 +182,7 @@ class GoogleSheetsUtils {
         // Set a timeout for the API request
         Future.delayed(const Duration(seconds: 5), () {
           if (!completer.isCompleted) {
-            debugPrint('API URL request timed out, using direct URL construction');
+            Logger.d('API URL request timed out, using direct URL construction');
             final directUrl = constructSharingUrl(spreadsheetId);
             completer.complete(Uri.parse(directUrl));
           }
@@ -190,16 +191,16 @@ class GoogleSheetsUtils {
         // Wait for either the API response or the timeout
         uri = await completer.future;
       } catch (e) {
-        debugPrint('Error in URL retrieval process: $e');
+        Logger.d('Error in URL retrieval process: $e');
         // Fall back to direct construction if there was an error
         final directUrl = constructSharingUrl(spreadsheetId);
         uri = Uri.parse(directUrl);
       }
 
-      debugPrint('Final Sheet URI: $uri');
+      Logger.d('Final Sheet URI: $uri');
       return uri;
     } catch (e) {
-      debugPrint('Error creating sheet and getting URI: $e');
+      Logger.d('Error creating sheet and getting URI: $e');
       rethrow;
     }
   }
@@ -217,16 +218,16 @@ class GoogleSheetsUtils {
       if (sheetsApi == null) return null;
 
       // Create the spreadsheet
-      debugPrint('Creating spreadsheet');
+      Logger.d('Creating spreadsheet');
       final spreadsheet = await sheetsApi.spreadsheets.create(
         sheets.Spreadsheet(
           properties: sheets.SpreadsheetProperties(title: title),
         ),
       );
-      debugPrint('Spreadsheet created: ${spreadsheet.spreadsheetId}');
+      Logger.d('Spreadsheet created: ${spreadsheet.spreadsheetId}');
 
       // Set the spreadsheet to be accessible to anyone with the link
-      debugPrint('Setting spreadsheet permissions');
+      Logger.d('Setting spreadsheet permissions');
       
       // Check if context is still mounted before using it
       if (!context.mounted) return null;
@@ -246,15 +247,15 @@ class GoogleSheetsUtils {
             ),
             spreadsheet.spreadsheetId!,
           );
-          debugPrint('Permissions set successfully');
+          Logger.d('Permissions set successfully');
         } catch (e) {
-          debugPrint('Error setting permissions: $e');
+          Logger.d('Error setting permissions: $e');
           // Don't fail the entire operation if permissions can't be set
         }
       }
 
       // Update the spreadsheet with data
-      debugPrint('Updating spreadsheet with data');
+      Logger.d('Updating spreadsheet with data');
       final batchUpdate = sheets.BatchUpdateSpreadsheetRequest(
         requests: [
           sheets.Request(
@@ -290,7 +291,7 @@ class GoogleSheetsUtils {
 
       return spreadsheet.spreadsheetId;
     } catch (e) {
-      debugPrint('Error creating spreadsheet: $e');
+      Logger.d('Error creating spreadsheet: $e');
       return null;
     }
   }
@@ -301,30 +302,30 @@ class GoogleSheetsUtils {
     if (driveApi == null) return null;
     
     try {
-      debugPrint('Getting file metadata from Drive API');
+      Logger.d('Getting file metadata from Drive API');
       final file = await driveApi.files.get(
         spreadsheetId,
         $fields: 'webViewLink',
       ) as drive.File;
       
       if (file.webViewLink != null) {
-        debugPrint('Retrieved web view link: ${file.webViewLink}');
+        Logger.d('Retrieved web view link: ${file.webViewLink}');
         return file.webViewLink;
       } else {
-        debugPrint('No web view link found in file metadata');
+        Logger.d('No web view link found in file metadata');
         return null;
       }
     } catch (e) {
-      debugPrint('Error getting file metadata: $e');
+      Logger.d('Error getting file metadata: $e');
       return null;
     }
   }
   
   /// Construct a sharing URL directly from the spreadsheet ID
   static String constructSharingUrl(String spreadsheetId) {
-    debugPrint('Constructing sharing URL directly');
+    Logger.d('Constructing sharing URL directly');
     final webViewLink = 'https://docs.google.com/spreadsheets/d/$spreadsheetId/edit?usp=sharing';
-    debugPrint('Direct sharing URL: $webViewLink');
+    Logger.d('Direct sharing URL: $webViewLink');
     return webViewLink;
   }
 }
