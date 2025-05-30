@@ -160,7 +160,7 @@ class DevicesManager {
 /// Service to manage device connections
 class DeviceConnectionService {
   // Permanent settings
-  final int maxReconnectionAttempts = 3;
+  final int maxReconnectionAttempts = 8;
   final int _rescanBackoffSeconds = 7;
 
 
@@ -388,7 +388,7 @@ class DeviceConnectionService {
   /// Delayed re-scan
   Future<void> _delayedRescan() async {
     _stagnationTimer?.cancel();
-    final delay = pow(1.5, _rescanAttempts).toInt() * _rescanBackoffSeconds;
+    final delay = _rescanBackoffSeconds;
    
     _stagnationTimer = Timer(Duration(seconds: delay), () {
       debugPrint('Rescan timer fired after $delay seconds');
