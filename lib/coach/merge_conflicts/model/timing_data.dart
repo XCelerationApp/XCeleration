@@ -24,6 +24,7 @@ class TimingData {
         isConfirmed: false,
         conflict: null,
         type: RecordType.runnerTime,
+        place: records.length + 1,
         runnerId: record.runnerId,
         raceId: record.raceId,
         name: record.name,

@@ -10,6 +10,7 @@ import 'core/services/splash_screen.dart';
 import 'core/services/event_bus.dart';
 import 'config/app_config.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 Process? _flaskProcess;
 
@@ -29,20 +30,42 @@ class EventBusProvider extends ChangeNotifier {
 // Production app entry point
 void main() async {
   await SentryFlutter.init(
-    (options) {
+    (options) async {
       options.dsn = 'https://e60d9543e8e01fb7bd562970f3bcc34c@o4509410228305920.ingest.us.sentry.io/4509410229420032';
+      options.tracesSampleRate = 1.0;
+      try {
+        final info = await PackageInfo.fromPlatform();
+        options.release = '${info.packageName}@${info.version}+${info.buildNumber}';
+      } catch (_) {}
     },
-    appRunner: () => mainCommon(AppConfig.fromEnvironment()),
+    appRunner: () async {
+      // Optionally set user context here if you have user info
+      // await Sentry.configureScope((scope) {
+      //   scope.setUser(SentryUser(id: 'user-id', username: 'username'));
+      // });
+      mainCommon(AppConfig.fromEnvironment());
+    },
   );
 }
 
 // Development app entry point - also uses environment variables
 void mainDev() async {
   await SentryFlutter.init(
-    (options) {
+    (options) async {
       options.dsn = 'https://e60d9543e8e01fb7bd562970f3bcc34c@o4509410228305920.ingest.us.sentry.io/4509410229420032';
+      options.tracesSampleRate = 1.0;
+      try {
+        final info = await PackageInfo.fromPlatform();
+        options.release = '${info.packageName}@${info.version}+${info.buildNumber}';
+      } catch (_) {}
     },
-    appRunner: () => mainCommon(AppConfig.fromEnvironment()),
+    appRunner: () async {
+      // Optionally set user context here if you have user info
+      // await Sentry.configureScope((scope) {
+      //   scope.setUser(SentryUser(id: 'user-id', username: 'username'));
+      // });
+      mainCommon(AppConfig.fromEnvironment());
+    },
   );
 }
 

@@ -28,7 +28,7 @@ class PlaceNumber extends StatelessWidget {
       ),
       child: Center(
         child: Text(
-          '#$place',
+          place == 0 ? '?' : '#$place',
           style: AppTypography.smallCaption.copyWith(
             color: ColorUtils.withOpacity(color, 0.9),
             fontWeight: FontWeight.w600,

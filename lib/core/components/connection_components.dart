@@ -737,7 +737,7 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
             // Continue if status is as expected, otherwise abort
             bool shouldContinue = deviceStatus == expectedStatus;
             if(!shouldContinue) {
-              debugPrint('Device status changed: ${deviceStatus} != $expectedStatus');
+              debugPrint('Device status changed: $deviceStatus != $expectedStatus');
             }
             return shouldContinue;
           },
