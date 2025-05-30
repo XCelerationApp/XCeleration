@@ -546,31 +546,6 @@ class DeviceConnectionService {
           }
         }
         
-        // Check for devices that were in our map but are no longer in the device list
-        // These are truly lost devices
-        final deviceIdsCopy = _deviceStateMap.keys.toList();
-        for (final deviceId in deviceIdsCopy) {
-          if (_shouldCancel(token)) return;
-          
-          if (!currentDevices.containsKey(deviceId)) {
-            final lostDevice = _deviceStateMap.remove(deviceId);
-            if (lostDevice != null && deviceLostCallback != null && !_shouldCancel(token)) {
-              await deviceLostCallback(lostDevice);
-              
-              // Update ConnectedDevice if available
-              try {
-                final deviceName = getDeviceNameFromString(lostDevice.deviceName);
-                final connectedDevice = _devicesManager.getDevice(deviceName);
-                if (connectedDevice != null && connectedDevice.status != ConnectionStatus.searching) {
-                  connectedDevice.status = ConnectionStatus.searching;
-                }
-                Logger.d('Device lost: ${lostDevice.deviceName}');
-              } catch (e) {
-                // Silently handle invalid device names
-              }
-            }
-          }
-        }
       });
 
       // Set a timeout that will automatically cancel monitoring
