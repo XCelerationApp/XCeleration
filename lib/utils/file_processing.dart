@@ -3,6 +3,7 @@ import 'package:csv/csv.dart';
 import 'package:excel/excel.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/coach/race_screen/widgets/runner_record.dart';
 import 'google_drive_picker.dart';
 
@@ -61,10 +62,10 @@ Future<List<RunnerRecord>> processSpreadsheet(int raceId, bool isTeam, {BuildCon
               ));
             }
           } else {
-            debugPrint('Invalid data in row: $row');
+            Logger.d('Invalid data in row: $row');
           }
         } else {
-          debugPrint('Incomplete row: $row');
+          Logger.d('Incomplete row: $row');
         }
       }
     } else if (extension == 'xlsx') {
@@ -112,19 +113,19 @@ Future<List<RunnerRecord>> processSpreadsheet(int raceId, bool isTeam, {BuildCon
                 ));
               }
             } else {
-              debugPrint('Invalid data in row: $row');
+              Logger.d('Invalid data in row: $row');
             }
           } else {
-            debugPrint('Incomplete row: $row');
+            Logger.d('Incomplete row: $row');
           }
         }
       }
     } else {
-      debugPrint('Unsupported file format: $extension');
+      Logger.d('Unsupported file format: $extension');
     }
     return runnerData;
   } else {
-    debugPrint('No file selected.');
+    Logger.d('No file selected.');
     return [];
   }
 }
@@ -138,7 +139,7 @@ Future<List<RunnerRecord>> processGoogleDriveSpreadsheet(
     final tempFile = await picker.pickFile(context, allowedExtensions: ['csv', 'xlsx']);
     
     if (tempFile == null) {
-      debugPrint('No Google Drive file selected');
+      Logger.d('No Google Drive file selected');
       return [];
     }
     
@@ -185,10 +186,10 @@ Future<List<RunnerRecord>> processGoogleDriveSpreadsheet(
               ));
             }
           } else {
-            debugPrint('Invalid data in row: $row');
+            Logger.d('Invalid data in row: $row');
           }
         } else {
-          debugPrint('Incomplete row: $row');
+          Logger.d('Incomplete row: $row');
         }
       }
     } else if (extension == 'xlsx') {
@@ -260,15 +261,15 @@ Future<List<RunnerRecord>> processGoogleDriveSpreadsheet(
                 ));
               }
             } else {
-              debugPrint('Invalid data in row: $row');
+              Logger.d('Invalid data in row: $row');
             }
           } else {
-            debugPrint('Incomplete row: $row');
+            Logger.d('Incomplete row: $row');
           }
         }
       }
     } else {
-      debugPrint('Unsupported file format: $extension');
+      Logger.d('Unsupported file format: $extension');
     }
     
     // Delete the temporary file
@@ -276,7 +277,7 @@ Future<List<RunnerRecord>> processGoogleDriveSpreadsheet(
     
     return runnerData;
   } catch (e) {
-    debugPrint('Error processing Google Drive spreadsheet: $e');
+    Logger.d('Error processing Google Drive spreadsheet: $e');
     return [];
   }
 }

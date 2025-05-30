@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/coach/race_screen/widgets/runner_record.dart'
     show RunnerRecord;
 import 'dart:math';
@@ -69,7 +70,7 @@ List<TimingRecord> confirmRunnerNumber(
 
 List<TimingRecord> deleteConfirmedRecordsBeforeIndexUntilConflict(
     List<TimingRecord> records, int recordIndex) {
-  debugPrint(recordIndex.toString());
+  Logger.d(recordIndex.toString());
   if (recordIndex < 0 || recordIndex >= records.length) {
     return [];
   }
@@ -199,20 +200,20 @@ List<RunnerRecord> getConflictingRecords(
 Future<List<TimingRecord>> syncBibData(int runnerRecordsLength,
     List<TimingRecord> records, String finishTime, BuildContext context) async {
   final numberOfRunnerTimes = getNumberOfTimes(records);
-  debugPrint('Number of runner times: $numberOfRunnerTimes');
+  Logger.d('Number of runner times: $numberOfRunnerTimes');
   if (numberOfRunnerTimes != runnerRecordsLength) {
-    debugPrint(
+    Logger.d(
         'Runner records length: $runnerRecordsLength, Number of runner times: $numberOfRunnerTimes');
     await _handleTimingDiscrepancy(
         runnerRecordsLength, records, numberOfRunnerTimes, finishTime, context);
   } else {
-    debugPrint(
+    Logger.d(
         'Runner records length: $runnerRecordsLength, Number of runner times: $numberOfRunnerTimes');
     records = confirmRunnerNumber(records, numberOfRunnerTimes, finishTime);
   }
-  debugPrint('');
-  debugPrint(records.toString());
-  debugPrint('');
+  Logger.d('');
+  Logger.d(records.toString());
+  Logger.d('');
   return records;
 }
 

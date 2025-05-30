@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/utils/logger.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
@@ -149,7 +150,7 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
                                       detailsChanged = true;
                                       hasTeams = value.isNotEmpty;
                                     });
-                                    debugPrint('Has teams: $hasTeams');
+                                    Logger.d('Has teams: $hasTeams');
                                   },
                                 ),
                               ],

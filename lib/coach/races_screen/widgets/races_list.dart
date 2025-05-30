@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/utils/logger.dart';
 import '../../../coach/races_screen/controller/races_controller.dart';
 import '../../../shared/models/race.dart';
 import '../../../../core/theme/typography.dart';
@@ -21,7 +22,7 @@ class RacesList extends StatelessWidget {
     }
 
     final List<Race> raceData = controller.races;
-    debugPrint(raceData.toString());
+    Logger.d(raceData.toString());
     final finishedRaces = raceData
         .where((race) => race.flowState == Race.FLOW_FINISHED)
         .toList();

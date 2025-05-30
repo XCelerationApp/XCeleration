@@ -53,37 +53,37 @@
 //         //   onMediaCaptureEvent: (event) {
 //         //     switch ((event.status, event.isPicture, event.isVideo)) {
 //         //       case (MediaCaptureStatus.capturing, true, false):
-//         //         debugPrint('Capturing picture...');
+//         //         Logger.d('Capturing picture...');
 //         //       case (MediaCaptureStatus.success, true, false):
 //         //         event.captureRequest.when(
 //         //           single: (single) {
-//         //             debugPrint('Picture saved: ${single.file?.path}');
+//         //             Logger.d('Picture saved: ${single.file?.path}');
 //         //           },
 //         //           multiple: (multiple) {
 //         //             multiple.fileBySensor.forEach((key, value) {
-//         //               debugPrint('multiple image taken: $key ${value?.path}');
+//         //               Logger.d('multiple image taken: $key ${value?.path}');
 //         //             });
 //         //           },
 //         //         );
 //         //       case (MediaCaptureStatus.failure, true, false):
-//         //         debugPrint('Failed to capture picture: ${event.exception}');
+//         //         Logger.d('Failed to capture picture: ${event.exception}');
 //         //       case (MediaCaptureStatus.capturing, false, true):
-//         //         debugPrint('Capturing video...');
+//         //         Logger.d('Capturing video...');
 //         //       case (MediaCaptureStatus.success, false, true):
 //         //         event.captureRequest.when(
 //         //           single: (single) {
-//         //             debugPrint('Video saved: ${single.file?.path}');
+//         //             Logger.d('Video saved: ${single.file?.path}');
 //         //           },
 //         //           multiple: (multiple) {
 //         //             multiple.fileBySensor.forEach((key, value) {
-//         //               debugPrint('multiple video taken: $key ${value?.path}');
+//         //               Logger.d('multiple video taken: $key ${value?.path}');
 //         //             });
 //         //           },
 //         //         );
 //         //       case (MediaCaptureStatus.failure, false, true):
-//         //         debugPrint('Failed to capture video: ${event.exception}');
+//         //         Logger.d('Failed to capture video: ${event.exception}');
 //         //       default:
-//         //         debugPrint('Unknown event: $event');
+//         //         Logger.d('Unknown event: $event');
 //         //     }
 //         //   },
 //         //   saveConfig: SaveConfig.photoAndVideo(
@@ -132,12 +132,12 @@
 //         //   onMediaTap: (mediaCapture) {
 //         //     mediaCapture.captureRequest.when(
 //         //       single: (single) {
-//         //         debugPrint('single: ${single.file?.path}');
+//         //         Logger.d('single: ${single.file?.path}');
 //         //         launchUrl(Uri.parse(single.file?.path ?? ''));
 //         //       },
 //         //       multiple: (multiple) {
 //         //         multiple.fileBySensor.forEach((key, value) {
-//         //           debugPrint('multiple file taken: $key ${value?.path}');
+//         //           Logger.d('multiple file taken: $key ${value?.path}');
 //         //           launchUrl(Uri.parse(value?.path ?? '')); // Use launchUrl instead of open
 //         //         });
 //         //       },
@@ -216,7 +216,7 @@
 // // Function to handle the captured image
 // void handleCapturedImage(String imagePath) {
 //   // Implement your logic to handle the captured image
-//   debugPrint('Captured image path: $imagePath');
+//   Logger.d('Captured image path: $imagePath');
 // }
 
 // CameraAwesomeBuilder.custom(
@@ -261,5 +261,5 @@
 // // Function to handle the captured image
 // void handleCapturedImage(String imagePath) {
 //   // Implement your logic to handle the captured image
-//   debugPrint('Captured image path: $imagePath');
+//   Logger.d('Captured image path: $imagePath');
 // }

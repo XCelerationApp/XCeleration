@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/utils/logger.dart';
 import '../../../core/components/dropup_button.dart';
 import 'package:flutter/services.dart';
 import 'package:xceleration/core/theme/typography.dart';
@@ -50,14 +51,14 @@ class RunnersManagementController with ChangeNotifier {
   }
 
   Future<void> loadData() async {
-    debugPrint('Loading data...');
+    Logger.d('Loading data...');
     await Future.wait([
       loadRunners(),
       loadTeams(),
     ]);
     isLoading = false;
     notifyListeners();
-    debugPrint('Data loaded');
+    Logger.d('Data loaded');
   }
 
   void initControllers() {
@@ -89,7 +90,7 @@ class RunnersManagementController with ChangeNotifier {
   }
 
   Future<void> loadRunners() async {
-    debugPrint('Loading runners...');
+    Logger.d('Loading runners...');
     runners = await DatabaseHelper.instance.getRaceRunners(raceId);
     filteredRunners = runners;
     sortRunners();
@@ -200,12 +201,12 @@ class RunnersManagementController with ChangeNotifier {
       RunnerRecord? existingRunner;
       existingRunner =
           await DatabaseHelper.instance.getRaceRunnerByBib(raceId, runner.bib);
-      debugPrint('existingRunner: ${existingRunner?.toMap()}');
+      Logger.d('existingRunner: ${existingRunner?.toMap()}');
 
       if (existingRunner != null) {
         // If we're updating the same runner (same ID), just update
         if (existingRunner.runnerId == runner.runnerId) {
-          debugPrint('Updating runner: ${runner.toMap()}');
+          Logger.d('Updating runner: ${runner.toMap()}');
           await updateRunner(runner);
         } else {
           // If a different runner exists with this bib, ask for confirmation
@@ -245,7 +246,7 @@ class RunnersManagementController with ChangeNotifier {
   }
 
   Future<void> insertRunner(RunnerRecord runner) async {
-    debugPrint('Inserting runner: ${runner.toMap()}');
+    Logger.d('Inserting runner: ${runner.toMap()}');
     await DatabaseHelper.instance.insertRaceRunner(runner);
   }
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/utils/logger.dart';
 import '../../../core/components/button_components.dart';
 import '../../../shared/models/race.dart';
 import '../controller/races_controller.dart';
@@ -59,7 +60,7 @@ class ActionButton extends StatelessWidget {
       }
     } catch (e) {
       // Handle errors without using ScaffoldMessenger directly
-      debugPrint('Error in race creation: $e');
+      Logger.d('Error in race creation: $e');
       
       // Only show error dialog if context is still mounted
       if (context.mounted) {

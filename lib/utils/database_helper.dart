@@ -2,8 +2,8 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:xceleration/assistant/race_timer/model/timing_record.dart';
 import '../../../shared/models/race.dart';
-import 'package:flutter/foundation.dart';
 import 'dart:convert'; // Import jsonEncode
+import 'package:xceleration/core/utils/logger.dart';
 
 import '../coach/race_screen/widgets/runner_record.dart' show RunnerRecord;
 import '../coach/race_screen/model/race_result.dart';
@@ -116,9 +116,9 @@ class DatabaseHelper {
         // 4. Rename the new table to the original name
         await db.execute('ALTER TABLE race_runners_new RENAME TO race_runners');
         
-        debugPrint('Successfully migrated race_runners table with renamed column');
+        Logger.d('Successfully migrated race_runners table with renamed column');
       } catch (e) {
-        debugPrint('Error during migration: $e');
+        Logger.d('Error during migration: $e');
       }
     }
   }
@@ -329,7 +329,7 @@ class DatabaseHelper {
         WHERE race_id = ?
       ''', [raceId]); 
     } catch (e) {
-      debugPrint('Query error: $e');
+      Logger.d('Query error: $e');
     }
     if (rawResults != null && rawResults.isNotEmpty) {
       final results = rawResults.map((r) => ResultsRecord.fromMap(r)).toList();
@@ -337,7 +337,7 @@ class DatabaseHelper {
       return results;
     }
     // Fallback to test data if query fails or for other race IDs
-    debugPrint('Query failed or no results found for race ID $raceId');
+    Logger.d('Query failed or no results found for race ID $raceId');
     List<ResultsRecord> results = [];
     for (int i = 0; i < 20; i++) {
       results.add(
@@ -399,9 +399,9 @@ class DatabaseHelper {
       }
       await batch.commit();
       
-      debugPrint('Successfully saved ${resultRecords.length} race results for race $raceId');
+      Logger.d('Successfully saved ${resultRecords.length} race results for race $raceId');
     } catch (e) {
-      debugPrint('Error saving race results: $e');
+      Logger.d('Error saving race results: $e');
       rethrow;
     }
   }
@@ -502,7 +502,7 @@ class DatabaseHelper {
 
 
   Future<void> deleteDatabase() async {
-    debugPrint('deleting database');
+    Logger.d('deleting database');
     String path = join(await getDatabasesPath(), 'races.db');
     await databaseFactory.deleteDatabase(path);
     _database = null;

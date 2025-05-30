@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/utils/logger.dart';
 import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../model/timing_data.dart';
@@ -35,10 +36,10 @@ class TimingController extends TimingData {
       isAudioPlayerReady = true;
       notifyListeners();
     } catch (e) {
-      debugPrint('Error initializing audio player: $e');
+      Logger.d('Error initializing audio player: $e');
       // Don't retry if the asset is missing
       if (e.toString().contains('The asset does not exist')) {
-        debugPrint('Audio asset missing - continuing without sound');
+        Logger.d('Audio asset missing - continuing without sound');
         return;
       }
       // Only retry for other types of errors
@@ -285,7 +286,7 @@ class TimingController extends TimingData {
       scrollToBottom(scrollController);
       notifyListeners();
     } catch (e) {
-      debugPrint('Error undoing conflict: $e');
+      Logger.d('Error undoing conflict: $e');
     }
   }
 
@@ -369,7 +370,7 @@ class TimingController extends TimingData {
             runnersBeforeConflict[runnersBeforeConflict.length - 1 - i];
         // Only add runnerId to removal list if it's not null
         recordIndicesToRemove.add(records.indexOf(record));
-        debugPrint('Adding record index to remove: ${records.indexOf(record)}');
+        Logger.d('Adding record index to remove: ${records.indexOf(record)}');
       }
     }
 
@@ -378,7 +379,7 @@ class TimingController extends TimingData {
     
     // Remove records by Index
     for (int index in recordIndicesToRemove.reversed) {
-      debugPrint('Removing record at index: $index');
+      Logger.d('Removing record at index: $index');
       if (index >= 0 && index < records.length) {
         records.removeAt(index);
       }

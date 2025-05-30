@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/utils/logger.dart';
 import 'package:flutter/services.dart';
 import 'package:xceleration/utils/time_formatter.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -109,7 +110,7 @@ class ShareResultsController {
         }
       }
     } catch (e) {
-      debugPrint('Error copying to clipboard: $e');
+      Logger.d('Error copying to clipboard: $e');
       
       // Only show error feedback if it's not a cancellation
       if (e is! OperationCanceledException) {
@@ -152,7 +153,7 @@ class ShareResultsController {
         },
       );
 
-      debugPrint('Sheet URI: $sheetUri');
+      Logger.d('Sheet URI: $sheetUri');
       
       // If sheet creation was successful, show options dialog using the stored navigator
       if (sheetUri != null) {
@@ -170,7 +171,7 @@ class ShareResultsController {
         }
       }
     } catch (e) {
-      debugPrint('Error in Google Sheet creation: $e');
+      Logger.d('Error in Google Sheet creation: $e');
       
       // Use the stored global context for showing error dialog
       if (context.mounted && e is! OperationCanceledException) {
@@ -196,11 +197,11 @@ class ShareResultsController {
             final canLaunchSheetsApp = await canLaunchUrl(sheetsAppUri);
             
             if (canLaunchSheetsApp) {
-              debugPrint('Opening in Google Sheets app');
+              Logger.d('Opening in Google Sheets app');
               // Open in Google Sheets app
               await launchUrl(sheetsAppUri);
             } else {
-              debugPrint('Opening in browser');
+              Logger.d('Opening in browser');
               // Fallback to browser
               await launchUrl(
                 sheetUri,
@@ -208,7 +209,7 @@ class ShareResultsController {
               );
             }
           } catch (e) {
-            debugPrint('Error launching URL: $e');
+            Logger.d('Error launching URL: $e');
             // Final fallback - try simple string launch
             try {
               await launchUrlString(url);
@@ -273,11 +274,11 @@ class ShareResultsController {
             title: title,
           ));
         } else  {
-          debugPrint('Context not mounted, PDF not shared');
+          Logger.d('Context not mounted, PDF not shared');
         }
       }
     } catch (e) {
-      debugPrint('Error in PDF creation: $e');
+      Logger.d('Error in PDF creation: $e');
       
       // Only show error dialog if context is still mounted and it's not a cancellation
       if (context.mounted && e is! OperationCanceledException) {
@@ -294,7 +295,7 @@ class ShareResultsController {
         params,
       );
     } catch (e) {
-      debugPrint('Error sharing: $e');
+      Logger.d('Error sharing: $e');
       if (context.mounted) {
         DialogUtils.showErrorDialog(context, message: 'Failed to share');
       }

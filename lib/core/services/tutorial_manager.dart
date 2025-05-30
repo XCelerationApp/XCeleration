@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/utils/logger.dart';
 import 'package:flutter_portal/flutter_portal.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
@@ -77,7 +78,7 @@ class TutorialManager extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getBool(id) ?? false;
     } catch (e) {
-      debugPrint('Error checking if tutorial has been seen: $e');
+      Logger.d('Error checking if tutorial has been seen: $e');
       return false;
     }
   }
@@ -93,7 +94,7 @@ class TutorialManager extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(id, true);
     } catch (e) {
-      debugPrint('Error marking tutorial as seen: $e');
+      Logger.d('Error marking tutorial as seen: $e');
     }
   }
 }

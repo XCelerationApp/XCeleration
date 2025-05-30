@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/core/components/button_components.dart';
 import '../model/flow_model.dart';
 import 'package:provider/provider.dart';
@@ -30,7 +31,7 @@ class MasterFlowController {
       // If race is null, try to load it
       raceController.race = await DatabaseHelper.instance.getRaceById(raceController.raceId);
       if (raceController.race == null) {
-        debugPrint('Error: Race not found');
+        Logger.d('Error: Race not found');
         return;
       }
     }
@@ -55,7 +56,7 @@ class MasterFlowController {
       raceController.race = raceController.race!.copyWith(flowState: newState);
     }
     
-    debugPrint('MasterFlowController: Flow state changed to $newState for race: ${raceController.raceId}');
+    Logger.d('MasterFlowController: Flow state changed to $newState for race: ${raceController.raceId}');
     
     // Fire event (for components that use the event bus)
     EventBus.instance.fire(EventTypes.raceFlowStateChanged, {
@@ -83,7 +84,7 @@ class MasterFlowController {
       case Race.FLOW_POST_RACE:
         return _postRaceFlow(context);
       default:
-        debugPrint('Unknown flow state: $flowState');
+        Logger.d('Unknown flow state: $flowState');
         return false;
     }
   }

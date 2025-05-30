@@ -1,6 +1,7 @@
 // ignore_for_file: constant_identifier_names, non_constant_identifier_names
 
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/utils/logger.dart';
 import 'dart:convert';
 
 class Race {
@@ -81,7 +82,7 @@ class Race {
         teamsList = [];
       }
     }
-    debugPrint(race['flow_state']);
+    Logger.d(race['flow_state']);
 
     return Race(
       raceId: int.parse(race['race_id'].toString()),

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:xceleration/core/utils/logger.dart';
 
 /// A utility class for formatting and parsing time durations.
 class TimeFormatter {
@@ -79,7 +79,7 @@ class TimeFormatter {
         milliseconds: milliseconds,
       );
     } catch (e) {
-      debugPrint('Error parsing duration string: $e');
+      Logger.d('Error parsing duration string: $e');
       return null;
     }
   }

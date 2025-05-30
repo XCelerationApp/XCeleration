@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/utils/logger.dart';
 import '../utils/connection_utils.dart';
 import '../../utils/enums.dart';
 import 'package:flutter/services.dart';
@@ -361,7 +362,7 @@ class _QRConnectionState extends State<QRConnectionWidget> {
   Future<void> _showQR(BuildContext context, DeviceName device) async {
     // Get the data and handle the case where it might be a Future
     String rawData = widget.devices.getDevice(device)!.data!;
-    debugPrint('Raw data: $rawData');
+    Logger.d('Raw data: $rawData');
     String qrData =
         '${getDeviceNameString(widget.devices.currentDeviceName)}:$rawData';
 
@@ -418,7 +419,7 @@ class _QRConnectionState extends State<QRConnectionWidget> {
             ConnectionStatus.finished;
         widget.devices.getDevice(scannedDeviceName)!.data =
             parts.sublist(1).join(':');
-        debugPrint('Data received: ${widget.devices.getDevice(scannedDeviceName)!.data}');
+        Logger.d('Data received: ${widget.devices.getDevice(scannedDeviceName)!.data}');
             
         // Call the callback function if provided
         if (widget.devices.allDevicesFinished()) {
@@ -437,14 +438,14 @@ class _QRConnectionState extends State<QRConnectionWidget> {
           message: 'QR scanner is not available on this device. Please use a different connection method.',
         );
       } else {
-        debugPrint('Error scanning QR code: ${e.message}');
+        Logger.d('Error scanning QR code: ${e.message}');
         DialogUtils.showErrorDialog(
           context,
           message: 'Error scanning QR code',
         );
       }
     } catch (e) {
-      debugPrint('Error scanning QR code: $e');
+      Logger.d('Error scanning QR code: $e');
       DialogUtils.showErrorDialog(
         context,
         message: 'An error occurred while scanning the QR code. Please try again.',
@@ -561,7 +562,7 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
         if (!mounted) return;
         
         setState(() {
-          debugPrint('Error initializing connection service: $e');
+          Logger.d('Error initializing connection service: $e');
           _wirelessConnectionError = WirelessConnectionError.unknown;
           _isInitialized = true;
         });
@@ -605,7 +606,7 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
         timeout: const Duration(seconds: 30),
       );
     } catch (e) {
-      debugPrint('Error monitoring devices: $e');
+      Logger.d('Error monitoring devices: $e');
     } finally {
       // Ensure we mark connection as complete when monitoring ends
       if (!_connectionCompleter.isCompleted) {
@@ -690,7 +691,7 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
       // Get device reference once to avoid repetition
       final connectedDevice = widget.devices.getDevice(deviceName);
       if (connectedDevice == null) {
-        debugPrint('Device not found in connected devices list');
+        Logger.d('Device not found in connected devices list');
         return;
       }
       
@@ -708,7 +709,7 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
       
       // For advertiser device, check if we have data to send
       if (!isBrowserDevice && connectedDevice.data == null) {
-        debugPrint('No data for advertiser device to send');
+        Logger.d('No data for advertiser device to send');
         if (mounted) {
           setState(() {
             connectedDevice.status = ConnectionStatus.error;
@@ -736,7 +737,7 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
             // Continue if status is as expected, otherwise abort
             bool shouldContinue = deviceStatus == expectedStatus;
             if(!shouldContinue) {
-              debugPrint('Device status changed: ${deviceStatus} != $expectedStatus');
+              debugPrint('Device status changed: $deviceStatus != $expectedStatus');
             }
             return shouldContinue;
           },
@@ -774,7 +775,7 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
           });
         }
       } catch (e) {
-        debugPrint('Error ${isBrowserDevice ? "receiving" : "sending"} data: $e');
+        Logger.d('Error ${isBrowserDevice ? "receiving" : "sending"} data: $e');
         if (mounted) {
           setState(() {
             connectedDevice.status = ConnectionStatus.error;
@@ -785,7 +786,7 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
       // Clean up device from protocol
       _protocol.removeDevice(device.deviceId);
     } catch (e) {
-      debugPrint('Error in connection: $e');
+      Logger.d('Error in connection: $e');
       _protocol.removeDevice(device.deviceId);
       
       if (mounted) {
@@ -798,7 +799,7 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
 
   @override
   void dispose() {
-    debugPrint('Disposing WirelessConnectionWidget');
+    Logger.d('Disposing WirelessConnectionWidget');
     if (_messageMonitorToken != null) {
       _deviceConnectionService.stopMessageMonitoring(_messageMonitorToken!);
     }

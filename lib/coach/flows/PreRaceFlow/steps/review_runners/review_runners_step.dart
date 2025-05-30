@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/coach/flows/model/flow_model.dart';
 import '../../../../runners_management_screen/screen/runners_management_screen.dart';
 
@@ -29,7 +30,7 @@ class ReviewRunnersStep extends FlowStep {
   Future<void> checkRunners() async {
     final hasEnoughRunners =
         await RunnersManagementScreen.checkMinimumRunnersLoaded(raceId);
-    debugPrint('Has enough runners: $hasEnoughRunners');
+    Logger.d('Has enough runners: $hasEnoughRunners');
     if (_canProceed != hasEnoughRunners) {
       _canProceed = hasEnoughRunners;
       notifyContentChanged();

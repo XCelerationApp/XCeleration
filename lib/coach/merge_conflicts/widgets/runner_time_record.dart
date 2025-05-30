@@ -60,7 +60,7 @@ class RunnerTimeRecord extends StatelessWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    PlaceNumber(place: timeRecord.place!, color: conflictColor),
+                    PlaceNumber(place: timeRecord.place ?? 0, color: conflictColor),
                     const SizedBox(width: 10),
                     Expanded(
                       child: RunnerInfo(

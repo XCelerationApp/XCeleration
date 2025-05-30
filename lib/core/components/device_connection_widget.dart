@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/utils/logger.dart';
 import 'connection_components.dart';
 import 'dart:async';
 import 'package:audioplayers/audioplayers.dart' as audio;
@@ -14,7 +15,7 @@ Widget deviceConnectionWidget(BuildContext context, DevicesManager devices,
       final player = audio.AudioPlayer();
       await player.play(audio.AssetSource('sounds/completed_ding.mp3'));
     } catch (e) {
-      debugPrint('Error playing completion sound: $e');
+      Logger.d('Error playing completion sound: $e');
     }
     if (inSheet) {
       Future.delayed(const Duration(seconds: 1), () {

@@ -6,6 +6,7 @@ import 'dart:io';
 import '../../utils/enums.dart';
 import 'package:flutter/foundation.dart';
 import '../utils/connection_utils.dart';
+import 'package:xceleration/core/utils/logger.dart';
 
 /// Represents a connected device with its properties
 class ConnectedDevice extends ChangeNotifier {
@@ -105,7 +106,7 @@ class DevicesManager {
   }
 
   void reset() {
-    debugPrint('Resetting devices');
+    Logger.d('Resetting devices');
     _initializeDevices();
   }
 
@@ -281,7 +282,7 @@ class DeviceConnectionService {
           
           return completer.future;
         } catch (e) {
-          debugPrint('Failed to initialize NearbyService: $e');
+          Logger.d('Failed to initialize NearbyService: $e');
           timer.cancel();
           return false;
         }
@@ -343,7 +344,7 @@ class DeviceConnectionService {
               completer.complete(true);
             }
           } catch (e) {
-            debugPrint('Error during initialization: $e');
+            Logger.d('Error during initialization: $e');
             if (!completer.isCompleted) {
               completer.complete(false);
             }
@@ -354,14 +355,14 @@ class DeviceConnectionService {
       // Set a timeout to prevent hanging
       Timer(const Duration(seconds: 10), () {
         if (!completer.isCompleted) {
-          debugPrint('Init timeout reached');
+          Logger.d('Init timeout reached');
           completer.complete(false);
         }
       });
       
       return await completer.future;
     } catch (e) {
-      debugPrint('Error initializing NearbyService: $e');
+      Logger.d('Error initializing NearbyService: $e');
       if (!completer.isCompleted) {
         completer.complete(false);
       }
@@ -528,6 +529,7 @@ class DeviceConnectionService {
             }
           }
         }
+        
       });
 
       // Set a timeout that will automatically cancel monitoring
@@ -548,7 +550,7 @@ class DeviceConnectionService {
       await deviceMonitorSubscription?.cancel();
       deviceMonitorSubscription = null;
     } catch (e) {
-      debugPrint('Error monitoring device connections: $e');
+      Logger.d('Error monitoring device connections: $e');
     } finally {
       _cleanupToken(token);
     }
@@ -572,7 +574,7 @@ class DeviceConnectionService {
         return false;
       }
     } catch (e) {
-      debugPrint('Error inviting device ${device.deviceName}: $e');
+      Logger.d('Error inviting device ${device.deviceName}: $e');
       return false;
     }
   }
@@ -612,15 +614,15 @@ class DeviceConnectionService {
     
     try {
       if (device.state != SessionState.connected) {
-        debugPrint('Device not connected, cannot disconnect from ${device.deviceName}');
+        Logger.d('Device not connected, cannot disconnect from ${device.deviceName}');
         return false;
       }
       
       await _nearbyService!.disconnectPeer(deviceID: device.deviceId);
-      debugPrint('Disconnected from device ${device.deviceName}');
+      Logger.d('Disconnected from device ${device.deviceName}');
       return true;
     } catch (e) {
-      debugPrint('Error disconnecting from device ${device.deviceName}: $e');
+      Logger.d('Error disconnecting from device ${device.deviceName}: $e');
       return false;
     }
   }
@@ -629,31 +631,31 @@ class DeviceConnectionService {
   Future<bool> sendMessageToDevice(Device device, Package package) async {
     // Don't proceed if the service is disposed
     if (_isDisposed || _nearbyService == null) {
-      debugPrint('Cannot send message - service inactive');
+      Logger.d('Cannot send message - service inactive');
       return false;
     }
 
     if (device.state != SessionState.connected) {
-      debugPrint('Device not connected - Cannot send message to ${device.deviceName}');
+      Logger.d('Device not connected - Cannot send message to ${device.deviceName}');
       return false;
     }
     
     final token = _createCancellationToken('send_message');
     
     try {
-      debugPrint('Sending message to device ${device.deviceName}');
+      Logger.d('Sending message to device ${device.deviceName}');
       
       // Check for cancellation
       if (_shouldCancel(token)) {
-        debugPrint('Send message operation cancelled');
+        Logger.d('Send message operation cancelled');
         return false;
       }
       
       await _nearbyService!.sendMessage(device.deviceId, package.toString());
-      debugPrint('Message sent successfully to ${device.deviceName}');
+      Logger.d('Message sent successfully to ${device.deviceName}');
       return true;
     } catch (e) {
-      debugPrint('Error sending message to ${device.deviceName}: $e');
+      Logger.d('Error sending message to ${device.deviceName}: $e');
       return false;
     } finally {
       _cleanupToken(token);
@@ -670,7 +672,7 @@ class DeviceConnectionService {
     }
     
     final token = _createCancellationToken('monitor_messages');
-    debugPrint('Setting up message monitoring for device: ${device.deviceName}');
+    Logger.d('Setting up message monitoring for device: ${device.deviceName}');
 
     // Store the callback for this specific device
     _messageCallbacks[device.deviceId] = (Map<String, dynamic>? data) async {
@@ -678,11 +680,11 @@ class DeviceConnectionService {
       if (_shouldCancel(token)) return;
       
       try {
-        debugPrint('Raw data received: $data');
+        Logger.d('Raw data received: $data');
         if (data == null ||
             !data.containsKey('message') ||
             !data.containsKey('senderDeviceId')) {
-          debugPrint('Received invalid data format: $data');
+          Logger.d('Received invalid data format: $data');
           return;
         }
 
@@ -690,46 +692,46 @@ class DeviceConnectionService {
         try {
           if (_shouldCancel(token)) return;
           
-          debugPrint('Attempting to parse message: ${data['message']}');
+          Logger.d('Attempting to parse message: ${data['message']}');
           final String packageString = data['message'];
 
           final package = Package.fromString(packageString);
-          debugPrint('Successfully parsed package: ${package.type}');
+          Logger.d('Successfully parsed package: ${package.type}');
           
           if (!_shouldCancel(token)) {
             await messageReceivedCallback(package, data['senderDeviceId']);
           }
         } catch (e) {
-          debugPrint('Error parsing package: $e');
+          Logger.d('Error parsing package: $e');
         }
       } catch (e) {
-        debugPrint('Error processing received data: $e');
+        Logger.d('Error processing received data: $e');
       }
     };
 
     // Only set up the subscription once
     if (receivedDataSubscription == null) {
-      debugPrint('Creating new data subscription');
+      Logger.d('Creating new data subscription');
       receivedDataSubscription =
           _nearbyService!.dataReceivedSubscription(callback: (data) async {
         // Check for cancellation
         if (_shouldCancel(token)) return;
             
-        debugPrint('Data received in subscription: $data');
+        Logger.d('Data received in subscription: $data');
         try {
           final callback = _messageCallbacks[data['senderDeviceId']];
           if (callback != null) {
             await callback(data.cast<String, dynamic>());
           } else {
-            debugPrint(
+            Logger.d(
                 'No callback found for device ID: ${data['senderDeviceId']}');
           }
         } catch (e) {
-          debugPrint('Error in data received subscription: $e');
+          Logger.d('Error in data received subscription: $e');
         }
       });
     } else {
-      debugPrint('Using existing data subscription');
+      Logger.d('Using existing data subscription');
     }
     
     return token;
@@ -788,7 +790,7 @@ class DeviceConnectionService {
   void dispose() {
     if (_isDisposed) return;
     
-    debugPrint('Disposing DeviceConnectionService');
+    Logger.d('Disposing DeviceConnectionService');
     _isDisposed = true;
     
     

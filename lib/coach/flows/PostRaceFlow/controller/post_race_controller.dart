@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/coach/flows/model/flow_model.dart';
 import 'package:xceleration/coach/flows/PostRaceFlow/steps/load_results/load_results_step.dart';
 import 'package:xceleration/coach/flows/PostRaceFlow/steps/review_results/review_results_step.dart';
@@ -42,7 +43,7 @@ class PostRaceController {
   
   /// Update ReviewResultsStep with latest results from LoadResultsController
   void _updateReviewStep() {
-    debugPrint('Updating ReviewResultsStep with latest results');
+    Logger.d('Updating ReviewResultsStep with latest results');
     _reviewResultsStep.results = _loadResultsController.results;
   }
 

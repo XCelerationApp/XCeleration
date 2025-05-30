@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:flutter/material.dart';
+import 'package:xceleration/core/utils/logger.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:http/http.dart' as http;
@@ -48,7 +48,7 @@ class GoogleDriveService {
       
       return true;
     } catch (error) {
-      debugPrint('Error signing in to Google: $error');
+      Logger.d('Error signing in to Google: $error');
       return false;
     }
   }
@@ -78,7 +78,7 @@ class GoogleDriveService {
       }
       return _currentUser;
     } catch (e) {
-      debugPrint('Error getting current user: $e');
+      Logger.d('Error getting current user: $e');
       return null;
     }
   }
@@ -94,7 +94,7 @@ class GoogleDriveService {
       final auth = await _currentUser!.authentication;
       return auth.accessToken;
     } catch (e) {
-      debugPrint('Error getting access token: $e');
+      Logger.d('Error getting access token: $e');
       return null;
     }
   }
@@ -109,7 +109,7 @@ class GoogleDriveService {
     try {
       return await _driveApi!.files.get(fileId) as drive.File;
     } catch (e) {
-      debugPrint('Error getting file info: $e');
+      Logger.d('Error getting file info: $e');
       return null;
     }
   }
@@ -130,7 +130,7 @@ class GoogleDriveService {
       
       return fileList.files ?? [];
     } catch (e) {
-      debugPrint('Error listing Drive files: $e');
+      Logger.d('Error listing Drive files: $e');
       return [];
     }
   }
@@ -177,7 +177,7 @@ class GoogleDriveService {
         return _saveResponseToFile(response as drive.Media, fileName + extension);
       }
     } catch (e) {
-      debugPrint('Error downloading file: $e');
+      Logger.d('Error downloading file: $e');
       return null;
     }
   }
