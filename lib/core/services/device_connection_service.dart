@@ -184,7 +184,6 @@ class DeviceConnectionService {
   
   Timer? _stagnationTimer;
   int _rescanAttempts = 0;
-  DevicesManager? _devicesManagerCopy;
 
   // Flag to track if service is disposed
   bool _isDisposed = false;
@@ -299,6 +298,8 @@ class DeviceConnectionService {
     // Don't proceed if the service is disposed
     if (_isDisposed) return false;
 
+    debugPrint('Initializing connection service');
+
     // Clean up any existing resources first
     _cleanupResources();
     
@@ -370,36 +371,13 @@ class DeviceConnectionService {
     }
   }
 
-  bool hasDeviceStatusChanged() {
-    if (_devicesManagerCopy == null) return true;
-    
-    // Compare devices by looking at their actual status
-    final oldDevices = _devicesManagerCopy!.devices;
-    final newDevices = _devicesManager.devices;
-    
-    if (oldDevices.length != newDevices.length) return true;
-    
-    for (int i = 0; i < oldDevices.length; i++) {
-      if (oldDevices[i].status != newDevices[i].status) {
-        return true;
-      }
-    }
-    
-    return false;
-  }
   /// Check if we should re-scan
   bool _shouldRescan() {
     if (_rescanAttempts >= maxReconnectionAttempts) {
       return false;
     }
-    if (_devicesManagerCopy != null && !hasDeviceStatusChanged()) {
-      return false;
-    }
-    _devicesManagerCopy = _devicesManager.copy();
 
-    
-
-    if (_devicesManager.devices.any((device) => !device.isFinished || device.status == ConnectionStatus.searching)) {
+    if (_devicesManager.devices.any((device) => device.isFinished || device.status == ConnectionStatus.connected)) {
       return false;
     }
 
@@ -410,7 +388,9 @@ class DeviceConnectionService {
   Future<void> _delayedRescan() async {
     _stagnationTimer?.cancel();
     final delay = pow(1.5, _rescanAttempts).toInt() * _rescanBackoffSeconds;
+   
     _stagnationTimer = Timer(Duration(seconds: delay), () {
+      debugPrint('Rescan timer fired after $delay seconds');
       if (_shouldRescan()) {
         _rescanAttempts++;
         debugPrint('Rescan attempt $_rescanAttempts');
@@ -449,6 +429,9 @@ class DeviceConnectionService {
       final otherDeviceNames = _devicesManager.otherDevices
           .map((device) => getDeviceNameString(device.name))
           .toList();
+
+      // Start rescan timer, will be cancelled if we get a device connection
+      _delayedRescan();
       
       // Create a new subscription with improved state tracking
       deviceMonitorSubscription = _nearbyService!.stateChangedSubscription(callback: (devicesList) async {
@@ -456,10 +439,11 @@ class DeviceConnectionService {
       if (_shouldCancel(token)) return;
 
       // Check if we should re-scan
-      if (_shouldRescan()) {
+      final shouldRescan = _shouldRescan();
+      if (shouldRescan && _stagnationTimer?.isActive == false) {
         await _delayedRescan();
         return;
-      } else {
+      } else if (!shouldRescan) {
         _stagnationTimer?.cancel();
         _rescanAttempts = 0;
       }
