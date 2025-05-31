@@ -90,7 +90,8 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
             child: LayoutBuilder(
               builder: (context, constraints) {
                 return Column(
-                  mainAxisSize: MainAxisSize.min,
+                  // Make the column take up the full available height
+                  mainAxisSize: MainAxisSize.max,
                   children: [
                     if (controller.showHeader) ...[
                       createSheetHeader(
@@ -108,7 +109,8 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
                       const ListTitles(),
                       const SizedBox(height: 4),
                     ],
-                    Flexible(
+                    // Use Expanded instead of Flexible to force the content to take up all available space
+                    Expanded(
                       child: RunnersList(controller: controller),
                     ),
                   ],
