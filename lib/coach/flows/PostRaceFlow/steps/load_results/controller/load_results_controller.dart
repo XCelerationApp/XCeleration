@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/services/device_connection_service.dart';
+import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/utils/encode_utils.dart';
 import 'package:xceleration/utils/enums.dart';
 import 'package:xceleration/coach/race_screen/widgets/runner_record.dart';
@@ -88,7 +89,7 @@ class LoadResultsController with ChangeNotifier {
         resultRecords,
       );
     } catch (e) {
-      debugPrint('Error in saveRaceResults: $e');
+      Logger.d('Error in saveRaceResults: $e');
       rethrow;
     }
   }
@@ -97,8 +98,8 @@ class LoadResultsController with ChangeNotifier {
   Future<void> processReceivedData(BuildContext context) async {
     String? bibRecordsData = devices.bibRecorder?.data;
     String? finishTimesData = devices.raceTimer?.data;
-    debugPrint('Bib records data: ${bibRecordsData != null ? "Available" : "Null"}');
-    debugPrint('Finish times data: ${finishTimesData != null ? "Available" : "Null"}');
+    Logger.d('Bib records data: ${bibRecordsData != null ? "Available" : "Null"}');
+    Logger.d('Finish times data: ${finishTimesData != null ? "Available" : "Null"}');
     
     if (bibRecordsData != null && finishTimesData != null) {
       runnerRecords = await processEncodedBibRecordsData(
@@ -107,20 +108,20 @@ class LoadResultsController with ChangeNotifier {
       // Check if context is still mounted after async operation
       if (!context.mounted) return;
       
-      debugPrint('Processed runner records: ${runnerRecords?.length ?? 0}');
+      Logger.d('Processed runner records: ${runnerRecords?.length ?? 0}');
 
       timingData = await processEncodedTimingData(finishTimesData, context);
       
       // Check if context is still mounted after second async operation
       if (!context.mounted) return;
       
-      debugPrint('Processed timing data: ${timingData?.records.length ?? 0} records');
+      Logger.d('Processed timing data: ${timingData?.records.length ?? 0} records');
 
       resultsLoaded = true;
       notifyListeners();
       await _checkForConflictsAndSaveResults();
     } else {
-      debugPrint('Missing data source: bibRecordsData or finishTimesData is null');
+      Logger.d('Missing data source: bibRecordsData or finishTimesData is null');
     }
   }
 
@@ -132,7 +133,7 @@ class LoadResultsController with ChangeNotifier {
     if (!hasBibConflicts && !hasTimingConflicts && timingData != null && runnerRecords != null) {
       final List<ResultsRecord> mergedResults = await _mergeRunnerRecordsWithTimingData(
           timingData!, runnerRecords!);
-      debugPrint('Data merged, created ${mergedResults.length} result records');
+      Logger.d('Data merged, created ${mergedResults.length} result records');
       
       results = mergedResults;
       notifyListeners();
@@ -186,21 +187,21 @@ class LoadResultsController with ChangeNotifier {
       // Try to find runner by bib number in this race
       final runner = await DatabaseHelper.instance.getRaceRunnerByBib(raceId, record.bib);
       if (runner != null && runner.runnerId != null) {
-        debugPrint('Found existing runner ID: ${runner.runnerId} for bib ${record.bib}');
+        Logger.d('Found existing runner ID: ${runner.runnerId} for bib ${record.bib}');
         return runner.runnerId!;
       }
       
-      debugPrint('No runner ID found for bib ${record.bib}, using 0 as fallback');
+      Logger.d('No runner ID found for bib ${record.bib}, using 0 as fallback');
       return 0; // Fallback ID if we can't find a valid ID
     } catch (e) {
-      debugPrint('Error finding runner ID: $e');
+      Logger.d('Error finding runner ID: $e');
       return 0; // Fallback ID in case of error
     }
   }
 
   /// Loads test data for development purposes
   Future<void> loadTestData(BuildContext context) async {
-    debugPrint('Loading test data...');
+    Logger.d('Loading test data...');
     // Fake encoded data strings
     final fakeBibRecordsData = '1 2 30 101';
     final fakeFinishTimesData = TimingData(records: [

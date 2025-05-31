@@ -8,8 +8,8 @@ class Logger {
   }
 
   static void e(String message, [Object? error, StackTrace? stackTrace]) {
-    debugPrint('[ERROR] $message');
-    if (error != null) debugPrint('Error: $error');
-    if (stackTrace != null) debugPrint('StackTrace: $stackTrace');
+    Logger.d('[ERROR] $message');
+    if (error != null) Logger.d('Error: $error');
+    if (stackTrace != null) Logger.d('StackTrace: $stackTrace');
   }
 } 

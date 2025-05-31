@@ -187,6 +187,14 @@ class DeviceConnectionService {
 
   // Flag to track if service is disposed
   bool _isDisposed = false;
+  
+  // Device status callbacks
+  Future<void> Function(Device device)? _deviceLostCallback;
+  Future<void> Function(Device device)? _deviceFoundCallback;
+  Future<void> Function(Device device)? _deviceConnectingCallback;
+  Future<void> Function(Device device)? _deviceConnectedCallback;
+  Duration _monitorTimeout = const Duration(seconds: 60);
+  Future<void> Function()? _timeoutCallback;
 
   DeviceConnectionService(this._devicesManager, this._serviceType, this._deviceName, this._deviceType);
   /// Checks if the service can still be used (not disposed)
@@ -298,7 +306,7 @@ class DeviceConnectionService {
     // Don't proceed if the service is disposed
     if (_isDisposed) return false;
 
-    debugPrint('Initializing connection service');
+    Logger.d('Initializing connection service');
 
     // Clean up any existing resources first
     _cleanupResources();
@@ -372,7 +380,8 @@ class DeviceConnectionService {
   }
 
   /// Check if we should re-scan
-  bool _shouldRescan() {
+  bool _shouldRescan(String token) {
+    if (_shouldCancel(token)) return false;
     if (_rescanAttempts >= maxReconnectionAttempts) {
       return false;
     }
@@ -385,18 +394,21 @@ class DeviceConnectionService {
   }
 
   /// Delayed re-scan
-  Future<void> _delayedRescan() async {
+  Future<void> _delayedRescan(String token) async {
     _stagnationTimer?.cancel();
     final delay = _rescanBackoffSeconds;
    
-    _stagnationTimer = Timer(Duration(seconds: delay), () {
-      debugPrint('Rescan timer fired after $delay seconds');
-      if (_shouldRescan()) {
+    _stagnationTimer = Timer(Duration(seconds: delay), () async {
+      Logger.d('Rescan timer fired after $delay seconds');
+      if (_shouldRescan(token)) {
         _rescanAttempts++;
-        debugPrint('Rescan attempt $_rescanAttempts');
+        Logger.d('Rescan attempt $_rescanAttempts');
         final tempRescanAttempts = _rescanAttempts;
-        init();
+        await init();
         _rescanAttempts = tempRescanAttempts;
+        
+        // Restart monitoring after initialization
+        await monitorDevicesConnectionStatus();
       }
     });
   }
@@ -408,14 +420,22 @@ class DeviceConnectionService {
     Future<void> Function(Device device)? deviceConnectingCallback,
     Future<void> Function(Device device)? deviceConnectedCallback,
     Duration timeout = const Duration(seconds: 60),
+    Future<void> Function()? timeoutCallback,
   }) async {
+    // Store callbacks at class level if provided
+    if (deviceLostCallback != null) _deviceLostCallback = deviceLostCallback;
+    if (deviceFoundCallback != null) _deviceFoundCallback = deviceFoundCallback;
+    if (deviceConnectingCallback != null) _deviceConnectingCallback = deviceConnectingCallback;
+    if (deviceConnectedCallback != null) _deviceConnectedCallback = deviceConnectedCallback;
+    if (timeout.inSeconds > 0) _monitorTimeout = timeout;
+    if (timeoutCallback != null) _timeoutCallback = timeoutCallback;
     // Don't proceed if the service is disposed
     if (_isDisposed) return; 
     if (_nearbyService == null) {
-      debugPrint('NearbyService is not initialized');
+      Logger.d('NearbyService is not initialized');
       await init();
       if (_nearbyService == null) {
-        debugPrint('NearbyService is still not initialized');
+        Logger.d('NearbyService is still not initialized');
         return;
       }
     }
@@ -431,7 +451,7 @@ class DeviceConnectionService {
           .toList();
 
       // Start rescan timer, will be cancelled if we get a device connection
-      _delayedRescan();
+      _delayedRescan(token);
       
       // Create a new subscription with improved state tracking
       deviceMonitorSubscription = _nearbyService!.stateChangedSubscription(callback: (devicesList) async {
@@ -439,9 +459,9 @@ class DeviceConnectionService {
       if (_shouldCancel(token)) return;
 
       // Check if we should re-scan
-      final shouldRescan = _shouldRescan();
+      final shouldRescan = _shouldRescan(token);
       if (shouldRescan && _stagnationTimer?.isActive == false) {
-        await _delayedRescan();
+        await _delayedRescan(token);
         return;
       } else if (!shouldRescan) {
         _stagnationTimer?.cancel();
@@ -484,17 +504,17 @@ class DeviceConnectionService {
               _debounceCallback(device.deviceId, () async {
                 if (_shouldCancel(token)) return;
                 // Update ConnectedDevice if available
-                try {
-                  if (connectedDevice.status != ConnectionStatus.found) {
-                    connectedDevice.status = ConnectionStatus.found;
-                  }
-                } catch (e) {
-                  // Silently handle invalid device names
+              try {
+                if (connectedDevice.status != ConnectionStatus.found) {
+                  connectedDevice.status = ConnectionStatus.found;
                 }
-                if (deviceFoundCallback != null) {
-                  await deviceFoundCallback(device);
-                }
-              });
+              } catch (e) {
+                // Silently handle invalid device names
+              }
+              if (_deviceFoundCallback != null) {
+                await _deviceFoundCallback!(device);
+              }
+            });
             }
           } else if (device.state == SessionState.connecting) {
             if (_shouldCancel(token)) return;
@@ -505,8 +525,8 @@ class DeviceConnectionService {
               } catch (e) {
                 // Silently handle invalid device names
               }
-            if (deviceConnectingCallback != null) {
-              await deviceConnectingCallback(device);
+            if (_deviceConnectingCallback != null) {
+              await _deviceConnectingCallback!(device);
             }
           } else if (device.state == SessionState.connected) {
             if ((isNewDevice || stateChanged) && !_shouldCancel(token)) {
@@ -521,8 +541,8 @@ class DeviceConnectionService {
                 // Silently handle invalid device names
               }
               
-              if (deviceConnectedCallback != null) {
-                await deviceConnectedCallback(device);
+              if (_deviceConnectedCallback != null) {
+                await _deviceConnectedCallback!(device);
 
               }
             }
@@ -532,10 +552,12 @@ class DeviceConnectionService {
       });
 
       // Set a timeout that will automatically cancel monitoring
-      if (timeout.inSeconds > 0) {
-        Timer(timeout, () {
+      if (_monitorTimeout.inSeconds > 0) {
+        Timer(_monitorTimeout, () {
           if (!_shouldCancel(token)) {
             _cancelOperation(token);
+            _timeoutCallback?.call();
+            _stagnationTimer?.cancel();
           }
         });
       }

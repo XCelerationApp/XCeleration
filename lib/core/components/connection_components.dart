@@ -38,9 +38,14 @@ class WirelessConnectionButton extends StatefulWidget {
       );
 
   WirelessConnectionButton error({WirelessConnectionError error = WirelessConnectionError.unknown, Function()? retryAction}) {
-    String message = error == WirelessConnectionError.unavailable
-        ? 'Wireless connection is not available on this device.'
-        : 'An unknown error occurred.';
+    late String message;
+    if (error == WirelessConnectionError.unavailable) {
+      message = 'Wireless connection is not available on this device.';
+    } else if (error == WirelessConnectionError.timeout) {
+      message = 'Connection timed out.';
+    } else {
+      message = 'An unknown error occurred.';
+    }
     device.status = ConnectionStatus.error;
     return WirelessConnectionButton(
       device: device,
@@ -604,6 +609,11 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
         deviceConnectingCallback: _deviceConnectingCallback,
         deviceConnectedCallback: _deviceConnectedCallback,
         timeout: const Duration(seconds: 30),
+        timeoutCallback: () async {
+          setState(() {
+            _wirelessConnectionError = WirelessConnectionError.timeout;
+          });
+        },
       );
     } catch (e) {
       Logger.d('Error monitoring devices: $e');
@@ -737,7 +747,7 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
             // Continue if status is as expected, otherwise abort
             bool shouldContinue = deviceStatus == expectedStatus;
             if(!shouldContinue) {
-              debugPrint('Device status changed: $deviceStatus != $expectedStatus');
+              Logger.d('Device status changed: $deviceStatus != $expectedStatus');
             }
             return shouldContinue;
           },

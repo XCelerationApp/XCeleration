@@ -13,6 +13,7 @@ enum ConnectionStatus {
 enum WirelessConnectionError {
   unavailable,
   unknown,
+  timeout,
 }
 
 enum PopupScreen {
