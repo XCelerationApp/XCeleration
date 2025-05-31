@@ -15,6 +15,7 @@ import 'dart:async';
 import '../../../shared/role_bar/models/role_enums.dart';
 import '../../../shared/role_bar/role_bar.dart';
 import '../../race_screen/controller/race_screen_controller.dart';
+import '../services/races_service.dart';
 
 class RacesController extends ChangeNotifier {
   // Subscription to event bus events
@@ -75,11 +76,6 @@ class RacesController extends ChangeNotifier {
     });
   }
 
-  Future<void> loadRaces() async {
-    races = await DatabaseHelper.instance.getAllRaces();
-    notifyListeners();
-  }
-
   void setupTutorials() {
     tutorialManager.startTutorial([
       'race_swipe_tutorial',
@@ -132,104 +128,28 @@ class RacesController extends ChangeNotifier {
 
   void validateName(name, StateSetter setSheetState) {
     setSheetState(() {
-      if (name.isEmpty) {
-        nameError = 'Please enter a race name';
-      } else {
-        nameError = null;
-      }
+      nameError = RacesService.validateName(name);
     });
   }
 
   void validateLocation(String location, StateSetter setSheetState) {
     setSheetState(() {
-      if (location.isEmpty) {
-        locationError = 'Please enter a location';
-      } else {
-        locationError = null;
-      }
+      locationError = RacesService.validateLocation(location);
     });
   }
 
   void validateDate(String dateString, StateSetter setSheetState) {
     setSheetState(() {
-      if (dateString.isEmpty) {
-        dateError = 'Please select a date';
-      } else {
-        try {
-          final date = DateTime.parse(dateString);
-          if (date.year < 1900) {
-            dateError = 'Invalid date';
-          } else {
-            dateError = null;
-          }
-        } catch (e) {
-          dateError = 'Invalid date format';
-        }
-      }
+      dateError = RacesService.validateDate(dateString);
     });
   }
 
   void validateDistance(String distanceString, StateSetter setSheetState) {
     setSheetState(() {
-      if (distanceString.isEmpty) {
-        distanceError = 'Please enter a distance';
-      } else {
-        try {
-          final distance = double.parse(distanceString);
-          if (distance <= 0) {
-            distanceError = 'Distance must be greater than 0';
-          } else {
-            distanceError = null;
-          }
-        } catch (e) {
-          distanceError = 'Invalid number';
-        }
-      }
+      distanceError = RacesService.validateDistance(distanceString);
     });
   }
 
-  String? getFirstError() {
-    if (nameController.text.isEmpty) {
-      return 'Please enter a race name';
-    }
-    if (locationController.text.isEmpty) {
-      return 'Please enter a race location';
-    }
-    if (dateController.text.isEmpty) {
-      return 'Please select a race date';
-    } else {
-      try {
-        final date = DateTime.parse(dateController.text);
-        if (date.year < 1900) {
-          return 'Invalid date';
-        }
-      } catch (e) {
-        return 'Invalid date format';
-      }
-    }
-    if (distanceController.text.isEmpty) {
-      return 'Please enter a race distance';
-    } else {
-      try {
-        final distance = double.parse(distanceController.text);
-        if (distance <= 0) {
-          return 'Distance must be greater than 0';
-        }
-      } catch (e) {
-        return 'Invalid distance';
-      }
-    }
-
-    List<String> teams = teamControllers
-        .map((controller) => controller.text.trim())
-        .where((text) => text.isNotEmpty)
-        .toList();
-    if (teams.isEmpty) {
-      return 'Please add at least one team';
-    }
-
-    return null;
-  }
 
   void resetControllers() {
     nameController.text = '';
@@ -413,6 +333,12 @@ class RacesController extends ChangeNotifier {
   Future<void> updateRace(Race race) async {
     await DatabaseHelper.instance.updateRace(race);
     await loadRaces(); // Refresh the races list
+  }
+
+  Future<void> loadRaces() async {
+    races = await RacesService.loadRaces();
+    Logger.d('Races loaded: ${races.length}');
+    notifyListeners();
   }
 
   @override

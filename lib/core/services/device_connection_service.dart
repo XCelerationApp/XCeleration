@@ -414,7 +414,7 @@ class DeviceConnectionService {
     _stagnationTimer = Timer(Duration(seconds: delay), () {
       if (_shouldRescan()) {
         _rescanAttempts++;
-        debugPrint('Rescan attempt $_rescanAttempts');
+        Logger.d('Rescan attempt $_rescanAttempts');
         final tempRescanAttempts = _rescanAttempts;
         init();
         _rescanAttempts = tempRescanAttempts;
@@ -433,10 +433,10 @@ class DeviceConnectionService {
     // Don't proceed if the service is disposed
     if (_isDisposed) return; 
     if (_nearbyService == null) {
-      debugPrint('NearbyService is not initialized');
+      Logger.d('NearbyService is not initialized');
       await init();
       if (_nearbyService == null) {
-        debugPrint('NearbyService is still not initialized');
+        Logger.d('NearbyService is still not initialized');
         return;
       }
     }

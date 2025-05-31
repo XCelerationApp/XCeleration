@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/coach/races_screen/services/races_service.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:xceleration/coach/race_screen/screen/race_screen.dart';
@@ -16,6 +17,8 @@ import 'package:intl/intl.dart'; // Import the intl package for date formatting
 import 'package:flutter_colorpicker/flutter_colorpicker.dart'; // Import for color picker
 import 'package:geolocator/geolocator.dart'; // Import for geolocation
 import '../../races_screen/controller/races_controller.dart';
+import '../services/race_service.dart';
+import 'package:provider/provider.dart';
 
 /// Controller class for the RaceScreen that handles all business logic
 class RaceController with ChangeNotifier {
@@ -75,10 +78,13 @@ class RaceController with ChangeNotifier {
       {RaceScreenPage page = RaceScreenPage.main}) async {
     await sheet(
       context: context,
-      body: RaceScreen(
-        raceId: raceId,
-        parentController: parentController,
-        page: page,
+      body: ChangeNotifierProvider(
+        create: (_) => RaceController(raceId: raceId, parentController: parentController),
+        child: RaceScreen(
+          raceId: raceId,
+          parentController: parentController,
+          page: page,
+        ),
       ),
       takeUpScreen: false, // Allow sheet to size according to content
       showHeader: true, // Keep the handle
@@ -157,92 +163,29 @@ class RaceController with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> saveRaceDetails(BuildContext context) async {    
-    // Capture the context in a local variable before any async operations
-    
-    // Parse date
-    DateTime? date;
-    try {
-      if (dateController.text.isNotEmpty) {
-        date = DateTime.parse(dateController.text);
-      }
-    } catch (e) {
-      SnackBar(content: Text('Invalid date format. Use YYYY-MM-DD'));
-      return;
-    }
-    
-    // Parse distance - use 0 as sentinel value for empty/unset
-    double distance = 0; // Default to sentinel value
-    try {
-      if (distanceController.text.isNotEmpty) {
-        final parsedDistance = double.parse(distanceController.text);
-        // Only store positive values, otherwise keep as 0 sentinel
-        distance = parsedDistance > 0 ? parsedDistance : 0;
-      }
-    } catch (e) {
-      SnackBar(content: Text('Invalid distance format'));
-      return;
-    }
-    
-    // Update the race in database
-    await DatabaseHelper.instance.updateRaceField(raceId, 'location', locationController.text);
-    await DatabaseHelper.instance.updateRaceField(raceId, 'raceDate', date?.toIso8601String());
-    await DatabaseHelper.instance.updateRaceField(raceId, 'distance', distance);
-    await DatabaseHelper.instance.updateRaceField(raceId, 'distanceUnit', unitController.text);
-    
-    await saveTeamData();
-    
+  Future<void> saveRaceDetails(BuildContext context) async {
+    await RaceService.saveRaceDetails(
+      raceId: raceId,
+      locationController: locationController,
+      dateController: dateController,
+      distanceController: distanceController,
+      unitController: unitController,
+      teamControllers: teamControllers,
+      teamColors: teamColors,
+    );
     // Refresh the race data
     race = await loadRace();
     notifyListeners();
-    
     // Check if we can move to setup_complete
-    await checkSetupComplete();
-  }
-
-  /// Check if all requirements are met to advance to setup_complete
-  Future<bool> checkSetupComplete() async {
-    if (race?.flowState != Race.FLOW_SETUP) return false;
-    
-    // Check for minimum runners
-    final hasMinimumRunners = await RunnersManagementScreen.checkMinimumRunnersLoaded(raceId);
-    
-    // Check if essential race fields are filled
-    final fieldsComplete = 
-        nameController.text.isNotEmpty &&
-        locationController.text.isNotEmpty &&
-        dateController.text.isNotEmpty &&
-        distanceController.text.isNotEmpty &&
-        teamControllers.where((controller) => controller.text.isNotEmpty).isNotEmpty;
-    
-    // If all requirements are met, advance to setup_complete
-    if (hasMinimumRunners && fieldsComplete) {
-      // Check if context is still mounted before using it
-      if (!context.mounted) return false;
-      
-      await updateRaceFlowState(context, Race.FLOW_SETUP_COMPLETED);
-      // Check if the context is still mounted after the async operation
-      if (!context.mounted) return false;
-      return true;
-    }
-    
-    return false;
-  }
-
-  /// Save team data to database
-  Future<void> saveTeamData() async {
-    if (race == null) return;
-    
-    final teams = teamControllers
-        .map((controller) => controller.text.trim())
-        .where((text) => text.isNotEmpty)
-        .toList();
-    
-    // Convert Color objects to integer values for database storage
-    final colors = teamColors.map((color) => color.toARGB32()).toList();
-    
-    await DatabaseHelper.instance.updateRaceField(race!.raceId, 'teams', teams);
-    await DatabaseHelper.instance.updateRaceField(race!.raceId, 'teamColors', colors);
+    await RaceService.checkSetupComplete(
+      race: race,
+      raceId: raceId,
+      nameController: nameController,
+      locationController: locationController,
+      dateController: dateController,
+      distanceController: distanceController,
+      teamControllers: teamControllers,
+    );
   }
 
   /// Show color picker dialog for team color
@@ -419,7 +362,7 @@ class RaceController with ChangeNotifier {
     // Handle setup state differently - don't treat it as a flow
     if (currentState == Race.FLOW_SETUP) {
       // Just check if we can advance to setup_complete
-      final canAdvance = await checkSetupComplete();
+      final canAdvance = await RaceService.checkSetupComplete(race: race!, raceId: raceId, nameController: nameController, locationController: locationController, dateController: dateController, distanceController: distanceController, teamControllers: teamControllers);
       
       // Check if context is still mounted after async operation
       if (!context.mounted) return;
@@ -503,67 +446,28 @@ class RaceController with ChangeNotifier {
   // Validation methods for form fields
   void validateName(String name, StateSetter setSheetState) {
     setSheetState(() {
-      nameError = name.isEmpty ? 'Please enter a race name' : null;
+      nameError = RaceService.validateName(name);
     });
   }
 
   void validateLocation(String location, StateSetter setSheetState) {
     setSheetState(() {
-      locationError = location.isEmpty ? 'Please enter a location' : null;
+      locationError = RaceService.validateLocation(location);
     });
   }
 
   void validateDate(String dateString, StateSetter setSheetState) {
-    if (dateString.isEmpty) {
-      setSheetState(() {
-        dateError = 'Please enter a date';
-      });
-      return;
-    }
-
-    try {
-      // Just parse to validate format, no need to store the result
-      DateFormat('yyyy-MM-dd').parseStrict(dateString);
-      setSheetState(() {
-        dateError = null;
-      });
-    } catch (e) {
-      setSheetState(() {
-        dateError = 'Please enter a valid date (YYYY-MM-DD)';
-      });
-    }
+    final error = RaceService.validateDate(dateString);
+    setSheetState(() {
+      dateError = error;
+    });
   }
 
   void validateDistance(String distanceString, StateSetter setSheetState) {
-    if (distanceString.isEmpty) {
-      setSheetState(() {
-        distanceError = 'Please enter a distance';
-      });
-      return;
-    }
-
-    try {
-      final distance = double.parse(distanceString);
-      if (distance <= 0) {
-        setSheetState(() {
-          distanceError = 'Distance must be greater than 0';
-          // Reset negative values to empty string to prevent -1 from being displayed
-          if (distance < 0) {
-            distanceController.text = '';
-          }
-        });
-      } else {
-        setSheetState(() {
-          distanceError = null;
-        });
-      }
-    } catch (e) {
-      setSheetState(() {
-        distanceError = 'Please enter a valid number';
-        // Reset invalid values to empty string
-        distanceController.text = '';
-      });
-    }
+    final error = RaceService.validateDistance(distanceString);
+    setSheetState(() {
+      distanceError = error;
+    });
   }
   
   // Date picker method
