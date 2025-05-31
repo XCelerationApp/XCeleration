@@ -66,44 +66,46 @@ Widget createSheetHeader(
   );
 }
 
-Future<dynamic> sheet(
-    {required BuildContext context,
+Future<dynamic> sheet({
+    required BuildContext context,
     required Widget body,
     String? title,
     double titleSize = 24,
     Widget? actionButtons,
     bool showHeader = true,
-    bool takeUpScreen = false}) async {
+    bool takeUpScreen = false,
+    bool useRootNavigator = false}) async {
   return await showModalBottomSheet(
     backgroundColor: Colors.transparent,
     context: context,
     isScrollControlled: true,
     enableDrag: true,
+    useRootNavigator: useRootNavigator,
     builder: (context) => Container(
-      decoration: BoxDecoration(
-        color: AppColors.backgroundColor,
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(16),
+        decoration: BoxDecoration(
+          color: AppColors.backgroundColor,
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(16),
+          ),
         ),
-      ),
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.92,
-        minHeight: takeUpScreen ? MediaQuery.of(context).size.height * 0.92 : 0,
-      ),
-      child: Padding(
-        padding: EdgeInsets.only(
-          top: 8,
-          left: 24,
-          right: 24,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 36,
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.92,
+          minHeight: takeUpScreen ? MediaQuery.of(context).size.height * 0.92 : 0,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (showHeader) createSheetHeader(title, titleSize: titleSize),
-            Flexible(child: body),
-            if (actionButtons != null) actionButtons,
-          ],
+        child: Padding(
+          padding: EdgeInsets.only(
+            top: 8,
+            left: 24,
+            right: 24,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 36,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (showHeader) createSheetHeader(title, titleSize: titleSize),
+              Flexible(child: body),
+              if (actionButtons != null) actionButtons,
+            ],
         ),
       ),
     ),

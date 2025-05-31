@@ -610,6 +610,7 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
         deviceConnectedCallback: _deviceConnectedCallback,
         timeout: const Duration(seconds: 30),
         timeoutCallback: () async {
+          if (!mounted) return;
           setState(() {
             _wirelessConnectionError = WirelessConnectionError.timeout;
           });
