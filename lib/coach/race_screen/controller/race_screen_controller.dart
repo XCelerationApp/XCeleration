@@ -467,8 +467,8 @@ class RaceController with ChangeNotifier {
   }
 
   /// Load runners management screen
-  void loadRunnersManagementScreen(BuildContext context) {
-    sheet(
+  Future<void> loadRunnersManagementScreen(BuildContext context) async {
+    await sheet(
       context: context,
       takeUpScreen: true,
       title: 'Load Runners',
@@ -479,11 +479,6 @@ class RaceController with ChangeNotifier {
             child: RunnersManagementScreen(
               raceId: raceId,
               showHeader: false,
-              onContentChanged: () async {
-                // Refresh race data when runners are changed
-                race = await loadRace();
-                notifyListeners();
-              },
             ),
           ),
           const SizedBox(height: 16),
@@ -498,6 +493,12 @@ class RaceController with ChangeNotifier {
       ),
       showHeader: true,
     );
+    // Refresh race data when runners are changed
+    race = await loadRace();
+    if (context.mounted) {
+      await saveRaceDetails(context);
+    }
+    notifyListeners();
   }
 
   // Validation methods for form fields
