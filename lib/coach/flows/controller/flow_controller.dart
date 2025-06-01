@@ -94,18 +94,19 @@ class MasterFlowController {
   /// Pre-race setup flow
   /// Shows a flow for pre-race setup and coordination
   Future<bool> _preRaceFlow(BuildContext context) async {
-    final bool completed = await preRaceController.showPreRaceFlow(context, true);
+    // Get a more stable context from root navigator
+    final navigatorContext = Navigator.of(context, rootNavigator: true).context;
     
-    // Check if context is still mounted after async operation
-    if (!context.mounted) return false;
+    // Use the navigator context which is more stable during transitions
+    final contextToUse = context.mounted ? context : navigatorContext;
     
+    final bool completed = await preRaceController.showPreRaceFlow(contextToUse, true);
+    
+    // If not completed, just return
     if (!completed) return false;
     
     // Mark as pre-race-completed instead of moving directly to post-race
     await updateRaceFlowState(Race.FLOW_PRE_RACE_COMPLETED);
-    
-    // Check if context is still valid after the async operations
-    if (!context.mounted) return false;
     
     // Return to race screen without starting the next flow automatically
     return true;
@@ -114,11 +115,15 @@ class MasterFlowController {
   /// Post-race setup flow
   /// Shows a flow for post-race data collection and result processing
   Future<bool> _postRaceFlow(BuildContext context) async {
-    final bool completed = await postRaceController.showPostRaceFlow(context, true);
+    // Get a more stable context from root navigator
+    final navigatorContext = Navigator.of(context, rootNavigator: true).context;
     
-    // Check if context is still mounted after async operation
-    if (!context.mounted) return false;
+    // Use the navigator context which is more stable during transitions
+    final contextToUse = context.mounted ? context : navigatorContext;
     
+    final bool completed = await postRaceController.showPostRaceFlow(contextToUse, true);
+    
+    // If not completed, just return
     if (!completed) return false;
 
     // Set the race state directly to finished after post-race flow completes
@@ -195,17 +200,33 @@ Future<bool> showFlow({
   StepChangedCallback? onStepChanged,
   void Function(int lastIndex)? onDismiss,
 }) async {
+  // Store a global navigator key that can be used across the app
+  // This provides a more stable context that won't be invalidated during transitions
+  final navigatorContext = Navigator.of(context, rootNavigator: true).context;
+  
   final controller = FlowController(
     steps,
     initialIndex: initialIndex,
     onStepChanged: onStepChanged,
   );
   bool completed = false;
+  
+  // Check if original context is still valid after the delay
+  if (!context.mounted) {
+    // Use navigator context as fallback if the original context is gone
+    Logger.d('Original context unmounted during flow transition, using navigator context');
+  }
+  
+  // Use the navigatorContext which is more stable during transitions
+  final contextToUse = context.mounted ? context : navigatorContext;
+
+  if (!contextToUse.mounted) return false;
 
   await sheet(
-    context: context,
+    context: contextToUse,
     title: null,
     takeUpScreen: true,
+    useRootNavigator: true,
     body: ChangeNotifierProvider.value(
       value: controller,
       child: Consumer<FlowController>(
@@ -269,7 +290,8 @@ Future<bool> showFlow({
                       if (controller.canGoForward) {
                         await controller.goToNext();
                       } else if (controller.isLastStep) {
-                        Navigator.pop(context);
+                        // Use a context that's guaranteed to be available
+                        Navigator.of(context, rootNavigator: true).pop();
                         completed = true;
                       }
                     },
