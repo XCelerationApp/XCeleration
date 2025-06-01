@@ -53,6 +53,16 @@ Future<TimingData> decodeRaceTimesString(String encodedData) async {
       }
     }
   }
+  // Validation: Check for missing places
+  final recordPlaces = records.map((r) => r.place).whereType<int>().toList();
+  final maxPlace = recordPlaces.isEmpty ? 0 : recordPlaces.reduce((a, b) => a > b ? a : b);
+  final expectedPlaces = Set<int>.from(List.generate(maxPlace, (i) => i + 1));
+  final actualPlaces = Set<int>.from(recordPlaces);
+  final missingPlaces = expectedPlaces.difference(actualPlaces);
+  if (missingPlaces.isNotEmpty) {
+    Logger.e('decodeRaceTimesString: Missing places after decoding: $missingPlaces');
+    Logger.e('decodeRaceTimesString: All decoded record places: $recordPlaces');
+  }
   return TimingData(
       endTime: records.last.elapsedTime, records: records, startTime: null);
 }

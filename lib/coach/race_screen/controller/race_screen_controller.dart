@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:xceleration/coach/races_screen/services/races_service.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:xceleration/coach/race_screen/screen/race_screen.dart';

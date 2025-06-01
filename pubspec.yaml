@@ -46,6 +46,7 @@ dependencies:
   fluttertoast: ^8.2.12
   permission_handler: ^11.1.0
   sentry_flutter: ^8.14.2
+  package_info_plus: ^6.0.0
 
 dev_dependencies:
   flutter_test:

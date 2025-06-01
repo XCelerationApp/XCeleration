@@ -40,15 +40,15 @@ class ModernDetailRow extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: AppTypography.bodyRegular.copyWith(
-                    color: ColorUtils.withOpacity(AppColors.lightColor, 0.6),
+                  style: AppTypography.bodySemibold.copyWith(
+                    color: AppColors.darkColor,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   value,
                   style: AppTypography.bodySemibold.copyWith(
-                    color: AppColors.darkColor,
+                    color: AppColors.mediumColor,
                   ),
                   maxLines: isMultiLine ? null : 1,
                   overflow: isMultiLine ? null : TextOverflow.ellipsis,

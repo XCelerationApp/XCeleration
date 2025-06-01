@@ -11,6 +11,8 @@ import 'core/services/event_bus.dart';
 import 'config/app_config.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'coach/race_screen/controller/race_screen_controller.dart';
+import 'coach/races_screen/controller/races_controller.dart';
 
 Process? _flaskProcess;
 
@@ -33,6 +35,7 @@ void main() async {
     (options) async {
       options.dsn = 'https://e60d9543e8e01fb7bd562970f3bcc34c@o4509410228305920.ingest.us.sentry.io/4509410229420032';
       options.tracesSampleRate = 1.0;
+      options.diagnosticLevel = SentryLevel.warning;
       try {
         final info = await PackageInfo.fromPlatform();
         options.release = '${info.packageName}@${info.version}+${info.buildNumber}';
@@ -54,6 +57,7 @@ void mainDev() async {
     (options) async {
       options.dsn = 'https://e60d9543e8e01fb7bd562970f3bcc34c@o4509410228305920.ingest.us.sentry.io/4509410229420032';
       options.tracesSampleRate = 1.0;
+      options.diagnosticLevel = SentryLevel.warning;
       try {
         final info = await PackageInfo.fromPlatform();
         options.release = '${info.packageName}@${info.version}+${info.buildNumber}';
@@ -93,6 +97,14 @@ void mainCommon(AppConfig config) async {
         ChangeNotifierProvider(
           create: (context) => EventBusProvider(),
         ),
+        ChangeNotifierProvider(
+          create: (context) => RaceController(raceId: 0, parentController: RacesController()),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => RacesController(),
+        ),
+        // You may need to pass required arguments for MergeConflictsController at usage site
+        // ChangeNotifierProvider(create: (context) => MergeConflictsController(...)),
       ],
       child: const MyApp(),
     ),
@@ -171,6 +183,14 @@ class MyApp extends StatelessWidget {
         ),
       ),
       home: const SplashScreen(),
+      // Enable performance overlay in debug mode only
+      showPerformanceOverlay: false, // Set to true for debug, or use assert
     );
   }
 }
+
+// For custom performance timing, use:
+// final sw = Stopwatch()..start();
+// ... code to time ...
+// Logger.d('Operation took [38;5;2m${sw.elapsedMilliseconds}ms[0m');
+// This can be added to any expensive operation in services/controllers.

@@ -4,36 +4,47 @@ import 'package:xceleration/coach/merge_conflicts/model/resolve_information.dart
 import 'package:xceleration/coach/race_screen/widgets/runner_record.dart';
 import 'package:xceleration/utils/enums.dart';
 import 'joined_record.dart';
+import 'timing_data.dart';
 
 class Chunk {
   final List<TimingRecord> records;
   final RecordType type;
-  final List<RunnerRecord> runners;
+  late final List<RunnerRecord> runners;
   final int conflictIndex;
   List<JoinedRecord> joinedRecords;
   Map<String, List<TextEditingController>> controllers;
   ResolveInformation? resolve;
+  TimingData? timingData;
 
   Chunk({
     required this.records,
     required this.type,
-    required this.runners,
+    required List<RunnerRecord> runners,
     required this.conflictIndex,
-  }) : joinedRecords = [], controllers = {} {
-    // Safely create joined records only for indices that exist in both lists
-    final int commonLength = runners.length < records.length ? runners.length : records.length;
-    
-    joinedRecords = List.generate(
-      commonLength,
-      (j) => JoinedRecord(runner: runners[j], timeRecord: records[j]),
-    );
-    
+  })  : joinedRecords = [],
+        controllers = {} {
+    // Only keep runners whose (index+1) matches a record's place in this chunk
+    final recordPlaces = records.map((r) => r.place).toSet();
+    this.runners = [
+      for (int i = 0; i < runners.length; i++)
+        if (recordPlaces.contains(i + 1)) runners[i]
+    ];
+    // Build joinedRecords by matching runner index+1 to record.place
+    joinedRecords = [];
+    for (final record in records) {
+      if (record.place != null && record.place! > 0) {
+        final placeIdx = record.place! - 1;
+        if (placeIdx >= 0 && placeIdx < runners.length && recordPlaces.contains(record.place)) {
+          joinedRecords.add(JoinedRecord(runner: runners[placeIdx], timeRecord: record));
+        }
+      }
+    }
     // Use runners.length for controllers since they're based on runners
     controllers = {
       'timeControllers':
-          List.generate(runners.length, (_) => TextEditingController()),
+          List.generate(this.runners.length, (_) => TextEditingController()),
       'manualControllers':
-          List.generate(runners.length, (_) => TextEditingController()),
+          List.generate(this.runners.length, (_) => TextEditingController()),
     };
   }
 
@@ -51,13 +62,15 @@ class Chunk {
   }
 
   Future<void> setResolveInformation(
-    Future<ResolveInformation> Function(int) resolveTooManyRunnerTimes,
-    Future<ResolveInformation> Function(int) resolveTooFewRunnerTimes,
+    Future<ResolveInformation> Function(int, TimingData, List<RunnerRecord>) resolveTooManyRunnerTimes,
+    Future<ResolveInformation> Function(int, TimingData, List<RunnerRecord>) resolveTooFewRunnerTimes,
+    TimingData timing,
   ) async {
+    timingData = timing;
     if (type == RecordType.extraRunner) {
-      resolve = await resolveTooManyRunnerTimes(conflictIndex);
+      resolve = await resolveTooManyRunnerTimes(conflictIndex, timingData!, runners);
     } else if (type == RecordType.missingRunner) {
-      resolve = await resolveTooFewRunnerTimes(conflictIndex);
+      resolve = await resolveTooFewRunnerTimes(conflictIndex, timingData!, runners);
     }
   }
 

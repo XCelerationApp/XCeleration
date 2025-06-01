@@ -7,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../model/timing_data.dart';
 import '../../../core/components/instruction_card.dart';
 import '../widgets/chunk_list.dart';
+import 'package:provider/provider.dart';
 
 class MergeConflictsScreen extends StatefulWidget {
   final int raceId;
@@ -25,15 +26,17 @@ class MergeConflictsScreen extends StatefulWidget {
 }
 
 class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
-  late MergeConflictsController _controller;
-
   @override
   void initState() {
     super.initState();
-    _initializeState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _initializeState());
+  }
 
-    // Add listener to rebuild UI when controller data changes
-    _controller.addListener(_rebuildUi);
+  void _initializeState() {
+    final controller = Provider.of<MergeConflictsController>(context, listen: false);
+    controller.setContext(context);
+    controller.initState();
+    controller.addListener(_rebuildUi);
   }
 
   void _rebuildUi() {
@@ -42,27 +45,17 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
     }
   }
 
-  void _initializeState() {
-    _controller = MergeConflictsController(
-      raceId: widget.raceId,
-      timingData: widget.timingData,
-      runnerRecords: widget.runnerRecords,
-    );
-    _controller.setContext(context);
-    _controller.initState();
-  }
-
   @override
-  void didChangeDependencies() async {
+  void didChangeDependencies() {
     super.didChangeDependencies();
-    _controller.updateRunnerInfo();
+    final controller = Provider.of<MergeConflictsController>(context, listen: false);
+    controller.updateRunnerInfo();
   }
 
   @override
   Widget build(BuildContext context) {
-    // Set the controller's context
-    _controller.setContext(context);
-
+    final controller = Provider.of<MergeConflictsController>(context);
+    controller.setContext(context);
     return Scaffold(
       body: Container(
         color: AppColors.backgroundColor,
@@ -70,10 +63,10 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (_controller.getFirstConflict()[0] == null)
-                SaveButton(controller: _controller),
+              if (controller.getFirstConflict()[0] == null)
+                SaveButton(controller: controller),
               Expanded(
-                child: InstructionsAndList(controller: _controller),
+                child: InstructionsAndList(controller: controller),
               ),
             ],
           ),
@@ -84,8 +77,9 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
 
   @override
   void dispose() {
-    // Remove the listener when the widget is disposed
-    _controller.dispose();
+    final controller = Provider.of<MergeConflictsController>(context, listen: false);
+    controller.removeListener(_rebuildUi);
+    controller.dispose();
     super.dispose();
   }
 }
