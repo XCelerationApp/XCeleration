@@ -355,39 +355,40 @@ class Protocol {
       // Handle sending data if we have data to send
       if (dataToSend != null && !isReceiving) {
         // Before starting to send, check if we should proceed
-        if (shouldAbort()) {
-          throw ProtocolTerminatedException('Transfer aborted: device status changed');
-        }
         await sendData(dataToSend, deviceId);
-        return null; // Sender doesn't receive data
       }
+
+      if (shouldAbort()) {
+        throw ProtocolTerminatedException('Transfer aborted: device status changed');
+      }
+
+      // Wait for either completion or termination
+      await Future.any([
+        Future.doWhile(() async {
+          if (shouldAbort() || _finishedDevices.contains(deviceId) || _isTerminated) {
+            return false;
+          }
+          
+          await Future.delayed(Duration(milliseconds: 100));
+          return true;
+        }),
+        _terminationController.stream.first,
+      ]);
+      
+      // Check again in case we exited the loop due to status change
+      if (shouldAbort()) {
+        throw ProtocolTerminatedException('Transfer aborted: device status changed');
+      }
+
+      if (_isTerminated) {
+        Logger.d('Data reception terminated');
+        throw ProtocolTerminatedException('Data reception interrupted');
+      }
+      Logger.d('Data transfer complete');
+
       
       // Handle receiving data
       if (isReceiving) {
-        // Wait for either completion or termination
-        await Future.any([
-          Future.doWhile(() async {
-            if (shouldAbort() || _finishedDevices.contains(deviceId) || _isTerminated) {
-              return false;
-            }
-            
-            await Future.delayed(Duration(milliseconds: 100));
-            return true;
-          }),
-          _terminationController.stream.first,
-        ]);
-        
-        // Check again in case we exited the loop due to status change
-        if (shouldAbort()) {
-          throw ProtocolTerminatedException('Transfer aborted: device status changed');
-        }
-
-        if (_isTerminated) {
-          Logger.d('Data reception terminated');
-          throw ProtocolTerminatedException('Data reception interrupted');
-        }
-        Logger.d('Data reception complete, gathering results');
-
         // Process received packages
         Map<int, Package> packages = _receivedPackages[deviceId] ?? {};
         if (packages.isEmpty) {
