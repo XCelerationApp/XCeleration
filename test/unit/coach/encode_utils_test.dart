@@ -15,6 +15,21 @@ void main() {
     if (missingPlaces.isNotEmpty) {
       Logger.e('Test failed: Missing places: $missingPlaces');
     }
+    expect(timingData.records.last.place, 21, reason: 'The last place should be 21');
+  });
+
+  test('decodeRaceTimesString handles problematic input with missing and duplicate places', () async {
+    const encoded = '0.36,0.63,0.89,1.14,1.36,TBD,RecordType.missingRunner 1 2.31,2.92,3.10,RecordType.extraRunner 1 4.19,4.68,4.86,5.13,5.28,5.56,5.68,TBD,RecordType.missingRunner 1 6.59,7.09,7.27,7.47,RecordType.extraRunner 1 8.70,9.15,9.33,RecordType.confirmRunner 18 10.73,11.44,11.64,12.14';
+    final TimingData timingData = await decodeRaceTimesString(encoded);
+    final recordPlaces = timingData.records.map((r) => r.place).whereType<int>().toList();
+    final maxPlace = 21;
+    final expectedPlaces = Set<int>.from(List.generate(maxPlace, (i) => i + 1));
+    final actualPlaces = Set<int>.from(recordPlaces);
+    final missingPlaces = expectedPlaces.difference(actualPlaces);
+    if (missingPlaces.isNotEmpty) {
+      Logger.e('Test failed: Missing places: $missingPlaces');
+    }
     expect(missingPlaces.isEmpty, true, reason: 'All places from 1 to 21 should be present');
+    expect(timingData.records.last.place, 21, reason: 'The last place should be 21');
   });
 } 
