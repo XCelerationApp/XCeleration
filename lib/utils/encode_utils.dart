@@ -11,61 +11,100 @@ import '../assistant/race_timer/model/timing_record.dart';
 import '../utils/enums.dart';
 
 Future<TimingData> decodeRaceTimesString(String encodedData) async {
-  // final decodedData = encodedData.split(',');
-  // final startTime = null;
-  // final endTime = decodedData[1];
   final condensedRecords = encodedData.split(',');
   List<TimingRecord> records = [];
   int place = 0;
+  
   for (var recordString in condensedRecords) {
-    if (TimeFormatter.loadDurationFromString(recordString) != null || recordString == 'TBD') {
+    if (_isRunnerTime(recordString)) {
       place++;
       records.add(TimingRecord(
-          elapsedTime: recordString,
-          type: RecordType.runnerTime,
-          place: place));
-      // records.add({
-      //   'finish_time': recordString,
-      //   'type': 'runner_time',
-      //   'is_confirmed': false,
-      //   'place': place
-      // });
-    } else {
-      final [type, offByString, finishTime] = recordString.split(' ');
-
-      int? offBy = int.tryParse(offByString);
-      if (offBy == null) {
-        Logger.d('Failed to parse offBy: $offByString');
-        continue;
-      }
-
-      if (type == RecordType.confirmRunner.toString()) {
-        records = confirmRunnerNumber(records, place, finishTime);
-      } else if (type == RecordType.missingRunner.toString()) {
-        records = missingRunnerTime(offBy, records, place, finishTime,
-            addMissingRunner: false);
-        place += offBy;
-      } else if (type == RecordType.extraRunner.toString()) {
-        records = extraRunnerTime(offBy, records, place, finishTime);
-        place -= offBy;
-      } else {
-        Logger.d('Unknown type: $type, string: $recordString');
+        elapsedTime: recordString,
+        type: RecordType.runnerTime,
+        place: place,
+      ));
+      Logger.d('Added runner time record at place $place: $recordString');
+    } else if (recordString.startsWith('RecordType.')) {
+      final conflict = _parseConflict(recordString);
+      if (conflict != null) {
+        records = _handleConflict(conflict, records, place);
+        place = records.last.place!;
       }
     }
   }
-  // Validation: Check for missing places
+  
+  _validatePlaces(records);
+  
+  return TimingData(
+    endTime: records.last.elapsedTime, 
+    records: records, 
+    startTime: null
+  );
+}
+
+// Helper methods
+bool _isRunnerTime(String recordString) {
+  return recordString == 'TBD' || TimeFormatter.loadDurationFromString(recordString) != null;
+}
+
+ConflictInfo? _parseConflict(String recordString) {
+  final parts = recordString.split(' ');
+  if (parts.length < 3) return null;
+  
+  final typeString = parts[0];
+  final offBy = int.tryParse(parts[1]);
+  final finishTime = parts[2];
+  
+  final typeMap = {
+    RecordType.confirmRunner.toString(): RecordType.confirmRunner,
+    RecordType.missingRunner.toString(): RecordType.missingRunner,
+    RecordType.extraRunner.toString(): RecordType.extraRunner,
+  };
+  
+  final type = typeMap[typeString];
+  
+  return (type != null && offBy != null) 
+    ? ConflictInfo(type: type, offBy: offBy, finishTime: finishTime)
+    : null;
+}
+
+List<TimingRecord> _handleConflict(ConflictInfo conflict, List<TimingRecord> records, int place) {
+  switch (conflict.type) {
+    case RecordType.missingRunner:
+      return missingRunnerTime(conflict.offBy, records, place, conflict.finishTime, addMissingRunner: false);
+    case RecordType.extraRunner:
+      return extraRunnerTime(conflict.offBy, records, place, conflict.finishTime);
+    case RecordType.confirmRunner:
+      return confirmRunnerNumber(records, place, conflict.finishTime);
+    default:
+      return records;
+  }
+}
+
+void _validatePlaces(List<TimingRecord> records) {
   final recordPlaces = records.map((r) => r.place).whereType<int>().toList();
-  final maxPlace = recordPlaces.isEmpty ? 0 : recordPlaces.reduce((a, b) => a > b ? a : b);
+  if (recordPlaces.isEmpty) return;
+  
+  final maxPlace = recordPlaces.reduce((a, b) => a > b ? a : b);
   final expectedPlaces = Set<int>.from(List.generate(maxPlace, (i) => i + 1));
   final actualPlaces = Set<int>.from(recordPlaces);
   final missingPlaces = expectedPlaces.difference(actualPlaces);
+  
   if (missingPlaces.isNotEmpty) {
     Logger.e('decodeRaceTimesString: Missing places after decoding: $missingPlaces');
     Logger.e('decodeRaceTimesString: All decoded record places: $recordPlaces');
   }
-  return TimingData(
-      endTime: records.last.elapsedTime, records: records, startTime: null);
 }
+
+// Helper class for conflict parsing
+class ConflictInfo {
+  final RecordType type;
+  final int offBy;
+  final String finishTime;
+  
+  ConflictInfo({required this.type, required this.offBy, required this.finishTime});
+}
+
 
 Future<TimingData?> processEncodedTimingData(
     String data, BuildContext context) async {
