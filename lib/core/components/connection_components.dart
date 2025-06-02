@@ -778,6 +778,8 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
           // Complete the connection to stop monitoring
           if (!_connectionCompleter.isCompleted) {
             _connectionCompleter.complete();
+            _deviceConnectionService.dispose();
+            _protocol.dispose();
           }
           widget.callback();
         }
