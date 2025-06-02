@@ -508,7 +508,7 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
   String? _messageMonitorToken;
   
   // Add a completer to properly handle cancellation
-  final Completer<void> _connectionCompleter = Completer<void>();
+  late Completer<void> _connectionCompleter;
 
   @override
   void initState() {
@@ -521,6 +521,7 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
 
   Future<void> _initialize() async {
     if (!mounted) return;
+    _connectionCompleter = Completer<void>();
     
     _deviceConnectionService = DeviceConnectionService(
       widget.devices,
@@ -611,8 +612,12 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
         timeout: const Duration(seconds: 30),
         timeoutCallback: () async {
           if (!mounted) return;
+          if (widget.devices.allDevicesFinished()) return;
           setState(() {
             _wirelessConnectionError = WirelessConnectionError.timeout;
+            _deviceConnectionService.dispose();
+            _protocol.dispose();
+            _connectionCompleter.complete();
           });
         },
       );
