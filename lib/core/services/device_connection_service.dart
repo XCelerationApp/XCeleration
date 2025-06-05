@@ -386,11 +386,19 @@ class DeviceConnectionService {
       return false;
     }
 
-    if (_devicesManager.devices.any((device) => device.isFinished || device.status == ConnectionStatus.connected)) {
-      return false;
+    // Don't rescan if any device is in an active state (not searching and not finished)
+    for (final device in _devicesManager.devices) {
+      // Skip devices that are finished
+      if (device.isFinished) continue;
+      
+      // If device is in any active state (not searching), don't rescan
+      if (device.status != ConnectionStatus.searching) {
+        Logger.d('Skipping rescan: device ${device.name} in state ${device.status}');
+        return false;
+      }
     }
 
-    return true;
+    return !_devicesManager.devices.every((device) => device.isFinished);
   }
 
   /// Delayed re-scan
