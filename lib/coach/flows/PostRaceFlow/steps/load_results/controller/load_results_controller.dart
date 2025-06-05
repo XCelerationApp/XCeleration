@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/core/services/device_connection_service.dart';
-import 'package:xceleration/utils/encode_utils.dart';
+import 'package:xceleration/utils/decode_utils.dart';
 import 'package:xceleration/utils/enums.dart';
 import 'package:xceleration/coach/race_screen/widgets/runner_record.dart';
 import 'package:xceleration/coach/merge_conflicts/model/timing_data.dart';

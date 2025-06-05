@@ -10,7 +10,7 @@ import '../../../core/services/tutorial_manager.dart';
 import '../../../shared/role_bar/models/role_enums.dart';
 import '../../../shared/role_bar/role_bar.dart';
 import '../../../shared/role_bar/widgets/role_selector_sheet.dart';
-import '../../../utils/encode_utils.dart';
+import '../../../utils/decode_utils.dart';
 import '../../../utils/sheet_utils.dart';
 import '../../../core/components/device_connection_widget.dart';
 import '../../../core/services/device_connection_service.dart';

@@ -101,15 +101,22 @@ class MergeConflictsService {
     TimingData timingData,
     List<RunnerRecord> runnerRecords,
   ) async {
+
+    Logger.d('_resolveTooFewRunnerTimes called');
+    Logger.d('conflictIndex: $conflictIndex');
+    Logger.d('timingData.records: ${timingData.records.map((r) => r.toMap())}');
+    Logger.d('runnerRecords: ${runnerRecords.map((r) => r.toMap())}');
     var records = timingData.records;
     final bibData =
         runnerRecords.map((runner) => runner.bib.toString()).toList();
     final conflictRecord = records[conflictIndex];
 
+    // Find the last confirmed record (non-runner time) before this conflict
     final lastConfirmedIndex = records
         .sublist(0, conflictIndex)
         .lastIndexWhere((record) => record.type != RecordType.runnerTime);
 
+    // Get place of last confirmed record, or 0 if none exists
     final lastConfirmedPlace =
         lastConfirmedIndex == -1 ? 0 : records[lastConfirmedIndex].place;
 
@@ -122,7 +129,7 @@ class MergeConflictsService {
       throw Exception('No conflicting records found');
     }
 
-    final startingIndex = lastConfirmedPlace ?? 0;
+    // final startingIndex = lastConfirmedPlace ?? 0;
 
     final spaceBetweenConfirmedAndConflict = lastConfirmedIndex == -1
         ? 1
@@ -132,25 +139,25 @@ class MergeConflictsService {
         lastConfirmedIndex + spaceBetweenConfirmedAndConflict, conflictIndex);
 
     final List<String> conflictingTimes = conflictingRecords
-        .where((record) => record.elapsedTime != '')
+        .where((record) => record.elapsedTime != '' && record.elapsedTime != 'TBD')
         .map((record) => record.elapsedTime)
-        .where((time) => time != '' && time != 'TBD')
         .toList();
     // Safely create the runners list with boundary checks
-    final int calculatedEndIndex = startingIndex + spaceBetweenConfirmedAndConflict;
-    final int safeEndIndex = calculatedEndIndex > runnerRecords.length ? runnerRecords.length : calculatedEndIndex;
-  
-    // Ensure we don't create a negative range or go out of bounds
-    final List<RunnerRecord> conflictingRunners;
-    if (startingIndex < 0 || startingIndex >= runnerRecords.length || startingIndex >= safeEndIndex) {
-      conflictingRunners = [];
-      Logger.d('⚠️ Invalid range for conflictingRunners: start=$startingIndex, end=$safeEndIndex');
-    } else {
-      conflictingRunners = List<RunnerRecord>.from(runnerRecords.sublist(startingIndex, safeEndIndex));
-    }
+    // final int calculatedEndIndex = startingIndex + spaceBetweenConfirmedAndConflict;
+    
+    // // Ensure we don't create a negative range or go out of bounds
+    // final List<RunnerRecord> conflictingRunners;
+    // if (startingIndex < 0 || startingIndex >= runnerRecords.length || startingIndex >= calculatedEndIndex) {
+    //   conflictingRunners = [];
+    //   Logger.e('⚠️ Invalid range for conflictingRunners: start=$startingIndex, end=$calculatedEndIndex');
+    //   throw Exception('Invalid range for conflictingRunners');
+    // } else {
+    //   // Valid range, get the sublist
+    //   conflictingRunners = List<RunnerRecord>.from(runnerRecords.sublist(startingIndex, calculatedEndIndex));
+    // }
 
     return ResolveInformation(
-      conflictingRunners: conflictingRunners,
+      conflictingRunners: runnerRecords,
       lastConfirmedPlace: lastConfirmedPlace ?? 0,
       availableTimes: conflictingTimes,
       allowManualEntry: true,
@@ -176,7 +183,7 @@ class MergeConflictsService {
     
     final lastConfirmedPlace =
         lastConfirmedIndex == -1 ? 0 : records[lastConfirmedIndex].place ?? 0;
-
+    
     final List<TimingRecord> conflictingRecords =
         records.sublist(lastConfirmedIndex + 1, conflictIndex);
 
@@ -186,30 +193,33 @@ class MergeConflictsService {
         .where((time) => time != '' && time != 'TBD')
         .toList();
     // Safely determine end index with null check and boundary validation
-    final dynamic rawEndIndex = conflictRecord.conflict?.data?['numTimes'];
-    final int endIndex = rawEndIndex != null ? 
-        (rawEndIndex is int ? rawEndIndex : int.tryParse(rawEndIndex.toString()) ?? lastConfirmedPlace) : 
-        (conflictRecord.place ?? lastConfirmedPlace);
-  
-    // Ensure we don't exceed the bounds of runnerRecords
-    final int safeEndIndex = endIndex > runnerRecords.length ? runnerRecords.length : endIndex;
+    // final dynamic rawEndIndex = conflictRecord.conflict?.data?['numTimes'];
+    // final int endIndex = rawEndIndex != null ? 
+    //     (rawEndIndex is int ? rawEndIndex : int.tryParse(rawEndIndex.toString()) ?? lastConfirmedPlace) :
+    //     (conflictRecord.place ?? lastConfirmedPlace);\
+    // final int endIndex = rawEndIndex;
+    
+    // if (endIndex > runnerRecords.length || endIndex < lastConfirmedPlace) {
+    //   Logger.e('⚠️ Invalid end index: endIndex=$endIndex, runners length=${runnerRecords.length}');
+    //   throw Exception('Invalid end index: endIndex must be less than or equal to runners length');
+    // }
   
     // Create conflictingRunners with safe bounds
-    final List<RunnerRecord> conflictingRunners = lastConfirmedPlace < safeEndIndex ?
-        runnerRecords.sublist(lastConfirmedPlace, safeEndIndex) : [];
-    Logger.d('Conflicting runners: $conflictingRunners');
+    // final List<RunnerRecord> conflictingRunners = lastConfirmedPlace < endIndex ?
+    //     runnerRecords.sublist(lastConfirmedPlace, endIndex) : [];
+    // Logger.d('Conflicting runners: $conflictingRunners');
 
     // Add more debug information
     Logger.d('lastConfirmedIndex: $lastConfirmedIndex');
     Logger.d('lastConfirmedPlace: $lastConfirmedPlace');
-    
+
     // Create a safe lastConfirmedRecord that handles the case where lastConfirmedIndex is -1
     final TimingRecord safeLastConfirmedRecord = lastConfirmedIndex == -1 ? 
         TimingRecord(place: lastConfirmedPlace, elapsedTime: '', isConfirmed: true) : 
         records[lastConfirmedIndex];
     
     return ResolveInformation(
-      conflictingRunners: conflictingRunners,
+      conflictingRunners: runnerRecords,
       conflictingTimes: conflictingTimes,
       lastConfirmedPlace: lastConfirmedPlace,
       lastConfirmedRecord: safeLastConfirmedRecord,
@@ -235,41 +245,74 @@ class MergeConflictsService {
     Logger.d('Clearing all conflicts from timing data...');
     int currentPlace = 1;
     List<TimingRecord> confirmedRecords = [];
+    List<TimingRecord> recordsWithPlaceholders = [];
+    
+    // First pass: update conflict records and identify runner time records
     for (int i = 0; i < timingData.records.length; i++) {
       final record = timingData.records[i];
+      
+      // Assign places to records without places
       if (record.place == null) {
         record.place = currentPlace;
         Logger.d('Assigned missing place $currentPlace to record with time ${record.elapsedTime}');
       }
+      
+      // Handle conflict records (missingRunner, extraRunner)
       if (record.type == RecordType.missingRunner || record.type == RecordType.extraRunner) {
         record.type = RecordType.confirmRunner;
         record.isConfirmed = true;
         record.textColor = Colors.green;
+        
+        // Ensure conflict records have valid places
         if (record.place == null) {
-          final int maxPlace = timingData.records.where((r) => r.place != null).map((r) => r.place!).fold(0, (max, place) => place > max ? place : max);
+          final int maxPlace = timingData.records
+              .where((r) => r.place != null)
+              .map((r) => r.place!)
+              .fold(0, (max, place) => place > max ? place : max);
           record.place = maxPlace + 1;
           Logger.d('Assigned fallback place ${record.place} to conflict record');
         }
       }
+      
+      // Handle runner time records
       if (record.type == RecordType.runnerTime) {
+        // Add placeholders for empty times, but track these for later
         if (record.elapsedTime == 'TBD' || record.elapsedTime.isEmpty) {
           record.elapsedTime = '[38;5;1m$currentPlace.0[0m';
           Logger.e('WARNING: Added placeholder time for record at place ${record.place}');
           throw Exception('WARNING: Added placeholder time for record at place ${record.place}');
         }
-        if (record.place! > currentPlace) {
+        
+        // Track maximum place seen
+        if (record.place != null && record.place! > currentPlace) {
           currentPlace = record.place!;
         }
+        
+        // Mark as confirmed and collect for later sorting
         record.isConfirmed = true;
         confirmedRecords.add(record);
       }
+      
+      // Clear conflict markers
       record.conflict = null;
     }
+    
+    // Second pass: ensure places are sequential
     confirmedRecords.sort((a, b) => (a.place ?? 999).compareTo(b.place ?? 999));
     for (int i = 0; i < confirmedRecords.length; i++) {
       confirmedRecords[i].place = i + 1;
+      
+      // Update placeholder times to match new places
+      if (recordsWithPlaceholders.contains(confirmedRecords[i])) {
+        confirmedRecords[i].elapsedTime = '${confirmedRecords[i].place}.0';
+      }
+    }
+    
+    // Log results
+    if (recordsWithPlaceholders.isNotEmpty) {
+      Logger.d('Created ${recordsWithPlaceholders.length} placeholder times for empty records');
     }
     Logger.d('Fixed ${confirmedRecords.length} runner time records with proper places');
     Logger.d('All conflicts cleared from timing data');
   }
-} 
+}

@@ -32,7 +32,7 @@ class Chunk {
     // Build joinedRecords by matching runner index+1 to record.place
     joinedRecords = [];
     for (final record in records) {
-      if (record.place != null && record.place! > 0) {
+      if (record.type == RecordType.runnerTime && record.place != null && record.place! > 0) {
         final placeIdx = record.place! - 1;
         if (placeIdx >= 0 && placeIdx < runners.length && recordPlaces.contains(record.place)) {
           joinedRecords.add(JoinedRecord(runner: runners[placeIdx], timeRecord: record));
