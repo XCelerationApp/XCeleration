@@ -176,7 +176,7 @@ class RaceController with ChangeNotifier {
     race = await loadRace();
     notifyListeners();
     // Check if we can move to setup_complete
-    await RaceService.checkSetupComplete(
+    final setupComplete = await RaceService.checkSetupComplete(
       race: race,
       raceId: raceId,
       nameController: nameController,
@@ -185,6 +185,9 @@ class RaceController with ChangeNotifier {
       distanceController: distanceController,
       teamControllers: teamControllers,
     );
+    if (setupComplete && context.mounted) {
+      await updateRaceFlowState(context, Race.FLOW_SETUP_COMPLETED);
+    }
   }
 
   /// Show color picker dialog for team color
@@ -265,6 +268,9 @@ class RaceController with ChangeNotifier {
             message: 'You completed setting up your race!\n\nBefore race day, make sure you have two assistants with this app installed on their phones to help time the race.\nBegin the Sharing Runners step once you are at the race with your assistants.', 
             doneText: 'Got it'
           );
+        }
+        else {
+          Logger.d('Context not mounted');
         }
       });
     }

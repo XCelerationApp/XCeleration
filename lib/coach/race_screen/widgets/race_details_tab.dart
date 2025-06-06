@@ -256,7 +256,6 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
                                   onPressed: () => widget.controller.loadRunnersManagementScreen(context),
                                 ),
                               ]
-
                             ],
                           ),
                         ),

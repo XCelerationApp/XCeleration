@@ -3,6 +3,7 @@ import 'package:xceleration/core/theme/app_colors.dart';
 import '../../../core/components/button_components.dart';
 import '../../../core/components/dialog_utils.dart';
 import '../controller/bib_number_controller.dart';
+import '../../../core/utils/logger.dart';
 
 class RaceControlsWidget extends StatelessWidget {
   final BibNumberController controller;
@@ -79,6 +80,9 @@ class RaceControlsWidget extends StatelessWidget {
           }
         } else if (controller.isRecording && controller.canAddBib) {
           controller.addBib();
+        }
+        else {
+          Logger.e('No action taken', context: context);
         }
       },
     );

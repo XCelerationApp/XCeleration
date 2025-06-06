@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/utils/logger.dart';
 import '../../../shared/models/race.dart';
 import '../../../utils/database_helper.dart';
 import 'package:intl/intl.dart';
@@ -32,7 +33,7 @@ class RaceService {
     await DatabaseHelper.instance.updateRaceField(raceId, 'distance', distance);
     await DatabaseHelper.instance.updateRaceField(raceId, 'distanceUnit', unitController.text);
     await saveTeamData(
-      race: null, // Not needed for DB update
+      raceId: raceId,
       teamControllers: teamControllers,
       teamColors: teamColors,
     );
@@ -48,7 +49,7 @@ class RaceService {
     required TextEditingController distanceController,
     required List<TextEditingController> teamControllers,
   }) async {
-    if (race?.flowState != Race.FLOW_SETUP) return false;
+    if (race?.flowState != Race.FLOW_SETUP) return true;
     // Check for minimum runners
     final hasMinimumRunners = await RunnersManagementScreen.checkMinimumRunnersLoaded(raceId);
     // Check if essential race fields are filled
@@ -58,12 +59,12 @@ class RaceService {
         dateController.text.isNotEmpty &&
         distanceController.text.isNotEmpty &&
         teamControllers.where((controller) => controller.text.isNotEmpty).isNotEmpty;
+    Logger.d('hasMinimumRunners: $hasMinimumRunners, fieldsComplete: $fieldsComplete');
     return hasMinimumRunners && fieldsComplete;
   }
-
   /// Saves team data to the database.
   static Future<void> saveTeamData({
-    required Race? race,
+    required int raceId,
     required List<TextEditingController> teamControllers,
     required List<Color> teamColors,
   }) async {
@@ -74,11 +75,8 @@ class RaceService {
         .toList();
     final colors = teamColors.map((color) => color.toARGB32()).toList();
     // Use raceId if available, otherwise skip
-    final int? raceId = race?.raceId;
-    if (raceId != null) {
       await DatabaseHelper.instance.updateRaceField(raceId, 'teams', teams);
       await DatabaseHelper.instance.updateRaceField(raceId, 'teamColors', colors);
-    }
   }
 
   /// Validation helpers for form fields.

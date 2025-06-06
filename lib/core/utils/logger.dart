@@ -1,4 +1,6 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:xceleration/core/components/dialog_utils.dart';
 
 class Logger {
   static void d(String message) {
@@ -7,9 +9,13 @@ class Logger {
     }
   }
 
-  static void e(String message, [Object? error, StackTrace? stackTrace]) {
+  static void e(String message, {BuildContext? context, Object? error, StackTrace? stackTrace}) {
     Logger.d('[ERROR] $message');
     if (error != null) Logger.d('Error: $error');
     if (stackTrace != null) Logger.d('StackTrace: $stackTrace');
+    if (context != null) {
+      DialogUtils.showErrorDialog(context,
+        message: 'Error: $message');
+    }
   }
 } 

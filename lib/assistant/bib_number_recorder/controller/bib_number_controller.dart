@@ -138,9 +138,7 @@ class BibNumberController extends BibNumberDataController {
         if (!context.mounted) return;
 
         if (loadedRunners == null || loadedRunners.isEmpty) {
-          DialogUtils.showErrorDialog(context,
-              message:
-                  'Invalid data received from bib recorder. Please try again.');
+          Logger.e('Invalid data received from bib recorder. Please try again.', context: context);
           return;
         }
 
@@ -152,9 +150,7 @@ class BibNumberController extends BibNumberDataController {
             runner.school.isNotEmpty);
 
         if (!runnerInCorrectFormat) {
-          DialogUtils.showErrorDialog(context,
-              message:
-                  'Invalid data format received from bib recorder. Please try again.');
+          Logger.e('Invalid data format received from bib recorder. Please try again.', context: context);
           return;
         }
 
@@ -184,16 +180,13 @@ class BibNumberController extends BibNumberDataController {
           });
         }
       } catch (e) {
-        Logger.d('Error loading runners: $e');
         // Check if the widget is still mounted before showing error dialog
         if (context.mounted) {
-          DialogUtils.showErrorDialog(context,
-              message: 'Error processing runner data: $e');
+          Logger.e('Error processing runner data: $e', context: context);
         }
       }
     } else {
-      DialogUtils.showErrorDialog(context,
-          message: 'No data received from bib recorder. Please try again.');
+      Logger.e('No data received from bib recorder. Please try again.', context: context);
     }
   }
 
