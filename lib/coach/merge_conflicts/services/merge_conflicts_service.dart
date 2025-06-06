@@ -54,7 +54,7 @@ class MergeConflictsService {
           startIndex = i + 1;
         }
       } catch (e, stackTrace) {
-        Logger.e('⚠️ Error processing record at index $i', e, stackTrace);
+        Logger.e('⚠️ Error processing record at index $i', error: e, stackTrace: stackTrace);
         continue;
       }
     }
@@ -67,7 +67,7 @@ class MergeConflictsService {
         await newChunks[i].setResolveInformation(
             resolveTooManyRunnerTimes, resolveTooFewRunnerTimes, timingData);
       } catch (e, stackTrace) {
-        Logger.e('⚠️ Error setting resolve information for chunk $i', e, stackTrace);
+        Logger.e('⚠️ Error setting resolve information for chunk $i', error: e, stackTrace: stackTrace);
       }
     }
     stopwatch.stop();
