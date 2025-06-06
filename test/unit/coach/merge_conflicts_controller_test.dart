@@ -24,14 +24,10 @@ class TestableConflictsController extends MergeConflictsController {
   bool consolidateCalled = false;
   
   TestableConflictsController({
-    required int raceId,
-    required TimingData timingData,
-    required List<RunnerRecord> runnerRecords,
-  }) : super(
-    raceId: raceId,
-    timingData: timingData,
-    runnerRecords: runnerRecords,
-  );
+    required super.raceId,
+    required super.timingData,
+    required super.runnerRecords,
+  });
   
   @override
   Future<void> createChunks() async {
