@@ -1,3 +1,5 @@
+import 'package:xceleration/core/utils/logger.dart';
+
 import '../../controller/flow_controller.dart';
 import '../../model/flow_model.dart';
 import 'package:flutter/material.dart';
@@ -31,6 +33,10 @@ class PreRaceController {
       onNext: () async {
         final encoded =
             await encode_utils.getEncodedRunnersData(raceId);
+        if (encoded == '') {
+          Logger.e('Failed to encode runners data');
+          return;
+        }
         devices.bibRecorder!.data = encoded;
       },
     );

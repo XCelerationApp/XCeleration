@@ -46,7 +46,7 @@ class RunnerTimeRecord extends StatelessWidget {
         child: Row(
           children: [
             Expanded(
-              flex: 3,
+              flex: 4,
               child: Container(
                 decoration: BoxDecoration(
                   color: bgColor,
@@ -72,7 +72,7 @@ class RunnerTimeRecord extends StatelessWidget {
             ),
             Container(width: 0.5, color: borderColor),
             Expanded(
-              flex: 2,
+              flex: 3,
               child: Container(
                 decoration: BoxDecoration(
                   color: bgColor,
