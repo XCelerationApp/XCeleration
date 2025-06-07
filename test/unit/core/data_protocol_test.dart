@@ -117,25 +117,10 @@ void main() {
       )).called(1);
     });
 
-    test('handles empty data gracefully', () async {
-      // Set up the mock to "receive" acknowledgments
-      when(mockConnectionService.sendMessageToDevice(any, any))
-          .thenAnswer((_) async {
-            // Simulate receiving ACK for any sent package
-            final package = _.positionalArguments[1] as Package;
-            await protocol.handleMessage(
-                Package(number: package.number, type: 'ACK'), mockDevice.deviceId);
-            return true;
-          });
-      
-      // Send empty data
-      await protocol.sendData('', mockDevice.deviceId);
-      
-      // Should still send a package, but with empty data
-      verify(mockConnectionService.sendMessageToDevice(
-          any,
-          argThat(predicate((Package p) => p.type == 'DATA' && p.data == ''))
-      )).called(1);
+    test('throws error when sending empty data', () async {
+      expect(() async {
+        await protocol.sendData('', mockDevice.deviceId);
+      }, throwsA(isA<ProtocolTerminatedException>()));
     });
   });
 
