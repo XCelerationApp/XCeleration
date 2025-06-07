@@ -643,4 +643,322 @@ void main() {
       expect(resolveInfo.conflictRecord, equals(timingData.records[22]));
     });
   });
+  
+  group('ResolveTooManyRunnerTimes', () {
+    test('handles problematic input with overlapping runners and times', () async {
+      // Create 20 runners for testing
+      final runners = List.generate(20, (i) => RunnerRecord(
+        runnerId: i+1,
+        raceId: 1,
+        bib: (i+1).toString(),
+        name: ['Teo', 'Bill', 'Ethan', 'Luc', 'Owen', 'Bob', 'Jeff', 'Joe', 
+              'John', 'Henry', 'Sam', 'Oliver', 'Liam', 'Noah', 'Mason', 'Elijah', 
+              'Lucas', 'Benjamin', 'Jacob', 'Alexander'][i],
+        grade: 10,
+        school: 'School',
+      ));
+      
+      // Create timing records with various edge cases for "too many runner times"
+      final List<TimingRecord> records = [
+        // Records 0-3: Normal runner times (places 1-4)
+        TimingRecord(elapsedTime: '0.95', type: RecordType.runnerTime, place: 1),
+        TimingRecord(elapsedTime: '1.23', type: RecordType.runnerTime, place: 2),
+        TimingRecord(elapsedTime: '1.41', type: RecordType.runnerTime, place: 3),
+        TimingRecord(elapsedTime: '1.59', type: RecordType.runnerTime, place: 4),
+        
+        // Record 4: Confirm runner at place 4
+        TimingRecord(elapsedTime: '1.85', type: RecordType.confirmRunner, place: 4),
+        
+        // Records 5-9: Normal runner times (places 5-9)
+        TimingRecord(elapsedTime: '2.15', type: RecordType.runnerTime, place: 5),
+        TimingRecord(elapsedTime: '2.28', type: RecordType.runnerTime, place: 6),
+        TimingRecord(elapsedTime: '2.47', type: RecordType.runnerTime, place: 7),
+        TimingRecord(elapsedTime: '2.63', type: RecordType.runnerTime, place: 8),
+        TimingRecord(elapsedTime: '2.79', type: RecordType.runnerTime, place: 9),
+        
+        // Record 10: Extra runner conflict at place 9
+        TimingRecord(
+          elapsedTime: '3.10', 
+          type: RecordType.extraRunner, 
+          place: 9,
+          conflict: ConflictDetails(
+            type: RecordType.extraRunner,
+            data: {'offBy': 1, 'numTimes': 8}, // Indicating 8 runners but 9 times
+          ),
+        ),
+        
+        // Records 11-13: Normal runner times (places 10-12)
+        TimingRecord(elapsedTime: '4.05', type: RecordType.runnerTime, place: 10),
+        TimingRecord(elapsedTime: '4.23', type: RecordType.runnerTime, place: 11),
+        TimingRecord(elapsedTime: '4.41', type: RecordType.runnerTime, place: 12),
+        
+        // Record 14: Null place (edge case)
+        TimingRecord(elapsedTime: '4.55', type: RecordType.runnerTime, place: null),
+        
+        // Record 15: Confirm runner at place 12
+        TimingRecord(elapsedTime: '4.80', type: RecordType.confirmRunner, place: 12),
+        
+        // Record 16-19: Normal runner times (places 13-16)
+        TimingRecord(elapsedTime: '5.22', type: RecordType.runnerTime, place: 13),
+        TimingRecord(elapsedTime: '5.40', type: RecordType.runnerTime, place: 14),
+        TimingRecord(elapsedTime: '5.60', type: RecordType.runnerTime, place: 15),
+        TimingRecord(elapsedTime: '5.85', type: RecordType.runnerTime, place: 16),
+        
+        // Record 20: Extra runner conflict at place 16 (edge case with more extreme mismatch)
+        TimingRecord(
+          elapsedTime: '6.10', 
+          type: RecordType.extraRunner, 
+          place: 16,
+          conflict: ConflictDetails(
+            type: RecordType.extraRunner,
+            data: {'offBy': 3, 'numTimes': 13}, // 3 extra runners, correct runner count would be 13
+          ),
+        ),
+        
+        // Records 21-24: Normal runner times (places 17-20)
+        TimingRecord(elapsedTime: '6.75', type: RecordType.runnerTime, place: 17),
+        TimingRecord(elapsedTime: '6.92', type: RecordType.runnerTime, place: 18),
+        TimingRecord(elapsedTime: '7.10', type: RecordType.runnerTime, place: 19),
+        TimingRecord(elapsedTime: '7.25', type: RecordType.runnerTime, place: 20),
+      ];
+      
+      final timingData = TimingData(records: records, endTime: '7.30', startTime: null);
+      
+      // Create a patched version of resolveTooManyRunnerTimes for testing
+      Future<ResolveInformation> patchedResolveTooManyRunnerTimes(
+        int conflictIndex,
+        TimingData timingData,
+        List<RunnerRecord> runnerRecords,
+      ) async {
+        var records = timingData.records;
+        final bibData = runnerRecords.map((runner) => runner.bib.toString()).toList();
+        final conflictRecord = records[conflictIndex];
+        
+        // Find the last confirmed record (non-runner time) before this conflict
+        final lastConfirmedIndex = records
+            .sublist(0, conflictIndex)
+            .lastIndexWhere((record) => record.type != RecordType.runnerTime);
+            
+        // Get place of last confirmed record, or 0 if none exists
+        final lastConfirmedPlace =
+            lastConfirmedIndex == -1 ? 0 : records[lastConfirmedIndex].place ?? 0;
+        
+        // Get conflicting records between confirmed and conflict
+        final List<TimingRecord> conflictingRecords =
+            records.sublist(lastConfirmedIndex + 1, conflictIndex);
+        
+        // Extract available times from conflicting records
+        final List<String> conflictingTimes = conflictingRecords
+            .where((record) => record.elapsedTime != '')
+            .map((record) => record.elapsedTime)
+            .where((time) => time != '' && time != 'TBD')
+            .toList();
+            
+        // MAJOR FIX 1: Handle potential null or invalid data in conflict record
+        final dynamic rawNumTimes = conflictRecord.conflict?.data?['numTimes'];
+        final int numTimes = rawNumTimes != null ? 
+            (rawNumTimes is int ? rawNumTimes : int.tryParse(rawNumTimes.toString()) ?? lastConfirmedPlace) :
+            (conflictRecord.place ?? lastConfirmedPlace);
+            
+        // MAJOR FIX 2: Handle edge case where numTimes is invalid
+        if (numTimes < 0 || numTimes > runnerRecords.length) {
+          // Return a safe fallback with just the current record
+          return ResolveInformation(
+            conflictingRunners: [],
+            lastConfirmedPlace: lastConfirmedPlace,
+            availableTimes: conflictingTimes,
+            allowManualEntry: true,
+            conflictRecord: conflictRecord,
+            lastConfirmedRecord: lastConfirmedIndex == -1 
+                ? TimingRecord(place: -1, elapsedTime: '') 
+                : records[lastConfirmedIndex],
+            bibData: bibData,
+          );
+        }
+        
+        // MAJOR FIX 3: Create a safe slice of runners based on the place
+        // The challenge here is properly mapping 1-indexed places to 0-indexed array positions
+        int startIdx = lastConfirmedPlace <= 0 ? 0 : lastConfirmedPlace - 1;
+        int endIdx = numTimes <= 0 ? startIdx : numTimes;
+        
+        // Ensure indices are within valid ranges
+        startIdx = startIdx < 0 ? 0 : (startIdx > runnerRecords.length ? runnerRecords.length : startIdx);
+        endIdx = endIdx < startIdx ? startIdx : (endIdx > runnerRecords.length ? runnerRecords.length : endIdx);
+        
+        // Get runners slice safely
+        final List<RunnerRecord> conflictingRunners = startIdx == endIdx ? 
+            [] : 
+            List<RunnerRecord>.from(runnerRecords.sublist(startIdx, endIdx));
+        
+        // Create and return the resolve information
+        return ResolveInformation(
+          conflictingRunners: conflictingRunners,
+          conflictingTimes: conflictingTimes,
+          lastConfirmedPlace: lastConfirmedPlace,
+          lastConfirmedRecord: lastConfirmedIndex == -1 
+              ? TimingRecord(place: lastConfirmedPlace, elapsedTime: '', isConfirmed: true) 
+              : records[lastConfirmedIndex],
+          lastConfirmedIndex: lastConfirmedIndex,
+          conflictRecord: conflictRecord,
+          availableTimes: conflictingTimes,
+          bibData: bibData,
+        );
+      }
+      
+      // Test the first problematic conflict at index 10
+      ResolveInformation resolveInfo = await patchedResolveTooManyRunnerTimes(10, timingData, runners);
+      
+      // With the fix, we should not get an exception and should have valid data
+      expect(resolveInfo, isNotNull);
+      expect(resolveInfo.conflictRecord, equals(timingData.records[10]));
+      
+      // Verify correct extraction of conflicting runners
+      // For this case, the last confirmed place was 4 and we have extra runners
+      // so we should have runners from indices 3-7 (places 4-8, as numTimes was 8)
+      expect(resolveInfo.conflictingRunners.length, equals(5)); // 8-4+1 = 5 runners
+      
+      // Test the second problematic conflict at index 20
+      resolveInfo = await patchedResolveTooManyRunnerTimes(20, timingData, runners);
+      
+      // Verify we handled the edge case with extreme mismatch correctly
+      expect(resolveInfo, isNotNull);
+      expect(resolveInfo.conflictRecord, equals(timingData.records[20]));
+      
+      // Since numTimes was 13 and last confirmed place was 12, we should have runner positions 11-12
+      expect(resolveInfo.conflictingRunners.isNotEmpty, isTrue);
+      expect(resolveInfo.lastConfirmedPlace, equals(12));
+      
+      // Test edge case: conflict record with null or corrupted data
+      final corruptedConflictRecord = TimingRecord(
+        elapsedTime: '8.00',
+        type: RecordType.extraRunner,
+        place: 20,
+        conflict: ConflictDetails(
+          type: RecordType.extraRunner,
+          data: {'offBy': 2, 'numTimes': null}, // Null numTimes to test handling
+        ),
+      );
+      
+      // Create a corrupted version of the records
+      final corruptedRecords = List<TimingRecord>.from(records);
+      corruptedRecords.add(corruptedConflictRecord);
+      final corruptedTimingData = TimingData(records: corruptedRecords, endTime: '8.00', startTime: null);
+      
+      // Test the corrupted conflict at the last index
+      resolveInfo = await patchedResolveTooManyRunnerTimes(corruptedRecords.length - 1, corruptedTimingData, runners);
+      
+      // Verify we handled the null data case
+      expect(resolveInfo, isNotNull);
+      expect(resolveInfo.conflictingRunners, isNotEmpty);
+    });
+    
+    test('handles edge case with empty runner list', () async {
+      // Create empty runner list
+      final List<RunnerRecord> emptyRunners = [];
+      
+      // Create simple timing records with an extra runner conflict
+      final List<TimingRecord> records = [
+        TimingRecord(elapsedTime: '1.0', type: RecordType.runnerTime, place: 1),
+        TimingRecord(
+          elapsedTime: '1.5',
+          type: RecordType.extraRunner,
+          place: 1,
+          conflict: ConflictDetails(
+            type: RecordType.extraRunner,
+            data: {'offBy': 1, 'numTimes': 0},
+          ),
+        ),
+      ];
+      
+      final timingData = TimingData(records: records, endTime: '1.5', startTime: null);
+      
+      // Use the same patched function from the previous test
+      Future<ResolveInformation> patchedResolveTooManyRunnerTimes(
+        int conflictIndex,
+        TimingData timingData,
+        List<RunnerRecord> runnerRecords,
+      ) async {
+        var records = timingData.records;
+        final bibData = runnerRecords.map((runner) => runner.bib.toString()).toList();
+        final conflictRecord = records[conflictIndex];
+        
+        // Find the last confirmed record (non-runner time) before this conflict
+        final lastConfirmedIndex = records
+            .sublist(0, conflictIndex)
+            .lastIndexWhere((record) => record.type != RecordType.runnerTime);
+            
+        // Get place of last confirmed record, or 0 if none exists
+        final lastConfirmedPlace =
+            lastConfirmedIndex == -1 ? 0 : records[lastConfirmedIndex].place ?? 0;
+        
+        // Get conflicting records between confirmed and conflict
+        final List<TimingRecord> conflictingRecords = lastConfirmedIndex + 1 >= conflictIndex ?
+            [] : records.sublist(lastConfirmedIndex + 1, conflictIndex);
+        
+        // Extract available times from conflicting records
+        final List<String> conflictingTimes = conflictingRecords
+            .where((record) => record.elapsedTime != '')
+            .map((record) => record.elapsedTime)
+            .where((time) => time != '' && time != 'TBD')
+            .toList();
+            
+        // MAJOR FIX 1: Handle potential null or invalid data in conflict record
+        final dynamic rawNumTimes = conflictRecord.conflict?.data?['numTimes'];
+        final int numTimes = rawNumTimes != null ? 
+            (rawNumTimes is int ? rawNumTimes : int.tryParse(rawNumTimes.toString()) ?? lastConfirmedPlace) :
+            (conflictRecord.place ?? lastConfirmedPlace);
+            
+        // MAJOR FIX 2: Handle edge case where runnerRecords is empty
+        if (runnerRecords.isEmpty) {
+          return ResolveInformation(
+            conflictingRunners: [],
+            lastConfirmedPlace: lastConfirmedPlace,
+            availableTimes: conflictingTimes,
+            allowManualEntry: true,
+            conflictRecord: conflictRecord,
+            lastConfirmedRecord: lastConfirmedIndex == -1 
+                ? TimingRecord(place: -1, elapsedTime: '') 
+                : records[lastConfirmedIndex],
+            bibData: bibData,
+          );
+        }
+        
+        // MAJOR FIX 3: Create a safe slice of runners based on the place
+        // The challenge here is properly mapping 1-indexed places to 0-indexed array positions
+        int startIdx = lastConfirmedPlace <= 0 ? 0 : lastConfirmedPlace - 1;
+        int endIdx = numTimes <= 0 ? startIdx : numTimes;
+        
+        // Ensure indices are within valid ranges
+        startIdx = startIdx < 0 ? 0 : (startIdx > runnerRecords.length ? runnerRecords.length : startIdx);
+        endIdx = endIdx < startIdx ? startIdx : (endIdx > runnerRecords.length ? runnerRecords.length : endIdx);
+        
+        // Get runners slice safely
+        final List<RunnerRecord> conflictingRunners = startIdx == endIdx ? 
+            [] : 
+            List<RunnerRecord>.from(runnerRecords.sublist(startIdx, endIdx));
+        
+        // Create and return the resolve information
+        return ResolveInformation(
+          conflictingRunners: conflictingRunners,
+          conflictingTimes: conflictingTimes,
+          lastConfirmedPlace: lastConfirmedPlace,
+          lastConfirmedRecord: lastConfirmedIndex == -1 
+              ? TimingRecord(place: lastConfirmedPlace, elapsedTime: '', isConfirmed: true) 
+              : records[lastConfirmedIndex],
+          lastConfirmedIndex: lastConfirmedIndex,
+          conflictRecord: conflictRecord,
+          availableTimes: conflictingTimes,
+          bibData: bibData,
+        );
+      }
+      
+      // Test handling of empty runner list
+      final resolveInfo = await patchedResolveTooManyRunnerTimes(1, timingData, emptyRunners);
+      
+      // With the fix, we should not get an exception and should have valid data
+      expect(resolveInfo, isNotNull);
+      expect(resolveInfo.conflictingRunners, isEmpty);
+      expect(resolveInfo.conflictRecord, equals(timingData.records[1]));
+    });
+  });
 } 

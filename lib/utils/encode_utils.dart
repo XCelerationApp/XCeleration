@@ -1,3 +1,4 @@
+import 'package:xceleration/core/utils/logger.dart';
 import '../assistant/race_timer/model/timing_record.dart';
 import '../coach/race_screen/widgets/runner_record.dart';
 import '../utils/enums.dart';
@@ -6,6 +7,7 @@ import 'database_helper.dart';
 /// Encodes a list of runners for a race into a string format
 Future<String> getEncodedRunnersData(int raceId) async {
   final runners = await DatabaseHelper.instance.getRaceRunners(raceId);
+  Logger.d('Runners count: ${runners.length}');
   return runners.map((runner) => [
     Uri.encodeComponent(runner.bib),
     Uri.encodeComponent(runner.name),

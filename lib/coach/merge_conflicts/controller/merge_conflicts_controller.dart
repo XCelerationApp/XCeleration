@@ -165,7 +165,12 @@ class MergeConflictsController with ChangeNotifier {
       notifyListeners();
       Logger.d('Chunks created: $chunks');
     } catch (e, stackTrace) {
-      Logger.e('⚠️ Critical error in createChunks', context: context, error: e, stackTrace: stackTrace);
+      if (context.mounted) {
+        Logger.e('⚠️ Critical error in createChunks', context: context, error: e, stackTrace: stackTrace);
+      }
+      else {
+        Logger.e('⚠️ Critical error in createChunks', error: e, stackTrace: stackTrace);
+      }
       // Create empty chunks to prevent UI from breaking completely
       chunks = [];
       notifyListeners();
@@ -305,10 +310,12 @@ class MergeConflictsController with ChangeNotifier {
     consolidateConfirmedRunnerTimes();
     await createChunks();
     } catch (e, stackTrace) {
-      Logger.e('Error in handleTooFewTimesResolution', context: context, error: e, stackTrace: stackTrace);
-      if (!context.mounted) return;
-      DialogUtils.showErrorDialog(context, 
-          message: 'An error occurred while resolving conflict: ${e.toString()}');
+      if (context.mounted) {
+        Logger.e('An error occurred while resolving conflict: ${e.toString()}', context: context, error: e, stackTrace: stackTrace);
+      }
+      else {
+        Logger.e('An error occurred while resolving conflict: ${e.toString()}', error: e, stackTrace: stackTrace);
+      }
     }
   }
 
@@ -405,10 +412,12 @@ class MergeConflictsController with ChangeNotifier {
     consolidateConfirmedRunnerTimes();
     await createChunks();
     } catch (e, stackTrace) {
-      Logger.e('Error in handleTooManyTimesResolution', context: context, error: e, stackTrace: stackTrace);
-      if (!context.mounted) return;
-      DialogUtils.showErrorDialog(context, 
-          message: 'An error occurred while resolving conflict: ${e.toString()}');
+      if (context.mounted) {
+        Logger.e('An error occurred while resolving conflict: ${e.toString()}', context: context, error: e, stackTrace: stackTrace);
+      }
+      else {
+        Logger.e('An error occurred while resolving conflict: ${e.toString()}', error: e, stackTrace: stackTrace);
+      }
     }
   }
 

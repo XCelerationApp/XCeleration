@@ -44,7 +44,29 @@ class MockDatabaseHelper extends Mock implements DatabaseHelper {
         grade: 10,
         school: 'High School',
       );
+    } else if (bib == '102') {
+      return RunnerRecord(
+        runnerId: 2,
+        raceId: raceId,
+        bib: '102',
+        name: 'Jane Smith',
+        grade: 11,
+        school: 'Another High School',
+      );
     }
     return null;
+  }
+  
+  @override
+  Future<List<RunnerRecord>> getRaceRunnersByBibs(int raceId, List<String> bibNumbers) async {
+    List<RunnerRecord> results = [];
+    for (String bib in bibNumbers) {
+      // Only add non-null runners to the list
+      final runner = await getRaceRunnerByBib(raceId, bib);
+      if (runner != null) {
+        results.add(runner);
+      }
+    }
+    return results;
   }
 }
