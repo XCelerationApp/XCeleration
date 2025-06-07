@@ -70,13 +70,14 @@ Future<TimingData?> processEncodedTimingData(
 
 /// Decodes bib records from a string
 Future<List<RunnerRecord>> decodeBibRecordsString(
+    DatabaseHelper dbHelper,
     String encodedBibRecords, int raceId) async {
   final List<String> bibNumbers = encodedBibRecords.split(',');
   List<RunnerRecord> bibRecords = [];
   for (var bibNumber in bibNumbers) {
     if (bibNumber.isNotEmpty) {
       final runner =
-          await DatabaseHelper.instance.getRaceRunnerByBib(raceId, bibNumber);
+          await dbHelper.getRaceRunnerByBib(raceId, bibNumber);
       if (runner == null) {
         bibRecords.add(RunnerRecord(
             runnerId: -1,
@@ -96,9 +97,10 @@ Future<List<RunnerRecord>> decodeBibRecordsString(
 
 /// Processes encoded bib record data and validates it
 Future<List<RunnerRecord>> processEncodedBibRecordsData(
+    DatabaseHelper dbHelper,
     String data, BuildContext context, int raceId) async {
   try {
-    final bibData = await decodeBibRecordsString(data, raceId);
+    final bibData = await decodeBibRecordsString(dbHelper, data, raceId);
     Logger.d(bibData.toString());
     for (var bibRecord in bibData) {
       Logger.d(bibRecord.toString());

@@ -458,7 +458,7 @@ class LoadResultsController with ChangeNotifier {
     
     if (bibRecordsData != null && finishTimesData != null) {
       runnerRecords = await processEncodedBibRecordsData(
-          bibRecordsData, context, raceId);
+          DatabaseHelper.instance, bibRecordsData, context, raceId);
       
       // Check if context is still mounted after async operation
       if (!context.mounted) return;

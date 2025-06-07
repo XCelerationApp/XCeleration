@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/services/nearby_connections.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import '../utils/connection_utils.dart';
 import '../../utils/enums.dart';
@@ -13,6 +14,7 @@ import '../utils/data_protocol.dart';
 import 'dialog_utils.dart';
 import '../../utils/sheet_utils.dart';
 import '../../utils/enums.dart'
+
     show DeviceName, DeviceType, ConnectionStatus, WirelessConnectionError;
 
 class WirelessConnectionButton extends StatefulWidget {
@@ -523,15 +525,17 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
     if (!mounted) return;
     _connectionCompleter = Completer<void>();
     
-    _deviceConnectionService = DeviceConnectionService(
-      widget.devices,
-      'wirelessconn',
-      getDeviceNameString(widget.devices.currentDeviceName),
-      widget.devices.currentDeviceType,
-    );
-    _protocol = Protocol(deviceConnectionService: _deviceConnectionService);
-
     try {
+      _deviceConnectionService = DeviceConnectionService(
+        widget.devices,
+        'wirelessconn',
+        getDeviceNameString(widget.devices.currentDeviceName),
+        widget.devices.currentDeviceType,
+        NearbyConnections(),
+      );
+      _protocol = Protocol(deviceConnectionService: _deviceConnectionService);
+
+
       final isServiceAvailable =
           await _deviceConnectionService.checkIfNearbyConnectionsWorks();
       
@@ -606,10 +610,9 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
     try {
       await _deviceConnectionService.monitorDevicesConnectionStatus(
         deviceFoundCallback: _deviceFoundCallback,
-        deviceLostCallback: _deviceLostCallback,
         deviceConnectingCallback: _deviceConnectingCallback,
         deviceConnectedCallback: _deviceConnectedCallback,
-        timeout: const Duration(seconds: 30),
+        timeout: const Duration(seconds: 60),
         timeoutCallback: () async {
           if (!mounted) return;
           if (widget.devices.allDevicesFinished()) return;
@@ -650,24 +653,24 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
     }
   }
 
-  Future<void> _deviceLostCallback(Device device) async {
-    // Skip if we're disposed or the connection is complete
-    if (!mounted || _connectionCompleter.isCompleted) return;
+  // Future<void> _deviceLostCallback(Device device) async {
+  //   // Skip if we're disposed or the connection is complete
+  //   if (!mounted || _connectionCompleter.isCompleted) return;
     
-    // Handle device lost
-    final deviceName = getDeviceNameFromString(device.deviceName);
-    if (!widget.devices.hasDevice(deviceName) ||
-        widget.devices.getDevice(deviceName)!.isFinished) {
-      return;
-    }
+  //   // Handle device lost
+  //   final deviceName = getDeviceNameFromString(device.deviceName);
+  //   if (!widget.devices.hasDevice(deviceName) ||
+  //       widget.devices.getDevice(deviceName)!.isFinished) {
+  //     return;
+  //   }
     
-    // Attempt to reconnect if appropriate
-    if (!_connectionCompleter.isCompleted && 
-        widget.devices.currentDeviceType == DeviceType.browserDevice) {
-      // Let the reconnection mechanism handle it
-      await _deviceConnectionService.attemptReconnection(device);
-    }
-  }
+  //   // Attempt to reconnect if appropriate
+  //   if (!_connectionCompleter.isCompleted && 
+  //       widget.devices.currentDeviceType == DeviceType.browserDevice) {
+  //     // Let the reconnection mechanism handle it
+  //     await _deviceConnectionService.attemptReconnection(device);
+  //   }
+  // }
 
   Future<void> _deviceConnectingCallback(Device device) async {
     // Skip if we're disposed or the connection is complete
@@ -695,7 +698,7 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
       _protocol.addDevice(device);
 
       // Monitor messages with proper tracking for cleanup
-      _messageMonitorToken = _deviceConnectionService.monitorMessageReceives(
+      _messageMonitorToken = await _deviceConnectionService.monitorMessageReceives(
         device,
         messageReceivedCallback: (package, senderId) async {
           // Skip if we're disposed or the connection is complete

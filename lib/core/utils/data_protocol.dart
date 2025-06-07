@@ -1,9 +1,12 @@
 import 'dart:async';
+import 'dart:math';
 import '../services/device_connection_service.dart';
 import 'package:flutter_nearby_connections/flutter_nearby_connections.dart';
 import 'data_package.dart';
-import 'dart:math';
 import 'package:xceleration/core/utils/logger.dart';
+import 'connection_interfaces.dart';
+
+
 
 class _TransmissionState {
   final Completer<void> completer;
@@ -22,7 +25,7 @@ class ProtocolTerminatedException implements Exception {
   String toString() => 'ProtocolTerminatedException: $message';
 }
 
-class Protocol {
+class Protocol implements ProtocolInterface {
   static const int maxSendAttempts = 4;
   static const int retryTimeoutSeconds = 5;
   static const int chunkSize = 1000;
@@ -44,21 +47,23 @@ class Protocol {
 
   Protocol({required this.deviceConnectionService});
 
+  @override
   void addDevice(Device device) {
     // Check if this is a reconnection of a previously known device
     final isReconnection = connectedDevices.containsKey(device.deviceId);
-    
+
     if (isReconnection) {
       // Device is reconnecting, reset its state
       resetDeviceState(device.deviceId);
       Logger.d('Device ${device.deviceId} reconnected - reset transfer state');
     }
-    
+
     connectedDevices[device.deviceId] = device;
     _receivedPackages[device.deviceId] = {};
     _finishSequenceNumbers[device.deviceId] = 0;
   }
 
+  @override
   void removeDevice(String deviceId) {
     if (!connectedDevices.containsKey(deviceId)) return;
     connectedDevices.remove(deviceId);
@@ -66,19 +71,13 @@ class Protocol {
     _finishSequenceNumbers.remove(deviceId);
   }
 
+  @override
   Future<void> terminate() async {
-    _isTerminated = true;
-
-    for (var state in _pendingTransmissions.values) {
-      state.isCancelled = true;
-      state.retryTimer?.cancel();
-      if (!state.completer.isCompleted) {
-        state.completer.complete();
-      }
+    if (!_isTerminated) {
+      _isTerminated = true;
+      _terminationController.add(null);
+      Logger.d('Protocol terminated');
     }
-
-    _terminationController.add(null);
-    clear();
   }
 
   Future<void> _handleAcknowledgment(Package package, String senderId) async {
@@ -97,6 +96,7 @@ class Protocol {
     }
   }
 
+  @override
   Future<void> handleMessage(Package package, String senderId) async {
     Logger.d('Handling message from $senderId: ${package.type}');
     if (_isTerminated) return;
@@ -115,7 +115,7 @@ class Protocol {
 
     if (package.type == 'DATA' &&
         (package.data == null || !package.checksumsMatch())) {
-      Logger.d('Invalid package (${package.number}) from device $senderId');
+      Logger.e('Invalid package (${package.number}) from device $senderId');
       return;
     }
 
@@ -150,7 +150,7 @@ class Protocol {
       }
     } catch (e) {
       if (!_isTerminated) {
-        Logger.d('Error sending acknowledgment to device $senderId: $e');
+        Logger.e('Error sending acknowledgment to device $senderId: $e');
         rethrow;
       }
     }
@@ -189,7 +189,7 @@ class Protocol {
           throw Exception('Device disconnected during transmission');
         }
       } catch (e) {
-        Logger.d(
+        Logger.e(
             'Failed to send package ${package.number} to device $senderId: $e');
         rethrow;
       }
@@ -210,7 +210,7 @@ class Protocol {
             scheduleRetry();
           } else {
             final failTime = DateTime.now();
-            Logger.d(
+            Logger.e(
                 '[${failTime.toString()}] Failed to send package after ${state.retryCount + 1} attempts');
             state.completer.completeError(
                 'Failed to send package after ${state.retryCount + 1} attempts');
@@ -241,7 +241,7 @@ class Protocol {
       } catch (e) {
         final errorTime = DateTime.now();
         final duration = errorTime.difference(startTime);
-        Logger.d(
+        Logger.e(
             '[${errorTime.toString()}] Failed to send package ${package.number} after ${duration.inMilliseconds}ms: $e');
         rethrow;
       } finally {
@@ -253,6 +253,7 @@ class Protocol {
     }
   }
 
+  @override
   Future<void> sendData(String? data, String senderId) async {
     if (_isTerminated) {
       throw ProtocolTerminatedException(
@@ -262,7 +263,7 @@ class Protocol {
     if (!connectedDevices.containsKey(senderId)) {
       throw Exception('Device $senderId not connected');
     }
-    
+
     // Check if we have data to send
     if (data == null || data.isEmpty) {
       Logger.d('Warning: No data to send to device $senderId, sending empty data placeholder');
@@ -313,7 +314,7 @@ class Protocol {
       if (_isTerminated) {
         rethrow;
       }
-      Logger.d('Error sending data to device $senderId: $e');
+      Logger.e('Error sending data to device $senderId: $e');
       rethrow;
     }
   }
@@ -321,8 +322,9 @@ class Protocol {
   /// Comprehensive method to handle a complete data transfer with a device
   /// This method handles both sending and receiving, with automatic reconnection support
   /// Returns received data if this device is receiving, or null if this device is sending
-  /// 
+  ///
   /// The statusChecker parameter allows the caller to abort the transfer if device status changes
+  @override
   Future<String?> handleDataTransfer({
     required String deviceId,
     String? dataToSend,
@@ -336,14 +338,67 @@ class Protocol {
     if (!connectedDevices.containsKey(deviceId)) {
       throw Exception('Device $deviceId not connected');
     }
-    
+
+    // Variables to track state changes and timer
+    bool lastKnownState = true;
+    Timer? stateChangeTimer;
+    final stateChangeTimeout = const Duration(seconds: 3);
+
     // Helper function to check if we should abort the transfer
     bool shouldAbort() {
       try {
-        return !shouldContinueTransfer();
+        bool currentState = shouldContinueTransfer();
+        
+        // If protocol is terminated, abort immediately
+        if (_isTerminated) {
+          Logger.d('Aborting transfer because protocol is terminated');
+          stateChangeTimer?.cancel();
+          return true;
+        }
+        
+        // If state hasn't changed and it's good, we're fine
+        if (currentState == lastKnownState && currentState) {
+          return false;
+        }
+        
+        // If state changes
+        if (currentState != lastKnownState) {
+          Logger.d('Transfer state changed: $lastKnownState -> $currentState');
+          
+          // If changed to good state, cancel any pending timer
+          if (currentState) {
+            Logger.d('State recovered, cancelling abort timer');
+            stateChangeTimer?.cancel();
+            stateChangeTimer = null;
+            lastKnownState = currentState;
+            return false;
+          } 
+          // If changed to bad state, start the timer if not already running
+          else if (stateChangeTimer == null) {
+            Logger.d('State degraded, starting 3-second abort timer');
+            stateChangeTimer = Timer(stateChangeTimeout, () {
+              Logger.d('Abort timer triggered after ${stateChangeTimeout.inSeconds} seconds of bad state');
+              // Timer trigger doesn't actually do anything - it will be checked in the next call to shouldAbort
+            });
+          }
+          
+          lastKnownState = currentState;
+        }
+        
+        // If we have an active timer that has completed, abort
+        if (stateChangeTimer != null && !stateChangeTimer!.isActive) {
+          Logger.d('Aborting transfer: state remained bad for ${stateChangeTimeout.inSeconds} seconds');
+          return true;
+        }
+        
+        return false;
       } catch (e) {
-        Logger.d('Error in shouldContinueTransfer: $e');
-        return true; // Abort on error
+        Logger.e('Error in shouldContinueTransfer: $e');
+        // Start timer on error if not already running
+        stateChangeTimer ??= Timer(stateChangeTimeout, () {
+          Logger.d('Abort timer triggered after error condition persisted');
+        });
+        return false; // Don't abort immediately on error
       }
     }
 
@@ -356,28 +411,37 @@ class Protocol {
       if (dataToSend != null && !isReceiving) {
         // Before starting to send, check if we should proceed
         await sendData(dataToSend, deviceId);
+        // Add a small delay to allow state stabilization after sending data
+        await Future.delayed(Duration(milliseconds: 500));
       }
 
       if (shouldAbort()) {
         throw ProtocolTerminatedException('Transfer aborted: device status changed');
       }
 
-      // Wait for either completion or termination
+      // Wait for either completion or termination with resilience to transient state changes
       await Future.any([
         Future.doWhile(() async {
-          if (shouldAbort() || _finishedDevices.contains(deviceId) || _isTerminated) {
+          // Check if we've finished or should terminate
+          if (_finishedDevices.contains(deviceId) || _isTerminated) {
             return false;
           }
           
+          // Use our robust state checker
+          if (shouldAbort()) {
+            // State has been bad for 3 seconds - shouldAbort will handle logging
+            return false;
+          }
+
           await Future.delayed(Duration(milliseconds: 100));
           return true;
         }),
         _terminationController.stream.first,
       ]);
       
-      // Check again in case we exited the loop due to status change
+      // Check again with our timer-based state checker
       if (shouldAbort()) {
-        throw ProtocolTerminatedException('Transfer aborted: device status changed');
+        throw ProtocolTerminatedException('Transfer aborted: persistent device status change');
       }
 
       if (_isTerminated) {
@@ -436,8 +500,11 @@ class Protocol {
       if (_isTerminated) {
         rethrow;
       }
-      Logger.d('Error in data transfer with device $deviceId: $e');
+      Logger.e('Error in data transfer with device $deviceId: $e');
       rethrow;
+    } finally {
+      // Always clean up the timer resource regardless of success or failure
+      stateChangeTimer?.cancel();
     }
   }
 
@@ -470,15 +537,35 @@ class Protocol {
     _finishSequenceNumbers.clear();
   }
 
+  @override
   void dispose() {
     try {
       terminate();
+      _terminationController.close();
+      for (final state in _pendingTransmissions.values) {
+        state.retryTimer?.cancel();
+        if (!state.completer.isCompleted) {
+          state.completer.completeError(
+              ProtocolTerminatedException('Protocol disposed'));
+        }
+      }
+      _pendingTransmissions.clear();
     } catch (e) {
       if (e is ProtocolTerminatedException) {
         return;
       }
-      Logger.d('Error terminating protocol: $e');
+      Logger.e('Error terminating protocol: $e');
       rethrow;
     }
   }
+  
+  /// Check if a device has finished its transfer
+  @override
+  bool isFinished(String deviceId) {
+    return _finishedDevices.contains(deviceId);
+  }
+  
+  /// Check if the protocol is terminated
+  @override
+  bool get isTerminated => _isTerminated;
 }

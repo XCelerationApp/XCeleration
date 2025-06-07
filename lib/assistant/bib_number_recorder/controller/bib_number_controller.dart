@@ -131,6 +131,7 @@ class BibNumberController extends BibNumberDataController {
 
     if (data != null) {
       try {
+        Logger.d('Data received: $data');
         // Process data outside of setState
         final loadedRunners = await decodeEncodedRunners(data, context);
 
@@ -138,7 +139,7 @@ class BibNumberController extends BibNumberDataController {
         if (!context.mounted) return;
 
         if (loadedRunners == null || loadedRunners.isEmpty) {
-          Logger.e('Invalid data received from bib recorder. Please try again.', context: context);
+          Logger.e('Invalid data received from bib recorder: $data. Please try again.', context: context);
           return;
         }
 

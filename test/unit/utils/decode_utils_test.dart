@@ -1,19 +1,41 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
+import 'package:mockito/annotations.dart';
 import 'package:xceleration/assistant/race_timer/model/timing_record.dart';
 import 'package:xceleration/coach/merge_conflicts/model/timing_data.dart';
 import 'package:xceleration/coach/race_screen/widgets/runner_record.dart';
+import 'package:xceleration/utils/database_helper.dart';
 import 'package:xceleration/utils/decode_utils.dart';
 import 'package:xceleration/utils/enums.dart';
+
+// Generate mocks
+@GenerateMocks([DatabaseHelper])
+import 'decode_utils_test.mocks.dart';
 
 class MockBuildContext extends Mock implements BuildContext {}
 
 void main() {
   late MockBuildContext mockContext;
+  late MockDatabaseHelper mockDatabaseHelper;
   
   setUp(() {
     mockContext = MockBuildContext();
+    mockDatabaseHelper = MockDatabaseHelper();
+    
+    // Setup mock database responses
+    when(mockDatabaseHelper.getRaceRunnerByBib(1, '101')).thenAnswer((_) async =>
+        RunnerRecord(
+          raceId: 1,
+          bib: '101',
+          name: 'John Doe',
+          school: 'Test School',
+          grade: 10,
+        ));
+    
+    // Mock database to return null for unknown bibs
+    when(mockDatabaseHelper.getRaceRunnerByBib(1, '102')).thenAnswer((_) async => Future.value(null as RunnerRecord?));
+    when(mockDatabaseHelper.getRaceRunnerByBib(1, '103')).thenAnswer((_) async => Future.value(null as RunnerRecord?));
   });
   
   group('DecodingUtils', () {
@@ -91,7 +113,7 @@ void main() {
         final raceId = 1;
         
         // Act
-        final result = await decodeBibRecordsString(encodedBibs, raceId);
+        final result = await decodeBibRecordsString(mockDatabaseHelper, encodedBibs, raceId);
         
         // Assert - only bib 101 is in our mock database
         expect(result.length, equals(3));
@@ -109,7 +131,7 @@ void main() {
         final raceId = 1;
         
         // Act
-        final result = await decodeBibRecordsString(encodedBibs, raceId);
+        final result = await decodeBibRecordsString(mockDatabaseHelper, encodedBibs, raceId);
         
         // Assert
         expect(result.length, equals(0));
