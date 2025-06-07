@@ -29,6 +29,7 @@ class RaceScreen extends StatefulWidget {
 class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
   bool _isLoading = true;
   StreamSubscription? _flowStateSubscription;
+  RaceController? _controller; // Store a reference to the controller
 
   @override
   void initState() {
@@ -38,9 +39,18 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Safely store a reference to the controller
+    _controller = Provider.of<RaceController>(context, listen: false);
+  }
+
+  @override
   void dispose() {
-    final controller = Provider.of<RaceController>(context, listen: false);
-    controller.tabController.dispose();
+    // Use the stored controller reference instead of accessing Provider in dispose
+    if (_controller?.tabController != null) {
+      _controller!.tabController.dispose();
+    }
     _flowStateSubscription?.cancel();
     super.dispose();
   }
