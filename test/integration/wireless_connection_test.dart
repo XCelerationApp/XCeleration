@@ -7,70 +7,8 @@ import 'package:xceleration/utils/enums.dart';
 import 'dart:async';
 
 // Create mocks for the external dependencies
-@GenerateMocks([DeviceConnectionService, Protocol])
+@GenerateMocks([DeviceConnectionService, Protocol, DevicesManager])
 import 'wireless_connection_test.mocks.dart';
-
-// Mock the DevicesManager
-class MockDevicesManager implements DevicesManager {
-  final List<ConnectedDevice> _devices = [];
-  final DeviceType _currentDeviceType;
-  final DeviceName _currentDeviceName;
-  final String? _data;
-
-  MockDevicesManager(this._currentDeviceName, this._currentDeviceType,
-      {String? data})
-      : _data = data;
-
-  @override
-  List<ConnectedDevice> get devices => _devices;
-
-  void addDevice(ConnectedDevice device) {
-    _devices.add(device);
-  }
-
-  @override
-  ConnectedDevice? getDevice(DeviceName name) {
-    try {
-      return _devices.firstWhere((d) => d.name == name);
-    } catch (e) {
-      return null;
-    }
-  }
-
-  @override
-  bool allDevicesFinished() {
-    return _devices.every((d) => d.isFinished);
-  }
-
-  @override
-  DeviceType get currentDeviceType => _currentDeviceType;
-
-  @override
-  DeviceName get currentDeviceName => _currentDeviceName;
-
-  @override
-  bool hasDevice(DeviceName name) => getDevice(name) != null;
-
-  @override
-  void reset() => _devices.clear();
-
-  @override
-  ConnectedDevice? get bibRecorder => getDevice(DeviceName.bibRecorder);
-
-  @override
-  ConnectedDevice? get coach => getDevice(DeviceName.coach);
-
-  @override
-  ConnectedDevice? get raceTimer => getDevice(DeviceName.raceTimer);
-
-  @override
-  List<ConnectedDevice> get otherDevices =>
-      _devices.where((d) => d.name != _currentDeviceName).toList();
-
-  @override
-  DevicesManager copy() =>
-      MockDevicesManager(_currentDeviceName, _currentDeviceType, data: _data);
-}
 
 void main() {
   late MockDeviceConnectionService mockConnectionService;
@@ -79,10 +17,14 @@ void main() {
 
   setUp(() {
     mockConnectionService = MockDeviceConnectionService();
-    advertiserDevicesManager =
-        MockDevicesManager(DeviceName.coach, DeviceType.advertiserDevice);
-    browserDevicesManager =
-        MockDevicesManager(DeviceName.coach, DeviceType.browserDevice);
+    advertiserDevicesManager = MockDevicesManager();
+    browserDevicesManager = MockDevicesManager();
+    
+    // Configure the mock device managers
+    when(advertiserDevicesManager.currentDeviceName).thenReturn(DeviceName.coach);
+    when(advertiserDevicesManager.currentDeviceType).thenReturn(DeviceType.advertiserDevice);
+    when(browserDevicesManager.currentDeviceName).thenReturn(DeviceName.coach);
+    when(browserDevicesManager.currentDeviceType).thenReturn(DeviceType.browserDevice);
 
     // Set up default behaviors for the mocks
     when(mockConnectionService.isActive).thenReturn(true);
@@ -105,8 +47,13 @@ void main() {
       final browserDevice = ConnectedDevice(DeviceName.bibRecorder);
       browserDevice.status = ConnectionStatus.found;
 
-      advertiserDevicesManager.addDevice(advertiserDevice);
-      browserDevicesManager.addDevice(browserDevice);
+      // Setup mock device lists
+      final List<ConnectedDevice> advertiserDevices = [advertiserDevice];
+      when(advertiserDevicesManager.devices).thenReturn(advertiserDevices);
+      when(advertiserDevicesManager.getDevice(DeviceName.coach)).thenReturn(advertiserDevice);
+      final List<ConnectedDevice> browserDevices = [browserDevice];
+      when(browserDevicesManager.devices).thenReturn(browserDevices);
+      when(browserDevicesManager.getDevice(DeviceName.bibRecorder)).thenReturn(browserDevice);
 
       // Set up protocols
       final advertiserProtocol = MockProtocol();
@@ -205,8 +152,13 @@ void main() {
       final browserDevice = ConnectedDevice(DeviceName.bibRecorder);
       browserDevice.status = ConnectionStatus.found;
 
-      advertiserDevicesManager.addDevice(advertiserDevice);
-      browserDevicesManager.addDevice(browserDevice);
+      // Setup mock device lists
+      final List<ConnectedDevice> advertiserDevices = [advertiserDevice];
+      when(advertiserDevicesManager.devices).thenReturn(advertiserDevices);
+      when(advertiserDevicesManager.getDevice(DeviceName.coach)).thenReturn(advertiserDevice);
+      final List<ConnectedDevice> browserDevices = [browserDevice];
+      when(browserDevicesManager.devices).thenReturn(browserDevices);
+      when(browserDevicesManager.getDevice(DeviceName.bibRecorder)).thenReturn(browserDevice);
 
       // Set up protocols
       final advertiserProtocol = MockProtocol();
@@ -288,7 +240,11 @@ void main() {
       // Add a device in receiving state
       final device = ConnectedDevice(DeviceName.coach);
       device.status = ConnectionStatus.receiving;
-      advertiserDevicesManager.addDevice(device);
+      
+      // Configure the mock to return this device
+      final List<ConnectedDevice> devices = [device];
+      when(advertiserDevicesManager.devices).thenReturn(devices);
+      when(advertiserDevicesManager.getDevice(DeviceName.coach)).thenReturn(device);
 
       // Should not rescan with a device in receiving state
       expect(shouldRescan('test_token'), false);
