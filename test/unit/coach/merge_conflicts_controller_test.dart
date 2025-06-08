@@ -31,6 +31,7 @@ class TestableConflictsController extends MergeConflictsController {
   bool errorMessageShown = false;
   String? lastErrorMessage;
   bool consolidateCalled = false;
+  bool notifyListenersWasCalled = false;
   final DatabaseHelper _mockDatabaseHelper;
   
   TestableConflictsController({
@@ -53,7 +54,7 @@ class TestableConflictsController extends MergeConflictsController {
   @override
   Future<void> createChunks() async {
     createChunksCalled = true;
-    // Don't actually create chunks in tests
+    // We'll allow real implementation or manual setup depending on the test
   }
   
   @override
@@ -68,10 +69,16 @@ class TestableConflictsController extends MergeConflictsController {
   }
   
   @override
+  void notifyListeners() {
+    notifyListenersWasCalled = true;
+    super.notifyListeners();
+  }
+  
+  @override
   Future<void> consolidateConfirmedRunnerTimes() async {
     consolidateCalled = true;
-    // We can call the actual implementation if needed or skip it
-    // await super.consolidateConfirmedRunnerTimes();
+    // Allow calling the actual implementation in these tests
+    await super.consolidateConfirmedRunnerTimes();
     return;
   }
 }

@@ -43,6 +43,12 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
     );
     _controller.setContext(context);
     _loadSchools();
+    // Ensure "Choose Existing Runner" is selected by default
+    _controller.showCreateNew = false;
+    // Initialize search with empty query to load all available runners
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _controller.searchRunners('');
+    });
   }
 
   @override
