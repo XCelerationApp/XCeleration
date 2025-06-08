@@ -366,12 +366,15 @@ class LoadingDialog extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 20),
-          Text(
-            message,
-            style: AppTypography.bodyRegular.copyWith(
-              color: AppColors.darkColor,
+          Flexible(
+            child: Text(
+              message,
+              style: AppTypography.bodyRegular.copyWith(
+                color: AppColors.darkColor,
+              ),
+              textAlign: TextAlign.center,
+              softWrap: true,
             ),
-            textAlign: TextAlign.center,
           ),
         ],
       ),
