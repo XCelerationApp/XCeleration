@@ -12,6 +12,7 @@ import 'package:xceleration/core/services/device_connection_service.dart'
     as _i2;
 import 'package:xceleration/core/utils/data_package.dart' as _i5;
 import 'package:xceleration/core/utils/data_protocol.dart' as _i6;
+import 'package:xceleration/utils/enums.dart' as _i7;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -40,6 +41,17 @@ class _FakeDuration_0 extends _i1.SmartFake implements Duration {
 class _FakeDeviceConnectionService_1 extends _i1.SmartFake
     implements _i2.DeviceConnectionService {
   _FakeDeviceConnectionService_1(
+    Object parent,
+    Invocation parentInvocation,
+  ) : super(
+          parent,
+          parentInvocation,
+        );
+}
+
+class _FakeDevicesManager_2 extends _i1.SmartFake
+    implements _i2.DevicesManager {
+  _FakeDevicesManager_2(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -398,4 +410,86 @@ class MockProtocol extends _i1.Mock implements _i6.Protocol {
         ),
         returnValue: false,
       ) as bool);
+}
+
+/// A class which mocks [DevicesManager].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockDevicesManager extends _i1.Mock implements _i2.DevicesManager {
+  MockDevicesManager() {
+    _i1.throwOnMissingStub(this);
+  }
+
+  @override
+  _i7.DeviceName get currentDeviceName => (super.noSuchMethod(
+        Invocation.getter(#currentDeviceName),
+        returnValue: _i7.DeviceName.coach,
+      ) as _i7.DeviceName);
+
+  @override
+  _i7.DeviceType get currentDeviceType => (super.noSuchMethod(
+        Invocation.getter(#currentDeviceType),
+        returnValue: _i7.DeviceType.advertiserDevice,
+      ) as _i7.DeviceType);
+
+  @override
+  List<_i2.ConnectedDevice> get devices => (super.noSuchMethod(
+        Invocation.getter(#devices),
+        returnValue: <_i2.ConnectedDevice>[],
+      ) as List<_i2.ConnectedDevice>);
+
+  @override
+  List<_i2.ConnectedDevice> get otherDevices => (super.noSuchMethod(
+        Invocation.getter(#otherDevices),
+        returnValue: <_i2.ConnectedDevice>[],
+      ) as List<_i2.ConnectedDevice>);
+
+  @override
+  void reset() => super.noSuchMethod(
+        Invocation.method(
+          #reset,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  bool hasDevice(_i7.DeviceName? name) => (super.noSuchMethod(
+        Invocation.method(
+          #hasDevice,
+          [name],
+        ),
+        returnValue: false,
+      ) as bool);
+
+  @override
+  _i2.ConnectedDevice? getDevice(_i7.DeviceName? name) =>
+      (super.noSuchMethod(Invocation.method(
+        #getDevice,
+        [name],
+      )) as _i2.ConnectedDevice?);
+
+  @override
+  bool allDevicesFinished() => (super.noSuchMethod(
+        Invocation.method(
+          #allDevicesFinished,
+          [],
+        ),
+        returnValue: false,
+      ) as bool);
+
+  @override
+  _i2.DevicesManager copy() => (super.noSuchMethod(
+        Invocation.method(
+          #copy,
+          [],
+        ),
+        returnValue: _FakeDevicesManager_2(
+          this,
+          Invocation.method(
+            #copy,
+            [],
+          ),
+        ),
+      ) as _i2.DevicesManager);
 }

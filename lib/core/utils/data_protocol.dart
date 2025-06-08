@@ -266,16 +266,8 @@ class Protocol implements ProtocolInterface {
 
     // Check if we have data to send
     if (data == null || data.isEmpty) {
-      Logger.d('Warning: No data to send to device $senderId, sending empty data placeholder');
-      // Send a single empty DATA package to avoid protocol errors
-      _sequenceNumber++;
-      final emptyPackage = Package(
-        number: _sequenceNumber,
-        type: 'DATA',
-        data: '', // Empty data
-      );
-      await _sendPackageWithRetry(emptyPackage, senderId);
-      return;
+      Logger.e('No data to send to device $senderId');
+      throw ProtocolTerminatedException('No data to send to device $senderId');
     }
 
     try {

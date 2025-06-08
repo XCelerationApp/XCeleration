@@ -12,10 +12,16 @@ import 'data_protocol_test.mocks.dart';
 void main() {
   late Protocol protocol;
   late MockDeviceConnectionService mockConnectionService;
+  final mockDevice = Device(
+    'test_id',
+    'test_device',
+    SessionState.connected.index
+  );
 
   setUp(() {
     mockConnectionService = MockDeviceConnectionService();
     protocol = Protocol(deviceConnectionService: mockConnectionService);
+    protocol.addDevice(mockDevice);
     
     // Set up default behavior for the mock
     when(mockConnectionService.sendMessageToDevice(any, any))
@@ -32,19 +38,11 @@ void main() {
     });
 
     test('adding and removing devices', () {
-      final device = Device(
-        'test_id',
-        'test_device',
-        SessionState.connected.index
-      );  
-      // Add device
-      protocol.addDevice(device);
-      
+      expect(protocol.connectedDevices, contains(mockDevice.deviceId));
       // Try to remove it
-      protocol.removeDevice('test_id');
+      protocol.removeDevice(mockDevice.deviceId);
 
-      // Both operations should complete without errors
-      expect(true, true);
+      expect(protocol.connectedDevices, isNot(contains(mockDevice.deviceId)));
     });
 
     test('protocol can be terminated', () {
@@ -57,19 +55,11 @@ void main() {
 
   group('Package handling', () {
     test('should send acknowledgment for received packages', () async {
-      // Set up the mock device
-      final device = Device(
-        'sender_id',
-        'Sender',
-        SessionState.connected.index
-      );
-      protocol.addDevice(device);
-      
       // Create a test package
       final package = Package(number: 1, type: 'DATA', data: 'test_data');
       
       // Handle the package
-      await protocol.handleMessage(package, 'sender_id');
+      await protocol.handleMessage(package, mockDevice.deviceId);
       
       // Verify an ACK was sent
       verify(mockConnectionService.sendMessageToDevice(
@@ -79,14 +69,6 @@ void main() {
     });
 
     test('should mark device as finished after receiving FIN package', () async {
-      // Set up the mock device
-      final device = Device(
-        'sender_id',
-        'Sender',
-        SessionState.connected.index
-      );
-      protocol.addDevice(device);
-      
       // Create a test FIN package
       final finPackage = Package(number: 1, type: 'FIN');
 
@@ -95,7 +77,7 @@ void main() {
           .thenAnswer((_) async => true);
       
       // Handle the package
-      await protocol.handleMessage(finPackage, 'sender_id');
+      await protocol.handleMessage(finPackage, mockDevice.deviceId);
       
       // Verify FIN was acknowledged
       verify(mockConnectionService.sendMessageToDevice(
@@ -103,32 +85,24 @@ void main() {
           argThat(predicate((Package p) => p.type == 'ACK' && p.number == 1))
       )).called(1);
 
-      expect(protocol.isFinished('sender_id'), true);
+      expect(protocol.isFinished(mockDevice.deviceId), true);
     });
   });
 
   group('Data sending', () {
     test('sends data in chunks with FIN package at the end', () async {
-      // Set up the mock device
-      final device = Device(
-        'receiver_id',
-        'Receiver',
-        SessionState.connected.index
-      );
-      protocol.addDevice(device);
-      
       // Set up the mock to "receive" acknowledgments
       when(mockConnectionService.sendMessageToDevice(any, any))
           .thenAnswer((_) async {
             // Simulate receiving ACK for any sent package
             final package = _.positionalArguments[1] as Package;
             await protocol.handleMessage(
-                Package(number: package.number, type: 'ACK'), 'receiver_id');
+                Package(number: package.number, type: 'ACK'), mockDevice.deviceId);
             return true;
           });
       
       // Send test data
-      await protocol.sendData('test_data', 'receiver_id');
+      await protocol.sendData('test_data', mockDevice.deviceId);
       
       // Verify appropriate packages were sent
       // Should send at least one DATA package and one FIN package
@@ -143,59 +117,28 @@ void main() {
       )).called(1);
     });
 
-    test('handles empty data gracefully', () async {
-      // Set up the mock device
-      final device = Device(
-        'receiver_id',
-        'Receiver',
-        SessionState.connected.index
-      );
-      protocol.addDevice(device);
-      
-      // Set up the mock to "receive" acknowledgments
-      when(mockConnectionService.sendMessageToDevice(any, any))
-          .thenAnswer((_) async {
-            // Simulate receiving ACK for any sent package
-            final package = _.positionalArguments[1] as Package;
-            await protocol.handleMessage(
-                Package(number: package.number, type: 'ACK'), 'receiver_id');
-            return true;
-          });
-      
-      // Send empty data
-      await protocol.sendData('', 'receiver_id');
-      
-      // Should still send a package, but with empty data
-      verify(mockConnectionService.sendMessageToDevice(
-          any,
-          argThat(predicate((Package p) => p.type == 'DATA' && p.data == ''))
-      )).called(1);
+    test('throws error when sending empty data', () async {
+      expect(() async {
+        await protocol.sendData('', mockDevice.deviceId);
+      }, throwsA(isA<ProtocolTerminatedException>()));
     });
   });
 
   group('Data transfer handling', () {
     test('handleDataTransfer sends data and returns null for sender', () async {
-      // Set up the mock device
-      final device = Device(
-        'receiver_id',
-        'Receiver',
-        SessionState.connected.index
-      );
-      protocol.addDevice(device);
-      
       // Set up the mock to "receive" acknowledgments
       when(mockConnectionService.sendMessageToDevice(any, any))
           .thenAnswer((_) async {
             // Simulate receiving ACK for any sent package
             final package = _.positionalArguments[1] as Package;
             await protocol.handleMessage(
-                Package(number: package.number, type: 'ACK'), 'receiver_id');
+                Package(number: package.number, type: 'ACK'), mockDevice.deviceId);
             return true;
           });
       
       // Handle data transfer (as sender)
       final result = await protocol.handleDataTransfer(
-        deviceId: 'receiver_id',
+        deviceId: mockDevice.deviceId,
         dataToSend: 'test_data',
         isReceiving: false,
         shouldContinueTransfer: () => true
@@ -217,14 +160,6 @@ void main() {
     });
 
     test('handleDataTransfer aborts if shouldContinueTransfer returns false', () async {
-      // Set up the mock device
-      final device = Device(
-        'receiver_id',
-        'Receiver',
-        SessionState.connected.index
-      );
-      protocol.addDevice(device);
-      
       bool shouldContinue = true;
       
       // Set up a delayed status change
@@ -234,7 +169,7 @@ void main() {
       
       // Handle data transfer with a status that will change
       expect(() => protocol.handleDataTransfer(
-        deviceId: 'receiver_id',
+        deviceId: mockDevice.deviceId,
         isReceiving: true,
         shouldContinueTransfer: () => shouldContinue
       ), throwsA(isA<ProtocolTerminatedException>()));
