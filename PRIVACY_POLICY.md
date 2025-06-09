@@ -34,7 +34,7 @@ We use the information we collect to:
 
 ## Data Storage and Sharing
 
-- **Local Storage**: Most data is stored locally on your device.
+- **Local Storage**: All data is stored locally on your device.
 - **Sharing**: Race data is only shared between authorized devices you explicitly connect with.
 - **Third Parties**: We do not sell your data to third parties.
 
