@@ -15,6 +15,7 @@ import 'package:xceleration/coach/race_results/model/results_record.dart'
 import 'package:xceleration/coach/race_screen/model/race_result.dart' as _i7;
 import 'package:xceleration/coach/race_screen/widgets/runner_record.dart'
     as _i5;
+import 'package:xceleration/core/utils/logger.dart' as _i11;
 import 'package:xceleration/shared/models/race.dart' as _i6;
 import 'package:xceleration/utils/database_helper.dart' as _i3;
 
@@ -420,4 +421,13 @@ class MockDatabaseHelper extends _i1.Mock implements _i3.DatabaseHelper {
         returnValue: _i4.Future<void>.value(),
         returnValueForMissingStub: _i4.Future<void>.value(),
       ) as _i4.Future<void>);
+}
+
+/// A class which mocks [Logger].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockLogger extends _i1.Mock implements _i11.Logger {
+  MockLogger() {
+    _i1.throwOnMissingStub(this);
+  }
 }

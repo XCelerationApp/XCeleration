@@ -123,13 +123,13 @@ class MergeConflictsController with ChangeNotifier {
             }
           }
         }
-        // Print all chunk runner places for reference
+        // Logger.d all chunk runner places for reference
         for (int i = 0; i < chunks.length; i++) {
           final chunk = chunks[i];
           final chunkRunnerPlaces = chunk.runners.map((r) => runnerRecords.indexOf(r) + 1).toList();
           Logger.e('Chunk $i runner places: $chunkRunnerPlaces');
         }
-        // Print all record places for reference
+        // Logger.d all record places for reference
         final allRecordPlaces = timingData.records.map((r) => r.place).toList();
         Logger.e('All record places: $allRecordPlaces');
         throw Exception('Chunk runner total ($totalChunkRunners) does not match runnerRecords.length (${runnerRecords.length})');
@@ -199,48 +199,68 @@ class MergeConflictsController with ChangeNotifier {
         : [null, -1];
   }
 
-  /// Consolidates all confirmed runnerTime records, reorders them sequentially,
-  /// and preserves unresolved conflicts (missingRunner/extraRunner types).
+  /// Consolidates adjacent confirmRunner chunks into a single chunk,
+  /// preserving all runnerTime records and keeping only the last confirmRunner record.
   Future<void> consolidateConfirmedRunnerTimes() async {
     await createChunks();
-
-    for (var chunk in chunks) {
-      if (chunk.type == RecordType.confirmRunner || chunk.type == RecordType.runnerTime) {
-        List<Chunk> combinedChunks = [chunk];
-        int nextIndex = chunks.indexOf(chunk) + 1;
-        while (nextIndex < chunks.length &&
-            (chunks[nextIndex].type == RecordType.confirmRunner ||
-                chunks[nextIndex].type == RecordType.runnerTime)) {
-          combinedChunks.add(chunks[nextIndex]);
-          nextIndex++;
+    
+    Logger.d('Before consolidation: ${chunks.length} chunks');
+    for (int x = 0; x < chunks.length; x++) {
+      Logger.d('Chunk $x: type=${chunks[x].type}, records=${chunks[x].records.length}, runners=${chunks[x].runners.length}');
+    }
+    
+    int i = 0;
+    while (i < chunks.length) {
+      // Only process confirmRunner chunks
+      if (chunks[i].type == RecordType.confirmRunner) {
+        int startIndex = i;
+        int endIndex = i;
+        
+        // Find consecutive confirmRunner chunks
+        while (endIndex + 1 < chunks.length && 
+              chunks[endIndex + 1].type == RecordType.confirmRunner) {
+          endIndex++;
         }
         
-        if (combinedChunks.length > 1) {
-          List<TimingRecord> mergedRecords = combinedChunks.expand((c) => c.records).toList();
-          List<RunnerRecord> mergedRunners = combinedChunks.expand((c) => c.runners).toList();
-          
-          // Update timing records
-          int startIndex = timingData.records.indexOf(mergedRecords.first);
-          int endIndex = timingData.records.indexOf(mergedRecords.last) + 1;
-          timingData.records.removeRange(startIndex, endIndex);
-          timingData.records.insertAll(startIndex, mergedRecords);
+        // If we found multiple adjacent confirmRunner chunks, consolidate them
+        if (endIndex > startIndex) {
+          Logger.d('Found consecutive confirmRunner chunks from $startIndex to $endIndex');
+          final confirmedRecords = chunks.sublist(startIndex, endIndex + 1).expand((chunk) => chunk.records).where((record) => record.type == RecordType.confirmRunner).toList();
+          if (chunks[endIndex].records.last.type != RecordType.confirmRunner) {
+            throw Exception('Last record in chunk is not a confirmRunner');
+          }
 
-          // Update runner records if necessary
-          int runnerStartIndex = runnerRecords.indexOf(mergedRunners.first);
-          runnerRecords.replaceRange(runnerStartIndex, runnerStartIndex + mergedRunners.length, mergedRunners);
+          Logger.d('Confirmed records before removal: ${confirmedRecords.map((r) => r.place)}');
 
-          // Remove processed chunks and insert a new consolidated chunk
-          chunks.removeRange(chunks.indexOf(chunk), nextIndex);
-          chunks.insert(chunks.indexOf(chunk), Chunk(
-            records: mergedRecords,
-            type: RecordType.confirmRunner,
-            runners: mergedRunners,
-            conflictIndex: chunk.conflictIndex,
-          ));
+          confirmedRecords.removeLast();
+
+          Logger.d('Confirmed records after removal: ${confirmedRecords.length}');
+
+          Logger.d('Timing data records: ${timingData.records.length}');
+
+          timingData.records.removeWhere((record) => confirmedRecords.contains(record));
+
+          Logger.d('Timing data records after removal: ${timingData.records.length}');
+      
+          // Move to the next chunk after the consolidated one
+          i = startIndex + 1;
+        } else {
+          // Single chunk, move to next
+          i++;
         }
+      } else {
+        // Not a confirmRunner chunk, move to next
+        i++;
       }
     }
 
+    await createChunks();
+    
+    Logger.d('Final chunks count: ${chunks.length}');
+    for (int x = 0; x < chunks.length; x++) {
+      Logger.d('Final Chunk $x: type=${chunks[x].type}, records=${chunks[x].records.length}, runners=${chunks[x].runners.length}');
+    }
+    
     notifyListeners();
   }
 
@@ -292,23 +312,12 @@ class MergeConflictsController with ChangeNotifier {
       conflictRecord,
       lastConfirmedRunnerPlace + runners.length,
     );
-    Logger.d('');
-    Logger.d('updated conflict record: $conflictRecord');
-    Logger.d('updated records: ${timingData.records}');
-    Logger.d('');
+    timingData.records[timingData.records.indexOf(conflictRecord)] = conflictRecord;
+
     notifyListeners();
-    // Delete all records with type confirm_runner between the conflict record and the last conflict
-    int conflictIndex = records.indexOf(conflictRecord);
-    int lastConflictIndex = records.lastIndexWhere((record) =>
-        record.conflict != null && records.indexOf(record) < conflictIndex);
-    timingData.records.removeWhere((record) =>
-        record.type == RecordType.confirmRunner &&
-        records.indexOf(record) > lastConflictIndex &&
-        records.indexOf(record) < conflictIndex);
 
     showSuccessMessage();
-    consolidateConfirmedRunnerTimes();
-    await createChunks();
+    await consolidateConfirmedRunnerTimes();
     } catch (e, stackTrace) {
       if (context.mounted) {
         Logger.e('An error occurred while resolving conflict: ${e.toString()}', context: context, error: e, stackTrace: stackTrace);

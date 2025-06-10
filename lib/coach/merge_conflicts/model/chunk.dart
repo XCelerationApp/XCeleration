@@ -2,6 +2,7 @@ import 'package:xceleration/assistant/race_timer/model/timing_record.dart';
 import 'package:flutter/material.dart';
 import 'package:xceleration/coach/merge_conflicts/model/resolve_information.dart';
 import 'package:xceleration/coach/race_screen/widgets/runner_record.dart';
+import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/utils/enums.dart';
 import 'joined_record.dart';
 import 'timing_data.dart';
@@ -25,10 +26,16 @@ class Chunk {
         controllers = {} {
     // Only keep runners whose (index+1) matches a record's place in this chunk
     final recordPlaces = records.map((r) => r.place).toSet();
-    this.runners = [
-      for (int i = 0; i < runners.length; i++)
-        if (recordPlaces.contains(i + 1)) runners[i]
-    ];
+    this.runners = [];
+    
+    // Filter runners and log those that are missing
+    for (int i = 0; i < runners.length; i++) {
+      if (recordPlaces.contains(i + 1)) {
+        this.runners.add(runners[i]);
+      } else {
+        Logger.d('Runner ${runners[i].bib} is missing from this chunk');
+      }
+    }
     // Build joinedRecords by matching runner index+1 to record.place
     joinedRecords = [];
     for (final record in records) {

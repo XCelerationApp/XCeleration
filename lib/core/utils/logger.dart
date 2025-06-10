@@ -13,7 +13,7 @@ class Logger {
     Logger.d('[ERROR] $message');
     if (error != null) Logger.d('Error: $error');
     if (stackTrace != null) Logger.d('StackTrace: $stackTrace');
-    if (context != null) {
+    if (context != null && context.mounted) {
       DialogUtils.showErrorDialog(context,
         message: 'Error: $message');
     }
