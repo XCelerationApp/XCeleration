@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:provider/provider.dart';
 import 'core/theme/app_colors.dart';
@@ -31,14 +32,16 @@ class EventBusProvider extends ChangeNotifier {
 
 // Production app entry point
 void main() async {
+  await dotenv.load(fileName: '.env');
   await SentryFlutter.init(
     (options) async {
-      options.dsn = 'https://e60d9543e8e01fb7bd562970f3bcc34c@o4509410228305920.ingest.us.sentry.io/4509410229420032';
+      // Loads Sentry DSN from .env (project root, not lib/)
+      options.dsn = dotenv.env['SENTRY_DSN'] ?? '';
       options.tracesSampleRate = 1.0;
       options.diagnosticLevel = SentryLevel.warning;
       try {
         final info = await PackageInfo.fromPlatform();
-        options.release = '${info.packageName}@${info.version}+${info.buildNumber}';
+        options.release = dotenv.env['SENTRY_RELEASE'] ?? '${info.packageName}@${info.version}+${info.buildNumber}';
       } catch (_) {}
     },
     appRunner: () async {
@@ -53,14 +56,16 @@ void main() async {
 
 // Development app entry point - also uses environment variables
 void mainDev() async {
+  await dotenv.load(fileName: '.env');
   await SentryFlutter.init(
     (options) async {
-      options.dsn = 'https://e60d9543e8e01fb7bd562970f3bcc34c@o4509410228305920.ingest.us.sentry.io/4509410229420032';
+      // Loads Sentry DSN from .env (project root, not lib/)
+      options.dsn = dotenv.env['SENTRY_DSN'] ?? '';
       options.tracesSampleRate = 1.0;
       options.diagnosticLevel = SentryLevel.warning;
       try {
         final info = await PackageInfo.fromPlatform();
-        options.release = '${info.packageName}@${info.version}+${info.buildNumber}';
+        options.release = dotenv.env['SENTRY_RELEASE'] ?? '${info.packageName}@${info.version}+${info.buildNumber}';
       } catch (_) {}
     },
     appRunner: () async {

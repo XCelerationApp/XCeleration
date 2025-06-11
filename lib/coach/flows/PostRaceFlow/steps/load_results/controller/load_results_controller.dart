@@ -667,6 +667,7 @@ class LoadResultsController with ChangeNotifier {
           runnerRecords: runnerRecords!,
         ),
       ),
+      useBottomPadding: false,
     );
     
     // Update timing data if a result was returned
