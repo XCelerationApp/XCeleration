@@ -93,6 +93,7 @@ class RunnerTimeRecord extends StatelessWidget {
                         times: chunk.resolve!.availableTimes,
                         conflictIndex: chunk.conflictIndex,
                         manual: chunk.type != RecordType.extraRunner,
+                        chunkType: chunk.type,
                       )
                     : ConfirmedTime(time: timeRecord.elapsedTime),
               ),

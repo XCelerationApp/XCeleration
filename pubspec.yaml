@@ -47,6 +47,7 @@ dependencies:
   permission_handler: ^11.1.0
   sentry_flutter: ^8.14.2
   package_info_plus: ^8.3.0
+  flutter_dotenv: ^5.1.0
 
 dev_dependencies:
   flutter_test:
@@ -79,6 +80,7 @@ flutter:
     - assets/sounds/click.mp3
     - assets/sounds/completed_ding.mp3
     - assets/sample_sheets/
+    - .env
 
   fonts:
     - family: Inter

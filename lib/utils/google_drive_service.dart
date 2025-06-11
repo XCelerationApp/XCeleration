@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
@@ -13,7 +14,8 @@ class GoogleDriveService {
     scopes: [
       'https://www.googleapis.com/auth/drive.readonly',
     ],
-    clientId: '529053126812-cuhlura1vskuup3lg6hpf6iup6mlje6v.apps.googleusercontent.com',
+    clientId: dotenv.env['GOOGLE_DRIVE_CLIENT_ID'],
+
   );
   
   GoogleSignInAccount? _currentUser;

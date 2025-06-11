@@ -74,7 +74,8 @@ Future<dynamic> sheet({
     Widget? actionButtons,
     bool showHeader = true,
     bool takeUpScreen = false,
-    bool useRootNavigator = false}) async {
+    bool useRootNavigator = false,
+    bool useBottomPadding = true}) async {
   return await showModalBottomSheet(
     backgroundColor: Colors.transparent,
     context: context,
@@ -97,7 +98,7 @@ Future<dynamic> sheet({
             top: 8,
             left: 24,
             right: 24,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 36,
+            bottom: (useBottomPadding ? MediaQuery.of(context).viewInsets.bottom: 0) + 36,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,

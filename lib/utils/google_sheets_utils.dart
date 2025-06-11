@@ -6,10 +6,10 @@ import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import 'package:xceleration/core/components/dialog_utils.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class GoogleSheetsUtils {
-  static const _clientId =
-      '529053126812-cuhlura1vskuup3lg6hpf6iup6mlje6v.apps.googleusercontent.com';
+  static String get _clientId => dotenv.env['GOOGLE_SHEETS_CLIENT_ID'] ?? '';
 
   // Static instances to be reused across the app
   static GoogleSignIn? _googleSignIn;
