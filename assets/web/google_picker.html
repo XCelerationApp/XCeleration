@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Drive Picker</title>
+    <style>
+        html, body { 
+            height: 100%; 
+            width: 100%; 
+            margin: 0; 
+            padding: 0; 
+            overflow: hidden; 
+            background-color: white;
+        }
+        
+        #loading { 
+            display: flex; 
+            flex-direction: column;
+            justify-content: center; 
+            align-items: center; 
+            height: 100%;
+        }
+        
+        .spinner { 
+            width: 40px; 
+            height: 40px; 
+            border: 4px solid #f3f3f3; 
+            border-radius: 50%; 
+            border-top: 4px solid #3498db; 
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+        
+        @keyframes spin { 
+            to { transform: rotate(360deg); } 
+        }
+        
+        #debug {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            font-family: monospace;
+            font-size: 10px;
+            padding: 8px;
+            max-height: 150px;
+            overflow: auto;
+            z-index: 9999;
+            display: block; /* Show by default for debugging */
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">
+        <div class="spinner"></div>
+        <div id="loadingText" style="font-family: Arial; color: #333;">Loading Google Picker...</div>
+    </div>
+    
+    <div id="debug"></div>
+
+    <script>
+        // Constants for the picker API - these will be replaced at runtime
+        const ACCESS_TOKEN = '{{DEFAULT_ACCESS_TOKEN}}';
+        const DEVELOPER_KEY = '{{DEFAULT_DEVELOPER_KEY}}';
+        const JS_CHANNEL = '{{DEFAULT_JS_CHANNEL}}';
+        
+        // Track if picker has been created to prevent duplicates
+        let pickerCreated = false;
+        
+        // Log to Flutter and to debug div
+        function log(message) {
+            console.log(message);
+            const debug = document.getElementById('debug');
+            if (debug) {
+                const div = document.createElement('div');
+                div.textContent = new Date().toLocaleTimeString() + ': ' + message;
+                debug.appendChild(div);
+                debug.scrollTop = debug.scrollHeight;
+            }
+        }
+        
+        // Send a message back to Flutter
+        function sendToFlutter(data) {
+            log('Sending to Flutter: ' + JSON.stringify(data));
+            if (window[JS_CHANNEL]) {
+                try {
+                    window[JS_CHANNEL].postMessage(JSON.stringify(data));
+                } catch (e) {
+                    log('Error sending to Flutter: ' + e);
+                }
+            } else {
+                log('Error: Flutter channel "' + JS_CHANNEL + '" not available');
+                log('Available window properties: ' + Object.keys(window).join(', '));
+            }
+        }
+        
+        // Update loading text
+        function updateLoadingText(text) {
+            const loadingText = document.getElementById('loadingText');
+            if (loadingText) loadingText.textContent = text;
+        }
+        
+        // Hide loading indicator
+        function hideLoading() {
+            const loading = document.getElementById('loading');
+            if (loading) loading.style.display = 'none';
+        }
+        
+        // Show error state
+        function showError(message) {
+            hideLoading();
+            document.body.innerHTML = `
+                <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; padding: 20px; text-align: center;">
+                    <div style="color: #d32f2f; font-size: 48px; margin-bottom: 20px;">⚠️</div>
+                    <h2 style="color: #333; margin-bottom: 10px;">Error</h2>
+                    <p style="color: #666; margin-bottom: 20px; max-width: 400px;">${message}</p>
+                    <button onclick="sendToFlutter({action: 'canceled', error: '${message}'})" 
+                            style="padding: 10px 20px; background: #1976d2; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                        Close
+                    </button>
+                    <div id="debug" style="position: static; background: #f5f5f5; color: black; margin-top: 20px; padding: 10px; border-radius: 4px; font-size: 10px; font-family: monospace; max-height: 200px; overflow: auto;"></div>
+                </div>
+            `;
+        }
+        
+        // Initialize the picker when everything is ready
+        function initializePicker() {
+            log('=== INITIALIZATION START ===');
+            log('ACCESS_TOKEN raw: "' + ACCESS_TOKEN + '"');
+            log('ACCESS_TOKEN length: ' + ACCESS_TOKEN.length);
+            log('ACCESS_TOKEN type: ' + typeof ACCESS_TOKEN);
+            log('DEVELOPER_KEY: ' + (DEVELOPER_KEY ? DEVELOPER_KEY.substring(0, 30) + '...' : 'NOT SET'));
+            log('JS_CHANNEL: ' + JS_CHANNEL);
+            
+            // Clean the access token - remove any potential whitespace
+            const cleanToken = ACCESS_TOKEN.trim();
+            log('Cleaned token: "' + cleanToken.substring(0, 30) + '..." (length: ' + cleanToken.length + ')');
+            
+            // Basic validation - check that tokens arent empty
+            if (cleanToken.isEmpty) {
+                log('ERROR: Access token validation failed');
+                log('Token equals placeholder: ' + (cleanToken.isEmpty));
+                log('Token is empty: ' + (cleanToken === ''));                showError('Access token not configured properly');
+                sendToFlutter({action: 'canceled', error: 'Access token validation failed: "' + cleanToken + '"'});
+                return;
+            }
+            
+            
+            if (DEVELOPER_KEY.isEmpty) {
+                log('ERROR: Developer key validation failed');
+                showError('Developer key not configured properly');
+                sendToFlutter({action: 'canceled', error: 'Developer key validation failed: "' + DEVELOPER_KEY + '"'});
+                return;
+            }
+            
+            // Log successful validation
+            log('Credentials validated successfully');
+            log('Using cleaned token: ' + cleanToken.substring(0, 20) + '...');
+            log('Developer key length: ' + DEVELOPER_KEY.length);
+
+            // sendToFlutter({action: 'picker_ready'});
+            
+            if (pickerCreated) {
+                log('Picker already created, skipping');
+                return;
+            }
+            
+            updateLoadingText('Loading Google APIs...');
+            
+            // Load the Google API
+            const script = document.createElement('script');
+            script.src = 'https://apis.google.com/js/api.js';
+            script.onload = function() {
+                log('Google API script loaded successfully');
+                setTimeout(onApiLoad, 100);
+            };
+            script.onerror = function() {
+                log('ERROR: Failed to load Google APIs script');
+                showError('Failed to load Google APIs');
+            };
+            document.head.appendChild(script);
+        }
+        
+        // Called when Google API is loaded
+        function onApiLoad() {
+            log('onApiLoad called');
+            updateLoadingText('Loading Google Picker...');
+            
+            if (typeof gapi === 'undefined') {
+                log('ERROR: gapi is undefined');
+                showError('Google API not available');
+                sendToFlutter({action: 'canceled', error: 'Google API not available'});
+                return;
+            }
+            
+            log('gapi is available, loading picker...');
+            gapi.load('picker', {
+                callback: function() {
+                    log('Google Picker API loaded successfully');
+                    setTimeout(createPicker, 500);
+                },
+                onerror: function(error) {
+                    log('ERROR loading picker: ' + JSON.stringify(error));
+                    showError('Failed to load Google Picker API: ' + JSON.stringify(error));
+                }
+            });
+        }
+        
+        // Create and show the picker
+        function createPicker() {
+            if (pickerCreated) {
+                log('Picker already created');
+                return;
+            }
+            
+            log('Creating picker...');
+            
+            // Check if google object is available
+            if (typeof google === 'undefined' || !google.picker) {
+                log('Google picker not available, retrying in 1 second...');
+                setTimeout(createPicker, 1000);
+                return;
+            }
+            
+            try {
+                log('Creating picker with validated credentials');
+                
+                // Use the cleaned token
+                const cleanToken = ACCESS_TOKEN.trim();
+                
+                // Create a view for Google Sheets
+                const sheetsView = new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS)
+                    .setIncludeFolders(true)
+                    .setSelectFolderEnabled(false);
+                
+                // Create a view for uploaded files (Excel, CSV)
+                const docsView = new google.picker.DocsView()
+                    .setIncludeFolders(true)
+                    .setSelectFolderEnabled(false)
+                    .setMimeTypes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv,application/vnd.ms-excel');
+                
+                // Create the picker
+                const picker = new google.picker.PickerBuilder()
+                    .enableFeature(google.picker.Feature.NAV_HIDDEN)
+                    .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
+                    .setDeveloperKey(DEVELOPER_KEY)
+                    .setOAuthToken(cleanToken)
+                    .addView(sheetsView)
+                    .addView(docsView)
+                    .setCallback(pickerCallback)
+                    .setTitle('Select a spreadsheet file')
+                    .setSize(Math.min(window.innerWidth - 40, 800), Math.min(window.innerHeight - 40, 600))
+                    .build();
+                
+                pickerCreated = true;
+                hideLoading();
+                picker.setVisible(true);
+                
+                log('Picker created and shown successfully');
+                
+            } catch (error) {
+                log('ERROR creating picker: ' + error.toString());
+                log('Error stack: ' + error.stack);
+                showError('Failed to create Google Picker: ' + error.message);
+            }
+        }
+        
+        // Handle picker results
+        function pickerCallback(data) {
+            log('Picker callback: ' + JSON.stringify(data));
+            
+            if (data.action === google.picker.Action.PICKED) {
+                const docs = data.docs;
+                log('Files picked: ' + docs.length);
+                
+                // Filter for supported file types
+                const supportedDocs = docs.filter(doc => {
+                    const mimeType = doc.mimeType;
+                    const name = doc.name.toLowerCase();
+                    
+                    return mimeType === 'application/vnd.google-apps.spreadsheet' ||
+                           mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+                           mimeType === 'text/csv' ||
+                           mimeType === 'application/vnd.ms-excel' ||
+                           name.endsWith('.xlsx') || name.endsWith('.xls') || name.endsWith('.csv');
+                });
+                
+                if (supportedDocs.length === 0) {
+                    log('No supported file types selected');
+                    showError('Please select a spreadsheet file (Google Sheets, Excel, or CSV)');
+                    return;
+                }
+                
+                sendToFlutter({
+                    action: 'picked',
+                    docs: supportedDocs
+                });
+                
+            } else if (data.action === google.picker.Action.CANCEL) {
+                log('Picker canceled');
+                sendToFlutter({action: 'canceled'});
+                
+            } else {
+                log('Unknown picker action: ' + data.action);
+            }
+        }
+        
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            log('Window resized');
+        });
+        
+        // Handle errors
+        window.addEventListener('error', function(e) {
+            log('JavaScript error: ' + e.message + ' at ' + e.filename + ':' + e.lineno);
+            showError('An error occurred while loading the picker: ' + e.message);
+        });
+        
+        // Start initialization when page loads
+        log('Script loaded, document ready state: ' + document.readyState);
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializePicker);
+        } else {
+            // Small delay to ensure everything is ready
+            setTimeout(initializePicker, 100);
+        }
+        
+    </script>
+</body>
+</html>

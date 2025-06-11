@@ -130,44 +130,28 @@ class ShareResultsController {
 
     try {
       // Execute the sheet creation with a loading dialog
-      final sheetUri = await DialogUtils.executeWithLoadingDialog<Uri>(
-        globalContext,
-        loadingMessage: 'Creating Google Sheet...',
-        allowCancel: true, // Let user cancel if it's taking too long
-        operation: () async {
-          final List<List<dynamic>> data = await _formattedResultsController.formattedSheetsData;
-
-          if (!globalContext.mounted) throw Exception('Context is not mounted');    
-          // Create Google Sheet
-          final uri = await GoogleSheetsUtils.createSheetAndGetUri(
-            context: globalContext,
-            title: title,
-            data: data,
-          );
-          
-          if (uri == null) {
-            throw Exception('Failed to create Google Sheet');
-          }
-        
-          return uri;
-        },
+      final sheetUri = await GoogleSheetsUtils.createSheetAndGetUri(
+        context: globalContext,
+        title: title,
+        data: await _formattedResultsController.formattedSheetsData,
       );
+          
+      if (sheetUri == null) {
+        throw Exception('Failed to create Google Sheet');
+      }
 
       Logger.d('Sheet URI: $sheetUri');
       
-      // If sheet creation was successful, show options dialog using the stored navigator
-      if (sheetUri != null) {
-        if (globalContext.mounted) {
-          await _showGoogleSheetOptions(globalContext, sheetUri);
-        } else {
-          if (context.mounted) {
-            _share(globalContext, ShareParams(
-              text: sheetUri.toString(),
-              subject: title,
-              title: title,
-            ));
-          }
-          
+      // Show options dialog using the stored navigator
+      if (globalContext.mounted) {
+        await _showGoogleSheetOptions(globalContext, sheetUri);
+      } else {
+        if (context.mounted) {
+          _share(globalContext, ShareParams(
+            text: sheetUri.toString(),
+            subject: title,
+            title: title,
+          ));
         }
       }
     } catch (e) {

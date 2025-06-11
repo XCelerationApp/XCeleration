@@ -1,128 +1,239 @@
 import 'dart:io';
-import 'package:xceleration/core/utils/logger.dart';
-import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter/material.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
-import 'package:http/http.dart' as http;
+import 'package:googleapis/sheets/v4.dart' as sheets;
 import 'package:path_provider/path_provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:xceleration/core/components/dialog_utils.dart';
+import 'package:xceleration/core/utils/logger.dart';
+import 'google_auth_service.dart';
+import 'google_picker_service.dart';
 
+/// Service for interacting with Google Drive API with drive.file scope
+/// This implementation uses GooglePickerService to select files
+/// and only accesses files that the user has explicitly chosen
 class GoogleDriveService {
   static GoogleDriveService? _instance;
+  final GoogleAuthService _authService = GoogleAuthService.instance;
+  final GooglePickerService _pickerService = GooglePickerService.instance;
   
-  final GoogleSignIn _googleSignIn = GoogleSignIn(
-    scopes: [
-      'https://www.googleapis.com/auth/drive.readonly',
-    ],
-    clientId: '529053126812-cuhlura1vskuup3lg6hpf6iup6mlje6v.apps.googleusercontent.com',
-  );
-  
-  GoogleSignInAccount? _currentUser;
   drive.DriveApi? _driveApi;
+  sheets.SheetsApi? _sheetsApi;
+  
+  // Note: We don't specify scopes here as GoogleAuthService now handles this centrally
 
-  GoogleDriveService._();
+  GoogleDriveService._() {
+    // No need to initialize scopes here - GoogleAuthService handles scopes centrally
+  }
 
   static GoogleDriveService get instance {
     _instance ??= GoogleDriveService._();
     return _instance!;
   }
+  
+  /// Initialize Drive API client if needed
+  Future<drive.DriveApi?> _getDriveApi() async {
+    if (_driveApi != null) return _driveApi;
+    
+    final client = await _authService.getAuthClient();
+    if (client == null) return null;
+    
+    _driveApi = drive.DriveApi(client);
+    return _driveApi;
+  }
+  
+  /// Initialize Sheets API client if needed
+  Future<sheets.SheetsApi?> _getSheetsApi() async {
+    if (_sheetsApi != null) return _sheetsApi;
+    
+    final client = await _authService.getAuthClient();
+    if (client == null) return null;
+    
+    _sheetsApi = sheets.SheetsApi(client);
+    return _sheetsApi;
+  }
 
   /// Signs in to Google if not already signed in and sets up Drive API client
   Future<bool> signInAndSetup() async {
     try {
-      if (_currentUser == null) {
-        _currentUser = await _googleSignIn.signIn();
-        if (_currentUser == null) {
-          return false; // User canceled the sign-in
-        }
-      }
-
-      // Get auth headers and setup Drive API
-      final headers = await _currentUser!.authHeaders;
-      final client = GoogleAuthClient(headers);
-      _driveApi = drive.DriveApi(client);
+      final success = await _authService.signIn();
+      if (!success) return false;
       
-      // Save user info to preferences for later use
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('google_user_email', _currentUser!.email);
-      await prefs.setString('google_user_name', _currentUser!.displayName ?? '');
-      
+      // Initialize the Drive API
+      await _getDriveApi();
       return true;
     } catch (error) {
-      Logger.d('Error signing in to Google: $error');
+      Logger.d('Error setting up Google Drive: $error');
       return false;
     }
   }
 
+  /// Sign out current user and clear API instances
   Future<void> signOut() async {
-    await _googleSignIn.signOut();
-    _currentUser = null;
+    await _authService.signOut();
     _driveApi = null;
-    
-    // Clear saved user info
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('google_user_email');
-    await prefs.remove('google_user_name');
-  }
-
-  /// Gets the current signed-in user or tries to sign in silently
-  Future<GoogleSignInAccount?> getCurrentUser() async {
-    if (_currentUser != null) return _currentUser;
-    
-    try {
-      _currentUser = await _googleSignIn.signInSilently();
-      if (_currentUser != null) {
-        // Setup Drive API
-        final headers = await _currentUser!.authHeaders;
-        final client = GoogleAuthClient(headers);
-        _driveApi = drive.DriveApi(client);
-      }
-      return _currentUser;
-    } catch (e) {
-      Logger.d('Error getting current user: $e');
-      return null;
-    }
-  }
-  
-  /// Get the access token for API usage
-  Future<String?> getAccessToken() async {
-    if (_currentUser == null) {
-      final success = await signInAndSetup();
-      if (!success) return null;
-    }
-    
-    try {
-      final auth = await _currentUser!.authentication;
-      return auth.accessToken;
-    } catch (e) {
-      Logger.d('Error getting access token: $e');
-      return null;
-    }
+    _sheetsApi = null;
   }
   
   /// Get file metadata by ID
   Future<drive.File?> getFileInfo(String fileId) async {
-    if (_driveApi == null) {
-      final success = await signInAndSetup();
-      if (!success) return null;
-    }
+    final api = await _getDriveApi();
+    if (api == null) return null;
     
     try {
-      return await _driveApi!.files.get(fileId) as drive.File;
+      return await api.files.get(fileId) as drive.File;
     } catch (e) {
       Logger.d('Error getting file info: $e');
       return null;
     }
   }
 
-  /// Lists spreadsheet files from Google Drive
-  Future<List<drive.File>> listSpreadsheetFiles() async {
-    if (_driveApi == null) {
-      final success = await signInAndSetup();
-      if (!success) return [];
+  /// Pick a spreadsheet file using the Google Picker API
+  /// This works with the restricted drive.file scope
+  /// Returns a local file downloaded from Google Drive
+  Future<File?> pickSpreadsheetFile(BuildContext context) async {
+    try {
+      // Make sure we're signed in first
+      final signedIn = await _authService.signIn();
+      if (!signedIn) {
+        if (context.mounted) {
+          DialogUtils.showErrorDialog(
+            context,
+            message: 'Sign-in Failed: Unable to sign in to Google. Please try again.'
+          );
+        }
+        return null;
+      }
+      
+      // Use the picker service to let the user select a file
+      final file = await _pickerService.pickFile(context);
+      if (file == null) {
+        // User cancelled or error occurred (already handled in picker service)
+        return null;
+      }
+      
+      return file;
+    } catch (e) {
+      Logger.d('Error picking spreadsheet file: $e');
+      if (context.mounted) {
+        DialogUtils.showErrorDialog(
+          context,
+          message: 'File Selection Error: An error occurred while selecting the file. Please try again.'
+        );
+      }
+      return null;
     }
+  }
+
+  /// Creates a new Google Sheet with the given title
+  /// Returns the file ID and name of the created sheet
+  Future<Map<String, String>?> createGoogleSheet(BuildContext context, String title) async {
+    try {
+      // Make sure we're signed in and have Sheets API
+      final sheetsApi = await _getSheetsApi();
+      final driveApi = await _getDriveApi();
+      
+      if (sheetsApi == null || driveApi == null) {
+        if (context.mounted) {
+          DialogUtils.showErrorDialog(
+            context,
+            message: 'Connection Error: Unable to connect to Google Services. Please check your connection and try again.'
+          );
+        }
+        return null;
+      }
+
+      if (!context.mounted) return null;
+      
+      return await DialogUtils.executeWithLoadingDialog<Map<String, String>>(
+        context,
+        operation: () async {
+          // Create a new spreadsheet
+          final spreadsheet = sheets.Spreadsheet(properties: sheets.SpreadsheetProperties(title: title));
+          final createdSpreadsheet = await sheetsApi.spreadsheets.create(spreadsheet);
+          
+          // Get the spreadsheet ID
+          final spreadsheetId = createdSpreadsheet.spreadsheetId;
+          if (spreadsheetId == null) {
+            throw Exception('Failed to create spreadsheet: No ID returned');
+          }
+          
+          // Make the file accessible via link
+          await driveApi.permissions.create(
+            drive.Permission(type: 'anyone', role: 'reader', allowFileDiscovery: false),
+            spreadsheetId,
+          );
+          
+          return {
+            'id': spreadsheetId,
+            'name': title,
+          };
+          
+        },
+        loadingMessage: 'Creating new spreadsheet...'
+      );
+    } catch (e) {
+      Logger.d('Error creating spreadsheet: $e');
+      
+      if (context.mounted) {
+        DialogUtils.showErrorDialog(
+          context,
+          message: 'Error Creating Spreadsheet: Failed to create a new spreadsheet. Please try again later.'
+        );
+      }
+      return null;
+    }
+  }
+  
+  /// Get the web view link for a file
+  Future<String?> getWebViewLink(String fileId) async {
+    final api = await _getDriveApi();
+    if (api == null) return null;
     
     try {
-      final fileList = await _driveApi!.files.list(
+      final file = await api.files.get(
+        fileId,
+        $fields: 'webViewLink',
+      ) as drive.File;
+      
+      return file.webViewLink;
+    } catch (e) {
+      Logger.d('Error getting web view link: $e');
+      return null;
+    }
+  }
+  
+  /// Set a file to be accessible to anyone with the link
+  Future<bool> setFilePublicPermission(String fileId) async {
+    final api = await _getDriveApi();
+    if (api == null) return false;
+    
+    try {
+      await api.permissions.create(
+        drive.Permission(
+          type: 'anyone',
+          role: 'reader',
+          allowFileDiscovery: false,
+        ),
+        fileId,
+      );
+      return true;
+    } catch (e) {
+      Logger.d('Error setting file permissions: $e');
+      return false;
+    }
+  }
+  
+  /// Lists spreadsheet files from Google Drive
+  /// NOTE: This is kept for backward compatibility with existing code
+  /// For new code, use pickSpreadsheetFile instead as it works with drive.file scope
+  @Deprecated('Use pickSpreadsheetFile instead for drive.file scope support')
+  Future<List<drive.File>> listSpreadsheetFiles() async {
+    Logger.d('WARNING: Using deprecated listSpreadsheetFiles method that requires drive.readonly scope');
+    final api = await _getDriveApi();
+    if (api == null) return [];
+    
+    try {
+      final fileList = await api.files.list(
         q: "mimeType='application/vnd.google-apps.spreadsheet' or mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' or mimeType='text/csv'",
         spaces: 'drive',
         $fields: 'files(id, name, mimeType)',
@@ -134,17 +245,19 @@ class GoogleDriveService {
       return [];
     }
   }
-
+  
   /// Downloads a file from Google Drive by its fileId
+  /// NOTE: This is kept for backward compatibility with existing code
+  /// For new code, use pickSpreadsheetFile instead as it works with drive.file scope
+  @Deprecated('Use pickSpreadsheetFile instead for drive.file scope support')
   Future<File?> downloadFile(String fileId, String fileName) async {
-    if (_driveApi == null) {
-      final success = await signInAndSetup();
-      if (!success) return null;
-    }
+    Logger.d('WARNING: Using deprecated downloadFile method that requires drive.readonly scope');
+    final api = await _getDriveApi();
+    if (api == null) return null;
     
     try {
       // Get the file metadata to determine appropriate extension
-      final fileMetadata = await _driveApi!.files.get(
+      final fileMetadata = await api.files.get(
         fileId,
         $fields: 'mimeType,name',
       ) as drive.File;
@@ -154,7 +267,7 @@ class GoogleDriveService {
       
       if (mimeType == 'application/vnd.google-apps.spreadsheet') {
         // Export Google Sheets to Excel format
-        final response = await _driveApi!.files.export(
+        final response = await api.files.export(
           fileId,
           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
           downloadOptions: drive.DownloadOptions.fullMedia,
@@ -163,7 +276,7 @@ class GoogleDriveService {
         return _saveResponseToFile(response as drive.Media, fileName + extension);
       } else {
         // Download regular files (like .xlsx or .csv)
-        final response = await _driveApi!.files.get(
+        final response = await api.files.get(
           fileId,
           downloadOptions: drive.DownloadOptions.fullMedia,
         );
@@ -182,6 +295,7 @@ class GoogleDriveService {
     }
   }
   
+  /// Save a media stream to a local file
   Future<File> _saveResponseToFile(drive.Media media, String filename) async {
     final directory = await getTemporaryDirectory();
     final file = File('${directory.path}/$filename');
@@ -193,19 +307,5 @@ class GoogleDriveService {
     
     await file.writeAsBytes(dataStore);
     return file;
-  }
-}
-
-/// Client to authenticate requests using OAuth2 credentials
-class GoogleAuthClient extends http.BaseClient {
-  final Map<String, String> _headers;
-  final http.Client _client = http.Client();
-
-  GoogleAuthClient(this._headers);
-
-  @override
-  Future<http.StreamedResponse> send(http.BaseRequest request) {
-    request.headers.addAll(_headers);
-    return _client.send(request);
   }
 }
