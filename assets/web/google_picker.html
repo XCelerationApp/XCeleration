@@ -5,21 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Google Drive Picker</title>
     <style>
-        html, body { 
-            height: 100%; 
-            width: 100%; 
-            margin: 0; 
-            padding: 0; 
-            overflow: hidden; 
-            background-color: white;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
         
-        #loading { 
-            display: flex; 
-            flex-direction: column;
-            justify-content: center; 
-            align-items: center; 
-            height: 100%;
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: #fff;
+            min-height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
         .spinner { 
@@ -32,302 +30,235 @@
             margin-bottom: 15px;
         }
         
-        @keyframes spin { 
-            to { transform: rotate(360deg); } 
-        }
-        
-        #debug {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: rgba(0,0,0,0.8);
-            color: white;
-            font-family: monospace;
-            font-size: 10px;
-            padding: 8px;
-            max-height: 150px;
-            overflow: auto;
-            z-index: 9999;
-            display: block; /* Show by default for debugging */
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
-    <div id="loading">
+    <div id="loading" style="text-align: center;">
         <div class="spinner"></div>
-        <div id="loadingText" style="font-family: Arial; color: #333;">Loading Google Picker...</div>
+        <div>Loading Google Drive Picker...</div>
     </div>
-    
-    <div id="debug"></div>
 
     <script>
-        // Constants for the picker API - these will be replaced at runtime
-        const ACCESS_TOKEN = '{{DEFAULT_ACCESS_TOKEN}}';
-        const DEVELOPER_KEY = '{{DEFAULT_DEVELOPER_KEY}}';
-        const JS_CHANNEL = '{{DEFAULT_JS_CHANNEL}}';
+        // Console logging setup
+        console.originalLog = console.log;
+        console.originalError = console.error;
+        console.originalWarn = console.warn;
         
-        // Track if picker has been created to prevent duplicates
-        let pickerCreated = false;
-        
-        // Log to Flutter and to debug div
-        function log(message) {
-            console.log(message);
-            const debug = document.getElementById('debug');
-            if (debug) {
-                const div = document.createElement('div');
-                div.textContent = new Date().toLocaleTimeString() + ': ' + message;
-                debug.appendChild(div);
-                debug.scrollTop = debug.scrollHeight;
+        console.log = function() {
+            console.originalLog.apply(console, arguments);
+            var message = Array.prototype.slice.call(arguments).join(' ');
+            if (window.LogChannel) {
+                window.LogChannel.postMessage('[LOG] ' + message);
             }
-        }
+        };
         
+        console.error = function() {
+            console.originalError.apply(console, arguments);
+            var message = Array.prototype.slice.call(arguments).join(' ');
+            if (window.LogChannel) {
+                window.LogChannel.postMessage('[ERROR] ' + message);
+            }
+        };
+        
+        console.warn = function() {
+            console.originalWarn.apply(console, arguments);
+            var message = Array.prototype.slice.call(arguments).join(' ');
+            if (window.LogChannel) {
+                window.LogChannel.postMessage('[WARN] ' + message);
+            }
+        };
+        
+        window.addEventListener('error', function(e) {
+            if (window.LogChannel) {
+                window.LogChannel.postMessage('[JS ERROR] ' + e.message + ' at ' + e.filename + ':' + e.lineno);
+            }
+        });
+
+        // Global variables that will be set by Flutter
+        let DEVELOPER_KEY = '';
+        let ACCESS_TOKEN = '';
+        let JS_CHANNEL = '';
+        
+        let gapi_loaded = false;
+        let picker_loaded = false;
+        let scripts_loaded = false;
+
         // Send a message back to Flutter
         function sendToFlutter(data) {
-            log('Sending to Flutter: ' + JSON.stringify(data));
-            if (window[JS_CHANNEL]) {
+            const channelName = window.JS_CHANNEL || JS_CHANNEL;
+            if (window[channelName]) {
                 try {
-                    window[JS_CHANNEL].postMessage(JSON.stringify(data));
+                    console.log('Sending to Flutter:', data);
+                    window[channelName].postMessage(JSON.stringify(data));
                 } catch (e) {
-                    log('Error sending to Flutter: ' + e);
+                    console.error('Error sending to Flutter:', e);
                 }
             } else {
-                log('Error: Flutter channel "' + JS_CHANNEL + '" not available');
-                log('Available window properties: ' + Object.keys(window).join(', '));
+                console.error('Flutter channel not available:', channelName);
             }
         }
-        
-        // Update loading text
-        function updateLoadingText(text) {
-            const loadingText = document.getElementById('loadingText');
-            if (loadingText) loadingText.textContent = text;
-        }
-        
-        // Hide loading indicator
-        function hideLoading() {
-            const loading = document.getElementById('loading');
-            if (loading) loading.style.display = 'none';
-        }
-        
-        // Show error state
-        function showError(message) {
-            hideLoading();
-            document.body.innerHTML = `
-                <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; padding: 20px; text-align: center;">
-                    <div style="color: #d32f2f; font-size: 48px; margin-bottom: 20px;">⚠️</div>
-                    <h2 style="color: #333; margin-bottom: 10px;">Error</h2>
-                    <p style="color: #666; margin-bottom: 20px; max-width: 400px;">${message}</p>
-                    <button onclick="sendToFlutter({action: 'canceled', error: '${message}'})" 
-                            style="padding: 10px 20px; background: #1976d2; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                        Close
-                    </button>
-                    <div id="debug" style="position: static; background: #f5f5f5; color: black; margin-top: 20px; padding: 10px; border-radius: 4px; font-size: 10px; font-family: monospace; max-height: 200px; overflow: auto;"></div>
-                </div>
-            `;
-        }
-        
-        // Initialize the picker when everything is ready
-        function initializePicker() {
-            log('=== INITIALIZATION START ===');
-            log('ACCESS_TOKEN raw: "' + ACCESS_TOKEN + '"');
-            log('ACCESS_TOKEN length: ' + ACCESS_TOKEN.length);
-            log('ACCESS_TOKEN type: ' + typeof ACCESS_TOKEN);
-            log('DEVELOPER_KEY: ' + (DEVELOPER_KEY ? DEVELOPER_KEY.substring(0, 30) + '...' : 'NOT SET'));
-            log('JS_CHANNEL: ' + JS_CHANNEL);
-            
-            // Clean the access token - remove any potential whitespace
-            const cleanToken = ACCESS_TOKEN.trim();
-            log('Cleaned token: "' + cleanToken.substring(0, 30) + '..." (length: ' + cleanToken.length + ')');
-            
-            // Basic validation - check that tokens arent empty
-            if (cleanToken.isEmpty) {
-                log('ERROR: Access token validation failed');
-                log('Token equals placeholder: ' + (cleanToken.isEmpty));
-                log('Token is empty: ' + (cleanToken === ''));                showError('Access token not configured properly');
-                sendToFlutter({action: 'canceled', error: 'Access token validation failed: "' + cleanToken + '"'});
-                return;
-            }
-            
-            
-            if (DEVELOPER_KEY.isEmpty) {
-                log('ERROR: Developer key validation failed');
-                showError('Developer key not configured properly');
-                sendToFlutter({action: 'canceled', error: 'Developer key validation failed: "' + DEVELOPER_KEY + '"'});
-                return;
-            }
-            
-            // Log successful validation
-            log('Credentials validated successfully');
-            log('Using cleaned token: ' + cleanToken.substring(0, 20) + '...');
-            log('Developer key length: ' + DEVELOPER_KEY.length);
 
-            // sendToFlutter({action: 'picker_ready'});
-            
-            if (pickerCreated) {
-                log('Picker already created, skipping');
-                return;
-            }
-            
-            updateLoadingText('Loading Google APIs...');
-            
-            // Load the Google API
-            const script = document.createElement('script');
-            script.src = 'https://apis.google.com/js/api.js';
-            script.onload = function() {
-                log('Google API script loaded successfully');
-                setTimeout(onApiLoad, 100);
-            };
-            script.onerror = function() {
-                log('ERROR: Failed to load Google APIs script');
-                showError('Failed to load Google APIs');
-            };
-            document.head.appendChild(script);
+        function onGapiLoad() {
+            console.log('GAPI loaded');
+            gapi_loaded = true;
+            checkReadyAndInit();
         }
-        
-        // Called when Google API is loaded
-        function onApiLoad() {
-            log('onApiLoad called');
-            updateLoadingText('Loading Google Picker...');
-            
-            if (typeof gapi === 'undefined') {
-                log('ERROR: gapi is undefined');
-                showError('Google API not available');
-                sendToFlutter({action: 'canceled', error: 'Google API not available'});
-                return;
-            }
-            
-            log('gapi is available, loading picker...');
-            gapi.load('picker', {
-                callback: function() {
-                    log('Google Picker API loaded successfully');
-                    setTimeout(createPicker, 500);
-                },
-                onerror: function(error) {
-                    log('ERROR loading picker: ' + JSON.stringify(error));
-                    showError('Failed to load Google Picker API: ' + JSON.stringify(error));
-                }
+
+        function onPickerLoad() {
+            console.log('Picker API loaded');
+            picker_loaded = true;
+            checkReadyAndInit();
+        }
+
+        function checkReadyAndInit() {
+            console.log('Checking ready state:', {
+                gapi_loaded,
+                picker_loaded,
+                scripts_loaded,
+                has_developer_key: !!DEVELOPER_KEY,
+                has_access_token: !!ACCESS_TOKEN,
+                has_js_channel: !!JS_CHANNEL
             });
+
+            if (gapi_loaded && picker_loaded && scripts_loaded && DEVELOPER_KEY && ACCESS_TOKEN && JS_CHANNEL) {
+                console.log('All ready, initializing picker');
+                initializePicker();
+            }
         }
-        
-        // Create and show the picker
-        function createPicker() {
-            if (pickerCreated) {
-                log('Picker already created');
-                return;
-            }
-            
-            log('Creating picker...');
-            
-            // Check if google object is available
-            if (typeof google === 'undefined' || !google.picker) {
-                log('Google picker not available, retrying in 1 second...');
-                setTimeout(createPicker, 1000);
-                return;
-            }
-            
+
+        function initializePicker() {
             try {
-                log('Creating picker with validated credentials');
+                console.log('Initializing picker with:');
+                console.log('- Developer key length:', DEVELOPER_KEY.length);
+                console.log('- Access token length:', ACCESS_TOKEN.length);
+                console.log('- JS Channel:', JS_CHANNEL);
                 
-                // Use the cleaned token
-                const cleanToken = ACCESS_TOKEN.trim();
+                // Hide loading indicator
+                const loading = document.getElementById('loading');
+                if (loading) {
+                    loading.style.display = 'none';
+                }
+
+                // Create a custom view for spreadsheets, CSV, and XLSX files
+                const spreadsheetView = new google.picker.DocsView()
+                    .setMimeTypes('application/vnd.google-apps.spreadsheet,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv')
+                    .setMode(google.picker.DocsViewMode.LIST);
                 
-                // Create a view for Google Sheets
-                const sheetsView = new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS)
-                    .setIncludeFolders(true)
-                    .setSelectFolderEnabled(false);
-                
-                // Create a view for uploaded files (Excel, CSV)
-                const docsView = new google.picker.DocsView()
-                    .setIncludeFolders(true)
-                    .setSelectFolderEnabled(false)
-                    .setMimeTypes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv,application/vnd.ms-excel');
-                
-                // Create the picker
+                // Create picker with explicit sizing and positioning
                 const picker = new google.picker.PickerBuilder()
+                    .setDeveloperKey(DEVELOPER_KEY)
+                    .setOAuthToken(ACCESS_TOKEN)
+                    .setOrigin('*')
+                    .addView(spreadsheetView)
+                    .setTitle('Select a Spreadsheet')
                     .enableFeature(google.picker.Feature.NAV_HIDDEN)
                     .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
-                    .setDeveloperKey(DEVELOPER_KEY)
-                    .setOAuthToken(cleanToken)
-                    .addView(sheetsView)
-                    .addView(docsView)
+                    .setSize(google.picker.Size.DIALOG)
                     .setCallback(pickerCallback)
-                    .setTitle('Select a spreadsheet file')
-                    .setSize(Math.min(window.innerWidth - 40, 800), Math.min(window.innerHeight - 40, 600))
                     .build();
+
+                console.log('Picker built successfully, showing picker');
                 
-                pickerCreated = true;
-                hideLoading();
-                picker.setVisible(true);
-                
-                log('Picker created and shown successfully');
-                
+                // Add a small delay to ensure DOM is ready
+                setTimeout(() => {
+                    picker.setVisible(true);
+                    console.log('Picker visibility set to true');
+                    
+                    // Add a fallback check
+                    setTimeout(() => {
+                        const pickerFrame = document.querySelector('iframe[src*="picker"]');
+                        if (pickerFrame) {
+                            console.log('Picker iframe found:', pickerFrame);
+                            pickerFrame.style.zIndex = '10000';
+                        } else {
+                            console.warn('Picker iframe not found after 2 seconds');
+                            sendToFlutter({ action: 'error', message: 'Picker failed to display - iframe not found' });
+                        }
+                    }, 2000);
+                }, 100);
+
             } catch (error) {
-                log('ERROR creating picker: ' + error.toString());
-                log('Error stack: ' + error.stack);
-                showError('Failed to create Google Picker: ' + error.message);
+                console.error('Error initializing picker:', error);
+                sendToFlutter({ action: 'error', message: 'Picker initialization error: ' + error.message });
             }
         }
-        
-        // Handle picker results
+
         function pickerCallback(data) {
-            log('Picker callback: ' + JSON.stringify(data));
+            console.log('Picker callback:', data);
             
             if (data.action === google.picker.Action.PICKED) {
-                const docs = data.docs;
-                log('Files picked: ' + docs.length);
-                
-                // Filter for supported file types
-                const supportedDocs = docs.filter(doc => {
-                    const mimeType = doc.mimeType;
-                    const name = doc.name.toLowerCase();
-                    
-                    return mimeType === 'application/vnd.google-apps.spreadsheet' ||
-                           mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
-                           mimeType === 'text/csv' ||
-                           mimeType === 'application/vnd.ms-excel' ||
-                           name.endsWith('.xlsx') || name.endsWith('.xls') || name.endsWith('.csv');
-                });
-                
-                if (supportedDocs.length === 0) {
-                    log('No supported file types selected');
-                    showError('Please select a spreadsheet file (Google Sheets, Excel, or CSV)');
-                    return;
-                }
-                
-                sendToFlutter({
-                    action: 'picked',
-                    docs: supportedDocs
-                });
-                
+                const file = data.docs[0];
+                console.log('File picked:', file);
+                sendToFlutter({ action: 'picked', data: file, isLocalFile: false });
             } else if (data.action === google.picker.Action.CANCEL) {
-                log('Picker canceled');
-                sendToFlutter({action: 'canceled'});
-                
-            } else {
-                log('Unknown picker action: ' + data.action);
+                console.log('Picker cancelled');
+                sendToFlutter({ action: 'canceled' });
             }
         }
-        
-        // Handle window resize
-        window.addEventListener('resize', function() {
-            log('Window resized');
-        });
-        
-        // Handle errors
-        window.addEventListener('error', function(e) {
-            log('JavaScript error: ' + e.message + ' at ' + e.filename + ':' + e.lineno);
-            showError('An error occurred while loading the picker: ' + e.message);
-        });
-        
-        // Start initialization when page loads
-        log('Script loaded, document ready state: ' + document.readyState);
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initializePicker);
-        } else {
-            // Small delay to ensure everything is ready
-            setTimeout(initializePicker, 100);
+
+        // Function to be called by Flutter to set variables and trigger initialization
+        window.setPickerVariables = function(developerKey, accessToken, jsChannel) {
+            console.log('Setting picker variables from Flutter');
+            DEVELOPER_KEY = developerKey;
+            ACCESS_TOKEN = accessToken;
+            JS_CHANNEL = jsChannel;
+            checkReadyAndInit();
+        };
+
+        // Load the Google APIs
+        function loadGoogleAPIs() {
+            console.log('Loading Google APIs');
+            
+            // Load the GAPI script
+            const gapiScript = document.createElement('script');
+            gapiScript.src = 'https://apis.google.com/js/api.js';
+            gapiScript.onload = function() {
+                console.log('GAPI script loaded, loading picker');
+                gapi.load('picker', {
+                    callback: onGapiLoad,
+                    onerror: function(e) {
+                        console.error('Error loading picker:', e);
+                        sendToFlutter({ action: 'error', message: 'Failed to load Google Picker API' });
+                    }
+                });
+            };
+            gapiScript.onerror = function(e) {
+                console.error('Error loading GAPI script:', e);
+                sendToFlutter({ action: 'error', message: 'Failed to load Google API script' });
+            };
+            
+            // Load the Picker script
+            const pickerScript = document.createElement('script');
+            pickerScript.src = 'https://apis.google.com/js/picker.js';
+            pickerScript.onload = onPickerLoad;
+            pickerScript.onerror = function(e) {
+                console.error('Error loading picker script:', e);
+                sendToFlutter({ action: 'error', message: 'Failed to load Google Picker script' });
+            };
+            
+            document.head.appendChild(gapiScript);
+            document.head.appendChild(pickerScript);
+            
+            scripts_loaded = true;
         }
-        
+
+        // Initialize when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, starting initialization');
+            loadGoogleAPIs();
+        });
+
+        // Fallback - also try to initialize immediately if DOM is already loaded
+        if (document.readyState === 'loading') {
+            // DOM hasn't finished loading yet
+        } else {
+            // DOM has already loaded
+            console.log('DOM already loaded, starting initialization immediately');
+            loadGoogleAPIs();
+        }
     </script>
 </body>
 </html>

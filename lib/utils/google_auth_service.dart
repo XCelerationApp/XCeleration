@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 /// Authentication client for Google APIs
 class GoogleAuthClient extends http.BaseClient {
@@ -28,7 +29,8 @@ class GoogleAuthClient extends http.BaseClient {
 /// Service for handling Google authentication
 class GoogleAuthService {
   static GoogleAuthService? _instance;
-  static const String _clientId = '529053126812-cuhlura1vskuup3lg6hpf6iup6mlje6v.apps.googleusercontent.com';
+  // Retrieve client ID from environment variables
+  static String get _clientId => dotenv.env['GOOGLE_OAUTH_CLIENT_ID'] ?? '';
   
   GoogleSignIn? _googleSignIn;
   GoogleSignInAccount? _currentUser;

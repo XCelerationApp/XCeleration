@@ -3,12 +3,13 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:xceleration/core/components/dialog_utils.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:xceleration/utils/file_utils.dart';
 import 'google_auth_service.dart';
 
 
@@ -20,8 +21,8 @@ class GooglePickerService {
   final GoogleAuthService _authService = GoogleAuthService.instance;
 
   // Google Picker API constants
-  static const String _apiKey = 'AIzaSyB-niOqpgw3cnQ5KL-OJb9_QyeQBD-WuPE';  // Your API key
-  static const String _developerKey = _apiKey; 
+  static String get _apiKey => dotenv.env['GOOGLE_API_KEY'] ?? '';
+  static String get _developerKey => _apiKey;
   
   GooglePickerService._();
   
@@ -46,22 +47,12 @@ class GooglePickerService {
             return token ?? '';
           },
           developerKey: _developerKey,
-          fallbackPicker: () => FilePicker.platform.pickFiles(
-            type: FileType.custom,
-            allowedExtensions: ['xlsx', 'xls', 'csv', 'ods'],
-            allowMultiple: false,
-          ).then((result) {
-            if (result != null && result.files.isNotEmpty) {
-              final file = result.files.first;
+          fallbackPicker: () => FileUtils.pickLocalSpreadsheetFile().then((result) {
+            if (result != null) {
               return {
                 'action': 'picked',
-                'docs': [{
-                  'id': 'local_${DateTime.now().millisecondsSinceEpoch}',
-                  'name': file.name,
-                  'url': file.path,
-                  'mimeType': 'local/file',
-                  'isLocalFile': true
-                }]
+                'data': result,
+                'isLocalFile': true
               };
             }
             return {'action': 'canceled'};
@@ -77,246 +68,96 @@ class GooglePickerService {
   /// Rest of the GooglePickerService class remains the same...
   /// [Previous implementation continues here]
   
-  /// Opens a file picker that allows the user to select a file from Google Drive or local storage
+  /// Opens a file picker that allows the user to select a file from Google Drive
   /// Returns the selected file as a temporary file downloaded to the device
   /// Only allows selection of spreadsheet files (Google Sheets, CSV, XLSX)
-  Future<File?> pickFile(BuildContext context) async {
+  Future<File?> pickGoogleDriveFile(BuildContext context) async {
     try {
-      // Let user choose Drive or local
-      final pickerChoice = await showDialog<String>(
-        context: context,
-        builder: (BuildContext dialogContext) {
-          return Dialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            child: Container(
-              width: 320,
-              padding: const EdgeInsets.symmetric(vertical: 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Dialog header
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                    child: const Text(
-                      'Choose File Source',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  
-                  // Google Drive option
-                  InkWell(
-                    onTap: () => Navigator.of(dialogContext).pop('google_drive'),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.blue.shade50,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(Icons.cloud, color: Colors.blue, size: 28),
-                          ),
-                          const SizedBox(width: 16),
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Google Drive',
-                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                                ),
-                                SizedBox(height: 4),
-                                Text(
-                                  'Access files from your Drive',
-                                  style: TextStyle(fontSize: 13, color: Colors.black54),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const Icon(Icons.chevron_right),
-                        ],
-                      ),
-                    ),
-                  ),
-                  
-                  const Divider(height: 32),
-                  
-                  // Local files option
-                  InkWell(
-                    onTap: () => Navigator.of(dialogContext).pop('local_files'),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.green.shade50,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(Icons.folder_open, color: Colors.green, size: 28),
-                          ),
-                          const SizedBox(width: 16),
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Local Files',
-                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                                ),
-                                SizedBox(height: 4),
-                                Text(
-                                  'Select files from your device',
-                                  style: TextStyle(fontSize: 13, color: Colors.black54),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const Icon(Icons.chevron_right),
-                        ],
-                      ),
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 16),
-                  
-                  // Cancel button
-                  TextButton(
-                    onPressed: () => Navigator.of(dialogContext).pop(null),
-                    child: const Text('Cancel'),
-                  ),
-                ],
-              ),
-            ),
+      // Directly proceed with Google Drive flow without showing the source selection dialog
+      Logger.d('Proceeding directly with Google Drive picker');
+
+      // Get access token for Google Drive
+      final accessToken = await _authService.getAccessToken();
+      if (accessToken == null) {
+        Logger.d('Failed to get access token');
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to authenticate with Google Drive')),
           );
-        },
-      );
-      
-      // If user canceled, return null
-      if (pickerChoice == null) {
+        }
         return null;
       }
-      
-      if (pickerChoice == 'google_drive') {
-        // --- Google Drive flow ---
-        final accessToken = await _authService.getAccessToken();
-        if (accessToken == null) {
-          Logger.d('Failed to get access token');
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Failed to authenticate with Google Drive')),
-            );
-          }
-          return null;
-        }
 
-        // Show picker dialog with loading indicator
-        Map<String, dynamic>? pickerResult;
+      // Show picker dialog with loading indicator
+      Map<String, dynamic>? pickerResult;
+      if (context.mounted) {
+        pickerResult = await GooglePickerService.showPicker(context: context);
+      }
+
+      // Validate picker result
+      if (pickerResult == null || pickerResult['action'] != 'picked') {
+        if (pickerResult != null && pickerResult['action'] == 'canceled') {
+          Logger.d('User canceled Google Drive picker');
+        } else {
+          Logger.e('Error picking file: $pickerResult');
+        }
+        return null;
+      }
+
+      final doc = pickerResult['data'] as Map<String, dynamic>?;
+      if (doc == null) {
+        Logger.d('No documents selected');
+        return null;
+      }
+
+      final fileId = doc['id'] as String?;
+      final fileName = doc['name'] as String?;
+
+      if (fileId == null || fileName == null) {
+        Logger.d('Invalid document data: $doc');
+        return null;
+      }
+
+      if (!_isSupportedFileType('', fileName)) {
+        Logger.d('Unsupported file type: $fileName');
         if (context.mounted) {
-          pickerResult = await GooglePickerService.showPicker(context: context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('File format not supported. Please select a spreadsheet file (XLSX, CSV, XLS)')),
+          );
         }
+        return null;
+      }
 
-        // Validate picker result
-        if (pickerResult == null || pickerResult['action'] != 'picked') {
-          Logger.d('User canceled Google Drive picker or no file selected: $pickerResult');
-          return null;
-        }
+      if (pickerResult['isLocalFile'] == true) {
+        return File(pickerResult['data']['path']);
+      }
 
-        final docs = pickerResult['docs'] as List?;
-        if (docs == null || docs.isEmpty) {
-          Logger.d('No documents selected');
-          return null;
-        }
-
-        final doc = docs.first as Map<String, dynamic>;
-        final fileId = doc['id'] as String?;
-        final fileName = doc['name'] as String?;
-
-        if (fileId == null || fileName == null) {
-          Logger.d('Invalid document data: $doc');
-          return null;
-        }
-
-        if (!_isSupportedFileType('', fileName)) {
-          Logger.d('Unsupported file type: $fileName');
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('File format not supported. Please select a spreadsheet file (XLSX, CSV, XLS)')),
-            );
-          }
-          return null;
-        }
-
-        try {
-          // Download the file with loading dialog
-          if (context.mounted) {
-            final tempFile = await DialogUtils.executeWithLoadingDialog<File>(
-              context,
-              loadingMessage: 'Downloading file from Google Drive...',
-              operation: () => _downloadFile(fileId, accessToken, fileName),
-              allowCancel: true,
-            );
-            
-            if (tempFile != null) {
-              return tempFile;
-            }
-          }
+      try {
+        // Download the file with loading dialog
+        if (context.mounted) {
+          final tempFile = await DialogUtils.executeWithLoadingDialog<File>(
+            context,
+            loadingMessage: 'Downloading file from Google Drive...',
+            operation: () => _downloadFile(fileId, accessToken, fileName),
+            allowCancel: true,
+          );
           
-          return null;
-        } catch (e) {
-          
-          Logger.d('Error downloading file: $e');
-          if (context.mounted) {
-            DialogUtils.showErrorDialog(
-              context,
-              message: 'Download Failed: Could not download the selected file. Please try again.',
-            );
+          if (tempFile != null) {
+            return tempFile;
           }
-          return null;
         }
         
-      } else if (pickerChoice == 'local_files') {
-        // --- Local file flow ---
-        try {
-          final result = await FilePicker.platform.pickFiles(
-            type: FileType.custom,
-            allowedExtensions: ['xlsx', 'csv', 'xls'],
-            allowMultiple: false,
+        return null;
+      } catch (e) {
+        Logger.d('Error downloading file: $e');
+        if (context.mounted) {
+          DialogUtils.showErrorDialog(
+            context,
+            message: 'Download Failed: Could not download the selected file. Please try again.',
           );
-          if (result != null && result.files.single.path != null) {
-            final file = File(result.files.single.path!);
-            final fileName = result.files.single.name;
-            if (!_isSupportedFileType('', fileName)) {
-              Logger.d('Unsupported file type: $fileName');
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('File format not supported. Please select a spreadsheet file (XLSX, CSV, XLS)')),
-                );
-              }
-              return null;
-            }
-            return file;
-          } else {
-            Logger.d('User canceled local file picker or no file selected');
-            return null;
-          }
-        } catch (e) {
-          Logger.e('Error picking local file: $e');
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Error selecting file: ${e.toString()}')),
-            );
-          }
-          return null;
         }
+        return null;
       }
-      
-      return null;
     } catch (e) {
       Logger.d('Error in picker process: $e');
       if (context.mounted) {
@@ -446,6 +287,7 @@ class _GooglePickerDialogState extends State<GooglePickerDialog> {
       final token = await widget.getGoogleAuthToken();
       
       Logger.d('Access token received: ${token.isNotEmpty ? 'Present (${token.length} chars)' : 'Empty or null'}');
+      Logger.d('Access token: $token');
       
       if (!mounted) return;
       
@@ -517,40 +359,81 @@ class _GooglePickerDialogState extends State<GooglePickerDialog> {
         return;
       }
       
-      // Replace placeholders in HTML - ADD DEBUGGING HERE
-      final modifiedHtml = htmlContent
-          .replaceAll('{{DEFAULT_ACCESS_TOKEN}}', _accessToken!)
-          .replaceAll('{{DEFAULT_DEVELOPER_KEY}}', widget.developerKey)
-          .replaceAll('{{DEFAULT_JS_CHANNEL}}', 'PickerChannel');
       
-      // ADD THESE DEBUG LOGS
-      Logger.d('Original HTML contains DEFAULT_ACCESS_TOKEN placeholder: ${htmlContent.contains('{{DEFAULT_ACCESS_TOKEN}}')}');
-      Logger.d('Modified HTML contains DEFAULT_ACCESS_TOKEN placeholder: ${modifiedHtml.contains('{{DEFAULT_ACCESS_TOKEN}}')}');
-      Logger.d('Modified HTML contains actual token: ${modifiedHtml.contains(_accessToken!.substring(0, 20))}');
+      // Create WebViewController with all settings at once
+      final controller = WebViewController();
       
-      // Verify the replacement worked
-      if (modifiedHtml.contains('{{DEFAULT_ACCESS_TOKEN}}')) {
-        Logger.e('HTML placeholder replacement failed!');
-        setState(() {
-          _errorMessage = 'Failed to prepare HTML content. Please try again.';
-          _isLoading = false;
-        });
-        return;
-      }
+      // Set JavaScript mode
+      controller.setJavaScriptMode(JavaScriptMode.unrestricted);
       
-      Logger.d('HTML content prepared with token: ${_accessToken!.substring(0, 20)}...');
-      Logger.d('Developer key: ${widget.developerKey}');
+      // Add JavaScript channels
+      controller.addJavaScriptChannel(
+        'PickerChannel',
+        onMessageReceived: (JavaScriptMessage message) {
+          try {
+            Logger.d('📩 Received message from WebView: ${message.message}');
+            final data = jsonDecode(message.message);
+            
+            // Check if this is an error message
+            if (data['action'] == 'error') {
+              Logger.e('Error from picker: ${data['message']}');
+              if (mounted) {
+                setState(() {
+                  _errorMessage = data['message'] ?? 'Unknown error from picker';
+                  _isLoading = false;
+                });
+              }
+              return;
+            }
+            
+            widget.onPickerResult(data);
+            if (mounted) {
+              Navigator.pop(context);
+            }
+          } catch (e) {
+            Logger.e('Error parsing picker result: $e');
+          }
+        },
+      );
       
-      // Create controller with JavaScript channels
-      final controller = WebViewController()
-        ..setJavaScriptMode(JavaScriptMode.unrestricted)
-        ..setNavigationDelegate(
-          NavigationDelegate(
-            onPageStarted: (String url) {
-              Logger.d('WebView started loading: $url');
-            },
-            onPageFinished: (String url) {
-              Logger.d('WebView finished loading');
+      controller.addJavaScriptChannel(
+        'LogChannel',
+        onMessageReceived: (message) {
+          Logger.d('🌐 WebView: ${message.message}');
+        },
+      );
+      
+      // Set navigation delegate
+      controller.setNavigationDelegate(
+        NavigationDelegate(
+          onPageStarted: (String url) {
+            Logger.d('🌐 WebView started loading: $url');
+            
+          },
+          onPageFinished: (String url) {
+              Logger.d('🌐 WebView finished loading');
+              
+              // Inject diagnostic code to check if Google API loaded correctly
+              controller.runJavaScript('''
+                if (window.LogChannel) {
+                  LogChannel.postMessage('[STATUS] Page loaded, checking APIs');
+                  LogChannel.postMessage('[STATUS] gapi defined: ' + (typeof gapi !== 'undefined'));
+                  LogChannel.postMessage('[STATUS] google defined: ' + (typeof google !== 'undefined'));
+                  LogChannel.postMessage('[STATUS] google.picker defined: ' + 
+                    (typeof google !== 'undefined' && typeof google.picker !== 'undefined'));
+                }
+              ''');
+              // Set the variables using the new method
+              controller.runJavaScript('''
+                if (window.setPickerVariables) {
+                  window.setPickerVariables("${widget.developerKey}", "$_accessToken", "PickerChannel");
+                } else {
+                  console.error('setPickerVariables function not found');
+                }
+              ''');
+              
+              Logger.d('WebView variables set via setPickerVariables');
+              
               if (mounted) {
                 setState(() {
                   _isLoading = false;
@@ -558,7 +441,7 @@ class _GooglePickerDialogState extends State<GooglePickerDialog> {
               }
             },
             onWebResourceError: (WebResourceError error) {
-              Logger.e('WebView error: ${error.description}');
+              Logger.e('🚫 WebView error: ${error.description} (${error.errorCode})');
               if (mounted) {
                 setState(() {
                   _errorMessage = 'Failed to load Google Drive Picker: ${error.description}';
@@ -567,31 +450,10 @@ class _GooglePickerDialogState extends State<GooglePickerDialog> {
               }
             },
           ),
-        )
-        ..addJavaScriptChannel(
-          'PickerChannel',
-          onMessageReceived: (JavaScriptMessage message) {
-            try {
-              Logger.d('Received message from WebView: ${message.message}');
-              final data = jsonDecode(message.message);
-              widget.onPickerResult(data);
-              if (mounted) {
-                Navigator.pop(context);
-              }
-            } catch (e) {
-              Logger.e('Error parsing picker result: $e');
-            }
-          },
-        )
-        ..addJavaScriptChannel(
-          'LogChannel',
-          onMessageReceived: (message) {
-            Logger.d('WebView log: ${message.message}');
-          },
         );
       
       // Load the HTML content
-      await controller.loadHtmlString(modifiedHtml);
+      await controller.loadHtmlString(htmlContent);
       
       if (mounted) {
         setState(() {

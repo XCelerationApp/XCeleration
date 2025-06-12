@@ -105,7 +105,7 @@ class GoogleDriveService {
       }
       
       // Use the picker service to let the user select a file
-      final file = await _pickerService.pickFile(context);
+      final file = await _pickerService.pickGoogleDriveFile(context);
       if (file == null) {
         // User cancelled or error occurred (already handled in picker service)
         return null;
