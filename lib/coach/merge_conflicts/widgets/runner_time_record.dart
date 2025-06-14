@@ -6,7 +6,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/color_utils.dart';
 import '../../../core/theme/typography.dart';
 import 'runner_info_widgets.dart';
-import 'time_widgets.dart';
+import 'confirmed_time.dart';
 
 import '../../../utils/enums.dart';
 

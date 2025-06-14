@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_portal/flutter_portal.dart';
 import 'package:xceleration/coach/merge_conflicts/controller/merge_conflicts_controller.dart';
 import 'package:xceleration/coach/merge_conflicts/widgets/save_button.dart';
 import 'package:xceleration/coach/race_screen/widgets/runner_record.dart';
@@ -57,8 +56,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
   Widget build(BuildContext context) {
     final controller = Provider.of<MergeConflictsController>(context);
     controller.setContext(context);
-    return Portal(
-      child: Scaffold(
+    return Scaffold(
         resizeToAvoidBottomInset: true,
         body: Container(
           color: AppColors.backgroundColor,
@@ -79,7 +77,6 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
             ),
           ),
         ),
-      ),
     );
   }
 

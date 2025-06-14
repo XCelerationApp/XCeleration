@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter_portal/flutter_portal.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:provider/provider.dart';
@@ -97,8 +96,7 @@ void mainCommon(AppConfig config) async {
   ]);
 
   runApp(
-    Portal(
-      child: MultiProvider(
+    MultiProvider(
         providers: [
         // Add the EventBusProvider at app level to ensure it's available everywhere
         ChangeNotifierProvider(
@@ -114,7 +112,6 @@ void mainCommon(AppConfig config) async {
         // ChangeNotifierProvider(create: (context) => MergeConflictsController(...)),
       ],
         child: const MyApp(),
-      ),
     ),
   );
 }
