@@ -340,6 +340,15 @@ class TimingController extends TimingData {
     }
 
     records.removeAt(lastConflictIndex);
+
+    // Also remove the trailing 'TBD' records if present (added by addMissingTime or similar)
+    for (int i = 0; i < offBy; i++) {
+      if (records.isNotEmpty &&
+          records.last.elapsedTime == 'TBD' &&
+          records.last.type == RecordType.runnerTime) {
+        records.removeLast();
+      }
+    }
     notifyListeners();
     
     return records;
