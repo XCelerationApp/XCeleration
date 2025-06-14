@@ -15,7 +15,7 @@ Future<TimingData> decodeRaceTimesString(String encodedData) async {
     return TimingData(records: [], endTime: '');
   }
   final condensedRecords = encodedData.split(',');
-  List<TimingRecord> records = [];
+  List<TimeRecord> records = [];
   int place = 0;
   
   for (var recordString in condensedRecords) {
@@ -23,7 +23,7 @@ Future<TimingData> decodeRaceTimesString(String encodedData) async {
     recordString = recordString.trim();
     if (_isRunnerTime(recordString)) {
       place++;
-      records.add(TimingRecord(
+      records.add(TimeRecord(
         elapsedTime: recordString,
         type: RecordType.runnerTime,
         place: place,
@@ -178,8 +178,8 @@ ConflictInfo? _parseConflict(String recordString) {
   
   final typeMap = {
     RecordType.confirmRunner.toString(): RecordType.confirmRunner,
-    RecordType.missingRunner.toString(): RecordType.missingRunner,
-    RecordType.extraRunner.toString(): RecordType.extraRunner,
+    RecordType.missingTime.toString(): RecordType.missingTime,
+    RecordType.extraTime.toString(): RecordType.extraTime,
   };
   
   final type = typeMap[typeString];
@@ -189,12 +189,12 @@ ConflictInfo? _parseConflict(String recordString) {
     : null;
 }
 
-List<TimingRecord> _handleConflict(ConflictInfo conflict, List<TimingRecord> records, int place) {
+List<TimeRecord> _handleConflict(ConflictInfo conflict, List<TimeRecord> records, int place) {
   switch (conflict.type) {
-    case RecordType.missingRunner:
-      return missingRunnerTime(conflict.offBy, records, place, conflict.finishTime, addMissingRunner: false);
-    case RecordType.extraRunner:
-      return extraRunnerTime(conflict.offBy, records, place, conflict.finishTime);
+    case RecordType.missingTime:
+      return addMissingTime(conflict.offBy, records, place, conflict.finishTime, addMissingRecords: false);
+    case RecordType.extraTime:
+      return removeExtraTime(conflict.offBy, records, place, conflict.finishTime);
     case RecordType.confirmRunner:
       return confirmRunnerNumber(records, place, conflict.finishTime);
     default:
@@ -202,7 +202,7 @@ List<TimingRecord> _handleConflict(ConflictInfo conflict, List<TimingRecord> rec
   }
 }
 
-void _validatePlaces(List<TimingRecord> records) {
+void _validatePlaces(List<TimeRecord> records) {
   final recordPlaces = records.map((r) => r.place).whereType<int>().toList();
   if (recordPlaces.isEmpty) return;
   

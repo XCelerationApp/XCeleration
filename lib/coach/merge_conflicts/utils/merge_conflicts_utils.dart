@@ -14,8 +14,8 @@ bool validateRunnerInfo(List<RunnerRecord> records) {
 String? validateTimes(
   List<String> times,
   List<RunnerRecord> runners,
-  TimingRecord lastConfirmed,
-  TimingRecord conflictRecord,
+  TimeRecord lastConfirmed,
+  TimeRecord conflictRecord,
 ) {
   if (times.any((time) => time.trim().isEmpty)) {
     return 'All time fields must be filled in';

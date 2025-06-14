@@ -17,7 +17,7 @@ Future<String> getEncodedRunnersData(int raceId) async {
 }
 
 /// Encodes timing records into a string format
-String encodeTimingRecords(List<TimingRecord> records) {
+String encodeTimeRecords(List<TimeRecord> records) {
   return records.map((record) {
     if (record.type == RecordType.runnerTime) {
       return record.elapsedTime;

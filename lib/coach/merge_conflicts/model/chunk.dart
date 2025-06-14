@@ -8,7 +8,7 @@ import 'joined_record.dart';
 import 'timing_data.dart';
 
 class Chunk {
-  final List<TimingRecord> records;
+  final List<TimeRecord> records;
   final RecordType type;
   late final List<RunnerRecord> runners;
   final int conflictIndex;
@@ -58,7 +58,7 @@ class Chunk {
   factory Chunk.fromMap(
       Map<String, dynamic> map, List<RunnerRecord> runnerRecords) {
     return Chunk(
-      records: List<TimingRecord>.from(map['records']),
+      records: List<TimeRecord>.from(map['records']),
       type: map['type'],
       runners: runnerRecords.sublist(
         map['place'] - 1,
@@ -74,9 +74,9 @@ class Chunk {
     TimingData timing,
   ) async {
     timingData = timing;
-    if (type == RecordType.extraRunner) {
+    if (type == RecordType.extraTime) {
       resolve = await resolveTooManyRunnerTimes(conflictIndex, timingData!, runners);
-    } else if (type == RecordType.missingRunner) {
+    } else if (type == RecordType.missingTime) {
       resolve = await resolveTooFewRunnerTimes(conflictIndex, timingData!, runners);
     }
   }
@@ -85,9 +85,9 @@ class Chunk {
     Future<void> Function(Chunk) handleTooManyRunnerTimesResolve,
     Future<void> Function(Chunk) handleTooFewRunnerTimesResolve,
   ) async {
-    if (type == RecordType.extraRunner) {
+    if (type == RecordType.extraTime) {
       await handleTooManyRunnerTimesResolve(this);
-    } else if (type == RecordType.missingRunner) {
+    } else if (type == RecordType.missingTime) {
       await handleTooFewRunnerTimesResolve(this);
     }
   }

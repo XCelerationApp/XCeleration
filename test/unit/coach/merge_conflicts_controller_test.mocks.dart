@@ -269,14 +269,14 @@ class MockDatabaseHelper extends _i1.Mock implements _i3.DatabaseHelper {
       ) as _i4.Future<List<_i8.ResultsRecord>>);
 
   @override
-  _i4.Future<List<_i9.TimingRecord>> getAllResults() => (super.noSuchMethod(
+  _i4.Future<List<_i9.TimeRecord>> getAllResults() => (super.noSuchMethod(
         Invocation.method(
           #getAllResults,
           [],
         ),
         returnValue:
-            _i4.Future<List<_i9.TimingRecord>>.value(<_i9.TimingRecord>[]),
-      ) as _i4.Future<List<_i9.TimingRecord>>);
+            _i4.Future<List<_i9.TimeRecord>>.value(<_i9.TimeRecord>[]),
+      ) as _i4.Future<List<_i9.TimeRecord>>);
 
   @override
   _i4.Future<String> getRaceState(

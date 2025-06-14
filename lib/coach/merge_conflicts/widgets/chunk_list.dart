@@ -58,11 +58,11 @@ class _ChunkItemState extends State<ChunkItem> {
 
     List<String> availableTimes = widget.chunk.resolve?.availableTimes ?? [];
     int runnerCount = widget.chunk.joinedRecords.length;
-    // Compute shifted times for missingRunner: skip manualEntryIndex
+    // Compute shifted times for missingTime: skip manualEntryIndex
     List<String> shiftedTimes = [];
-    // Compute assigned times for extraRunner: skip removedTimeIndex
+    // Compute assigned times for extraTime: skip removedTimeIndex
     List<String> assignedTimes = [];
-    if (chunkType == RecordType.missingRunner) {
+    if (chunkType == RecordType.missingTime) {
       int timeIdx = 0;
       for (int i = 0; i < runnerCount; i++) {
         if (i == manualEntryIndex) {
@@ -74,7 +74,7 @@ class _ChunkItemState extends State<ChunkItem> {
           shiftedTimes.add('');
         }
       }
-    } else if (chunkType == RecordType.extraRunner) {
+    } else if (chunkType == RecordType.extraTime) {
       for (int i = 0; i < availableTimes.length; i++) {
         if (i == removedTimeIndex) continue;
         assignedTimes.add(availableTimes[i]);
@@ -89,8 +89,8 @@ class _ChunkItemState extends State<ChunkItem> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (chunkType == RecordType.extraRunner ||
-              chunkType == RecordType.missingRunner)
+          if (chunkType == RecordType.extraTime ||
+              chunkType == RecordType.missingTime)
             ConflictHeader(
               type: chunkType,
               conflictRecord: record,
@@ -104,7 +104,7 @@ class _ChunkItemState extends State<ChunkItem> {
             final i = entry.key;
             final joinedRecord = entry.value;
             if (joinedRecord.timeRecord.type == RecordType.runnerTime) {
-              if (chunkType == RecordType.missingRunner) {
+              if (chunkType == RecordType.missingTime) {
                 final isManual = manualEntryIndex == i;
                 final controller = widget.chunk.controllers['timeControllers']![i];
                 if (!isManual) {
@@ -130,7 +130,7 @@ class _ChunkItemState extends State<ChunkItem> {
                     });
                   },
                 );
-              } else if (chunkType == RecordType.extraRunner) {
+              } else if (chunkType == RecordType.extraTime) {
                 // Assign times skipping removedTimeIndex
                 final assignedTime = (i < assignedTimes.length) ? assignedTimes[i] : '';
                 final controller = widget.chunk.controllers['timeControllers']![i];
@@ -170,7 +170,7 @@ class _ChunkItemState extends State<ChunkItem> {
             }
             return const SizedBox.shrink();
           }),
-          if (chunkType == RecordType.extraRunner && availableTimes.length > runnerCount && removedTimeIndex == null)
+          if (chunkType == RecordType.extraTime && availableTimes.length > runnerCount && removedTimeIndex == null)
             (() {
               int extraTimeIdx = availableTimes.length - 1;
               // Extract just the time portion if the string includes a name (e.g., 'oliver11.08' -> '11.08')
@@ -195,7 +195,7 @@ class _ChunkItemState extends State<ChunkItem> {
               );
             })(),
           // If the extra time is removed, show an Undo button below the times
-          if (chunkType == RecordType.extraRunner && availableTimes.length > runnerCount && removedTimeIndex != null)
+          if (chunkType == RecordType.extraTime && availableTimes.length > runnerCount && removedTimeIndex != null)
             Padding(
               padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
               child: Center(
@@ -215,15 +215,15 @@ class _ChunkItemState extends State<ChunkItem> {
                 ),
               ),
             ),
-          if (chunkType == RecordType.extraRunner ||
-              chunkType == RecordType.missingRunner)
+          if (chunkType == RecordType.extraTime ||
+              chunkType == RecordType.missingTime)
             Padding(
               padding: const EdgeInsets.only(top: 16.0),
               child: ActionButton(
                 text: 'Resolve Conflict',
                 onPressed: () => widget.chunk.handleResolve(
-                  widget.controller.handleTooManyTimesResolution,
-                  widget.controller.handleTooFewTimesResolution,
+                  widget.controller.handleExtraTimesResolution,
+                  widget.controller.handleMissingTimesResolution,
                 ),
               ),
             ),

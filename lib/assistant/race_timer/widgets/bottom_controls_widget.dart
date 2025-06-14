@@ -82,14 +82,14 @@ class BottomControlsWidget extends StatelessWidget {
       child: PopupMenuButton<void>(
         itemBuilder: (BuildContext context) => <PopupMenuEntry<void>>[
           PopupMenuItem<void>(
-            onTap: controller.missingRunnerTime,
+            onTap: controller.addMissingTime,
             child: Text(
               '+ (Add finish time)',
               style: AppTypography.bodySemibold,
             ),
           ),
           PopupMenuItem<void>(
-            onTap: controller.extraRunnerTime,
+            onTap: controller.removeExtraTime,
             child: Text(
               '- (Remove finish time)',
               style: AppTypography.bodySemibold,

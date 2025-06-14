@@ -61,7 +61,7 @@ class MergeConflictsController with ChangeNotifier {
             r.type == RecordType.runnerTime &&
             r.place == i + 1 &&
             r.isConfirmed == true,
-        orElse: () => TimingRecord(
+        orElse: () => TimeRecord(
             elapsedTime: '',
             isConfirmed: false,
             conflict: null,
@@ -73,7 +73,7 @@ class MergeConflictsController with ChangeNotifier {
       if (record.place == null) continue;
       final runner = runnerRecords[i];
       final int index = timingData.records.indexOf(record);
-      timingData.records[index] = TimingRecord(
+      timingData.records[index] = TimeRecord(
         elapsedTime: record.elapsedTime,
         runnerNumber: runner.bib,
         isConfirmed: record.isConfirmed,
@@ -184,7 +184,7 @@ class MergeConflictsController with ChangeNotifier {
       (record) =>
           record.type != RecordType.runnerTime &&
           record.type != RecordType.confirmRunner,
-      orElse: () => TimingRecord(
+      orElse: () => TimeRecord(
           elapsedTime: '',
           runnerNumber: null,
           isConfirmed: false,
@@ -201,7 +201,7 @@ class MergeConflictsController with ChangeNotifier {
 
   /// Consolidates adjacent confirmRunner chunks into a single chunk,
   /// preserving all runnerTime records and keeping only the last confirmRunner record.
-  Future<void> consolidateConfirmedRunnerTimes() async {
+  Future<void> consolidateConfirmedTimes() async {
     await createChunks();
     
     Logger.d('Before consolidation: ${chunks.length} chunks');
@@ -264,7 +264,7 @@ class MergeConflictsController with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> handleTooFewTimesResolution(
+  Future<void> handleMissingTimesResolution(
     Chunk chunk,
   ) async {
     try {
@@ -292,7 +292,7 @@ class MergeConflictsController with ChangeNotifier {
       Logger.d('Current place: $currentPlace');
       var record = records.firstWhere(
           (element) => element.place == currentPlace,
-          orElse: () => TimingRecord(
+          orElse: () => TimeRecord(
               elapsedTime: '',
               isConfirmed: false,
               conflict: null,
@@ -317,7 +317,7 @@ class MergeConflictsController with ChangeNotifier {
     notifyListeners();
 
     showSuccessMessage();
-    await consolidateConfirmedRunnerTimes();
+    await consolidateConfirmedTimes();
     } catch (e, stackTrace) {
       if (context.mounted) {
         Logger.e('An error occurred while resolving conflict: ${e.toString()}', context: context, error: e, stackTrace: stackTrace);
@@ -328,7 +328,7 @@ class MergeConflictsController with ChangeNotifier {
     }
   }
 
-  Future<void> handleTooManyTimesResolution(
+  Future<void> handleExtraTimesResolution(
     Chunk chunk,
   ) async {
     try {
@@ -341,11 +341,11 @@ class MergeConflictsController with ChangeNotifier {
         .cast<String>();
     Logger.d('times: $times');
     Logger.d('records: ${chunk.records}');
-    List<TimingRecord> records = chunk.records;
+    List<TimeRecord> records = chunk.records;
     final resolveData = chunk.resolve;
     if (resolveData == null) throw Exception('No resolve data found');
     final availableTimes = resolveData.availableTimes;
-    final TimingRecord conflictRecord = resolveData.conflictRecord;
+    final TimeRecord conflictRecord = resolveData.conflictRecord;
     final lastConfirmedIndex = resolveData.lastConfirmedIndex ?? -1;
     final lastConfirmedPlace = resolveData.lastConfirmedPlace;
     Logger.d('lastConfirmedPlace: $lastConfirmedPlace');
@@ -367,7 +367,7 @@ class MergeConflictsController with ChangeNotifier {
       return;
     }
     Logger.d('Unused times: $unusedTimes');
-    final List<TimingRecord> unusedRecords = records
+    final List<TimeRecord> unusedRecords = records
         .where((record) => unusedTimes.contains(record.elapsedTime))
         .toList();
     Logger.d('Unused records: $unusedRecords');
@@ -418,7 +418,7 @@ class MergeConflictsController with ChangeNotifier {
         records.indexOf(record) < conflictIndex);
 
     showSuccessMessage();
-    consolidateConfirmedRunnerTimes();
+    consolidateConfirmedTimes();
     await createChunks();
     } catch (e, stackTrace) {
       if (context.mounted) {
@@ -442,7 +442,7 @@ class MergeConflictsController with ChangeNotifier {
     
     // Go through all records and fix any issues that could cause null checks
     int currentPlace = 1;
-    List<TimingRecord> confirmedRecords = [];
+    List<TimeRecord> confirmedRecords = [];
     
     // First pass: Set all place values and clear conflicts
     for (int i = 0; i < timingData.records.length; i++) {
@@ -455,7 +455,7 @@ class MergeConflictsController with ChangeNotifier {
       }
       
       // 2. If it's a conflict record, convert it to confirmRunner
-      if (record.type == RecordType.missingRunner || record.type == RecordType.extraRunner) {
+      if (record.type == RecordType.missingTime || record.type == RecordType.extraTime) {
         record.type = RecordType.confirmRunner;
         record.isConfirmed = true;
         record.textColor = Colors.green;

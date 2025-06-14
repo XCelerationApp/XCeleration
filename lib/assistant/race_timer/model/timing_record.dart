@@ -2,9 +2,9 @@ import 'package:xceleration/coach/race_screen/widgets/runner_record.dart';
 import 'package:xceleration/utils/enums.dart';
 
 /// Represents a record of a runner's time in a race.
-class TimingRecord {
-  factory TimingRecord.blank() {
-    return TimingRecord(
+class TimeRecord {
+  factory TimeRecord.blank() {
+    return TimeRecord(
       elapsedTime: '',
       runnerNumber: null,
       isConfirmed: false,
@@ -48,8 +48,8 @@ class TimingRecord {
   String? bib;
   String? error;
 
-  /// Constructor for TimingRecord
-  TimingRecord({
+  /// Constructor for TimeRecord
+  TimeRecord({
     required this.elapsedTime,
     this.runnerNumber,
     this.isConfirmed = false,
@@ -68,7 +68,7 @@ class TimingRecord {
   });
 
   /// Creates a copy of this record with the given fields replaced
-  TimingRecord copyWith({
+  TimeRecord copyWith({
     String? id,
     String? elapsedTime,
     String? runnerNumber,
@@ -88,7 +88,7 @@ class TimingRecord {
     bool clearTextColor = false,
     bool clearConflict = false,
   }) {
-    return TimingRecord(
+    return TimeRecord(
       elapsedTime: elapsedTime ?? this.elapsedTime,
       runnerNumber: runnerNumber ?? this.runnerNumber,
       isConfirmed: isConfirmed ?? this.isConfirmed,
@@ -113,7 +113,7 @@ class TimingRecord {
   /// Checks if this record's conflict has been resolved
   bool isResolved() => conflict?.isResolved ?? true;
 
-  /// Converts this TimingRecord to a RunnerRecord
+  /// Converts this TimeRecord to a RunnerRecord
   RunnerRecord? get runnerRecord {
     if (raceId == null ||
         name == null ||
@@ -154,10 +154,10 @@ class TimingRecord {
     };
   }
 
-  /// Creates a TimingRecord from a Map
-  factory TimingRecord.fromMap(Map<String, dynamic> map,
+  /// Creates a TimeRecord from a Map
+  factory TimeRecord.fromMap(Map<String, dynamic> map,
       {bool database = false}) {
-    return TimingRecord(
+    return TimeRecord(
       elapsedTime: database ? map['finish_time'] : map['elapsed_time'],
       runnerNumber: map['runner_number'],
       isConfirmed: map['is_confirmed'] ?? false,
@@ -181,7 +181,7 @@ class TimingRecord {
 
 /// Represents a conflict between records
 class ConflictDetails {
-  /// Type of conflict (e.g., 'missing_runner', 'extra_runner')
+  /// Type of conflict (e.g., 'missing_time', 'extra_time')
   final RecordType type;
 
   /// Whether the conflict has been resolved

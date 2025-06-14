@@ -4,13 +4,13 @@ import '../../../utils/enums.dart';
 import 'timing_record.dart';
 
 class TimingData with ChangeNotifier {
-  List<TimingRecord> _records = [];
+  List<TimeRecord> _records = [];
   DateTime? _startTime;
   Duration? _endTime;
   bool _raceStopped = true;
 
-  List<TimingRecord> get records => _records;
-  set records(List<TimingRecord> value) {
+  List<TimeRecord> get records => _records;
+  set records(List<TimeRecord> value) {
     _records = value;
     notifyListeners();
   }
@@ -30,7 +30,7 @@ class TimingData with ChangeNotifier {
       RecordType type = RecordType.runnerTime,
       int place = 0,
       Color? textColor}) {
-    _records.add(TimingRecord(
+    _records.add(TimeRecord(
       elapsedTime: elapsedTime,
       runnerNumber: runnerNumber,
       isConfirmed: isConfirmed,
@@ -96,7 +96,7 @@ class TimingData with ChangeNotifier {
 
     if (data.containsKey('records') && data['records'] is List) {
       _records = (data['records'] as List)
-          .map((recordMap) => TimingRecord.fromMap(recordMap))
+          .map((recordMap) => TimeRecord.fromMap(recordMap))
           .toList();
     }
 

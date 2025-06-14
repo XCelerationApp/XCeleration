@@ -69,13 +69,13 @@ class ConfirmedRunnerTimeCell extends StatelessWidget {
   }
 }
 
-class ExtraRunnerTimeCell extends StatelessWidget {
+class ExtraTimeCell extends StatelessWidget {
   final String assignedTime;
   final int index;
   final int? removedTimeIndex;
   final void Function(int)? onRemoveTime;
 
-  const ExtraRunnerTimeCell({
+  const ExtraTimeCell({
     super.key,
     required this.assignedTime,
     required this.index,
@@ -102,13 +102,13 @@ class ExtraRunnerTimeCell extends StatelessWidget {
   }
 }
 
-class MissingRunnerTimeCell extends StatelessWidget {
+class MissingTimeCell extends StatelessWidget {
   final TextEditingController controller;
   final bool isManualEntry;
   final String assignedTime;
   final VoidCallback? onManualEntry;
 
-  const MissingRunnerTimeCell({
+  const MissingTimeCell({
     super.key,
     required this.controller,
     required this.isManualEntry,
