@@ -121,7 +121,7 @@ class _ChunkItemState extends State<ChunkItem> {
                   chunk: widget.chunk,
                   controller: widget.controller,
                   isManualEntry: isManual,
-                  prefilledTime: shiftedTimes[i],
+                  assignedTime: shiftedTimes[i],
                   onManualEntry: () {
                     setState(() {
                       manualEntryIndex = i;
