@@ -175,7 +175,6 @@ class _ChunkItemState extends State<ChunkItem> {
               int extraTimeIdx = availableTimes.length - 1;
               // Extract just the time portion if the string includes a name (e.g., 'oliver11.08' -> '11.08')
               final extraTime = availableTimes[extraTimeIdx];
-              
               final blankJoinedRecord = JoinedRecord.blank().copyWithExtraTimeLabel();
               return RunnerTimeRecord(
                 index: -1, // Dummy index for extra time row (no place)
