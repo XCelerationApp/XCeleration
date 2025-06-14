@@ -15,7 +15,7 @@ class ActionButton extends StatelessWidget {
     return PrimaryButton(
       text: text,
       onPressed: onPressed,
-      icon: Icons.sync_problem,
+      icon: null,
       borderRadius: 12,
       elevation: 4,
       fontSize: 16,

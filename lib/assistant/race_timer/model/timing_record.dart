@@ -3,6 +3,25 @@ import 'package:xceleration/utils/enums.dart';
 
 /// Represents a record of a runner's time in a race.
 class TimingRecord {
+  factory TimingRecord.blank() {
+    return TimingRecord(
+      elapsedTime: '',
+      runnerNumber: null,
+      isConfirmed: false,
+      conflict: null,
+      type: RecordType.runnerTime,
+      place: null,
+      previousPlace: null,
+      textColor: null,
+      runnerId: null,
+      raceId: null,
+      name: '',
+      school: '',
+      grade: null,
+      bib: '',  
+      error: null,
+    );
+  }
   /// The time the runner finished the race, as a Duration from the race start time
   String elapsedTime;
 

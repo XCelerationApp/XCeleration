@@ -192,6 +192,26 @@ class MergeConflictsService {
         .map((record) => record.elapsedTime)
         .where((time) => time != '' && time != 'TBD')
         .toList();
+
+    // Limit availableTimes to runnerCount + offBy for extraRunner conflicts
+    int runnerCount = runnerRecords.length;
+    int offBy = 1;
+    final conflictData = conflictRecord.conflict?.data;
+    if (conflictData != null && conflictData['offBy'] != null) {
+      final dynamic rawOffBy = conflictData['offBy'];
+      if (rawOffBy is int) {
+        offBy = rawOffBy;
+      } else if (rawOffBy is String) {
+        offBy = int.tryParse(rawOffBy) ?? 1;
+      }
+    }
+    int maxTimes = runnerCount + offBy;
+    List<String> limitedTimes = conflictingTimes.length > maxTimes
+        ? conflictingTimes.sublist(0, maxTimes)
+        : conflictingTimes;
+    // DEBUG: Print service-side times allocation
+    print('[DEBUG] (Service) runnerCount: '
+        '[36m$runnerCount[0m, offBy: $offBy, maxTimes: $maxTimes, conflictingTimes: $conflictingTimes, limitedTimes: $limitedTimes');
     // Safely determine end index with null check and boundary validation
     // final dynamic rawEndIndex = conflictRecord.conflict?.data?['numTimes'];
     // final int endIndex = rawEndIndex != null ? 
@@ -220,7 +240,7 @@ class MergeConflictsService {
     
     return ResolveInformation(
       conflictingRunners: runnerRecords,
-      conflictingTimes: conflictingTimes,
+      conflictingTimes: limitedTimes,
       lastConfirmedPlace: lastConfirmedPlace,
       lastConfirmedRecord: safeLastConfirmedRecord,
       lastConfirmedIndex: lastConfirmedIndex,

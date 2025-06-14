@@ -1,210 +1,293 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../utils/enums.dart';
 import '../../../core/theme/typography.dart';
-import '../controller/merge_conflicts_controller.dart';
-import 'package:xceleration/core/utils/color_utils.dart';
+// import '../controller/merge_conflicts_controller.dart';
+// import 'package:xceleration/core/utils/color_utils.dart';
 
-class TimeSelector extends StatefulWidget {
-  const TimeSelector({
-    super.key,
-    required this.controller,
-    required this.timeController,
-    required this.manualController,
-    required this.times,
-    required this.conflictIndex,
-    required this.manual,
-    this.chunkType,
-  });
-  final RecordType? chunkType;
-  final MergeConflictsController controller;
-  final TextEditingController timeController;
-  final TextEditingController? manualController;
-  final List<String> times;
-  final int conflictIndex;
-  final bool manual;
-  
-  @override
-  State<TimeSelector> createState() => _TimeSelectorState();
-}
+// class TimeSelector extends StatefulWidget {
+//   const TimeSelector({
+//     super.key,
+//     required this.controller,
+//     required this.timeController,
+//     required this.manualController,
+//     required this.times,
+//     required this.conflictIndex,
+//     required this.manual,
+//     required this.timeIndex,
+//   });
 
-class _TimeSelectorState extends State<TimeSelector> {
-  @override
-  void initState() {
-    super.initState();
-    if (widget.manualController != null) {
-      widget.manualController!.addListener(() {
-        // This ensures that changes to the manual controller are picked up
-        if (mounted) setState(() {});
-      });
-    }
-  }
-  
-  // Check if THIS specific selector is in manual mode
-  bool get isThisManual {
-    final selectedValue = widget.controller.selectedTimes[widget.conflictIndex];
-    return selectedValue == 'manual_entry';
-  }
-  
-  // Check if any OTHER selector is in manual mode
-  bool get isManualUsedElsewhere {
-    return widget.controller.selectedTimes.entries.any((entry) =>
-      entry.key != widget.conflictIndex && entry.value == 'manual_entry');
-  }
-  
-  List<String> get availableOptions {
-    final selectedTimes = widget.controller.selectedTimes;
-    // Gather all values that are selected (excluding this slot)
-    final usedTimes = selectedTimes.entries
-        .where((entry) => entry.key != widget.conflictIndex && entry.value != 'manual_entry')
-        .map((entry) => entry.value)
-        .toSet();
-    // Only show times not already selected elsewhere, or the current value
-    return widget.times.where((time) =>
-      time == widget.timeController.text || !usedTimes.contains(time)
-    ).toList();
-  }
+//   final MergeConflictsController controller;
+//   final TextEditingController timeController;
+//   final TextEditingController? manualController;
+//   final List<String> times;
+//   final int conflictIndex;
+//   final bool manual;
+//   final int timeIndex;
 
-  @override
-  Widget build(BuildContext context) {
-    // If in manual mode for this slot, show TextField
-    if (isThisManual) {
-      return Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          boxShadow: [
-            BoxShadow(
-              color: ColorUtils.withOpacity(Colors.black, 0.05),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8.0),
-          child: TextField(
-            controller: widget.manualController,
-            autofocus: true,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-            decoration: InputDecoration(
-              hintText: 'Enter time (e.g. 4:10.45)',
-              hintStyle: AppTypography.smallBodyRegular.copyWith(
-                color: Colors.grey[500],
-              ),
-              border: const OutlineInputBorder(),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            ),
-            onChanged: (val) {
-              final previousValue = widget.timeController.text;
-              widget.timeController.text = val;
-              widget.controller.updateSelectedTime(widget.conflictIndex, val, previousValue);
-              setState(() {});
-            }
-          ),
-        ),
-      );
-    }
+//   @override
+//   State<TimeSelector> createState() => _TimeSelectorState();
+// }
 
-    // Otherwise, show dropdown with manual entry option if allowed
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [
-          BoxShadow(
-            color: ColorUtils.withOpacity(Colors.black, 0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: availableOptions.contains(widget.timeController.text)
-              ? widget.timeController.text
-              : null,
-          hint: Text(
-            widget.timeController.text.isEmpty ? 'Select Time' : widget.timeController.text,
-            style: AppTypography.bodySmall.copyWith(
-              color: AppColors.darkColor,
-            ),
-          ),
-          items: [
-            // Show all available times (they can be reused)
-            ...availableOptions.map((time) => DropdownMenuItem<String>(
-                  value: time,
-                  child: Text(
-                    time,
-                    style: AppTypography.smallBodySemibold.copyWith(
-                      color: AppColors.darkColor,
-                    ),
-                  ),
-                )),
-            // Add manual entry option if allowed and not used elsewhere
-            if (widget.manual && !isManualUsedElsewhere)
-              DropdownMenuItem<String>(
-                value: 'manual_entry',
-                child: Row(
-                  children: [
-                    Flexible(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Enter manually',
-                            style: AppTypography.smallBodySemibold.copyWith(
-                              color: AppColors.darkColor,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-          ],
-          onChanged: (value) {
-            if (value == null) return;
-            if (value == 'manual_entry') {
-              // Switch to manual entry mode for ONLY this slot
-              widget.controller.selectedTimes[widget.conflictIndex] = 'manual_entry';
-              widget.timeController.clear();
-              if (widget.manualController != null) {
-                widget.manualController!.clear();
-              }
-              setState(() {});
-              return;
-            }
-            
-            // Handle regular dropdown selection
-            final previousValue = widget.timeController.text;
-            widget.timeController.text = value;
-            widget.controller.updateSelectedTime(widget.conflictIndex, value, previousValue);
-            
-            // Clear manual controller and store the selected time value
-            if (widget.manualController != null) {
-              widget.manualController!.clear();
-            }
-            // widget.controller.selectedTimes[widget.conflictIndex] = value;
-            
-            setState(() {});
-          },
-          dropdownColor: Colors.white,
-          icon: Icon(
-            Icons.arrow_drop_down,
-            color: AppColors.primaryColor,
-            size: 28,
-          ),
-          isExpanded: true,
-          borderRadius: BorderRadius.circular(5),
-        ),
-      ),
-    );
-  }
-}
+// class _TimeSelectorState extends State<TimeSelector> {
+//   bool _dropdownOpen = false;
+//   OverlayEntry? _overlayEntry;
+//   final GlobalKey _buttonKey = GlobalKey();
+//   late final String _dropdownId;
+
+//   @override
+//   void initState() {
+//     super.initState();
+//     _dropdownId = UniqueKey().toString();
+//     // Prefill the timeController if empty and available times exist
+//     if (widget.timeController.text.isEmpty &&
+//         widget.timeIndex < widget.times.length) {
+//       widget.timeController.text = widget.times[widget.timeIndex];
+//     }
+//   }
+
+//   void _toggleDropdown() {
+//     if (_dropdownOpen) {
+//       _closeDropdown();
+//       widget.controller.setOpenDropdownForConflict(widget.conflictIndex, null);
+//     } else {
+//       widget.controller.setOpenDropdownForConflict(widget.conflictIndex, _dropdownId);
+//       _openDropdown();
+//     }
+//   }
+
+//   void _openDropdown() {
+//     setState(() {
+//       _dropdownOpen = true;
+//     });
+//     _overlayEntry = _createOverlayEntry();
+//     Overlay.of(context).insert(_overlayEntry!);
+//   }
+
+//   void _closeDropdown() {
+//     setState(() {
+//       _dropdownOpen = false;
+//     });
+//     _overlayEntry?.remove();
+//     _overlayEntry = null;
+//   }
+
+//   void _updateDropdownPosition() {
+//     if (_dropdownOpen && _overlayEntry != null) {
+//       _overlayEntry!.markNeedsBuild();
+//     }
+//   }
+
+//   OverlayEntry _createOverlayEntry() {
+//     final availableOptions = widget.times
+//         .where((time) =>
+//             time == widget.timeController.text ||
+//             !widget.controller.selectedTimes[widget.conflictIndex].contains(time))
+//         .toList();
+
+//     return OverlayEntry(
+//       builder: (context) {
+//         // Get current position each time the overlay rebuilds
+//         final RenderBox? renderBox = _buttonKey.currentContext?.findRenderObject() as RenderBox?;
+//         if (renderBox == null) return const SizedBox.shrink();
+        
+//         final Size size = renderBox.size;
+//         final Offset offset = renderBox.localToGlobal(Offset.zero);
+        
+//         return Stack(
+//           children: [
+//             // Full-screen GestureDetector to detect double-tap outside the dropdown
+//             Positioned.fill(
+//               child: GestureDetector(
+//                 behavior: HitTestBehavior.translucent,
+//                 onDoubleTap: () {
+//                   _closeDropdown();
+//                 },
+//                 // Absorb pointer events so dropdown itself still works
+//                 child: Container(),
+//               ),
+//             ),
+//             // Dropdown content - positioned based on current button position
+//             Positioned(
+//               left: offset.dx,
+//               top: offset.dy + size.height + 4,
+//               width: MediaQuery.of(context).size.width * 0.6,
+//               child: GestureDetector(
+//                 // Prevent taps on the dropdown from closing it
+//                 onTap: () {},
+//                 child: Material(
+//                   elevation: 8, // Increased elevation for better visibility
+//                   borderRadius: BorderRadius.circular(8),
+//                   color: Colors.white,
+//                   child: ConstrainedBox(
+//                     constraints: const BoxConstraints(maxHeight: 250),
+//                     child: ListView(
+//                       padding: EdgeInsets.zero,
+//                       shrinkWrap: true,
+//                       children: [
+//                         if (widget.manual)
+//                           Padding(
+//                             padding: const EdgeInsets.all(8.0),
+//                             child: ValueListenableBuilder<TextEditingValue>(
+//                               valueListenable: widget.manualController!,
+//                               builder: (context, value, child) {
+//                                 final bool isManualSet = value.text.isNotEmpty;
+//                                 return Column(
+//                                   crossAxisAlignment: CrossAxisAlignment.start,
+//                                   children: [
+//                                     TextField(
+//                                       controller: widget.manualController,
+//                                       enabled: !isManualSet,
+//                                       style: AppTypography.smallBodySemibold.copyWith(
+//                                         color: isManualSet ? Colors.grey : AppColors.darkColor,
+//                                       ),
+//                                       cursorColor: AppColors.primaryColor,
+//                                       decoration: InputDecoration(
+//                                         hintText: 'Enter time',
+//                                         hintStyle: AppTypography.smallBodyRegular.copyWith(
+//                                           color: Colors.grey[500],
+//                                         ),
+//                                         border: const OutlineInputBorder(),
+//                                       ),
+//                                       onChanged: (value) {
+//                                         final previousValue = widget.timeController.text;
+//                                         if (value.isNotEmpty) {
+//                                           widget.timeController.text = value;
+//                                           widget.controller.updateSelectedTime(
+//                                               widget.conflictIndex, value, previousValue);
+//                                         } else {
+//                                           // Reset selected time if manual entry cleared
+//                                           widget.timeController.text = '';
+//                                           widget.controller.updateSelectedTime(
+//                                               widget.conflictIndex, '', previousValue);
+//                                         }
+//                                       },
+//                                     ),
+//                                     if (isManualSet)
+//                                       Padding(
+//                                         padding: const EdgeInsets.only(top: 4.0),
+//                                         child: Text(
+//                                           'Manual time set. Clear to enter a new one.',
+//                                           style: AppTypography.smallBodyRegular.copyWith(
+//                                             color: Colors.grey[600],
+//                                             fontSize: 12,
+//                                           ),
+//                                         ),
+//                                       ),
+//                                   ],
+//                                 );
+//                               },
+//                             ),
+//                           ),
+//                         ...availableOptions.map(
+//                           (time) => ListTile(
+//                             title: Text(
+//                               time,
+//                               style: AppTypography.smallBodySemibold.copyWith(
+//                                 color: AppColors.darkColor,
+//                               ),
+//                             ),
+//                             onTap: () {
+//                               final previousValue = widget.timeController.text;
+//                               widget.timeController.text = time;
+//                               widget.controller.updateSelectedTime(
+//                                   widget.conflictIndex, time, previousValue);
+//                               if (widget.manualController != null) {
+//                                 widget.manualController?.clear();
+//                               }
+//                               _closeDropdown();
+//                             },
+//                           ),
+//                         ),
+//                       ],
+//                     ),
+//                   ),
+//                 ),
+//               ),
+//             ),
+//           ],
+//         );
+//       },
+//     );
+//   }
+
+//   @override
+//   void dispose() {
+//     _overlayEntry?.remove();
+//     _controllerListener?.call();
+//     super.dispose();
+//   }
+
+//   VoidCallback? _controllerListener;
+
+//   @override
+//   void didChangeDependencies() {
+//     super.didChangeDependencies();
+//     _controllerListener?.call(); // Remove previous listener if any
+//     _controllerListener = () {
+//       final openDropdownId = widget.controller.getOpenDropdownForConflict(widget.conflictIndex);
+//       if (openDropdownId != _dropdownId && _dropdownOpen) {
+//         _closeDropdown();
+//       }
+//     };
+//     widget.controller.addListener(_controllerListener!);
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return NotificationListener<ScrollNotification>(
+//       onNotification: (ScrollNotification notification) {
+//         // Update dropdown position when scrolling occurs
+//         if (_dropdownOpen) {
+//           _updateDropdownPosition();
+//         }
+//         return false; // Allow the scroll notification to continue
+//       },
+//       child: GestureDetector(
+//         onTap: _toggleDropdown,
+//         child: Container(
+//           key: _buttonKey, // Add key to track this widget's position
+//         decoration: BoxDecoration(
+//           color: Colors.white,
+//           borderRadius: BorderRadius.circular(8),
+//           border: _dropdownOpen
+//               ? Border.all(color: AppColors.primaryColor, width: 2)
+//               : null,
+//           boxShadow: [
+//             BoxShadow(
+//               color: ColorUtils.withOpacity(Color.fromRGBO(0, 0, 0, 1.0), 0.05),
+//               blurRadius: 4,
+//               offset: const Offset(0, 2),
+//             ),
+//           ],
+//         ),
+//         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+//         child: Row(
+//           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//           children: [
+//             Expanded(
+//               child: Text(
+//                 widget.timeController.text.isEmpty
+//                     ? 'Select Time'
+//                     : widget.timeController.text,
+//                 style: AppTypography.smallBodySemibold.copyWith(
+//                   color: AppColors.darkColor,
+//                 ),
+//                 overflow: TextOverflow.ellipsis,
+//               ),
+//             ),
+//             Icon(
+//               _dropdownOpen
+//                   ? Icons.arrow_drop_up
+//                   : Icons.arrow_drop_down,
+//               color: AppColors.primaryColor,
+//               size: 28,
+//             ),
+//           ],
+//         ),
+//       ),
+//     ));
+//   }
+// }
 
 class ConfirmedTime extends StatelessWidget {
   const ConfirmedTime({

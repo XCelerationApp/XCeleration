@@ -1,4 +1,34 @@
 class RunnerRecord {
+  RunnerRecord copyWithExtraTimeLabel() {
+    return RunnerRecord(
+      bib: bib,
+      name: 'Extra Time',
+      raceId: raceId,
+      grade: grade,
+      school: school,
+      runnerId: runnerId,
+      time: time,
+      error: error,
+      flags: flags,
+    );
+  }
+  factory RunnerRecord.blank() {
+    return RunnerRecord(
+      bib: '',
+      name: '',
+      raceId: 0,
+      grade: 0,
+      school: '',
+      runnerId: null,
+      time: null,
+      error: null,
+      flags: const RunnerRecordFlags(
+        notInDatabase: false,
+        duplicateBibNumber: false,
+        lowConfidenceScore: false,
+      ),
+    );
+  }
   String bib;
   String name;
   String school;

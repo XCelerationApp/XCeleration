@@ -13,6 +13,7 @@ import 'package:xceleration/coach/resolve_bib_number_screen/widgets/bib_conflict
 import 'package:xceleration/coach/merge_conflicts/screen/merge_conflicts_screen.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../../../utils/encode_utils.dart' as encode_utils;
 import '../../../../../merge_conflicts/controller/merge_conflicts_controller.dart';
 import '../../../../../race_results/model/results_record.dart';
 
@@ -63,8 +64,12 @@ class LoadResultsController with ChangeNotifier {
   }
 
   /// Resets devices and clears state
-  void resetDevices() {
+  Future<void> resetDevices() async {
     devices.reset();
+    // Re-encode and assign runner data after reset
+    final encoded = await encode_utils.getEncodedRunnersData(raceId);
+    devices.bibRecorder?.data = encoded;
+    Logger.d('POST-RESET: Encoded runners data length: ${encoded.length}');
     resultsLoaded = false;
     hasBibConflicts = false;
     hasTimingConflicts = false;

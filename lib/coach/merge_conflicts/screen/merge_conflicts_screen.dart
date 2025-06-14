@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_portal/flutter_portal.dart';
 import 'package:xceleration/coach/merge_conflicts/controller/merge_conflicts_controller.dart';
 import 'package:xceleration/coach/merge_conflicts/widgets/save_button.dart';
 import 'package:xceleration/coach/race_screen/widgets/runner_record.dart';
@@ -56,19 +57,26 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
   Widget build(BuildContext context) {
     final controller = Provider.of<MergeConflictsController>(context);
     controller.setContext(context);
-    return Scaffold(
-      body: Container(
-        color: AppColors.backgroundColor,
-        child: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (controller.getFirstConflict()[0] == null)
-                SaveButton(controller: controller),
-              Expanded(
-                child: InstructionsAndList(controller: controller),
-              ),
-            ],
+    return Portal(
+      child: Scaffold(
+        resizeToAvoidBottomInset: true,
+        body: Container(
+          color: AppColors.backgroundColor,
+          child: SafeArea(
+            child: Column(
+              children: [
+                if (controller.getFirstConflict()[0] == null)
+                  SaveButton(controller: controller),
+                Expanded(
+                  child: ListView(
+                    padding: EdgeInsets.zero,
+                    children: [
+                      InstructionsAndList(controller: controller),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -106,23 +114,26 @@ class InstructionsAndList extends StatelessWidget {
       );
     }
 
-    return ListView(
+    return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      children: [
-        InstructionCard(
-          title: 'Review Race Results',
-          instructions: [
-            InstructionItem(
-                number: '1',
-                text: 'Find the runners with the unknown times (orange)'),
-            InstructionItem(number: '2', text: 'Update times as needed'),
-            InstructionItem(
-                number: '3', text: 'Save when all results are confirmed'),
-          ],
-        ),
-        const SizedBox(height: 16),
-        ChunkList(controller: controller),
-      ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          InstructionCard(
+            title: 'Review Race Results',
+            instructions: [
+              InstructionItem(
+                  number: '1',
+                  text: 'Find the runners with the unknown times (orange)'),
+              InstructionItem(number: '2', text: 'Update times as needed'),
+              InstructionItem(
+                  number: '3', text: 'Save when all results are confirmed'),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ChunkList(controller: controller),
+        ],
+      ),
     );
   }
 }
