@@ -13,7 +13,7 @@ import '../../race_results/model/team_record.dart';
 import '../../race_results/model/results_record.dart';
 
 import '../../../../../utils/sheet_utils.dart';
-import '../../../../../utils/google_sheets_utils.dart';
+import '../../../../../utils/google_sheets_service.dart';
 import '../../../../../core/components/dialog_utils.dart';
 import '../screen/share_race_screen.dart';
 import '../../race_results/controller/race_results_controller.dart';
@@ -71,6 +71,7 @@ class ShareRaceController extends ChangeNotifier {
 class ShareResultsController {
   late FormattedResultsController _formattedResultsController;
   late String title;
+  final GoogleSheetsService _googleSheetsService = GoogleSheetsService.instance;
 
   ShareResultsController({
     required FormattedResultsController formattedResultsController,
@@ -130,7 +131,7 @@ class ShareResultsController {
 
     try {
       // Execute the sheet creation with a loading dialog
-      final sheetUri = await GoogleSheetsUtils.createSheetAndGetUri(
+      final sheetUri = await _googleSheetsService.createSheetAndGetUri(
         context: globalContext,
         title: title,
         data: await _formattedResultsController.formattedSheetsData,

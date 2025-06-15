@@ -14,7 +14,7 @@ import 'google_picker_service.dart';
 class GoogleDriveService {
   static GoogleDriveService? _instance;
   final GoogleAuthService _authService = GoogleAuthService.instance;
-  final GooglePickerService _pickerService = GooglePickerService.instance;
+  GooglePickerService? _pickerService;
   
   drive.DriveApi? _driveApi;
   sheets.SheetsApi? _sheetsApi;
@@ -23,6 +23,13 @@ class GoogleDriveService {
 
   GoogleDriveService._() {
     // No need to initialize scopes here - GoogleAuthService handles scopes centrally
+    // Picker service is lazily initialized to avoid circular dependency
+  }
+  
+  /// Get GooglePickerService instance lazily to avoid circular dependency
+  GooglePickerService get pickerService {
+    _pickerService ??= GooglePickerService.instance;
+    return _pickerService!;
   }
 
   static GoogleDriveService get instance {
@@ -105,7 +112,7 @@ class GoogleDriveService {
       }
       
       // Use the picker service to let the user select a file
-      final file = await _pickerService.pickGoogleDriveFile(context);
+      final file = await pickerService.pickGoogleDriveFile(context);
       if (file == null) {
         // User cancelled or error occurred (already handled in picker service)
         return null;

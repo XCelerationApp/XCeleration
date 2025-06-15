@@ -37,6 +37,7 @@ class FileUtils {
   /// Parse a spreadsheet file (Excel or CSV) into a list of rows
   static Future<List<List<dynamic>>?> parseSpreadsheetFile(File file) async {
     final extension = path.extension(file.path).toLowerCase();
+    Logger.d('Parsing file: ${file.path}');
     
     try {
       if (extension == '.xlsx') {
@@ -70,11 +71,8 @@ class FileUtils {
         
         return data;
       } else if (extension == '.csv') {
-        // Parse CSV file
-        final contents = await file.readAsString();
-        final rows = const CsvToListConverter().convert(contents);
-        
-        return rows;
+        // Parse CSV file with enhanced options
+        return await _parseCSVFile(file);
       } else {
         Logger.d('Unsupported file format: $extension');
         return null;
@@ -82,6 +80,44 @@ class FileUtils {
     } catch (e) {
       Logger.d('Error parsing spreadsheet: $e');
       return null;
+    }
+  }
+  
+  /// Enhanced CSV parsing with options for different delimiters, quote chars, etc.
+  static Future<List<List<dynamic>>> _parseCSVFile(File file) async {
+    final contents = await file.readAsString();
+  
+    try {
+      // Try to detect the delimiter (common ones are comma, tab, semicolon)
+      String delimiter = ','; // Default
+      if (contents.contains('\t')) {
+        // Check if tab-delimited
+        final tabCount = '\t'.allMatches(contents).length;
+        final commaCount = ','.allMatches(contents).length;
+        if (tabCount > commaCount) delimiter = '\t';
+      } else if (!contents.contains(',') && contents.contains(';')) {
+        // European format often uses semicolons
+        delimiter = ';';
+      }
+      
+      // Parse with detected delimiter
+      final converter = CsvToListConverter(
+        fieldDelimiter: delimiter,
+        eol: '\n',
+        shouldParseNumbers: true, // Convert strings to numbers when possible
+      );
+      
+      final rows = converter.convert(contents);
+      
+      // Remove empty rows
+      return rows.where((row) => 
+        row.isNotEmpty && 
+        row.any((cell) => cell != null && cell.toString().isNotEmpty)
+      ).toList();
+    } catch (e) {
+      // If custom parsing fails, fall back to default parsing
+      Logger.d('Advanced CSV parsing failed: $e. Falling back to default parser.');
+      return const CsvToListConverter().convert(contents);
     }
   }
 }

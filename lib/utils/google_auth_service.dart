@@ -30,32 +30,114 @@ class GoogleAuthClient extends http.BaseClient {
 class GoogleAuthService {
   static GoogleAuthService? _instance;
   // Retrieve client ID from environment variables
-  static String get _clientId => dotenv.env['GOOGLE_OAUTH_CLIENT_ID'] ?? '';
+  static String get _clientId => dotenv.env['GOOGLE_IOS_OAUTH_CLIENT_ID'] ?? '';
   
   GoogleSignIn? _googleSignIn;
   GoogleSignInAccount? _currentUser;
   String? _accessToken;
   DateTime? _accessTokenExpiry;
+  bool _prefsLoaded = false;
+  bool _signInInitialized = false;
   
   // Default scopes for authentication - now using drive.file scope instead of drive.readonly
   final List<String> _defaultScopes = [
     drive.DriveApi.driveFileScope,
   ];
   
+  // Keys for shared preferences
+  static const String _keyAccessToken = 'google_auth_token';
+  static const String _keyTokenExpiry = 'google_auth_token_expiry';
+  
   /// Get the singleton instance of GoogleAuthService
-  static GoogleAuthService get instance => _instance ??= GoogleAuthService._();
-
+  static GoogleAuthService get instance {
+    if (_instance == null) {
+      _instance = GoogleAuthService._();
+      // Start loading preferences in the background but don't block
+      _instance!._loadPrefsAsync();
+    }
+    return _instance!;
+  }
+  
   GoogleAuthService._() {
-    // Initialize with default scopes
-    _initializeSignIn(_defaultScopes);
+    // Don't initialize anything in constructor
+    // Will be done lazily when needed
+  }
+  
+  /// Asynchronously load preferences but don't block instance creation
+  Future<void> _loadPrefsAsync() async {
+    if (!_prefsLoaded) {
+      await _loadAuthDataFromPrefs();
+      _prefsLoaded = true;
+    }
+  }
+
+  /// Load authentication data from shared preferences
+  Future<void> _loadAuthDataFromPrefs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      
+      // Load token and expiry
+      _accessToken = prefs.getString(_keyAccessToken);
+      final expiryMillis = prefs.getInt(_keyTokenExpiry);
+      if (expiryMillis != null) {
+        _accessTokenExpiry = DateTime.fromMillisecondsSinceEpoch(expiryMillis);
+      }
+      
+      // We don't track user data, only tokens
+      
+      Logger.d('Loaded auth data from prefs: token=${_accessToken != null}, expiry=${_accessTokenExpiry?.toIso8601String() ?? 'null'}');
+    } catch (e) {
+      Logger.d('Error loading auth data from prefs: $e');
+    }
+  }
+  
+  /// Save authentication data to shared preferences
+  Future<void> _saveAuthDataToPrefs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      
+      // Save token and expiry
+      if (_accessToken != null) {
+        await prefs.setString(_keyAccessToken, _accessToken!);
+      } else {
+        await prefs.remove(_keyAccessToken);
+      }
+      
+      if (_accessTokenExpiry != null) {
+        await prefs.setInt(_keyTokenExpiry, _accessTokenExpiry!.millisecondsSinceEpoch);
+      } else {
+        await prefs.remove(_keyTokenExpiry);
+      }
+      
+      // We don't track user data, only authentication tokens
+      
+      Logger.d('Saved auth data to prefs');
+    } catch (e) {
+      Logger.d('Error saving auth data to prefs: $e');
+    }
+  }
+  
+  /// Clear all authentication data from shared preferences
+  Future<void> _clearAuthDataFromPrefs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_keyAccessToken);
+      await prefs.remove(_keyTokenExpiry);
+      Logger.d('Cleared auth data from prefs');
+    } catch (e) {
+      Logger.d('Error clearing auth data from prefs: $e');
+    }
   }
 
   /// Initialize Google SignIn with the specified scopes
   void _initializeSignIn(List<String> scopes) {
-    _googleSignIn = GoogleSignIn(
-      scopes: scopes,
-      clientId: _clientId,
-    );
+    if (!_signInInitialized) {
+      _googleSignIn = GoogleSignIn(
+        scopes: scopes,
+        clientId: _clientId,
+      );
+      _signInInitialized = true;
+    }
   }
 
   /// Check if the user is already authenticated with a valid token
@@ -70,6 +152,9 @@ class GoogleAuthService {
   
   /// Get or refresh the access token if we have a signed-in user
   Future<String?> getAccessToken() async {
+    // Ensure prefs are loaded and sign-in is initialized
+    await _ensureInitialized();
+    
     if (_currentUser == null) return null;
     
     if (hasValidToken) return _accessToken;
@@ -79,6 +164,9 @@ class GoogleAuthService {
       if (auth.accessToken != null) {
         _accessToken = auth.accessToken;
         _accessTokenExpiry = DateTime.now().add(const Duration(minutes: 55));
+        
+        // Save the updated token to preferences
+        await _saveAuthDataToPrefs();
         return _accessToken;
       }
     } catch (e) {
@@ -88,8 +176,23 @@ class GoogleAuthService {
     return null;
   }
   
+  /// Ensures the service is fully initialized before performing auth operations
+  Future<void> _ensureInitialized() async {
+    // Load preferences if not already loaded
+    if (!_prefsLoaded) {
+      await _loadAuthDataFromPrefs();
+      _prefsLoaded = true;
+    }
+    
+    // Initialize sign-in if not already initialized
+    if (!_signInInitialized) {
+      _initializeSignIn(_defaultScopes);
+    }
+  }
+  
   /// Get an authenticated client that can be used with Google APIs
   Future<http.Client?> getAuthClient() async {
+    // getAccessToken already ensures initialization
     final token = await getAccessToken();
     if (token == null) return null;
     return GoogleAuthClient(token);
@@ -97,40 +200,67 @@ class GoogleAuthService {
 
   /// Check if user is signed in without forcing a sign-in attempt
   Future<bool> isSignedIn() async {
+    await _ensureInitialized();
+    
     if (hasValidToken && _currentUser != null) return true;
     
-    if (_googleSignIn == null) {
-      Logger.d('GoogleSignIn not initialized');
+    try {
+      _currentUser = await _googleSignIn!.signInSilently();
+      return _currentUser != null;
+    } catch (e) {
+      Logger.d('Silent sign-in error: $e');
       return false;
     }
-    
-    _currentUser = await _googleSignIn!.signInSilently();
-    return _currentUser != null;
   }
 
   /// Sign in the user - only use when explicitly requested by the user
+  /// Tries silent sign-in first before prompting interactive sign-in
   Future<bool> signIn() async {
-    if (_googleSignIn == null) {
-      Logger.d('GoogleSignIn not initialized');
-      return false;
+    await _ensureInitialized();
+    
+    // If we already have a valid token, no need to sign in again
+    if (hasValidToken && _currentUser != null) {
+      Logger.d('Already signed in with valid token');
+      return true;
     }
     
+    // First, try silent sign-in
     try {
-      _currentUser = await _googleSignIn!.signIn();
+      Logger.d('Attempting silent sign-in');
+      _currentUser = await _googleSignIn!.signInSilently();
+      
       if (_currentUser != null) {
         final auth = await _currentUser!.authentication;
         if (auth.accessToken != null) {
+          Logger.d('Silent sign-in successful');
           _accessToken = auth.accessToken;
           _accessTokenExpiry = DateTime.now().add(const Duration(minutes: 55));
           
-          // Save user info to preferences for later use
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('google_user_email', _currentUser!.email);
-          await prefs.setString('google_user_name', _currentUser!.displayName ?? '');
+          // Save all auth data to preferences
+          await _saveAuthDataToPrefs();
           
           return true;
         }
       }
+      
+      // If silent sign-in failed, try interactive sign-in
+      Logger.d('Silent sign-in failed, trying interactive sign-in');
+      _currentUser = await _googleSignIn!.signIn();
+      
+      if (_currentUser != null) {
+        final auth = await _currentUser!.authentication;
+        if (auth.accessToken != null) {
+          Logger.d('Interactive sign-in successful');
+          _accessToken = auth.accessToken;
+          _accessTokenExpiry = DateTime.now().add(const Duration(minutes: 55));
+          
+          // Save all auth data to preferences
+          await _saveAuthDataToPrefs();
+          
+          return true;
+        }
+      }
+      
       return false;
     } catch (e) {
       Logger.d('Sign in error: $e');
@@ -140,64 +270,35 @@ class GoogleAuthService {
 
   /// Sign out the current user
   Future<void> signOut() async {
-    if (_googleSignIn == null) return;
+    await _ensureInitialized();
     
     _accessToken = null;
     _accessTokenExpiry = null;
     await _googleSignIn!.signOut();
     _currentUser = null;
     
-    // Clear saved user info
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('google_user_email');
-    await prefs.remove('google_user_name');
+    // Clear all saved auth data
+    await _clearAuthDataFromPrefs();
   }
   
   /// Get a client and account in a single call - mostly for internal use
   Future<(http.Client?, GoogleSignInAccount?)> getAuthClientAndUser(BuildContext context) async {
+    await _ensureInitialized();
+    
     // First, check if we already have a cached valid token
     if (hasValidToken && _currentUser != null) {
       return (GoogleAuthClient(_accessToken!), _currentUser);
     }
-
-    // Try to get the current signed-in user silently (no UI)
-    if (_googleSignIn != null) {
-      _currentUser ??= await _googleSignIn!.signInSilently();
+    
+    // Try to authenticate the user (first silently, then interactively if needed)
+    final success = await signIn();
+    
+    // Return the client and user if sign-in was successful
+    if (success && _accessToken != null) {
+      return (GoogleAuthClient(_accessToken!), _currentUser);
     }
     
-    // If we have a user, get a fresh token
-    if (_currentUser != null) {
-      try {
-        final auth = await _currentUser!.authentication;
-        if (auth.accessToken != null) {
-          // Cache the token and set an approximate expiry (1 hour is typical)
-          _accessToken = auth.accessToken;
-          _accessTokenExpiry = DateTime.now().add(const Duration(minutes: 55));
-          return (GoogleAuthClient(_accessToken!), _currentUser);
-        }
-      } catch (e) {
-        // Token refresh failed, will try interactive sign-in
-        _currentUser = null;
-      }
-    }
-
-    // Only prompt for interactive sign-in if necessary
-    if (_googleSignIn != null) {
-      try {
-        _currentUser = await _googleSignIn!.signIn();
-        if (_currentUser != null) {
-          final auth = await _currentUser!.authentication;
-          if (auth.accessToken != null) {
-            _accessToken = auth.accessToken;
-            _accessTokenExpiry = DateTime.now().add(const Duration(minutes: 55));
-            return (GoogleAuthClient(_accessToken!), _currentUser);
-          }
-        }
-      } catch (e) {
-        Logger.d('Sign-in error: $e');
-      }
-    }
-
+    // Sign-in failed
     return (null, null);
   }
 }
