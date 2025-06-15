@@ -196,7 +196,7 @@ List<TimeRecord> _handleConflict(ConflictInfo conflict, List<TimeRecord> records
     case RecordType.extraTime:
       return removeExtraTime(conflict.offBy, records, place, conflict.finishTime);
     case RecordType.confirmRunner:
-      return confirmRunnerNumber(records, place, conflict.finishTime);
+      return confirmTimes(records, place, conflict.finishTime);
     default:
       return records;
   }

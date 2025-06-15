@@ -34,7 +34,7 @@ class BottomControlsWidget extends StatelessWidget {
           _buildControlButton(
             icon: Icons.check,
             color: Colors.green,
-            onTap: controller.confirmRunnerNumber,
+            onTap: controller.confirmTimes,
           ),
           Container(
             height: 30,

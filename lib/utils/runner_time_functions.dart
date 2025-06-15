@@ -50,7 +50,7 @@ List<TimeRecord> updateTextColor(Color? color, List<TimeRecord> records,
   return records;
 }
 
-List<TimeRecord> confirmRunnerNumber(
+List<TimeRecord> confirmTimes(
     List<TimeRecord> records, int numTimes, String finishTime) {
   final color = Colors.green;
   records = updateTextColor(color, records, confirmed: true);
@@ -209,7 +209,7 @@ Future<List<TimeRecord>> syncBibData(int runnerRecordsLength,
   } else {
     Logger.d(
         'Runner records length: $runnerRecordsLength, Number of runner times: $numberOfRunnerTimes');
-    records = confirmRunnerNumber(records, numberOfRunnerTimes, finishTime);
+    records = confirmTimes(records, numberOfRunnerTimes, finishTime);
   }
   Logger.d('');
   Logger.d(records.toString());
@@ -242,12 +242,12 @@ Future<void> _handleTimingDiscrepancy(
 }
 
 // Timing Utilities
-int getNumberOfTimes(records) {
+int getNumberOfTimes(List<TimeRecord> records) {
   return max(
-      0,
-      records.fold<int>(0, (int count, record) {
-        if (record.type == RecordType.runnerTime) return count + 1;
-        if (record.type == RecordType.extraTime) return count - 1;
-        return count;
-      }));
+    0,
+    records.fold<int>(0, (int count, record) {
+      if (record.type == RecordType.runnerTime) return count + 1;
+      if (record.type == RecordType.extraTime) return count - record.conflict!.data!['offBy'] as int;
+      return count;
+    }));
 }
