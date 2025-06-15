@@ -35,8 +35,8 @@ enum DeviceType {
 enum RecordType {
   runnerTime,
   confirmRunner,
-  missingRunner,
-  extraRunner,
+  missingTime,
+  extraTime,
 }
 
 enum RaceScreenPage {

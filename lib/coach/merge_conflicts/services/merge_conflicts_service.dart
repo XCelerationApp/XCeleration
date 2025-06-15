@@ -79,8 +79,8 @@ class MergeConflictsService {
   static String? validateTimes(
     List<String> times,
     List<dynamic> runners,
-    TimingRecord lastConfirmedRecord,
-    TimingRecord conflictRecord,
+    TimeRecord lastConfirmedRecord,
+    TimeRecord conflictRecord,
   ) {
     // Example validation logic (copy from controller)
     if (times.any((t) => t.isEmpty || t == 'TBD')) {
@@ -135,7 +135,7 @@ class MergeConflictsService {
         ? 1
         : firstConflictingRecordIndex - lastConfirmedIndex;
 
-    final List<TimingRecord> conflictingRecords = records.sublist(
+    final List<TimeRecord> conflictingRecords = records.sublist(
         lastConfirmedIndex + spaceBetweenConfirmedAndConflict, conflictIndex);
 
     final List<String> conflictingTimes = conflictingRecords
@@ -162,7 +162,7 @@ class MergeConflictsService {
       availableTimes: conflictingTimes,
       allowManualEntry: true,
       conflictRecord: conflictRecord,
-      lastConfirmedRecord: lastConfirmedIndex == -1 ? TimingRecord(place: -1, elapsedTime: '') : records[lastConfirmedIndex],
+      lastConfirmedRecord: lastConfirmedIndex == -1 ? TimeRecord(place: -1, elapsedTime: '') : records[lastConfirmedIndex],
       bibData: bibData,
     );
   }
@@ -173,7 +173,7 @@ class MergeConflictsService {
       List<RunnerRecord> runnerRecords,
       ) async {
     Logger.d('_resolveTooManyRunnerTimes called');
-    var records = (timingData.records as List<TimingRecord>?) ?? [];
+    var records = (timingData.records as List<TimeRecord>?) ?? [];
     final bibData = runnerRecords.map((runner) => runner.bib).toList();
     final conflictRecord = records[conflictIndex];
 
@@ -184,7 +184,7 @@ class MergeConflictsService {
     final lastConfirmedPlace =
         lastConfirmedIndex == -1 ? 0 : records[lastConfirmedIndex].place ?? 0;
     
-    final List<TimingRecord> conflictingRecords =
+    final List<TimeRecord> conflictingRecords =
         records.sublist(lastConfirmedIndex + 1, conflictIndex);
 
     final List<String> conflictingTimes = conflictingRecords
@@ -193,7 +193,7 @@ class MergeConflictsService {
         .where((time) => time != '' && time != 'TBD')
         .toList();
 
-    // Limit availableTimes to runnerCount + offBy for extraRunner conflicts
+    // Limit availableTimes to runnerCount + offBy for extraTime conflicts
     int runnerCount = runnerRecords.length;
     int offBy = 1;
     final conflictData = conflictRecord.conflict?.data;
@@ -234,8 +234,8 @@ class MergeConflictsService {
     Logger.d('lastConfirmedPlace: $lastConfirmedPlace');
 
     // Create a safe lastConfirmedRecord that handles the case where lastConfirmedIndex is -1
-    final TimingRecord safeLastConfirmedRecord = lastConfirmedIndex == -1 ? 
-        TimingRecord(place: lastConfirmedPlace, elapsedTime: '', isConfirmed: true) : 
+    final TimeRecord safeLastConfirmedRecord = lastConfirmedIndex == -1 ? 
+        TimeRecord(place: lastConfirmedPlace, elapsedTime: '', isConfirmed: true) : 
         records[lastConfirmedIndex];
     
     return ResolveInformation(
@@ -251,7 +251,7 @@ class MergeConflictsService {
   }
 
   /// Updates a conflict record to mark it as resolved.
-  static void updateConflictRecord(TimingRecord record, int numTimes) {
+  static void updateConflictRecord(TimeRecord record, int numTimes) {
     record.type = RecordType.confirmRunner;
     record.place = numTimes;
     record.textColor = Colors.green;
@@ -264,8 +264,8 @@ class MergeConflictsService {
   static void clearAllConflicts(TimingData timingData) {
     Logger.d('Clearing all conflicts from timing data...');
     int currentPlace = 1;
-    List<TimingRecord> confirmedRecords = [];
-    List<TimingRecord> recordsWithPlaceholders = [];
+    List<TimeRecord> confirmedRecords = [];
+    List<TimeRecord> recordsWithPlaceholders = [];
     
     // First pass: update conflict records and identify runner time records
     for (int i = 0; i < timingData.records.length; i++) {
@@ -277,8 +277,8 @@ class MergeConflictsService {
         Logger.d('Assigned missing place $currentPlace to record with time ${record.elapsedTime}');
       }
       
-      // Handle conflict records (missingRunner, extraRunner)
-      if (record.type == RecordType.missingRunner || record.type == RecordType.extraRunner) {
+      // Handle conflict records (missingTime, extraTime)
+      if (record.type == RecordType.missingTime || record.type == RecordType.extraTime) {
         record.type = RecordType.confirmRunner;
         record.isConfirmed = true;
         record.textColor = Colors.green;

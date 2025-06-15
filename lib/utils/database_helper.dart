@@ -356,10 +356,10 @@ class DatabaseHelper {
     return results;
   }
 
-  Future<List<TimingRecord>> getAllResults() async {
+  Future<List<TimeRecord>> getAllResults() async {
     final db = await instance.database;
     final results = await db.query('race_results');
-    return results.map((r) => TimingRecord.fromMap(r, database: true)).toList();
+    return results.map((r) => TimeRecord.fromMap(r, database: true)).toList();
   }
 
 

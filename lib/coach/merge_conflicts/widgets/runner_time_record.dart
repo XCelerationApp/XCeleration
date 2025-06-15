@@ -4,10 +4,8 @@ import '../model/joined_record.dart';
 import '../model/chunk.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/color_utils.dart';
-import '../../../core/theme/typography.dart';
 import 'runner_info_widgets.dart';
-import 'confirmed_time.dart';
-
+import 'runner_time_cells.dart';
 import '../../../utils/enums.dart';
 
 class RunnerTimeRecord extends StatelessWidget {
@@ -22,10 +20,9 @@ class RunnerTimeRecord extends StatelessWidget {
     required this.chunk,
     required this.index,
     this.isManualEntry = false,
-    this.prefilledTime = '',
+    this.assignedTime = '',
     this.onManualEntry,
     this.isRemovedTime = false,
-    this.assignedTime = '',
     this.onRemoveTime,
     this.availableTimes,
     this.removedTimeIndex,
@@ -37,11 +34,10 @@ class RunnerTimeRecord extends StatelessWidget {
   final Chunk chunk;
   final int index;
   final bool isManualEntry;
-  final String prefilledTime;
-  final VoidCallback? onManualEntry;
-  // Extra runner support
-  final bool isRemovedTime;
   final String assignedTime;
+  final VoidCallback? onManualEntry;
+  // Extra time support
+  final bool isRemovedTime;
   final void Function(int)? onRemoveTime;
   final List<String>? availableTimes;
   final int? removedTimeIndex;
@@ -107,23 +103,24 @@ class RunnerTimeRecord extends StatelessWidget {
                     bottomRight: Radius.circular(10),
                   ),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-                child: hasConflict
-                    ? (chunk.type == RecordType.missingRunner
-                        ? _buildMissingRunnerTimeCell(context)
-                        :  _buildExtraRunnerTimeCell(context))
-                            // : Portal(
-                            //     child: TimeSelector(
-                            //       controller: controller,
-                            //       timeController: chunk.controllers['timeControllers']![index],
-                            //       manualController: chunk.controllers['manualControllers']![index],
-                            //       times: chunk.resolve!.availableTimes,
-                            //       conflictIndex: chunk.conflictIndex,
-                            //       manual: chunk.type != RecordType.extraRunner,
-                            //       timeIndex: index,
-                            //     ),
-                            //   ))
-                    : ConfirmedTime(time: timeRecord.elapsedTime),
+                padding: const EdgeInsets.symmetric(horizontal: 14), // Remove vertical padding
+                child: SizedBox.expand(
+                  child: hasConflict
+                      ? (chunk.type == RecordType.missingTime
+                          ? MissingTimeCell(
+                              controller: chunk.controllers['timeControllers']![index],
+                              isManualEntry: isManualEntry,
+                              assignedTime: assignedTime,
+                              onManualEntry: onManualEntry,
+                            )
+                          : ExtraTimeCell(
+                              assignedTime: assignedTime,
+                              index: index,
+                              removedTimeIndex: removedTimeIndex,
+                              onRemoveTime: onRemoveTime,
+                            ))
+                      : ConfirmedRunnerTimeCell(time: timeRecord.elapsedTime),
+                ),
               ),
             ),
           ],
@@ -131,146 +128,4 @@ class RunnerTimeRecord extends StatelessWidget {
       ),
     );
   }
-
-  Widget _buildExtraRunnerTimeCell(BuildContext context) {
-    // If this row's assigned time is the one removed, show placeholder
-    return Row(
-        children: [
-          Expanded(
-            child: Text(
-              assignedTime.isNotEmpty ? assignedTime : '—',
-              style: AppTypography.smallBodySemibold.copyWith(
-                color: AppColors.darkColor,
-              ),
-            ),
-          ),
-          if (removedTimeIndex == null) 
-            IconButton(
-              icon: const Icon(Icons.close),
-              tooltip: 'Remove extra time',
-              onPressed: onRemoveTime != null ? () => onRemoveTime!(index) : null,
-            ),
-        ],
-      );
-  }
-
-  Widget _buildMissingRunnerTimeCell(BuildContext context) {
-    final controller = chunk.controllers['timeControllers']![index];
-    if (isManualEntry) {
-      return TextField(
-        controller: controller,
-        autofocus: true,
-        decoration: const InputDecoration(
-          hintText: 'Enter missing time',
-          border: InputBorder.none,
-          enabledBorder: InputBorder.none,
-          focusedBorder: OutlineInputBorder(),
-        ),
-        style: AppTypography.smallBodySemibold.copyWith(
-          color: AppColors.darkColor,
-        ),
-      );
-    } else {
-      return Row(
-        children: [
-          Expanded(
-            child: Text(
-              prefilledTime.isNotEmpty ? prefilledTime : '—',
-              style: AppTypography.smallBodySemibold.copyWith(
-                color: AppColors.darkColor,
-              ),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.add_circle_outline),
-            tooltip: 'Enter manual time',
-            onPressed: onManualEntry,
-          ),
-        ],
-      );
-    }
-  }
 }
-
-// Stateful widget for per-runner missing time cell
-class _MissingRunnerTimeCell extends StatefulWidget {
-  final TextEditingController controller;
-  final String timeText;
-  final ValueChanged<String> onManualEntry;
-  const _MissingRunnerTimeCell({
-    required this.controller,
-    required this.timeText,
-    required this.onManualEntry,
-  });
-
-  @override
-  State<_MissingRunnerTimeCell> createState() => _MissingRunnerTimeCellState();
-}
-
-class _MissingRunnerTimeCellState extends State<_MissingRunnerTimeCell> {
-  bool manualMode = false;
-  late TextEditingController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = widget.controller;
-    manualMode = _controller.text.isEmpty;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (manualMode) {
-      return Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: _controller,
-              autofocus: true,
-              decoration: const InputDecoration(
-                hintText: 'Enter missing time',
-                border: OutlineInputBorder(),
-              ),
-              style: AppTypography.smallBodySemibold.copyWith(
-                color: AppColors.darkColor,
-              ),
-              onSubmitted: (value) {
-                setState(() {});
-                widget.onManualEntry(value);
-              },
-              onChanged: (value) {
-                setState(() {});
-                widget.onManualEntry(value);
-              },
-            ),
-          ),
-        ],
-      );
-    } else {
-      return Row(
-        children: [
-          Expanded(
-            child: Text(
-              widget.timeText.isNotEmpty ? widget.timeText : '—',
-              style: AppTypography.smallBodySemibold.copyWith(
-                color: AppColors.darkColor,
-              ),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.add_circle_outline),
-            tooltip: 'Enter manual time',
-            onPressed: () {
-              setState(() {
-                manualMode = true;
-                _controller.clear();
-              });
-            },
-          ),
-        ],
-      );
-    }
-  }
-}
-
-

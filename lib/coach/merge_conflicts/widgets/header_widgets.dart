@@ -14,17 +14,19 @@ class ConflictHeader extends StatelessWidget {
     required this.endTime,
   });
   final RecordType type;
-  final TimingRecord conflictRecord;
+  final TimeRecord conflictRecord;
   final String startTime;
   final String endTime;
 
   @override
   Widget build(BuildContext context) {
-    final String title = type == RecordType.extraRunner
-        ? 'Too Many Runner Times'
-        : 'Missing Runner Times';
+    final String title = type == RecordType.extraTime
+        ? 'Extra Time Detected'
+        : 'Missing Time Detected';
     final String description =
-        '${type == RecordType.extraRunner ? 'There are more times recorded by the timing assistant than runners' : 'There are more runners than times recorded by the timing assistant'}. Please select or enter appropriate times between $startTime and $endTime to resolve the discrepancy between recorded times and runners.';
+        type == RecordType.extraTime
+            ? 'There are more times than runners. Please select the extra time that should be removed from the results by clicking the X button next to it.'
+            : 'There are more runners than times. Please enter a missing time to the correct runner by clicking the + button next to it.';
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -63,7 +65,7 @@ class ConfirmHeader extends StatelessWidget {
     super.key,
     required this.confirmRecord,
   });
-  final TimingRecord confirmRecord;
+  final TimeRecord confirmRecord;
 
   @override
   Widget build(BuildContext context) {
@@ -124,7 +126,7 @@ class ConfirmationRecord extends StatelessWidget {
       {super.key});
   final BuildContext context;
   final int index;
-  final TimingRecord timeRecord;
+  final TimeRecord timeRecord;
 
   @override
   Widget build(BuildContext context) {

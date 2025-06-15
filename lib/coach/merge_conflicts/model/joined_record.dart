@@ -11,11 +11,11 @@ class JoinedRecord {
   factory JoinedRecord.blank() {
     return JoinedRecord(
       runner: RunnerRecord.blank(),
-      timeRecord: TimingRecord.blank(),
+      timeRecord: TimeRecord.blank(),
     );
   }
   final RunnerRecord runner;
-  final TimingRecord timeRecord;
+  final TimeRecord timeRecord;
 
   JoinedRecord({
     required this.runner,

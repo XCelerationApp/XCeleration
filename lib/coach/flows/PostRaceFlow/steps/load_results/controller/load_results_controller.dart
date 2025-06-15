@@ -133,9 +133,9 @@ class LoadResultsController with ChangeNotifier {
   //     ),
   //   ];
 
-  //   // Creating a missing runner conflict
+  //   // Creating a missing time conflict
   //   // A runner with TBD (To Be Determined) time that needs to be resolved
-  //   ResultsRecord missingRunnerResult = ResultsRecord(
+  //   ResultsRecord missingTimeResult = ResultsRecord(
   //     raceId: raceId,
   //     runnerId: 104,
   //     place: 4,
@@ -173,7 +173,7 @@ class LoadResultsController with ChangeNotifier {
   //   timingData = TimingData(
   //     records: [
   //       // First 3 confirmed runners
-  //       TimingRecord(
+  //       TimeRecord(
   //         elapsedTime: '12:34.5',
   //         isConfirmed: true,
   //         type: RecordType.runnerTime,
@@ -183,7 +183,7 @@ class LoadResultsController with ChangeNotifier {
   //         grade: 12,
   //         bib: '101',
   //       ),
-  //       TimingRecord(
+  //       TimeRecord(
   //         elapsedTime: '12:45.3',
   //         isConfirmed: true,
   //         type: RecordType.runnerTime,
@@ -193,7 +193,7 @@ class LoadResultsController with ChangeNotifier {
   //         grade: 11,
   //         bib: '202',
   //       ),
-  //       TimingRecord(
+  //       TimeRecord(
   //         elapsedTime: '12:58.7',
   //         isConfirmed: true,
   //         type: RecordType.runnerTime,
@@ -203,8 +203,8 @@ class LoadResultsController with ChangeNotifier {
   //         grade: 10,
   //         bib: '303',
   //       ),
-  //       // Missing runner with TBD time
-  //       TimingRecord(
+  //       // Missing time with TBD time
+  //       TimeRecord(
   //         elapsedTime: 'TBD',
   //         isConfirmed: false,
   //         type: RecordType.runnerTime,
@@ -214,24 +214,24 @@ class LoadResultsController with ChangeNotifier {
   //         grade: 12,
   //         bib: '404',
   //         conflict: ConflictDetails(
-  //           type: RecordType.missingRunner,
+  //           type: RecordType.missingTime,
   //           isResolved: false,
   //           data: {'numTimes': 4, 'offBy': 1},
   //         ),
   //       ),
-  //       // Missing runner conflict marker
-  //       TimingRecord(
+  //       // Missing time conflict marker
+  //       TimeRecord(
   //         elapsedTime: '13:22.6',
-  //         type: RecordType.missingRunner,
+  //         type: RecordType.missingTime,
   //         place: 4,
   //         conflict: ConflictDetails(
-  //           type: RecordType.missingRunner,
+  //           type: RecordType.missingTime,
   //           isResolved: false,
   //           data: {'numTimes': 4, 'offBy': 1},
   //         ),
   //       ),
   //       // Regular confirmed runner
-  //       TimingRecord(
+  //       TimeRecord(
   //         elapsedTime: '13:22.6',
   //         isConfirmed: true,
   //         type: RecordType.runnerTime,
@@ -242,7 +242,7 @@ class LoadResultsController with ChangeNotifier {
   //         bib: '505',
   //       ),
   //       // Additional confirmed runners
-  //       TimingRecord(
+  //       TimeRecord(
   //         elapsedTime: '13:35.2',
   //         isConfirmed: true,
   //         type: RecordType.runnerTime,
@@ -252,7 +252,7 @@ class LoadResultsController with ChangeNotifier {
   //         grade: 11,
   //         bib: '606',
   //       ),
-  //       TimingRecord(
+  //       TimeRecord(
   //         elapsedTime: '13:46.8',
   //         isConfirmed: true,
   //         type: RecordType.runnerTime,
@@ -263,7 +263,7 @@ class LoadResultsController with ChangeNotifier {
   //         bib: '707',
   //       ),
   //       // Additional confirmed runners
-  //       TimingRecord(
+  //       TimeRecord(
   //         elapsedTime: '13:55.3',
   //         isConfirmed: true,
   //         type: RecordType.runnerTime,
@@ -273,7 +273,7 @@ class LoadResultsController with ChangeNotifier {
   //         grade: 12,
   //         bib: '808',
   //       ),
-  //       TimingRecord(
+  //       TimeRecord(
   //         elapsedTime: '14:07.9',
   //         isConfirmed: true,
   //         type: RecordType.runnerTime,
@@ -283,7 +283,7 @@ class LoadResultsController with ChangeNotifier {
   //         grade: 11,
   //         bib: '909',
   //       ),
-  //       TimingRecord(
+  //       TimeRecord(
   //         elapsedTime: '14:23.4',
   //         isConfirmed: true,
   //         type: RecordType.runnerTime,
@@ -385,8 +385,8 @@ class LoadResultsController with ChangeNotifier {
   //   hasBibConflicts = false; // No bib conflicts
   //   hasTimingConflicts = true;
 
-  //   // Add the missing runner result to our mock results
-  //   mockResults.add(missingRunnerResult);
+  //   // Add the missing time result to our mock results
+  //   mockResults.add(missingTimeResult);
     
   //   // Add one more regular result
   //   mockResults.add(ResultsRecord(
@@ -506,7 +506,7 @@ class LoadResultsController with ChangeNotifier {
   Future<List<ResultsRecord>> _mergeRunnerRecordsWithTimingData(
       TimingData timingData, List<RunnerRecord> runnerRecords) async {
     final List<ResultsRecord> mergedRecords = [];
-    final List<TimingRecord> records = timingData.records
+    final List<TimeRecord> records = timingData.records
         .where((record) => record.type == RecordType.runnerTime)
         .toList();
 
@@ -514,18 +514,18 @@ class LoadResultsController with ChangeNotifier {
       if (i >= runnerRecords.length) break;
       
       final runnerRecord = runnerRecords[i];
-      final timingRecord = records[i];
+      final TimeRecord = records[i];
       
       // Convert elapsed time string to Duration
       Duration finishDuration;
-      finishDuration = TimeFormatter.loadDurationFromString(timingRecord.elapsedTime) ?? Duration.zero;
+      finishDuration = TimeFormatter.loadDurationFromString(TimeRecord.elapsedTime) ?? Duration.zero;
       
       // Get or create runner ID
       int runnerId = runnerRecord.runnerId ?? await _findRunnerId(runnerRecord);
       
       mergedRecords.add(ResultsRecord(
         bib: runnerRecord.bib,
-        place: timingRecord.place!,
+        place: TimeRecord.place!,
         name: runnerRecord.name,
         school: runnerRecord.school,
         grade: runnerRecord.grade,
@@ -565,55 +565,55 @@ class LoadResultsController with ChangeNotifier {
     // Fake encoded data strings
     final fakeBibRecordsData = '1 2 30 101';
     final fakeFinishTimesData = TimingData(records: [
-      TimingRecord(
+      TimeRecord(
         elapsedTime: '1.0',
         isConfirmed: true,
         conflict: null,
         type: RecordType.runnerTime,
         place: 1,
       ),
-      TimingRecord(
+      TimeRecord(
         elapsedTime: '2.0',
         isConfirmed: true,
         conflict: null,
         type: RecordType.runnerTime,
         place: 2,
       ),
-      TimingRecord(
+      TimeRecord(
         elapsedTime: '3.0',
         isConfirmed: true,
         conflict: null,
         type: RecordType.runnerTime,
         place: 3,
       ),
-      TimingRecord(
+      TimeRecord(
         elapsedTime: '3.5',
         isConfirmed: true,
         conflict: null,
         place: 3,
         type: RecordType.confirmRunner,
       ),
-      TimingRecord(
+      TimeRecord(
         elapsedTime: 'TBD',
         isConfirmed: false,
         conflict: ConflictDetails(
-          type: RecordType.missingRunner,
+          type: RecordType.missingTime,
           isResolved: false,
           data: {'numTimes': 4, 'offBy': 1},
         ),
         place: 4,
         type: RecordType.runnerTime,
       ),
-      TimingRecord(
+      TimeRecord(
         elapsedTime: '4.0',
         isConfirmed: false,
         conflict: ConflictDetails(
-          type: RecordType.missingRunner,
+          type: RecordType.missingTime,
           isResolved: false,
           data: {'numTimes': 4, 'offBy': 1},
         ),
         place: 4,
-        type: RecordType.missingRunner,
+        type: RecordType.missingTime,
       ),
     ], endTime: '13.7');
 

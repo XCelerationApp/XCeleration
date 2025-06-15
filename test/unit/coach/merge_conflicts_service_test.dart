@@ -21,41 +21,41 @@ void main() {
         school: 'School',
       ));
 
-      // Create timing records with a missing runner at place 3
+      // Create timing records with a missing time at place 3
       final records = [
         // Normal runner times
-        TimingRecord(elapsedTime: '1.0', type: RecordType.runnerTime, place: 1),
-        TimingRecord(elapsedTime: '1.1', type: RecordType.runnerTime, place: 2),
+        TimeRecord(elapsedTime: '1.0', type: RecordType.runnerTime, place: 1),
+        TimeRecord(elapsedTime: '1.1', type: RecordType.runnerTime, place: 2),
 
-        // Missing runner at place 3 (TBD + conflict)
-        TimingRecord(elapsedTime: 'TBD', type: RecordType.runnerTime, place: 3),
-        TimingRecord(
+        // Missing time at place 3 (TBD + conflict)
+        TimeRecord(elapsedTime: 'TBD', type: RecordType.runnerTime, place: 3),
+        TimeRecord(
           elapsedTime: '2.0',
-          type: RecordType.missingRunner,
+          type: RecordType.missingTime,
           place: 3,
           conflict: ConflictDetails(
-            type: RecordType.missingRunner,
+            type: RecordType.missingTime,
             data: {'offBy': 1, 'numTimes': 3},
           ),
         ),
 
         // Normal runner time
-        TimingRecord(elapsedTime: '1.2', type: RecordType.runnerTime, place: 4),
+        TimeRecord(elapsedTime: '1.2', type: RecordType.runnerTime, place: 4),
 
-        // Extra runner at place 5 (conflict: extraRunner)
-        TimingRecord(
+        // Extra time at place 5 (conflict: extraTime)
+        TimeRecord(
           elapsedTime: '1.25',
-          type: RecordType.extraRunner,
+          type: RecordType.extraTime,
           place: 5,
           conflict: ConflictDetails(
-            type: RecordType.extraRunner,
+            type: RecordType.extraTime,
             data: {'offBy': 1, 'numTimes': 5},
           ),
         ),
-        TimingRecord(elapsedTime: '1.3', type: RecordType.runnerTime, place: 5),
+        TimeRecord(elapsedTime: '1.3', type: RecordType.runnerTime, place: 5),
 
         // Confirm runner at place 6 (conflict: confirmRunner)
-        TimingRecord(
+        TimeRecord(
           elapsedTime: '1.35',
           type: RecordType.confirmRunner,
           place: 6,
@@ -64,22 +64,22 @@ void main() {
             data: {'offBy': 1, 'numTimes': 6},
           ),
         ),
-        TimingRecord(elapsedTime: '1.4', type: RecordType.runnerTime, place: 6),
+        TimeRecord(elapsedTime: '1.4', type: RecordType.runnerTime, place: 6),
 
-        // Another missing runner at place 7
-        TimingRecord(elapsedTime: 'TBD', type: RecordType.runnerTime, place: 7),
-        TimingRecord(
+        // Another missing time at place 7
+        TimeRecord(elapsedTime: 'TBD', type: RecordType.runnerTime, place: 7),
+        TimeRecord(
           elapsedTime: '2.5',
-          type: RecordType.missingRunner,
+          type: RecordType.missingTime,
           place: 7,
           conflict: ConflictDetails(
-            type: RecordType.missingRunner,
+            type: RecordType.missingTime,
             data: {'offBy': 1, 'numTimes': 7},
           ),
         ),
 
         // Normal runner time at place 8
-        TimingRecord(elapsedTime: '1.5', type: RecordType.runnerTime, place: 8),
+        TimeRecord(elapsedTime: '1.5', type: RecordType.runnerTime, place: 8),
       ];
       final timingData = TimingData(records: records, endTime: '1.3', startTime: null);
 
@@ -90,16 +90,16 @@ void main() {
           conflictingRunners: [],
           lastConfirmedPlace: 0,
           availableTimes: [],
-          conflictRecord: TimingRecord(place: 0, elapsedTime: ''),
-          lastConfirmedRecord: TimingRecord(place: 0, elapsedTime: ''),
+          conflictRecord: TimeRecord(place: 0, elapsedTime: ''),
+          lastConfirmedRecord: TimeRecord(place: 0, elapsedTime: ''),
           bibData: [],
         ),
         resolveTooFewRunnerTimes: (a, b, c) async => ResolveInformation(
           conflictingRunners: [],
           lastConfirmedPlace: 0,
           availableTimes: [],
-          conflictRecord: TimingRecord(place: 0, elapsedTime: ''),
-          lastConfirmedRecord: TimingRecord(place: 0, elapsedTime: ''),
+          conflictRecord: TimeRecord(place: 0, elapsedTime: ''),
+          lastConfirmedRecord: TimeRecord(place: 0, elapsedTime: ''),
           bibData: [],
         ),
         selectedTimes: {},
@@ -117,8 +117,8 @@ void main() {
       final allChunkRunnerBibs = chunks.expand((c) => c.runners.map((r) => r.bib)).toSet();
       final allRunnerBibs = runners.map((r) => r.bib).toSet();
       expect(allChunkRunnerBibs, allRunnerBibs);
-      // Assert that the missingRunner conflict is present in one chunk
-      expect(chunks.any((c) => c.records.any((r) => r.type == RecordType.missingRunner)), true);
+      // Assert that the missingTime conflict is present in one chunk
+      expect(chunks.any((c) => c.records.any((r) => r.type == RecordType.missingTime)), true);
     });
     
     // test('resolveTooManyRunnerTimes throws exception with invalid numTimes', () async {
@@ -135,14 +135,14 @@ void main() {
     //   // Create timing records with a specific pattern to trigger the error
     //   final records = [
     //     // Records 0-9 (normal runner times)
-    //     ...List.generate(10, (i) => TimingRecord(
+    //     ...List.generate(10, (i) => TimeRecord(
     //       elapsedTime: '${i+1}.0',
     //       type: RecordType.runnerTime,
     //       place: i+1,
     //     )),
         
     //     // Record 10: confirmed record at place 11
-    //     TimingRecord(
+    //     TimeRecord(
     //       elapsedTime: '11.0',
     //       type: RecordType.confirmRunner,
     //       place: 11,
@@ -150,19 +150,19 @@ void main() {
     //     ),
         
     //     // Records 11-14 (some runner times after the confirmed record)
-    //     ...List.generate(4, (i) => TimingRecord(
+    //     ...List.generate(4, (i) => TimeRecord(
     //       elapsedTime: '${12+i}.0',
     //       type: RecordType.runnerTime,
     //       place: 12+i,
     //     )),
         
-    //     // Record 15: extraRunner with numTimes = 5 (less than lastConfirmedPlace)
-    //     TimingRecord(
+    //     // Record 15: extraTime with numTimes = 5 (less than lastConfirmedPlace)
+    //     TimeRecord(
     //       elapsedTime: '16.0',
-    //       type: RecordType.extraRunner,
+    //       type: RecordType.extraTime,
     //       place: 15,
     //       conflict: ConflictDetails(
-    //         type: RecordType.extraRunner,
+    //         type: RecordType.extraTime,
     //         data: {'offBy': 1, 'numTimes': 5}, // Key part: numTimes less than lastConfirmedPlace
     //       ),
     //     ),
@@ -174,7 +174,7 @@ void main() {
     //   // This should now throw an exception due to invalid numTimes value
     //   expect(
     //     () async => await MergeConflictsService.resolveTooManyRunnerTimes(
-    //       15, // Index of the extraRunner record
+    //       15, // Index of the extraTime record
     //       timingData,
     //       runners,
     //     ),
@@ -196,14 +196,14 @@ void main() {
       // Create timing records with a valid scenario
       final records = [
         // Records 0-7 (normal runner times)
-        ...List.generate(8, (i) => TimingRecord(
+        ...List.generate(8, (i) => TimeRecord(
           elapsedTime: '${i+1}.0',
           type: RecordType.runnerTime,
           place: i+1,
         )),
         
         // Record 8: last confirmed record at place 8
-        TimingRecord(
+        TimeRecord(
           elapsedTime: '8.0',
           type: RecordType.confirmRunner,
           place: 8,
@@ -211,18 +211,18 @@ void main() {
         ),
         
         // Records 9-12 (times without places)
-        ...List.generate(4, (i) => TimingRecord(
+        ...List.generate(4, (i) => TimeRecord(
           elapsedTime: '${9+i}.0',
           type: RecordType.runnerTime,
         )),
         
-        // Record 13: extraRunner with numTimes = 12 (greater than lastConfirmedPlace)
-        TimingRecord(
+        // Record 13: extraTime with numTimes = 12 (greater than lastConfirmedPlace)
+        TimeRecord(
           elapsedTime: '13.0',
-          type: RecordType.extraRunner,
+          type: RecordType.extraTime,
           place: 12,
           conflict: ConflictDetails(
-            type: RecordType.extraRunner,
+            type: RecordType.extraTime,
             data: {'offBy': 1, 'numTimes': 12},
           ),
         ),
@@ -232,7 +232,7 @@ void main() {
       
       // Call resolveTooManyRunnerTimes directly with the conflict index
       final resolveInfo = await MergeConflictsService.resolveTooManyRunnerTimes(
-        13, // Index of the extraRunner record
+        13, // Index of the extraTime record
         timingData,
         runners,
       );
@@ -263,27 +263,27 @@ void main() {
     //   // Create timing records to trigger the invalid range in resolveTooFewRunnerTimes
     //   final records = [
     //     // First 10 records as normal runner times
-    //     ...List.generate(10, (i) => TimingRecord(
+    //     ...List.generate(10, (i) => TimeRecord(
     //       elapsedTime: '${i+1}.0',
     //       type: RecordType.runnerTime,
     //       place: i+1,
     //     )),
         
     //     // Record 10: confirmed record at place 11
-    //     TimingRecord(
+    //     TimeRecord(
     //       elapsedTime: '11.0',
     //       type: RecordType.confirmRunner,
     //       place: 11,
     //       isConfirmed: true,
     //     ),
         
-    //     // Add a missingRunner conflict where the calculation will result in an invalid range
-    //     TimingRecord(
+    //     // Add a missingTime conflict where the calculation will result in an invalid range
+    //     TimeRecord(
     //       elapsedTime: '12.0',
-    //       type: RecordType.missingRunner,
+    //       type: RecordType.missingTime,
     //       place: 5, // A place less than the lastConfirmedPlace
     //       conflict: ConflictDetails(
-    //         type: RecordType.missingRunner,
+    //         type: RecordType.missingTime,
     //         data: {'offBy': 1, 'numTimes': 5},
     //       ),
     //     ),
@@ -294,7 +294,7 @@ void main() {
     //   // Now that the function throws an exception for invalid ranges, expect an exception
     //   expect(
     //     () async => await MergeConflictsService.resolveTooFewRunnerTimes(
-    //       11, // Index of the missingRunner record
+    //       11, // Index of the missingTime record
     //       timingData,
     //       runners,
     //     ),
@@ -305,19 +305,19 @@ void main() {
     test('clearAllConflicts properly resolves all conflicts', () {
       // Create timing records with various conflicts
       final records = [
-        TimingRecord(elapsedTime: '1.0', type: RecordType.runnerTime, place: 1, isConfirmed: false),
-        TimingRecord(elapsedTime: '1.2', type: RecordType.runnerTime, place: 2, isConfirmed: false),
-        TimingRecord(
+        TimeRecord(elapsedTime: '1.0', type: RecordType.runnerTime, place: 1, isConfirmed: false),
+        TimeRecord(elapsedTime: '1.2', type: RecordType.runnerTime, place: 2, isConfirmed: false),
+        TimeRecord(
           elapsedTime: '2.0', 
-          type: RecordType.missingRunner, 
+          type: RecordType.missingTime, 
           place: 3,
-          conflict: ConflictDetails(type: RecordType.missingRunner, data: {'offBy': 1}),
+          conflict: ConflictDetails(type: RecordType.missingTime, data: {'offBy': 1}),
         ),
-        TimingRecord(
+        TimeRecord(
           elapsedTime: '3.0', 
-          type: RecordType.extraRunner, 
+          type: RecordType.extraTime, 
           place: 4,
-          conflict: ConflictDetails(type: RecordType.extraRunner, data: {'offBy': 1}),
+          conflict: ConflictDetails(type: RecordType.extraTime, data: {'offBy': 1}),
         ),
       ];
       
@@ -330,7 +330,7 @@ void main() {
       for (final record in timingData.records) {
         expect(record.conflict, isNull);
         expect(record.isConfirmed, isTrue);
-        if (record.type == RecordType.missingRunner || record.type == RecordType.extraRunner) {
+        if (record.type == RecordType.missingTime || record.type == RecordType.extraTime) {
           expect(record.type, RecordType.confirmRunner);
           expect(record.textColor, Colors.green);
         }
@@ -349,16 +349,16 @@ void main() {
           conflictingRunners: [],
           lastConfirmedPlace: 0,
           availableTimes: [],
-          conflictRecord: TimingRecord(place: 0, elapsedTime: ''),
-          lastConfirmedRecord: TimingRecord(place: 0, elapsedTime: ''),
+          conflictRecord: TimeRecord(place: 0, elapsedTime: ''),
+          lastConfirmedRecord: TimeRecord(place: 0, elapsedTime: ''),
           bibData: [],
         ),
         resolveTooFewRunnerTimes: (_, __, ___) async => ResolveInformation(
           conflictingRunners: [],
           lastConfirmedPlace: 0,
           availableTimes: [],
-          conflictRecord: TimingRecord(place: 0, elapsedTime: ''),
-          lastConfirmedRecord: TimingRecord(place: 0, elapsedTime: ''),
+          conflictRecord: TimeRecord(place: 0, elapsedTime: ''),
+          lastConfirmedRecord: TimeRecord(place: 0, elapsedTime: ''),
           bibData: [],
         ),
         selectedTimes: {},
@@ -381,9 +381,9 @@ void main() {
 
       // Create records with non-sequential places (1, 3, 5)
       final records = [
-        TimingRecord(elapsedTime: '1.0', type: RecordType.runnerTime, place: 1),
-        TimingRecord(elapsedTime: '3.0', type: RecordType.runnerTime, place: 3),
-        TimingRecord(elapsedTime: '5.0', type: RecordType.runnerTime, place: 5),
+        TimeRecord(elapsedTime: '1.0', type: RecordType.runnerTime, place: 1),
+        TimeRecord(elapsedTime: '3.0', type: RecordType.runnerTime, place: 3),
+        TimeRecord(elapsedTime: '5.0', type: RecordType.runnerTime, place: 5),
       ];
       
       final timingData = TimingData(records: records, endTime: '5.0', startTime: null);
@@ -395,16 +395,16 @@ void main() {
           conflictingRunners: [],
           lastConfirmedPlace: 0,
           availableTimes: [],
-          conflictRecord: TimingRecord(place: 0, elapsedTime: ''),
-          lastConfirmedRecord: TimingRecord(place: 0, elapsedTime: ''),
+          conflictRecord: TimeRecord(place: 0, elapsedTime: ''),
+          lastConfirmedRecord: TimeRecord(place: 0, elapsedTime: ''),
           bibData: [],
         ),
         resolveTooFewRunnerTimes: (_, __, ___) async => ResolveInformation(
           conflictingRunners: [],
           lastConfirmedPlace: 0,
           availableTimes: [],
-          conflictRecord: TimingRecord(place: 0, elapsedTime: ''),
-          lastConfirmedRecord: TimingRecord(place: 0, elapsedTime: ''),
+          conflictRecord: TimeRecord(place: 0, elapsedTime: ''),
+          lastConfirmedRecord: TimeRecord(place: 0, elapsedTime: ''),
           bibData: [],
         ),
         selectedTimes: {},
@@ -424,8 +424,8 @@ void main() {
     
     test('clearAllConflicts handles records with null conflict', () {
       final records = [
-        TimingRecord(elapsedTime: '1.0', type: RecordType.runnerTime, place: 1),
-        TimingRecord(elapsedTime: '2.0', type: RecordType.runnerTime, place: 2, conflict: null),
+        TimeRecord(elapsedTime: '1.0', type: RecordType.runnerTime, place: 1),
+        TimeRecord(elapsedTime: '2.0', type: RecordType.runnerTime, place: 2, conflict: null),
       ];
       
       final timingData = TimingData(records: records, endTime: '2.0', startTime: null);
@@ -453,88 +453,88 @@ void main() {
       ));
       
       // Recreate the timing records from the error log
-      final List<TimingRecord> records = [
+      final List<TimeRecord> records = [
         // Records 0-4: Normal runner times (places 1-5)
-        TimingRecord(elapsedTime: '0.99', type: RecordType.runnerTime, place: 1),
-        TimingRecord(elapsedTime: '1.26', type: RecordType.runnerTime, place: 2),
-        TimingRecord(elapsedTime: '1.45', type: RecordType.runnerTime, place: 3),
-        TimingRecord(elapsedTime: '1.62', type: RecordType.runnerTime, place: 4),
-        TimingRecord(elapsedTime: '1.82', type: RecordType.runnerTime, place: 5),
+        TimeRecord(elapsedTime: '0.99', type: RecordType.runnerTime, place: 1),
+        TimeRecord(elapsedTime: '1.26', type: RecordType.runnerTime, place: 2),
+        TimeRecord(elapsedTime: '1.45', type: RecordType.runnerTime, place: 3),
+        TimeRecord(elapsedTime: '1.62', type: RecordType.runnerTime, place: 4),
+        TimeRecord(elapsedTime: '1.82', type: RecordType.runnerTime, place: 5),
         
         // Record 5: Confirm runner at place 5
-        TimingRecord(elapsedTime: '2.11', type: RecordType.confirmRunner, place: 5),
+        TimeRecord(elapsedTime: '2.11', type: RecordType.confirmRunner, place: 5),
         
         // Records 6-8: Normal runner times (places 6-8)
-        TimingRecord(elapsedTime: '3.35', type: RecordType.runnerTime, place: 6),
-        TimingRecord(elapsedTime: '3.54', type: RecordType.runnerTime, place: 7),
-        TimingRecord(elapsedTime: '3.73', type: RecordType.runnerTime, place: 8),
+        TimeRecord(elapsedTime: '3.35', type: RecordType.runnerTime, place: 6),
+        TimeRecord(elapsedTime: '3.54', type: RecordType.runnerTime, place: 7),
+        TimeRecord(elapsedTime: '3.73', type: RecordType.runnerTime, place: 8),
         
         // Record 9: TBD time at place 9
-        TimingRecord(elapsedTime: 'TBD', type: RecordType.runnerTime, place: 9),
+        TimeRecord(elapsedTime: 'TBD', type: RecordType.runnerTime, place: 9),
         
-        // Record 10: Missing runner conflict at place 9
-        TimingRecord(
+        // Record 10: Missing time conflict at place 9
+        TimeRecord(
           elapsedTime: '4.90', 
-          type: RecordType.missingRunner, 
+          type: RecordType.missingTime, 
           place: 9,
           conflict: ConflictDetails(
-            type: RecordType.missingRunner,
+            type: RecordType.missingTime,
             data: {'offBy': 1, 'numTimes': 9},
           ),
         ),
         
         // Records 11-12: Normal runner times (places 10-11)
-        TimingRecord(elapsedTime: '6.26', type: RecordType.runnerTime, place: 10),
-        TimingRecord(elapsedTime: '6.46', type: RecordType.runnerTime, place: 11),
+        TimeRecord(elapsedTime: '6.26', type: RecordType.runnerTime, place: 10),
+        TimeRecord(elapsedTime: '6.46', type: RecordType.runnerTime, place: 11),
         
         // Record 13: Confirm runner at place 11
-        TimingRecord(elapsedTime: '6.87', type: RecordType.confirmRunner, place: 11),
+        TimeRecord(elapsedTime: '6.87', type: RecordType.confirmRunner, place: 11),
         
         // Records 14-15: Normal runner times (places 12-13)
-        TimingRecord(elapsedTime: '8.17', type: RecordType.runnerTime, place: 12),
-        TimingRecord(elapsedTime: '8.35', type: RecordType.runnerTime, place: 13),
+        TimeRecord(elapsedTime: '8.17', type: RecordType.runnerTime, place: 12),
+        TimeRecord(elapsedTime: '8.35', type: RecordType.runnerTime, place: 13),
         
         // Record 16: Runner time with null place
-        TimingRecord(elapsedTime: '8.59', type: RecordType.runnerTime, place: null),
+        TimeRecord(elapsedTime: '8.59', type: RecordType.runnerTime, place: null),
         
-        // Record 17: Extra runner conflict at place 13
-        TimingRecord(
+        // Record 17: Extra time conflict at place 13
+        TimeRecord(
           elapsedTime: '10.44', 
-          type: RecordType.extraRunner, 
+          type: RecordType.extraTime, 
           place: 13,
           conflict: ConflictDetails(
-            type: RecordType.extraRunner,
+            type: RecordType.extraTime,
             data: {'offBy': 1, 'numTimes': 13},
           ),
         ),
         
         // Records 18-20: Normal runner times (places 14-16)
-        TimingRecord(elapsedTime: '11.18', type: RecordType.runnerTime, place: 14),
-        TimingRecord(elapsedTime: '11.34', type: RecordType.runnerTime, place: 15),
-        TimingRecord(elapsedTime: '11.54', type: RecordType.runnerTime, place: 16),
+        TimeRecord(elapsedTime: '11.18', type: RecordType.runnerTime, place: 14),
+        TimeRecord(elapsedTime: '11.34', type: RecordType.runnerTime, place: 15),
+        TimeRecord(elapsedTime: '11.54', type: RecordType.runnerTime, place: 16),
         
         // Record 21: TBD time at place 17
-        TimingRecord(elapsedTime: 'TBD', type: RecordType.runnerTime, place: 17),
+        TimeRecord(elapsedTime: 'TBD', type: RecordType.runnerTime, place: 17),
         
-        // Record 22: Missing runner conflict at place 17
-        TimingRecord(
+        // Record 22: Missing time conflict at place 17
+        TimeRecord(
           elapsedTime: '13.52', 
-          type: RecordType.missingRunner, 
+          type: RecordType.missingTime, 
           place: 17,
           conflict: ConflictDetails(
-            type: RecordType.missingRunner,
+            type: RecordType.missingTime,
             data: {'offBy': 1, 'numTimes': 17},
           ),
         ),
         
         // Records 23-26: Normal runner times (places 18-21)
-        TimingRecord(elapsedTime: '14.42', type: RecordType.runnerTime, place: 18),
-        TimingRecord(elapsedTime: '14.62', type: RecordType.runnerTime, place: 19),
-        TimingRecord(elapsedTime: '14.77', type: RecordType.runnerTime, place: 20),
-        TimingRecord(elapsedTime: '14.93', type: RecordType.runnerTime, place: 21),
+        TimeRecord(elapsedTime: '14.42', type: RecordType.runnerTime, place: 18),
+        TimeRecord(elapsedTime: '14.62', type: RecordType.runnerTime, place: 19),
+        TimeRecord(elapsedTime: '14.77', type: RecordType.runnerTime, place: 20),
+        TimeRecord(elapsedTime: '14.93', type: RecordType.runnerTime, place: 21),
         
         // Record 27: Confirm runner at place 21
-        TimingRecord(elapsedTime: '16.55', type: RecordType.confirmRunner, place: 21),
+        TimeRecord(elapsedTime: '16.55', type: RecordType.confirmRunner, place: 21),
       ];
       
       final timingData = TimingData(records: records, endTime: '16.55', startTime: null);
@@ -575,7 +575,7 @@ void main() {
             allowManualEntry: true,
             conflictRecord: conflictRecord,
             lastConfirmedRecord: lastConfirmedIndex == -1 
-                ? TimingRecord(place: -1, elapsedTime: '') 
+                ? TimeRecord(place: -1, elapsedTime: '') 
                 : records[lastConfirmedIndex],
             bibData: bibData,
           );
@@ -585,7 +585,7 @@ void main() {
             ? 1
             : firstConflictingRecordIndex - lastConfirmedIndex;
 
-        final List<TimingRecord> conflictingRecords = records.sublist(
+        final List<TimeRecord> conflictingRecords = records.sublist(
             lastConfirmedIndex + spaceBetweenConfirmedAndConflict, conflictIndex);
 
         final List<String> conflictingTimes = conflictingRecords
@@ -622,7 +622,7 @@ void main() {
           allowManualEntry: true,
           conflictRecord: conflictRecord,
           lastConfirmedRecord: lastConfirmedIndex == -1 
-              ? TimingRecord(place: -1, elapsedTime: '') 
+              ? TimeRecord(place: -1, elapsedTime: '') 
               : records[lastConfirmedIndex],
           bibData: bibData,
         );
@@ -659,67 +659,67 @@ void main() {
       ));
       
       // Create timing records with various edge cases for "too many runner times"
-      final List<TimingRecord> records = [
+      final List<TimeRecord> records = [
         // Records 0-3: Normal runner times (places 1-4)
-        TimingRecord(elapsedTime: '0.95', type: RecordType.runnerTime, place: 1),
-        TimingRecord(elapsedTime: '1.23', type: RecordType.runnerTime, place: 2),
-        TimingRecord(elapsedTime: '1.41', type: RecordType.runnerTime, place: 3),
-        TimingRecord(elapsedTime: '1.59', type: RecordType.runnerTime, place: 4),
+        TimeRecord(elapsedTime: '0.95', type: RecordType.runnerTime, place: 1),
+        TimeRecord(elapsedTime: '1.23', type: RecordType.runnerTime, place: 2),
+        TimeRecord(elapsedTime: '1.41', type: RecordType.runnerTime, place: 3),
+        TimeRecord(elapsedTime: '1.59', type: RecordType.runnerTime, place: 4),
         
         // Record 4: Confirm runner at place 4
-        TimingRecord(elapsedTime: '1.85', type: RecordType.confirmRunner, place: 4),
+        TimeRecord(elapsedTime: '1.85', type: RecordType.confirmRunner, place: 4),
         
         // Records 5-9: Normal runner times (places 5-9)
-        TimingRecord(elapsedTime: '2.15', type: RecordType.runnerTime, place: 5),
-        TimingRecord(elapsedTime: '2.28', type: RecordType.runnerTime, place: 6),
-        TimingRecord(elapsedTime: '2.47', type: RecordType.runnerTime, place: 7),
-        TimingRecord(elapsedTime: '2.63', type: RecordType.runnerTime, place: 8),
-        TimingRecord(elapsedTime: '2.79', type: RecordType.runnerTime, place: 9),
+        TimeRecord(elapsedTime: '2.15', type: RecordType.runnerTime, place: 5),
+        TimeRecord(elapsedTime: '2.28', type: RecordType.runnerTime, place: 6),
+        TimeRecord(elapsedTime: '2.47', type: RecordType.runnerTime, place: 7),
+        TimeRecord(elapsedTime: '2.63', type: RecordType.runnerTime, place: 8),
+        TimeRecord(elapsedTime: '2.79', type: RecordType.runnerTime, place: 9),
         
-        // Record 10: Extra runner conflict at place 9
-        TimingRecord(
+        // Record 10: Extra time conflict at place 9
+        TimeRecord(
           elapsedTime: '3.10', 
-          type: RecordType.extraRunner, 
+          type: RecordType.extraTime, 
           place: 9,
           conflict: ConflictDetails(
-            type: RecordType.extraRunner,
+            type: RecordType.extraTime,
             data: {'offBy': 1, 'numTimes': 8}, // Indicating 8 runners but 9 times
           ),
         ),
         
         // Records 11-13: Normal runner times (places 10-12)
-        TimingRecord(elapsedTime: '4.05', type: RecordType.runnerTime, place: 10),
-        TimingRecord(elapsedTime: '4.23', type: RecordType.runnerTime, place: 11),
-        TimingRecord(elapsedTime: '4.41', type: RecordType.runnerTime, place: 12),
+        TimeRecord(elapsedTime: '4.05', type: RecordType.runnerTime, place: 10),
+        TimeRecord(elapsedTime: '4.23', type: RecordType.runnerTime, place: 11),
+        TimeRecord(elapsedTime: '4.41', type: RecordType.runnerTime, place: 12),
         
         // Record 14: Null place (edge case)
-        TimingRecord(elapsedTime: '4.55', type: RecordType.runnerTime, place: null),
+        TimeRecord(elapsedTime: '4.55', type: RecordType.runnerTime, place: null),
         
         // Record 15: Confirm runner at place 12
-        TimingRecord(elapsedTime: '4.80', type: RecordType.confirmRunner, place: 12),
+        TimeRecord(elapsedTime: '4.80', type: RecordType.confirmRunner, place: 12),
         
         // Record 16-19: Normal runner times (places 13-16)
-        TimingRecord(elapsedTime: '5.22', type: RecordType.runnerTime, place: 13),
-        TimingRecord(elapsedTime: '5.40', type: RecordType.runnerTime, place: 14),
-        TimingRecord(elapsedTime: '5.60', type: RecordType.runnerTime, place: 15),
-        TimingRecord(elapsedTime: '5.85', type: RecordType.runnerTime, place: 16),
+        TimeRecord(elapsedTime: '5.22', type: RecordType.runnerTime, place: 13),
+        TimeRecord(elapsedTime: '5.40', type: RecordType.runnerTime, place: 14),
+        TimeRecord(elapsedTime: '5.60', type: RecordType.runnerTime, place: 15),
+        TimeRecord(elapsedTime: '5.85', type: RecordType.runnerTime, place: 16),
         
-        // Record 20: Extra runner conflict at place 16 (edge case with more extreme mismatch)
-        TimingRecord(
+        // Record 20: Extra time conflict at place 16 (edge case with more extreme mismatch)
+        TimeRecord(
           elapsedTime: '6.10', 
-          type: RecordType.extraRunner, 
+          type: RecordType.extraTime, 
           place: 16,
           conflict: ConflictDetails(
-            type: RecordType.extraRunner,
-            data: {'offBy': 3, 'numTimes': 13}, // 3 extra runners, correct runner count would be 13
+            type: RecordType.extraTime,
+            data: {'offBy': 3, 'numTimes': 13}, // 3 extra times, correct time count would be 13
           ),
         ),
         
         // Records 21-24: Normal runner times (places 17-20)
-        TimingRecord(elapsedTime: '6.75', type: RecordType.runnerTime, place: 17),
-        TimingRecord(elapsedTime: '6.92', type: RecordType.runnerTime, place: 18),
-        TimingRecord(elapsedTime: '7.10', type: RecordType.runnerTime, place: 19),
-        TimingRecord(elapsedTime: '7.25', type: RecordType.runnerTime, place: 20),
+        TimeRecord(elapsedTime: '6.75', type: RecordType.runnerTime, place: 17),
+        TimeRecord(elapsedTime: '6.92', type: RecordType.runnerTime, place: 18),
+        TimeRecord(elapsedTime: '7.10', type: RecordType.runnerTime, place: 19),
+        TimeRecord(elapsedTime: '7.25', type: RecordType.runnerTime, place: 20),
       ];
       
       final timingData = TimingData(records: records, endTime: '7.30', startTime: null);
@@ -744,7 +744,7 @@ void main() {
             lastConfirmedIndex == -1 ? 0 : records[lastConfirmedIndex].place ?? 0;
         
         // Get conflicting records between confirmed and conflict
-        final List<TimingRecord> conflictingRecords =
+        final List<TimeRecord> conflictingRecords =
             records.sublist(lastConfirmedIndex + 1, conflictIndex);
         
         // Extract available times from conflicting records
@@ -770,7 +770,7 @@ void main() {
             allowManualEntry: true,
             conflictRecord: conflictRecord,
             lastConfirmedRecord: lastConfirmedIndex == -1 
-                ? TimingRecord(place: -1, elapsedTime: '') 
+                ? TimeRecord(place: -1, elapsedTime: '') 
                 : records[lastConfirmedIndex],
             bibData: bibData,
           );
@@ -796,7 +796,7 @@ void main() {
           conflictingTimes: conflictingTimes,
           lastConfirmedPlace: lastConfirmedPlace,
           lastConfirmedRecord: lastConfirmedIndex == -1 
-              ? TimingRecord(place: lastConfirmedPlace, elapsedTime: '', isConfirmed: true) 
+              ? TimeRecord(place: lastConfirmedPlace, elapsedTime: '', isConfirmed: true) 
               : records[lastConfirmedIndex],
           lastConfirmedIndex: lastConfirmedIndex,
           conflictRecord: conflictRecord,
@@ -812,8 +812,8 @@ void main() {
       expect(resolveInfo, isNotNull);
       expect(resolveInfo.conflictRecord, equals(timingData.records[10]));
       
-      // Verify correct extraction of conflicting runners
-      // For this case, the last confirmed place was 4 and we have extra runners
+      // Verify correct extraction of conflicting times
+      // For this case, the last confirmed place was 4 and we have extra times
       // so we should have runners from indices 3-7 (places 4-8, as numTimes was 8)
       expect(resolveInfo.conflictingRunners.length, equals(5)); // 8-4+1 = 5 runners
       
@@ -829,18 +829,18 @@ void main() {
       expect(resolveInfo.lastConfirmedPlace, equals(12));
       
       // Test edge case: conflict record with null or corrupted data
-      final corruptedConflictRecord = TimingRecord(
+      final corruptedConflictRecord = TimeRecord(
         elapsedTime: '8.00',
-        type: RecordType.extraRunner,
+        type: RecordType.extraTime,
         place: 20,
         conflict: ConflictDetails(
-          type: RecordType.extraRunner,
+          type: RecordType.extraTime,
           data: {'offBy': 2, 'numTimes': null}, // Null numTimes to test handling
         ),
       );
       
       // Create a corrupted version of the records
-      final corruptedRecords = List<TimingRecord>.from(records);
+      final corruptedRecords = List<TimeRecord>.from(records);
       corruptedRecords.add(corruptedConflictRecord);
       final corruptedTimingData = TimingData(records: corruptedRecords, endTime: '8.00', startTime: null);
       
@@ -856,15 +856,15 @@ void main() {
       // Create empty runner list
       final List<RunnerRecord> emptyRunners = [];
       
-      // Create simple timing records with an extra runner conflict
-      final List<TimingRecord> records = [
-        TimingRecord(elapsedTime: '1.0', type: RecordType.runnerTime, place: 1),
-        TimingRecord(
+      // Create simple timing records with an extra time conflict
+      final List<TimeRecord> records = [
+        TimeRecord(elapsedTime: '1.0', type: RecordType.runnerTime, place: 1),
+        TimeRecord(
           elapsedTime: '1.5',
-          type: RecordType.extraRunner,
+          type: RecordType.extraTime,
           place: 1,
           conflict: ConflictDetails(
-            type: RecordType.extraRunner,
+            type: RecordType.extraTime,
             data: {'offBy': 1, 'numTimes': 0},
           ),
         ),
@@ -892,7 +892,7 @@ void main() {
             lastConfirmedIndex == -1 ? 0 : records[lastConfirmedIndex].place ?? 0;
         
         // Get conflicting records between confirmed and conflict
-        final List<TimingRecord> conflictingRecords = lastConfirmedIndex + 1 >= conflictIndex ?
+        final List<TimeRecord> conflictingRecords = lastConfirmedIndex + 1 >= conflictIndex ?
             [] : records.sublist(lastConfirmedIndex + 1, conflictIndex);
         
         // Extract available times from conflicting records
@@ -917,7 +917,7 @@ void main() {
             allowManualEntry: true,
             conflictRecord: conflictRecord,
             lastConfirmedRecord: lastConfirmedIndex == -1 
-                ? TimingRecord(place: -1, elapsedTime: '') 
+                ? TimeRecord(place: -1, elapsedTime: '') 
                 : records[lastConfirmedIndex],
             bibData: bibData,
           );
@@ -943,7 +943,7 @@ void main() {
           conflictingTimes: conflictingTimes,
           lastConfirmedPlace: lastConfirmedPlace,
           lastConfirmedRecord: lastConfirmedIndex == -1 
-              ? TimingRecord(place: lastConfirmedPlace, elapsedTime: '', isConfirmed: true) 
+              ? TimeRecord(place: lastConfirmedPlace, elapsedTime: '', isConfirmed: true) 
               : records[lastConfirmedIndex],
           lastConfirmedIndex: lastConfirmedIndex,
           conflictRecord: conflictRecord,

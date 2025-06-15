@@ -67,13 +67,13 @@ void main() {
       
       test('should decode conflict records correctly', () async {
         // Arrange
-        final encodedData = '10.5,RecordType.missingRunner 1 11.2,12.0';
+        final encodedData = '10.5,RecordType.missingTime 1 11.2,12.0';
         
         // Act
         final result = await decodeRaceTimesString(encodedData);
         
         // Assert
-        expect(result.records.length, equals(3));  // We expect a missing runner conflict to create a new record
+        expect(result.records.length, equals(3));  // We expect a missing time conflict to create a new record
         expect(result.endTime, equals('12.0'));
       });
       
@@ -132,7 +132,7 @@ void main() {
       
       test('should handle various record types in race times', () async {
         // Arrange - mixed record types
-        final encodedData = '10.5,RecordType.extraRunner 1 11.2,RecordType.confirmRunner 1 12.0,13.1';
+        final encodedData = '10.5,RecordType.extraTime 1 11.2,RecordType.confirmRunner 1 12.0,13.1';
         
         // Act
         final result = await decodeRaceTimesString(encodedData);
@@ -140,7 +140,7 @@ void main() {
         // Assert - should parse different record types
         expect(result.records.length, equals(4));
         expect(result.records[0].type, equals(RecordType.runnerTime));
-        expect(result.records[1].type, equals(RecordType.extraRunner));
+        expect(result.records[1].type, equals(RecordType.extraTime));
         expect(result.records[2].type, equals(RecordType.confirmRunner));
         expect(result.records[3].type, equals(RecordType.runnerTime));
       });
@@ -295,7 +295,7 @@ void main() {
         // Arrange
         final timingData = TimingData(
           records: [
-            TimingRecord(
+            TimeRecord(
               elapsedTime: '10.5',
               type: RecordType.runnerTime,
               place: 1,
@@ -325,7 +325,7 @@ void main() {
         // Arrange
         final timingData = TimingData(
           records: [
-            TimingRecord(
+            TimeRecord(
               elapsedTime: '10.5',
               type: RecordType.runnerTime,
               place: 1,
