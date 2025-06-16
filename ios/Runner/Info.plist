@@ -6,6 +6,8 @@
 		<string>$(DEVELOPMENT_LANGUAGE)</string>
 		<key>CFBundleDisplayName</key>
 		<string>Xceleration</string>
+		<key>GIDClientID</key>
+		<string>529053126812-cuhlura1vskuup3lg6hpf6iup6mlje6v.apps.googleusercontent.com</string>
 		<key>CFBundleExecutable</key>
 		<string>$(EXECUTABLE_NAME)</string>
 		<key>CFBundleIdentifier</key>

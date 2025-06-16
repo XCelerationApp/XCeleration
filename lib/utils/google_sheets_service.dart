@@ -127,18 +127,17 @@ class GoogleSheetsService {
     required List<List<dynamic>> data,
   }) async {
     try {
-      // Check if we're already signed in or try to sign in
-      if (!await _authService.isSignedIn()) {
-        if (!await _authService.signIn()) {
-          if (context.mounted) {
-            DialogUtils.showErrorDialog(
-              context, 
-              message: 'Please sign in to your Google account to create a spreadsheet'
-            );
-          }
-          return null;
+      // sign in
+      if (!await _authService.signIn()) {
+        if (context.mounted) {
+          DialogUtils.showErrorDialog(
+            context, 
+            message: 'Error signing in to your Google account - cannot create a spreadsheet'
+          );
         }
+        return null;
       }
+      
 
       if (!context.mounted) return null;
       
@@ -230,14 +229,12 @@ class GoogleSheetsService {
     
     try {
       // Ensure we're signed in
-      if (!await _authService.isSignedIn()) {
-        if (!await _authService.signIn()) {
-          Logger.d('Failed to sign in to download sheet');
-          return null;
-        }
+      if (!await _authService.signIn()) {
+        Logger.d('Failed to sign in to download sheet');
+        return null;
       }
-
-      final accessToken = await _authService.getAccessToken();
+      
+      final accessToken = await _authService.iosAccessToken;
       if (accessToken == null) {
         Logger.d('Failed to get access token');
         return null;
@@ -327,7 +324,7 @@ class GoogleSheetsService {
           final downloadUrl = fileMetadata.webContentLink!;
           
           // Try downloading with auth token
-          final token = await _authService.getAccessToken();
+          final token = await _authService.iosAccessToken;
           final http.Client httpClient = http.Client();
           try {
             final headers = <String, String>{};
@@ -403,7 +400,7 @@ class GoogleSheetsService {
   Future<File?> _tryDirectExportApiRequest(String fileId, String fileName) async {
     Logger.d('Trying direct export API request');
     try {
-      final token = await _authService.getAccessToken();
+      final token = await _authService.iosAccessToken;
       if (token == null) {
         Logger.d('Failed to get access token for direct export');
         return null;
@@ -459,7 +456,7 @@ class GoogleSheetsService {
       }
       
       // Get auth token for authenticated request
-      final token = await _authService.getAccessToken();
+      final token = await _authService.iosAccessToken;
       
       // Convert edit URL to export URL
       // From: https://docs.google.com/spreadsheets/d/{fileId}/edit...

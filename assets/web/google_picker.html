@@ -103,11 +103,9 @@
 
     // Global variables that will be set by Flutter
     let DEVELOPER_KEY = '';
-    let CLIENT_ID = '';
     let APP_ID = '';
     let CALLBACK_CHANNEL = '';
-    let TOKEN_CHANNEL = '';
-    
+    let ACCESS_TOKEN = '';
     let gapi_loaded = false;
     let picker_loaded = false;
     let scripts_loaded = false;
@@ -146,10 +144,10 @@
             scripts_loaded,
             has_developer_key: !!DEVELOPER_KEY,
             has_access_token: !!ACCESS_TOKEN,
-            has_js_channel: !!JS_CHANNEL
+            has_callback_channel: !!CALLBACK_CHANNEL
         });
 
-        if (gapi_loaded && picker_loaded && scripts_loaded && DEVELOPER_KEY && ACCESS_TOKEN && JS_CHANNEL) {
+        if (gapi_loaded && picker_loaded && scripts_loaded && DEVELOPER_KEY && ACCESS_TOKEN && CALLBACK_CHANNEL) {
             console.log('All ready, initializing picker');
             initializePicker();
         }
@@ -160,7 +158,7 @@
             console.log('Initializing picker with:');
             console.log('- Developer key length:', DEVELOPER_KEY.length);
             console.log('- Access token length:', ACCESS_TOKEN.length);
-            console.log('- JS Channel:', JS_CHANNEL);
+            console.log('- Callback channel:', CALLBACK_CHANNEL);
             
             // Hide loading indicator
             const loading = document.getElementById('loading');
@@ -208,12 +206,12 @@
     }
 
     // Function to be called by Flutter to set variables and trigger initialization
-    window.setPickerVariables = function(developerKey, clientId, appId, jsChannel) {
+    window.setPickerVariables = function(developerKey, accessToken, appId, callbackChannel) {
         console.log('Setting picker variables from Flutter');
         DEVELOPER_KEY = developerKey;
-        CLIENT_ID = clientId;
+        ACCESS_TOKEN = accessToken;
         APP_ID = appId;
-        JS_CHANNEL = jsChannel;
+        CALLBACK_CHANNEL = callbackChannel;
         checkReadyAndInit();
     };
 

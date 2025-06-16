@@ -26,7 +26,6 @@ class GooglePickerService {
   static String get _apiKey => dotenv.env['GOOGLE_API_KEY'] ?? '';
   static String get _developerKey => _apiKey;
   static String get _appId => dotenv.env['GOOGLE_APP_ID'] ?? '';
-  static String get _webClientId => dotenv.env['GOOGLE_WEB_CLIENT_ID'] ?? '';
   
   GooglePickerService._();
   
@@ -45,7 +44,11 @@ class GooglePickerService {
             Logger.d('Picker result received: $result');
             Navigator.of(context).pop(result);
           },
-          clientId: _webClientId,
+          getGoogleAuthToken: () async {
+            final token = await instance._authService.webAccessToken;
+            Logger.d('Access token retrieved: ${token?.isNotEmpty == true ? 'Token present (${token!.length} chars)' : 'Token missing or empty'}');
+            return token ?? '';
+          },
           developerKey: _developerKey,
           appId: _appId,
           fallbackPicker: () => FileUtils.pickLocalSpreadsheetFile().then((result) {
@@ -78,7 +81,7 @@ class GooglePickerService {
       Logger.d('Proceeding directly with Google Drive picker');
 
       // Get access token for Google Drive
-      final accessToken = await _authService.getAccessToken();
+      final accessToken = await _authService.webAccessToken;
       if (accessToken == null) {
         Logger.d('Failed to get access token');
         if (context.mounted) {
@@ -278,8 +281,9 @@ class GooglePickerDialog extends StatefulWidget {
   /// Callback function when a file is selected or the picker is closed
   final Function(Map<String, dynamic>?) onPickerResult;
   
-  /// Google API client ID
-  final String clientId;
+    /// Function to get Google OAuth2 access token
+  final Future<String> Function() getGoogleAuthToken;
+
 
   /// Google API developer key
   final String developerKey;
@@ -292,7 +296,7 @@ class GooglePickerDialog extends StatefulWidget {
 
   const GooglePickerDialog({
     required this.onPickerResult,
-    required this.clientId,
+    required this.getGoogleAuthToken,
     required this.developerKey,
     required this.appId,
     required this.fallbackPicker,
@@ -306,13 +310,15 @@ class GooglePickerDialog extends StatefulWidget {
 class _GooglePickerDialogState extends State<GooglePickerDialog> {
   WebViewController? _webViewController;
   bool _isLoading = true;
+  String? _accessToken;
   String? _errorMessage;
   Timer? _timeoutTimer;
   
   @override
   void initState() {
     super.initState();
-    _loadWebView();
+    _initAccessToken();
+
     
     // Set a timeout to show fallback if picker doesn't load in 15 seconds
     _timeoutTimer = Timer(const Duration(seconds: 15), () {
@@ -331,6 +337,44 @@ class _GooglePickerDialogState extends State<GooglePickerDialog> {
     _webViewController = null;
     super.dispose();
   }
+
+    
+  Future<void> _initAccessToken() async {
+    try {
+      Logger.d('Getting access token...');
+      final token = await widget.getGoogleAuthToken();
+      
+      Logger.d('Access token received: ${token.isNotEmpty ? 'Present (${token.length} chars)' : 'Empty or null'}');
+      Logger.d('Access token: $token');
+      
+      if (!mounted) return;
+      
+      if (token.isEmpty) {
+        setState(() {
+          _errorMessage = 'Could not get Google authentication token. Please check your login status.';
+          _isLoading = false;
+        });
+        return;
+      }
+      
+      setState(() {
+        _accessToken = token;
+      });
+      
+      // Load the WebView
+      await _loadWebView();
+      
+    } catch (e) {
+      Logger.e('Error getting access token: $e');
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Failed to authenticate with Google: $e';
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
 
   // Simple function to launch the local fallback picker
   void _launchLocalFilePicker() async {
@@ -354,6 +398,18 @@ class _GooglePickerDialogState extends State<GooglePickerDialog> {
       final htmlContent = await rootBundle.loadString('assets/web/google_picker.html');
       
       if (!mounted) return;
+
+            
+      // Validate that we have the required values
+      if (_accessToken == null || _accessToken!.isEmpty) {
+        Logger.e('Access token is null or empty when trying to load WebView');
+        setState(() {
+          _errorMessage = 'Access token is missing. Please try logging in again.';
+          _isLoading = false;
+        });
+        return;
+      }
+
       
       if (widget.developerKey.isEmpty) {
         Logger.e('Developer key is empty');
@@ -431,7 +487,7 @@ class _GooglePickerDialogState extends State<GooglePickerDialog> {
               // Set the variables using the new method
               controller.runJavaScript('''
                 if (window.setPickerVariables) {
-                  window.setPickerVariables("${widget.developerKey}", "${widget.clientId}", "${widget.appId}", "PickerChannel");
+                  window.setPickerVariables("${widget.developerKey}", "${_accessToken}", "${widget.appId}", "PickerChannel");
                 } else {
                   console.error('setPickerVariables function not found');
                 }
