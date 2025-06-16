@@ -515,8 +515,8 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
   @override
   void initState() {
     super.initState();
-    // Reset devices when widget is first created
-    widget.devices.reset();
+    // // Reset devices when widget is first created
+    // widget.devices.reset();
     _initialize();
 
   }

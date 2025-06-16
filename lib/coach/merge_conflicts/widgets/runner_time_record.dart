@@ -5,23 +5,42 @@ import '../model/chunk.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/color_utils.dart';
 import 'runner_info_widgets.dart';
-import 'time_widgets.dart';
+import 'runner_time_cells.dart';
 import '../../../utils/enums.dart';
 
 class RunnerTimeRecord extends StatelessWidget {
+  final bool isExtraTimeRow;
+
   const RunnerTimeRecord({
     super.key,
+    this.isExtraTimeRow = false,
     required this.controller,
     required this.joinedRecord,
     required this.color,
     required this.chunk,
     required this.index,
+    this.isManualEntry = false,
+    this.assignedTime = '',
+    this.onManualEntry,
+    this.isRemovedTime = false,
+    this.onRemoveTime,
+    this.availableTimes,
+    this.removedTimeIndex,
   });
+
   final MergeConflictsController controller;
   final JoinedRecord joinedRecord;
   final Color color;
   final Chunk chunk;
   final int index;
+  final bool isManualEntry;
+  final String assignedTime;
+  final VoidCallback? onManualEntry;
+  // Extra time support
+  final bool isRemovedTime;
+  final void Function(int)? onRemoveTime;
+  final List<String>? availableTimes;
+  final int? removedTimeIndex;
 
   @override
   Widget build(BuildContext context) {
@@ -55,16 +74,19 @@ class RunnerTimeRecord extends StatelessWidget {
                     bottomLeft: Radius.circular(10),
                   ),
                 ),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    PlaceNumber(place: timeRecord.place ?? 0, color: conflictColor),
-                    const SizedBox(width: 10),
+                    if (!isExtraTimeRow && timeRecord.place != null && index != -1) ...[
+                      PlaceNumber(place: timeRecord.place!, color: conflictColor),
+                      const SizedBox(width: 10),
+                    ],
                     Expanded(
                       child: RunnerInfo(
-                          runner: runner, accentColor: conflictColor),
+                        runner: runner,
+                        accentColor: conflictColor,
+                      ),
                     ),
                   ],
                 ),
@@ -81,21 +103,24 @@ class RunnerTimeRecord extends StatelessWidget {
                     bottomRight: Radius.circular(10),
                   ),
                 ),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-                child: hasConflict
-                    ? TimeSelector(
-                        controller: controller,
-                        timeController:
-                            chunk.controllers['timeControllers']![index],
-                        manualController:
-                            chunk.controllers['manualControllers']![index],
-                        times: chunk.resolve!.availableTimes,
-                        conflictIndex: chunk.conflictIndex,
-                        manual: chunk.type != RecordType.extraRunner,
-                        chunkType: chunk.type,
-                      )
-                    : ConfirmedTime(time: timeRecord.elapsedTime),
+                padding: const EdgeInsets.symmetric(horizontal: 14), // Remove vertical padding
+                child: SizedBox.expand(
+                  child: hasConflict
+                      ? (chunk.type == RecordType.missingTime
+                          ? MissingTimeCell(
+                              controller: chunk.controllers['timeControllers']![index],
+                              isManualEntry: isManualEntry,
+                              assignedTime: assignedTime,
+                              onManualEntry: onManualEntry,
+                            )
+                          : ExtraTimeCell(
+                              assignedTime: assignedTime,
+                              index: index,
+                              removedTimeIndex: removedTimeIndex,
+                              onRemoveTime: onRemoveTime,
+                            ))
+                      : ConfirmedRunnerTimeCell(time: timeRecord.elapsedTime),
+                ),
               ),
             ),
           ],

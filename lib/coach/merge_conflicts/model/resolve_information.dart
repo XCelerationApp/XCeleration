@@ -5,9 +5,9 @@ class ResolveInformation {
   final List<RunnerRecord> conflictingRunners;
   final List<String>? conflictingTimes;
   final int lastConfirmedPlace;
-  final TimingRecord lastConfirmedRecord;
+  final TimeRecord lastConfirmedRecord;
   final int? lastConfirmedIndex;
-  final TimingRecord conflictRecord;
+  final TimeRecord conflictRecord;
   final List<String> availableTimes;
   final List<String> bibData;
   final bool? allowManualEntry;

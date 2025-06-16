@@ -4,7 +4,7 @@ import 'package:xceleration/coach/race_screen/widgets/runner_record.dart';
 import 'package:xceleration/utils/enums.dart';
 
 class TimingData {
-  List<TimingRecord> records;
+  List<TimeRecord> records;
   DateTime? startTime;
   String endTime;
 
@@ -15,11 +15,11 @@ class TimingData {
   });
 
   void addRecord(dynamic record) {
-    if (record is TimingRecord) {
+    if (record is TimeRecord) {
       records.add(record);
     } else if (record is RunnerRecord) {
-      // Convert RunnerRecord to TimingRecord
-      records.add(TimingRecord(
+      // Convert RunnerRecord to TimeRecord
+      records.add(TimeRecord(
         elapsedTime: '',
         isConfirmed: false,
         conflict: null,
@@ -37,12 +37,12 @@ class TimingData {
   }
 
   // Helper method to merge runner data into a timing record
-  void mergeRunnerData(TimingRecord timingRecord, RunnerRecord runnerRecord,
+  void mergeRunnerData(TimeRecord TimeRecord, RunnerRecord runnerRecord,
       {int? index}) {
     index ??= records
         .indexWhere((record) => record.runnerId == runnerRecord.runnerId);
     if (index != -1) {
-      records[index] = timingRecord.copyWith(
+      records[index] = TimeRecord.copyWith(
         runnerId: runnerRecord.runnerId,
         raceId: runnerRecord.raceId,
         name: runnerRecord.name,
@@ -54,7 +54,7 @@ class TimingData {
     }
   }
 
-  void updateRecord(int runnerId, TimingRecord updatedRecord) {
+  void updateRecord(int runnerId, TimeRecord updatedRecord) {
     final index = records.indexWhere((record) => record.runnerId == runnerId);
     if (index != -1) {
       records[index] = updatedRecord;
@@ -71,7 +71,7 @@ class TimingData {
     endTime = '';
   }
 
-  // Get all RunnerRecord info from the TimingRecords
+  // Get all RunnerRecord info from the TimeRecords
   List<RunnerRecord> get runnerRecords => records
       .where((record) => record.runnerId != null || record.bib != null)
       .map((record) => RunnerRecord(
@@ -85,7 +85,7 @@ class TimingData {
           ))
       .toList();
 
-  // Get all RunnerRecord info from the TimingRecords
+  // Get all RunnerRecord info from the TimeRecords
   List<RaceResult> get raceResults => records
       .where((record) =>
           record.type == RecordType.runnerTime &&
@@ -112,7 +112,7 @@ class TimingData {
   factory TimingData.fromJson(Map<String, dynamic> json) {
     return TimingData(
       records: (json['records'] as List?)
-              ?.map((r) => TimingRecord.fromMap(r as Map<String, dynamic>))
+              ?.map((r) => TimeRecord.fromMap(r as Map<String, dynamic>))
               .toList() ??
           [],
       endTime: json['end_time'] != null ? json['end_time'] as String : '',

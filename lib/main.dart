@@ -97,7 +97,7 @@ void mainCommon(AppConfig config) async {
 
   runApp(
     MultiProvider(
-      providers: [
+        providers: [
         // Add the EventBusProvider at app level to ensure it's available everywhere
         ChangeNotifierProvider(
           create: (context) => EventBusProvider(),
@@ -111,7 +111,7 @@ void mainCommon(AppConfig config) async {
         // You may need to pass required arguments for MergeConflictsController at usage site
         // ChangeNotifierProvider(create: (context) => MergeConflictsController(...)),
       ],
-      child: const MyApp(),
+        child: const MyApp(),
     ),
   );
 }

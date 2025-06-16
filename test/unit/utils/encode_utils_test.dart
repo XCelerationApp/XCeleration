@@ -12,21 +12,21 @@ class ConflictDetailsMock {
 
 void main() {
   group('EncodingUtils', () {
-    group('encodeTimingRecords', () {
+    group('encodeTimeRecords', () {
       test('should encode simple runner times correctly', () {
         // Arrange
         final records = [
-          TimingRecord(
+          TimeRecord(
             elapsedTime: '10.5',
             type: RecordType.runnerTime,
             place: 1,
           ),
-          TimingRecord(
+          TimeRecord(
             elapsedTime: '11.2',
             type: RecordType.runnerTime,
             place: 2,
           ),
-          TimingRecord(
+          TimeRecord(
             elapsedTime: '12.0',
             type: RecordType.runnerTime,
             place: 3,
@@ -34,7 +34,7 @@ void main() {
         ];
         
         // Act
-        final result = encodeTimingRecords(records);
+        final result = encodeTimeRecords(records);
         
         // Assert
         expect(result, equals('10.5,11.2,12.0'));
@@ -43,21 +43,21 @@ void main() {
       test('should encode timing records with conflicts correctly', () {
         // Arrange
         final records = [
-          TimingRecord(
+          TimeRecord(
             elapsedTime: '10.5',
             type: RecordType.runnerTime,
             place: 1,
           ),
-          TimingRecord(
+          TimeRecord(
             elapsedTime: '11.2',
-            type: RecordType.missingRunner,
+            type: RecordType.missingTime,
             place: 2,
             conflict: ConflictDetails(
-              type: RecordType.missingRunner,
+              type: RecordType.missingTime,
               data: {'offBy': 1},
             ),
           ),
-          TimingRecord(
+          TimeRecord(
             elapsedTime: '12.0',
             type: RecordType.runnerTime,
             place: 3,
@@ -65,27 +65,27 @@ void main() {
         ];
         
         // Act
-        final result = encodeTimingRecords(records);
+        final result = encodeTimeRecords(records);
         
         // Assert
-        expect(result, equals('10.5,RecordType.missingRunner 1 11.2,12.0'));
+        expect(result, equals('10.5,RecordType.missingTime 1 11.2,12.0'));
       });
       
       test('should handle null conflicts gracefully', () {
         // Arrange
         final records = [
-          TimingRecord(
+          TimeRecord(
             elapsedTime: '10.5',
             type: RecordType.runnerTime,
             place: 1,
           ),
-          TimingRecord(
+          TimeRecord(
             elapsedTime: '11.2',
-            type: RecordType.missingRunner,
+            type: RecordType.missingTime,
             place: 2,
             conflict: null,
           ),
-          TimingRecord(
+          TimeRecord(
             elapsedTime: '12.0',
             type: RecordType.runnerTime,
             place: 3,
@@ -93,7 +93,7 @@ void main() {
         ];
         
         // Act
-        final result = encodeTimingRecords(records);
+        final result = encodeTimeRecords(records);
         
         // Assert
         expect(result, equals('10.5,12.0'));
@@ -102,21 +102,21 @@ void main() {
       test('should handle missing offBy in conflict data', () {
         // Arrange
         final records = [
-          TimingRecord(
+          TimeRecord(
             elapsedTime: '10.5',
             type: RecordType.runnerTime,
             place: 1,
           ),
-          TimingRecord(
+          TimeRecord(
             elapsedTime: '11.2',
-            type: RecordType.missingRunner,
+            type: RecordType.missingTime,
             place: 2,
             conflict: ConflictDetails(
-              type: RecordType.missingRunner,
+              type: RecordType.missingTime,
               data: {'someOtherField': 'value'},
             ),
           ),
-          TimingRecord(
+          TimeRecord(
             elapsedTime: '12.0',
             type: RecordType.runnerTime,
             place: 3,
@@ -124,7 +124,7 @@ void main() {
         ];
         
         // Act
-        final result = encodeTimingRecords(records);
+        final result = encodeTimeRecords(records);
         
         // Assert
         expect(result, equals('10.5,12.0'));

@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:flutter/services.dart';
@@ -151,71 +152,98 @@ class TimingController extends TimingData {
     notifyListeners();
   }
 
-  void confirmRunnerNumber() {
+  void confirmTimes() {
     final numTimes = runner_functions.getNumberOfTimes(records);
-    final difference = getCurrentDuration(startTime, endTime);
+    final currentDuration = getCurrentDuration(startTime, endTime);
 
     if (startTime == null || raceStopped) {
       if (_context != null) {
         DialogUtils.showErrorDialog(_context!,
-            message: 'Race must be started to confirm a runner number.');
+            message: 'Race must be started to confirm a time.');
       }
       return;
     }
 
+    if (records.last.type == RecordType.confirmRunner) {
+      undoLastConflict();
+    }
+
     // Use the imported utility function by using a namespace prefix
-    records = runner_functions.confirmRunnerNumber(
-        records, numTimes, TimeFormatter.formatDuration(difference));
+    records = runner_functions.confirmTimes(
+        records, numTimes, TimeFormatter.formatDuration(currentDuration));
     scrollToBottom(scrollController);
     notifyListeners();
   }
 
-  void extraRunnerTime({int offBy = 1}) {
-    final numTimes = runner_functions.getNumberOfTimes(records);
+  Future<void> removeExtraTime({int offBy = 1}) async {
+    int numTimes = runner_functions.getNumberOfTimes(records);
 
-    if (!_validateExtraRunnerTime(numTimes, offBy)) return;
-    final difference = getCurrentDuration(startTime, endTime);
+    if (!await _validateOffBy(numTimes, offBy)) return;
+    final currentDuration = getCurrentDuration(startTime, endTime);
     
     if (startTime == null || raceStopped) {
       if (_context != null) {
         DialogUtils.showErrorDialog(_context!,
-            message: 'Race must be started to mark an extra runner time.');
+            message: 'Race must be started to mark an extra time.');
       }
       return;
     }
 
-    records = runner_functions.extraRunnerTime(
-        offBy, records, numTimes, TimeFormatter.formatDuration(difference));
+    // Check if previous record is also an extraTime conflict
+    if (records.isNotEmpty && records.last.type == RecordType.extraTime) {
+      final lastConflict = records.last.conflict;
+      if (lastConflict != null &&
+          lastConflict.data != null &&
+          lastConflict.data!['offBy'] != null) {
+        offBy += lastConflict.data!['offBy'] as int;
+        undoLastConflict();
+        Logger.d('last record: ${records.last.toMap()}');
+        numTimes = runner_functions.getNumberOfTimes(records);
+        if (!await _validateOffBy(numTimes, offBy)) {
+          return;
+        }
+      }
+    }
+
+    records = runner_functions.removeExtraTime(
+        offBy, records, numTimes, TimeFormatter.formatDuration(currentDuration));
     scrollToBottom(scrollController);
     notifyListeners();
   }
 
-  bool _validateExtraRunnerTime(int numTimes, int offBy) {
+  Future<bool> _validateOffBy(int numTimes, int offBy) async {
     if (_context == null) return false;
 
-    final previousRunner = records.last;
-    if (previousRunner.type != RecordType.runnerTime) {
+    final previousRecord = records.last;
+    
+    if (previousRecord.type != RecordType.runnerTime && previousRecord.type != RecordType.extraTime) {
       DialogUtils.showErrorDialog(_context!,
           message:
-              'You must have an unconfirmed runner time before pressing this button.');
+              'You must have an unconfirmed time before pressing this button.');
       return false;
     }
 
     final lastConfirmedRecord = records.lastWhere(
       (r) => r.type == RecordType.runnerTime && r.isConfirmed == true,
-      orElse: () => TimingRecord(
+      orElse: () => TimeRecord(
         elapsedTime: '',
         place: 0,
       ),
     );
     final recordPlace = lastConfirmedRecord.place ?? 0;
 
+    Logger.d('Off by: $offBy');
+    Logger.d('Record place: $recordPlace');
+    Logger.d('Num times: $numTimes');
+    Logger.d('Num times - off by: ${numTimes - offBy}');
+    Logger.d('Last record in _validateOffBy: ${records.last.toMap()}');
+
     if (numTimes - offBy == recordPlace) {
-      _handleTimesDeletion(offBy);
+      await _handleTimesDeletion(offBy);
       return false;
     } else if (numTimes - offBy < recordPlace) {
       DialogUtils.showErrorDialog(_context!,
-          message: 'You cannot remove a runner that is confirmed.');
+          message: 'You cannot remove a time that is confirmed.');
       return false;
     }
 
@@ -229,40 +257,46 @@ class TimingController extends TimingData {
         content:
             'This will delete the last $offBy finish times, are you sure you want to continue?',
         title: 'Confirm Deletion');
-
-    if (confirmed) {
-      // Get a list of ids to remove
-      final idsToRemove = records.reversed
-          .take(offBy)
-          .map((record) => record.runnerId!)
-          .toList();
-
-      // Remove records with those ids
-      for (final runnerId in idsToRemove) {
-        final index =
-            records.indexWhere((record) => record.runnerId == runnerId);
-        if (index >= 0) {
-          removeRecord(runnerId);
-        }
+    Logger.d('last recor in _handleTimesDeletion: ${records.last.toMap()}');
+    if (confirmed) {      
+      for (int i = 0; i < offBy; i++) {
+        Logger.d('Removing record ${records.last.place}');
+        Logger.d('Removing record ${records.last.toMap()}');
+        records.removeLast();
       }
       notifyListeners();
     }
   }
 
-  void missingRunnerTime({int offBy = 1}) {
+  Future<void> addMissingTime({int offBy = 1}) async {
     final numTimes = runner_functions.getNumberOfTimes(records);
-    final difference = getCurrentDuration(startTime, endTime);
+    final currentDuration = getCurrentDuration(startTime, endTime);
 
     if (startTime == null) {
       if (_context != null) {
         DialogUtils.showErrorDialog(_context!,
-            message: 'Race must be started to mark a missing runner time.');
+            message: 'Race must be started to mark a missing time.');
       }
       return;
     }
 
-    records = runner_functions.missingRunnerTime(
-        offBy, records, numTimes, TimeFormatter.formatDuration(difference));
+    // Check if previous record is also a missingTime conflict
+    if (records.isNotEmpty && records.last.type == RecordType.missingTime) {
+      Logger.d('Previous record is also a missingTime conflict');
+      int prevOffBy = 0;
+      final lastConflict = records.last.conflict;
+      if (lastConflict != null &&
+          lastConflict.data != null &&
+          lastConflict.data!['offBy'] != null) {
+        prevOffBy = lastConflict.data!['offBy'] as int;
+      }
+      undoLastConflict();
+      offBy += prevOffBy;
+      Logger.d('Off by: $offBy');
+    }
+
+    records = runner_functions.addMissingTime(
+        offBy, records, numTimes, TimeFormatter.formatDuration(currentDuration));
     scrollToBottom(scrollController);
     notifyListeners();
   }
@@ -270,7 +304,7 @@ class TimingController extends TimingData {
   void undoLastConflict() {
     try {
       if (records.last.type == RecordType.confirmRunner) {
-        _undoConfirmRunner();
+        _undoConfirmTime();
         return;
       }
       final lastConflict = records.lastWhere(
@@ -278,10 +312,10 @@ class TimingController extends TimingData {
         orElse: () => throw Exception('No undoable conflict found'),
       );
 
-      if (lastConflict.conflict?.type == RecordType.extraRunner) {
-        records = _undoExtraRunnerConflict(lastConflict, records);
-      } else if (lastConflict.conflict?.type == RecordType.missingRunner) {
-        records = _undoMissingRunnerConflict(lastConflict, records);
+      if (lastConflict.conflict?.type == RecordType.extraTime) {
+        records = _undoExtraTimeConflict(lastConflict, records);
+      } else if (lastConflict.conflict?.type == RecordType.missingTime) {
+        records = _undoMissingTimeConflict(lastConflict, records);
       }
       scrollToBottom(scrollController);
       notifyListeners();
@@ -290,7 +324,7 @@ class TimingController extends TimingData {
     }
   }
 
-  void _undoConfirmRunner() {
+  void _undoConfirmTime() {
     if (records.last.type != RecordType.confirmRunner) throw Exception('Last record is not a confirm runner');
     records.removeLast();
     records = runner_functions.updateTextColor(null, records,
@@ -301,13 +335,13 @@ class TimingController extends TimingData {
     notifyListeners();
   }
 
-  List<TimingRecord> _undoExtraRunnerConflict(
-      TimingRecord lastConflict, List<TimingRecord> records) {
+  List<TimeRecord> _undoExtraTimeConflict(
+      TimeRecord lastConflict, List<TimeRecord> records) {
     if (lastConflict.isResolved()) {
       return records;
     }
     final lastConflictIndex = records.indexOf(lastConflict);
-    final runnersBeforeConflict = records
+    final recordsBeforeConflict = records
           .sublist(0, lastConflictIndex)
           .where((r) => r.type == RecordType.runnerTime)
           .toList();
@@ -329,7 +363,7 @@ class TimingController extends TimingData {
 
     // Safely update previous place for affected records
     for (int i = 0; i < offBy; i++) {
-      if (i < runnersBeforeConflict.length) {
+      if (i < recordsBeforeConflict.length) {
         final recordIndex = lastConflictIndex - 1 - i;
         if (recordIndex >= 0 && recordIndex < records.length) {
           final record = records[recordIndex];
@@ -338,19 +372,20 @@ class TimingController extends TimingData {
       }
     }
 
-    records.removeAt(lastConflictIndex);
+    Logger.d('Removing record: ${records.removeAt(lastConflictIndex).toMap()}');
+
     notifyListeners();
     
     return records;
   }
 
-  List<TimingRecord> _undoMissingRunnerConflict(
-      TimingRecord lastConflict, List<TimingRecord> records) {
+  List<TimeRecord> _undoMissingTimeConflict(
+      TimeRecord lastConflict, List<TimeRecord> records) {
     if (lastConflict.isResolved()) {
       return records;
     }
     final lastConflictIndex = records.indexOf(lastConflict);
-    final runnersBeforeConflict = records
+    final recordsBeforeConflict = records
         .sublist(0, lastConflictIndex)
         .where((r) => r.type == RecordType.runnerTime)
         .toList();
@@ -365,20 +400,15 @@ class TimingController extends TimingData {
     final recordIndicesToRemove = <int>[];
 
     for (int i = 0; i < offBy; i++) {
-      if (i < runnersBeforeConflict.length) {
-        final record =
-            runnersBeforeConflict[runnersBeforeConflict.length - 1 - i];
-        // Only add runnerId to removal list if it's not null
-        recordIndicesToRemove.add(records.indexOf(record));
-        Logger.d('Adding record index to remove: ${records.indexOf(record)}');
+      if (i < recordsBeforeConflict.length) {
+        recordIndicesToRemove.add(lastConflictIndex - i - 1);
       }
     }
 
-    // Only add lastConflict.runnerId if it's not null
     recordIndicesToRemove.add(lastConflictIndex);
     
     // Remove records by Index
-    for (int index in recordIndicesToRemove.reversed) {
+    for (int index in recordIndicesToRemove.sorted((a, b) => b.compareTo(a))) {
       Logger.d('Removing record at index: $index');
       if (index >= 0 && index < records.length) {
         records.removeAt(index);
@@ -428,7 +458,7 @@ class TimingController extends TimingData {
         !records.last.isResolved()) || records.last.type == RecordType.confirmRunner);
   }
 
-  Future<bool> confirmRecordDismiss(TimingRecord record) async {
+  Future<bool> confirmRecordDismiss(TimeRecord record) async {
     if (_context == null) return false;
 
     if (record.type == RecordType.runnerTime) {
@@ -467,8 +497,8 @@ class TimingController extends TimingData {
         title: 'Confirm Deletion',
         content: 'Are you sure you want to delete this confirmation?',
       );
-    } else if (record.type == RecordType.missingRunner ||
-        record.type == RecordType.extraRunner) {
+    } else if (record.type == RecordType.missingTime ||
+        record.type == RecordType.extraTime) {
       if (records.last != record) {
         DialogUtils.showErrorDialog(
           _context!,
@@ -487,14 +517,14 @@ class TimingController extends TimingData {
     return false;
   }
 
-  void onDismissRunnerTimeRecord(TimingRecord record, int index) {
+  void onDismissRunnerTimeRecord(TimeRecord record, int index) {
     // When removing a record, we need to handle records with no runnerId differently
     if (record.runnerId != null) {
       removeRecord(record.runnerId!);
     } else {
       // For records without a runnerId (like manual entries or unidentified runners)
       // Remove directly from the records list by index
-      final records = List<TimingRecord>.from(this.records);
+      final records = List<TimeRecord>.from(this.records);
       if (index >= 0 && index < records.length) {
         records.removeAt(index);
         this.records = records;
@@ -523,7 +553,7 @@ class TimingController extends TimingData {
     notifyListeners();
   }
 
-  void onDismissConfirmationRecord(TimingRecord record, int index) {
+  void onDismissConfirmationRecord(TimeRecord record, int index) {
     removeRecord(record.runnerId!);
     records =
         runner_functions.updateTextColor(null, records, endIndex: index);
@@ -531,7 +561,7 @@ class TimingController extends TimingData {
     notifyListeners();
   }
 
-  void onDismissConflictRecord(TimingRecord record) {
+  void onDismissConflictRecord(TimeRecord record) {
     undoLastConflict();
     scrollToBottom(scrollController);
     notifyListeners();

@@ -49,6 +49,7 @@ dependencies:
   package_info_plus: ^8.3.0
   flutter_inappwebview: ^6.1.5
   flutter_dotenv: ^5.1.0
+  dropdown_button2: ^2.3.9
 
 dev_dependencies:
   flutter_test:

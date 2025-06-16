@@ -5,7 +5,7 @@ import '../../../core/theme/typography.dart';
 import '../../../utils/enums.dart';
 
 class RunnerTimeRecordItem extends StatelessWidget {
-  final TimingRecord record;
+  final TimeRecord record;
   final int index;
   final BuildContext context;
 
@@ -60,7 +60,7 @@ class RunnerTimeRecordItem extends StatelessWidget {
 }
 
 class ConfirmationRecordItem extends StatelessWidget {
-  final TimingRecord record;
+  final TimeRecord record;
   final int index;
   final BuildContext context;
 
@@ -101,7 +101,7 @@ class ConfirmationRecordItem extends StatelessWidget {
 }
 
 class ConflictRecordItem extends StatelessWidget {
-  final TimingRecord record;
+  final TimeRecord record;
   final int index;
   final BuildContext context;
 
@@ -130,9 +130,9 @@ class ConflictRecordItem extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
           Text(
-            record.type == RecordType.missingRunner
-                ? 'Missing Runner at ${record.elapsedTime}'
-                : 'Extra Runner at ${record.elapsedTime}',
+            record.type == RecordType.missingTime
+                ? 'Missing Time at ${record.elapsedTime}'
+                : 'Extra Time at ${record.elapsedTime}',
             style: AppTypography.headerSemibold.copyWith(
               color: AppColors.redColor,
             ),

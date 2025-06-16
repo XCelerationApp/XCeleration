@@ -79,7 +79,7 @@ class RecordsListWidget extends StatelessWidget {
               ),
             );
           }
-          // } else if (record.type == RecordType.missingRunner || record.type == RecordType.extraRunner) {
+          // } else if (record.type == RecordType.missingTime || record.type == RecordType.extraTime) {
           //   return Dismissible(
           //     key: ValueKey(record),
           //     background: Container(

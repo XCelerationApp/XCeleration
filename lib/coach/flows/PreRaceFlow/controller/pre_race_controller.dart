@@ -1,5 +1,6 @@
 import 'package:xceleration/core/utils/logger.dart';
 
+import '../../../../utils/database_helper.dart';
 import '../../controller/flow_controller.dart';
 import '../../model/flow_model.dart';
 import 'package:flutter/material.dart';
@@ -31,8 +32,14 @@ class PreRaceController {
     _reviewRunnersStep = ReviewRunnersStep(
       raceId: raceId,
       onNext: () async {
-        final encoded =
-            await encode_utils.getEncodedRunnersData(raceId);
+        // DEBUG: Log runners loaded for this race
+        final runners = await DatabaseHelper.instance.getRaceRunners(raceId);
+        Logger.d('PRE-RACE DEBUG: Runners for raceId=raceId: count=${runners.length}');
+        for (var r in runners) {
+          Logger.d('PRE-RACE DEBUG: Runner: bib=${r.bib}, name=${r.name}, school=${r.school}, grade=${r.grade}');
+        }
+        final encoded = await encode_utils.getEncodedRunnersData(raceId);
+        Logger.d('PRE-RACE DEBUG: Encoded runners data length: ${encoded.length}');
         if (encoded == '') {
           Logger.e('Failed to encode runners data');
           return;

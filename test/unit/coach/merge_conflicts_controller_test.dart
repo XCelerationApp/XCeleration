@@ -76,10 +76,10 @@ class TestableConflictsController extends MergeConflictsController {
   }
   
   @override
-  Future<void> consolidateConfirmedRunnerTimes() async {
+  Future<void> consolidateConfirmedTimes() async {
     consolidateCalled = true;
     // Call the actual implementation
-    await super.consolidateConfirmedRunnerTimes();
+    await super.consolidateConfirmedTimes();
     return;
   }
 }
@@ -93,14 +93,14 @@ void main() {
     late MockDatabaseHelper mockDatabaseHelper;
     
     // Helper function to create timing records
-    TimingRecord createTimingRecord({
+    TimeRecord createTimeRecord({
       required String elapsedTime,
       required RecordType type,
       required int? place,
       bool isConfirmed = false,
       ConflictDetails? conflict,
     }) {
-      return TimingRecord(
+      return TimeRecord(
         elapsedTime: elapsedTime,
         type: type,
         place: place,
@@ -129,7 +129,7 @@ void main() {
     
     // Helper function to create a Chunk
     Chunk createChunk({
-      required List<TimingRecord> records,
+      required List<TimeRecord> records,
       required RecordType type,
       required List<RunnerRecord> runners,
       required int conflictIndex
@@ -190,35 +190,35 @@ void main() {
       controller.setContext(mockContext);
     });
 
-    group('handleTooFewTimesResolution', () {
+    group('handleMissingTimesResolution', () {
       test('successfully resolves conflict and updates records', () async {
-        // Prepare timing records with a missing runner conflict
-        final List<TimingRecord> records = [
+        // Prepare timing records with a missing time conflict
+        final List<TimeRecord> records = [
           // Normal runner times (places 1-2)
-          TimingRecord(elapsedTime: '1.0', type: RecordType.runnerTime, place: 1, isConfirmed: true),
-          TimingRecord(elapsedTime: '2.0', type: RecordType.runnerTime, place: 2, isConfirmed: true),
+          TimeRecord(elapsedTime: '1.0', type: RecordType.runnerTime, place: 1, isConfirmed: true),
+          TimeRecord(elapsedTime: '2.0', type: RecordType.runnerTime, place: 2, isConfirmed: true),
           
           // Confirm runner at place 2
-          TimingRecord(elapsedTime: '2.5', type: RecordType.confirmRunner, place: 2, isConfirmed: true),
+          TimeRecord(elapsedTime: '2.5', type: RecordType.confirmRunner, place: 2, isConfirmed: true),
 
-          TimingRecord(elapsedTime: 'TBD', type: RecordType.runnerTime, place: 3, isConfirmed: false, conflict: ConflictDetails(
-            type: RecordType.missingRunner,
+          TimeRecord(elapsedTime: 'TBD', type: RecordType.runnerTime, place: 3, isConfirmed: false, conflict: ConflictDetails(
+            type: RecordType.missingTime,
             data: {'offBy': 1, 'numTimes': 3},
           )),
           
-          // Missing runner conflict at place 3
-          TimingRecord(
+          // Missing time conflict at place 3
+          TimeRecord(
             elapsedTime: '3.5', 
-            type: RecordType.missingRunner, 
+            type: RecordType.missingTime, 
             place: 3,
             conflict: ConflictDetails(
-              type: RecordType.missingRunner,
+              type: RecordType.missingTime,
               data: {'offBy': 1, 'numTimes': 3},
             ),
           ),
           
           // Runner times after the conflict
-          TimingRecord(elapsedTime: '4.0', type: RecordType.runnerTime, place: 4, isConfirmed: true),
+          TimeRecord(elapsedTime: '4.0', type: RecordType.runnerTime, place: 4, isConfirmed: true),
         ];
 
         final runnerRecords = [
@@ -233,21 +233,21 @@ void main() {
 
         // Create mock chunk with resolve information and controllers
         final mockTimeControllers = [
-          TextEditingController(text: '3.0'), // Time for the missing runner
+          TextEditingController(text: '3.0'), // Time for the missing time
         ];
         
         final mockResolveData = ResolveInformation(
           conflictingRunners: [runnerRecords[2]], // Runner at index 2 is missing
           lastConfirmedPlace: 2,
           availableTimes: [],
-          conflictRecord: records[4], // The missing runner conflict record
+          conflictRecord: records[4], // The missing time conflict record
           lastConfirmedRecord: records[2], // The confirmed runner record
           bibData: runnerRecords.map((r) => r.bib.toString()).toList(),
         );
         
         final mockChunk = Chunk(
           records: records.sublist(3, 5), // The confirmed runner and conflict records
-          type: RecordType.missingRunner,
+          type: RecordType.missingTime,
           runners: runnerRecords, // All test runners to avoid validation error
           conflictIndex: 4, // Index of the conflict record in the main records list
         );
@@ -262,10 +262,10 @@ void main() {
         await controller.createChunks(); // Call it once to initialize
         
         // Call the method under test
-        await controller.handleTooFewTimesResolution(mockChunk);
+        await controller.handleMissingTimesResolution(mockChunk);
         
         // Verify results
-        // The missing runner conflict record should be updated with the time from the controller
+        // The missing time conflict record should be updated with the time from the controller
         expect(controller.timingData.records[2].place, equals(3));
         expect(controller.timingData.records[2].elapsedTime, equals('3.0'));
         expect(controller.timingData.records[2].isConfirmed, isTrue);
@@ -284,18 +284,18 @@ void main() {
       });
     });
       
-    group('handleTooManyTimesResolution', () {
-      test('successfully resolves extra runner conflict and updates records', () async {
+    group('handleExtraTimesResolution', () {
+      test('successfully resolves extra time conflict and updates records', () async {
         // Prepare a simplified record list for testing
-        final List<TimingRecord> records = [
-          TimingRecord(elapsedTime: '1.0', type: RecordType.runnerTime, place: 1, isConfirmed: true),
-          TimingRecord(elapsedTime: '2.0', type: RecordType.runnerTime, place: 2, isConfirmed: false),
-          TimingRecord(
+        final List<TimeRecord> records = [
+          TimeRecord(elapsedTime: '1.0', type: RecordType.runnerTime, place: 1, isConfirmed: true),
+          TimeRecord(elapsedTime: '2.0', type: RecordType.runnerTime, place: 2, isConfirmed: false),
+          TimeRecord(
             elapsedTime: '3.0', 
-            type: RecordType.extraRunner, 
+            type: RecordType.extraTime, 
             place: 2,
             conflict: ConflictDetails(
-              type: RecordType.extraRunner,
+              type: RecordType.extraTime,
               data: {'offBy': 1, 'numTimes': 1},
             ),
           ),
@@ -317,16 +317,16 @@ void main() {
       });
       
       test('handles edge case with null place values', () async {
-        // Prepare timing records with an extra runner conflict and null place values
-        final List<TimingRecord> records = [
-          TimingRecord(elapsedTime: '1.0', type: RecordType.runnerTime, place: 1, isConfirmed: true),
-          TimingRecord(elapsedTime: '2.0', type: RecordType.runnerTime, place: null, isConfirmed: false), // Null place
-          TimingRecord(
+        // Prepare timing records with an extra time conflict and null place values
+        final List<TimeRecord> records = [
+          TimeRecord(elapsedTime: '1.0', type: RecordType.runnerTime, place: 1, isConfirmed: true),
+          TimeRecord(elapsedTime: '2.0', type: RecordType.runnerTime, place: null, isConfirmed: false), // Null place
+          TimeRecord(
             elapsedTime: '2.5', 
-            type: RecordType.extraRunner, 
+            type: RecordType.extraTime, 
             place: 2,
             conflict: ConflictDetails(
-              type: RecordType.extraRunner,
+              type: RecordType.extraTime,
               data: {'offBy': 1, 'numTimes': 1},
             ),
           ),
@@ -354,7 +354,7 @@ void main() {
         
         final mockChunk = Chunk(
           records: records,
-          type: RecordType.extraRunner,
+          type: RecordType.extraTime,
           runners: testRunnerRecords, // Include all test runners
           conflictIndex: 2,
         );
@@ -370,7 +370,7 @@ void main() {
         controller.createChunksCalled = true;
         
         // Call the method under test - don't call createChunks() first
-        await controller.handleTooManyTimesResolution(mockChunk);
+        await controller.handleExtraTimesResolution(mockChunk);
         
         // Verify results
         expect(controller.timingData.records[1].elapsedTime, equals('1.5')); // Updated time
@@ -382,8 +382,8 @@ void main() {
       });
     });
 
-    // Test the consolidateConfirmedRunnerTimes method
-    group('consolidateConfirmedRunnerTimes', () {
+    // Test the consolidateConfirmedTimes method
+    group('consolidateConfirmedTimes', () {
       setUp(() {
         // We can't directly override the method, but we can use the existing mock behavior
         // The test controller's createChunks already sets createChunksCalled = true
@@ -404,9 +404,9 @@ void main() {
         }
         
         // Create timing records for first chunk (places 1-3)
-        List<TimingRecord> chunk1Records = [];
+        List<TimeRecord> chunk1Records = [];
         for (int i = 1; i <= 3; i++) {
-          chunk1Records.add(createTimingRecord(
+          chunk1Records.add(createTimeRecord(
             elapsedTime: '1:${i.toString().padLeft(2, '0')}.0', 
             type: RecordType.runnerTime, 
             place: i, 
@@ -414,7 +414,7 @@ void main() {
           ));
         }
         // Add confirmRunner record for first chunk
-        chunk1Records.add(createTimingRecord(
+        chunk1Records.add(createTimeRecord(
           elapsedTime: '1:30.0', 
           type: RecordType.confirmRunner, 
           place: 3, 
@@ -422,9 +422,9 @@ void main() {
         ));
         
         // Create timing records for second chunk (places 4-6)
-        List<TimingRecord> chunk2Records = [];
+        List<TimeRecord> chunk2Records = [];
         for (int i = 4; i <= 6; i++) {
-          chunk2Records.add(createTimingRecord(
+          chunk2Records.add(createTimeRecord(
             elapsedTime: '1:${(i * 10).toString()}.0', 
             type: RecordType.runnerTime, 
             place: i, 
@@ -432,7 +432,7 @@ void main() {
           ));
         }
         // Add confirmRunner record for second chunk
-        chunk2Records.add(createTimingRecord(
+        chunk2Records.add(createTimeRecord(
           elapsedTime: '1:50.0', 
           type: RecordType.confirmRunner, 
           place: 6, 
@@ -440,7 +440,7 @@ void main() {
         ));
         
         // Setup timing data with all records
-        List<TimingRecord> allRecords = [...chunk1Records, ...chunk2Records];
+        List<TimeRecord> allRecords = [...chunk1Records, ...chunk2Records];
         controller.timingData.records = allRecords;
         controller.runnerRecords = runners;
         
@@ -463,7 +463,7 @@ void main() {
         controller.chunks = [chunk1, chunk2];
         
         // Call the method under test
-        await controller.consolidateConfirmedRunnerTimes();
+        await controller.consolidateConfirmedTimes();
         
         // Assertions
         expect(controller.chunks.length, equals(1));
@@ -475,14 +475,14 @@ void main() {
       
       test('does not consolidate runnerTime chunks with confirmRunner chunks', () async {
         // Create timing records
-        final record1 = createTimingRecord(elapsedTime: '1:00.0', type: RecordType.runnerTime, place: 1, isConfirmed: true);
-        final record2 = createTimingRecord(elapsedTime: '1:10.0', type: RecordType.runnerTime, place: 2, isConfirmed: true);
-        final record3 = createTimingRecord(elapsedTime: '1:20.0', type: RecordType.runnerTime, place: 3, isConfirmed: true);
-        final confirmRunnerRecord1 = createTimingRecord(elapsedTime: '1:30.0', type: RecordType.confirmRunner, place: 3, isConfirmed: true);
+        final record1 = createTimeRecord(elapsedTime: '1:00.0', type: RecordType.runnerTime, place: 1, isConfirmed: true);
+        final record2 = createTimeRecord(elapsedTime: '1:10.0', type: RecordType.runnerTime, place: 2, isConfirmed: true);
+        final record3 = createTimeRecord(elapsedTime: '1:20.0', type: RecordType.runnerTime, place: 3, isConfirmed: true);
+        final confirmRunnerRecord1 = createTimeRecord(elapsedTime: '1:30.0', type: RecordType.confirmRunner, place: 3, isConfirmed: true);
 
-        final record4 = createTimingRecord(elapsedTime: '1:00.0', type: RecordType.runnerTime, place: 4, isConfirmed: true);
-        final record5 = createTimingRecord(elapsedTime: '1:10.0', type: RecordType.runnerTime, place: 5, isConfirmed: true);
-        final record6 = createTimingRecord(elapsedTime: '1:20.0', type: RecordType.runnerTime, place: 6, isConfirmed: true);
+        final record4 = createTimeRecord(elapsedTime: '1:00.0', type: RecordType.runnerTime, place: 4, isConfirmed: true);
+        final record5 = createTimeRecord(elapsedTime: '1:10.0', type: RecordType.runnerTime, place: 5, isConfirmed: true);
+        final record6 = createTimeRecord(elapsedTime: '1:20.0', type: RecordType.runnerTime, place: 6, isConfirmed: true);
         
         // Create runners
         final runner1 = createRunnerRecord(id: 1, bib: '101', name: 'Runner 1', grade: 9, school: 'High School');
@@ -515,7 +515,7 @@ void main() {
         controller.chunks = [chunk1, chunk2];
 
         // Call the method under test
-        await controller.consolidateConfirmedRunnerTimes();
+        await controller.consolidateConfirmedTimes();
         
         // Assertions
         expect(controller.chunks.length, equals(2)); // Should remain 2 chunks
@@ -527,19 +527,19 @@ void main() {
       
       test('handles non-adjacent chunks correctly', () async {
         // Create timing records for first confirmRunner chunk
-        final record1 = createTimingRecord(elapsedTime: '1:00.0', type: RecordType.runnerTime, place: 1, isConfirmed: true);
-        final record2 = createTimingRecord(elapsedTime: '1:10.0', type: RecordType.runnerTime, place: 2, isConfirmed: true);
-        final confirmRunnerRecord1 = createTimingRecord(elapsedTime: '1:20.0', type: RecordType.confirmRunner, place: 2, isConfirmed: true);
+        final record1 = createTimeRecord(elapsedTime: '1:00.0', type: RecordType.runnerTime, place: 1, isConfirmed: true);
+        final record2 = createTimeRecord(elapsedTime: '1:10.0', type: RecordType.runnerTime, place: 2, isConfirmed: true);
+        final confirmRunnerRecord1 = createTimeRecord(elapsedTime: '1:20.0', type: RecordType.confirmRunner, place: 2, isConfirmed: true);
         
-        // Create records for middle missingRunner chunk
-        final record4 = createTimingRecord(elapsedTime: '1:00.0', type: RecordType.runnerTime, place: 3, isConfirmed: true);
-        final record5 = createTimingRecord(elapsedTime: 'TBD', type: RecordType.runnerTime, place: 4, isConfirmed: true, conflict: ConflictDetails(type: RecordType.missingRunner, data: {'offBy': 1}));
-        final missingRunnerRecord = createTimingRecord(elapsedTime: '2:00.0', type: RecordType.missingRunner, place: 4, isConfirmed: false);
+        // Create records for middle missingTime chunk
+        final record4 = createTimeRecord(elapsedTime: '1:00.0', type: RecordType.runnerTime, place: 3, isConfirmed: true);
+        final record5 = createTimeRecord(elapsedTime: 'TBD', type: RecordType.runnerTime, place: 4, isConfirmed: true, conflict: ConflictDetails(type: RecordType.missingTime, data: {'offBy': 1}));
+        final missingTimeRecord = createTimeRecord(elapsedTime: '2:00.0', type: RecordType.missingTime, place: 4, isConfirmed: false);
         
         // Create records for second confirmRunner chunk
-        final record7 = createTimingRecord(elapsedTime: '3:00.0', type: RecordType.runnerTime, place: 5, isConfirmed: true);
-        final record8 = createTimingRecord(elapsedTime: '3:10.0', type: RecordType.runnerTime, place: 6, isConfirmed: true);
-        final confirmRunnerRecord2 = createTimingRecord(elapsedTime: '3:20.0', type: RecordType.confirmRunner, place: 6, isConfirmed: true);
+        final record7 = createTimeRecord(elapsedTime: '3:00.0', type: RecordType.runnerTime, place: 5, isConfirmed: true);
+        final record8 = createTimeRecord(elapsedTime: '3:10.0', type: RecordType.runnerTime, place: 6, isConfirmed: true);
+        final confirmRunnerRecord2 = createTimeRecord(elapsedTime: '3:20.0', type: RecordType.confirmRunner, place: 6, isConfirmed: true);
         
         // Create runners
         final runner1 = createRunnerRecord(id: 1, bib: '101', name: 'Runner 1', grade: 9, school: 'High School');
@@ -550,7 +550,7 @@ void main() {
         final runner6 = createRunnerRecord(id: 6, bib: '106', name: 'Runner 6', grade: 14, school: 'High School');
         
         // Setup timing data
-        controller.timingData.records = [record1, record2, confirmRunnerRecord1, record4, record5, missingRunnerRecord, record7, record8, confirmRunnerRecord2];
+        controller.timingData.records = [record1, record2, confirmRunnerRecord1, record4, record5, missingTimeRecord, record7, record8, confirmRunnerRecord2];
         controller.runnerRecords = [runner1, runner2, runner3, runner4, runner5, runner6];
         
         // Create chunks
@@ -562,8 +562,8 @@ void main() {
         );
         
         final chunk2 = createChunk(
-          records: [record4, record5, missingRunnerRecord],
-          type: RecordType.missingRunner,
+          records: [record4, record5, missingTimeRecord],
+          type: RecordType.missingTime,
           runners: [runner1, runner2, runner3, runner4, runner5, runner6],
           conflictIndex: 1
         );
@@ -579,12 +579,12 @@ void main() {
         controller.chunks = [chunk1, chunk2, chunk3];
         
         // Call the method under test
-        await controller.consolidateConfirmedRunnerTimes();
+        await controller.consolidateConfirmedTimes();
         
         // Assertions - should not consolidate non-adjacent chunks
         expect(controller.chunks.length, equals(3)); // Still 3 chunks
         expect(controller.chunks[0].type, equals(RecordType.confirmRunner));
-        expect(controller.chunks[1].type, equals(RecordType.missingRunner));
+        expect(controller.chunks[1].type, equals(RecordType.missingTime));
         expect(controller.chunks[2].type, equals(RecordType.confirmRunner));
         
         // Confirm records counts remain the same
@@ -595,29 +595,29 @@ void main() {
       
       test('correctly updates timingData records', () async {
         // Create timing records for first confirmRunner chunk
-        final record1 = createTimingRecord(elapsedTime: '1:00.0', type: RecordType.runnerTime, place: 1, isConfirmed: true);
-        final record2 = createTimingRecord(elapsedTime: '1:10.0', type: RecordType.runnerTime, place: 2, isConfirmed: true);
-        final confirmRunnerRecord1 = createTimingRecord(elapsedTime: '1:20.0', type: RecordType.confirmRunner, place: 2, isConfirmed: true);
+        final record1 = createTimeRecord(elapsedTime: '1:00.0', type: RecordType.runnerTime, place: 1, isConfirmed: true);
+        final record2 = createTimeRecord(elapsedTime: '1:10.0', type: RecordType.runnerTime, place: 2, isConfirmed: true);
+        final confirmRunnerRecord1 = createTimeRecord(elapsedTime: '1:20.0', type: RecordType.confirmRunner, place: 2, isConfirmed: true);
 
         // Create records for second confirmRunner chunk
-        final record4 = createTimingRecord(elapsedTime: '1:15.0', type: RecordType.runnerTime, place: 3, isConfirmed: true);
-        final record5 = createTimingRecord(elapsedTime: '1:25.0', type: RecordType.runnerTime, place: 4, isConfirmed: true);
-        final confirmRunnerRecord2 = createTimingRecord(elapsedTime: '1:35.0', type: RecordType.confirmRunner, place: 4, isConfirmed: true);
+        final record4 = createTimeRecord(elapsedTime: '1:15.0', type: RecordType.runnerTime, place: 3, isConfirmed: true);
+        final record5 = createTimeRecord(elapsedTime: '1:25.0', type: RecordType.runnerTime, place: 4, isConfirmed: true);
+        final confirmRunnerRecord2 = createTimeRecord(elapsedTime: '1:35.0', type: RecordType.confirmRunner, place: 4, isConfirmed: true);
         
-        // Create records for middle missingRunner chunk
-        final record7 = createTimingRecord(elapsedTime: '1:40.0', type: RecordType.runnerTime, place: 5, isConfirmed: true);
-        final record8 = createTimingRecord(elapsedTime: 'TBD', type: RecordType.runnerTime, place: 6, isConfirmed: true, conflict: ConflictDetails(type: RecordType.missingRunner, data: {'offBy': 1}));
-        final missingRunnerRecord = createTimingRecord(elapsedTime: '1:50.0', type: RecordType.missingRunner, place: 6, isConfirmed: false);
+        // Create records for middle missingTime chunk
+        final record7 = createTimeRecord(elapsedTime: '1:40.0', type: RecordType.runnerTime, place: 5, isConfirmed: true);
+        final record8 = createTimeRecord(elapsedTime: 'TBD', type: RecordType.runnerTime, place: 6, isConfirmed: true, conflict: ConflictDetails(type: RecordType.missingTime, data: {'offBy': 1}));
+        final missingTimeRecord = createTimeRecord(elapsedTime: '1:50.0', type: RecordType.missingTime, place: 6, isConfirmed: false);
         
         // Create records for third confirmRunner chunk
-        final record10 = createTimingRecord(elapsedTime: '2:00.0', type: RecordType.runnerTime, place: 7, isConfirmed: true);
-        final record11 = createTimingRecord(elapsedTime: '2:10.0', type: RecordType.runnerTime, place: 8, isConfirmed: true);
-        final confirmRunnerRecord3 = createTimingRecord(elapsedTime: '2:20.0', type: RecordType.confirmRunner, place: 8, isConfirmed: true);
+        final record10 = createTimeRecord(elapsedTime: '2:00.0', type: RecordType.runnerTime, place: 7, isConfirmed: true);
+        final record11 = createTimeRecord(elapsedTime: '2:10.0', type: RecordType.runnerTime, place: 8, isConfirmed: true);
+        final confirmRunnerRecord3 = createTimeRecord(elapsedTime: '2:20.0', type: RecordType.confirmRunner, place: 8, isConfirmed: true);
 
         // Create records for 4th confirmRunner chunk
-        final record13 = createTimingRecord(elapsedTime: '2:30.0', type: RecordType.runnerTime, place: 9, isConfirmed: true);
-        final record14 = createTimingRecord(elapsedTime: '2:40.0', type: RecordType.runnerTime, place: 10, isConfirmed: true);
-        final confirmRunnerRecord4 = createTimingRecord(elapsedTime: '2:50.0', type: RecordType.confirmRunner, place: 10, isConfirmed: true);
+        final record13 = createTimeRecord(elapsedTime: '2:30.0', type: RecordType.runnerTime, place: 9, isConfirmed: true);
+        final record14 = createTimeRecord(elapsedTime: '2:40.0', type: RecordType.runnerTime, place: 10, isConfirmed: true);
+        final confirmRunnerRecord4 = createTimeRecord(elapsedTime: '2:50.0', type: RecordType.confirmRunner, place: 10, isConfirmed: true);
         
         // Create runners
         final runner1 = createRunnerRecord(id: 1, bib: '101', name: 'Runner 1', grade: 9, school: 'High School');
@@ -632,7 +632,7 @@ void main() {
         final runner10 = createRunnerRecord(id: 10, bib: '110', name: 'Runner 10', grade: 18, school: 'High School');
         
         // Setup timing data
-        controller.timingData.records = [record1, record2, confirmRunnerRecord1, record4, record5, confirmRunnerRecord2, record7, record8, missingRunnerRecord, record10, record11, confirmRunnerRecord3, record13, record14, confirmRunnerRecord4];
+        controller.timingData.records = [record1, record2, confirmRunnerRecord1, record4, record5, confirmRunnerRecord2, record7, record8, missingTimeRecord, record10, record11, confirmRunnerRecord3, record13, record14, confirmRunnerRecord4];
         controller.runnerRecords = [runner1, runner2, runner3, runner4, runner5, runner6, runner7, runner8, runner9, runner10];
         
         // Create chunks - pass all runners to each chunk
@@ -653,8 +653,8 @@ void main() {
         );
         
         final chunk3 = createChunk(
-          records: [record7, record8, missingRunnerRecord],
-          type: RecordType.missingRunner,
+          records: [record7, record8, missingTimeRecord],
+          type: RecordType.missingTime,
           runners: allRunners,
           conflictIndex: 2
         );
@@ -677,19 +677,19 @@ void main() {
         controller.chunks = [chunk1, chunk2, chunk3, chunk4, chunk5];
         
         // Call the method under test
-        await controller.consolidateConfirmedRunnerTimes();
+        await controller.consolidateConfirmedTimes();
         
         // Assertions - should consolidate adjacent confirmRunner chunks
-        expect(controller.chunks.length, equals(3)); // consolidated confirmRunner + missingRunner + consolidated confirmRunner
+        expect(controller.chunks.length, equals(3)); // consolidated confirmRunner + missingTime + consolidated confirmRunner
         expect(controller.chunks[0].type, equals(RecordType.confirmRunner));
-        expect(controller.chunks[1].type, equals(RecordType.missingRunner));
+        expect(controller.chunks[1].type, equals(RecordType.missingTime));
         expect(controller.chunks[2].type, equals(RecordType.confirmRunner));
         
         // First consolidated chunk should have records from chunks 1 and 2
         expect(controller.chunks[0].records.length, equals(5)); // 4 runnerTime + 1 confirmRunner
         // Third consolidated chunk should have records from chunks 4 and 5
         expect(controller.chunks[2].records.length, equals(5)); // 4 runnerTime + 1 confirmRunner
-        expect(controller.chunks[1].records.length, equals(3)); // missingRunner chunk unchanged
+        expect(controller.chunks[1].records.length, equals(3)); // missingTime chunk unchanged
       });
       
       test('handles empty chunks list', () async {
@@ -699,7 +699,7 @@ void main() {
         controller.runnerRecords = [];
         
         // Call the method under test
-        await controller.consolidateConfirmedRunnerTimes();
+        await controller.consolidateConfirmedTimes();
         
         // Assertions - should not crash and chunks list should still be empty
         expect(controller.chunks, isEmpty);
@@ -718,19 +718,19 @@ void main() {
         // Set chunks on the controller
         controller.chunks = [emptyChunk];
         
-        // Expect any error or exception when consolidateConfirmedRunnerTimes() is called
-        expect(() => controller.consolidateConfirmedRunnerTimes(), throwsA(anything));
+        // Expect any error or exception when consolidateConfirmedTimes() is called
+        expect(() => controller.consolidateConfirmedTimes(), throwsA(anything));
       });
   
       test('handles a mix of different chunk types', () async {
         // Create timing records for first confirmRunner chunk
-        final runnerTimeRecord1 = createTimingRecord(
+        final runnerTimeRecord1 = createTimeRecord(
           elapsedTime: '1:00.0', 
           type: RecordType.runnerTime, 
           place: 1, 
           isConfirmed: true
         );
-        final confirmRunnerRecord1 = createTimingRecord(
+        final confirmRunnerRecord1 = createTimeRecord(
           elapsedTime: '1:10.0', 
           type: RecordType.confirmRunner, 
           place: 1, 
@@ -738,13 +738,13 @@ void main() {
         );
         
         // Create timing records for second confirmRunner chunk
-        final runnerTimeRecord2 = createTimingRecord(
+        final runnerTimeRecord2 = createTimeRecord(
           elapsedTime: '1:20.0', 
           type: RecordType.runnerTime, 
           place: 2, 
           isConfirmed: true
         );
-        final confirmRunnerRecord2 = createTimingRecord(
+        final confirmRunnerRecord2 = createTimeRecord(
           elapsedTime: '1:30.0', 
           type: RecordType.confirmRunner, 
           place: 2, 
@@ -752,42 +752,42 @@ void main() {
         );
         
         // Create records for other chunk types
-        final runnerTimeRecord3 = createTimingRecord(
+        final runnerTimeRecord3 = createTimeRecord(
           elapsedTime: 'TBD', 
           type: RecordType.runnerTime, 
           place: 3, 
           isConfirmed: true, 
-          conflict: ConflictDetails(type: RecordType.missingRunner, data: {'offBy': 1})
+          conflict: ConflictDetails(type: RecordType.missingTime, data: {'offBy': 1})
         );
-        final missingRunnerRecord = createTimingRecord(
+        final missingTimeRecord = createTimeRecord(
           elapsedTime: '2:00.0', 
-          type: RecordType.missingRunner, 
+          type: RecordType.missingTime, 
           place: 3, 
           isConfirmed: false
         );
         
-        final runnerTimeRecord4 = createTimingRecord(
+        final runnerTimeRecord4 = createTimeRecord(
           elapsedTime: '2:05', 
           type: RecordType.runnerTime, 
           place: 4, 
           isConfirmed: true, 
-          conflict: ConflictDetails(type: RecordType.extraRunner, data: {'offBy': 1})
+          conflict: ConflictDetails(type: RecordType.extraTime, data: {'offBy': 1})
         );
-        final runnerTimeRecord5 = createTimingRecord(
+        final runnerTimeRecord5 = createTimeRecord(
           elapsedTime: '2:07', 
           type: RecordType.runnerTime, 
           place: 5, // Give this a place so it has associated runners
           isConfirmed: true, 
-          conflict: ConflictDetails(type: RecordType.extraRunner, data: {'offBy': 1})
+          conflict: ConflictDetails(type: RecordType.extraTime, data: {'offBy': 1})
         );
-        final extraRunnerRecord = createTimingRecord(
+        final extraRunnerRecord = createTimeRecord(
           elapsedTime: '2:10.0', 
-          type: RecordType.extraRunner, 
+          type: RecordType.extraTime, 
           place: 4, 
           isConfirmed: false
         );
         
-        final runnerTimeOnlyRecord = createTimingRecord(
+        final runnerTimeOnlyRecord = createTimeRecord(
           elapsedTime: '2:20.0', 
           type: RecordType.runnerTime, 
           place: 6, // Give this a place so it has associated runners
@@ -809,7 +809,7 @@ void main() {
           runnerTimeRecord2,
           confirmRunnerRecord2,
           runnerTimeRecord3,
-          missingRunnerRecord,
+          missingTimeRecord,
           runnerTimeRecord4,
           runnerTimeRecord5,
           extraRunnerRecord,
@@ -833,15 +833,15 @@ void main() {
         );
         
         final chunk3 = createChunk(
-          records: [runnerTimeRecord3, missingRunnerRecord],
-          type: RecordType.missingRunner,
+          records: [runnerTimeRecord3, missingTimeRecord],
+          type: RecordType.missingTime,
           runners: [runner3], // Only runner for place 3
           conflictIndex: 2
         );
         
         final chunk4 = createChunk(
           records: [runnerTimeRecord4, runnerTimeRecord5, extraRunnerRecord],
-          type: RecordType.extraRunner,
+          type: RecordType.extraTime,
           runners: [runner4, runner5], // Runners for places 4 and 5
           conflictIndex: 3
         );
@@ -857,10 +857,10 @@ void main() {
         controller.chunks = [chunk1, chunk2, chunk3, chunk4, chunk5];
         
         // Call the method under test
-        await controller.consolidateConfirmedRunnerTimes();
+        await controller.consolidateConfirmedTimes();
         
         // Assertions
-        expect(controller.chunks.length, equals(4)); // consolidated confirmRunner + missingRunner + extraRunner + runnerTime
+        expect(controller.chunks.length, equals(4)); // consolidated confirmRunner + missingTime + extraRunner + runnerTime
         
         // First chunk should be the consolidated confirmRunner chunks
         expect(controller.chunks[0].type, equals(RecordType.confirmRunner));
@@ -868,11 +868,11 @@ void main() {
         expect(controller.chunks[0].runners.length, equals(2)); // runners 1 and 2
         
         // Verify other chunks remain unchanged
-        expect(controller.chunks[1].type, equals(RecordType.missingRunner));
+        expect(controller.chunks[1].type, equals(RecordType.missingTime));
         expect(controller.chunks[1].records.length, equals(2));
         expect(controller.chunks[1].runners.length, equals(1)); // runner 3
         
-        expect(controller.chunks[2].type, equals(RecordType.extraRunner));
+        expect(controller.chunks[2].type, equals(RecordType.extraTime));
         expect(controller.chunks[2].records.length, equals(3));
         expect(controller.chunks[2].runners.length, equals(2)); // runners 4 and 5
         
