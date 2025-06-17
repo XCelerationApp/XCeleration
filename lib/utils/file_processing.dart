@@ -9,60 +9,81 @@ import 'file_utils.dart';
 
 /// Process a spreadsheet for runner data, either from local storage or Google Drive
 /// Uses the modern GoogleDriveService with drive.file scope for Google Drive operations
-Future<List<RunnerRecord>> processSpreadsheet(int raceId, bool isTeam, {BuildContext? context, bool useGoogleDrive = false}) async {
-  // Check if we have a context
-  if (context == null) {
-    Logger.d('Context is required for file operations');
-    return [];
-  }
-  
+Future<List<RunnerRecord>> processSpreadsheet(int raceId, bool isTeam, BuildContext context,
+    {bool useGoogleDrive = false}) async {
   File? selectedFile;
-  
+  final navigatorContext = Navigator.of(context, rootNavigator: true).context;
+
   try {
     if (useGoogleDrive) {
       // Use Google Drive picker with drive.file scope
-      selectedFile = await GoogleDriveService.instance.pickSpreadsheetFile(context);
+      selectedFile =
+          await GoogleDriveService.instance.pickSpreadsheetFile(context);
     } else {
       // Use local file picker with loading dialog
       selectedFile = await FileUtils.pickLocalSpreadsheetFile();
     }
-    
+
     // Check if user cancelled or error occurred
-    if (selectedFile == null) return [];
-    
-    // Process the spreadsheet with loading dialog
-    if (!context.mounted) return [];
-    final result = await DialogUtils.executeWithLoadingDialog<List<RunnerRecord>>(
-      context,
-      operation: () async {
+    if (selectedFile == null) {
+      Logger.d('No file selected');
+      return [];
+    }
+
+    Logger.d('File selected: ${selectedFile.path}');
+    List<RunnerRecord>? result;
+    if (!context.mounted) context = navigatorContext;
+    // Process the spreadsheet with loading dialog if context is mounted
+    if (context.mounted) {
+      result = await DialogUtils.executeWithLoadingDialog<List<RunnerRecord>>(
+          context, operation: () async {
         final parsedData = await FileUtils.parseSpreadsheetFile(selectedFile!);
-        
+
         // Check if we got valid data
         if (parsedData == null || parsedData.isEmpty) {
+          Logger.d(
+              'Invalid Spreadsheet: The selected file does not contain valid spreadsheet data.');
           if (context.mounted) {
-            DialogUtils.showErrorDialog(
-              context, 
-              message: 'Invalid Spreadsheet: The selected file does not contain valid spreadsheet data.'
-            );
+            DialogUtils.showErrorDialog(context,
+                message:
+                    'Invalid Spreadsheet: The selected file does not contain valid spreadsheet data.');
           }
           return [];
         }
-        
+
         return _processSpreadsheetData(parsedData, raceId, isTeam);
-      },
-      loadingMessage: 'Processing spreadsheet...'
-    );
-    
+      }, loadingMessage: 'Processing spreadsheet...');
+    } else {
+      // If context is not mounted, process without loading dialog
+      Logger.d('Context not mounted, processing without loading dialog');
+      final parsedData = await FileUtils.parseSpreadsheetFile(selectedFile);
+      Logger.d('Parsed data: $parsedData');
+
+      // Check if we got valid data
+      if (parsedData == null || parsedData.isEmpty) {
+        Logger.d(
+            'Invalid Spreadsheet: The selected file does not contain valid spreadsheet data.');
+        return [];
+      }
+
+      result = _processSpreadsheetData(parsedData, raceId, isTeam);
+      Logger.d('Result: $result');
+    }
+
+    if (result == null) {
+      Logger.d('No data returned from spreadsheet processing');
+      return [];
+    }
+
     // Return the result or empty list if null
-    return result ?? [];
-    
+    return result;
   } catch (e) {
     Logger.d('Error processing spreadsheet: $e');
+    if (!context.mounted) context = navigatorContext;
     if (context.mounted) {
-      DialogUtils.showErrorDialog(
-        context, 
-        message: 'File Selection Error: An error occurred while selecting or processing the file: ${e.toString()}'
-      );
+      DialogUtils.showErrorDialog(context,
+          message:
+              'File Selection Error: An error occurred while selecting or processing the file: ${e.toString()}');
     }
     return [];
   }
@@ -70,15 +91,13 @@ Future<List<RunnerRecord>> processSpreadsheet(int raceId, bool isTeam, {BuildCon
 
 /// Convert spreadsheet data to runner records
 List<RunnerRecord> _processSpreadsheetData(
-    List<List<dynamic>> data, 
-    int raceId, 
-    bool isTeam) {
+    List<List<dynamic>> data, int raceId, bool isTeam) {
   final List<RunnerRecord> runnerData = [];
-  
+
   // Skip header row
   for (int i = 1; i < data.length; i++) {
     final row = data[i];
-    
+
     // Ensure the row is not empty and contains the required columns
     if (row.isNotEmpty && row.length >= 4) {
       // Parse the row data
@@ -87,7 +106,7 @@ List<RunnerRecord> _processSpreadsheetData(
       String school = row[2]?.toString() ?? '';
       String bibNumber = row[3]?.toString().replaceAll('"', '') ?? '';
       int bibNumberInt = int.tryParse(bibNumber) ?? -1;
-      
+
       // Validate the parsed data
       if (name.isNotEmpty &&
           grade > 0 &&
@@ -120,6 +139,6 @@ List<RunnerRecord> _processSpreadsheetData(
       Logger.d('Incomplete row: $row');
     }
   }
-  
+
   return runnerData;
 }

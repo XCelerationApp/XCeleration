@@ -8,6 +8,8 @@
 		<string>Xceleration</string>
 		<key>GIDClientID</key>
 		<string>529053126812-cuhlura1vskuup3lg6hpf6iup6mlje6v.apps.googleusercontent.com</string>
+		<key>GIDServerClientID</key>
+		<string>529053126812-9pc03ju6t4ta8sjl9kp17cn4lr8lucm7.apps.googleusercontent.com</string>
 		<key>CFBundleExecutable</key>
 		<string>$(EXECUTABLE_NAME)</string>
 		<key>CFBundleIdentifier</key>

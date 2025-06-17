@@ -256,6 +256,9 @@ class GoogleAuthService {
   }
 
   Future<String?> _exchangeServerAuthCodeForAccessToken(String authCode) async {
+    Logger.d('Exchanging auth code for token with client ID: $_webClientId');
+    
+    // For OAuth token exchange from a mobile app using Google Sign-In's serverAuthCode, 
     final response = await http.post(
       Uri.parse('https://oauth2.googleapis.com/token'),
       headers: {'Content-Type': 'application/x-www-form-urlencoded'},
@@ -263,7 +266,7 @@ class GoogleAuthService {
         'code': authCode,
         'client_id': _webClientId,
         'client_secret': _webClientSecret,
-        'redirect_uri': 'postmessage',
+        // 'redirect_uri': 'com.googleusercontent.apps.$_iosClientId:/oauth/callback',
         'grant_type': 'authorization_code',
       },
     );
@@ -308,7 +311,6 @@ class GoogleAuthService {
         Logger.d('Failed to sign in');
         return false;
       }
-      Logger.d('Server auth code: ${_currentUser!.serverAuthCode}');
       _iosAccessToken = await iosAccessToken;
       
       if (!hasValidIosToken) {

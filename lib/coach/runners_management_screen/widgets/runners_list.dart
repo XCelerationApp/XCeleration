@@ -143,7 +143,7 @@ class RunnersList extends StatelessWidget {
                       runner: runner,
                       controller: controller,
                       onAction: (action) =>
-                          controller.handleRunnerAction(action, runner),
+                          controller.handleRunnerAction(context, action, runner),
                     )),
               ],
             ),

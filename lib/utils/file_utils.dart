@@ -86,6 +86,7 @@ class FileUtils {
   /// Enhanced CSV parsing with options for different delimiters, quote chars, etc.
   static Future<List<List<dynamic>>> _parseCSVFile(File file) async {
     final contents = await file.readAsString();
+    Logger.d('Parsing CSV file: $contents');
   
     try {
       // Try to detect the delimiter (common ones are comma, tab, semicolon)
@@ -108,7 +109,7 @@ class FileUtils {
       );
       
       final rows = converter.convert(contents);
-      
+      Logger.d('Parsed CSV file: $rows');
       // Remove empty rows
       return rows.where((row) => 
         row.isNotEmpty && 

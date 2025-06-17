@@ -188,7 +188,7 @@
             console.log('Picker built successfully, showing picker');
         } catch (e) {
             console.error('Error initializing picker:', e);
-            sendToFlutter({ action: 'error', message: 'Failed to initialize picker: ' + e });
+            sendToFlutter({ action: 'error', message: 'Failed to initialize picker: ' + e, type: 'Google Drive Picker Initialization Failed' });
         }
     }
 
@@ -198,7 +198,7 @@
         if (data.action === google.picker.Action.PICKED) {
             const file = data.docs[0];
             console.log('File picked:', file);
-            sendToFlutter({ action: 'picked', data: file, isLocalFile: false });
+            sendToFlutter({ action: 'picked', data: file });
         } else if (data.action === google.picker.Action.CANCEL) {
             console.log('Picker cancelled');
             sendToFlutter({ action: 'canceled' });
@@ -228,13 +228,13 @@
                 callback: onGapiLoad,
                 onerror: function(e) {
                     console.error('Error loading picker:', e);
-                    sendToFlutter({ action: 'error', message: 'Failed to load Google Picker API' });
+                    sendToFlutter({ action: 'error', message: 'Failed to load Google Picker API', type: 'Google Authentication Failed' });
                 }
             });
         };
         gapiScript.onerror = function(e) {
             console.error('Error loading GAPI script:', e);
-            sendToFlutter({ action: 'error', message: 'Failed to load Google API script' });
+            sendToFlutter({ action: 'error', message: 'Failed to load Google API script', type: 'Google Authentication Failed' });
         };
             
         // Load the Picker script
@@ -243,7 +243,7 @@
         pickerScript.onload = onPickerLoad;
         pickerScript.onerror = function(e) {
             console.error('Error loading picker script:', e);
-            sendToFlutter({ action: 'error', message: 'Failed to load Google Picker script' });
+            sendToFlutter({ action: 'error', message: 'Failed to load Google Picker script', type: 'Google Authentication Failed' });
         };
         
         document.head.appendChild(gapiScript);

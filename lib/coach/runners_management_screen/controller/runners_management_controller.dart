@@ -30,7 +30,7 @@ class RunnersManagementController with ChangeNotifier {
   final int raceId;
   final VoidCallback? onBack;
   final VoidCallback? onContentChanged;
-  BuildContext? _context;
+
 
   RunnersManagementController({
     required this.raceId,
@@ -39,11 +39,7 @@ class RunnersManagementController with ChangeNotifier {
     this.onContentChanged,
   });
 
-  void setContext(BuildContext context) {
-    _context = context;
-  }
-
-  BuildContext get context => _context!;
+  
 
   Future<void> init() async {
     initControllers();
@@ -124,7 +120,7 @@ class RunnersManagementController with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> handleRunnerAction(String action, RunnerRecord runner) async {
+  Future<void> handleRunnerAction(BuildContext context, String action, RunnerRecord runner) async {
     switch (action) {
       case 'Edit':
         await showRunnerSheet(
@@ -183,7 +179,7 @@ class RunnersManagementController with ChangeNotifier {
               
               // Use post-frame callback to ensure form is fully done
               WidgetsBinding.instance.addPostFrameCallback((_) async {
-                await handleRunnerSubmission(runnerCopy);
+                await handleRunnerSubmission(context, runnerCopy);
               });
             },
             submitButtonText: runner == null ? 'Create' : 'Save',
@@ -196,7 +192,7 @@ class RunnersManagementController with ChangeNotifier {
     }
   }
 
-  Future<void> handleRunnerSubmission(RunnerRecord runner) async {
+  Future<void> handleRunnerSubmission(BuildContext context, RunnerRecord runner) async {
     try {
       RunnerRecord? existingRunner;
       existingRunner =
@@ -268,7 +264,7 @@ class RunnersManagementController with ChangeNotifier {
     await loadRunners();
   }
 
-  Future<void> showSampleSpreadsheet() async {
+  Future<void> showSampleSpreadsheet(BuildContext context) async {
     final file = await rootBundle
         .loadString('assets/sample_sheets/sample_spreadsheet.csv');
         
@@ -354,7 +350,7 @@ class RunnersManagementController with ChangeNotifier {
                 const SizedBox(height: 20),
                 // View Sample Button
                 TextButton(
-                  onPressed: showSampleSpreadsheet,
+                  onPressed: () => showSampleSpreadsheet(context),
                   style: TextButton.styleFrom(
                     foregroundColor: const Color(0xFFE2572B),
                   ),
@@ -452,7 +448,7 @@ class RunnersManagementController with ChangeNotifier {
     );
   }
 
-  Future<void> handleSpreadsheetLoad() async {
+  Future<void> handleSpreadsheetLoad(BuildContext context) async {
     final result = await showSpreadsheetLoadSheet(context);
     if (result == null) return;
     
@@ -462,16 +458,11 @@ class RunnersManagementController with ChangeNotifier {
     final bool useGoogleDrive = result['useGoogleDrive'] ?? false;
     
     final List<RunnerRecord> runnerData =
-        await processSpreadsheet(raceId, false, context: context, useGoogleDrive: useGoogleDrive);
-    
-    // Check if context is still mounted after processing spreadsheet
-    if (!context.mounted) return;
+        await processSpreadsheet(raceId, false, context, useGoogleDrive: useGoogleDrive);
+
     
     final schools = (await DatabaseHelper.instance.getRaceById(raceId))?.teams;
     
-    // Check if context is still mounted after database query
-    if (!context.mounted) return;
-
     
     final overwriteRunners = [];
     final runnersFromDifferentSchool = [];
@@ -499,24 +490,18 @@ class RunnersManagementController with ChangeNotifier {
       }
     }
     
-    if (runnersFromDifferentSchool.isNotEmpty) {
+    if (runnersFromDifferentSchool.isNotEmpty && context.mounted) {
       final schools = runnersFromDifferentSchool.map((runner) => runner.school).toSet();
       final schoolsList = schools.toList();
       final schoolsString = schoolsList.join(', ');
       
-      // Check if context is still mounted before showing dialog
-      if (!context.mounted) return;
-      
-      final runnersFromDifferentSchoolDialog = await DialogUtils.showConfirmationDialog(
+      final shouldContinue = await DialogUtils.showConfirmationDialog(
         context,
         title: 'Runners from Different Schools',
         content: '${runnersFromDifferentSchool.length} runners are from different schools: $schoolsString. They will not be imported. Do you want to continue?',
       );
       
-      // Check if context is still mounted after async dialog
-      if (!context.mounted) return;
-      
-      if (!runnersFromDifferentSchoolDialog) return;
+      if (!shouldContinue) return;
     }
 
     for (final runner in runnersToAdd) {
@@ -528,19 +513,17 @@ class RunnersManagementController with ChangeNotifier {
     final overwriteRunnersBibs =
         overwriteRunners.map((runner) => runner.bib).toList();
     
-    // Check if context is still mounted before showing dialog
-    if (!context.mounted) return;
-    
-    final overwriteExistingRunners = await DialogUtils.showConfirmationDialog(
-      context,
-      title: 'Confirm Overwrite',
-      content:
-          'Are you sure you want to overwrite the following runners with bib numbers: ${overwriteRunnersBibs.join(', ')}?',
-    );
-    
-    // Check if context is still mounted after async dialog
-    if (!context.mounted) return;
-    if (!overwriteExistingRunners) return;
+    if (context.mounted) {
+      final shouldOverwriteRunners = await DialogUtils.showConfirmationDialog(
+        context,
+        title: 'Confirm Overwrite',
+        content:
+            'Are you sure you want to overwrite the following runners with bib numbers: ${overwriteRunnersBibs.join(', ')}?',
+      );
+      if (!shouldOverwriteRunners) return;
+    } else {
+      Logger.d('Context not mounted, overwriting runners');
+    }
     for (final runner in overwriteRunners) {
       await DatabaseHelper.instance
           .deleteRaceRunner(raceId, runner.bib);

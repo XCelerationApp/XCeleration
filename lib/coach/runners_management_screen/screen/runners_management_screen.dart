@@ -69,7 +69,6 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
       onBack: widget.onBack,
       onContentChanged: widget.onContentChanged,
     );
-    _controller.setContext(context);
     _controller.init();
   }
 
@@ -139,7 +138,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
           ActionButton(
             text: 'Load Runners',
             icon: Icons.table_chart,
-            onPressed: _controller.handleSpreadsheetLoad,
+            onPressed: () => _controller.handleSpreadsheetLoad(context),
           ),
         ],
       ),
