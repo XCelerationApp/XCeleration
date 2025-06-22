@@ -296,10 +296,6 @@ class RaceController with ChangeNotifier {
 
     // Check if the context is still mounted before using ScaffoldMessenger
     if (!context.mounted) return;
-
-    // Show a confirmation snackbar
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('${_getFlowDisplayName(race!.flowState)} completed!')));
   }
 
   /// Begin the next flow in the sequence
@@ -323,15 +319,6 @@ class RaceController with ChangeNotifier {
     // Check if context is still valid after the async operation
     if (!context.mounted) return;
 
-    // If the race is now finished, show a final success message
-    if (nextState == Race.FLOW_FINISHED) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Race has been completed! All steps are finished.')));
-    } else {
-      // Otherwise show which flow we're beginning
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Beginning ${_getFlowDisplayName(nextState)}')));
-    }
 
     // Navigate to the appropriate screen based on the flow
     await flowController.handleFlowNavigation(context, nextState);
@@ -384,13 +371,6 @@ class RaceController with ChangeNotifier {
 
       // Check if context is still mounted after async operation
       if (!context.mounted) return;
-
-      if (!canAdvance) {
-        // Show message about missing requirements
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text(
-                'Please complete race details and load runners before continuing')));
-      }
       return;
     }
 
@@ -413,10 +393,6 @@ class RaceController with ChangeNotifier {
 
       // Check if context is still mounted after async operation
       if (!context.mounted) return;
-
-      // Show a message about which flow we're starting
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Beginning ${_getFlowDisplayName(nextState)}')));
     }
 
     // Check if context is still valid before navigation

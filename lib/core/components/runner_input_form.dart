@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/logger.dart';
 import './textfield_utils.dart' as textfield_utils;
 import '../../coach/race_screen/widgets/runner_record.dart';
 import '../components/button_components.dart';
@@ -192,13 +193,7 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
       
       widget.onSubmit(runner);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      Logger.e('Error in runner input form: $e');
     }
   }
 
