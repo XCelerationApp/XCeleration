@@ -48,7 +48,7 @@ class RaceLocationField extends StatelessWidget {
               child: IconButton(
                 icon: const Icon(Icons.my_location,
                     color: AppColors.primaryColor),
-                onPressed: controller.getCurrentLocation,
+                onPressed: () => controller.getCurrentLocation(context),
               ),
             ),
           ]
