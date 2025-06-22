@@ -10,6 +10,9 @@ import '../../../utils/enums.dart';
 
 class RunnerTimeRecord extends StatelessWidget {
   final bool isExtraTimeRow;
+  final ValueChanged<String>? onTimeSubmitted;
+  final int? removableTimeIndex;
+  final int? removedTimeIndex = null;
 
   const RunnerTimeRecord({
     super.key,
@@ -19,13 +22,16 @@ class RunnerTimeRecord extends StatelessWidget {
     required this.color,
     required this.chunk,
     required this.index,
+    required this.textEditingController,
     this.isManualEntry = false,
     this.assignedTime = '',
     this.onManualEntry,
     this.isRemovedTime = false,
     this.onRemoveTime,
     this.availableTimes,
-    this.removedTimeIndex,
+    this.removedTimeIndices,
+    this.onTimeSubmitted,
+    this.removableTimeIndex,
   });
 
   final MergeConflictsController controller;
@@ -33,6 +39,7 @@ class RunnerTimeRecord extends StatelessWidget {
   final Color color;
   final Chunk chunk;
   final int index;
+  final TextEditingController textEditingController;
   final bool isManualEntry;
   final String assignedTime;
   final VoidCallback? onManualEntry;
@@ -40,7 +47,7 @@ class RunnerTimeRecord extends StatelessWidget {
   final bool isRemovedTime;
   final void Function(int)? onRemoveTime;
   final List<String>? availableTimes;
-  final int? removedTimeIndex;
+  final Set<int>? removedTimeIndices;
 
   @override
   Widget build(BuildContext context) {
@@ -108,16 +115,18 @@ class RunnerTimeRecord extends StatelessWidget {
                   child: hasConflict
                       ? (chunk.type == RecordType.missingTime
                           ? MissingTimeCell(
-                              controller: chunk.controllers['timeControllers']![index],
+                              controller: textEditingController,
                               isManualEntry: isManualEntry,
                               assignedTime: assignedTime,
                               onManualEntry: onManualEntry,
+                              onSubmitted: onTimeSubmitted,
                             )
                           : ExtraTimeCell(
                               assignedTime: assignedTime,
-                              index: index,
-                              removedTimeIndex: removedTimeIndex,
+                              removedTimeIndices: removedTimeIndices,
+                              removableTimeIndex: removableTimeIndex,
                               onRemoveTime: onRemoveTime,
+                              isRemovedTime: isRemovedTime,
                             ))
                       : ConfirmedRunnerTimeCell(time: timeRecord.elapsedTime),
                 ),
