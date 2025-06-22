@@ -84,6 +84,7 @@ flutter:
     - assets/web/
     - assets/web/google_picker.html
     - assets/sample_sheets/
+    - .env
 
   fonts:
     - family: Inter
