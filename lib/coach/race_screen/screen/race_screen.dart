@@ -57,7 +57,6 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
 
   Future<void> _loadRaceData() async {
     final controller = Provider.of<RaceController>(context, listen: false);
-    controller.setContext(context);
     controller.tabController = TabController(length: 2, vsync: this);
     // Navigate to results page if specified
     if (widget.page == RaceScreenPage.results) {

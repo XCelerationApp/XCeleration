@@ -1,283 +1,144 @@
-import 'package:file_picker/file_picker.dart';
-import 'package:csv/csv.dart';
-import 'package:excel/excel.dart';
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/components/dialog_utils.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/coach/race_screen/widgets/runner_record.dart';
-import 'google_drive_picker.dart';
+import 'google_drive_service.dart';
+import 'file_utils.dart';
 
-Future<List<RunnerRecord>> processSpreadsheet(int raceId, bool isTeam, {BuildContext? context, bool useGoogleDrive = false}) async {
-  // If Google Drive is selected, use the Google Drive file picker
-  if (useGoogleDrive && context != null) {
-    return processGoogleDriveSpreadsheet(context, raceId, isTeam);
-  }
-  FilePickerResult? result = await FilePicker.platform.pickFiles(
-    type: FileType.custom,
-    allowedExtensions: ['csv', 'xlsx'],
-  );
+/// Process a spreadsheet for runner data, either from local storage or Google Drive
+/// Uses the modern GoogleDriveService with drive.file scope for Google Drive operations
+Future<List<RunnerRecord>> processSpreadsheet(int raceId, bool isTeam, BuildContext context,
+    {bool useGoogleDrive = false}) async {
+  File? selectedFile;
+  final navigatorContext = Navigator.of(context, rootNavigator: true).context;
 
-  if (result != null) {
-    final file = File(result.files.first.path!);
-    final extension = result.files.first.extension;
-    final List<RunnerRecord> runnerData = [];
-
-    if (extension == 'csv') {
-      // Process CSV file
-      final csvContent = await file.readAsString();
-      List<List<dynamic>> rows = const CsvToListConverter().convert(csvContent);
-
-      for (var row in rows) {
-        if (row == rows.first) continue;
-        if (row.isNotEmpty && row.length >= 4) {
-          String name = row[0]?.toString() ?? '';
-          int grade = int.tryParse(row[1]?.toString() ?? '') ?? 0;
-          String school = row[2]?.toString() ?? '';
-          String bibNumber = row[3]?.toString().replaceAll('"', '') ??
-              ''; // Remove quotation marks if present
-          int bibNumberInt = int.tryParse(bibNumber) ?? -1;
-
-          if (name.isNotEmpty &&
-              grade > 0 &&
-              school.isNotEmpty &&
-              bibNumber.isNotEmpty &&
-              bibNumberInt >= 0) {
-            if (isTeam == true) {
-              runnerData.add(RunnerRecord(
-                name: name,
-                school: school,
-                grade: grade,
-                bib: bibNumber,
-                runnerId: -1,
-                raceId: raceId,
-              ));
-            } else {
-              runnerData.add(RunnerRecord(
-                name: name,
-                school: school,
-                grade: grade,
-                bib: bibNumber,
-                raceId: raceId,
-                runnerId: -1,
-              ));
-            }
-          } else {
-            Logger.d('Invalid data in row: $row');
-          }
-        } else {
-          Logger.d('Incomplete row: $row');
-        }
-      }
-    } else if (extension == 'xlsx') {
-      // Process Excel file
-      var bytes = file.readAsBytesSync();
-      var excel = Excel.decodeBytes(bytes);
-
-      for (var table in excel.tables.keys) {
-        for (var row in excel.tables[table]!.rows) {
-          if (row == excel.tables[table]!.rows.first) continue;
-          // Ensure the row is not empty and contains the required number of columns
-          if (row.isNotEmpty && row.length >= 4) {
-            // Parse the row data
-            String name = row[0]?.toString() ?? '';
-            int grade = int.tryParse(row[1]?.toString() ?? '') ?? 0;
-            String school = row[2]?.toString() ?? '';
-            String bibNumber = row[3]?.toString().replaceAll('"', '') ??
-                ''; // Remove quotation marks if present
-            int bibNumberInt = int.tryParse(bibNumber) ?? -1;
-
-            // Validate the parsed data
-            if (name.isNotEmpty &&
-                grade > 0 &&
-                school.isNotEmpty &&
-                bibNumberInt >= 0 &&
-                bibNumber.isNotEmpty) {
-              // Insert into the database
-              if (isTeam == true) {
-                runnerData.add(RunnerRecord(
-                  name: name,
-                  school: school,
-                  grade: grade,
-                  bib: bibNumber,
-                  runnerId: -1,
-                  raceId: raceId,
-                ));
-              } else {
-                runnerData.add(RunnerRecord(
-                  name: name,
-                  school: school,
-                  grade: grade,
-                  bib: bibNumber,
-                  runnerId: -1,
-                  raceId: raceId,
-                ));
-              }
-            } else {
-              Logger.d('Invalid data in row: $row');
-            }
-          } else {
-            Logger.d('Incomplete row: $row');
-          }
-        }
-      }
+  try {
+    if (useGoogleDrive) {
+      // Use Google Drive picker with drive.file scope
+      selectedFile =
+          await GoogleDriveService.instance.pickSpreadsheetFile(context);
     } else {
-      Logger.d('Unsupported file format: $extension');
+      // Use local file picker with loading dialog
+      selectedFile = await FileUtils.pickLocalSpreadsheetFile();
     }
-    return runnerData;
-  } else {
-    Logger.d('No file selected.');
+
+    // Check if user cancelled or error occurred
+    if (selectedFile == null) {
+      Logger.d('No file selected');
+      return [];
+    }
+
+    Logger.d('File selected: ${selectedFile.path}');
+    List<RunnerRecord>? result;
+    if (!context.mounted) context = navigatorContext;
+    // Process the spreadsheet with loading dialog if context is mounted
+    if (context.mounted) {
+      result = await DialogUtils.executeWithLoadingDialog<List<RunnerRecord>>(
+          context, operation: () async {
+        final parsedData = await FileUtils.parseSpreadsheetFile(selectedFile!);
+
+        // Check if we got valid data
+        if (parsedData == null || parsedData.isEmpty) {
+          Logger.d(
+              'Invalid Spreadsheet: The selected file does not contain valid spreadsheet data.');
+          if (context.mounted) {
+            DialogUtils.showErrorDialog(context,
+                message:
+                    'Invalid Spreadsheet: The selected file does not contain valid spreadsheet data.');
+          }
+          return [];
+        }
+
+        return _processSpreadsheetData(parsedData, raceId, isTeam);
+      }, loadingMessage: 'Processing spreadsheet...');
+    } else {
+      // If context is not mounted, process without loading dialog
+      Logger.d('Context not mounted, processing without loading dialog');
+      final parsedData = await FileUtils.parseSpreadsheetFile(selectedFile);
+      Logger.d('Parsed data: $parsedData');
+
+      // Check if we got valid data
+      if (parsedData == null || parsedData.isEmpty) {
+        Logger.d(
+            'Invalid Spreadsheet: The selected file does not contain valid spreadsheet data.');
+        return [];
+      }
+
+      result = _processSpreadsheetData(parsedData, raceId, isTeam);
+      Logger.d('Result: $result');
+    }
+
+    if (result == null) {
+      Logger.d('No data returned from spreadsheet processing');
+      return [];
+    }
+
+    // Return the result or empty list if null
+    return result;
+  } catch (e) {
+    Logger.d('Error processing spreadsheet: $e');
+    if (!context.mounted) context = navigatorContext;
+    if (context.mounted) {
+      DialogUtils.showErrorDialog(context,
+          message:
+              'File Selection Error: An error occurred while selecting or processing the file: ${e.toString()}');
+    }
     return [];
   }
 }
 
-/// Process a spreadsheet file from Google Drive
-Future<List<RunnerRecord>> processGoogleDriveSpreadsheet(
-    BuildContext context, int raceId, bool isTeam) async {
-  try {
-    // Use the improved Google Drive picker
-    final GoogleDrivePicker picker = GoogleDrivePicker();
-    final tempFile = await picker.pickFile(context, allowedExtensions: ['csv', 'xlsx']);
-    
-    if (tempFile == null) {
-      Logger.d('No Google Drive file selected');
-      return [];
-    }
-    
-    final extension = tempFile.path.split('.').last.toLowerCase();
-    final List<RunnerRecord> runnerData = [];
-    
-    if (extension == 'csv') {
-      // Process CSV file
-      final csvContent = await tempFile.readAsString();
-      List<List<dynamic>> rows = const CsvToListConverter().convert(csvContent);
+/// Convert spreadsheet data to runner records
+List<RunnerRecord> _processSpreadsheetData(
+    List<List<dynamic>> data, int raceId, bool isTeam) {
+  final List<RunnerRecord> runnerData = [];
 
-      for (var row in rows) {
-        if (row == rows.first) continue;
-        if (row.isNotEmpty && row.length >= 4) {
-          String name = row[0]?.toString() ?? '';
-          int grade = int.tryParse(row[1]?.toString() ?? '') ?? 0;
-          String school = row[2]?.toString() ?? '';
-          String bibNumber = row[3]?.toString().replaceAll('"', '') ?? 
-              ''; // Remove quotation marks if present
-          int bibNumberInt = int.tryParse(bibNumber) ?? -1;
+  // Skip header row
+  for (int i = 1; i < data.length; i++) {
+    final row = data[i];
 
-          if (name.isNotEmpty &&
-              grade > 0 &&
-              school.isNotEmpty &&
-              bibNumber.isNotEmpty &&
-              bibNumberInt >= 0) {
-            if (isTeam == true) {
-              runnerData.add(RunnerRecord(
-                name: name,
-                school: school,
-                grade: grade,
-                bib: bibNumber,
-                runnerId: -1,
-                raceId: raceId,
-              ));
-            } else {
-              runnerData.add(RunnerRecord(
-                name: name,
-                school: school,
-                grade: grade,
-                bib: bibNumber,
-                raceId: raceId,
-                runnerId: -1,
-              ));
-            }
-          } else {
-            Logger.d('Invalid data in row: $row');
-          }
+    // Ensure the row is not empty and contains the required columns
+    if (row.isNotEmpty && row.length >= 4) {
+      // Parse the row data
+      String name = row[0]?.toString() ?? '';
+      int grade = int.tryParse(row[1]?.toString() ?? '') ?? 0;
+      String school = row[2]?.toString() ?? '';
+      String bibNumber = row[3]?.toString().replaceAll('"', '') ?? '';
+      int bibNumberInt = int.tryParse(bibNumber) ?? -1;
+
+      // Validate the parsed data
+      if (name.isNotEmpty &&
+          grade > 0 &&
+          school.isNotEmpty &&
+          bibNumber.isNotEmpty &&
+          bibNumberInt >= 0) {
+        if (isTeam) {
+          runnerData.add(RunnerRecord(
+            name: name,
+            school: school,
+            grade: grade,
+            bib: bibNumber,
+            runnerId: -1,
+            raceId: raceId,
+          ));
         } else {
-          Logger.d('Incomplete row: $row');
+          runnerData.add(RunnerRecord(
+            name: name,
+            school: school,
+            grade: grade,
+            bib: bibNumber,
+            runnerId: -1,
+            raceId: raceId,
+          ));
         }
+      } else {
+        Logger.d('Invalid data in row: $row');
       }
-    } else if (extension == 'xlsx') {
-      // Process Excel file
-      var bytes = tempFile.readAsBytesSync();
-      var excel = Excel.decodeBytes(bytes);
-
-      for (var table in excel.tables.keys) {
-        for (var row in excel.tables[table]!.rows) {
-          if (row == excel.tables[table]!.rows.first) continue;
-          // Ensure the row is not empty and contains the required number of columns
-          if (row.isNotEmpty && row.length >= 4) {
-            // Parse the row data - handle both String and Data objects from Excel library
-            String name = '';
-            if (row[0] != null) {
-              name = row[0] is String ? row[0] as String : (row[0]?.value?.toString() ?? '');
-            }
-            
-            int grade = 0;
-            if (row[1] != null) {
-              var gradeStr = row[1] is String ? row[1] as String : (row[1]?.value?.toString() ?? '');
-              // Handle floating point values like 11.0
-              if (gradeStr.isNotEmpty) {
-                if (gradeStr.contains('.')) {
-                  grade = int.tryParse(gradeStr.split('.').first) ?? 0;
-                } else {
-                  grade = int.tryParse(gradeStr) ?? 0;
-                }
-              }
-            }
-            
-            String school = '';
-            if (row[2] != null) {
-              school = row[2] is String ? row[2] as String : (row[2]?.value?.toString() ?? '');
-            }
-            
-            String bibNumber = '';
-            if (row[3] != null) {
-              bibNumber = row[3] is String ? row[3] as String : (row[3]?.value?.toString() ?? '');
-              bibNumber = bibNumber.replaceAll('"', ''); // Remove quotation marks if present
-            }
-            
-            int bibNumberInt = int.tryParse(bibNumber) ?? -1;
-
-            // Validate the parsed data
-            if (name.isNotEmpty &&
-                grade > 0 &&
-                school.isNotEmpty &&
-                bibNumberInt >= 0 &&
-                bibNumber.isNotEmpty) {
-              // Insert into the database
-              if (isTeam == true) {
-                runnerData.add(RunnerRecord(
-                  name: name,
-                  school: school,
-                  grade: grade,
-                  bib: bibNumber,
-                  runnerId: -1,
-                  raceId: raceId,
-                ));
-              } else {
-                runnerData.add(RunnerRecord(
-                  name: name,
-                  school: school,
-                  grade: grade,
-                  bib: bibNumber,
-                  runnerId: -1,
-                  raceId: raceId,
-                ));
-              }
-            } else {
-              Logger.d('Invalid data in row: $row');
-            }
-          } else {
-            Logger.d('Incomplete row: $row');
-          }
-        }
-      }
-    } else {
-      Logger.d('Unsupported file format: $extension');
+    } else if (row.isNotEmpty) {
+      Logger.d('Incomplete row: $row');
     }
-    
-    // Delete the temporary file
-    await tempFile.delete();
-    
-    return runnerData;
-  } catch (e) {
-    Logger.d('Error processing Google Drive spreadsheet: $e');
-    return [];
   }
+
+  return runnerData;
 }

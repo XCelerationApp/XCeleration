@@ -26,13 +26,13 @@ class RaceController with ChangeNotifier {
   int raceId;
   bool isRaceSetup = false;
   late TabController tabController;
-  
+
   // UI state properties
   bool isLocationButtonVisible = true; // Control visibility of location button
-  
+
   // Runtime state
   int runnersCount = 0;
-  
+
   // Form controllers
   final TextEditingController nameController = TextEditingController();
   final TextEditingController locationController = TextEditingController();
@@ -40,12 +40,12 @@ class RaceController with ChangeNotifier {
   final TextEditingController distanceController = TextEditingController();
   final TextEditingController unitController = TextEditingController();
   final TextEditingController userlocationController = TextEditingController();
-  
+
   // Team management
   List<TextEditingController> teamControllers = [];
   List<Color> teamColors = [];
   String? teamsError;
-  
+
   // Validation error messages
   String? nameError;
   String? locationError;
@@ -57,28 +57,19 @@ class RaceController with ChangeNotifier {
   // Flow state
   String get flowState => race?.flowState ?? 'setup';
 
-  BuildContext? _context;
-
   RacesController parentController;
-  
+
   RaceController({required this.raceId, required this.parentController});
 
-  void setContext(BuildContext context) {
-    _context = context;
-  }
 
-  BuildContext get context {
-    assert(_context != null,
-        'Context not set in RaceController. Call setContext() first.');
-    return _context!;
-  }
-
-  static Future<void> showRaceScreen(BuildContext context, RacesController parentController, int raceId,
+  static Future<void> showRaceScreen(
+      BuildContext context, RacesController parentController, int raceId,
       {RaceScreenPage page = RaceScreenPage.main}) async {
     await sheet(
       context: context,
       body: ChangeNotifierProvider(
-        create: (_) => RaceController(raceId: raceId, parentController: parentController),
+        create: (_) =>
+            RaceController(raceId: raceId, parentController: parentController),
         child: RaceScreen(
           raceId: raceId,
           parentController: parentController,
@@ -93,22 +84,22 @@ class RaceController with ChangeNotifier {
 
   Future<void> init(BuildContext context) async {
     race = await loadRace();
-  
+
     // Check if context is still mounted after loading race
     if (!context.mounted) return;
-  
+
     _initializeControllers();
     flowController = MasterFlowController(raceController: this);
     loadRunnersCount();
-  
+
     // Set initial flow state to setup if it's a new race
     if (race != null && race!.flowState.isEmpty) {
       await updateRaceFlowState(context, Race.FLOW_SETUP);
-  
+
       // Check if context is still mounted after updating race flow state
       if (!context.mounted) return;
     }
-  
+
     notifyListeners();
   }
 
@@ -120,7 +111,8 @@ class RaceController with ChangeNotifier {
       dateController.text = race!.raceDate != null
           ? DateFormat('yyyy-MM-dd').format(race!.raceDate!)
           : '';
-      distanceController.text = race!.distance > 0 ? race!.distance.toString() : '';
+      distanceController.text =
+          race!.distance > 0 ? race!.distance.toString() : '';
       unitController.text = race!.distanceUnit;
       _initializeTeamControllers();
     }
@@ -131,7 +123,7 @@ class RaceController with ChangeNotifier {
     if (race != null) {
       teamControllers.clear();
       teamColors.clear();
-      
+
       // If no teams exist yet, add one empty controller
       if (race!.teams.isEmpty) {
         teamControllers.add(TextEditingController());
@@ -141,13 +133,15 @@ class RaceController with ChangeNotifier {
         for (var i = 0; i < race!.teams.length; i++) {
           var controller = TextEditingController(text: race!.teams[i]);
           teamControllers.add(controller);
-          
+
           // Use the color from race.teamColors if available
           if (i < race!.teamColors.length) {
             teamColors.add(race!.teamColors[i]);
           } else {
             // Create a new color based on index
-            teamColors.add(HSLColor.fromAHSL(1.0, (360 / race!.teams.length * i) % 360, 0.7, 0.5).toColor());
+            teamColors.add(HSLColor.fromAHSL(
+                    1.0, (360 / race!.teams.length * i) % 360, 0.7, 0.5)
+                .toColor());
           }
         }
       }
@@ -157,7 +151,7 @@ class RaceController with ChangeNotifier {
   /// Add a new team field
   void addTeamField() {
     teamControllers.add(TextEditingController());
-    
+
     teamColors.add(Colors.white);
     notifyListeners();
   }
@@ -165,6 +159,7 @@ class RaceController with ChangeNotifier {
   Future<void> saveRaceDetails(BuildContext context) async {
     await RaceService.saveRaceDetails(
       raceId: raceId,
+      nameController: nameController,
       locationController: locationController,
       dateController: dateController,
       distanceController: distanceController,
@@ -191,7 +186,8 @@ class RaceController with ChangeNotifier {
   }
 
   /// Show color picker dialog for team color
-  void showColorPicker(StateSetter setSheetState, TextEditingController teamController) {
+  void showColorPicker(
+      BuildContext context, StateSetter setSheetState, TextEditingController teamController) {
     final index = teamControllers.indexOf(teamController);
     if (index < 0) return;
 
@@ -236,45 +232,52 @@ class RaceController with ChangeNotifier {
   /// Load the race data and any saved results
   Future<Race?> loadRace() async {
     final loadedRace = await DatabaseHelper.instance.getRaceById(raceId);
-    
+
     // Populate controllers with race data
     if (loadedRace != null) {
       nameController.text = loadedRace.raceName;
       locationController.text = loadedRace.location;
       if (loadedRace.raceDate != null) {
-        dateController.text = DateFormat('yyyy-MM-dd').format(loadedRace.raceDate!);
+        dateController.text =
+            DateFormat('yyyy-MM-dd').format(loadedRace.raceDate!);
       }
       distanceController.text = loadedRace.distance.toString();
       unitController.text = loadedRace.distanceUnit;
     }
-    
+
     return loadedRace;
   }
 
   /// Update the race flow state
-  Future<void> updateRaceFlowState(BuildContext? context, String newState) async {
+  Future<void> updateRaceFlowState(
+      BuildContext context, String newState) async {
+    if (!context.mounted) {
+      Logger.d('Context not mounted - attempting to use navigator context');
+    }
+    final navigatorContext = Navigator.of(context);
     String previousState = race?.flowState ?? '';
     await DatabaseHelper.instance.updateRaceFlowState(raceId, newState);
     race = race?.copyWith(flowState: newState);
     notifyListeners();
-    
+
     // Show setup completion dialog if transitioning from setup to setup-completed
-    if (previousState == Race.FLOW_SETUP && newState == Race.FLOW_SETUP_COMPLETED) {
+    if (previousState == Race.FLOW_SETUP &&
+        newState == Race.FLOW_SETUP_COMPLETED) {
       // Need to use a delay to ensure context is ready after state updates
       Future.delayed(Duration.zero, () {
-        if (context != null && context.mounted) {
-          DialogUtils.showMessageDialog(context, 
-            title: 'Setup Complete', 
-            message: 'You completed setting up your race!\n\nBefore race day, make sure you have two assistants with this app installed on their phones to help time the race.\nBegin the Sharing Runners step once you are at the race with your assistants.', 
-            doneText: 'Got it'
-          );
-        }
-        else {
+        if (!context.mounted) context = navigatorContext.context;
+        if (context.mounted) {
+          DialogUtils.showMessageDialog(context,
+              title: 'Setup Complete',
+              message:
+                  'You completed setting up your race!\n\nBefore race day, make sure you have two assistants with this app installed on their phones to help time the race.\nBegin the Sharing Runners step once you are at the race with your assistants.',
+              doneText: 'Got it');
+        } else {
           Logger.d('Context not mounted');
         }
       });
     }
-    
+
     // Publish an event when race flow state changes
     EventBus.instance.fire(EventTypes.raceFlowStateChanged, {
       'raceId': raceId,
@@ -286,27 +289,26 @@ class RaceController with ChangeNotifier {
   /// Mark the current flow as completed
   Future<void> markCurrentFlowCompleted(BuildContext context) async {
     if (race == null) return;
-    
+
     // Update to the completed state for the current flow
     String completedState = race!.completedFlowState;
     await updateRaceFlowState(context, completedState);
-    
+
     // Check if the context is still mounted before using ScaffoldMessenger
     if (!context.mounted) return;
-    
+
     // Show a confirmation snackbar
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${_getFlowDisplayName(race!.flowState)} completed!'))
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('${_getFlowDisplayName(race!.flowState)} completed!')));
   }
-  
+
   /// Begin the next flow in the sequence
   Future<void> beginNextFlow(BuildContext context) async {
     if (race == null) return;
-    
+
     // Determine the next non-completed flow state
     String nextState = race!.nextFlowState;
-    
+
     // If the next state is a completed state, skip to the one after that
     if (nextState.contains(Race.FLOW_COMPLETED_SUFFIX)) {
       int nextIndex = Race.FLOW_SEQUENCE.indexOf(nextState) + 1;
@@ -314,39 +316,39 @@ class RaceController with ChangeNotifier {
         nextState = Race.FLOW_SEQUENCE[nextIndex];
       }
     }
-    
+
     // Update to the next flow state
     await updateRaceFlowState(context, nextState);
-    
+
     // Check if context is still valid after the async operation
     if (!context.mounted) return;
-    
+
     // If the race is now finished, show a final success message
     if (nextState == Race.FLOW_FINISHED) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Race has been completed! All steps are finished.'))
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Race has been completed! All steps are finished.')));
     } else {
       // Otherwise show which flow we're beginning
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Beginning ${_getFlowDisplayName(nextState)}'))
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Beginning ${_getFlowDisplayName(nextState)}')));
     }
-    
+
     // Navigate to the appropriate screen based on the flow
     await flowController.handleFlowNavigation(context, nextState);
-    
+
     // We should ideally add another context.mounted check here, but since this is
     // the last statement and we're not using the context after this, we'll leave it
     // to the flowController to handle context checking internally
   }
-  
+
   /// Helper method to get a user-friendly name for a flow state
   String _getFlowDisplayName(String flowState) {
-    if (flowState == Race.FLOW_SETUP || flowState == Race.FLOW_SETUP_COMPLETED) {
+    if (flowState == Race.FLOW_SETUP ||
+        flowState == Race.FLOW_SETUP_COMPLETED) {
       return 'Setup';
     }
-    if (flowState == Race.FLOW_PRE_RACE || flowState == Race.FLOW_PRE_RACE_COMPLETED) {
+    if (flowState == Race.FLOW_PRE_RACE ||
+        flowState == Race.FLOW_PRE_RACE_COMPLETED) {
       return 'Pre-Race';
     }
     if (flowState == Race.FLOW_POST_RACE) {
@@ -355,61 +357,71 @@ class RaceController with ChangeNotifier {
     if (flowState == Race.FLOW_FINISHED) {
       return 'Race';
     }
-    return flowState.replaceAll('-', ' ').split(' ').map((s) => s.isEmpty ? '' : '${s[0].toUpperCase()}${s.substring(1)}').join(' ');
+    return flowState
+        .replaceAll('-', ' ')
+        .split(' ')
+        .map((s) => s.isEmpty ? '' : '${s[0].toUpperCase()}${s.substring(1)}')
+        .join(' ');
   }
 
   /// Continue the race flow based on the current state
   Future<void> continueRaceFlow(BuildContext context) async {
     if (race == null) return;
-    
+
     String currentState = race!.flowState;
-    
+
     // Handle setup state differently - don't treat it as a flow
     if (currentState == Race.FLOW_SETUP) {
       // Just check if we can advance to setup_complete
-      final canAdvance = await RaceService.checkSetupComplete(race: race!, raceId: raceId, nameController: nameController, locationController: locationController, dateController: dateController, distanceController: distanceController, teamControllers: teamControllers);
-      
+      final canAdvance = await RaceService.checkSetupComplete(
+          race: race!,
+          raceId: raceId,
+          nameController: nameController,
+          locationController: locationController,
+          dateController: dateController,
+          distanceController: distanceController,
+          teamControllers: teamControllers);
+
       // Check if context is still mounted after async operation
       if (!context.mounted) return;
-      
+
       if (!canAdvance) {
         // Show message about missing requirements
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please complete race details and load runners before continuing'))
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text(
+                'Please complete race details and load runners before continuing')));
       }
       return;
     }
-    
+
     // If the current state is a completed state, move to the next non-completed state
     if (currentState.contains(Race.FLOW_COMPLETED_SUFFIX)) {
       String nextState;
-      
+
       if (currentState == Race.FLOW_SETUP_COMPLETED) {
         nextState = Race.FLOW_PRE_RACE;
       } else if (currentState == Race.FLOW_PRE_RACE_COMPLETED) {
         nextState = Race.FLOW_POST_RACE;
-      // } else if (currentState == Race.FLOW_POST_RACE_COMPLETED) {
-      //   nextState = Race.FLOW_FINISHED;
+        // } else if (currentState == Race.FLOW_POST_RACE_COMPLETED) {
+        //   nextState = Race.FLOW_FINISHED;
       } else {
         return; // Unknown completed state
       }
-      
+
       // Update to the next flow state
       await updateRaceFlowState(context, nextState);
-      
+
       // Check if context is still mounted after async operation
       if (!context.mounted) return;
-      
+
       // Show a message about which flow we're starting
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Beginning ${_getFlowDisplayName(nextState)}'))
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Beginning ${_getFlowDisplayName(nextState)}')));
     }
-    
+
     // Check if context is still valid before navigation
     if (!context.mounted) return;
-    
+
     // Use the flow controller to handle the navigation
     await flowController.handleFlowNavigation(context, race!.flowState);
   }
@@ -475,7 +487,7 @@ class RaceController with ChangeNotifier {
       distanceError = error;
     });
   }
-  
+
   // Date picker method
   Future<void> selectDate(BuildContext context) async {
     final DateTime now = DateTime.now();
@@ -485,7 +497,7 @@ class RaceController with ChangeNotifier {
       firstDate: DateTime(now.year - 1),
       lastDate: DateTime(now.year + 2),
     );
-    
+
     if (picked != null) {
       dateController.text = DateFormat('yyyy-MM-dd').format(picked);
       notifyListeners();
@@ -503,14 +515,15 @@ class RaceController with ChangeNotifier {
   }
 
   /// Get the current location
-  Future<void> getCurrentLocation() async {
+  Future<void> getCurrentLocation(BuildContext context) async {
     try {
       LocationPermission permission = await Geolocator.checkPermission();
       if (!context.mounted) return; // Check if context is still valid
-      
+
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
-        if (!context.mounted) return; // Check if context is still valid after async request
+        if (!context.mounted)
+          return; // Check if context is still valid after async request
       }
 
       if (permission == LocationPermission.deniedForever) {
@@ -527,7 +540,7 @@ class RaceController with ChangeNotifier {
 
       bool locationEnabled = await Geolocator.isLocationServiceEnabled();
       if (!context.mounted) return; // Check if context is still valid
-      
+
       if (!locationEnabled) {
         DialogUtils.showErrorDialog(context,
             message: 'Location services are disabled');
@@ -536,11 +549,11 @@ class RaceController with ChangeNotifier {
 
       final position = await Geolocator.getCurrentPosition();
       if (!context.mounted) return; // Check if context is still valid
-      
+
       final placemarks =
           await placemarkFromCoordinates(position.latitude, position.longitude);
       if (!context.mounted) return; // Check if context is still valid
-      
+
       final placemark = placemarks.first;
       locationController.text =
           '${placemark.subThoroughfare} ${placemark.thoroughfare}, ${placemark.locality}, ${placemark.administrativeArea} ${placemark.postalCode}';
@@ -549,7 +562,8 @@ class RaceController with ChangeNotifier {
       notifyListeners();
       updateLocationButtonVisibility();
     } catch (e) {
-      Logger.d('Error getting location: $e');      DialogUtils.showErrorDialog(context, message: 'Could not get location');
+      Logger.d('Error getting location: $e');
+      DialogUtils.showErrorDialog(context, message: 'Could not get location');
     }
   }
 
@@ -562,7 +576,8 @@ class RaceController with ChangeNotifier {
   /// Load runners count for this race
   Future<void> loadRunnersCount() async {
     if (race != null) {
-      final runners = await DatabaseHelper.instance.getRaceRunners(race!.raceId);
+      final runners =
+          await DatabaseHelper.instance.getRaceRunners(race!.raceId);
       runnersCount = runners.length;
       notifyListeners();
     }

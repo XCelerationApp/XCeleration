@@ -9,6 +9,7 @@ class RaceService {
   /// Saves race details to the database.
   static Future<void> saveRaceDetails({
     required int raceId,
+    required TextEditingController nameController,
     required TextEditingController locationController,
     required TextEditingController dateController,
     required TextEditingController distanceController,
@@ -16,6 +17,10 @@ class RaceService {
     required List<TextEditingController> teamControllers,
     required List<Color> teamColors,
   }) async {
+    // First, always update the race name
+    await DatabaseHelper.instance
+        .updateRaceField(raceId, 'raceName', nameController.text.trim());
+
     // Parse date
     DateTime? date;
     if (dateController.text.isNotEmpty) {
@@ -53,8 +58,7 @@ class RaceService {
     // Check for minimum runners
     final hasMinimumRunners = await RunnersManagementScreen.checkMinimumRunnersLoaded(raceId);
     // Check if essential race fields are filled
-    final fieldsComplete =
-        nameController.text.isNotEmpty &&
+    final fieldsComplete = nameController.text.isNotEmpty &&
         locationController.text.isNotEmpty &&
         dateController.text.isNotEmpty &&
         distanceController.text.isNotEmpty &&
@@ -62,6 +66,7 @@ class RaceService {
     Logger.d('hasMinimumRunners: $hasMinimumRunners, fieldsComplete: $fieldsComplete');
     return hasMinimumRunners && fieldsComplete;
   }
+
   /// Saves team data to the database.
   static Future<void> saveTeamData({
     required int raceId,
@@ -75,8 +80,8 @@ class RaceService {
         .toList();
     final colors = teamColors.map((color) => color.toARGB32()).toList();
     // Use raceId if available, otherwise skip
-      await DatabaseHelper.instance.updateRaceField(raceId, 'teams', teams);
-      await DatabaseHelper.instance.updateRaceField(raceId, 'teamColors', colors);
+    await DatabaseHelper.instance.updateRaceField(raceId, 'teams', teams);
+    await DatabaseHelper.instance.updateRaceField(raceId, 'teamColors', colors);
   }
 
   /// Validation helpers for form fields.
@@ -108,4 +113,4 @@ class RaceService {
       return 'Please enter a valid number';
     }
   }
-} 
+}

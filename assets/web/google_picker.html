@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Google Drive Picker</title>
+<style>
+    /* Apply transparency to ALL elements */
+    html, body, div, span, iframe, * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        background: transparent !important;
+    }
+    
+    html, body {
+        background-color: transparent !important;
+        background: transparent !important;
+    }
+    
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+        width: 100vw;
+        /* height: 100vh; */
+        /* overflow: hidden; */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .spinner { 
+        width: 40px; 
+        height: 40px; 
+        border: 4px solid #f3f3f3; 
+        border-radius: 50%; 
+        border-top: 4px solid #3498db; 
+        animation: spin 1s linear infinite;
+        margin-bottom: 15px;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    
+    /* Make Google Picker take up maximum space with rounded corners and transparency */
+    .picker-dialog {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 100% !important;
+        border-radius: 12px !important;
+        overflow: hidden !important;
+        background-color: transparent !important;
+    }
+    
+    .picker-dialog-content {
+        width: 100% !important;
+        height: 100% !important;
+        border-radius: 12px !important;
+        background-color: transparent !important;
+    }
+</style>
+</head>
+<body>
+    <div id="loading" style="text-align: center;">
+        <div class="spinner"></div>
+    </div>
+
+<script>
+    // Console logging setup
+    console.originalLog = console.log;
+    console.originalError = console.error;
+    console.originalWarn = console.warn;
+    
+    console.log = function() {
+        console.originalLog.apply(console, arguments);
+        var message = Array.prototype.slice.call(arguments).join(' ');
+        if (window.LogChannel) {
+            window.LogChannel.postMessage('[LOG] ' + message);
+        }
+    };
+    
+    console.error = function() {
+        console.originalError.apply(console, arguments);
+        var message = Array.prototype.slice.call(arguments).join(' ');
+        if (window.LogChannel) {
+            window.LogChannel.postMessage('[ERROR] ' + message);
+        }
+    };
+    
+    console.warn = function() {
+        console.originalWarn.apply(console, arguments);
+        var message = Array.prototype.slice.call(arguments).join(' ');
+        if (window.LogChannel) {
+            window.LogChannel.postMessage('[WARN] ' + message);
+        }
+    };
+    
+    window.addEventListener('error', function(e) {
+        if (window.LogChannel) {
+            window.LogChannel.postMessage('[JS ERROR] ' + e.message + ' at ' + e.filename + ':' + e.lineno);
+        }
+    });
+
+    // Global variables that will be set by Flutter
+    let DEVELOPER_KEY = '';
+    let APP_ID = '';
+    let CALLBACK_CHANNEL = '';
+    let ACCESS_TOKEN = '';
+    let gapi_loaded = false;
+    let picker_loaded = false;
+    let scripts_loaded = false;
+
+    // Send a message back to Flutter
+    function sendToFlutter(data) {
+        const channelName = window.CALLBACK_CHANNEL || CALLBACK_CHANNEL;
+        if (window[channelName]) {
+            try {
+                console.log('Sending to Flutter:', data);
+                window[channelName].postMessage(JSON.stringify(data));
+            } catch (e) {
+                console.error('Error sending to Flutter:', e);
+            }
+        } else {
+            console.error('Flutter channel not available:', channelName);
+        }
+    }
+
+    function onGapiLoad() {
+        console.log('GAPI loaded');
+        gapi_loaded = true;
+        checkReadyAndInit();
+    }
+
+    function onPickerLoad() {
+        console.log('Picker API loaded');
+        picker_loaded = true;
+        checkReadyAndInit();
+    }
+
+    function checkReadyAndInit() {
+        console.log('Checking ready state:', {
+            gapi_loaded,
+            picker_loaded,
+            scripts_loaded,
+            has_developer_key: !!DEVELOPER_KEY,
+            has_access_token: !!ACCESS_TOKEN,
+            has_callback_channel: !!CALLBACK_CHANNEL
+        });
+
+        if (gapi_loaded && picker_loaded && scripts_loaded && DEVELOPER_KEY && ACCESS_TOKEN && CALLBACK_CHANNEL) {
+            console.log('All ready, initializing picker');
+            initializePicker();
+        }
+    }
+
+    function initializePicker() {
+        try {
+            console.log('Initializing picker with:');
+            console.log('- Developer key length:', DEVELOPER_KEY.length);
+            console.log('- Access token length:', ACCESS_TOKEN.length);
+            console.log('- Callback channel:', CALLBACK_CHANNEL);
+            
+            // Hide loading indicator
+            const loading = document.getElementById('loading');
+            if (loading) {
+                loading.style.display = 'none';
+            }
+
+            // Create a custom view for spreadsheets, CSV, and XLSX files
+            const spreadsheetView = new google.picker.DocsView()
+                .setMimeTypes('application/vnd.google-apps.spreadsheet,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv')
+                .setMode(google.picker.DocsViewMode.LIST);
+
+            const picker = new google.picker.PickerBuilder()
+                .setDeveloperKey(DEVELOPER_KEY)
+                .setOAuthToken(ACCESS_TOKEN)
+                .setOrigin('http://localhost')
+                .addView(spreadsheetView)
+                .setTitle('Select a Spreadsheet')
+                .enableFeature(google.picker.Feature.NAV_HIDDEN)
+                .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
+                // .setSize(google.picker.Size.DIALOG)
+                .setAppId(APP_ID)
+                .setCallback(pickerCallback)
+                .build();
+
+            picker.setVisible(true);
+            console.log('Picker built successfully, showing picker');
+        } catch (e) {
+            console.error('Error initializing picker:', e);
+            sendToFlutter({ action: 'error', message: 'Failed to initialize picker: ' + e, type: 'Google Drive Picker Initialization Failed' });
+        }
+    }
+
+    function pickerCallback(data) {
+        console.log('Picker callback:', data);
+        
+        if (data.action === google.picker.Action.PICKED) {
+            const file = data.docs[0];
+            console.log('File picked:', file);
+            sendToFlutter({ action: 'picked', data: file });
+        } else if (data.action === google.picker.Action.CANCEL) {
+            console.log('Picker cancelled');
+            sendToFlutter({ action: 'canceled' });
+        }
+    }
+
+    // Function to be called by Flutter to set variables and trigger initialization
+    window.setPickerVariables = function(developerKey, accessToken, appId, callbackChannel) {
+        console.log('Setting picker variables from Flutter');
+        DEVELOPER_KEY = developerKey;
+        ACCESS_TOKEN = accessToken;
+        APP_ID = appId;
+        CALLBACK_CHANNEL = callbackChannel;
+        checkReadyAndInit();
+    };
+
+    // Load the Google APIs
+    function loadGoogleAPIs() {
+        console.log('Loading Google APIs');
+        
+        // Load the GAPI script
+        const gapiScript = document.createElement('script');
+        gapiScript.src = 'https://apis.google.com/js/api.js';
+        gapiScript.onload = function() {
+            console.log('GAPI script loaded, loading picker');
+            gapi.load('picker', {
+                callback: onGapiLoad,
+                onerror: function(e) {
+                    console.error('Error loading picker:', e);
+                    sendToFlutter({ action: 'error', message: 'Failed to load Google Picker API', type: 'Google Authentication Failed' });
+                }
+            });
+        };
+        gapiScript.onerror = function(e) {
+            console.error('Error loading GAPI script:', e);
+            sendToFlutter({ action: 'error', message: 'Failed to load Google API script', type: 'Google Authentication Failed' });
+        };
+            
+        // Load the Picker script
+        const pickerScript = document.createElement('script');
+        pickerScript.src = 'https://apis.google.com/js/picker.js';
+        pickerScript.onload = onPickerLoad;
+        pickerScript.onerror = function(e) {
+            console.error('Error loading picker script:', e);
+            sendToFlutter({ action: 'error', message: 'Failed to load Google Picker script', type: 'Google Authentication Failed' });
+        };
+        
+        document.head.appendChild(gapiScript);
+        document.head.appendChild(pickerScript);
+        
+        scripts_loaded = true;
+    }
+
+    // Initialize when DOM is ready
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM loaded, starting initialization');
+        loadGoogleAPIs();
+    });
+</script>
+</body>
+</html>
