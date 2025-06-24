@@ -3,7 +3,9 @@ import '../../utils/database_helper.dart';
 import 'event_bus.dart';
 import 'google_service.dart';
 import '../../features/timing/services/timing_service.dart';
+import '../../features/timing/controllers/timing_controller.dart';
 import '../../features/race_management/services/race_service.dart';
+import '../../features/race_management/controllers/race_management_controller.dart';
 
 /// Simple service locator for dependency injection
 /// This helps reduce coupling between services and makes testing easier
@@ -25,6 +27,16 @@ class ServiceLocator {
     // Feature services
     _services[TimingService] = TimingService();
     _services[RaceService] = RaceService();
+
+    // Controllers (initialized after services they depend on)
+    _services[TimingController] = TimingController(
+      timingService: get<TimingService>(),
+      eventBus: get<EventBus>(),
+    );
+    _services[RaceManagementController] = RaceManagementController(
+      raceService: get<RaceService>(),
+      eventBus: get<EventBus>(),
+    );
 
     Logger.d('Services initialized successfully');
   }
