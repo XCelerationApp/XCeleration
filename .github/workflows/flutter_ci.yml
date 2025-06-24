@@ -29,6 +29,9 @@ jobs:
       
       - name: Install dependencies
         run: flutter pub get
+
+      - name: Create a dummy .env file for tests
+        run: touch .env
       
       # - name: Format code automatically
       #   run: dart format .
