@@ -6,7 +6,7 @@ import 'dart:math';
 import '../core/theme/app_colors.dart';
 import '../core/components/dialog_utils.dart';
 import 'enums.dart';
-import '../assistant/race_timer/model/timing_record.dart';
+import '../features/timing/models/timing_record.dart';
 
 List<TimeRecord> updateTextColor(Color? color, List<TimeRecord> records,
     {bool confirmed = false,
@@ -106,8 +106,7 @@ List<TimeRecord> removeExtraTime(
 
   final color = AppColors.redColor;
   records = updateTextColor(color, records,
-      conflict:
-          ConflictDetails(type: RecordType.extraTime, isResolved: false),
+      conflict: ConflictDetails(type: RecordType.extraTime, isResolved: false),
       confirmed: true);
 
   records.add(TimeRecord(
@@ -244,10 +243,11 @@ Future<void> _handleTimingDiscrepancy(
 // Timing Utilities
 int getNumberOfTimes(List<TimeRecord> records) {
   return max(
-    0,
-    records.fold<int>(0, (int count, record) {
-      if (record.type == RecordType.runnerTime) return count + 1;
-      if (record.type == RecordType.extraTime) return count - record.conflict!.data!['offBy'] as int;
-      return count;
-    }));
+      0,
+      records.fold<int>(0, (int count, record) {
+        if (record.type == RecordType.runnerTime) return count + 1;
+        if (record.type == RecordType.extraTime)
+          return count - record.conflict!.data!['offBy'] as int;
+        return count;
+      }));
 }

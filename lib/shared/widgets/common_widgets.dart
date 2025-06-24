@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../constants/app_constants.dart' as constants;
+// import '../constants/app_constants.dart' as constants; // Unused
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/typography.dart';
 

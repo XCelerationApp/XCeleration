@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../coach/races_screen/screen/races_screen.dart';
-import '../assistant/race_timer/screen/timing_screen.dart';
-import '../assistant/bib_number_recorder/screen/bib_number_screen.dart';
+import '../features/timing/screens/timing_screen.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/typography.dart';
 
@@ -155,7 +154,7 @@ class AssistantRoleScreen extends StatelessWidget {
                     text: 'Recorder',
                     onPressed: () {
                       Navigator.of(context).push(
-                        CustomPageRoute(child: const BibNumberScreen()),
+                        CustomPageRoute(child: const TimingScreen()),
                       );
                     },
                   ),
