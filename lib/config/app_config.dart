@@ -17,7 +17,7 @@ class AppConfig {
     // Get bundleId from --dart-define or use the default value
     const bundleId = String.fromEnvironment(
       'BUNDLE_ID',
-      defaultValue: 'com.xceleration',
+      defaultValue: 'com.owendonnelley.xceleration',
     );
 
     // Get app name from --dart-define or use the default value

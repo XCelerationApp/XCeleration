@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>BUNDLE_ID</key>
-	<string>com.xceleration</string>
+	<string>com.owendonnelley.xceleration</string>
 	<key>CLIENT_ID</key>
 	<string>TO_BE_REPLACED_BY_SCRIPT</string>
 	<key>PLIST_VERSION</key>
