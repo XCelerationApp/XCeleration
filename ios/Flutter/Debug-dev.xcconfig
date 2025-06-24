@@ -1,5 +1,5 @@
 #include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"
 #include "Debug.xcconfig"
 
-PRODUCT_BUNDLE_IDENTIFIER = com.owendonnelley.xceleration.dev
+PRODUCT_BUNDLE_IDENTIFIER = com.xceleration.dev
 APP_DISPLAY_NAME = XCeleration Dev

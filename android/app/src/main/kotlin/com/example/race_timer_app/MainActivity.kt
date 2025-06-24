@@ -1,4 +1,4 @@
-package com.owendonnelley.xceleration
+package com.xceleration
 
 import io.flutter.embedding.android.FlutterActivity
 

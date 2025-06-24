@@ -81,8 +81,6 @@ flutter:
     - assets/icon/
     - assets/sounds/click.mp3
     - assets/sounds/completed_ding.mp3
-    - assets/web/
-    - assets/web/google_picker.html
     - assets/sample_sheets/
     - .env
 

@@ -210,7 +210,7 @@ class MergeConflictsService {
         ? conflictingTimes.sublist(0, maxTimes)
         : conflictingTimes;
     // DEBUG: Print service-side times allocation
-    print('[DEBUG] (Service) runnerCount: '
+    Logger.d('[DEBUG] (Service) runnerCount: '
         '[36m$runnerCount[0m, offBy: $offBy, maxTimes: $maxTimes, conflictingTimes: $conflictingTimes, limitedTimes: $limitedTimes');
     // Safely determine end index with null check and boundary validation
     // final dynamic rawEndIndex = conflictRecord.conflict?.data?['numTimes'];

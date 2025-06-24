@@ -93,9 +93,9 @@ void main() {
     test('sends data in chunks with FIN package at the end', () async {
       // Set up the mock to "receive" acknowledgments
       when(mockConnectionService.sendMessageToDevice(any, any))
-          .thenAnswer((_) async {
+          .thenAnswer((args) async {
             // Simulate receiving ACK for any sent package
-            final package = _.positionalArguments[1] as Package;
+            final package = args.positionalArguments[1] as Package;
             await protocol.handleMessage(
                 Package(number: package.number, type: 'ACK'), mockDevice.deviceId);
             return true;
@@ -128,9 +128,9 @@ void main() {
     test('handleDataTransfer sends data and returns null for sender', () async {
       // Set up the mock to "receive" acknowledgments
       when(mockConnectionService.sendMessageToDevice(any, any))
-          .thenAnswer((_) async {
+          .thenAnswer((args) async {
             // Simulate receiving ACK for any sent package
-            final package = _.positionalArguments[1] as Package;
+            final package = args.positionalArguments[1] as Package;
             await protocol.handleMessage(
                 Package(number: package.number, type: 'ACK'), mockDevice.deviceId);
             return true;

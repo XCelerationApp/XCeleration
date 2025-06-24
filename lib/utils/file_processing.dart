@@ -9,7 +9,8 @@ import 'file_utils.dart';
 
 /// Process a spreadsheet for runner data, either from local storage or Google Drive
 /// Uses the modern GoogleDriveService with drive.file scope for Google Drive operations
-Future<List<RunnerRecord>> processSpreadsheet(int raceId, bool isTeam, BuildContext context,
+Future<List<RunnerRecord>> processSpreadsheet(
+    int raceId, bool isTeam, BuildContext context,
     {bool useGoogleDrive = false}) async {
   File? selectedFile;
   final navigatorContext = Navigator.of(context, rootNavigator: true).context;
@@ -102,9 +103,31 @@ List<RunnerRecord> _processSpreadsheetData(
     if (row.isNotEmpty && row.length >= 4) {
       // Parse the row data
       String name = row[0]?.toString() ?? '';
-      int grade = int.tryParse(row[1]?.toString() ?? '') ?? 0;
-      String school = row[2]?.toString() ?? '';
-      String bibNumber = row[3]?.toString().replaceAll('"', '') ?? '';
+      // Handle grade which may be an int, double, or string
+      int grade = 0;
+      final dynamic rawGrade = row[1];
+      if (rawGrade is num) {
+        grade = rawGrade.round();
+      } else {
+        grade = int.tryParse(rawGrade?.toString().trim() ?? '') ??
+            (double.tryParse(rawGrade?.toString().trim() ?? '')?.round() ?? 0);
+      }
+
+      String school = row[2]?.toString().trim() ?? '';
+
+      // Handle bib number which may come back as a numeric type with a trailing decimal (e.g. 1.0)
+      String bibNumber;
+      final dynamic rawBib = row[3];
+      if (rawBib is num) {
+        bibNumber = rawBib.toInt().toString();
+      } else {
+        bibNumber = rawBib?.toString().trim().replaceAll('"', '') ?? '';
+        // If bibNumber still contains a decimal point like '1.0', strip it
+        if (bibNumber.contains('.') && double.tryParse(bibNumber) != null) {
+          bibNumber = double.parse(bibNumber).toInt().toString();
+        }
+      }
+
       int bibNumberInt = int.tryParse(bibNumber) ?? -1;
 
       // Validate the parsed data

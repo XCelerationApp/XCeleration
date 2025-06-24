@@ -37,12 +37,12 @@ class TimingData {
   }
 
   // Helper method to merge runner data into a timing record
-  void mergeRunnerData(TimeRecord TimeRecord, RunnerRecord runnerRecord,
+  void mergeRunnerData(TimeRecord timeRecord, RunnerRecord runnerRecord,
       {int? index}) {
     index ??= records
         .indexWhere((record) => record.runnerId == runnerRecord.runnerId);
     if (index != -1) {
-      records[index] = TimeRecord.copyWith(
+      records[index] = timeRecord.copyWith(
         runnerId: runnerRecord.runnerId,
         raceId: runnerRecord.raceId,
         name: runnerRecord.name,

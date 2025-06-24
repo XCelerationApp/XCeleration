@@ -328,29 +328,6 @@ class RaceController with ChangeNotifier {
     // to the flowController to handle context checking internally
   }
 
-  /// Helper method to get a user-friendly name for a flow state
-  String _getFlowDisplayName(String flowState) {
-    if (flowState == Race.FLOW_SETUP ||
-        flowState == Race.FLOW_SETUP_COMPLETED) {
-      return 'Setup';
-    }
-    if (flowState == Race.FLOW_PRE_RACE ||
-        flowState == Race.FLOW_PRE_RACE_COMPLETED) {
-      return 'Pre-Race';
-    }
-    if (flowState == Race.FLOW_POST_RACE) {
-      return 'Post-Race';
-    }
-    if (flowState == Race.FLOW_FINISHED) {
-      return 'Race';
-    }
-    return flowState
-        .replaceAll('-', ' ')
-        .split(' ')
-        .map((s) => s.isEmpty ? '' : '${s[0].toUpperCase()}${s.substring(1)}')
-        .join(' ');
-  }
-
   /// Continue the race flow based on the current state
   Future<void> continueRaceFlow(BuildContext context) async {
     if (race == null) return;
@@ -368,6 +345,10 @@ class RaceController with ChangeNotifier {
           dateController: dateController,
           distanceController: distanceController,
           teamControllers: teamControllers);
+
+      if (!canAdvance) {
+        return;
+      }
 
       // Check if context is still mounted after async operation
       if (!context.mounted) return;
@@ -498,8 +479,7 @@ class RaceController with ChangeNotifier {
 
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
-        if (!context.mounted)
-          return; // Check if context is still valid after async request
+        if (!context.mounted) return; // Check if context is still valid after async request
       }
 
       if (permission == LocationPermission.deniedForever) {

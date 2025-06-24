@@ -110,6 +110,10 @@ class GoogleDriveService {
         }
         return null;
       }
+      if (!context.mounted) {
+        Logger.d('Context not mounted - skipping file pick');
+        return null;
+      }
       
       // Use the picker service to let the user select a file
       final file = await pickerService.pickGoogleDriveFile(context);

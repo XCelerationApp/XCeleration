@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:xceleration/core/utils/logger.dart';
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:xceleration/core/components/dialog_utils.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'google_auth_service.dart';
@@ -22,7 +21,7 @@ class GooglePickerService {
   final GoogleDriveService _driveService = GoogleDriveService.instance;
 
   // Google Picker API constants
-  static String get _apiKey => dotenv.env['GOOGLE_API_KEY'] ?? '';
+  static String get _apiKey => dotenv.env['GOOGLE_WEB_API_KEY'] ?? '';
   static String get _developerKey => _apiKey;
   static String get _appId => dotenv.env['GOOGLE_APP_ID'] ?? '';
 
@@ -114,8 +113,7 @@ class GooglePickerService {
       final fileName = doc['name'] as String?;
       final mimeType = doc['mimeType'] as String?;
 
-      Logger.d(
-          'Selected file: id=$fileId, name=$fileName, mimeType=$mimeType');
+      Logger.d('Selected file: id=$fileId, name=$fileName, mimeType=$mimeType');
 
       if (fileId == null || fileName == null || mimeType == null) {
         Logger.d('Invalid document data: $doc');
@@ -259,7 +257,8 @@ class _GooglePickerDialogState extends State<GooglePickerDialog> {
     // Set a timeout to show fallback if picker doesn't load in 15 seconds
     _timeoutTimer = Timer(const Duration(seconds: 15), () {
       if (mounted && _isLoading) {
-        Navigator.of(context).pop({'action': 'error', 'message': 'Google Drive Picker Timeout'});
+        Navigator.of(context)
+            .pop({'action': 'error', 'message': 'Google Drive Picker Timeout'});
       }
     });
   }
@@ -274,21 +273,28 @@ class _GooglePickerDialogState extends State<GooglePickerDialog> {
   Future<void> _loadWebView() async {
     try {
       Logger.d('Loading HTML from assets');
-      final htmlContent =
-          await rootBundle.loadString('assets/web/google_picker.html');
+      final pickerUrl = dotenv.env['GOOGLE_PICKER_URL'];
+      if (pickerUrl == null) {
+        Logger.e('GOOGLE_PICKER_URL is not set');
+        Navigator.of(context).pop(
+            {'action': 'error', 'message': 'Google Authentication Failed'});
+        return;
+      }
 
       if (!mounted) return;
 
       // Validate that we have the required values
       if (widget.accessToken.isEmpty) {
         Logger.e('Access token is null or empty when trying to load WebView');
-        Navigator.of(context).pop({'action': 'error', 'message': 'Google Authentication Failed'});
+        Navigator.of(context).pop(
+            {'action': 'error', 'message': 'Google Authentication Failed'});
         return;
       }
 
       if (widget.developerKey.isEmpty) {
         Logger.e('Developer key is empty');
-        Navigator.of(context).pop({'action': 'error', 'message': 'Google Authentication Failed'});
+        Navigator.of(context).pop(
+            {'action': 'error', 'message': 'Google Authentication Failed'});
         return;
       }
 
@@ -309,14 +315,18 @@ class _GooglePickerDialogState extends State<GooglePickerDialog> {
             // Check if this is an error message
             if (data['action'] == 'error') {
               Logger.e('Error from picker: ${data['message']}');
-              Navigator.of(context).pop({'action': 'error', 'message': data['type'] ?? 'Unknown Error'});
+              Navigator.of(context).pop({
+                'action': 'error',
+                'message': data['type'] ?? 'Unknown Error'
+              });
               return;
             }
 
             Navigator.of(context).pop(data);
           } catch (e) {
             Logger.e('Error parsing picker result: $e');
-            Navigator.of(context).pop({'action': 'error', 'message': 'Unknown Error'});
+            Navigator.of(context)
+                .pop({'action': 'error', 'message': 'Unknown Error'});
           }
         },
       );
@@ -356,14 +366,18 @@ class _GooglePickerDialogState extends State<GooglePickerDialog> {
             }
           },
           onWebResourceError: (WebResourceError error) {
-            Logger.e('WebView error: ${error.description} (${error.errorCode})');
-            Navigator.of(context).pop({'action': 'error', 'message': 'Failed to load Google Drive Picker'});
+            Logger.e(
+                'WebView error: ${error.description} (${error.errorCode})');
+            Navigator.of(context).pop({
+              'action': 'error',
+              'message': 'Failed to load Google Drive Picker'
+            });
           },
         ),
       );
 
       // Load the HTML content
-      await controller.loadHtmlString(htmlContent, baseUrl: 'http://localhost');
+      await controller.loadRequest(Uri.parse(pickerUrl));
 
       if (mounted) {
         setState(() {
@@ -375,7 +389,10 @@ class _GooglePickerDialogState extends State<GooglePickerDialog> {
     } catch (e) {
       Logger.e('Error initializing WebView: $e');
       if (mounted) {
-        Navigator.of(context).pop({'action': 'error', 'message': 'Failed to initialize Google Drive Picker: $e'});
+        Navigator.of(context).pop({
+          'action': 'error',
+          'message': 'Failed to initialize Google Drive Picker: $e'
+        });
       }
     }
   }
@@ -384,42 +401,36 @@ class _GooglePickerDialogState extends State<GooglePickerDialog> {
   Widget build(BuildContext context) {
     // Use a completely full-screen dialog with no margins
     return Dialog(
-      backgroundColor: Colors.transparent,
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(15.0),
-          color: Colors.transparent,
-        ),
-        clipBehavior: Clip.antiAlias,
-        constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.9,
-          maxHeight: MediaQuery.of(context).size.height * 0.55,
-        ),
-        child: Column(
-          children: [
-            // Show loading indicator when WebView is not ready
-            if (_isLoading || _webViewController == null)
-              const Center(
-                child: CircularProgressIndicator()
-              ),
+        backgroundColor: Colors.transparent,
+        child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(15.0),
+              color: Colors.transparent,
+            ),
+            clipBehavior: Clip.antiAlias,
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width * 0.9,
+              maxHeight: MediaQuery.of(context).size.height * 0.55,
+            ),
+            child: Column(children: [
+              // Show loading indicator when WebView is not ready
+              if (_isLoading || _webViewController == null)
+                const Center(child: CircularProgressIndicator()),
 
-            // Show WebView when controller is ready
-            if (_webViewController != null && !_isLoading)
-              Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(15.0),
-                  color: Colors.transparent,
-                ),
-                clipBehavior: Clip.antiAlias,
-                constraints: BoxConstraints(
-                  maxWidth: MediaQuery.of(context).size.width * 0.9,
-                  maxHeight: MediaQuery.of(context).size.height * 0.55,
-                ),
-                child: WebViewWidget(controller: _webViewController!),
-              )
-          ]  
-        )
-      )
-    );
+              // Show WebView when controller is ready
+              if (_webViewController != null && !_isLoading)
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(15.0),
+                    color: Colors.transparent,
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  constraints: BoxConstraints(
+                    maxWidth: MediaQuery.of(context).size.width * 0.9,
+                    maxHeight: MediaQuery.of(context).size.height * 0.55,
+                  ),
+                  child: WebViewWidget(controller: _webViewController!),
+                )
+            ])));
   }
 }
