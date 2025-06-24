@@ -525,6 +525,18 @@ class MergeConflictsController with ChangeNotifier {
     notifyListeners();
   }
 
+  // New method to update a single record in timingData
+  void updateRecordInTimingData(TimeRecord updatedRecord) {
+    final index = timingData.records.indexWhere((record) => record.place == updatedRecord.place && record.type == updatedRecord.type);
+    if (index != -1) {
+      timingData.records[index] = updatedRecord;
+      Logger.d('Updated record in timingData: place=${updatedRecord.place}, time=${updatedRecord.elapsedTime}');
+    } else {
+      Logger.e('Failed to update record in timingData: Record not found. Place: ${updatedRecord.place}, Time: ${updatedRecord.elapsedTime}');
+    }
+    notifyListeners();
+  }
+
   @override
   void dispose() {
     _context = null;

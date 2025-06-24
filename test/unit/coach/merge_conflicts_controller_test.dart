@@ -284,6 +284,145 @@ void main() {
       });
     });
       
+    group('handleMissingTimesResolution with offBy > 1', () {
+      test('resolves missing time conflict with offBy > 1 and updates all records', () async {
+        // Prepare timing records with a missing time conflict (offBy: 2)
+        final List<TimeRecord> records = [
+          TimeRecord(elapsedTime: '1.0', type: RecordType.runnerTime, place: 1, isConfirmed: true),
+          TimeRecord(elapsedTime: '2.0', type: RecordType.runnerTime, place: 2, isConfirmed: true),
+          TimeRecord(elapsedTime: 'TBD', type: RecordType.runnerTime, place: 3, isConfirmed: false, conflict: ConflictDetails(
+            type: RecordType.missingTime,
+            data: {'offBy': 2, 'numTimes': 3},
+          )),
+          TimeRecord(
+            elapsedTime: '3.5',
+            type: RecordType.missingTime,
+            place: 3,
+            conflict: ConflictDetails(
+              type: RecordType.missingTime,
+              data: {'offBy': 2, 'numTimes': 3},
+            ),
+          ),
+          TimeRecord(elapsedTime: '4.0', type: RecordType.runnerTime, place: 4, isConfirmed: true),
+        ];
+
+        final runnerRecords = [
+          createRunnerRecord(id: 1, bib: '1', name: 'Runner 1', grade: 10, school: 'School 1'),
+          createRunnerRecord(id: 2, bib: '2', name: 'Runner 2', grade: 10, school: 'School 2'),
+          createRunnerRecord(id: 3, bib: '3', name: 'Runner 3', grade: 10, school: 'School 3'),
+          createRunnerRecord(id: 4, bib: '4', name: 'Runner 4', grade: 10, school: 'School 4'),
+        ];
+
+        controller.timingData.records = records;
+        controller.runnerRecords = runnerRecords;
+
+        // Create mock chunk with resolve information and controllers for both missing times
+        final mockTimeControllers = [
+          TextEditingController(text: '2.5'), // First missing time
+          TextEditingController(text: '3.0'), // Second missing time
+        ];
+
+        final mockResolveData = ResolveInformation(
+          conflictingRunners: [runnerRecords[2], runnerRecords[3]], // Both runners missing
+          lastConfirmedPlace: 2,
+          availableTimes: [],
+          conflictRecord: records[3], // The missing time conflict record
+          lastConfirmedRecord: records[1], // The last confirmed runner record
+          bibData: runnerRecords.map((r) => r.bib.toString()).toList(),
+        );
+
+        final mockChunk = Chunk(
+          records: records.sublist(2, 4), // The two missing time records
+          type: RecordType.missingTime,
+          runners: runnerRecords,
+          conflictIndex: 3,
+        );
+
+        mockChunk.controllers = {'timeControllers': mockTimeControllers};
+        mockChunk.resolve = mockResolveData;
+
+        controller.chunks = [mockChunk];
+        controller.createChunksCalled = true;
+
+        await controller.handleMissingTimesResolution(mockChunk);
+
+        // Both missing time records should be resolved and updated
+        expect(controller.timingData.records[2].elapsedTime, equals('2.5'));
+        expect(controller.timingData.records[2].isConfirmed, isTrue);
+        expect(controller.timingData.records[2].conflict, isNull);
+        expect(controller.timingData.records[3].elapsedTime, equals('3.0'));
+        expect(controller.timingData.records[3].isConfirmed, isTrue);
+        expect(controller.timingData.records[3].conflict, isNull);
+      });
+    });
+
+    group('handleExtraTimesResolution with offBy > 1', () {
+      test('resolves extra time conflict with offBy > 1 and updates all records', () async {
+        // Prepare timing records with an extra time conflict (offBy: 2)
+        final List<TimeRecord> records = [
+          TimeRecord(elapsedTime: '1.0', type: RecordType.runnerTime, place: 1, isConfirmed: true),
+          TimeRecord(elapsedTime: '2.0', type: RecordType.runnerTime, place: 2, isConfirmed: false),
+          TimeRecord(
+            elapsedTime: '3.0',
+            type: RecordType.extraTime,
+            place: 2,
+            conflict: ConflictDetails(
+              type: RecordType.extraTime,
+              data: {'offBy': 2, 'numTimes': 2},
+            ),
+          ),
+          TimeRecord(
+            elapsedTime: '3.5',
+            type: RecordType.extraTime,
+            place: 2,
+            conflict: ConflictDetails(
+              type: RecordType.extraTime,
+              data: {'offBy': 2, 'numTimes': 2},
+            ),
+          ),
+        ];
+
+        controller.timingData.records = records;
+
+        final mockTimeControllers = [
+          TextEditingController(text: '2.5'), // First extra time
+          TextEditingController(text: '3.0'), // Second extra time
+        ];
+
+        final mockResolveData = ResolveInformation(
+          conflictingRunners: [],
+          lastConfirmedPlace: 1,
+          availableTimes: ['2.0'],
+          conflictRecord: records[2],
+          lastConfirmedRecord: records[0],
+          lastConfirmedIndex: 0,
+          bibData: [],
+        );
+
+        final mockChunk = Chunk(
+          records: records.sublist(2, 4),
+          type: RecordType.extraTime,
+          runners: [],
+          conflictIndex: 2,
+        );
+
+        mockChunk.controllers = {'timeControllers': mockTimeControllers};
+        mockChunk.resolve = mockResolveData;
+        controller.chunks = [mockChunk];
+        controller.createChunksCalled = true;
+
+        await controller.handleExtraTimesResolution(mockChunk);
+
+        // Both extra time records should be resolved and updated
+        expect(controller.timingData.records[2].elapsedTime, equals('2.5'));
+        expect(controller.timingData.records[2].isConfirmed, isTrue);
+        expect(controller.timingData.records[2].conflict, isNull);
+        expect(controller.timingData.records[3].elapsedTime, equals('3.0'));
+        expect(controller.timingData.records[3].isConfirmed, isTrue);
+        expect(controller.timingData.records[3].conflict, isNull);
+      });
+    });
+
     group('handleExtraTimesResolution', () {
       test('successfully resolves extra time conflict and updates records', () async {
         // Prepare a simplified record list for testing
