@@ -17,5 +17,3 @@ export '../../coach/runners_management_screen/widgets/runners_list.dart';
 export '../../coach/runners_management_screen/widgets/runner_list_item.dart';
 export '../../coach/runners_management_screen/widgets/runner_search_bar.dart';
 export '../../coach/runners_management_screen/widgets/list_titles.dart';
-export '../../coach/runners_management_screen/widgets/action_button.dart'
-    hide ActionButton;

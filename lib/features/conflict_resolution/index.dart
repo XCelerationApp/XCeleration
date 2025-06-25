@@ -27,8 +27,6 @@ export '../../coach/merge_conflicts/widgets/runner_time_record.dart';
 export '../../coach/merge_conflicts/widgets/runner_info_widgets.dart'
     hide InfoChip;
 export '../../coach/merge_conflicts/widgets/runner_time_cells.dart';
-export '../../coach/merge_conflicts/widgets/action_button.dart'
-    hide ActionButton;
 export '../../coach/merge_conflicts/widgets/save_button.dart';
 
 // Widgets - Bib Resolution
