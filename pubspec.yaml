@@ -35,7 +35,6 @@ dependencies:
   intl: ^0.18.0
   crypto: ^3.0.3
   collection: ^1.17.0
-  uuid: ^4.2.2
 
   # Device Features
   flutter_nearby_connections: ^1.1.2
@@ -51,7 +50,6 @@ dependencies:
   flutter_slidable: ^3.0.1
   flutter_colorpicker: ^1.0.3
   flutter_spinkit: ^5.2.1
-  dropdown_button2: ^2.3.9
 
   # QR & Barcode
   qr_flutter: ^4.1.0
@@ -62,7 +60,6 @@ dependencies:
 
   # Web & External Content
   webview_flutter: ^4.13.0
-  flutter_inappwebview: ^6.1.5
 
   # User Feedback & Notifications
   fluttertoast: ^8.2.12

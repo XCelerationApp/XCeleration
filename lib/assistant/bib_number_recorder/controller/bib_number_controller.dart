@@ -1,17 +1,15 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/core/theme/app_colors.dart';
 import 'package:xceleration/core/theme/typography.dart';
-import 'package:xceleration/utils/enums.dart';
+import 'package:xceleration/utils/enums.dart' hide RunnerRecordFlags;
 import '../../../coach/race_screen/widgets/runner_record.dart';
 import '../../../core/components/dialog_utils.dart';
 import '../../../core/services/tutorial_manager.dart';
-import '../../../shared/role_bar/models/role_enums.dart';
+import '../../../shared/role_bar/models/role_enums.dart' as role_enums;
 import '../../../shared/role_bar/role_bar.dart';
 import '../../../shared/role_bar/widgets/role_selector_sheet.dart';
-import '../../../utils/decode_utils.dart';
-import '../../../utils/sheet_utils.dart';
+import '../../../core/utils/index.dart';
 import '../../../core/components/device_connection_widget.dart';
 import '../../../core/services/device_connection_service.dart';
 
@@ -67,7 +65,8 @@ class BibNumberController extends BibNumberDataController {
 
   void init(BuildContext context) async {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      RoleBar.showInstructionsSheet(context, Role.bibRecorder).then((_) {
+      RoleBar.showInstructionsSheet(context, role_enums.Role.bibRecorder)
+          .then((_) {
         if (context.mounted) _checkForRunners(context);
       });
     });
@@ -100,7 +99,7 @@ class BibNumberController extends BibNumberDataController {
                       style: AppTypography.buttonText),
                   onPressed: () {
                     RoleSelectorSheet.showRoleSelection(
-                        context, Role.bibRecorder);
+                        context, role_enums.Role.bibRecorder);
                   },
                 ),
                 TextButton(

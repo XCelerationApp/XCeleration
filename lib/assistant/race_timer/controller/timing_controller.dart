@@ -1,12 +1,11 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
-import 'package:xceleration/core/utils/logger.dart';
 import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../../../utils/enums.dart';
 import '../model/timing_data.dart';
 import '../model/timing_record.dart';
-import '../../../utils/time_formatter.dart';
+import '../../../core/utils/index.dart';
 import '../../../utils/runner_time_functions.dart' as runner_functions;
 import '../../../core/components/dialog_utils.dart';
 import '../model/timing_utils.dart';

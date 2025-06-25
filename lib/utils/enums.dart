@@ -1,3 +1,7 @@
+/// Enums used throughout the application
+/// Consolidated from various enum files across the app
+library;
+
 enum ConnectionStatus {
   connected,
   connecting,
@@ -8,6 +12,8 @@ enum ConnectionStatus {
   timeout,
   searching,
   found,
+  disconnected,
+  failed,
 }
 
 enum WirelessConnectionError {
@@ -25,11 +31,14 @@ enum DeviceName {
   coach,
   bibRecorder,
   raceTimer,
+  assistant,
 }
 
 enum DeviceType {
   advertiserDevice,
   browserDevice,
+  assistantDevice,
+  coachDevice,
 }
 
 enum RecordType {
@@ -37,6 +46,7 @@ enum RecordType {
   confirmRunner,
   missingTime,
   extraTime,
+  manualTime,
 }
 
 enum RaceScreenPage {
@@ -48,4 +58,29 @@ enum ResultFormat {
   plainText,
   googleSheet,
   pdf,
+}
+
+enum FlowType {
+  preRace,
+  postRace,
+}
+
+enum RunnerRecordFlags {
+  duplicateBibNumber,
+  notInDatabase,
+  lowConfidenceScore,
+}
+
+/// Represents the different roles in the application
+enum Role {
+  coach,
+  assistant,
+}
+
+/// Event types for the event bus system
+enum EventTypes {
+  raceFlowStateChanged,
+  deviceConnectionChanged,
+  dataReceived,
+  dataTransferComplete,
 }

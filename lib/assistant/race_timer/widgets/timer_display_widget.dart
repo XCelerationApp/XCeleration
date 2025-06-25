@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../utils/time_formatter.dart';
+import '../../../core/utils/index.dart';
 import '../../../core/theme/typography.dart';
 import '../model/timing_data.dart';
 import '../controller/timing_controller.dart';

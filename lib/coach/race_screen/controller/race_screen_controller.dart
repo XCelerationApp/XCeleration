@@ -6,7 +6,7 @@ import 'package:xceleration/coach/runners_management_screen/screen/runners_manag
 import 'package:xceleration/core/components/button_components.dart';
 import 'package:xceleration/core/utils/sheet_utils.dart' show sheet;
 import '../../../core/components/dialog_utils.dart';
-import '../../../utils/enums.dart';
+import '../../../utils/enums.dart' hide EventTypes;
 import '../../../core/utils/database_helper.dart';
 import '../../../shared/models/race.dart';
 import '../../flows/controller/flow_controller.dart';
