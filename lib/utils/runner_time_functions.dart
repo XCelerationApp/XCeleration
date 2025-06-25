@@ -6,7 +6,7 @@ import 'dart:math';
 import '../core/theme/app_colors.dart';
 import '../core/components/dialog_utils.dart';
 import 'enums.dart';
-import '../features/timing/models/timing_record.dart';
+import '../assistant/race_timer/model/timing_record.dart';
 
 List<TimeRecord> updateTextColor(Color? color, List<TimeRecord> records,
     {bool confirmed = false,
@@ -246,8 +246,9 @@ int getNumberOfTimes(List<TimeRecord> records) {
       0,
       records.fold<int>(0, (int count, record) {
         if (record.type == RecordType.runnerTime) return count + 1;
-        if (record.type == RecordType.extraTime)
+        if (record.type == RecordType.extraTime) {
           return count - record.conflict!.data!['offBy'] as int;
+        }
         return count;
       }));
 }

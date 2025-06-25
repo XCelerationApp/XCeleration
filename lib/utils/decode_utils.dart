@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:xceleration/coach/merge_conflicts/model/timing_data.dart';
+import 'package:xceleration/assistant/race_timer/model/timing_data.dart';
 import 'package:xceleration/core/utils/logger.dart';
-import '../features/timing/models/timing_record.dart';
+import '../assistant/race_timer/model/timing_record.dart';
 import '../coach/race_screen/widgets/runner_record.dart';
 import '../core/components/dialog_utils.dart';
 import '../utils/enums.dart';
@@ -12,7 +12,8 @@ import 'runner_time_functions.dart';
 /// Decodes a string of race times into TimingData
 Future<TimingData> decodeRaceTimesString(String encodedData) async {
   if (encodedData.isEmpty) {
-    return TimingData(records: [], endTime: '');
+    final timingData = TimingData();
+    return timingData;
   }
   final condensedRecords = encodedData.split(',');
   List<TimeRecord> records = [];
@@ -44,8 +45,10 @@ Future<TimingData> decodeRaceTimesString(String encodedData) async {
 
   _validatePlaces(records);
 
-  return TimingData(
-      endTime: records.last.elapsedTime, records: records, startTime: null);
+  final timingData = TimingData();
+  timingData.records = records;
+  timingData.changeEndTime(Duration(seconds: 0)); // placeholder
+  return timingData;
 }
 
 /// Processes encoded timing data and validates it
@@ -226,7 +229,7 @@ class ConflictInfo {
 
 /// Validates timing data
 bool isValidTimingData(TimingData data) {
-  return data.records.isNotEmpty && data.endTime != '';
+  return data.records.isNotEmpty && data.endTime != Duration.zero;
 }
 
 /// Validates bib data

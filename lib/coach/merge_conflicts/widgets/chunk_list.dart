@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/utils/logger.dart';
+import '../../../utils/enums.dart';
 import '../controller/merge_conflicts_controller.dart';
 import '../model/chunk.dart';
-import '../../../utils/enums.dart';
 import '../../../core/theme/app_colors.dart';
 import '../model/joined_record.dart';
 import 'runner_time_record.dart';
 import 'header_widgets.dart';
 import 'action_button.dart';
-import 'package:xceleration/utils/time_formatter.dart';
+import 'package:xceleration/core/utils/time_formatter.dart';
 
 class ChunkList extends StatelessWidget {
   final MergeConflictsController controller;
@@ -83,8 +83,9 @@ class _ChunkItemState extends State<ChunkItem> {
             timeB != 'TBD' &&
             TimeFormatter.loadDurationFromString(timeB) != null;
 
-        if (!isValidA && !isValidB)
+        if (!isValidA && !isValidB) {
           return 0; // Both invalid, maintain original order
+        }
         if (!isValidA) return 1; // A is invalid, push to end
         if (!isValidB) return -1; // B is invalid, push to end
 

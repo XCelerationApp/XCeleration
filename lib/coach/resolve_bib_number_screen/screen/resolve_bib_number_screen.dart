@@ -7,7 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../race_screen/widgets/runner_record.dart';
 import '../../../core/components/runner_input_form.dart';
 import '../controller/resolve_bib_number_controller.dart';
-import '../../../utils/database_helper.dart';
+import '../../../core/utils/database_helper.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
 
 class ResolveBibNumberScreen extends StatefulWidget {

@@ -31,7 +31,7 @@ class GoogleService {
   // Configuration
   static String get _webClientId =>
       dotenv.env['GOOGLE_WEB_OAUTH_CLIENT_ID'] ?? '';
-  static String get _apiKey => dotenv.env['GOOGLE_WEB_API_KEY'] ?? '';
+  // API key not currently used - OAuth flow handles authentication
 
   // State
   bool _initialized = false;

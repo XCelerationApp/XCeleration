@@ -15,8 +15,8 @@ import 'package:xceleration/coach/race_results/model/results_record.dart'
 import 'package:xceleration/coach/race_screen/model/race_result.dart' as _i7;
 import 'package:xceleration/coach/race_screen/widgets/runner_record.dart'
     as _i5;
+import 'package:xceleration/core/utils/database_helper.dart' as _i3;
 import 'package:xceleration/shared/models/race.dart' as _i6;
-import 'package:xceleration/utils/database_helper.dart' as _i3;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -273,8 +273,7 @@ class MockDatabaseHelper extends _i1.Mock implements _i3.DatabaseHelper {
           #getAllResults,
           [],
         ),
-        returnValue:
-            _i4.Future<List<_i9.TimeRecord>>.value(<_i9.TimeRecord>[]),
+        returnValue: _i4.Future<List<_i9.TimeRecord>>.value(<_i9.TimeRecord>[]),
       ) as _i4.Future<List<_i9.TimeRecord>>);
 
   @override

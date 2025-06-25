@@ -1,3 +1,4 @@
+import '../../../utils/enums.dart';
 import '../model/timing_data.dart';
 import 'package:xceleration/coach/race_screen/widgets/runner_record.dart';
 import '../model/chunk.dart';
@@ -5,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/components/dialog_utils.dart';
-import '../../../utils/enums.dart';
 import '../model/time_record.dart';
 import '../../merge_conflicts/services/merge_conflicts_service.dart';
 
@@ -76,13 +76,14 @@ class MergeConflictsController with ChangeNotifier {
       final int index = timingData.records.indexOf(record);
       timingData.records[index] = TimeRecord(
         elapsedTime: record.elapsedTime,
-        runnerNumber: runner.bib,
+        runnerNumber: int.tryParse(runner.bib.toString()),
         isConfirmed: record.isConfirmed,
         conflict: record.conflict,
         type: record.type,
         place: record.place,
         previousPlace: record.previousPlace,
         textColor: record.textColor,
+        bib: runner.bib,
       );
     }
   }
@@ -437,7 +438,7 @@ class MergeConflictsController with ChangeNotifier {
         record.school = runners[i].school;
         record.runnerId = runners[i].runnerId;
         record.raceId = raceId;
-        record.textColor = AppColors.navBarTextColor;
+        record.textColor = AppColors.navBarTextColor.toString();
       }
       MergeConflictsService.updateConflictRecord(
         conflictRecord,
@@ -498,7 +499,7 @@ class MergeConflictsController with ChangeNotifier {
           record.type == RecordType.extraTime) {
         record.type = RecordType.confirmRunner;
         record.isConfirmed = true;
-        record.textColor = Colors.green;
+        record.textColor = Colors.green.toString();
 
         // Ensure place is set (use index as fallback)
         if (record.place == null) {

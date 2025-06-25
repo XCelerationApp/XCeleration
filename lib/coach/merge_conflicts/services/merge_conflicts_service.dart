@@ -1,3 +1,4 @@
+import '../../../utils/enums.dart';
 import '../model/timing_data.dart';
 import 'package:xceleration/coach/race_screen/widgets/runner_record.dart';
 import '../model/chunk.dart';
@@ -5,7 +6,6 @@ import 'package:xceleration/core/utils/logger.dart';
 import 'package:flutter/material.dart';
 import '../model/time_record.dart';
 import '../model/resolve_information.dart';
-import '../../../utils/enums.dart';
 import 'dart:async';
 
 class MergeConflictsService {
@@ -177,7 +177,11 @@ class MergeConflictsService {
       allowManualEntry: true,
       conflictRecord: conflictRecord,
       lastConfirmedRecord: lastConfirmedIndex == -1
-          ? TimeRecord(place: -1, elapsedTime: '')
+          ? TimeRecord(
+              elapsedTime: '',
+              isConfirmed: false,
+              type: RecordType.runnerTime,
+              place: -1)
           : records[lastConfirmedIndex],
       bibData: bibData,
     );
@@ -252,7 +256,10 @@ class MergeConflictsService {
     // Create a safe lastConfirmedRecord that handles the case where lastConfirmedIndex is -1
     final TimeRecord safeLastConfirmedRecord = lastConfirmedIndex == -1
         ? TimeRecord(
-            place: lastConfirmedPlace, elapsedTime: '', isConfirmed: true)
+            elapsedTime: '',
+            isConfirmed: true,
+            type: RecordType.confirmRunner,
+            place: lastConfirmedPlace)
         : records[lastConfirmedIndex];
 
     return ResolveInformation(
@@ -271,7 +278,7 @@ class MergeConflictsService {
   static void updateConflictRecord(TimeRecord record, int numTimes) {
     record.type = RecordType.confirmRunner;
     record.place = numTimes;
-    record.textColor = Colors.green;
+    record.textColor = Colors.green.toString();
     record.isConfirmed = true;
     record.conflict = null;
     record.previousPlace = null;
@@ -300,7 +307,7 @@ class MergeConflictsService {
           record.type == RecordType.extraTime) {
         record.type = RecordType.confirmRunner;
         record.isConfirmed = true;
-        record.textColor = Colors.green;
+        record.textColor = Colors.green.toString();
 
         // Ensure conflict records have valid places
         if (record.place == null) {

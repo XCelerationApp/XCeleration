@@ -1,8 +1,9 @@
 /// Central export file for all main application screens
 /// This provides a single import point for screens across the app
 
-// Feature screens
-export '../../features/timing/screens/timing_screen.dart';
+// Assistant screens (original timing system)
+export '../../assistant/bib_number_recorder/screen/bib_number_screen.dart';
+export '../../assistant/race_timer/screen/timing_screen.dart';
 
 // Coach screens
 export '../../coach/races_screen/screen/races_screen.dart';

@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:xceleration/coach/race_results/controller/race_results_controller.dart';
 import 'package:mockito/mockito.dart';
-import 'package:xceleration/utils/database_helper.dart';
+import 'package:xceleration/core/utils/database_helper.dart';
 import 'package:xceleration/coach/race_results/model/results_record.dart';
 
 // Manual mock class

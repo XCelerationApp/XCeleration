@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/core/services/device_connection_service.dart';
-import 'package:xceleration/utils/decode_utils.dart';
+import 'package:xceleration/core/utils/decode_utils.dart';
 import 'package:xceleration/utils/enums.dart';
 import 'package:xceleration/coach/race_screen/widgets/runner_record.dart';
 import 'package:xceleration/coach/merge_conflicts/model/timing_data.dart';
 import '../../../../../../coach/merge_conflicts/model/time_record.dart';
-import '../../../../../../utils/database_helper.dart';
-import 'package:xceleration/utils/sheet_utils.dart';
-import 'package:xceleration/utils/time_formatter.dart';
+import '../../../../../../core/utils/database_helper.dart';
+import 'package:xceleration/core/utils/sheet_utils.dart';
+import 'package:xceleration/core/utils/time_formatter.dart';
 import 'package:xceleration/coach/resolve_bib_number_screen/widgets/bib_conflicts_overview.dart';
 import 'package:xceleration/coach/merge_conflicts/screen/merge_conflicts_screen.dart';
 import 'package:provider/provider.dart';
 
-import '../../../../../../utils/encode_utils.dart' as encode_utils;
+import '../../../../../../core/utils/encode_utils.dart' as encode_utils;
 import '../../../../../merge_conflicts/controller/merge_conflicts_controller.dart';
 import '../../../../../race_results/model/results_record.dart';
 
@@ -611,7 +611,6 @@ class LoadResultsController with ChangeNotifier {
         isConfirmed: false,
         conflict: ConflictDetails(
           type: RecordType.missingTime,
-          isResolved: false,
           data: {'numTimes': 4, 'offBy': 1},
         ),
         place: 4,
@@ -622,7 +621,6 @@ class LoadResultsController with ChangeNotifier {
         isConfirmed: false,
         conflict: ConflictDetails(
           type: RecordType.missingTime,
-          isResolved: false,
           data: {'numTimes': 4, 'offBy': 1},
         ),
         place: 4,

@@ -1,7 +1,7 @@
 import '../model/results_record.dart';
 import '../model/team_record.dart';
 import 'package:collection/collection.dart';
-import 'package:xceleration/utils/database_helper.dart';
+import 'package:xceleration/core/utils/database_helper.dart';
 
 class RaceResultsController {
   final int raceId;

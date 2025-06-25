@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:mockito/annotations.dart';
-import 'package:xceleration/assistant/race_timer/model/timing_record.dart';
+import 'package:xceleration/coach/merge_conflicts/model/time_record.dart';
 import 'package:xceleration/coach/merge_conflicts/model/timing_data.dart';
 import 'package:xceleration/coach/race_screen/widgets/runner_record.dart';
-import 'package:xceleration/utils/database_helper.dart';
-import 'package:xceleration/utils/decode_utils.dart';
+import 'package:xceleration/core/utils/database_helper.dart';
+import 'package:xceleration/core/utils/decode_utils.dart';
 import 'package:xceleration/utils/enums.dart';
 
 // Generate mocks

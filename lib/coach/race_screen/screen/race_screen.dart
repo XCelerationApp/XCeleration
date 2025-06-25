@@ -73,14 +73,15 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
       });
     }
     // Subscribe to flow state changes to refresh UI when needed
-    _flowStateSubscription = EventBus.instance.on(EventTypes.raceFlowStateChanged, (event) {
+    _flowStateSubscription =
+        EventBus.instance.on(EventTypes.raceFlowStateChanged, (event) {
       // Only handle events for this race
       if (event.data != null && event.data['raceId'] == widget.raceId) {
         _refreshRaceData();
       }
     });
   }
-  
+
   // Refresh race data when flow state changes
   Future<void> _refreshRaceData() async {
     setState(() {

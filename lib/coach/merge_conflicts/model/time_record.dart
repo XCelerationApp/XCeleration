@@ -15,14 +15,14 @@ class TimeRecord {
   int? raceId;
   String? name;
   String? school;
-  String? grade;
+  int? grade;
   String? bib;
   String? error;
 
   TimeRecord({
     required this.elapsedTime,
     this.runnerNumber,
-    required this.isConfirmed,
+    this.isConfirmed = false,
     this.conflict,
     required this.type,
     this.place,
@@ -60,7 +60,7 @@ class TimeRecord {
     int? raceId,
     String? name,
     String? school,
-    String? grade,
+    int? grade,
     String? bib,
     String? error,
   }) {
@@ -94,6 +94,13 @@ class TimeRecord {
       'place': place,
       'previousPlace': previousPlace,
       'textColor': textColor,
+      'runnerId': runnerId,
+      'raceId': raceId,
+      'name': name,
+      'school': school,
+      'grade': grade,
+      'bib': bib,
+      'error': error,
     };
   }
 
@@ -113,6 +120,13 @@ class TimeRecord {
       place: map['place'],
       previousPlace: map['previousPlace'],
       textColor: map['textColor'],
+      runnerId: map['runnerId'],
+      raceId: map['raceId'],
+      name: map['name'],
+      school: map['school'],
+      grade: map['grade'],
+      bib: map['bib'],
+      error: map['error'],
     );
   }
 
@@ -138,20 +152,17 @@ class TimeRecord {
 
 /// Conflict details for time records
 class ConflictDetails {
-  final String type;
-  final String description;
+  final RecordType type;
   final Map<String, dynamic>? data;
 
   ConflictDetails({
     required this.type,
-    required this.description,
     this.data,
   });
 
   Map<String, dynamic> toMap() {
     return {
       'type': type,
-      'description': description,
       'data': data,
     };
   }
@@ -159,13 +170,12 @@ class ConflictDetails {
   factory ConflictDetails.fromMap(Map<String, dynamic> map) {
     return ConflictDetails(
       type: map['type'] ?? '',
-      description: map['description'] ?? '',
       data: map['data'],
     );
   }
 
   @override
   String toString() {
-    return 'ConflictDetails(type: $type, description: $description)';
+    return 'ConflictDetails(type: $type)';
   }
 }
