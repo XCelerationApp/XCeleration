@@ -21,15 +21,17 @@ class RaceControlsWidget extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         _buildRaceControlButton(context),
-        if (controller.raceStopped == true && controller.records.isNotEmpty) _buildShareButton(context),
+        if (controller.raceStopped == true && controller.records.isNotEmpty)
+          _buildShareButton(context),
         _buildLogButton(context),
       ],
     );
   }
 
   Widget _buildRaceControlButton(BuildContext context) {
-    final buttonText =
-        controller.raceStopped == false ? 'Stop' : (controller.startTime != null ? 'Resume' : 'Start');
+    final buttonText = controller.raceStopped == false
+        ? 'Stop'
+        : (controller.startTime != null ? 'Resume' : 'Start');
     final buttonColor = controller.raceStopped ? Colors.green : Colors.red;
 
     return CircularButton(
@@ -37,7 +39,8 @@ class RaceControlsWidget extends StatelessWidget {
       color: buttonColor,
       fontSize: controller.raceStopped ? 16 : 18,
       fontWeight: FontWeight.w600,
-      onPressed: controller.raceStopped ? controller.startRace : controller.stopRace,
+      onPressed:
+          controller.raceStopped ? controller.startRace : controller.stopRace,
     );
   }
 
@@ -81,7 +84,9 @@ class RaceControlsWidget extends StatelessWidget {
 
   Widget _buildLogButton(BuildContext context) {
     return CircularButton(
-      text: (controller.records.isNotEmpty && controller.raceStopped) ? 'Clear' : 'Log',
+      text: (controller.records.isNotEmpty && controller.raceStopped)
+          ? 'Clear'
+          : 'Log',
       color: (controller.records.isEmpty && controller.raceStopped)
           ? const Color.fromARGB(255, 201, 201, 201)
           : const Color(0xFF777777),
