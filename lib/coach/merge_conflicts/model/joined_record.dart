@@ -1,5 +1,5 @@
 import 'package:xceleration/coach/race_screen/widgets/runner_record.dart';
-import 'time_record.dart';
+import '../../../shared/models/time_record.dart';
 
 class JoinedRecord {
   JoinedRecord copyWithExtraTimeLabel() {

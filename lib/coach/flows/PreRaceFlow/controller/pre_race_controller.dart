@@ -4,7 +4,7 @@ import '../../../../core/utils/database_helper.dart';
 import '../../controller/flow_controller.dart';
 import '../../model/flow_model.dart';
 import 'package:flutter/material.dart';
-import '../../../../utils/enums.dart';
+import '../../../../core/utils/enums.dart';
 import '../../../../core/services/device_connection_service.dart';
 import '../../../../core/utils/encode_utils.dart' as encode_utils;
 import '../steps/review_runners/review_runners_step.dart';

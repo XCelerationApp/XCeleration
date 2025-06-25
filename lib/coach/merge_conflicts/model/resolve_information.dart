@@ -1,4 +1,4 @@
-import 'time_record.dart';
+import '../../../shared/models/time_record.dart';
 import 'package:xceleration/coach/race_screen/widgets/runner_record.dart';
 
 class ResolveInformation {

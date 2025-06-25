@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../utils/enums.dart';
+import '../../../core/utils/enums.dart';
 import '../controller/merge_conflicts_controller.dart';
 import '../model/joined_record.dart';
 import '../model/chunk.dart';

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
-import '../../../utils/enums.dart';
-import 'timing_record.dart';
+import '../../../core/utils/enums.dart';
+import '../../../shared/models/time_record.dart';
 
 class TimingData with ChangeNotifier {
   List<TimeRecord> _records = [];

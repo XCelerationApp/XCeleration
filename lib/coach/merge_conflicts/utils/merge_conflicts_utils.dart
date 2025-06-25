@@ -1,5 +1,5 @@
 import 'package:xceleration/coach/race_screen/widgets/runner_record.dart';
-import '../model/time_record.dart';
+import '../../../shared/models/time_record.dart';
 import 'package:xceleration/core/utils/time_formatter.dart';
 
 bool validateRunnerInfo(List<RunnerRecord> records) {

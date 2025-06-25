@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/utils/logger.dart';
-import '../../../utils/enums.dart';
+import '../../../core/utils/enums.dart';
 import '../controller/merge_conflicts_controller.dart';
 import '../model/chunk.dart';
 import '../../../core/theme/app_colors.dart';
 import '../model/joined_record.dart';
 import 'runner_time_record.dart';
 import 'header_widgets.dart';
-import 'action_button.dart';
+import '../../../core/components/button_components.dart';
 import 'package:xceleration/core/utils/time_formatter.dart';
 
 class ChunkList extends StatelessWidget {
@@ -348,7 +348,7 @@ class _ChunkItemState extends State<ChunkItem> {
               chunkType == RecordType.missingTime)
             Padding(
               padding: const EdgeInsets.only(top: 16.0),
-              child: ActionButton(
+              child: SharedActionButton(
                 text: 'Resolve Conflict',
                 onPressed: () => widget.chunk.handleResolve(
                   widget.controller.handleExtraTimesResolution,

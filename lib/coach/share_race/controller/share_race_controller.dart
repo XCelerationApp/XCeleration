@@ -8,7 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
-import '../../../utils/enums.dart';
+import '../../../core/utils/enums.dart';
 import '../../race_results/model/team_record.dart';
 import '../../race_results/model/results_record.dart';
 

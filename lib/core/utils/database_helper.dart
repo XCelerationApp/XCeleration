@@ -1,6 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
-import '../../assistant/race_timer/model/timing_record.dart';
+import '../../shared/models/time_record.dart';
 import '../../../../shared/models/race.dart';
 import 'dart:convert'; // Import jsonEncode
 import 'package:xceleration/core/utils/logger.dart';

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../utils/enums.dart';
+import '../../../core/utils/enums.dart';
 import '../controller/timing_controller.dart';
 import '../widgets/record_list_item.dart';
 

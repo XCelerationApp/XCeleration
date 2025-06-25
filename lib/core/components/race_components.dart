@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-// import '../constants/app_constants.dart' as constants; // Unused
-import '../../core/theme/app_colors.dart';
-import '../../core/theme/typography.dart';
+import '../theme/app_colors.dart';
+import '../theme/typography.dart';
+import '../utils/color_utils.dart';
 
-/// Common UI components used throughout the application
-/// This consolidates duplicate widgets and provides consistent styling
+/// Race-specific UI components
+/// This file contains widgets specifically related to race management and display
 
 /// Reusable race information header widget
 class RaceInfoHeaderWidget extends StatelessWidget {
@@ -264,265 +264,177 @@ class RaceControlsWidget extends StatelessWidget {
   }
 }
 
-/// Reusable loading indicator with consistent styling
-class LoadingWidget extends StatelessWidget {
-  final String? message;
-  final bool isCompact;
+/// Shared race status header widget that consolidates RaceInfoHeaderWidget implementations
+class RaceStatusHeaderWidget extends StatelessWidget {
+  final String status;
+  final Color statusColor;
+  final int? runnerCount;
+  final int? recordCount;
+  final String? recordLabel;
+  final VoidCallback? onRunnersTap;
+  final bool showDropdown;
 
-  const LoadingWidget({
+  const RaceStatusHeaderWidget({
     super.key,
-    this.message,
-    this.isCompact = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryColor),
-          ),
-          if (message != null) ...[
-            SizedBox(height: isCompact ? 12 : 16),
-            Text(
-              message!,
-              style: AppTypography.bodyRegular
-                  .copyWith(color: AppColors.mediumColor),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-/// Reusable error widget with consistent styling
-class AppErrorWidget extends StatelessWidget {
-  final String message;
-  final VoidCallback? onRetry;
-  final bool isCompact;
-
-  const AppErrorWidget({
-    super.key,
-    required this.message,
-    this.onRetry,
-    this.isCompact = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.all(isCompact ? 16.0 : 24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.error_outline,
-              size: isCompact ? 48 : 64,
-              color: AppColors.redColor,
-            ),
-            SizedBox(height: isCompact ? 12 : 16),
-            Text(
-              'Oops! Something went wrong',
-              style: isCompact
-                  ? AppTypography.titleMedium
-                  : AppTypography.titleLarge,
-              textAlign: TextAlign.center,
-            ),
-            SizedBox(height: isCompact ? 8 : 12),
-            Text(
-              message,
-              style: AppTypography.bodyRegular
-                  .copyWith(color: AppColors.mediumColor),
-              textAlign: TextAlign.center,
-            ),
-            if (onRetry != null) ...[
-              SizedBox(height: isCompact ? 16 : 24),
-              ElevatedButton.icon(
-                onPressed: onRetry,
-                icon: const Icon(Icons.refresh),
-                label: const Text('Try Again'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryColor,
-                  foregroundColor: Colors.white,
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Reusable empty state widget
-class EmptyStateWidget extends StatelessWidget {
-  final String title;
-  final String? subtitle;
-  final IconData? icon;
-  final VoidCallback? onAction;
-  final String? actionLabel;
-  final bool isCompact;
-
-  const EmptyStateWidget({
-    super.key,
-    required this.title,
-    this.subtitle,
-    this.icon,
-    this.onAction,
-    this.actionLabel,
-    this.isCompact = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.all(isCompact ? 16.0 : 24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon ?? Icons.inbox,
-              size: isCompact ? 48 : 64,
-              color: AppColors.mediumColor,
-            ),
-            SizedBox(height: isCompact ? 12 : 16),
-            Text(
-              title,
-              style: isCompact
-                  ? AppTypography.titleMedium
-                  : AppTypography.titleLarge,
-              textAlign: TextAlign.center,
-            ),
-            if (subtitle != null) ...[
-              SizedBox(height: isCompact ? 8 : 12),
-              Text(
-                subtitle!,
-                style: AppTypography.bodyRegular
-                    .copyWith(color: AppColors.mediumColor),
-                textAlign: TextAlign.center,
-              ),
-            ],
-            if (onAction != null && actionLabel != null) ...[
-              SizedBox(height: isCompact ? 16 : 24),
-              ElevatedButton.icon(
-                onPressed: onAction,
-                icon: const Icon(Icons.add),
-                label: Text(actionLabel!),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryColor,
-                  foregroundColor: Colors.white,
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Reusable search bar widget
-class SearchBarWidget extends StatelessWidget {
-  final String? hintText;
-  final String? value;
-  final ValueChanged<String>? onChanged;
-  final VoidCallback? onClear;
-  final bool isCompact;
-
-  const SearchBarWidget({
-    super.key,
-    this.hintText,
-    this.value,
-    this.onChanged,
-    this.onClear,
-    this.isCompact = false,
+    required this.status,
+    required this.statusColor,
+    this.runnerCount,
+    this.recordCount,
+    this.recordLabel,
+    this.onRunnersTap,
+    this.showDropdown = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: EdgeInsets.all(isCompact ? 8.0 : 16.0),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
       decoration: BoxDecoration(
-        color: AppColors.backgroundColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.lightColor),
+        color: const Color(0xFFF5F5F5),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: ColorUtils.withOpacity(Colors.grey, 0.2)),
       ),
-      child: TextField(
-        controller: value != null ? TextEditingController(text: value) : null,
-        onChanged: onChanged,
-        decoration: InputDecoration(
-          hintText: hintText ?? 'Search...',
-          prefixIcon: const Icon(Icons.search),
-          suffixIcon: value != null && value!.isNotEmpty
-              ? IconButton(
-                  icon: const Icon(Icons.clear),
-                  onPressed: onClear,
-                )
-              : null,
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: isCompact ? 12 : 16,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            status,
+            style: AppTypography.bodySemibold.copyWith(
+              color: statusColor,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-        ),
+          if (runnerCount != null && onRunnersTap != null && showDropdown)
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: onRunnersTap,
+                borderRadius: BorderRadius.circular(18),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Runners: $runnerCount',
+                        style: AppTypography.bodySemibold.copyWith(
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(
+                        Icons.arrow_drop_down,
+                        size: 20,
+                        color: Colors.black54,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            )
+          else if (runnerCount != null)
+            Text(
+              'Runners: $runnerCount',
+              style: AppTypography.bodySemibold.copyWith(
+                color: Colors.black87,
+              ),
+            ),
+          if (recordCount != null)
+            Text(
+              '${recordLabel ?? 'Records'}: $recordCount',
+              style: AppTypography.bodySemibold.copyWith(
+                color: Colors.black87,
+              ),
+            ),
+        ],
       ),
     );
   }
 }
 
-/// Reusable section header widget
-class SectionHeaderWidget extends StatelessWidget {
+/// Shared conflict button for handling conflicts in race results
+class ConflictButton extends StatelessWidget {
   final String title;
-  final String? subtitle;
-  final Widget? trailing;
-  final bool isCompact;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onPressed;
+  final bool isEnabled;
 
-  const SectionHeaderWidget({
+  const ConflictButton({
     super.key,
     required this.title,
-    this.subtitle,
-    this.trailing,
-    this.isCompact = false,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+    required this.onPressed,
+    this.isEnabled = true,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.symmetric(
-        horizontal: isCompact ? 12.0 : 16.0,
-        vertical: isCompact ? 8.0 : 12.0,
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: isCompact
-                      ? AppTypography.titleMedium
-                      : AppTypography.titleLarge,
-                ),
-                if (subtitle != null) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle!,
-                    style: AppTypography.bodyRegular
-                        .copyWith(color: AppColors.mediumColor),
-                  ),
-                ],
-              ],
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      elevation: isEnabled ? 2 : 0,
+      child: InkWell(
+        onTap: isEnabled ? onPressed : null,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isEnabled ? color : Colors.grey[300]!,
+              width: 1,
             ),
           ),
-          if (trailing != null) trailing!,
-        ],
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: ColorUtils.withOpacity(
+                      isEnabled ? color : Colors.grey, 0.1),
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Icon(
+                  icon,
+                  color: isEnabled ? color : Colors.grey,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: AppTypography.bodySemibold.copyWith(
+                        color: isEnabled ? Colors.black87 : Colors.grey,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: AppTypography.smallBodyRegular.copyWith(
+                        color: isEnabled ? Colors.black54 : Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (isEnabled)
+                Icon(
+                  Icons.arrow_forward_ios,
+                  color: color,
+                  size: 16,
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }

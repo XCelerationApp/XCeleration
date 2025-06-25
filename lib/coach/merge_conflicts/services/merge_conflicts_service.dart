@@ -1,10 +1,10 @@
-import '../../../utils/enums.dart';
+import '../../../core/utils/enums.dart';
 import '../model/timing_data.dart';
 import 'package:xceleration/coach/race_screen/widgets/runner_record.dart';
 import '../model/chunk.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:flutter/material.dart';
-import '../model/time_record.dart';
+import '../../../shared/models/time_record.dart';
 import '../model/resolve_information.dart';
 import 'dart:async';
 

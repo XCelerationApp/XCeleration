@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/coach/merge_conflicts/model/timing_data.dart';
 import 'package:xceleration/core/utils/logger.dart';
-import '../../coach/merge_conflicts/model/time_record.dart';
+import '../../shared/models/time_record.dart';
 import '../../coach/race_screen/widgets/runner_record.dart';
-import '../../utils/enums.dart';
+import 'enums.dart';
 import '../components/dialog_utils.dart';
 import 'database_helper.dart';
 import 'time_formatter.dart';
-import 'runner_time_functions.dart';
+import 'runner_time_functions.dart' as assistant_functions;
 
 /// Decodes a string of race times into TimingData
 Future<TimingData> decodeRaceTimesString(String encodedData) async {
@@ -34,7 +34,7 @@ Future<TimingData> decodeRaceTimesString(String encodedData) async {
       final conflict = _parseConflict(recordString);
       if (conflict != null) {
         records = _handleConflict(conflict, records, place);
-        place = records.last.place!;
+        place = records.last.place ?? place;
       } else {
         throw Exception('Invalid record type: $recordString');
       }
@@ -187,13 +187,15 @@ List<TimeRecord> _handleConflict(
     ConflictInfo conflict, List<TimeRecord> records, int place) {
   switch (conflict.type) {
     case RecordType.missingTime:
-      return addMissingTime(conflict.offBy, records, place, conflict.finishTime,
+      return assistant_functions.addMissingTime(
+          conflict.offBy, records, place, conflict.finishTime,
           addMissingRecords: false);
     case RecordType.extraTime:
-      return removeExtraTime(
+      return assistant_functions.removeExtraTime(
           conflict.offBy, records, place, conflict.finishTime);
     case RecordType.confirmRunner:
-      return confirmTimes(records, place, conflict.finishTime);
+      return assistant_functions.confirmTimes(
+          records, place, conflict.finishTime);
     default:
       return records;
   }

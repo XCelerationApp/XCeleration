@@ -1,7 +1,7 @@
 import 'package:xceleration/core/utils/logger.dart';
-import '../../coach/merge_conflicts/model/time_record.dart';
+import '../../shared/models/time_record.dart';
 import '../../coach/race_screen/widgets/runner_record.dart';
-import '../../utils/enums.dart';
+import 'enums.dart';
 import 'database_helper.dart';
 
 /// Encodes a list of runners for a race into a string format

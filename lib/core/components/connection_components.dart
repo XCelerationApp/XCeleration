@@ -12,7 +12,7 @@ import '../services/device_connection_service.dart';
 import '../utils/data_protocol.dart';
 import 'dialog_utils.dart';
 import '../utils/sheet_utils.dart';
-import '../../utils/enums.dart';
+import '../utils/enums.dart';
 
 class WirelessConnectionButton extends StatefulWidget {
   final ConnectedDevice device;

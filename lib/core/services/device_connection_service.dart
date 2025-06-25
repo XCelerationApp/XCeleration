@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter_nearby_connections/flutter_nearby_connections.dart';
 import 'package:xceleration/core/services/nearby_connections.dart';
-import '../../utils/enums.dart';
+import '../utils/enums.dart';
 import '../utils/data_package.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';

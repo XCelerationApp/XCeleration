@@ -8,8 +8,7 @@ import 'dart:async' as _i4;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i10;
 import 'package:sqflite/sqflite.dart' as _i2;
-import 'package:xceleration/assistant/race_timer/model/timing_record.dart'
-    as _i9;
+import 'package:xceleration/shared/models/time_record.dart' as _i9;
 import 'package:xceleration/coach/race_results/model/results_record.dart'
     as _i8;
 import 'package:xceleration/coach/race_screen/model/race_result.dart' as _i7;

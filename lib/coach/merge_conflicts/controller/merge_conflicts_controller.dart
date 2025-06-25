@@ -1,4 +1,4 @@
-import '../../../utils/enums.dart';
+import '../../../core/utils/enums.dart';
 import '../model/timing_data.dart';
 import 'package:xceleration/coach/race_screen/widgets/runner_record.dart';
 import '../model/chunk.dart';
@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/components/dialog_utils.dart';
-import '../model/time_record.dart';
+import '../../../shared/models/time_record.dart';
 import '../../merge_conflicts/services/merge_conflicts_service.dart';
 
 class MergeConflictsController with ChangeNotifier {
@@ -76,7 +76,7 @@ class MergeConflictsController with ChangeNotifier {
       final int index = timingData.records.indexOf(record);
       timingData.records[index] = TimeRecord(
         elapsedTime: record.elapsedTime,
-        runnerNumber: int.tryParse(runner.bib.toString()),
+        runnerNumber: runner.bib.toString(),
         isConfirmed: record.isConfirmed,
         conflict: record.conflict,
         type: record.type,
@@ -211,10 +211,10 @@ class MergeConflictsController with ChangeNotifier {
           record.type != RecordType.confirmRunner,
       orElse: () => TimeRecord(
           elapsedTime: '',
+          type: RecordType.runnerTime,
           runnerNumber: null,
           isConfirmed: false,
           conflict: null,
-          type: RecordType.runnerTime,
           place: null,
           previousPlace: null,
           textColor: null),
@@ -330,9 +330,9 @@ class MergeConflictsController with ChangeNotifier {
             (element) => element.place == currentPlace,
             orElse: () => TimeRecord(
                 elapsedTime: '',
+                type: RecordType.runnerTime,
                 isConfirmed: false,
                 conflict: null,
-                type: RecordType.runnerTime,
                 place: currentPlace,
                 previousPlace: null,
                 textColor: null));

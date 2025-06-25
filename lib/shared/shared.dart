@@ -2,14 +2,12 @@
 /// This provides clean imports for widgets, constants, models, and screens
 library;
 
-// Widgets
-export 'widgets/common_widgets.dart';
-
 // Constants
 export 'constants/app_constants.dart';
 
 // Models
 export 'models/race.dart';
+export 'models/time_record.dart';
 
 // Role bar
 export 'role_bar/role_bar.dart';

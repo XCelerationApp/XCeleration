@@ -1,5 +1,5 @@
-import '../../../utils/enums.dart';
-import 'time_record.dart';
+import '../../../core/utils/enums.dart';
+import '../../../shared/models/time_record.dart';
 import 'package:xceleration/coach/race_screen/model/race_result.dart';
 import 'package:xceleration/coach/race_screen/widgets/runner_record.dart';
 

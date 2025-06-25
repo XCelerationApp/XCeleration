@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:xceleration/utils/enums.dart' hide EventTypes;
+import 'package:xceleration/core/utils/enums.dart' hide EventTypes;
 import '../controller/race_screen_controller.dart';
 import '../widgets/tab_bar.dart';
 import '../widgets/tab_bar_view.dart';

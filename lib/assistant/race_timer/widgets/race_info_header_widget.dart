@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/typography.dart';
-import '../../../utils/enums.dart';
+import '../../../core/utils/enums.dart';
 import '../controller/timing_controller.dart';
-import 'package:xceleration/core/utils/color_utils.dart';
+import '../../../core/components/race_components.dart';
 
 class RaceInfoHeaderWidget extends StatelessWidget {
   final TimingController controller;
@@ -14,48 +13,30 @@ class RaceInfoHeaderWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasRace =
-        controller.raceStopped == false || (controller.endTime != null && controller.records.isNotEmpty);
+    String status;
+    Color statusColor;
+
+    if (controller.startTime == null) {
+      status = 'Ready to start';
+      statusColor = Colors.black54;
+    } else if (controller.raceStopped) {
+      status = 'Race finished';
+      statusColor = Colors.green[700]!;
+    } else {
+      status = 'Race in progress';
+      statusColor = AppColors.primaryColor;
+    }
+
     // Calculate runner count by explicitly counting each type
     final runnerTimeCount = controller.records
         .where((r) => r.type == RecordType.runnerTime && r.place != null)
         .length;
-    final runnerCount = runnerTimeCount;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F5),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: ColorUtils.withOpacity(Colors.grey, 0.2)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            controller.startTime == null
-                ? 'Ready to start'
-                : controller.raceStopped
-                    ? 'Race finished'
-                    : 'Race in progress',
-            style: AppTypography.bodySemibold.copyWith(
-              color: hasRace
-                  ? controller.raceStopped
-                      ? Colors.green[700]
-                      : AppColors.primaryColor
-                  : Colors.black54,
-              fontWeight: hasRace ? FontWeight.w600 : FontWeight.normal,
-            ),
-          ),
-          if (controller.records.isNotEmpty)
-            Text(
-              'Runners: $runnerCount',
-              style: AppTypography.bodySemibold.copyWith(
-                color: Colors.black87,
-              ),
-            ),
-        ],
-      ),
+    return RaceStatusHeaderWidget(
+      status: status,
+      statusColor: statusColor,
+      runnerCount: controller.records.isNotEmpty ? runnerTimeCount : null,
+      recordLabel: 'Runners',
     );
   }
 }

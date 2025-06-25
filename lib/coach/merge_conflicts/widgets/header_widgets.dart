@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
-import '../../../utils/enums.dart';
-import '../model/time_record.dart';
+import '../../../core/utils/enums.dart';
+import '../../../shared/models/time_record.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
 
 class ConflictHeader extends StatelessWidget {

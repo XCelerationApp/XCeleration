@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:xceleration/coach/merge_conflicts/model/time_record.dart';
+import 'package:xceleration/shared/models/time_record.dart';
 import 'package:xceleration/coach/race_screen/widgets/runner_record.dart';
 import 'package:xceleration/core/utils/encode_utils.dart';
-import 'package:xceleration/utils/enums.dart';
+import 'package:xceleration/core/utils/enums.dart';
 
 class ConflictDetailsMock {
   final Map<String, dynamic> data;

@@ -11,9 +11,9 @@ import 'package:xceleration/coach/race_screen/widgets/runner_record.dart';
 import 'package:xceleration/core/utils/database_helper.dart';
 import 'package:xceleration/core/utils/enums.dart';
 
-import '../utils/decode_utils_test.mocks.dart';
-
 // Generate mocks
+import '../test/unit/utils/decode_utils_test.mocks.dart';
+
 @GenerateMocks([DatabaseHelper])
 
 // Create manual mocks

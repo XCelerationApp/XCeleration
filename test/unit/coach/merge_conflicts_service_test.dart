@@ -2,9 +2,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:xceleration/coach/merge_conflicts/services/merge_conflicts_service.dart';
 import 'package:xceleration/coach/merge_conflicts/model/timing_data.dart';
 import 'package:xceleration/coach/race_screen/widgets/runner_record.dart';
-import 'package:xceleration/coach/merge_conflicts/model/time_record.dart';
+import 'package:xceleration/shared/models/time_record.dart';
 import 'package:xceleration/coach/merge_conflicts/model/resolve_information.dart';
-import 'package:xceleration/utils/enums.dart';
+import 'package:xceleration/core/utils/enums.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:flutter/material.dart';
 

@@ -3,10 +3,10 @@ import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/coach/race_screen/widgets/runner_record.dart'
     show RunnerRecord;
 import 'dart:math';
-import '../../utils/enums.dart';
 import '../theme/app_colors.dart';
 import '../components/dialog_utils.dart';
-import '../../coach/merge_conflicts/model/time_record.dart';
+import 'enums.dart';
+import '../../shared/models/time_record.dart';
 
 List<TimeRecord> updateTextColor(Color? color, List<TimeRecord> records,
     {bool confirmed = false,
@@ -22,21 +22,28 @@ List<TimeRecord> updateTextColor(Color? color, List<TimeRecord> records,
     }
 
     // Directly set the textColor field for immediate visual update
-    records[i].textColor = color?.toString();
+    records[i].textColor = color;
 
-    // Note: clearTextColor and clearConflict logic removed as copyWith doesn't support these parameters
+    // Determine if we need to clear the text color (when null is passed)
+    bool shouldClearTextColor = color == null;
+
+    bool shouldClearConflict = clearConflictColor && conflict == null;
 
     if (confirmed == true) {
       records[i] = records[i].copyWith(
         conflict: conflict,
         isConfirmed: true,
-        textColor: color?.toString(),
+        textColor: color,
+        clearTextColor: shouldClearTextColor,
+        clearConflict: shouldClearConflict,
       );
     } else {
       records[i] = records[i].copyWith(
         conflict: null,
         isConfirmed: false,
-        textColor: color?.toString(),
+        textColor: color,
+        clearTextColor: shouldClearTextColor,
+        clearConflict: shouldClearConflict,
       );
     }
   }
@@ -54,9 +61,8 @@ List<TimeRecord> confirmTimes(
   records.add(TimeRecord(
     elapsedTime: finishTime,
     type: RecordType.confirmRunner,
-    textColor: color.toString(),
+    textColor: color,
     place: numTimes,
-    isConfirmed: false,
   ));
 
   return records;
@@ -100,19 +106,17 @@ List<TimeRecord> removeExtraTime(
 
   final color = AppColors.redColor;
   records = updateTextColor(color, records,
-      conflict: ConflictDetails(
-        type: RecordType.extraTime,
-      ),
+      conflict: ConflictDetails(type: RecordType.extraTime, isResolved: false),
       confirmed: true);
 
   records.add(TimeRecord(
     elapsedTime: finishTime,
     type: RecordType.extraTime,
-    textColor: color.toString(),
+    textColor: color,
     place: correcttedNumTimes,
-    isConfirmed: false,
     conflict: ConflictDetails(
       type: RecordType.extraTime,
+      isResolved: false,
       data: {
         'offBy': offBy,
         'numTimes': correcttedNumTimes,
@@ -130,9 +134,8 @@ List<TimeRecord> addMissingTime(
 
   final color = AppColors.redColor;
   records = updateTextColor(color, records,
-      conflict: ConflictDetails(
-        type: RecordType.missingTime,
-      ),
+      conflict:
+          ConflictDetails(type: RecordType.missingTime, isResolved: false),
       confirmed: true);
 
   if (addMissingRecords) {
@@ -140,11 +143,11 @@ List<TimeRecord> addMissingTime(
       records.add(TimeRecord(
         elapsedTime: 'TBD',
         type: RecordType.runnerTime,
-        textColor: color.toString(),
+        textColor: color,
         place: numTimes + i,
-        isConfirmed: false,
         conflict: ConflictDetails(
           type: RecordType.missingTime,
+          isResolved: false,
         ),
       ));
     }
@@ -155,11 +158,11 @@ List<TimeRecord> addMissingTime(
   records.add(TimeRecord(
     elapsedTime: finishTime,
     type: RecordType.missingTime,
-    textColor: color.toString(),
+    textColor: color,
     place: correcttedNumTimes,
-    isConfirmed: false,
     conflict: ConflictDetails(
       type: RecordType.missingTime,
+      isResolved: false,
       data: {
         'offBy': offBy,
         'numTimes': correcttedNumTimes,

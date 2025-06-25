@@ -2,14 +2,16 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/theme/app_colors.dart';
 import 'package:xceleration/core/theme/typography.dart';
-import 'package:xceleration/utils/enums.dart' hide RunnerRecordFlags;
+import 'package:xceleration/core/utils/enums.dart' hide RunnerRecordFlags;
 import '../../../coach/race_screen/widgets/runner_record.dart';
 import '../../../core/components/dialog_utils.dart';
 import '../../../core/services/tutorial_manager.dart';
 import '../../../shared/role_bar/models/role_enums.dart' as role_enums;
 import '../../../shared/role_bar/role_bar.dart';
 import '../../../shared/role_bar/widgets/role_selector_sheet.dart';
-import '../../../core/utils/index.dart';
+import '../../../core/utils/logger.dart';
+import '../../../core/utils/decode_utils.dart';
+import '../../../core/utils/sheet_utils.dart';
 import '../../../core/components/device_connection_widget.dart';
 import '../../../core/services/device_connection_service.dart';
 

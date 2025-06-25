@@ -3,7 +3,7 @@ import 'package:mockito/mockito.dart';
 import 'package:mockito/annotations.dart';
 import 'package:xceleration/core/services/device_connection_service.dart';
 import 'package:xceleration/core/utils/data_protocol.dart';
-import 'package:xceleration/utils/enums.dart';
+import 'package:xceleration/core/utils/enums.dart';
 import 'dart:async';
 
 // Create mocks for the external dependencies
