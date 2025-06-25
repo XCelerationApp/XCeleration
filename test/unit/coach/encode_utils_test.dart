@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:xceleration/utils/decode_utils.dart';
+import 'package:xceleration/core/utils/decode_utils.dart';
 import 'package:xceleration/coach/merge_conflicts/model/timing_data.dart';
 import 'package:xceleration/core/utils/logger.dart';
 

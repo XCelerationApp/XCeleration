@@ -1,4 +1,4 @@
-import '../../../utils/time_formatter.dart';
+import '../../../core/utils/time_formatter.dart';
 
 class ResultsRecord {
   int place;

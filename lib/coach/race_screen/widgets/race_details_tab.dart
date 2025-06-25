@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/components/button_components.dart';
-import '../../../utils/database_helper.dart';
+import '../../../core/utils/database_helper.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
 import 'competing_teams_field.dart';
 import 'modern_detail_row.dart';

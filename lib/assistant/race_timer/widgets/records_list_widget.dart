@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:xceleration/utils/enums.dart';
+import '../../../core/utils/enums.dart';
 import '../controller/timing_controller.dart';
 import '../widgets/record_list_item.dart';
-
 
 class RecordsListWidget extends StatelessWidget {
   const RecordsListWidget({

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import '../../../core/components/dialog_utils.dart';
-import '../../../utils/database_helper.dart';
+import '../../../core/utils/database_helper.dart';
 import '../../race_screen/widgets/runner_record.dart';
 
 class ResolveBibNumberController with ChangeNotifier {

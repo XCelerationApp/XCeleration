@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:xceleration/utils/enums.dart';
+import 'package:xceleration/core/utils/enums.dart' hide EventTypes;
 import '../controller/race_screen_controller.dart';
 import '../widgets/tab_bar.dart';
 import '../widgets/tab_bar_view.dart';
@@ -73,14 +73,15 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
       });
     }
     // Subscribe to flow state changes to refresh UI when needed
-    _flowStateSubscription = EventBus.instance.on(EventTypes.raceFlowStateChanged, (event) {
+    _flowStateSubscription =
+        EventBus.instance.on(EventTypes.raceFlowStateChanged, (event) {
       // Only handle events for this race
       if (event.data != null && event.data['raceId'] == widget.raceId) {
         _refreshRaceData();
       }
     });
   }
-  
+
   // Refresh race data when flow state changes
   Future<void> _refreshRaceData() async {
     setState(() {

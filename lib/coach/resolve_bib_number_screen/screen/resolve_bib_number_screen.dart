@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../core/components/button_components.dart';
 import 'package:xceleration/core/components/textfield_utils.dart';
-import '../widgets/action_button.dart';
+import '../controller/resolve_bib_number_controller.dart';
 import '../widgets/search_results.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../race_screen/widgets/runner_record.dart';
 import '../../../core/components/runner_input_form.dart';
-import '../controller/resolve_bib_number_controller.dart';
-import '../../../utils/database_helper.dart';
+import '../../../core/utils/database_helper.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
 
 class ResolveBibNumberScreen extends StatefulWidget {
@@ -60,10 +60,10 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
   Future<void> _loadSchools() async {
     // Load schools from the database
     final race = await DatabaseHelper.instance.getRaceById(_controller.raceId);
-    
+
     // Check if widget is still mounted before calling setState
     if (!mounted) return;
-    
+
     if (race != null) {
       setState(() {
         _schools = race.teams;
@@ -80,7 +80,7 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
     _controller.nameController.text = runner.name;
     _controller.gradeController.text = runner.grade.toString();
     _controller.schoolController.text = runner.school;
-    
+
     // Now call the controller's method to create the runner
     _controller.createNewRunner();
   }
@@ -103,7 +103,7 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
       ),
     );
   }
-  
+
   @override
   Widget build(BuildContext context) {
     if (_controller.record.error == null) {
@@ -134,7 +134,8 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                     side: BorderSide(
-                      color: ColorUtils.withOpacity(AppColors.primaryColor, 0.3),
+                      color:
+                          ColorUtils.withOpacity(AppColors.primaryColor, 0.3),
                       width: 0.5,
                     ),
                   ),
@@ -146,7 +147,8 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
                           width: 32,
                           height: 32,
                           decoration: BoxDecoration(
-                            color: ColorUtils.withOpacity(AppColors.primaryColor, 0.1),
+                            color: ColorUtils.withOpacity(
+                                AppColors.primaryColor, 0.1),
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: const Icon(
@@ -184,14 +186,15 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
                   children: [
                     Flexible(
                       flex: 1,
-                      child: ActionButton(
-                        label: 'Choose Existing Runner',
+                      child: SharedActionButton(
+                        text: 'Choose Existing Runner',
                         icon: Icons.person_search,
                         isSelected: !_controller.showCreateNew,
                         onPressed: () {
                           setState(() {
                             _controller.showCreateNew = false;
-                            _controller.searchRunners(_controller.searchController.text);
+                            _controller.searchRunners(
+                                _controller.searchController.text);
                           });
                         },
                       ),
@@ -199,8 +202,8 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
                     const SizedBox(width: 16),
                     Flexible(
                       flex: 1,
-                      child: ActionButton(
-                        label: 'Create New Runner',
+                      child: SharedActionButton(
+                        text: 'Create New Runner',
                         icon: Icons.person_add,
                         isSelected: _controller.showCreateNew,
                         onPressed: () {
@@ -215,27 +218,28 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
                 const SizedBox(height: 24),
                 Consumer<ResolveBibNumberController>(
                   builder: (context, controller, _) {
-                    return !controller.showCreateNew 
-                      ? Expanded(
-                          child: Column(
-                            children: [
-                              buildTextField(
-                                context: context,
-                                controller: controller.searchController,
-                                hint: 'Search runners',
-                                onChanged: (value) => controller.searchRunners(value),
-                                setSheetState: setState,
-                              ),
-                              const SizedBox(height: 16),
-                              Expanded(
-                                child: SearchResults(
-                                  controller: controller,
+                    return !controller.showCreateNew
+                        ? Expanded(
+                            child: Column(
+                              children: [
+                                buildTextField(
+                                  context: context,
+                                  controller: controller.searchController,
+                                  hint: 'Search runners',
+                                  onChanged: (value) =>
+                                      controller.searchRunners(value),
+                                  setSheetState: setState,
                                 ),
-                              ),
-                            ],
-                          ),
-                        )
-                      : _buildCreateNewForm();
+                                const SizedBox(height: 16),
+                                Expanded(
+                                  child: SearchResults(
+                                    controller: controller,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : _buildCreateNewForm();
                   },
                 ),
               ],

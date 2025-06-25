@@ -2,18 +2,18 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:flutter/services.dart';
-import 'package:xceleration/utils/time_formatter.dart';
+import 'package:xceleration/core/utils/time_formatter.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
-import '../../../utils/enums.dart';
+import '../../../core/utils/enums.dart';
 import '../../race_results/model/team_record.dart';
 import '../../race_results/model/results_record.dart';
 
-import '../../../../../utils/sheet_utils.dart';
-import '../../../../../utils/google_sheets_service.dart';
+import '../../../core/utils/sheet_utils.dart';
+import '../../../core/utils/google_sheets_service.dart';
 import '../../../../../core/components/dialog_utils.dart';
 import '../screen/share_race_screen.dart';
 import '../../race_results/controller/race_results_controller.dart';
@@ -133,14 +133,16 @@ class ShareResultsController {
     // keep a `BuildContext` alive across the async gap.
     if (!context.mounted) return;
     final navigator = Navigator.of(context, rootNavigator: true);
-    
 
     try {
+      if (!context.mounted) throw Exception('Context not mounted');
       // Execute the sheet creation with a loading dialog
+      final data = await _formattedResultsController.formattedSheetsData;
+      if (!context.mounted) throw Exception('Context not mounted');
       final sheetUri = await _googleSheetsService.createSheetAndGetUri(
         context: context,
         title: title,
-        data: await _formattedResultsController.formattedSheetsData,
+        data: data,
       );
 
       if (sheetUri == null) {
@@ -157,7 +159,10 @@ class ShareResultsController {
       } else {
         Logger.d('Context not mounted, skipping Google Sheet options');
         await Clipboard.setData(ClipboardData(text: sheetUri.toString()));
-        DialogUtils.showSuccessDialog(context, message: 'Sheet URL copied to clipboard');
+        if (context.mounted) {
+          DialogUtils.showSuccessDialog(context,
+              message: 'Sheet URL copied to clipboard');
+        }
       }
     } catch (e) {
       Logger.d('Error in Google Sheet creation: $e');

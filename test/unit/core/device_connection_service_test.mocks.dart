@@ -11,7 +11,7 @@ import 'package:mockito/mockito.dart' as _i1;
 import 'package:xceleration/core/services/device_connection_service.dart'
     as _i2;
 import 'package:xceleration/core/services/nearby_connections.dart' as _i5;
-import 'package:xceleration/utils/enums.dart' as _i4;
+import 'package:xceleration/core/utils/enums.dart' as _i4;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values

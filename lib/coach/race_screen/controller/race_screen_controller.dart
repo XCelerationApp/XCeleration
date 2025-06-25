@@ -4,10 +4,10 @@ import 'package:geocoding/geocoding.dart';
 import 'package:xceleration/coach/race_screen/screen/race_screen.dart';
 import 'package:xceleration/coach/runners_management_screen/screen/runners_management_screen.dart';
 import 'package:xceleration/core/components/button_components.dart';
-import 'package:xceleration/utils/sheet_utils.dart' show sheet;
+import 'package:xceleration/core/utils/sheet_utils.dart' show sheet;
 import '../../../core/components/dialog_utils.dart';
-import '../../../utils/enums.dart';
-import '../../../utils/database_helper.dart';
+import '../../../core/utils/enums.dart' hide EventTypes;
+import '../../../core/utils/database_helper.dart';
 import '../../../shared/models/race.dart';
 import '../../flows/controller/flow_controller.dart';
 import '../../../core/services/device_connection_service.dart';
@@ -60,7 +60,6 @@ class RaceController with ChangeNotifier {
   RacesController parentController;
 
   RaceController({required this.raceId, required this.parentController});
-
 
   static Future<void> showRaceScreen(
       BuildContext context, RacesController parentController, int raceId,
@@ -186,8 +185,8 @@ class RaceController with ChangeNotifier {
   }
 
   /// Show color picker dialog for team color
-  void showColorPicker(
-      BuildContext context, StateSetter setSheetState, TextEditingController teamController) {
+  void showColorPicker(BuildContext context, StateSetter setSheetState,
+      TextEditingController teamController) {
     final index = teamControllers.indexOf(teamController);
     if (index < 0) return;
 
@@ -318,7 +317,6 @@ class RaceController with ChangeNotifier {
 
     // Check if context is still valid after the async operation
     if (!context.mounted) return;
-
 
     // Navigate to the appropriate screen based on the flow
     await flowController.handleFlowNavigation(context, nextState);
@@ -479,7 +477,9 @@ class RaceController with ChangeNotifier {
 
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
-        if (!context.mounted) return; // Check if context is still valid after async request
+        if (!context.mounted) {
+          return; // Check if context is still valid after async request
+        }
       }
 
       if (permission == LocationPermission.deniedForever) {

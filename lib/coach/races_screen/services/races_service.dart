@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../shared/models/race.dart';
-import '../../../utils/database_helper.dart';
+import '../../../core/utils/database_helper.dart';
 
 class RacesService {
   /// Loads all races from the database.

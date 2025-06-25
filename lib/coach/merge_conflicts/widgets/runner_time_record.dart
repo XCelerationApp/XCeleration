@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/utils/enums.dart';
 import '../controller/merge_conflicts_controller.dart';
 import '../model/joined_record.dart';
 import '../model/chunk.dart';
@@ -6,7 +7,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/color_utils.dart';
 import 'runner_info_widgets.dart';
 import 'runner_time_cells.dart';
-import '../../../utils/enums.dart';
 
 class RunnerTimeRecord extends StatelessWidget {
   final bool isExtraTimeRow;
@@ -81,12 +81,16 @@ class RunnerTimeRecord extends StatelessWidget {
                     bottomLeft: Radius.circular(10),
                   ),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    if (!isExtraTimeRow && timeRecord.place != null && index != -1) ...[
-                      PlaceNumber(place: timeRecord.place!, color: conflictColor),
+                    if (!isExtraTimeRow &&
+                        timeRecord.place != null &&
+                        index != -1) ...[
+                      PlaceNumber(
+                          place: timeRecord.place!, color: conflictColor),
                       const SizedBox(width: 10),
                     ],
                     Expanded(
@@ -110,7 +114,8 @@ class RunnerTimeRecord extends StatelessWidget {
                     bottomRight: Radius.circular(10),
                   ),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 14), // Remove vertical padding
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 14), // Remove vertical padding
                 child: SizedBox.expand(
                   child: hasConflict
                       ? (chunk.type == RecordType.missingTime

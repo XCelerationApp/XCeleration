@@ -7,7 +7,7 @@ import '../widgets/individual_results_widget.dart';
 import '../widgets/head_to_head_results.dart';
 import '../widgets/team_results_widget.dart';
 import '../controller/race_results_controller.dart';
-import 'package:xceleration/utils/database_helper.dart';
+import 'package:xceleration/core/utils/database_helper.dart';
 
 
 class ResultsScreen extends StatefulWidget {

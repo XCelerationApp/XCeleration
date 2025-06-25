@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:xceleration/core/services/nearby_connections.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import '../utils/connection_utils.dart';
-import '../../utils/enums.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
 import 'dart:io';
@@ -12,10 +11,8 @@ import 'package:barcode_scan2/barcode_scan2.dart';
 import '../services/device_connection_service.dart';
 import '../utils/data_protocol.dart';
 import 'dialog_utils.dart';
-import '../../utils/sheet_utils.dart';
-import '../../utils/enums.dart'
-
-    show DeviceName, DeviceType, ConnectionStatus, WirelessConnectionError;
+import '../utils/sheet_utils.dart';
+import '../utils/enums.dart';
 
 class WirelessConnectionButton extends StatefulWidget {
   final ConnectedDevice device;

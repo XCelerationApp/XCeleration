@@ -1,7 +1,7 @@
-import 'package:xceleration/assistant/race_timer/model/timing_record.dart';
+import '../../../core/utils/enums.dart';
+import '../../../shared/models/time_record.dart';
 import 'package:xceleration/coach/race_screen/model/race_result.dart';
 import 'package:xceleration/coach/race_screen/widgets/runner_record.dart';
-import 'package:xceleration/utils/enums.dart';
 
 class TimingData {
   List<TimeRecord> records;
@@ -79,7 +79,7 @@ class TimingData {
             raceId: record.raceId ?? 0,
             name: record.name ?? '',
             school: record.school ?? '',
-            grade: record.grade ?? 0,
+            grade: int.tryParse(record.grade?.toString() ?? '0') ?? 0,
             bib: record.bib ?? '',
             error: record.error,
           ))

@@ -1,4 +1,4 @@
-import '../../utils/enums.dart';
+import 'enums.dart';
 
 const Map<DeviceName, String> _deviceNameStrings = {
   DeviceName.coach: 'Coach',

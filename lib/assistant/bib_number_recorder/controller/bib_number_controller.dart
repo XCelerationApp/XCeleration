@@ -1,20 +1,19 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/core/theme/app_colors.dart';
 import 'package:xceleration/core/theme/typography.dart';
-import 'package:xceleration/utils/enums.dart';
+import 'package:xceleration/core/utils/enums.dart' hide RunnerRecordFlags;
 import '../../../coach/race_screen/widgets/runner_record.dart';
 import '../../../core/components/dialog_utils.dart';
 import '../../../core/services/tutorial_manager.dart';
-import '../../../shared/role_bar/models/role_enums.dart';
+import '../../../shared/role_bar/models/role_enums.dart' as role_enums;
 import '../../../shared/role_bar/role_bar.dart';
 import '../../../shared/role_bar/widgets/role_selector_sheet.dart';
-import '../../../utils/decode_utils.dart';
-import '../../../utils/sheet_utils.dart';
+import '../../../core/utils/logger.dart';
+import '../../../core/utils/decode_utils.dart';
+import '../../../core/utils/sheet_utils.dart';
 import '../../../core/components/device_connection_widget.dart';
 import '../../../core/services/device_connection_service.dart';
-
 
 class BibNumberController extends BibNumberDataController {
   final BuildContext context;
@@ -22,7 +21,7 @@ class BibNumberController extends BibNumberDataController {
   late final ScrollController scrollController;
 
   late final DevicesManager devices;
-  
+
   // Debounce timer for validations
   Timer? _debounceTimer;
 
@@ -68,7 +67,8 @@ class BibNumberController extends BibNumberDataController {
 
   void init(BuildContext context) async {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      RoleBar.showInstructionsSheet(context, Role.bibRecorder).then((_) {
+      RoleBar.showInstructionsSheet(context, role_enums.Role.bibRecorder)
+          .then((_) {
         if (context.mounted) _checkForRunners(context);
       });
     });
@@ -93,16 +93,20 @@ class BibNumberController extends BibNumberDataController {
           builder: (BuildContext context) {
             return BasicAlertDialog(
               title: 'No Runners Loaded',
-              content: 'There are no runners loaded on this phone. Please load runners to continue.',
+              content:
+                  'There are no runners loaded on this phone. Please load runners to continue.',
               actions: [
                 TextButton(
-                  child: const Text('Switch to a Different Role', style: AppTypography.buttonText),
+                  child: const Text('Switch to a Different Role',
+                      style: AppTypography.buttonText),
                   onPressed: () {
-                    RoleSelectorSheet.showRoleSelection(context, Role.bibRecorder);
+                    RoleSelectorSheet.showRoleSelection(
+                        context, role_enums.Role.bibRecorder);
                   },
                 ),
                 TextButton(
-                  child: const Text('Load Runners', style: AppTypography.buttonText),
+                  child: const Text('Load Runners',
+                      style: AppTypography.buttonText),
                   onPressed: () async {
                     sheet(
                       context: context,
@@ -139,7 +143,9 @@ class BibNumberController extends BibNumberDataController {
         if (!context.mounted) return;
 
         if (loadedRunners == null || loadedRunners.isEmpty) {
-          Logger.e('Invalid data received from bib recorder: $data. Please try again.', context: context);
+          Logger.e(
+              'Invalid data received from bib recorder: $data. Please try again.',
+              context: context);
           return;
         }
 
@@ -151,7 +157,9 @@ class BibNumberController extends BibNumberDataController {
             runner.school.isNotEmpty);
 
         if (!runnerInCorrectFormat) {
-          Logger.e('Invalid data format received from bib recorder. Please try again.', context: context);
+          Logger.e(
+              'Invalid data format received from bib recorder. Please try again.',
+              context: context);
           return;
         }
 
@@ -187,7 +195,8 @@ class BibNumberController extends BibNumberDataController {
         }
       }
     } else {
-      Logger.e('No data received from bib recorder. Please try again.', context: context);
+      Logger.e('No data received from bib recorder. Please try again.',
+          context: context);
     }
   }
 
@@ -223,10 +232,8 @@ class BibNumberController extends BibNumberDataController {
                   },
                   borderRadius: BorderRadius.circular(18),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12, 
-                      vertical: 6
-                    ),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: Colors.grey[200],
                       borderRadius: BorderRadius.circular(18),
@@ -260,7 +267,7 @@ class BibNumberController extends BibNumberDataController {
             ],
           ),
           const SizedBox(height: 16),
-          
+
           // Table Header
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -312,8 +319,7 @@ class BibNumberController extends BibNumberDataController {
               ],
             ),
           ),
-          
-          
+
           // Table Rows
           ConstrainedBox(
             constraints: BoxConstraints(
@@ -332,7 +338,8 @@ class BibNumberController extends BibNumberDataController {
                     ),
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
                     child: Row(
                       children: [
                         Expanded(
@@ -448,14 +455,13 @@ class BibNumberController extends BibNumberDataController {
   // Bib number validation and handling
   Future<void> validateBibNumber(
       int index, String bibNumber, List<double>? confidences) async {
-
     if (index < 0 || index >= _bibRecords.length) {
       return;
     }
 
     // Get the record to update
     final record = _bibRecords[index];
-    
+
     // Special handling for empty inputs
     if (bibNumber.isEmpty) {
       record.name = '';
@@ -477,8 +483,8 @@ class BibNumberController extends BibNumberDataController {
       record.flags = RunnerRecordFlags(
         notInDatabase: true,
         duplicateBibNumber: false,
-        lowConfidenceScore: confidences != null && 
-            confidences.any((score) => score < 0.85),
+        lowConfidenceScore:
+            confidences != null && confidences.any((score) => score < 0.85),
       );
       updateBibRecord(index, record);
       return;
@@ -486,14 +492,14 @@ class BibNumberController extends BibNumberDataController {
 
     // Check for a matching runner
     RunnerRecord? matchedRunner = getRunnerByBib(bibNumber);
-    
+
     if (matchedRunner != null) {
       // Found a match in database
       record.name = matchedRunner.name;
       record.school = matchedRunner.school;
       record.grade = matchedRunner.grade;
       record.raceId = matchedRunner.raceId;
-      
+
       // Check for duplicate entries
       bool isDuplicate = false;
       int count = 0;
@@ -506,12 +512,12 @@ class BibNumberController extends BibNumberDataController {
           }
         }
       }
-      
+
       record.flags = RunnerRecordFlags(
         notInDatabase: false,
         duplicateBibNumber: isDuplicate,
-        lowConfidenceScore: confidences != null && 
-            confidences.any((score) => score < 0.85),
+        lowConfidenceScore:
+            confidences != null && confidences.any((score) => score < 0.85),
       );
     } else {
       // No match in database
@@ -522,11 +528,11 @@ class BibNumberController extends BibNumberDataController {
       record.flags = RunnerRecordFlags(
         notInDatabase: true,
         duplicateBibNumber: false,
-        lowConfidenceScore: confidences != null && 
-            confidences.any((score) => score < 0.85),
+        lowConfidenceScore:
+            confidences != null && confidences.any((score) => score < 0.85),
       );
     }
-    
+
     // Update the bib record with the runner information
     updateBibRecord(index, record);
   }
@@ -554,16 +560,15 @@ class BibNumberController extends BibNumberDataController {
       // Update existing record (immediately update the text but debounce validation)
       if (index < _bibRecords.length) {
         final record = _bibRecords[index];
-        
+
         // Update text immediately without revalidating
         record.bib = bibNumber;
         updateBibRecord(index, record);
-        
+
         // Debounce the validation to prevent rapid UI updates while typing
         _debounceTimer = Timer(const Duration(milliseconds: 300), () async {
           // Only validate if we still have focus to prevent unnecessary updates
-          if (focusNodes.length > index && 
-              focusNodes[index].hasFocus) {
+          if (focusNodes.length > index && focusNodes[index].hasFocus) {
             await validateBibNumber(index, bibNumber, confidences);
           }
         });
@@ -582,12 +587,12 @@ class BibNumberController extends BibNumberDataController {
           lowConfidenceScore: false,
         ),
       ));
-      
+
       // Only scroll if necessary - check if we need to scroll to make new item visible
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _scrollToLastItemIfNeeded();
       });
-      
+
       // After adding a new record, we don't need to immediately validate
       _debounceTimer = Timer(const Duration(milliseconds: 300), () async {
         final newIndex = _bibRecords.length - 1;
@@ -603,7 +608,8 @@ class BibNumberController extends BibNumberDataController {
       // Validate all bib numbers to update duplicate states after a delay
       _debounceTimer = Timer(const Duration(milliseconds: 400), () async {
         for (var i = 0; i < _bibRecords.length; i++) {
-          if (i != index) { // Skip the one we're currently editing
+          if (i != index) {
+            // Skip the one we're currently editing
             await validateBibNumber(
                 i, _bibRecords[i].bib, i == index ? confidences : null);
           }
@@ -614,7 +620,7 @@ class BibNumberController extends BibNumberDataController {
     if (runners.isNotEmpty && index == null) {
       // Safely determine focus index for new additions
       final focusIndex = _bibRecords.length - 1;
-      
+
       // Only request focus if the index is valid
       if (focusIndex >= 0 && focusIndex < focusNodes.length) {
         // Request focus after a slight delay to allow the UI to settle
@@ -629,15 +635,16 @@ class BibNumberController extends BibNumberDataController {
   void _scrollToLastItemIfNeeded() {
     // Only attempt to scroll if we have a non-empty list and a valid scroll controller
     if (_bibRecords.isEmpty || !scrollController.hasClients) return;
-    
+
     // Check if we're already near the bottom
     final position = scrollController.position;
     final viewportDimension = position.viewportDimension;
     final maxScrollExtent = position.maxScrollExtent;
     final currentOffset = position.pixels;
-    
+
     // If we're not already seeing the bottom part of the list, scroll to make new item visible
-    if (maxScrollExtent > 0 && (maxScrollExtent - currentOffset) > (viewportDimension / 2)) {
+    if (maxScrollExtent > 0 &&
+        (maxScrollExtent - currentOffset) > (viewportDimension / 2)) {
       scrollController.animateTo(
         maxScrollExtent,
         duration: const Duration(milliseconds: 200),
@@ -650,10 +657,10 @@ class BibNumberController extends BibNumberDataController {
   void dispose() {
     // Cancel timer first before any other cleanup
     _debounceTimer?.cancel();
-    
+
     // Dispose of tutorial manager
     tutorialManager.dispose();
-    
+
     // Dispose of scroll controller
     if (scrollController.hasClients) {
       scrollController.dispose();
@@ -688,11 +695,11 @@ class BibNumberDataController extends ChangeNotifier {
   // Synchronizes collections to match bibRecords length
   void _syncCollections() {
     // If collections are out of sync, reset them
-    if (!(_bibRecords.length == controllers.length && 
-      controllers.length == focusNodes.length)) {
+    if (!(_bibRecords.length == controllers.length &&
+        controllers.length == focusNodes.length)) {
       // Save existing bib records
       final existingRecords = List<RunnerRecord>.from(_bibRecords);
-      
+
       // Clear and dispose all existing controllers and focus nodes
       for (var controller in controllers) {
         if (controller.hasListeners) {
@@ -700,15 +707,15 @@ class BibNumberDataController extends ChangeNotifier {
         }
       }
       controllers.clear();
-      
+
       for (var node in focusNodes) {
         node.dispose();
       }
       focusNodes.clear();
-      
+
       // Reset records collection
       _bibRecords.clear();
-      
+
       // Re-add all records with fresh controllers and focus nodes
       for (var record in existingRecords) {
         addBibRecord(record);
@@ -720,7 +727,7 @@ class BibNumberDataController extends ChangeNotifier {
   /// Returns the index of the added record.
   int addBibRecord(RunnerRecord record) {
     _bibRecords.add(record);
-    
+
     final newIndex = _bibRecords.length - 1;
     final controller = TextEditingController(text: record.bib);
     controllers.add(controller);
@@ -733,21 +740,21 @@ class BibNumberDataController extends ChangeNotifier {
       }
     });
     focusNodes.add(focusNode);
-    
+
     notifyListeners();
-    
+
     return newIndex;
   }
 
   /// Updates an existing bib record at the specified index.
   void updateBibRecord(int index, RunnerRecord record) {
     if (index < 0 || index >= _bibRecords.length) return;
-    
+
     // Ensure collections are in sync
     _syncCollections();
-    
+
     _bibRecords[index] = record;
-    
+
     // Only update the controller text if it differs to avoid cursor jumping
     if (index < controllers.length) {
       final currentText = controllers[index].text;
@@ -755,45 +762,45 @@ class BibNumberDataController extends ChangeNotifier {
         controllers[index].text = record.bib;
       }
     }
-    
+
     notifyListeners();
   }
 
   /// Removes a bib record at the specified index.
   void removeBibRecord(int index) {
     if (index < 0 || index >= _bibRecords.length) return;
-    
+
     // Ensure collections are in sync before removing
     _syncCollections();
-    
+
     if (index >= controllers.length || index >= focusNodes.length) return;
-    
+
     _bibRecords.removeAt(index);
-    
+
     // Clean up resources
     controllers[index].dispose();
     controllers.removeAt(index);
-    
+
     focusNodes[index].dispose();
     focusNodes.removeAt(index);
-    
+
     notifyListeners();
   }
 
   void clearBibRecords() {
     _bibRecords.clear();
-    
+
     // Dispose all controllers and focus nodes
     for (var controller in controllers) {
       controller.dispose();
     }
     controllers.clear();
-    
+
     for (var node in focusNodes) {
       node.dispose();
     }
     focusNodes.clear();
-    
+
     notifyListeners();
   }
 
@@ -846,7 +853,8 @@ class BibNumberDataController extends ChangeNotifier {
     return await DialogUtils.showConfirmationDialog(
       context,
       title: 'Duplicate Bib Numbers',
-      content: 'There are duplicate bib numbers in the list: ${duplicates.join(', ')}. Do you want to continue?',
+      content:
+          'There are duplicate bib numbers in the list: ${duplicates.join(', ')}. Do you want to continue?',
     );
   }
 
@@ -868,13 +876,13 @@ class BibNumberDataController extends ChangeNotifier {
     return await DialogUtils.showConfirmationDialog(
       context,
       title: 'Unknown Bib Numbers',
-      content: 'There are bib numbers in the list that do not match any runners in the database. Do you want to continue?',
+      content:
+          'There are bib numbers in the list that do not match any runners in the database. Do you want to continue?',
     );
   }
 
   Future<bool> cleanEmptyRecords() async {
-    final emptyRecords =
-        _bibRecords.where((bib) => bib.bib.isEmpty).toList();
+    final emptyRecords = _bibRecords.where((bib) => bib.bib.isEmpty).toList();
 
     for (var i = emptyRecords.length - 1; i >= 0; i--) {
       final index = _bibRecords.indexOf(emptyRecords[i]);
@@ -909,9 +917,7 @@ class BibNumberDataController extends ChangeNotifier {
 
   // Helper to count unknown bib numbers
   int countUnknownBibNumbers() {
-    return _bibRecords
-        .where((bib) => bib.flags.notInDatabase == true)
-        .length;
+    return _bibRecords.where((bib) => bib.flags.notInDatabase == true).length;
   }
 
   @override
@@ -927,7 +933,7 @@ class BibNumberDataController extends ChangeNotifier {
         Logger.d('Warning: Error disposing focus node: $e');
       }
     }
-    
+
     // Dispose of text controllers
     for (var controller in controllers) {
       try {
@@ -937,7 +943,7 @@ class BibNumberDataController extends ChangeNotifier {
         Logger.d('Warning: Error disposing text controller: $e');
       }
     }
-    
+
     // Clear collections but don't notify listeners since we're disposing
     _bibRecords.clear();
     controllers.clear();

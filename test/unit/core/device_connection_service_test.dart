@@ -8,8 +8,8 @@ import 'package:xceleration/core/services/nearby_connections.dart';
 import 'package:xceleration/core/utils/connection_utils.dart';
 import 'package:xceleration/core/utils/data_package.dart';
 import 'package:xceleration/core/utils/logger.dart';
-import 'package:xceleration/utils/enums.dart';
 import 'package:mockito/annotations.dart';
+import 'package:xceleration/core/utils/enums.dart';
 
 // Generate mocks for our classes
 @GenerateMocks([DevicesManager, NearbyConnections])

@@ -1,9 +1,9 @@
-import 'package:xceleration/assistant/race_timer/model/timing_record.dart';
+import '../../../core/utils/enums.dart';
+import '../../../shared/models/time_record.dart';
 import 'package:flutter/material.dart';
 import 'package:xceleration/coach/merge_conflicts/model/resolve_information.dart';
 import 'package:xceleration/coach/race_screen/widgets/runner_record.dart';
 import 'package:xceleration/core/utils/logger.dart';
-import 'package:xceleration/utils/enums.dart';
 import 'joined_record.dart';
 import 'timing_data.dart';
 
@@ -27,7 +27,7 @@ class Chunk {
     // Only keep runners whose (index+1) matches a record's place in this chunk
     final recordPlaces = records.map((r) => r.place).toSet();
     this.runners = [];
-    
+
     // Filter runners and log those that are missing
     for (int i = 0; i < runners.length; i++) {
       if (recordPlaces.contains(i + 1)) {
@@ -39,10 +39,15 @@ class Chunk {
     // Build joinedRecords by matching runner index+1 to record.place
     joinedRecords = [];
     for (final record in records) {
-      if (record.type == RecordType.runnerTime && record.place != null && record.place! > 0) {
+      if (record.type == RecordType.runnerTime &&
+          record.place != null &&
+          record.place! > 0) {
         final placeIdx = record.place! - 1;
-        if (placeIdx >= 0 && placeIdx < runners.length && recordPlaces.contains(record.place)) {
-          joinedRecords.add(JoinedRecord(runner: runners[placeIdx], timeRecord: record));
+        if (placeIdx >= 0 &&
+            placeIdx < runners.length &&
+            recordPlaces.contains(record.place)) {
+          joinedRecords
+              .add(JoinedRecord(runner: runners[placeIdx], timeRecord: record));
         }
       }
     }
@@ -69,15 +74,19 @@ class Chunk {
   }
 
   Future<void> setResolveInformation(
-    Future<ResolveInformation> Function(int, TimingData, List<RunnerRecord>) resolveTooManyRunnerTimes,
-    Future<ResolveInformation> Function(int, TimingData, List<RunnerRecord>) resolveTooFewRunnerTimes,
+    Future<ResolveInformation> Function(int, TimingData, List<RunnerRecord>)
+        resolveTooManyRunnerTimes,
+    Future<ResolveInformation> Function(int, TimingData, List<RunnerRecord>)
+        resolveTooFewRunnerTimes,
     TimingData timing,
   ) async {
     timingData = timing;
     if (type == RecordType.extraTime) {
-      resolve = await resolveTooManyRunnerTimes(conflictIndex, timingData!, runners);
+      resolve =
+          await resolveTooManyRunnerTimes(conflictIndex, timingData!, runners);
     } else if (type == RecordType.missingTime) {
-      resolve = await resolveTooFewRunnerTimes(conflictIndex, timingData!, runners);
+      resolve =
+          await resolveTooFewRunnerTimes(conflictIndex, timingData!, runners);
     }
   }
 

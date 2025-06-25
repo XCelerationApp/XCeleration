@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import '../../../shared/models/race.dart';
-import '../../../utils/database_helper.dart';
+import '../../../core/utils/database_helper.dart';
 import 'package:intl/intl.dart';
 import '../../runners_management_screen/screen/runners_management_screen.dart';
 
