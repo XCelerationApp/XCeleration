@@ -1,5 +1,6 @@
 /// Central export file for shared functionality
 /// This provides clean imports for widgets, constants, models, and screens
+library;
 
 // Widgets
 export 'widgets/common_widgets.dart';

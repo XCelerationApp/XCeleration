@@ -67,9 +67,7 @@ class GoogleService {
       _currentUser = await _googleSignIn!.signInSilently();
 
       // If silent sign-in fails, try interactive sign-in
-      if (_currentUser == null) {
-        _currentUser = await _googleSignIn!.signIn();
-      }
+      _currentUser ??= await _googleSignIn!.signIn();
 
       if (_currentUser == null) {
         Logger.d('Sign-in cancelled by user');

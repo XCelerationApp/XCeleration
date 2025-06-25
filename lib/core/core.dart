@@ -1,5 +1,6 @@
 /// Central export file for core functionality
 /// This provides clean imports for services, components, and utilities
+library;
 
 // Services
 export 'services/service_locator.dart';

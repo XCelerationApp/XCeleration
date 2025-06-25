@@ -1,5 +1,6 @@
 /// Central export file for all main application screens
 /// This provides a single import point for screens across the app
+library;
 
 // Assistant screens (original timing system)
 export '../../assistant/bib_number_recorder/screen/bib_number_screen.dart';

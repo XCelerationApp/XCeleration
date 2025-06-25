@@ -137,10 +137,12 @@ class ShareResultsController {
     try {
       if (!context.mounted) throw Exception('Context not mounted');
       // Execute the sheet creation with a loading dialog
+      final data = await _formattedResultsController.formattedSheetsData;
+      if (!context.mounted) throw Exception('Context not mounted');
       final sheetUri = await _googleSheetsService.createSheetAndGetUri(
         context: context,
         title: title,
-        data: await _formattedResultsController.formattedSheetsData,
+        data: data,
       );
 
       if (sheetUri == null) {
@@ -157,8 +159,10 @@ class ShareResultsController {
       } else {
         Logger.d('Context not mounted, skipping Google Sheet options');
         await Clipboard.setData(ClipboardData(text: sheetUri.toString()));
-        DialogUtils.showSuccessDialog(context,
-            message: 'Sheet URL copied to clipboard');
+        if (context.mounted) {
+          DialogUtils.showSuccessDialog(context,
+              message: 'Sheet URL copied to clipboard');
+        }
       }
     } catch (e) {
       Logger.d('Error in Google Sheet creation: $e');
