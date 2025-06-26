@@ -25,11 +25,9 @@ jobs:
       - name: Set up Ruby and Bundler
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '3.0'
-          
-      - name: Install dependencies
-        working-directory: ./ios
-        run: bundle install
+          ruby-version: '3.2'
+          bundler: '2.6.9'
+          bundler-cache: true
 
       - name: Create .env file
         run: echo "${{ secrets.DOTENV }}" > .env
