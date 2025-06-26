@@ -10,7 +10,7 @@ import '../steps/reconnect/reconnect_step.dart';
 /// Controller for managing the post-race flow
 class PostRaceController {
   final int raceId;
-  
+
   // Controllers
   late final LoadResultsController _loadResultsController;
 
@@ -18,7 +18,7 @@ class PostRaceController {
   late final ReconnectStep _reconnectStep;
   late final LoadResultsStep _loadResultsStep;
   late final ReviewResultsStep _reviewResultsStep;
-  
+
   // Track flow position
   int? _lastStepIndex;
 
@@ -30,8 +30,9 @@ class PostRaceController {
   /// Initialize the flow steps
   void _initializeSteps() {
     // Create controllers first so they can be shared between steps
-    _loadResultsController = LoadResultsController(raceId: raceId, callback: _updateReviewStep);
-    
+    _loadResultsController =
+        LoadResultsController(raceId: raceId, callback: _updateReviewStep);
+
     // Create steps with the controllers
     _reconnectStep = ReconnectStep();
     _loadResultsStep = LoadResultsStep(
@@ -40,7 +41,7 @@ class PostRaceController {
 
     _reviewResultsStep = ReviewResultsStep();
   }
-  
+
   /// Update ReviewResultsStep with latest results from LoadResultsController
   void _updateReviewStep() {
     Logger.d('Updating ReviewResultsStep with latest results');

@@ -12,6 +12,7 @@ class RunnerRecord {
       flags: flags,
     );
   }
+
   factory RunnerRecord.blank() {
     return RunnerRecord(
       bib: '',

@@ -33,7 +33,8 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
   }
 
   void _initializeState() {
-    final controller = Provider.of<MergeConflictsController>(context, listen: false);
+    final controller =
+        Provider.of<MergeConflictsController>(context, listen: false);
     controller.setContext(context);
     controller.initState();
     controller.addListener(_rebuildUi);
@@ -48,7 +49,8 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final controller = Provider.of<MergeConflictsController>(context, listen: false);
+    final controller =
+        Provider.of<MergeConflictsController>(context, listen: false);
     controller.updateRunnerInfo();
   }
 
@@ -57,32 +59,33 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
     final controller = Provider.of<MergeConflictsController>(context);
     controller.setContext(context);
     return Scaffold(
-        resizeToAvoidBottomInset: true,
-        body: Container(
-          color: AppColors.backgroundColor,
-          child: SafeArea(
-            child: Column(
-              children: [
-                if (controller.getFirstConflict()[0] == null)
-                  SaveButton(controller: controller),
-                Expanded(
-                  child: ListView(
-                    padding: EdgeInsets.zero,
-                    children: [
-                      InstructionsAndList(controller: controller),
-                    ],
-                  ),
+      resizeToAvoidBottomInset: true,
+      body: Container(
+        color: AppColors.backgroundColor,
+        child: SafeArea(
+          child: Column(
+            children: [
+              if (controller.getFirstConflict()[0] == null)
+                SaveButton(controller: controller),
+              Expanded(
+                child: ListView(
+                  padding: EdgeInsets.zero,
+                  children: [
+                    InstructionsAndList(controller: controller),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
+      ),
     );
   }
 
   @override
   void dispose() {
-    final controller = Provider.of<MergeConflictsController>(context, listen: false);
+    final controller =
+        Provider.of<MergeConflictsController>(context, listen: false);
     controller.removeListener(_rebuildUi);
     controller.dispose();
     super.dispose();

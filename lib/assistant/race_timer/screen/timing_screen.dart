@@ -64,25 +64,21 @@ class _TimingScreenState extends State<TimingScreen>
                     tutorialManager: tutorialManager,
                   ),
                   const SizedBox(height: 16),
-                  RaceInfoHeaderWidget(
-                    controller: _controller
-                  ),
+                  RaceInfoHeaderWidget(controller: _controller),
                   const SizedBox(height: 8),
                   TimerDisplayWidget(
                     controller: _controller,
                   ),
                   const SizedBox(height: 8),
-                  RaceControlsWidget(
-                    controller: _controller
-                  ),
+                  RaceControlsWidget(controller: _controller),
                   if (_controller.records.isNotEmpty)
                     const SizedBox(height: 30),
                   Expanded(child: RecordsListWidget(controller: _controller)),
                   if (_controller.raceStopped == false &&
                       _controller.records.isNotEmpty)
                     BottomControlsWidget(
-                    controller: _controller,
-                  ),
+                      controller: _controller,
+                    ),
                 ],
               ),
             ),

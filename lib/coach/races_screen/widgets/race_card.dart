@@ -23,25 +23,26 @@ class RaceCard extends StatelessWidget {
   }) {
     // State text based on flow state
     flowStateText = {
-      Race.FLOW_SETUP: 'Setting up',
-      Race.FLOW_SETUP_COMPLETED: 'Ready to Share',
-      Race.FLOW_PRE_RACE: 'Sharing Runners',
-      Race.FLOW_PRE_RACE_COMPLETED: 'Ready for Results',
-      Race.FLOW_POST_RACE: 'Processing Results',
-      Race.FLOW_FINISHED: 'Race Complete',
-    }[race.flowState] ??
-    'Setting up';
+          Race.FLOW_SETUP: 'Setting up',
+          Race.FLOW_SETUP_COMPLETED: 'Ready to Share',
+          Race.FLOW_PRE_RACE: 'Sharing Runners',
+          Race.FLOW_PRE_RACE_COMPLETED: 'Ready for Results',
+          Race.FLOW_POST_RACE: 'Processing Results',
+          Race.FLOW_FINISHED: 'Race Complete',
+        }[race.flowState] ??
+        'Setting up';
 
     // Different colors based on the flow state
     flowStateColor = {
-      Race.FLOW_SETUP: ColorUtils.withOpacity(AppColors.primaryColor, 0.5),
-      Race.FLOW_SETUP_COMPLETED: ColorUtils.withOpacity(AppColors.primaryColor, 0.5),
-      Race.FLOW_PRE_RACE: AppColors.primaryColor,
-      Race.FLOW_PRE_RACE_COMPLETED: AppColors.primaryColor,
-      Race.FLOW_POST_RACE: AppColors.primaryColor,
-      Race.FLOW_FINISHED: Colors.blue,
-    }[race.flowState] ??
-    AppColors.primaryColor;
+          Race.FLOW_SETUP: ColorUtils.withOpacity(AppColors.primaryColor, 0.5),
+          Race.FLOW_SETUP_COMPLETED:
+              ColorUtils.withOpacity(AppColors.primaryColor, 0.5),
+          Race.FLOW_PRE_RACE: AppColors.primaryColor,
+          Race.FLOW_PRE_RACE_COMPLETED: AppColors.primaryColor,
+          Race.FLOW_POST_RACE: AppColors.primaryColor,
+          Race.FLOW_FINISHED: Colors.blue,
+        }[race.flowState] ??
+        AppColors.primaryColor;
   }
 
   @override
@@ -115,8 +116,8 @@ class RaceCard extends StatelessWidget {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(16),
           child: InkWell(
-            onTap: () =>
-                RaceController.showRaceScreen(context, controller, race.race_id),
+            onTap: () => RaceController.showRaceScreen(
+                context, controller, race.race_id),
             child: Padding(
               padding: const EdgeInsets.only(
                   left: 24.0, right: 24.0, top: 16.0, bottom: 16.0),
@@ -135,8 +136,7 @@ class RaceCard extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color:
-                              flowStateColor.withAlpha((0.1 * 255).round()),
+                          color: flowStateColor.withAlpha((0.1 * 255).round()),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
                             color:
@@ -177,7 +177,7 @@ class RaceCard extends StatelessWidget {
                       ],
                     ),
                   ],
-                  
+
                   // Only show date if not null
                   if (race.race_date != null) ...[
                     const SizedBox(height: 8),
@@ -197,7 +197,7 @@ class RaceCard extends StatelessWidget {
                       ],
                     ),
                   ],
-                  
+
                   // Only show distance if greater than 0
                   if (race.distance > 0) ...[
                     const SizedBox(height: 8),

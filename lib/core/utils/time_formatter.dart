@@ -37,12 +37,12 @@ class TimeFormatter {
   }
 
   /// Parses a time string into a Duration object.
-  /// 
+  ///
   /// Supports various formats:
   /// - "ss.xx" (seconds only)
   /// - "mm:ss.xx" (minutes and seconds)
   /// - "hh:mm:ss.xx" (hours, minutes, and seconds)
-  /// 
+  ///
   /// Returns null if the string is empty, 'manual', or not in a valid format.
   static Duration? loadDurationFromString(String input) {
     try {

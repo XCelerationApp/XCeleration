@@ -14,7 +14,7 @@ class FlowNotification extends StatelessWidget {
       required this.color,
       required this.icon,
       required this.continueAction});
-      
+
   // Get appropriate button text based on the flow state
   String _getButtonText() {
     if (flowState == Race.FLOW_SETUP_COMPLETED) {
@@ -25,7 +25,7 @@ class FlowNotification extends StatelessWidget {
       return 'Continue';
     }
   }
-  
+
   // Get appropriate status text
   String _getStatusText() {
     // Simplified status text based on flow state
@@ -71,9 +71,10 @@ class FlowNotification extends StatelessWidget {
             ),
             const Spacer(),
             // Don't show action button for post-race completed or finished states
-            if (flowState != Race.FLOW_FINISHED) 
+            if (flowState != Race.FLOW_FINISHED)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
                   color: color.withAlpha((0.1 * 255).round()),
                   borderRadius: BorderRadius.circular(16),

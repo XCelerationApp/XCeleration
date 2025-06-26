@@ -17,7 +17,7 @@ class RacesScreen extends StatefulWidget {
 
 class RacesScreenState extends State<RacesScreen> {
   final RacesController _controller = RacesController();
-  
+
   @override
   void initState() {
     super.initState();
@@ -30,51 +30,50 @@ class RacesScreenState extends State<RacesScreen> {
     _controller.dispose();
     super.dispose();
   }
-  
+
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
         return TutorialRoot(
-          tutorialManager: _controller.tutorialManager,
-          child: Scaffold(
-            floatingActionButton: CoachMark(
-              id: 'create_race_button_tutorial',
-              tutorialManager: _controller.tutorialManager,
-              config: const CoachMarkConfig(
-                title: 'Create Race',
-                alignmentX: AlignmentX.left,
-                alignmentY: AlignmentY.top,
-                description: 'Click here to create a new race',
-                icon: Icons.add,
-                type: CoachMarkType.targeted,
-                backgroundColor: Color(0xFF1976D2),
-                elevation: 12,
-              ),
-              child: FloatingActionButton(
-                onPressed: () => _controller.showCreateRaceSheet(context),
-                backgroundColor: AppColors.primaryColor,
-                child: Icon(Icons.add),
-              ),
-            ),
-            body: Padding(
-              padding: EdgeInsets.fromLTRB(24.0, 0, 24.0, 24.0),
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    RoleBar(currentRole: Role.coach, tutorialManager: _controller.tutorialManager),
-                    RaceCoachMark(
-                      controller: _controller,
-                      child: RacesList(controller: _controller),
-                    ),
-                  ]
+            tutorialManager: _controller.tutorialManager,
+            child: Scaffold(
+                floatingActionButton: CoachMark(
+                  id: 'create_race_button_tutorial',
+                  tutorialManager: _controller.tutorialManager,
+                  config: const CoachMarkConfig(
+                    title: 'Create Race',
+                    alignmentX: AlignmentX.left,
+                    alignmentY: AlignmentY.top,
+                    description: 'Click here to create a new race',
+                    icon: Icons.add,
+                    type: CoachMarkType.targeted,
+                    backgroundColor: Color(0xFF1976D2),
+                    elevation: 12,
+                  ),
+                  child: FloatingActionButton(
+                    onPressed: () => _controller.showCreateRaceSheet(context),
+                    backgroundColor: AppColors.primaryColor,
+                    child: Icon(Icons.add),
+                  ),
                 ),
-              ),
-            )
-          )
-        );
+                body: Padding(
+                  padding: EdgeInsets.fromLTRB(24.0, 0, 24.0, 24.0),
+                  child: SingleChildScrollView(
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          RoleBar(
+                              currentRole: Role.coach,
+                              tutorialManager: _controller.tutorialManager),
+                          RaceCoachMark(
+                            controller: _controller,
+                            child: RacesList(controller: _controller),
+                          ),
+                        ]),
+                  ),
+                )));
       },
     );
   }

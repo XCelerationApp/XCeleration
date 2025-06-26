@@ -14,7 +14,7 @@ class Race {
   final List<Color> teamColors;
   final List<String> teams;
   final String flowState;
-  
+
   // Flow state static constants
   static const String FLOW_SETUP = 'setup';
   static const String FLOW_SETUP_COMPLETED = 'setup-completed';
@@ -22,10 +22,10 @@ class Race {
   static const String FLOW_PRE_RACE_COMPLETED = 'pre-race-completed';
   static const String FLOW_POST_RACE = 'post-race';
   static const String FLOW_FINISHED = 'finished';
-  
+
   // Suffix for completed states
   static const String FLOW_COMPLETED_SUFFIX = '-completed';
-  
+
   // Flow sequence for progression
   static const List<String> FLOW_SEQUENCE = [
     FLOW_SETUP,
@@ -52,30 +52,30 @@ class Race {
   static Race fromJson(Map<String, dynamic> race) {
     List<dynamic> teamColorsList;
     List<dynamic> teamsList;
-    
+
     // Handle team_colors - could be string or binary data
     if (race['team_colors'] is String) {
       teamColorsList = jsonDecode(race['team_colors']);
     } else {
       // If it's already a List or some other format, try to use it directly
       try {
-        teamColorsList = race['team_colors'] is List 
-            ? race['team_colors'] 
+        teamColorsList = race['team_colors'] is List
+            ? race['team_colors']
             : jsonDecode(race['team_colors'].toString());
       } catch (e) {
         // Fallback to empty list if decoding fails
         teamColorsList = [];
       }
     }
-    
+
     // Handle teams - could be string or binary data
     if (race['teams'] is String) {
       teamsList = jsonDecode(race['teams']);
     } else {
       // If it's already a List or some other format, try to use it directly
       try {
-        teamsList = race['teams'] is List 
-            ? race['teams'] 
+        teamsList = race['teams'] is List
+            ? race['teams']
             : jsonDecode(race['teams'].toString());
       } catch (e) {
         // Fallback to empty list if decoding fails
@@ -87,7 +87,8 @@ class Race {
     return Race(
       raceId: int.parse(race['race_id'].toString()),
       raceName: race['race_name'],
-      raceDate: race['race_date'] != null ? DateTime.parse(race['race_date']) : null,
+      raceDate:
+          race['race_date'] != null ? DateTime.parse(race['race_date']) : null,
       location: race['location'],
       distance: double.parse(race['distance'].toString()),
       distanceUnit: race['distance_unit'],
@@ -149,12 +150,13 @@ class Race {
       flowState: flowState ?? this.flowState,
     );
   }
-  
+
   // Returns true if the current flow state is a completed state
   bool get isCurrentFlowCompleted {
-    return flowState.contains(FLOW_COMPLETED_SUFFIX) || flowState == FLOW_FINISHED;
+    return flowState.contains(FLOW_COMPLETED_SUFFIX) ||
+        flowState == FLOW_FINISHED;
   }
-  
+
   // Returns the current flow name without the '-completed' suffix
   String get currentFlowBase {
     if (flowState.contains(FLOW_COMPLETED_SUFFIX)) {
@@ -162,7 +164,7 @@ class Race {
     }
     return flowState;
   }
-  
+
   // Get the display name for the next flow
   String get nextFlowDisplayName {
     if (flowState == FLOW_SETUP) return 'Pre-Race';
@@ -173,7 +175,7 @@ class Race {
     // if (flowState == FLOW_POST_RACE_COMPLETED) return 'Finishing';
     return '';
   }
-  
+
   // Get the state for the next flow
   String get nextFlowState {
     int currentIndex = FLOW_SEQUENCE.indexOf(flowState);
@@ -182,7 +184,7 @@ class Race {
     }
     return flowState; // Return current if at the end
   }
-  
+
   // Mark the current flow as completed
   String get completedFlowState {
     if (flowState == FLOW_SETUP) return FLOW_SETUP_COMPLETED;

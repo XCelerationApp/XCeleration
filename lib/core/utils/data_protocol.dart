@@ -6,8 +6,6 @@ import 'data_package.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'connection_interfaces.dart';
 
-
-
 class _TransmissionState {
   final Completer<void> completer;
   Timer? retryTimer;
@@ -128,8 +126,7 @@ class Protocol implements ProtocolInterface {
     // Send acknowledgment
     try {
       if (!_isDeviceConnected(senderId)) {
-        Logger.d(
-            'Cannot send acknowledgment - device $senderId not connected');
+        Logger.d('Cannot send acknowledgment - device $senderId not connected');
         return;
       }
 
@@ -271,7 +268,8 @@ class Protocol implements ProtocolInterface {
     }
 
     try {
-      Logger.d('Starting to send data to device $senderId (length: ${data.length})');
+      Logger.d(
+          'Starting to send data to device $senderId (length: ${data.length})');
       // Split data into chunks
       final chunks = <String>[];
       for (var i = 0; i < data.length; i += chunkSize) {
@@ -300,8 +298,7 @@ class Protocol implements ProtocolInterface {
       Logger.d('Sending FIN package');
       await _sendPackageWithRetry(finPackage, senderId);
 
-      Logger.d(
-          'Successfully sent ${chunks.length} chunks to device $senderId');
+      Logger.d('Successfully sent ${chunks.length} chunks to device $senderId');
     } catch (e) {
       if (_isTerminated) {
         rethrow;
@@ -340,23 +337,23 @@ class Protocol implements ProtocolInterface {
     bool shouldAbort() {
       try {
         bool currentState = shouldContinueTransfer();
-        
+
         // If protocol is terminated, abort immediately
         if (_isTerminated) {
           Logger.d('Aborting transfer because protocol is terminated');
           stateChangeTimer?.cancel();
           return true;
         }
-        
+
         // If state hasn't changed and it's good, we're fine
         if (currentState == lastKnownState && currentState) {
           return false;
         }
-        
+
         // If state changes
         if (currentState != lastKnownState) {
           Logger.d('Transfer state changed: $lastKnownState -> $currentState');
-          
+
           // If changed to good state, cancel any pending timer
           if (currentState) {
             Logger.d('State recovered, cancelling abort timer');
@@ -364,25 +361,27 @@ class Protocol implements ProtocolInterface {
             stateChangeTimer = null;
             lastKnownState = currentState;
             return false;
-          } 
+          }
           // If changed to bad state, start the timer if not already running
           else if (stateChangeTimer == null) {
             Logger.d('State degraded, starting 3-second abort timer');
             stateChangeTimer = Timer(stateChangeTimeout, () {
-              Logger.d('Abort timer triggered after ${stateChangeTimeout.inSeconds} seconds of bad state');
+              Logger.d(
+                  'Abort timer triggered after ${stateChangeTimeout.inSeconds} seconds of bad state');
               // Timer trigger doesn't actually do anything - it will be checked in the next call to shouldAbort
             });
           }
-          
+
           lastKnownState = currentState;
         }
-        
+
         // If we have an active timer that has completed, abort
         if (stateChangeTimer != null && !stateChangeTimer!.isActive) {
-          Logger.d('Aborting transfer: state remained bad for ${stateChangeTimeout.inSeconds} seconds');
+          Logger.d(
+              'Aborting transfer: state remained bad for ${stateChangeTimeout.inSeconds} seconds');
           return true;
         }
-        
+
         return false;
       } catch (e) {
         Logger.e('Error in shouldContinueTransfer: $e');
@@ -408,7 +407,8 @@ class Protocol implements ProtocolInterface {
       }
 
       if (shouldAbort()) {
-        throw ProtocolTerminatedException('Transfer aborted: device status changed');
+        throw ProtocolTerminatedException(
+            'Transfer aborted: device status changed');
       }
 
       // Wait for either completion or termination with resilience to transient state changes
@@ -418,7 +418,7 @@ class Protocol implements ProtocolInterface {
           if (_finishedDevices.contains(deviceId) || _isTerminated) {
             return false;
           }
-          
+
           // Use our robust state checker
           if (shouldAbort()) {
             // State has been bad for 3 seconds - shouldAbort will handle logging
@@ -430,10 +430,11 @@ class Protocol implements ProtocolInterface {
         }),
         _terminationController.stream.first,
       ]);
-      
+
       // Check again with our timer-based state checker
       if (shouldAbort()) {
-        throw ProtocolTerminatedException('Transfer aborted: persistent device status change');
+        throw ProtocolTerminatedException(
+            'Transfer aborted: persistent device status change');
       }
 
       if (_isTerminated) {
@@ -442,7 +443,6 @@ class Protocol implements ProtocolInterface {
       }
       Logger.d('Data transfer complete');
 
-      
       // Handle receiving data
       if (isReceiving) {
         // Process received packages
@@ -450,7 +450,7 @@ class Protocol implements ProtocolInterface {
         if (packages.isEmpty) {
           throw Exception('No packages received from $deviceId');
         }
-        
+
         final List<Package> sortedPackages = packages.values.toList()
           ..sort((a, b) => a.number.compareTo(b.number));
 
@@ -486,7 +486,7 @@ class Protocol implements ProtocolInterface {
         }
         return dataChunks.join();
       }
-      
+
       return null;
     } catch (e) {
       if (_isTerminated) {
@@ -500,18 +500,17 @@ class Protocol implements ProtocolInterface {
     }
   }
 
-
   /// Resets the state for a specific device, clearing any in-progress transfers
   void resetDeviceState(String deviceId) {
     // Remove from finished devices if present
     _finishedDevices.remove(deviceId);
-    
+
     // Clear received packages for this device
     _receivedPackages[deviceId]?.clear();
-    
+
     // Reset finish sequence number
     _finishSequenceNumbers[deviceId] = 0;
-    
+
     // Cancel any pending transmissions related to this device
     // This is a simplification as we don't track which transmissions are for which device
     // In a more sophisticated implementation, we would track device-specific transmissions
@@ -537,8 +536,8 @@ class Protocol implements ProtocolInterface {
       for (final state in _pendingTransmissions.values) {
         state.retryTimer?.cancel();
         if (!state.completer.isCompleted) {
-          state.completer.completeError(
-              ProtocolTerminatedException('Protocol disposed'));
+          state.completer
+              .completeError(ProtocolTerminatedException('Protocol disposed'));
         }
       }
       _pendingTransmissions.clear();
@@ -550,13 +549,13 @@ class Protocol implements ProtocolInterface {
       rethrow;
     }
   }
-  
+
   /// Check if a device has finished its transfer
   @override
   bool isFinished(String deviceId) {
     return _finishedDevices.contains(deviceId);
   }
-  
+
   /// Check if the protocol is terminated
   @override
   bool get isTerminated => _isTerminated;

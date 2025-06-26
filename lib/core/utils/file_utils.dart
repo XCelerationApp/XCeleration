@@ -38,37 +38,38 @@ class FileUtils {
   static Future<List<List<dynamic>>?> parseSpreadsheetFile(File file) async {
     final extension = path.extension(file.path).toLowerCase();
     Logger.d('Parsing file: ${file.path}');
-    
+
     try {
       if (extension == '.xlsx') {
         // Parse Excel file
         final bytes = await file.readAsBytes();
         final excel = Excel.decodeBytes(bytes);
-        
+
         // Get the first sheet
         if (excel.tables.isEmpty) {
           Logger.d('Excel file contains no sheets');
           return null;
         }
-        
+
         final sheet = excel.tables.values.first;
         final List<List<dynamic>> data = [];
-        
+
         // Convert Excel rows to list format
         for (var row in sheet.rows) {
           if (row.isEmpty) continue;
-          
+
           final List<dynamic> rowData = [];
           for (var cell in row) {
             rowData.add(cell?.value ?? '');
           }
-          
+
           // Only add if row has actual data
-          if (rowData.any((cell) => cell != null && cell.toString().isNotEmpty)) {
+          if (rowData
+              .any((cell) => cell != null && cell.toString().isNotEmpty)) {
             data.add(rowData);
           }
         }
-        
+
         return data;
       } else if (extension == '.csv') {
         // Parse CSV file with enhanced options
@@ -82,12 +83,12 @@ class FileUtils {
       return null;
     }
   }
-  
+
   /// Enhanced CSV parsing with options for different delimiters, quote chars, etc.
   static Future<List<List<dynamic>>> _parseCSVFile(File file) async {
     final contents = await file.readAsString();
     Logger.d('Parsing CSV file: $contents');
-  
+
     try {
       // Try to detect the delimiter (common ones are comma, tab, semicolon)
       String delimiter = ','; // Default
@@ -100,24 +101,26 @@ class FileUtils {
         // European format often uses semicolons
         delimiter = ';';
       }
-      
+
       // Parse with detected delimiter
       final converter = CsvToListConverter(
         fieldDelimiter: delimiter,
         eol: '\n',
         shouldParseNumbers: true, // Convert strings to numbers when possible
       );
-      
+
       final rows = converter.convert(contents);
       Logger.d('Parsed CSV file: $rows');
       // Remove empty rows
-      return rows.where((row) => 
-        row.isNotEmpty && 
-        row.any((cell) => cell != null && cell.toString().isNotEmpty)
-      ).toList();
+      return rows
+          .where((row) =>
+              row.isNotEmpty &&
+              row.any((cell) => cell != null && cell.toString().isNotEmpty))
+          .toList();
     } catch (e) {
       // If custom parsing fails, fall back to default parsing
-      Logger.d('Advanced CSV parsing failed: $e. Falling back to default parser.');
+      Logger.d(
+          'Advanced CSV parsing failed: $e. Falling back to default parser.');
       return const CsvToListConverter().convert(contents);
     }
   }

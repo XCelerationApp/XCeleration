@@ -11,17 +11,17 @@ import 'models/role_enums.dart';
 class RoleBar extends StatelessWidget {
   /// Current role or profile (can be a string, Role enum, or Profile enum)
   final Role currentRole;
-  
+
   /// Tutorial manager for coach marks
   final TutorialManager tutorialManager;
-  
+
   /// Creates a role bar with the given current role and tutorial manager
   const RoleBar({
     required this.currentRole,
     required this.tutorialManager,
     super.key,
   });
-  
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -71,14 +71,15 @@ class RoleBar extends StatelessWidget {
       ),
     );
   }
-  
+
   /// Builds spacing for the top of the role bar
   Widget _buildTopSpacing(BuildContext context) {
     final topPadding = MediaQuery.of(context).padding.top;
     return SizedBox(height: topPadding);
   }
 
-  static Future<void> showInstructionsSheet(BuildContext context, Role role) async {
+  static Future<void> showInstructionsSheet(
+      BuildContext context, Role role) async {
     await InstructionsBanner.showInstructionsSheet(context, role);
   }
 }
