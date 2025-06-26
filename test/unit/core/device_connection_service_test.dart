@@ -39,8 +39,8 @@ void main() {
   late MockDevicesManager mockDevicesManager;
   late MockNearbyConnections mockNearbyConnections;
   late MockNearbyConnectionsHelper mockNearbyHelper;
-  late StreamController<List<Device>> stateChangeController;
-  late StreamController<dynamic> dataController;
+  StreamController<List<Device>>? stateChangeController;
+  StreamController? dataController;
   final ConnectedDevice mockConnectedDevice =
       ConnectedDevice(DeviceName.bibRecorder);
   final Device mockDevice = Device(
@@ -52,12 +52,18 @@ void main() {
     mockNearbyConnections = MockNearbyConnections();
     mockDevicesManager = MockDevicesManager();
 
+    // Reset mock object states to ensure test independence
+    // Reset mock object states to ensure test independence
     mockConnectedDevice.status = ConnectionStatus.searching;
+    mockConnectedDevice.data = null;
+    mockConnectedDevice.data = null;
     mockDevice.state = SessionState.notConnected;
 
-    // Initialize stream controllers
+    // Initialize new stream controllers to ensure test independence
+    await stateChangeController?.close();
+    await dataController?.close();
     stateChangeController = StreamController<List<Device>>.broadcast();
-    dataController = StreamController<dynamic>.broadcast();
+    dataController = StreamController.broadcast();
 
     // Setup all stream controllers and mocks
 
@@ -107,7 +113,7 @@ void main() {
         .thenAnswer((invocation) {
       final callback = invocation.namedArguments[const Symbol('callback')]
           as Function(List<Device>);
-      return stateChangeController.stream.listen(callback);
+      return stateChangeController!.stream.listen(callback);
     });
 
     // Setup dataReceivedSubscription
@@ -116,7 +122,7 @@ void main() {
         .thenAnswer((invocation) {
       final callback = invocation.namedArguments[const Symbol('callback')]
           as Function(dynamic);
-      return dataController.stream.listen((data) => callback(data));
+      return dataController!.stream.listen((data) => callback(data));
     });
 
     // Setup devices for MockDevicesManager
@@ -164,6 +170,8 @@ void main() {
   tearDown(() async {
     // Wait for any pending operations to complete
     await Future.delayed(Duration.zero);
+    await stateChangeController?.close();
+    await dataController?.close();
     deviceConnectionService.dispose();
     mockNearbyHelper.dispose();
   });
@@ -332,7 +340,7 @@ void main() {
             as Function(dynamic);
         Logger.d('Creating new data subscription');
         // Return a subscription that will trigger our callback when we add to dataController
-        return dataController.stream.listen(callback);
+        return dataController!.stream.listen(callback);
       });
 
       // Act - Setup monitoring
@@ -349,7 +357,7 @@ void main() {
       // Wait to ensure monitoring is properly set up
       await Future.delayed(const Duration(milliseconds: 100));
 
-      dataController.add(dataPayload);
+      dataController!.add(dataPayload);
 
       // Allow time for the async operation to complete
       await Future.delayed(const Duration(milliseconds: 200));
@@ -519,7 +527,7 @@ void main() {
           callback([mockDevice]);
         });
 
-        return stateChangeController.stream.listen(callback);
+        return stateChangeController!.stream.listen(callback);
       });
 
       // Act - Call monitorDevicesConnectionStatus with deviceFoundCallback
