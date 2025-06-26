@@ -7,15 +7,14 @@ import '../../../../race_results/model/results_record.dart';
 class ReviewResultsStep extends FlowStep {
   List<ResultsRecord> results = [];
 
-
   /// Creates a new instance of ReviewResultsStep
   ReviewResultsStep()
-    : super(
-        title: 'Review Results',
-        description: 'Review and verify the race results before saving them.',
-        // Use placeholder content that will be overridden by the content getter
-        content: SizedBox.shrink(),
-      );
+      : super(
+          title: 'Review Results',
+          description: 'Review and verify the race results before saving them.',
+          // Use placeholder content that will be overridden by the content getter
+          content: SizedBox.shrink(),
+        );
 
   @override
   Widget get content => ResultsReviewWidget(results: results);

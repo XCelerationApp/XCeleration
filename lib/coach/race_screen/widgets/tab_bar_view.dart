@@ -19,7 +19,6 @@ class _TabBarViewWidgetState extends State<TabBarViewWidget> {
         controller: widget.controller.tabController,
         children: [
           RaceDetailsTab(controller: widget.controller),
-
           ResultsScreen(
             raceId: widget.controller.raceId,
           ),

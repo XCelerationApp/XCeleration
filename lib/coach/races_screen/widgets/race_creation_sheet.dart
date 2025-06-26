@@ -27,17 +27,17 @@ class RaceCreationSheet extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         RaceNameField(controller: controller, setSheetState: setSheetState),
-          // const SizedBox(height: 12),
-          // CompetingTeamsField(
-          //     controller: controller, setSheetState: setSheetState),
-          // const SizedBox(height: 12),
-          // RaceLocationField(
-          //     controller: controller, setSheetState: setSheetState),
-          // const SizedBox(height: 12),
-          // RaceDateField(controller: controller, setSheetState: setSheetState),
-          // const SizedBox(height: 12),
-          // RaceDistanceField(
-          //     controller: controller, setSheetState: setSheetState),
+        // const SizedBox(height: 12),
+        // CompetingTeamsField(
+        //     controller: controller, setSheetState: setSheetState),
+        // const SizedBox(height: 12),
+        // RaceLocationField(
+        //     controller: controller, setSheetState: setSheetState),
+        // const SizedBox(height: 12),
+        // RaceDateField(controller: controller, setSheetState: setSheetState),
+        // const SizedBox(height: 12),
+        // RaceDistanceField(
+        //     controller: controller, setSheetState: setSheetState),
         const SizedBox(height: 12),
         ActionButton(
             controller: controller, isEditing: isEditing, raceId: raceId),

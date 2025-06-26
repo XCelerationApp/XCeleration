@@ -40,12 +40,12 @@ class ResolveBibNumberController with ChangeNotifier {
     Logger.d('Searching runners...');
     Logger.d('Query: $query');
     Logger.d('Race ID: $raceId');
-    
+
     // Get already recorded runners for this race (runners that already have results)
     final recordedBibs = records.map((result) => result.bib).toSet();
-    
+
     Logger.d('Already recorded bibs: ${recordedBibs.join(', ')}');
-    
+
     List<RunnerRecord> results;
     if (query.isEmpty) {
       // Get all race runners
@@ -54,12 +54,14 @@ class ResolveBibNumberController with ChangeNotifier {
       // Search race runners by query
       results = await databaseHelper.searchRaceRunners(raceId, query);
     }
-    
+
     // Filter out runners that have already been recorded
-    searchResults = results.where((runner) => !recordedBibs.contains(runner.bib)).toList();
-    
+    searchResults =
+        results.where((runner) => !recordedBibs.contains(runner.bib)).toList();
+
     notifyListeners();
-    Logger.d('Filtered search results: ${searchResults.map((r) => r.bib).join(', ')}');
+    Logger.d(
+        'Filtered search results: ${searchResults.map((r) => r.bib).join(', ')}');
   }
 
   Future<void> createNewRunner() async {
@@ -92,8 +94,7 @@ class ResolveBibNumberController with ChangeNotifier {
   }
 
   Future<void> assignExistingRunner(RunnerRecord runner) async {
-    if (records
-        .any((record) => record.bib == runner.bib && record != record)) {
+    if (records.any((record) => record.bib == runner.bib && record != record)) {
       DialogUtils.showErrorDialog(context,
           message: 'This bib number is already assigned to another runner');
       return;
@@ -102,7 +103,7 @@ class ResolveBibNumberController with ChangeNotifier {
         title: 'Assign Runner',
         content:
             'Are you sure this is the correct runner? \nName: ${runner.name} \nGrade: ${runner.grade} \nSchool: ${runner.school} \nBib Number: ${runner.bib}');
-    
+
     // Check if context is still mounted after the async operation
     if (!context.mounted || !confirmed) return;
 

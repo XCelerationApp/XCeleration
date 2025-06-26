@@ -36,7 +36,9 @@ class WirelessConnectionButton extends StatefulWidget {
         isLoading: true,
       );
 
-  WirelessConnectionButton error({WirelessConnectionError error = WirelessConnectionError.unknown, Function()? retryAction}) {
+  WirelessConnectionButton error(
+      {WirelessConnectionError error = WirelessConnectionError.unknown,
+      Function()? retryAction}) {
     late String message;
     if (error == WirelessConnectionError.unavailable) {
       message = 'Wireless connection is not available on this device.';
@@ -392,19 +394,20 @@ class _QRConnectionState extends State<QRConnectionWidget> {
       if (!Platform.isIOS && !Platform.isAndroid) {
         DialogUtils.showErrorDialog(
           context,
-          message: 'QR scanner is not available on this device. Please use a mobile device.',
+          message:
+              'QR scanner is not available on this device. Please use a mobile device.',
         );
         return;
       }
-      
+
       // Use the barcode_scan2 package for scanning
       final result = await BarcodeScanner.scan();
-      
+
       if (!mounted) return;
-      
+
       if (result.type == ResultType.Barcode) {
         final parts = result.rawContent.split(':');
-        
+
         DeviceName? scannedDeviceName;
         try {
           scannedDeviceName =
@@ -412,19 +415,20 @@ class _QRConnectionState extends State<QRConnectionWidget> {
         } catch (e) {
           // No match found, scannedDeviceName remains null
         }
-        
+
         if (parts.isEmpty || scannedDeviceName == null) {
           DialogUtils.showErrorDialog(context,
               message: 'Incorrect QR Code Scanned');
           return;
         }
-        
+
         widget.devices.getDevice(scannedDeviceName)!.status =
             ConnectionStatus.finished;
         widget.devices.getDevice(scannedDeviceName)!.data =
             parts.sublist(1).join(':');
-        Logger.d('Data received: ${widget.devices.getDevice(scannedDeviceName)!.data}');
-            
+        Logger.d(
+            'Data received: ${widget.devices.getDevice(scannedDeviceName)!.data}');
+
         // Call the callback function if provided
         if (widget.devices.allDevicesFinished()) {
           widget.callback();
@@ -438,8 +442,9 @@ class _QRConnectionState extends State<QRConnectionWidget> {
         );
       } else if (e.code == 'MissingPluginException') {
         DialogUtils.showErrorDialog(
-          context, 
-          message: 'QR scanner is not available on this device. Please use a different connection method.',
+          context,
+          message:
+              'QR scanner is not available on this device. Please use a different connection method.',
         );
       } else {
         Logger.d('Error scanning QR code: ${e.message}');
@@ -452,7 +457,8 @@ class _QRConnectionState extends State<QRConnectionWidget> {
       Logger.d('Error scanning QR code: $e');
       DialogUtils.showErrorDialog(
         context,
-        message: 'An error occurred while scanning the QR code. Please try again.',
+        message:
+            'An error occurred while scanning the QR code. Please try again.',
       );
     }
   }
@@ -505,7 +511,7 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
   WirelessConnectionError? _wirelessConnectionError;
   bool _isInitialized = false;
   String? _messageMonitorToken;
-  
+
   // Add a completer to properly handle cancellation
   late Completer<void> _connectionCompleter;
 
@@ -515,13 +521,12 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
     // // Reset devices when widget is first created
     // widget.devices.reset();
     _initialize();
-
   }
 
   Future<void> _initialize() async {
     if (!mounted) return;
     _connectionCompleter = Completer<void>();
-    
+
     try {
       _deviceConnectionService = DeviceConnectionService(
         widget.devices,
@@ -532,12 +537,11 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
       );
       _protocol = Protocol(deviceConnectionService: _deviceConnectionService);
 
-
       final isServiceAvailable =
           await _deviceConnectionService.checkIfNearbyConnectionsWorks();
-      
+
       if (!mounted) return;
-      
+
       if (!isServiceAvailable) {
         setState(() {
           _wirelessConnectionError = WirelessConnectionError.unavailable;
@@ -548,9 +552,9 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
 
       try {
         final initSuccess = await _deviceConnectionService.init();
-        
+
         if (!mounted) return;
-        
+
         if (!initSuccess) {
           setState(() {
             _wirelessConnectionError = WirelessConnectionError.unknown;
@@ -558,7 +562,7 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
           });
           return;
         }
-        
+
         setState(() {
           _isInitialized = true;
         });
@@ -567,7 +571,7 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
         _startConnectionProcess();
       } catch (e) {
         if (!mounted) return;
-        
+
         setState(() {
           Logger.d('Error initializing connection service: $e');
           _wirelessConnectionError = WirelessConnectionError.unknown;
@@ -576,12 +580,12 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
       }
     } catch (e) {
       if (!mounted) return;
-      
+
       setState(() {
         _wirelessConnectionError = WirelessConnectionError.unknown;
         _isInitialized = true;
       });
-      
+
       if (mounted) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           DialogUtils.showErrorDialog(
@@ -598,11 +602,11 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
   void _startConnectionProcess() {
     // Don't proceed if we've been disposed
     if (!mounted || !_deviceConnectionService.isActive) return;
-    
+
     // Start device monitoring process asynchronously
     _monitorDevices();
   }
-  
+
   Future<void> _monitorDevices() async {
     try {
       await _deviceConnectionService.monitorDevicesConnectionStatus(
@@ -634,7 +638,7 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
   Future<void> _deviceFoundCallback(Device device) async {
     // Skip if we're disposed or the connection is complete
     if (!mounted || _connectionCompleter.isCompleted) return;
-    
+
     final deviceName = getDeviceNameFromString(device.deviceName);
     if (!widget.devices.hasDevice(deviceName) ||
         widget.devices.getDevice(deviceName)!.isFinished) {
@@ -643,7 +647,7 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
 
     // Skip invite if we're an advertiser
     if (widget.devices.currentDeviceType == DeviceType.advertiserDevice) return;
-    
+
     // Try to invite the device
     if (!_connectionCompleter.isCompleted) {
       await _deviceConnectionService.inviteDevice(device);
@@ -653,16 +657,16 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
   // Future<void> _deviceLostCallback(Device device) async {
   //   // Skip if we're disposed or the connection is complete
   //   if (!mounted || _connectionCompleter.isCompleted) return;
-    
+
   //   // Handle device lost
   //   final deviceName = getDeviceNameFromString(device.deviceName);
   //   if (!widget.devices.hasDevice(deviceName) ||
   //       widget.devices.getDevice(deviceName)!.isFinished) {
   //     return;
   //   }
-    
+
   //   // Attempt to reconnect if appropriate
-  //   if (!_connectionCompleter.isCompleted && 
+  //   if (!_connectionCompleter.isCompleted &&
   //       widget.devices.currentDeviceType == DeviceType.browserDevice) {
   //     // Let the reconnection mechanism handle it
   //     await _deviceConnectionService.attemptReconnection(device);
@@ -672,7 +676,7 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
   Future<void> _deviceConnectingCallback(Device device) async {
     // Skip if we're disposed or the connection is complete
     if (!mounted || _connectionCompleter.isCompleted) return;
-    
+
     final deviceName = getDeviceNameFromString(device.deviceName);
     if (!widget.devices.hasDevice(deviceName) ||
         widget.devices.getDevice(deviceName)!.isFinished) {
@@ -684,18 +688,19 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
   Future<void> _deviceConnectedCallback(Device device) async {
     // Skip if we're disposed or the connection is complete
     if (!mounted || _connectionCompleter.isCompleted) return;
-    
+
     final deviceName = getDeviceNameFromString(device.deviceName);
     if (!widget.devices.hasDevice(deviceName) ||
         widget.devices.getDevice(deviceName)!.isFinished) {
       return;
     }
-    
+
     try {
       _protocol.addDevice(device);
 
       // Monitor messages with proper tracking for cleanup
-      _messageMonitorToken = await _deviceConnectionService.monitorMessageReceives(
+      _messageMonitorToken =
+          await _deviceConnectionService.monitorMessageReceives(
         device,
         messageReceivedCallback: (package, senderId) async {
           // Skip if we're disposed or the connection is complete
@@ -710,19 +715,20 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
         Logger.d('Device not found in connected devices list');
         return;
       }
-      
+
       // Determine if this is a browser device (receiving) or advertiser (sending)
-      final isBrowserDevice = widget.devices.currentDeviceType == DeviceType.browserDevice;
-      
+      final isBrowserDevice =
+          widget.devices.currentDeviceType == DeviceType.browserDevice;
+
       // Set initial status
       if (mounted) {
         setState(() {
-          connectedDevice.status = isBrowserDevice 
-              ? ConnectionStatus.receiving 
+          connectedDevice.status = isBrowserDevice
+              ? ConnectionStatus.receiving
               : ConnectionStatus.sending;
         });
       }
-      
+
       // For advertiser device, check if we have data to send
       if (!isBrowserDevice && connectedDevice.data == null) {
         Logger.d('No data for advertiser device to send');
@@ -745,15 +751,17 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
           shouldContinueTransfer: () {
             // Only continue if the device's status is still in receiving/sending state
             if (!mounted) return false; // Abort if widget is no longer mounted
-            
+
             final deviceStatus = widget.devices.getDevice(deviceName)?.status;
-            final expectedStatus = isBrowserDevice ? 
-              ConnectionStatus.receiving : ConnectionStatus.sending;
-              
+            final expectedStatus = isBrowserDevice
+                ? ConnectionStatus.receiving
+                : ConnectionStatus.sending;
+
             // Continue if status is as expected, otherwise abort
             bool shouldContinue = deviceStatus == expectedStatus;
-            if(!shouldContinue) {
-              Logger.d('Device status changed: $deviceStatus != $expectedStatus');
+            if (!shouldContinue) {
+              Logger.d(
+                  'Device status changed: $deviceStatus != $expectedStatus');
             }
             return shouldContinue;
           },
@@ -761,7 +769,7 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
 
         // Skip updating UI if we're disposed
         if (!mounted || _connectionCompleter.isCompleted) return;
-        
+
         // Update device status and data if we're a browser device (and received data)
         setState(() {
           if (isBrowserDevice && results != null) {
@@ -800,13 +808,13 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
           });
         }
       }
-      
+
       // Clean up device from protocol
       _protocol.removeDevice(device.deviceId);
     } catch (e) {
       Logger.d('Error in connection: $e');
       _protocol.removeDevice(device.deviceId);
-      
+
       if (mounted) {
         setState(() {
           widget.devices.getDevice(deviceName)!.status = ConnectionStatus.error;
@@ -826,7 +834,7 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
     }
     _deviceConnectionService.dispose();
     _protocol.dispose();
-    
+
     super.dispose();
   }
 
@@ -840,8 +848,8 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
           Padding(
               padding: const EdgeInsets.only(bottom: 8.0),
               child: WirelessConnectionButton(
-                  device: ConnectedDevice(DeviceName.coach),
-                ).error(
+                device: ConnectedDevice(DeviceName.coach),
+              ).error(
                   error: _wirelessConnectionError!,
                   retryAction: () {
                     setState(() {
@@ -849,8 +857,7 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
                       _isInitialized = false;
                     });
                     _initialize();
-                  })
-              ),
+                  })),
         ],
       );
     }

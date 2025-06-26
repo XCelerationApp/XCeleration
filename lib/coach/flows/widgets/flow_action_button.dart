@@ -19,8 +19,8 @@ class FlowActionButton extends StatelessWidget {
       text: label,
       onPressed: onPressed,
       isEnabled: isEnabled,
-      borderRadius: 28, 
-      backgroundColor: const Color(0xFFFF5722), 
+      borderRadius: 28,
+      backgroundColor: const Color(0xFFFF5722),
       fontWeight: FontWeight.w600,
     );
   }

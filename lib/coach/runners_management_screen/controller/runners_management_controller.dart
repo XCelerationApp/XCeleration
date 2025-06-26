@@ -31,15 +31,12 @@ class RunnersManagementController with ChangeNotifier {
   final VoidCallback? onBack;
   final VoidCallback? onContentChanged;
 
-
   RunnersManagementController({
     required this.raceId,
     this.showHeader = true,
     this.onBack,
     this.onContentChanged,
   });
-
-  
 
   Future<void> init() async {
     initControllers();
@@ -120,7 +117,8 @@ class RunnersManagementController with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> handleRunnerAction(BuildContext context, String action, RunnerRecord runner) async {
+  Future<void> handleRunnerAction(
+      BuildContext context, String action, RunnerRecord runner) async {
     switch (action) {
       case 'Edit':
         await showRunnerSheet(
@@ -176,7 +174,7 @@ class RunnersManagementController with ChangeNotifier {
                 runnerId: runner.runnerId,
                 flags: runner.flags,
               );
-              
+
               // Use post-frame callback to ensure form is fully done
               WidgetsBinding.instance.addPostFrameCallback((_) async {
                 await handleRunnerSubmission(context, runnerCopy);
@@ -192,7 +190,8 @@ class RunnersManagementController with ChangeNotifier {
     }
   }
 
-  Future<void> handleRunnerSubmission(BuildContext context, RunnerRecord runner) async {
+  Future<void> handleRunnerSubmission(
+      BuildContext context, RunnerRecord runner) async {
     try {
       RunnerRecord? existingRunner;
       existingRunner =
@@ -208,7 +207,7 @@ class RunnersManagementController with ChangeNotifier {
           // If a different runner exists with this bib, ask for confirmation
           // Check if context is still mounted before showing dialog
           if (!context.mounted) return;
-          
+
           final shouldOverwrite = await DialogUtils.showConfirmationDialog(
             context,
             title: 'Overwrite Runner',
@@ -217,7 +216,7 @@ class RunnersManagementController with ChangeNotifier {
           );
 
           if (!shouldOverwrite) return;
-          
+
           // Check if context is still mounted after confirmation dialog
           if (!context.mounted) return;
 
@@ -235,7 +234,7 @@ class RunnersManagementController with ChangeNotifier {
     } catch (e) {
       throw Exception('Failed to save runner: $e');
     }
-    
+
     // Check if context is still mounted after async operations
     if (!context.mounted) return;
     Navigator.of(context).pop();
@@ -267,10 +266,10 @@ class RunnersManagementController with ChangeNotifier {
   Future<void> showSampleSpreadsheet(BuildContext context) async {
     final file = await rootBundle
         .loadString('assets/sample_sheets/sample_spreadsheet.csv');
-        
+
     // Check if context is still mounted after async operation
     if (!context.mounted) return;
-    
+
     final lines = file.split('\n');
     final table = Table(
       border: TableBorder.all(color: Colors.grey),
@@ -300,14 +299,14 @@ class RunnersManagementController with ChangeNotifier {
     return;
   }
 
-  Future<Map<String, dynamic>?> showSpreadsheetLoadSheet(BuildContext context) async {
+  Future<Map<String, dynamic>?> showSpreadsheetLoadSheet(
+      BuildContext context) async {
     return await sheet(
       context: context,
       title: 'Import Runners',
       titleSize: 24,
       body: StatefulBuilder(
         builder: (BuildContext context, StateSetter setState) {
-          
           return Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 16),
@@ -360,7 +359,7 @@ class RunnersManagementController with ChangeNotifier {
                   ),
                 ),
                 const SizedBox(height: 24),
-                
+
                 // Import Button with Dropup Menu
                 SizedBox(
                   width: double.infinity,
@@ -372,7 +371,8 @@ class RunnersManagementController with ChangeNotifier {
                     },
                     verticalOffset: 0,
                     elevation: 8,
-                    menuShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    menuShape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
                     menuColor: Colors.white,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFE2572B),
@@ -390,8 +390,10 @@ class RunnersManagementController with ChangeNotifier {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             // Icon(Icons.cloud, color: Color(0xFFE2572B), size: 20),
-                            Text('Select Google Sheet', style: TextStyle(fontWeight: FontWeight.w500)),
-                            Icon(Icons.arrow_forward_ios, color: Color(0xFFE2572B), size: 20),
+                            Text('Select Google Sheet',
+                                style: TextStyle(fontWeight: FontWeight.w500)),
+                            Icon(Icons.arrow_forward_ios,
+                                color: Color(0xFFE2572B), size: 20),
                           ],
                         ),
                       ),
@@ -400,9 +402,11 @@ class RunnersManagementController with ChangeNotifier {
                         child: const Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text('Select Local File', style: TextStyle(fontWeight: FontWeight.w500)),
+                            Text('Select Local File',
+                                style: TextStyle(fontWeight: FontWeight.w500)),
                             // Icon(Icons.folder_open, color: Color(0xFFE2572B), size: 20),
-                            Icon(Icons.arrow_forward_ios, color: Color(0xFFE2572B), size: 20),
+                            Icon(Icons.arrow_forward_ios,
+                                color: Color(0xFFE2572B), size: 20),
                           ],
                         ),
                       ),
@@ -421,7 +425,7 @@ class RunnersManagementController with ChangeNotifier {
                   ),
                 ),
                 // const SizedBox(height: 12),
-                
+
                 // SizedBox(
                 //   width: double.infinity,
                 //   child: OutlinedButton(
@@ -451,19 +455,18 @@ class RunnersManagementController with ChangeNotifier {
   Future<void> handleSpreadsheetLoad(BuildContext context) async {
     final result = await showSpreadsheetLoadSheet(context);
     if (result == null) return;
-    
+
     // Check if context is still mounted after sheet is closed
     if (!context.mounted) return;
-    
-    final bool useGoogleDrive = result['useGoogleDrive'] ?? false;
-    
-    final List<RunnerRecord> runnerData =
-        await processSpreadsheet(raceId, false, context, useGoogleDrive: useGoogleDrive);
 
-    
+    final bool useGoogleDrive = result['useGoogleDrive'] ?? false;
+
+    final List<RunnerRecord> runnerData = await processSpreadsheet(
+        raceId, false, context,
+        useGoogleDrive: useGoogleDrive);
+
     final schools = (await DatabaseHelper.instance.getRaceById(raceId))?.teams;
-    
-    
+
     final overwriteRunners = [];
     final runnersFromDifferentSchool = [];
     final runnersToAdd = [];
@@ -489,18 +492,20 @@ class RunnersManagementController with ChangeNotifier {
         runnersToAdd.add(runner);
       }
     }
-    
+
     if (runnersFromDifferentSchool.isNotEmpty && context.mounted) {
-      final schools = runnersFromDifferentSchool.map((runner) => runner.school).toSet();
+      final schools =
+          runnersFromDifferentSchool.map((runner) => runner.school).toSet();
       final schoolsList = schools.toList();
       final schoolsString = schoolsList.join(', ');
-      
+
       final shouldContinue = await DialogUtils.showConfirmationDialog(
         context,
         title: 'Runners from Different Schools',
-        content: '${runnersFromDifferentSchool.length} runners are from different schools: $schoolsString. They will not be imported. Do you want to continue?',
+        content:
+            '${runnersFromDifferentSchool.length} runners are from different schools: $schoolsString. They will not be imported. Do you want to continue?',
       );
-      
+
       if (!shouldContinue) return;
     }
 
@@ -512,7 +517,7 @@ class RunnersManagementController with ChangeNotifier {
     if (overwriteRunners.isEmpty) return;
     final overwriteRunnersBibs =
         overwriteRunners.map((runner) => runner.bib).toList();
-    
+
     if (context.mounted) {
       final shouldOverwriteRunners = await DialogUtils.showConfirmationDialog(
         context,
@@ -525,8 +530,7 @@ class RunnersManagementController with ChangeNotifier {
       Logger.d('Context not mounted, overwriting runners');
     }
     for (final runner in overwriteRunners) {
-      await DatabaseHelper.instance
-          .deleteRaceRunner(raceId, runner.bib);
+      await DatabaseHelper.instance.deleteRaceRunner(raceId, runner.bib);
       await DatabaseHelper.instance.insertRaceRunner(runner);
     }
     await loadRunners();

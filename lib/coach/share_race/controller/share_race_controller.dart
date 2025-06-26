@@ -161,7 +161,6 @@ class ShareResultsController {
 
       if (!context.mounted) context = navigator.context;
       if (!context.mounted) throw Exception('Context not mounted');
-      
 
       // Step 2: Create the sheet with loading dialog
       // We need to declare the variable here so it can be used outside the try/catch block

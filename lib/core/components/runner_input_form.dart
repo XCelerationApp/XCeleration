@@ -11,22 +11,22 @@ class RunnerInputForm extends StatefulWidget {
   final String? initialGrade;
   final String? initialSchool;
   final String? initialBib;
-  
+
   /// List of available school/team names
   final List<String> schoolOptions;
-  
+
   /// Callback when the form is submitted
   final Function(RunnerRecord) onSubmit;
-  
+
   /// Initial runner data (for editing)
   final RunnerRecord? initialRunner;
-  
+
   /// Race ID associated with this runner
   final int raceId;
-  
+
   /// Button text for the submit button
   final String submitButtonText;
-  
+
   /// Whether to show the form in a sheet layout (with labels on left)
   final bool useSheetLayout;
 
@@ -58,7 +58,7 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
   late TextEditingController gradeController;
   late TextEditingController schoolController;
   late TextEditingController bibController;
-  
+
   String? nameError;
   String? gradeError;
   String? schoolError;
@@ -67,13 +67,13 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
   @override
   void initState() {
     super.initState();
-    
+
     // Initialize controllers
     nameController = TextEditingController();
     gradeController = TextEditingController();
     schoolController = TextEditingController();
     bibController = TextEditingController();
-    
+
     // Initialize with existing data if editing
     if (widget.initialRunner != null) {
       nameController.text = widget.initialRunner!.name;
@@ -83,12 +83,16 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
     } else {
       // Use initial values if provided
       if (widget.initialName != null) nameController.text = widget.initialName!;
-      if (widget.initialGrade != null) gradeController.text = widget.initialGrade!;
-      if (widget.initialSchool != null) schoolController.text = widget.initialSchool!;
+      if (widget.initialGrade != null) {
+        gradeController.text = widget.initialGrade!;
+      }
+      if (widget.initialSchool != null) {
+        schoolController.text = widget.initialSchool!;
+      }
       if (widget.initialBib != null) bibController.text = widget.initialBib!;
     }
   }
-  
+
   @override
   void dispose() {
     // Clean up controllers when the widget is disposed
@@ -181,7 +185,7 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
     if (hasErrors()) {
       return;
     }
-    
+
     try {
       final runner = RunnerRecord(
         name: nameController.text,
@@ -190,7 +194,7 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
         bib: bibController.text,
         raceId: widget.raceId,
       );
-      
+
       widget.onSubmit(runner);
     } catch (e) {
       Logger.e('Error in runner input form: $e');
@@ -256,22 +260,22 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
         buildInputField(
           'School',
           widget.schoolOptions.isEmpty
-            ? textfield_utils.buildTextField(
-                context: context,
-                controller: schoolController,
-                hint: 'Enter school name',
-                error: schoolError,
-                onChanged: validateSchool,
-                setSheetState: setState,
-              )
-            : textfield_utils.buildDropdown(
-                controller: schoolController,
-                hint: 'Select School',
-                error: schoolError,
-                onChanged: validateSchool,
-                setSheetState: setState,
-                items: widget.schoolOptions..sort(),
-              ),
+              ? textfield_utils.buildTextField(
+                  context: context,
+                  controller: schoolController,
+                  hint: 'Enter school name',
+                  error: schoolError,
+                  onChanged: validateSchool,
+                  setSheetState: setState,
+                )
+              : textfield_utils.buildDropdown(
+                  controller: schoolController,
+                  hint: 'Select School',
+                  error: schoolError,
+                  onChanged: validateSchool,
+                  setSheetState: setState,
+                  items: widget.schoolOptions..sort(),
+                ),
         ),
         if (widget.showBibField) ...[
           const SizedBox(height: 16),
