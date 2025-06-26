@@ -2,11 +2,11 @@ name: CI
 
 on:
   pull_request:
-    branches: [ dev, main ]
+    branches: [ dev ]
 
 jobs:
   lint_and_test:
-    name: Lint and Test
+    name: Lint, Format, Analyze, and Test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
