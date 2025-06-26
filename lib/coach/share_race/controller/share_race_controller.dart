@@ -250,7 +250,7 @@ class ShareResultsController {
 
       // Show options dialog using the stored navigator
       if (context.mounted) {
-        await _showGoogleSheetOptions(context, sheetUri!);
+        await _showGoogleSheetOptions(context, sheetUri);
       } else {
         Logger.d('Context not mounted, skipping Google Sheet options');
         await Clipboard.setData(ClipboardData(text: sheetUri.toString()));
