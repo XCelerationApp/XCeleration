@@ -9,9 +9,9 @@ import 'dart:async';
 /// Exception thrown when an operation is canceled
 class OperationCanceledException implements Exception {
   final String message;
-  
+
   OperationCanceledException([this.message = 'Operation was canceled']);
-  
+
   @override
   String toString() => message;
 }
@@ -59,7 +59,6 @@ class BasicAlertDialog extends StatelessWidget {
 }
 
 class DialogUtils {
-  
   /// Simple dialog that just shows a message and an ok button
   static Future<void> showMessageDialog(
     BuildContext context, {
@@ -83,7 +82,6 @@ class DialogUtils {
       ),
     );
   }
-  
 
   static Future<bool> showConfirmationDialog(
     BuildContext context, {
@@ -94,23 +92,24 @@ class DialogUtils {
     Color barrierColor = Colors.black54,
   }) async {
     return await showDialog<bool>(
-      context: context,
-      barrierColor: barrierColor,
-      builder: (context) => BasicAlertDialog(
-        title: title,
-        content: content,
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(cancelText, style: AppTypography.buttonText),
+          context: context,
+          barrierColor: barrierColor,
+          builder: (context) => BasicAlertDialog(
+            title: title,
+            content: content,
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: Text(cancelText, style: AppTypography.buttonText),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: Text(confirmText, style: AppTypography.buttonText),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(confirmText, style: AppTypography.buttonText),
-          ),
-        ],
-      ),
-    ) ?? false;
+        ) ??
+        false;
   }
 
   static void showErrorDialog(
@@ -146,7 +145,6 @@ class DialogUtils {
     );
   }
 
-  
   /// Executes an async function while showing a loading dialog
   /// Returns the result of the operation or null if canceled
   /// The operation is automatically canceled if the dialog is dismissed
@@ -160,18 +158,20 @@ class DialogUtils {
   }) async {
     // Use a Completer to create a future we can complete manually
     final Completer<T?> completer = Completer<T?>();
-    
+
     // Track whether the operation has been completed or canceled
     bool isCompleted = false;
-    
+
     // This value is returned to the caller when the dialog is dismissed
     T? result;
-    
+
     // Create a key to ensure we can always find and dismiss the dialog
     final GlobalKey<State> dialogKey = GlobalKey<State>();
-    
+
     // Show the loading dialog
-    LoadingDialog.show(context,
+    LoadingDialog.show(
+      context,
+      key: dialogKey,
       message: loadingMessage,
       indicatorColor: indicatorColor,
       showCancelButton: allowCancel,
@@ -181,10 +181,9 @@ class DialogUtils {
           isCompleted = true;
           completer.completeError(OperationCanceledException());
         }
-        Navigator.of(context).pop();
       },
     );
-    
+
     // Execute the operation in a separate isolate or thread
     // and handle completion/errors
     runZonedGuarded(
@@ -192,7 +191,7 @@ class DialogUtils {
         try {
           // Start the operation
           final operationResult = await operation();
-          
+
           // Check if operation was already canceled or completed
           if (!isCompleted) {
             isCompleted = true;
@@ -215,18 +214,18 @@ class DialogUtils {
         }
       },
     );
-    
+
     try {
       // Wait for the operation to complete or be canceled
       result = await completer.future;
-      
+
       // Dismiss the dialog safely if it hasn't been dismissed already
       if (dialogKey.currentContext != null) {
         Navigator.of(dialogKey.currentContext!, rootNavigator: true).pop();
       } else if (context.mounted) {
         Navigator.of(context, rootNavigator: true).pop();
       }
-      
+
       return result;
     } catch (e) {
       // Dismiss dialog on error if it hasn't been dismissed already
@@ -235,7 +234,7 @@ class DialogUtils {
       } else if (context.mounted) {
         Navigator.of(context, rootNavigator: true).pop();
       }
-      
+
       // Return null if it was a cancellation, otherwise rethrow
       if (e is OperationCanceledException) {
         return null;
@@ -243,10 +242,10 @@ class DialogUtils {
       rethrow;
     }
   }
-  
+
   /// Shows a toast notification that appears above all other UI elements
   /// and automatically dismisses after a set duration
-  /// 
+  ///
   /// This is useful for showing feedback messages without blocking the UI
   /// and is visible even when dialogs are present
   static void showOverlayNotification(
@@ -260,13 +259,13 @@ class DialogUtils {
   }) {
     // Log the message for debugging
     Logger.d(message);
-    
+
     // Create FToast instance
     final FToast fToast = FToast();
-    
+
     // Initialize fToast with context
     fToast.init(context);
-    
+
     // Create custom toast widget
     Widget toastWidget = Material(
       elevation: 3.0,
@@ -277,7 +276,7 @@ class DialogUtils {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (icon != null) ...[  
+            if (icon != null) ...[
               Icon(icon, color: iconColor, size: 20),
               const SizedBox(width: 8),
             ],
@@ -293,7 +292,7 @@ class DialogUtils {
         ),
       ),
     );
-    
+
     // Show the custom toast at the top of the screen
     fToast.showToast(
       child: toastWidget,
@@ -304,29 +303,28 @@ class DialogUtils {
   }
 }
 
-
-
 /// A customizable loading dialog with a title, loading indicator, message, and optional cancel button
 class LoadingDialog extends StatelessWidget {
   final GlobalKey? dialogKey;
+
   /// The title to display at the top of the dialog
   final String title;
-  
+
   /// The loading message to display below the indicator
   final String message;
-  
+
   /// The color of the loading indicator
   final Color indicatorColor;
-  
+
   /// Whether to show a cancel button
   final bool showCancelButton;
-  
+
   /// The text to display on the cancel button
   final String cancelButtonText;
-  
+
   /// Callback when the cancel button is pressed
   final VoidCallback? onCancel;
-  
+
   /// Create a loading dialog with a title, message, and optional cancel button
   const LoadingDialog({
     super.key,
@@ -338,7 +336,7 @@ class LoadingDialog extends StatelessWidget {
     this.cancelButtonText = 'Cancel',
     this.onCancel,
   });
-  
+
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
@@ -356,7 +354,7 @@ class LoadingDialog extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       content: Row(
         mainAxisSize: MainAxisSize.min,
-        children: [ 
+        children: [
           SizedBox(
             width: 18,
             height: 18,
@@ -378,26 +376,34 @@ class LoadingDialog extends StatelessWidget {
           ),
         ],
       ),
-      actions: showCancelButton ? [
-        TextButton(
-          onPressed: onCancel ?? () => Navigator.of(context).pop(),
-          child: Text(
-            cancelButtonText,
-            style: AppTypography.buttonText.copyWith(
-              color: indicatorColor,
-            ),
-          ),
-        ),
-      ] : null,
-      actionsPadding: showCancelButton 
+      actions: showCancelButton
+          ? [
+              TextButton(
+                onPressed: () {
+                  if (onCancel != null) {
+                    onCancel!();
+                  }
+                  Navigator.of(context).pop();
+                },
+                child: Text(
+                  cancelButtonText,
+                  style: AppTypography.buttonText.copyWith(
+                    color: indicatorColor,
+                  ),
+                ),
+              ),
+            ]
+          : null,
+      actionsPadding: showCancelButton
           ? const EdgeInsets.fromLTRB(16, 0, 16, 16)
           : EdgeInsets.zero,
     );
   }
-  
+
   /// Shows this loading dialog
   static Future<T?> show<T>(
     BuildContext context, {
+    Key? key,
     required String message,
     String title = 'Please Wait...',
     Color indicatorColor = AppColors.primaryColor,
@@ -410,6 +416,7 @@ class LoadingDialog extends StatelessWidget {
       context: context,
       barrierDismissible: barrierDismissible,
       builder: (context) => LoadingDialog(
+        key: key,
         title: title,
         message: message,
         indicatorColor: indicatorColor,

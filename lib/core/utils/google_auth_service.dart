@@ -259,7 +259,7 @@ class GoogleAuthService {
 
   /// Get an authenticated client that can be used with Google APIs
   Future<http.Client?> getAuthClient() async {
-    // getAccessToken already ensures initialization
+    // iosAccessToken already ensures initialization
     final token = await iosAccessToken;
     if (token == null) return null;
     return GoogleAuthClient(token);
@@ -341,7 +341,7 @@ class GoogleAuthService {
 
       return true;
     } catch (e) {
-      Logger.d('Sign in error: $e');
+      Logger.e('Sign in error: $e');
       return false;
     }
   }

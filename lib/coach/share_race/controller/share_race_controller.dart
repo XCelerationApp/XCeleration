@@ -135,18 +135,113 @@ class ShareResultsController {
     final navigator = Navigator.of(context, rootNavigator: true);
 
     try {
-      if (!context.mounted) throw Exception('Context not mounted');
-      // Execute the sheet creation with a loading dialog
+      // Get formatted data first
       final data = await _formattedResultsController.formattedSheetsData;
-      if (!context.mounted) throw Exception('Context not mounted');
-      final sheetUri = await _googleSheetsService.createSheetAndGetUri(
-        context: context,
-        title: title,
-        data: data,
-      );
 
-      if (sheetUri == null) {
-        throw Exception('Failed to create Google Sheet');
+      if (!context.mounted) context = navigator.context;
+      if (!context.mounted) throw Exception('Context not mounted');
+
+      // Step 1: Sign in to Google with loading dialog
+      try {
+        if (!await _googleSheetsService.signIn()) {
+          if (context.mounted) {
+            DialogUtils.showErrorDialog(context,
+                message: 'Google sign-in failed');
+          }
+          return;
+        }
+      } catch (e) {
+        Logger.e('Error signing in to Google: $e');
+        if (context.mounted) {
+          DialogUtils.showErrorDialog(context,
+              message: 'Error signing in to Google');
+        }
+        return;
+      }
+
+      if (!context.mounted) context = navigator.context;
+      if (!context.mounted) throw Exception('Context not mounted');
+      
+
+      // Step 2: Create the sheet with loading dialog
+      // We need to declare the variable here so it can be used outside the try/catch block
+      String? spreadsheetId;
+      try {
+        spreadsheetId = await DialogUtils.executeWithLoadingDialog<String?>(
+          context,
+          operation: () => _googleSheetsService.createSheet(title: title),
+          loadingMessage: 'Creating Google Sheet...',
+        );
+        if (spreadsheetId == null) {
+          // If the user cancels the creation, we don't want to continue, but no need to show an error dialog
+          return;
+        }
+      } catch (e) {
+        Logger.e('Error creating Google Sheet: $e');
+        if (context.mounted) {
+          DialogUtils.showErrorDialog(context,
+              message: 'Error creating Google Sheet');
+        }
+        return;
+      }
+
+      if (!context.mounted) context = navigator.context;
+      if (!context.mounted) throw Exception('Context not mounted');
+
+      // Step 3: Update the sheet with data
+      try {
+        final updateSuccess = await DialogUtils.executeWithLoadingDialog<bool>(
+          context,
+          operation: () => _googleSheetsService.updateSheet(
+            spreadsheetId: spreadsheetId!,
+            data: data,
+          ),
+          loadingMessage: 'Adding data to sheet...',
+        );
+        if (updateSuccess == null) {
+          // If the user cancels the update, we don't want to continue, but no need to show an error dialog
+          return;
+        }
+        if (updateSuccess != true) {
+          if (context.mounted) {
+            DialogUtils.showErrorDialog(context,
+                message: 'Failed to write to Google Sheet');
+          }
+          return;
+        }
+      } catch (e) {
+        Logger.e('Error writing to Google Sheet: $e');
+        if (context.mounted) {
+          DialogUtils.showErrorDialog(context,
+              message: 'Error writing to Google Sheet');
+        }
+        return;
+      }
+
+      if (!context.mounted) context = navigator.context;
+      if (!context.mounted) throw Exception('Context not mounted');
+      // Step 4: Get the sheet URI
+      // We need to declare the variable here so it can be used outside the try/catch block
+      Uri? sheetUri;
+      try {
+        sheetUri = await DialogUtils.executeWithLoadingDialog<Uri?>(
+          context,
+          operation: () => _googleSheetsService.getSheetUri(spreadsheetId!),
+          loadingMessage: 'Getting sheet link...',
+        );
+        if (sheetUri == null) {
+          // If the user cancels the creation, we don't want to continue, but no need to show an error dialog
+          return;
+        }
+      } catch (e) {
+        Logger.e('Error getting sheet URI: $e');
+        if (context.mounted) {
+          DialogUtils.showErrorDialog(
+            context,
+            message: 'Error getting sheet link',
+          );
+        }
+        return;
       }
 
       Logger.d('Sheet URI: $sheetUri');
@@ -155,10 +250,11 @@ class ShareResultsController {
 
       // Show options dialog using the stored navigator
       if (context.mounted) {
-        await _showGoogleSheetOptions(context, sheetUri);
+        await _showGoogleSheetOptions(context, sheetUri!);
       } else {
         Logger.d('Context not mounted, skipping Google Sheet options');
         await Clipboard.setData(ClipboardData(text: sheetUri.toString()));
+        Logger.d('Sheet URL copied to clipboard');
         if (context.mounted) {
           DialogUtils.showSuccessDialog(context,
               message: 'Sheet URL copied to clipboard');
