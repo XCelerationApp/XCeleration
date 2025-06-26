@@ -1,0 +1,21 @@
+name: Enforce Dev to Main PRs
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  check-branch:
+    name: Check Source Branch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify that the PR is from the 'dev' branch
+        run: |
+          if [[ "${{ github.head_ref }}" == "dev" ]]; then
+            echo "✅ PR is from dev. Check passed."
+            exit 0
+          else
+            echo "❌ ERROR: Pull requests to main must originate from the 'dev' branch."
+            echo "This PR is from '${{ github.head_ref }}'."
+            exit 1
+          fi 

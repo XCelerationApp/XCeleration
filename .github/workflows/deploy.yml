@@ -1,13 +1,43 @@
 name: Deploy
 
 on:
-  push:
+  pull_request:
+    types: [closed]
     branches: [ main ]
 
 jobs:
   deploy-app:
     name: Deploy Application
+    if: github.event.pull_request.merged == true && github.event.pull_request.head.ref == 'dev'
     runs-on: macos-latest
     steps:
-      - name: Placeholder for Deployment
-        run: echo "This is where the deployment steps would go, e.g., deploying to TestFlight or Google Play." 
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          ref: main
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.32.5'
+          cache: true
+
+      - name: Set up Ruby and Bundler
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.0'
+          
+      - name: Install dependencies
+        working-directory: ./ios
+        run: bundle install
+
+      - name: Create .env file
+        run: echo "${{ secrets.DOTENV }}" > .env
+
+      - name: Deploy to TestFlight via Fastlane
+        working-directory: ./ios
+        run: bundle exec fastlane deploy
+        env:
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }} 
