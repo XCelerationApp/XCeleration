@@ -48,10 +48,14 @@ void main() {
     mockNearbyConnections = MockNearbyConnections();
     mockDevicesManager = MockDevicesManager();
 
+    // Reset mock object states to ensure test independence
     mockConnectedDevice.status = ConnectionStatus.searching;
+    mockConnectedDevice.data = null;
     mockDevice.state = SessionState.notConnected;
 
-    // Initialize stream controllers
+    // Initialize new stream controllers to ensure test independence
+    stateChangeController?.close();
+    dataController?.close();
     stateChangeController = StreamController<List<Device>>.broadcast();
     dataController = StreamController<dynamic>.broadcast();
 

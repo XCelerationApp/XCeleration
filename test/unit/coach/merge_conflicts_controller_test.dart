@@ -186,6 +186,14 @@ void main() {
       // Initialize controller
       controller = setupController();
 
+      // Reset all flags to ensure test independence
+      controller.createChunksCalled = false;
+      controller.successMessageShown = false;
+      controller.errorMessageShown = false;
+      controller.lastErrorMessage = null;
+      controller.consolidateCalled = false;
+      controller.notifyListenersWasCalled = false;
+
       // Set context on controller
       controller.setContext(mockContext);
     });
