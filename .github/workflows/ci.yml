@@ -15,7 +15,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.29.x'
+          flutter-version: '3.32.5'
           channel: 'stable'
           cache: true
 
@@ -40,11 +40,12 @@ jobs:
         run: flutter analyze --fatal-infos --fatal-warnings
 
       - name: Run unit and widget tests
-        run: flutter test --concurrency=2 --coverage
+        run: flutter test --concurrency=2
 
   build:
     name: Build
     runs-on: ubuntu-latest
+    needs: lint_and_test
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -52,7 +53,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.29.x'
+          flutter-version: '3.32.5'
           channel: 'stable'
           cache: true
       
@@ -67,17 +68,9 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Create .env file from secrets
+      - name: Create .env file
         if: github.event.pull_request.head.repo.full_name == github.repository
-        run: |
-          echo "GOOGLE_APP_ID=${{ secrets.GOOGLE_APP_ID }}" >> .env
-          echo "GOOGLE_IOS_OAUTH_CLIENT_ID=${{ secrets.GOOGLE_IOS_OAUTH_CLIENT_ID }}" >> .env
-          echo "GOOGLE_IOS_OAUTH_REVERSED_CLIENT_ID=${{ secrets.GOOGLE_IOS_OAUTH_REVERSED_CLIENT_ID }}" >> .env
-          echo "GOOGLE_WEB_OAUTH_CLIENT_ID=${{ secrets.GOOGLE_WEB_OAUTH_CLIENT_ID }}" >> .env
-          echo "GOOGLE_WEB_API_KEY=${{ secrets.GOOGLE_WEB_API_KEY }}" >> .env
-          echo "SENTRY_DSN=${{ secrets.SENTRY_DSN }}" >> .env
-          echo "WEB_ACCESS_TOKEN_API_ENDPOINT=${{ secrets.WEB_ACCESS_TOKEN_API_ENDPOINT }}" >> .env
-          echo "GOOGLE_PICKER_URL=${{ secrets.GOOGLE_PICKER_URL }}" >> .env
+        run: echo "${{ secrets.DOTENV }}" > .env
 
       - name: Create empty .env file for forks
         if: github.event.pull_request.head.repo.full_name != github.repository
