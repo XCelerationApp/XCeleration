@@ -11,18 +11,18 @@ class ReviewRunnersStep extends FlowStep {
     required this.raceId,
     required VoidCallback onNext,
   }) : super(
-    title: 'Review Runners',
-    description:
-        'Make sure all runner information is correct before the race starts. You can make any last-minute changes here.',
-    content: RunnersManagementScreen(
-      raceId: raceId,
-      showHeader: false,
-      onBack: null,
-    ),
-    canScroll: false,
-    canProceed: () => true,
-    onNext: onNext,
-  ) {
+          title: 'Review Runners',
+          description:
+              'Make sure all runner information is correct before the race starts. You can make any last-minute changes here.',
+          content: RunnersManagementScreen(
+            raceId: raceId,
+            showHeader: false,
+            onBack: null,
+          ),
+          canScroll: false,
+          canProceed: () => true,
+          onNext: onNext,
+        ) {
     // Initialize with the current state
     checkRunners();
   }
@@ -44,9 +44,9 @@ class ReviewRunnersStep extends FlowStep {
       showHeader: false,
       onBack: null,
       onContentChanged: () async {
-          checkRunners();
-        },
-      );
+        checkRunners();
+      },
+    );
   }
 
   @override

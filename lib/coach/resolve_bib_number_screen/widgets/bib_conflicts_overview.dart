@@ -171,7 +171,8 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
                     borderRadius: BorderRadius.circular(23),
                     boxShadow: [
                       BoxShadow(
-                        color: ColorUtils.withOpacity(AppColors.primaryColor, 0.1),
+                        color:
+                            ColorUtils.withOpacity(AppColors.primaryColor, 0.1),
                         blurRadius: 4,
                         offset: const Offset(0, 2),
                       ),

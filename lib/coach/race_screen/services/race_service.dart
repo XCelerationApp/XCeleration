@@ -30,13 +30,17 @@ class RaceService {
     double distance = 0;
     if (distanceController.text.isNotEmpty) {
       final parsedDistance = double.tryParse(distanceController.text);
-      distance = (parsedDistance != null && parsedDistance > 0) ? parsedDistance : 0;
+      distance =
+          (parsedDistance != null && parsedDistance > 0) ? parsedDistance : 0;
     }
     // Update the race in database
-    await DatabaseHelper.instance.updateRaceField(raceId, 'location', locationController.text);
-    await DatabaseHelper.instance.updateRaceField(raceId, 'raceDate', date?.toIso8601String());
+    await DatabaseHelper.instance
+        .updateRaceField(raceId, 'location', locationController.text);
+    await DatabaseHelper.instance
+        .updateRaceField(raceId, 'raceDate', date?.toIso8601String());
     await DatabaseHelper.instance.updateRaceField(raceId, 'distance', distance);
-    await DatabaseHelper.instance.updateRaceField(raceId, 'distanceUnit', unitController.text);
+    await DatabaseHelper.instance
+        .updateRaceField(raceId, 'distanceUnit', unitController.text);
     await saveTeamData(
       raceId: raceId,
       teamControllers: teamControllers,
@@ -56,14 +60,18 @@ class RaceService {
   }) async {
     if (race?.flowState != Race.FLOW_SETUP) return true;
     // Check for minimum runners
-    final hasMinimumRunners = await RunnersManagementScreen.checkMinimumRunnersLoaded(raceId);
+    final hasMinimumRunners =
+        await RunnersManagementScreen.checkMinimumRunnersLoaded(raceId);
     // Check if essential race fields are filled
     final fieldsComplete = nameController.text.isNotEmpty &&
         locationController.text.isNotEmpty &&
         dateController.text.isNotEmpty &&
         distanceController.text.isNotEmpty &&
-        teamControllers.where((controller) => controller.text.isNotEmpty).isNotEmpty;
-    Logger.d('hasMinimumRunners: $hasMinimumRunners, fieldsComplete: $fieldsComplete');
+        teamControllers
+            .where((controller) => controller.text.isNotEmpty)
+            .isNotEmpty;
+    Logger.d(
+        'hasMinimumRunners: $hasMinimumRunners, fieldsComplete: $fieldsComplete');
     return hasMinimumRunners && fieldsComplete;
   }
 

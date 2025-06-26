@@ -8,7 +8,7 @@ import 'role_selector_sheet.dart';
 class RoleButton extends StatelessWidget {
   /// Current role or profile
   final Role currentRole;
-  
+
   /// Tutorial manager for coach marks
   final TutorialManager tutorialManager;
 

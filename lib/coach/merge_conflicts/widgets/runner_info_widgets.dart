@@ -70,9 +70,7 @@ class RunnerInfo extends StatelessWidget {
             if (runner.bib.isNotEmpty)
               InfoChip(label: 'Bib ${runner.bib}', color: accentColor),
             if (runner.school.isNotEmpty)
-              InfoChip(
-                  label: runner.school,
-                  color: accentColor),
+              InfoChip(label: runner.school, color: accentColor),
           ],
         ),
       ],

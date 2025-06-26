@@ -68,7 +68,7 @@ class ResultsRecord {
             ? finishTimeValue
             : TimeFormatter.loadDurationFromString(finishTimeValue) ??
                 Duration.zero;
-    
+
     return ResultsRecord(
       place: map['place'] ?? 0,
       name: map['name'] ?? 'Unknown',

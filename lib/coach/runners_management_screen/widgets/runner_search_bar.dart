@@ -46,10 +46,12 @@ class RunnerSearchBar extends StatelessWidget {
                     controller: controller,
                     decoration: InputDecoration(
                       hintText: 'Search',
-                      hintStyle:
-                          TextStyle(color: ColorUtils.withOpacity(AppColors.mediumColor, 0.7)),
+                      hintStyle: TextStyle(
+                          color: ColorUtils.withOpacity(
+                              AppColors.mediumColor, 0.7)),
                       prefixIcon: Icon(Icons.search,
-                          color: ColorUtils.withOpacity(AppColors.primaryColor, 0.8)),
+                          color: ColorUtils.withOpacity(
+                              AppColors.primaryColor, 0.8)),
                       fillColor: Colors.white,
                       filled: true,
                       contentPadding: const EdgeInsets.symmetric(vertical: 12),
@@ -59,8 +61,8 @@ class RunnerSearchBar extends StatelessWidget {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide:
-                            BorderSide(color: AppColors.primaryColor, width: 1.5),
+                        borderSide: BorderSide(
+                            color: AppColors.primaryColor, width: 1.5),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -112,7 +114,8 @@ class RunnerSearchBar extends StatelessWidget {
                         iconSize: 30,
                         isExpanded: true,
                         focusColor: AppColors.backgroundColor,
-                        style: TextStyle(color: AppColors.darkColor, fontSize: 14),
+                        style:
+                            TextStyle(color: AppColors.darkColor, fontSize: 14),
                       ),
                     ),
                   ),

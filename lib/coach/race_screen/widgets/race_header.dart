@@ -62,7 +62,7 @@ class RaceHeader extends StatelessWidget {
         )),
 
         // Only show flow notification for non-setup and non-finished states
-        if (controller.race!.flowState != Race.FLOW_FINISHED && 
+        if (controller.race!.flowState != Race.FLOW_FINISHED &&
             controller.race!.flowState != Race.FLOW_SETUP)
           FlowNotification(
             flowState: controller.race!.flowState,

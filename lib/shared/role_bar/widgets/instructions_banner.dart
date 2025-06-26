@@ -35,7 +35,8 @@ class InstructionsBanner extends StatelessWidget {
   }
 
   /// Shows a modal bottom sheet with placeholder instructions using the shared sheet function and app typography.
-  static Future<void> showInstructionsSheet(BuildContext context, Role role) async {
+  static Future<void> showInstructionsSheet(
+      BuildContext context, Role role) async {
     await DialogUtils.showMessageDialog(
       context,
       title: 'Instructions',

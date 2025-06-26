@@ -56,9 +56,10 @@ class MockDatabaseHelper extends Mock implements DatabaseHelper {
     }
     return null;
   }
-  
+
   @override
-  Future<List<RunnerRecord>> getRaceRunnersByBibs(int raceId, List<String> bibNumbers) async {
+  Future<List<RunnerRecord>> getRaceRunnersByBibs(
+      int raceId, List<String> bibNumbers) async {
     List<RunnerRecord> results = [];
     for (String bib in bibNumbers) {
       // Only add non-null runners to the list

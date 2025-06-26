@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 class AppTypography {
   // Font family
   static const String fontFamily = 'Inter';
-  
+
   // Font size constants - centralized for easy modification
   static const double displayLargeSize = 48;
   static const double displayMediumSize = 36;
@@ -21,12 +21,12 @@ class AppTypography {
 
   // Line height multipliers
   static const double displayLineHeight = 1.2;
-  static const double titleLineHeight = 1.4; 
+  static const double titleLineHeight = 1.4;
   static const double headerLineHeight = 1.33;
   static const double bodyLineHeight = 1.5;
   static const double smallBodyLineHeight = 1.43;
   static const double buttonLineHeight = 1.4;
-  
+
   // Display styles
   static const TextStyle displayLarge = TextStyle(
     fontSize: displayLargeSize,
@@ -144,21 +144,21 @@ class AppTypography {
     height: smallBodyLineHeight,
     fontFamily: fontFamily,
   );
-  
+
   static const TextStyle captionBold = TextStyle(
     fontSize: captionSize,
     fontWeight: FontWeight.w600,
     height: smallBodyLineHeight,
     fontFamily: fontFamily,
   );
-  
+
   static const TextStyle smallCaption = TextStyle(
     fontSize: smallCaptionSize,
     fontWeight: FontWeight.w400,
     height: smallBodyLineHeight,
     fontFamily: fontFamily,
   );
-  
+
   static const TextStyle extraSmall = TextStyle(
     fontSize: extraSmallSize,
     fontWeight: FontWeight.w400,
