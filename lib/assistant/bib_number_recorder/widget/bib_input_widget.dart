@@ -101,7 +101,6 @@ class BibInputWidget extends StatelessWidget {
   }
 
   Widget _buildRunnerInfo() {
-
     if (record.flags.notInDatabase == false && record.bib.isNotEmpty) {
       return Row(
         mainAxisSize: MainAxisSize.min,

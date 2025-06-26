@@ -15,7 +15,8 @@ class BibListWidget extends StatefulWidget {
   State<BibListWidget> createState() => _BibListWidgetState();
 }
 
-class _BibListWidgetState extends State<BibListWidget> with TickerProviderStateMixin {
+class _BibListWidgetState extends State<BibListWidget>
+    with TickerProviderStateMixin {
   final Map<int, AnimationController> _animationControllers = {};
 
   @override
@@ -56,8 +57,9 @@ class _BibListWidgetState extends State<BibListWidget> with TickerProviderStateM
                   ),
                   direction: DismissDirection.endToStart,
                   confirmDismiss: (direction) async {
-                    if (index >= widget.controller.focusNodes.length) return false;
-                    
+                    if (index >= widget.controller.focusNodes.length)
+                      return false;
+
                     for (var node in widget.controller.focusNodes) {
                       node.unfocus();
                       node.canRequestFocus = false;
@@ -65,7 +67,8 @@ class _BibListWidgetState extends State<BibListWidget> with TickerProviderStateM
                     bool delete = await DialogUtils.showConfirmationDialog(
                       context,
                       title: 'Confirm Deletion',
-                      content: 'Are you sure you want to delete this bib number?',
+                      content:
+                          'Are you sure you want to delete this bib number?',
                     );
                     widget.controller.restoreFocusability();
                     return delete;

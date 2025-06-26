@@ -18,7 +18,7 @@ class ActionButton extends StatelessWidget {
   void _handleAction(BuildContext context) async {
     // Clear any validation errors
     controller.nameError = null;
-    
+
     // For simplified creation, we only need to validate the race name
     if (!controller.validateRaceCreation()) {
       return;
@@ -35,15 +35,15 @@ class ActionButton extends StatelessWidget {
         distanceUnit: 'mi',
         teams: [],
         teamColors: [],
-          // location: controller.locationController.text,
-          // raceDate: DateTime.parse(controller.dateController.text),
-          // distance: double.parse(controller.distanceController.text),
-          // distanceUnit: controller.unitController.text,
-          // teams: controller.teamControllers
-          //     .map((controller) => controller.text.trim())
-          //     .where((text) => text.isNotEmpty)
-          //     .toList(),
-          // teamColors: controller.teamColors,
+        // location: controller.locationController.text,
+        // raceDate: DateTime.parse(controller.dateController.text),
+        // distance: double.parse(controller.distanceController.text),
+        // distanceUnit: controller.unitController.text,
+        // teams: controller.teamControllers
+        //     .map((controller) => controller.text.trim())
+        //     .where((text) => text.isNotEmpty)
+        //     .toList(),
+        // teamColors: controller.teamColors,
         flowState: 'setup',
       );
       int newRaceId = race.raceId;
@@ -61,7 +61,7 @@ class ActionButton extends StatelessWidget {
     } catch (e) {
       // Handle errors without using ScaffoldMessenger directly
       Logger.d('Error in race creation: $e');
-      
+
       // Only show error dialog if context is still mounted
       if (context.mounted) {
         // Use Dialog instead of SnackBar to avoid ScaffoldMessenger issues

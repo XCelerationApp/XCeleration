@@ -1,0 +1,42 @@
+name: Build
+
+on:
+  pull_request:
+    branches: [ dev, main ]
+
+jobs:
+  build-app:
+    name: Build Flutter App
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.29.x'
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Create .env file from secrets
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+          echo "GOOGLE_APP_ID=${{ secrets.GOOGLE_APP_ID }}" >> .env
+          echo "GOOGLE_IOS_OAUTH_CLIENT_ID=${{ secrets.GOOGLE_IOS_OAUTH_CLIENT_ID }}" >> .env
+          echo "GOOGLE_IOS_OAUTH_REVERSED_CLIENT_ID=${{ secrets.GOOGLE_IOS_OAUTH_REVERSED_CLIENT_ID }}" >> .env
+          echo "GOOGLE_WEB_OAUTH_CLIENT_ID=${{ secrets.GOOGLE_WEB_OAUTH_CLIENT_ID }}" >> .env
+          echo "GOOGLE_WEB_API_KEY=${{ secrets.GOOGLE_WEB_API_KEY }}" >> .env
+          echo "SENTRY_DSN=${{ secrets.SENTRY_DSN }}" >> .env
+          echo "WEB_ACCESS_TOKEN_API_ENDPOINT=${{ secrets.WEB_ACCESS_TOKEN_API_ENDPOINT }}" >> .env
+          echo "GOOGLE_PICKER_URL=${{ secrets.GOOGLE_PICKER_URL }}" >> .env
+
+      - name: Create empty .env file for forks
+        if: github.event.pull_request.head.repo.full_name != github.repository
+        run: touch .env
+
+      - name: Verify Build
+        run: flutter build bundle 

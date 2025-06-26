@@ -124,7 +124,9 @@ class RunnersList extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
-                          color: schoolColor != null ? ColorUtils.withOpacity(schoolColor, 0.15) : null,
+                          color: schoolColor != null
+                              ? ColorUtils.withOpacity(schoolColor, 0.15)
+                              : null,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
@@ -142,8 +144,8 @@ class RunnersList extends StatelessWidget {
                 ...schoolRunners.map((runner) => RunnerListItem(
                       runner: runner,
                       controller: controller,
-                      onAction: (action) =>
-                          controller.handleRunnerAction(context, action, runner),
+                      onAction: (action) => controller.handleRunnerAction(
+                          context, action, runner),
                     )),
               ],
             ),

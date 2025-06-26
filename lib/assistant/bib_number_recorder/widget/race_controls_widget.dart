@@ -19,15 +19,19 @@ class RaceControlsWidget extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         _buildRaceControlButton(context),
-        if (!controller.isRecording && controller.countNonEmptyBibNumbers() > 0) _buildShareButton(context),
+        if (!controller.isRecording && controller.countNonEmptyBibNumbers() > 0)
+          _buildShareButton(context),
         _buildLogButton(context),
       ],
     );
   }
 
   Widget _buildRaceControlButton(BuildContext context) {
-    final buttonText =
-        controller.isRecording ? 'Stop' : controller.bibRecords.isNotEmpty ? 'Resume' : 'Start';
+    final buttonText = controller.isRecording
+        ? 'Stop'
+        : controller.bibRecords.isNotEmpty
+            ? 'Resume'
+            : 'Start';
     final buttonColor = controller.isRecording ? Colors.red : Colors.green;
 
     return CircularButton(
@@ -68,24 +72,30 @@ class RaceControlsWidget extends StatelessWidget {
 
   Widget _buildLogButton(BuildContext context) {
     return CircularButton(
-      text: (controller.bibRecords.isEmpty || controller.isRecording) ? 'Add' : 'Clear',
-      color: ((controller.isRecording && controller.canAddBib) || (!controller.isRecording && controller.bibRecords.isNotEmpty)) ? const Color(0xFF777777): const Color(0xFF777777).withAlpha((0.5 * 255).round()),
+      text: (controller.bibRecords.isEmpty || controller.isRecording)
+          ? 'Add'
+          : 'Clear',
+      color: ((controller.isRecording && controller.canAddBib) ||
+              (!controller.isRecording && controller.bibRecords.isNotEmpty))
+          ? const Color(0xFF777777)
+          : const Color(0xFF777777).withAlpha((0.5 * 255).round()),
       fontSize: 18,
       fontWeight: FontWeight.w600,
       onPressed: () async {
         if (controller.bibRecords.isNotEmpty && !controller.isRecording) {
-          final bool confirmation = await DialogUtils.showConfirmationDialog(context, title: 'Confirm Deletion', content: 'Are you sure you want to clear all the recorded bibs?');
+          final bool confirmation = await DialogUtils.showConfirmationDialog(
+              context,
+              title: 'Confirm Deletion',
+              content: 'Are you sure you want to clear all the recorded bibs?');
           if (confirmation) {
             controller.clearBibRecords();
           }
         } else if (controller.isRecording && controller.canAddBib) {
           controller.addBib();
-        }
-        else {
+        } else {
           Logger.e('No action taken', context: context);
         }
       },
     );
   }
-
 }

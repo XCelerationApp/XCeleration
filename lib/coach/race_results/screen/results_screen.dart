@@ -9,7 +9,6 @@ import '../widgets/team_results_widget.dart';
 import '../controller/race_results_controller.dart';
 import 'package:xceleration/core/utils/database_helper.dart';
 
-
 class ResultsScreen extends StatefulWidget {
   final int raceId;
 
@@ -27,10 +26,11 @@ class ResultsScreenState extends State<ResultsScreen> {
   @override
   void initState() {
     super.initState();
-    _controller = RaceResultsController(raceId: widget.raceId, dbHelper: DatabaseHelper.instance);
+    _controller = RaceResultsController(
+        raceId: widget.raceId, dbHelper: DatabaseHelper.instance);
   }
 
-  @override 
+  @override
   Widget build(BuildContext context) {
     return Material(
       color: AppColors.backgroundColor,
