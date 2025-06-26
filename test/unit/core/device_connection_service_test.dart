@@ -53,7 +53,9 @@ void main() {
     mockDevicesManager = MockDevicesManager();
 
     // Reset mock object states to ensure test independence
+    // Reset mock object states to ensure test independence
     mockConnectedDevice.status = ConnectionStatus.searching;
+    mockConnectedDevice.data = null;
     mockConnectedDevice.data = null;
     mockDevice.state = SessionState.notConnected;
 
