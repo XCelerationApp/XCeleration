@@ -28,6 +28,7 @@ jobs:
           ruby-version: '3.2'
           bundler: '2.6.9'
           bundler-cache: true
+          working-directory: ./ios
 
       - name: Create .env file
         run: echo "${{ secrets.DOTENV }}" > .env
