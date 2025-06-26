@@ -83,10 +83,12 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
     } else {
       // Use initial values if provided
       if (widget.initialName != null) nameController.text = widget.initialName!;
-      if (widget.initialGrade != null)
+      if (widget.initialGrade != null) {
         gradeController.text = widget.initialGrade!;
-      if (widget.initialSchool != null)
+      }
+      if (widget.initialSchool != null) {
         schoolController.text = widget.initialSchool!;
+      }
       if (widget.initialBib != null) bibController.text = widget.initialBib!;
     }
   }

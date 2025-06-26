@@ -57,8 +57,9 @@ class _BibListWidgetState extends State<BibListWidget>
                   ),
                   direction: DismissDirection.endToStart,
                   confirmDismiss: (direction) async {
-                    if (index >= widget.controller.focusNodes.length)
+                    if (index >= widget.controller.focusNodes.length) {
                       return false;
+                    }
 
                     for (var node in widget.controller.focusNodes) {
                       node.unfocus();
