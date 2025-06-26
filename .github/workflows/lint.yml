@@ -22,6 +22,9 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Create empty .env file for analyzer
+        run: touch .env
+
       - name: Check formatting
         run: dart format --output=none --set-exit-if-changed .
       
