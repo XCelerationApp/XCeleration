@@ -13,12 +13,16 @@
 # Uncomment the line if you want fastlane to automatically update itself
 # update_fastlane
 
+# Load environment variables from .env file
+require 'dotenv/load'
+dotenv_path = File.join(__dir__, "..", "..", ".env")
+Dotenv.load(dotenv_path) if File.exist?(dotenv_path)
+
 default_platform(:ios)
 
 platform :ios do
   desc "Build and upload a new version to the App Store and TestFlight"
   lane :deploy do
-
     api_key = {
       key_id: ENV["APP_STORE_CONNECT_API_KEY_ID"],
       issuer_id: ENV["APP_STORE_CONNECT_ISSUER_ID"],
