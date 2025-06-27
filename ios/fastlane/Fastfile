@@ -66,9 +66,7 @@ platform :ios do
       automatic_code_signing(
         path: "Runner.xcodeproj",
         use_automatic_signing: true,
-        team_id: "Y39YWD6Q4X",
-        code_sign_identity: "Apple Distribution",
-        profile_name: nil
+        team_id: "Y39YWD6Q4X"
       )
     end
 
