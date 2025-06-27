@@ -18,11 +18,20 @@ default_platform(:ios)
 platform :ios do
   desc "Build and upload a new version to the App Store and TestFlight"
   lane :deploy do
+
+    api_key = {
+      key_id: ENV["APP_STORE_CONNECT_API_KEY_ID"],
+      issuer_id: ENV["APP_STORE_CONNECT_ISSUER_ID"],
+      key: Base64.decode64(ENV["APP_STORE_CONNECT_API_KEY_BASE64"])
+    }
+
     # Best practice: Fetch the latest build number from TestFlight and increment it.
     # This avoids storing the build number in the repo and prevents conflicts.
     # The marketing version (e.g., 1.0.1) should be updated manually by developers.
+
     latest_build_number = latest_testflight_build_number(
       app_identifier: ENV["BUNDLE_ID"],
+      api_key: api_key
     )
     new_build_number = latest_build_number + 1
 
@@ -31,7 +40,8 @@ platform :ios do
 
     # Upload to TestFlight.
     upload_to_testflight(
-      ipa: "../build/ios/ipa/race_timer_app.ipa",
+      ipa: "../build/ios/ipa/xceleration.ipa",
+      api_key: api_key,
       skip_waiting_for_build_processing: true,
       distribute_external: false,  # Keep this false for internal testing only
       notify_external_testers: false,  # Not needed for internal testing
