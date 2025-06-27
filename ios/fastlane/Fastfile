@@ -60,6 +60,18 @@ platform :ios do
       new_build_number = 1
     end
 
+    # Enable automatic code signing and provisioning for CD
+    if ENV["CD"]
+      UI.message("Setting up automatic code signing for CD...")
+      automatic_code_signing(
+        path: "Runner.xcodeproj",
+        use_automatic_signing: true,
+        team_id: "Y39YWD6Q4X",
+        code_sign_identity: "Apple Distribution",
+        profile_name: nil
+      )
+    end
+
     # Build the Flutter app, injecting the new build number.
     sh "flutter", "build", "ipa", "--release", "--build-number=#{new_build_number}"
 

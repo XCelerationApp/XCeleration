@@ -37,4 +37,6 @@ jobs:
 
       - name: Deploy to TestFlight via Fastlane
         working-directory: ./ios
-        run: bundle exec fastlane deploy 
+        run: bundle exec fastlane deploy
+        env:
+          CD: true 
