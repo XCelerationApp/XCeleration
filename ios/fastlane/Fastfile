@@ -70,50 +70,56 @@ platform :ios do
       )
     end
 
-    # Build the Flutter app, injecting the new build number.
-    if ENV["CD"]
-      # For CI/CD, use gym with automatic provisioning
-      UI.message("Building for CI/CD with automatic provisioning...")
-      
-      # First, build the Flutter project without code signing
-      sh "flutter", "build", "ios", "--release", "--no-codesign", "--build-number=#{new_build_number}"
-      
-      # Then use gym to build and sign the IPA with automatic provisioning
-      gym(
-        workspace: "Runner.xcworkspace",
-        scheme: "Runner",
-        configuration: "Release",
-        clean: false,  # Don't clean since we just built
-        archive_path: "../build/ios/archive/Runner.xcarchive",
-        output_directory: "../build/ios/ipa",
-        output_name: "xceleration.ipa",
-        export_method: "app-store",
-        export_options: {
-          method: "app-store",
-          teamID: "Y39YWD6Q4X",
-          signingStyle: "automatic",
-          uploadBitcode: false,
-          uploadSymbols: true,
-          compileBitcode: false
-        }
-      )
-    else
-      # For local development, use the standard Flutter build
-      sh "flutter", "build", "ipa", "--release", "--build-number=#{new_build_number}"
-    end
+    begin
+      # Build the Flutter app, injecting the new build number.
+      if ENV["CD"]
+        # For CI/CD, use gym with automatic provisioning
+        UI.message("Building for CI/CD with automatic provisioning...")
+        
+        # First, build the Flutter project without code signing
+        sh "flutter", "build", "ios", "--release", "--no-codesign", "--build-number=#{new_build_number}"
+        
+        # Then use gym to build and sign the IPA with automatic provisioning
+        gym(
+          workspace: "Runner.xcworkspace",
+          scheme: "Runner",
+          configuration: "Release",
+          clean: false,  # Don't clean since we just built
+          archive_path: "../build/ios/archive/Runner.xcarchive",
+          output_directory: "../build/ios/ipa",
+          output_name: "xceleration.ipa",
+          export_method: "app-store",
+          export_options: {
+            method: "app-store",
+            teamID: "Y39YWD6Q4X",
+            signingStyle: "automatic",
+            uploadBitcode: false,
+            uploadSymbols: true,
+            compileBitcode: false
+          }
+        )
+      else
+        # For local development, use the standard Flutter build
+        sh "flutter", "build", "ipa", "--release", "--build-number=#{new_build_number}"
+      end
 
-    # Upload to TestFlight (will use the globally set API key)
-    upload_to_testflight(
-      ipa: "../build/ios/ipa/xceleration.ipa",
-      skip_waiting_for_build_processing: true,
-      distribute_external: false,  # Keep this false for internal testing only
-      notify_external_testers: false,  # Not needed for internal testing
-      groups: ["XCeleration prototype"],  # internal group
-      changelog: "Latest updates and bug fixes"  # Optional but recommended
-    )
+      # Upload to TestFlight (will use the globally set API key)
+      upload_to_testflight(
+        ipa: "../build/ios/ipa/xceleration.ipa",
+        skip_waiting_for_build_processing: true,
+        distribute_external: false,  # Keep this false for internal testing only
+        notify_external_testers: false,  # Not needed for internal testing
+        groups: ["XCeleration prototype"],  # internal group
+        changelog: "Latest updates and bug fixes"  # Optional but recommended
+      )
+    ensure
+      # Always revert environment injection to keep git clean
+      UI.message("Reverting environment variable injection...")
+      sh "SRCROOT=#{File.expand_path('..')} bash ../scripts/revert_env_injection.sh" rescue nil
+    end
   ensure
-    # Always revert environment injection to keep git clean
-    UI.message("Reverting environment variable injection...")
+    # Fallback cleanup in case of any errors
+    UI.message("Final cleanup...")
     sh "SRCROOT=#{File.expand_path('..')} bash ../scripts/revert_env_injection.sh" rescue nil
   end
 end
