@@ -36,6 +36,15 @@ platform :ios do
       key_content: Base64.decode64(ENV["APP_STORE_CONNECT_API_KEY_BASE64"])
     )
 
+    # Inject environment variables into project files
+    # This replaces BUNDLE_ID_PLACEHOLDER with the actual bundle ID
+    UI.message("Injecting environment variables...")
+    sh "SRCROOT=#{File.expand_path('..')} bash ../scripts/inject_env.sh"
+
+    # Install CocoaPods to ensure dependencies are up to date
+    UI.message("Installing CocoaPods dependencies...")
+    cocoapods(podfile: "Podfile")
+
     # Fetch the latest build number from TestFlight and increment it
     # This avoids storing the build number in the repo and prevents conflicts
     # The marketing version (e.g., 1.0.1) should be updated manually by developers.
@@ -63,5 +72,9 @@ platform :ios do
       groups: ["XCeleration prototype"],  # internal group
       changelog: "Latest updates and bug fixes"  # Optional but recommended
     )
+  ensure
+    # Always revert environment injection to keep git clean
+    UI.message("Reverting environment variable injection...")
+    sh "SRCROOT=#{File.expand_path('..')} bash ../scripts/revert_env_injection.sh" rescue nil
   end
 end
