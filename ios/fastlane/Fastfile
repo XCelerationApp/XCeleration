@@ -23,19 +23,19 @@ default_platform(:ios)
 platform :ios do
   desc "Build and upload a new version to the App Store and TestFlight"
   lane :deploy do
-    api_key = {
+    # Set up App Store Connect API Key globally
+    api_key = app_store_connect_api_key(
       key_id: ENV["APP_STORE_CONNECT_API_KEY_ID"],
       issuer_id: ENV["APP_STORE_CONNECT_ISSUER_ID"],
       key: Base64.decode64(ENV["APP_STORE_CONNECT_API_KEY_BASE64"])
-    }
+    )
 
     # Best practice: Fetch the latest build number from TestFlight and increment it.
     # This avoids storing the build number in the repo and prevents conflicts.
     # The marketing version (e.g., 1.0.1) should be updated manually by developers.
 
     latest_build_number = latest_testflight_build_number(
-      app_identifier: ENV["BUNDLE_ID"],
-      api_key: api_key
+      app_identifier: ENV["BUNDLE_ID"]
     )
     new_build_number = latest_build_number + 1
 
