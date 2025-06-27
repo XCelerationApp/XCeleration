@@ -21,15 +21,15 @@ platform :ios do
     # Best practice: Fetch the latest build number from TestFlight and increment it.
     # This avoids storing the build number in the repo and prevents conflicts.
     # The marketing version (e.g., 1.0.1) should be updated manually by developers.
-    latest_build_number = latest_testflight_build_number(app_identifier: ENV["BUNDLE_ID"])
+    latest_build_number = latest_testflight_build_number(
+      app_identifier: ENV["BUNDLE_ID"],
+    )
     new_build_number = latest_build_number + 1
 
     # Build the Flutter app, injecting the new build number.
     sh "flutter", "build", "ipa", "--release", "--build-number=#{new_build_number}", "--export-options-plist=./fastlane/ExportOptions.plist"
 
     # Upload to TestFlight.
-    # Fastlane automatically finds the App Store Connect API key from the environment
-    # variables passed in by the GitHub Actions workflow.
     upload_to_testflight(
       ipa: "../build/ios/ipa/race_timer_app.ipa",
       skip_waiting_for_build_processing: true,
