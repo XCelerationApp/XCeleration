@@ -14,7 +14,7 @@
 # update_fastlane
 
 # Load environment variables from .env file
-require 'dotenv/load'
+require 'dotenv'
 dotenv_path = File.join(__dir__, "..", "..", ".env")
 Dotenv.load(dotenv_path) if File.exist?(dotenv_path)
 
@@ -29,32 +29,34 @@ default_platform(:ios)
 platform :ios do
   desc "Build and upload a new version to the App Store and TestFlight"
   lane :deploy do
-    # Set up App Store Connect API Key
-    api_key = {
+    # Set up App Store Connect API Key globally
+    api_key = app_store_connect_api_key(
       key_id: ENV["APP_STORE_CONNECT_API_KEY_ID"],
       issuer_id: ENV["APP_STORE_CONNECT_ISSUER_ID"],
-      key: Base64.decode64(ENV["APP_STORE_CONNECT_API_KEY_BASE64"])
-    }
-
-    # Best practice: Fetch the latest build number from TestFlight and increment it.
-    # This avoids storing the build number in the repo and prevents conflicts.
-    # The marketing version (e.g., 1.0.1) should be updated manually by developers.
-
-    # Use app_store_build_number instead of latest_testflight_build_number
-    latest_build_number = app_store_build_number(
-      app_identifier: ENV["BUNDLE_ID"],
-      api_key: api_key,
-      live: false  # Get build number from TestFlight, not App Store
+      key_content: Base64.decode64(ENV["APP_STORE_CONNECT_API_KEY_BASE64"])
     )
-    new_build_number = latest_build_number + 1
+
+    # Fetch the latest build number from TestFlight and increment it
+    # This avoids storing the build number in the repo and prevents conflicts
+    # The marketing version (e.g., 1.0.1) should be updated manually by developers.
+    
+    begin
+      latest_build_number = latest_testflight_build_number(
+        app_identifier: ENV["BUNDLE_ID"]
+      )
+      new_build_number = latest_build_number + 1
+    rescue => e
+      UI.message("No previous builds found or error fetching build number: #{e.message}")
+      UI.message("Starting with build number 1")
+      new_build_number = 1
+    end
 
     # Build the Flutter app, injecting the new build number.
-    sh "flutter", "build", "ipa", "--release", "--build-number=#{new_build_number}", "--export-options-plist=./fastlane/ExportOptions.plist"
+    sh "flutter", "build", "ipa", "--release", "--build-number=#{new_build_number}"
 
-    # Upload to TestFlight.
+    # Upload to TestFlight (will use the globally set API key)
     upload_to_testflight(
       ipa: "../build/ios/ipa/xceleration.ipa",
-      api_key: api_key,
       skip_waiting_for_build_processing: true,
       distribute_external: false,  # Keep this false for internal testing only
       notify_external_testers: false,  # Not needed for internal testing
