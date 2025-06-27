@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# inject_env.sh – reads .env and writes required keys into Info.plist
+# inject_env.sh – reads .env and writes required keys into Info.plist and project configuration
 # This script is intended to be called from an Xcode "Run Script" build phase.
 # It makes the .env file the single source of truth for both Dart runtime and
 # native-side values required at compile time.
@@ -12,6 +12,7 @@ set -euo pipefail
 # $SRCROOT points at ios/ by default when invoked by Xcode.
 ENV_FILE="$SRCROOT/../.env"
 PLIST_FILE="$SRCROOT/Runner/Info.plist"
+PROJECT_FILE="$SRCROOT/Runner.xcodeproj/project.pbxproj"
 
 #--------------------------------------
 # Early exit when .env is absent (e.g. Xcode indexing or teammate without secrets)
@@ -27,6 +28,7 @@ fi
 GID_CLIENT_ID=""
 REVERSED_CLIENT_ID=""
 GID_SERVER_CLIENT_ID=""
+BUNDLE_ID=""
 
 while IFS= read -r LINE; do
   # Ignore comments, empty lines, and lines without '='
@@ -48,11 +50,12 @@ while IFS= read -r LINE; do
     GOOGLE_IOS_OAUTH_CLIENT_ID) GID_CLIENT_ID="$VALUE" ;;
     GOOGLE_IOS_OAUTH_REVERSED_CLIENT_ID) REVERSED_CLIENT_ID="$VALUE" ;;
     GOOGLE_WEB_OAUTH_CLIENT_ID) GID_SERVER_CLIENT_ID="$VALUE" ;;
+    BUNDLE_ID) BUNDLE_ID="$VALUE" ;;
   esac
 done < "$ENV_FILE"
 
 # Validate presence
-if [[ -z "$GID_CLIENT_ID" || -z "$REVERSED_CLIENT_ID" || -z "$GID_SERVER_CLIENT_ID" ]]; then
+if [[ -z "$GID_CLIENT_ID" || -z "$REVERSED_CLIENT_ID" || -z "$GID_SERVER_CLIENT_ID" || -z "$BUNDLE_ID" ]]; then
   echo "[inject_env] Required keys missing in .env – aborting build."
   exit 1
 fi
@@ -67,6 +70,15 @@ plist_set_or_add() {
 }
 
 #--------------------------------------
+# Inject bundle ID into project.pbxproj
+#--------------------------------------
+if [[ -f "$PROJECT_FILE" ]]; then
+  # Use sed to replace BUNDLE_ID_PLACEHOLDER with actual bundle ID
+  sed -i '' "s/BUNDLE_ID_PLACEHOLDER/$BUNDLE_ID/g" "$PROJECT_FILE"
+  echo "[inject_env] Injected bundle ID into project.pbxproj"
+fi
+
+#--------------------------------------
 # Inject values into Info.plist
 #--------------------------------------
 plist_set_or_add "GIDClientID" "$GID_CLIENT_ID" "string"
@@ -76,7 +88,7 @@ plist_set_or_add "GIDServerClientID" "$GID_SERVER_CLIENT_ID" "string"
 /usr/libexec/PlistBuddy -c "Delete :CFBundleURLTypes:0:CFBundleURLSchemes:0" "$PLIST_FILE" 2>/dev/null || true
 /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes:0 string $REVERSED_CLIENT_ID" "$PLIST_FILE"
 
-echo "[inject_env] Successfully injected GID_CLIENT_ID, REVERSED_CLIENT_ID, and GID_SERVER_CLIENT_ID into Info.plist"
+echo "[inject_env] Successfully injected GID_CLIENT_ID, REVERSED_CLIENT_ID, GID_SERVER_CLIENT_ID, and BUNDLE_ID into configuration files"
 
 #--------------------------------------
 # Inject values into GoogleService-Info.plist

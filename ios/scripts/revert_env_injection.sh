@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# revert_env.sh – Resets plist values back to their committed state after a build.
+# revert_env.sh – Resets plist and project values back to their committed state after a build.
 
 set -euo pipefail
 
@@ -8,7 +8,9 @@ set -euo pipefail
 #--------------------------------------
 INFO_PLIST="$SRCROOT/Runner/Info.plist"
 GOOGLE_PLIST="$SRCROOT/Runner/GoogleService-Info.plist"
+PROJECT_FILE="$SRCROOT/Runner.xcodeproj/project.pbxproj"
 PLACEHOLDER="TO_BE_REPLACED_BY_SCRIPT"
+BUNDLE_ID_PLACEHOLDER="BUNDLE_ID_PLACEHOLDER"
 
 #--------------------------------------
 # Helper to call PlistBuddy
@@ -20,6 +22,27 @@ plist_delete() {
 plist_set() {
   /usr/libexec/PlistBuddy -c "Set :$1 $2" "$3"
 }
+
+#--------------------------------------
+# Helper to revert project.pbxproj
+#--------------------------------------
+revert_bundle_id_in_project() {
+  local ENV_FILE="$SRCROOT/../.env"
+  
+  if [[ -f "$PROJECT_FILE" && -f "$ENV_FILE" ]]; then
+    # Extract the bundle ID from .env to replace it back with placeholder
+    BUNDLE_ID=$(grep "^BUNDLE_ID" "$ENV_FILE" | cut -d'=' -f2 | xargs | tr -d "'\"")
+    if [[ -n "$BUNDLE_ID" ]]; then
+      sed -i '' "s/$BUNDLE_ID/$BUNDLE_ID_PLACEHOLDER/g" "$PROJECT_FILE"
+      echo "[revert_env] Reverted bundle ID in project.pbxproj"
+    fi
+  fi
+}
+
+#--------------------------------------
+# Revert project.pbxproj
+#--------------------------------------
+revert_bundle_id_in_project
 
 #--------------------------------------
 # Revert Info.plist
@@ -44,4 +67,4 @@ if [[ -f "$GOOGLE_PLIST" ]]; then
   plist_set "REVERSED_CLIENT_ID" "$PLACEHOLDER" "$GOOGLE_PLIST"
 fi
 
-echo "[revert_env] Successfully reverted plist files." 
+echo "[revert_env] Successfully reverted plist and project files." 
