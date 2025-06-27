@@ -9,14 +9,10 @@ import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'core/theme/typography.dart';
 import 'core/services/splash_screen.dart';
 import 'core/services/event_bus.dart';
-import 'config/app_config.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'coach/race_screen/controller/race_screen_controller.dart';
 import 'coach/races_screen/controller/races_controller.dart';
-
-// Global app configuration that can be accessed throughout the app
-late AppConfig appConfig;
 
 /// EventBus provider wrapper for global event management
 class EventBusProvider extends ChangeNotifier {
@@ -30,16 +26,11 @@ class EventBusProvider extends ChangeNotifier {
 
 // Production app entry point
 void main() async {
-  await _initializeApp(AppConfig.fromEnvironment());
+  await _initializeApp();
 }
 
-// Development app entry point
-void mainDev() async {
-  await _initializeApp(AppConfig.fromEnvironment());
-}
-
-// Common initialization for all flavors
-Future<void> _initializeApp(AppConfig config) async {
+// Common initialization
+Future<void> _initializeApp() async {
   await dotenv.load(fileName: '.env');
 
   await SentryFlutter.init(
@@ -49,18 +40,15 @@ Future<void> _initializeApp(AppConfig config) async {
       options.diagnosticLevel = SentryLevel.warning;
       try {
         final info = await PackageInfo.fromPlatform();
-        options.release = dotenv.env['SENTRY_RELEASE'] ??
+        options.release =
             '${info.packageName}@${info.version}+${info.buildNumber}';
       } catch (_) {}
     },
-    appRunner: () => _runApp(config),
+    appRunner: () => _runApp(),
   );
 }
 
-void _runApp(AppConfig config) async {
-  // Store the config for later use
-  appConfig = config;
-
+void _runApp() async {
   // Initialize Flutter binding
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
@@ -91,8 +79,11 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Get app name from environment or use default
+    final appName = dotenv.env['APP_NAME'];
+
     return MaterialApp(
-      title: appConfig.appName,
+      title: appName,
       theme: _buildTheme(),
       home: const SplashScreen(),
       showPerformanceOverlay: false,
@@ -154,9 +145,3 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-
-// For custom performance timing, use:
-// final sw = Stopwatch()..start();
-// ... code to time ...
-// Logger.d('Operation took [38;5;2m${sw.elapsedMilliseconds}ms[0m');
-// This can be added to any expensive operation in services/controllers.
