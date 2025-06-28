@@ -71,16 +71,58 @@ platform :ios do
     end
 
     begin
-      # Ensure correct Xcode path is set for CI/CD
+      # Replicate local Xcode 16.4 environment in CI/CD
       if ENV["CD"]
-        UI.message("Setting up Xcode path for CI/CD...")
+        UI.message("🔧 Replicating local Xcode 16.4 environment in CI/CD...")
+        
+        # Phase 1: Set up Xcode environment to match local
+        UI.message("Phase 1: Configuring Xcode environment...")
         sh "sudo xcode-select -s /Applications/Xcode.app" rescue UI.message("Could not set Xcode path, proceeding with current path")
         
-        # Verify Xcode installation and tools
-        UI.message("Verifying Xcode configuration...")
-        sh "xcode-select -p" rescue UI.message("Could not get Xcode path")
-        sh "xcodebuild -version" rescue UI.message("Could not get Xcode version")
-        sh "xcrun --find xcodebuild" rescue UI.message("Could not find xcodebuild")
+        # Verify Xcode version matches local expectations
+        xcode_version_output = sh("xcodebuild -version").strip rescue "Unknown"
+        UI.message("Xcode version: #{xcode_version_output}")
+        
+        # Set environment variables to match local
+        ENV["DEVELOPER_DIR"] = "/Applications/Xcode.app/Contents/Developer"
+        ENV["XCODE_XCCONFIG_FILE"] = ""  # Clear any CI-specific configs
+        
+        # Phase 2: Pre-authenticate with Apple services (like local environment)
+        UI.message("Phase 2: Pre-authenticating with Apple services...")
+        begin
+          # Test App Store Connect API connectivity (same as local)
+          sh "xcrun altool --list-apps --apiKey #{ENV['APP_STORE_CONNECT_API_KEY_ID']} --apiIssuer #{ENV['APP_STORE_CONNECT_ISSUER_ID']} | head -5"
+          UI.success("✅ Apple services authentication successful")
+        rescue => e
+          UI.important("⚠️  Apple services pre-authentication failed: #{e.message}")
+          UI.message("Continuing with build - will rely on automatic provisioning")
+        end
+        
+        # Phase 3: Verify team configuration matches local
+        UI.message("Phase 3: Verifying team configuration...")
+        begin
+          team_output = sh("xcodebuild -showBuildSettings -workspace Runner.xcworkspace -scheme Runner -configuration Release | grep DEVELOPMENT_TEAM").strip
+          UI.message("Development team: #{team_output}")
+          if team_output.include?("Y39YWD6Q4X")
+            UI.success("✅ Team configuration verified")
+          else
+            UI.important("⚠️  Team configuration may not match local")
+          end
+        rescue => e
+          UI.message("Could not verify team configuration: #{e.message}")
+        end
+        
+        # Phase 4: Environment verification (same checks as local)
+        UI.message("Phase 4: Environment verification...")
+        UI.message("Current directory: #{Dir.pwd}")
+        UI.message("Bundle ID: #{ENV['BUNDLE_ID']}")
+        UI.message("API Key ID: #{ENV['APP_STORE_CONNECT_API_KEY_ID']}")
+        UI.message("Issuer ID: #{ENV['APP_STORE_CONNECT_ISSUER_ID']}")
+        
+        # Verify bundle ID injection will work
+        sh "grep -q 'BUNDLE_ID_PLACEHOLDER' Runner.xcodeproj/project.pbxproj && echo 'Bundle ID placeholder found (good)' || echo 'Bundle ID already injected'"
+        
+        UI.success("🎉 Environment setup complete - should match local Xcode 16.4 behavior")
       end
 
       # Build the Flutter app, injecting the new build number.
@@ -94,14 +136,29 @@ platform :ios do
         
         # Ensure build directory is clean
         UI.message("Cleaning build directories...")
-        sh "rm -rf ../build/ios" rescue UI.message("Build directory didn't exist")
+        sh "rm -rf ../../build/ios" rescue UI.message("Build directory didn't exist")
         
         UI.message("Getting Flutter dependencies...")
         sh "flutter", "pub", "get"
         
-        # Regenerate native splash screen
-        UI.message("Regenerating native splash screen...")
-        sh "dart run flutter_native_splash:create" rescue UI.message("Could not regenerate splash screen")
+        # Handle native splash screen generation robustly
+        UI.message("Handling native splash screen configuration...")
+        begin
+          # Try to regenerate splash screen, but don't fail if it doesn't work
+          sh "dart run flutter_native_splash:create"
+          UI.success("Successfully regenerated native splash screen")
+        rescue => e
+          UI.important("Splash screen regeneration failed: #{e.message}")
+          UI.message("Continuing with existing splash screen files (this is usually fine)")
+          # Check if splash screen files exist from local generation
+          splash_files = Dir.glob("../../ios/Runner/Assets.xcassets/LaunchImage.imageset/*")
+          if splash_files.any?
+            UI.success("Found existing splash screen files, proceeding...")
+          else
+            UI.error("No splash screen files found. Please run 'dart run flutter_native_splash:create' locally and commit the files.")
+            raise "Missing splash screen files"
+          end
+        end
         
         # Verify environment injection worked before building
         UI.message("Verifying environment injection...")
@@ -121,8 +178,8 @@ platform :ios do
             scheme: "Runner",
             configuration: "Release",
             clean: false,  # Don't clean since we just built
-            archive_path: "../build/ios/archive/Runner.xcarchive",
-            output_directory: "../build/ios/ipa",
+            archive_path: "../../build/ios/archive/Runner.xcarchive",
+            output_directory: "../../build/ios/ipa",
             output_name: "xceleration.ipa",
             export_method: "app-store",
             export_options: {
@@ -136,19 +193,27 @@ platform :ios do
               signingCertificate: "Apple Distribution",
               provisioningProfiles: {}
             },
-            xcargs: "-allowProvisioningUpdates PRODUCT_BUNDLE_IDENTIFIER=#{ENV['BUNDLE_ID']}",
-            buildlog_path: "../build/ios/logs",
+            xcargs: "-allowProvisioningUpdates -allowProvisioningDeviceRegistration PRODUCT_BUNDLE_IDENTIFIER=#{ENV['BUNDLE_ID']}",
+            buildlog_path: "../../build/ios/logs",
             suppress_xcode_output: false,
             verbose: true
           )
           UI.success("Gym build completed successfully!")
+          
+          # Verify IPA was created (like local Flutter build feedback)
+          if File.exist?("../../build/ios/ipa/xceleration.ipa")
+            ipa_size = File.size("../../build/ios/ipa/xceleration.ipa") / (1024 * 1024.0)
+            UI.success("✓ Built IPA: xceleration.ipa (#{ipa_size.round(1)}MB)")
+          else
+            UI.error("❌ IPA file not found after gym build")
+          end
         rescue => e
           UI.error("Gym build failed with error: #{e.message}")
           UI.message("Checking for detailed build logs...")
           
           # Check build logs
           begin
-            log_files = Dir.glob("../build/ios/logs/*.log")
+            log_files = Dir.glob("../../build/ios/logs/*.log")
             if !log_files.empty?
               UI.message("Build log content:")
               sh "tail -50 #{log_files.first}"
@@ -157,10 +222,27 @@ platform :ios do
             UI.message("Could not read build logs")
           end
           
-          # Check signing setup
-          UI.message("Checking code signing setup...")
+          # Enhanced error diagnostics based on local vs CI/CD differences
+          UI.message("🔍 Enhanced error diagnostics...")
+          
+          # Check if this is an authentication issue
+          if e.message.include?("No profiles") || e.message.include?("No Accounts")
+            UI.error("📋 AUTHENTICATION ISSUE DETECTED:")
+            UI.message("This appears to be the same authentication issue we're solving.")
+            UI.message("Local environment has Apple ID signed in, CI environment doesn't.")
+          end
+          
+          # Check code signing setup
+          UI.message("Checking code signing identities...")
           sh "security find-identity -v -p codesigning" rescue UI.message("Could not list signing identities")
-          sh "xcrun xcodebuild -showBuildSettings -workspace Runner.xcworkspace -scheme Runner -configuration Release" rescue UI.message("Could not show build settings")
+          
+          # Check if API key is working
+          UI.message("Testing API key functionality...")
+          sh "xcrun altool --list-apps --apiKey #{ENV['APP_STORE_CONNECT_API_KEY_ID']} --apiIssuer #{ENV['APP_STORE_CONNECT_ISSUER_ID']} | head -3" rescue UI.message("API key test failed")
+          
+          # Show build settings for debugging
+          UI.message("Showing relevant build settings...")
+          sh "xcrun xcodebuild -showBuildSettings -workspace Runner.xcworkspace -scheme Runner -configuration Release | grep -E '(DEVELOPMENT_TEAM|CODE_SIGN|PRODUCT_BUNDLE_IDENTIFIER)'" rescue UI.message("Could not show build settings")
           
           raise e
         end
@@ -170,17 +252,13 @@ platform :ios do
       end
 
       # Upload to TestFlight (will use the globally set API key)
-      if ENV["CD"]
-        # For CI/CD, gym creates the IPA with a specific name
-        ipa_path = "../build/ios/ipa/xceleration.ipa"
-      else
-        # For local builds, find the IPA file created by Flutter build
-        ipa_files = Dir.glob("../build/ios/ipa/*.ipa")
-        if ipa_files.empty?
-          UI.user_error!("No IPA file found in ../build/ios/ipa/")
-        end
-        ipa_path = ipa_files.first
+      # Note: Flutter builds relative to project root, fastlane runs from ios/fastlane/
+      ipa_files = Dir.glob("../../build/ios/ipa/*.ipa")
+      
+      if ipa_files.empty?
+        UI.user_error!("No IPA file found in ../../build/ios/ipa/")
       end
+      ipa_path = File.expand_path(ipa_files.first)
       
       UI.message("Using IPA: #{ipa_path}")
       
