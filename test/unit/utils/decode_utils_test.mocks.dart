@@ -8,15 +8,14 @@ import 'dart:async' as _i4;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i10;
 import 'package:sqflite/sqflite.dart' as _i2;
-import 'package:xceleration/assistant/race_timer/model/timing_record.dart'
-    as _i9;
+import 'package:xceleration/shared/models/time_record.dart' as _i9;
 import 'package:xceleration/coach/race_results/model/results_record.dart'
     as _i8;
 import 'package:xceleration/coach/race_screen/model/race_result.dart' as _i7;
 import 'package:xceleration/coach/race_screen/widgets/runner_record.dart'
     as _i5;
+import 'package:xceleration/core/utils/database_helper.dart' as _i3;
 import 'package:xceleration/shared/models/race.dart' as _i6;
-import 'package:xceleration/utils/database_helper.dart' as _i3;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -273,8 +272,7 @@ class MockDatabaseHelper extends _i1.Mock implements _i3.DatabaseHelper {
           #getAllResults,
           [],
         ),
-        returnValue:
-            _i4.Future<List<_i9.TimeRecord>>.value(<_i9.TimeRecord>[]),
+        returnValue: _i4.Future<List<_i9.TimeRecord>>.value(<_i9.TimeRecord>[]),
       ) as _i4.Future<List<_i9.TimeRecord>>);
 
   @override

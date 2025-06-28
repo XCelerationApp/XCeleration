@@ -42,9 +42,9 @@ class LoadResultsWidget extends StatelessWidget {
                 callback: () => controller.processReceivedData(context),
                 inSheet: closeWhenDone,
               ),
-                
+
               const SizedBox(height: 24),
-              
+
               // Display conflicts or success message
               if (controller.resultsLoaded) ...[
                 if (controller.hasBibConflicts || controller.hasTimingConflicts)
@@ -59,10 +59,9 @@ class LoadResultsWidget extends StatelessWidget {
                   )
                 else
                   const SuccessMessage(),
-                  
                 const SizedBox(height: 16),
               ],
-              
+
               // Reload button
               if (controller.resultsLoaded)
                 ReloadButton(onPressed: controller.resetDevices)

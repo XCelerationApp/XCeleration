@@ -1,4 +1,4 @@
-import '../../../utils/time_formatter.dart';
+import '../../../core/utils/time_formatter.dart';
 
 class ResultsRecord {
   int place;
@@ -68,7 +68,7 @@ class ResultsRecord {
             ? finishTimeValue
             : TimeFormatter.loadDurationFromString(finishTimeValue) ??
                 Duration.zero;
-    
+
     return ResultsRecord(
       place: map['place'] ?? 0,
       name: map['name'] ?? 'Unknown',

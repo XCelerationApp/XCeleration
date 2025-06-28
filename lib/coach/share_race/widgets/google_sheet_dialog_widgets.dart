@@ -89,9 +89,9 @@ class GoogleSheetInfoRow extends StatelessWidget {
         children: [
           // Google Sheets Icon
           const GoogleSheetIcon(),
-          
+
           const SizedBox(width: 10),
-          
+
           // Sheet title
           Expanded(
             child: Text(
@@ -103,9 +103,9 @@ class GoogleSheetInfoRow extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          
+
           const SizedBox(width: 10),
-          
+
           // Open button
           GoogleSheetOpenButton(
             onPressed: onOpenPressed,
@@ -206,9 +206,9 @@ class GoogleSheetActionRow extends StatelessWidget {
           icon: Icons.copy,
           onPressed: onCopy,
         ),
-        
+
         const SizedBox(width: 12),
-        
+
         // Share Button
         GoogleSheetActionButton(
           label: 'Share',
@@ -249,22 +249,24 @@ class GoogleSheetOptionsDialog extends StatelessWidget {
               ),
               textAlign: TextAlign.center,
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             // Middle row with icon, title and button
             GoogleSheetInfoRow(
               title: title,
-              onOpenPressed: () => Navigator.pop(context, GoogleSheetAction.openSheet),
+              onOpenPressed: () =>
+                  Navigator.pop(context, GoogleSheetAction.openSheet),
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             // Secondary actions row
             GoogleSheetActionRow(
               onCopy: () async {
                 // Copy to clipboard directly without closing dialog
-                await Clipboard.setData(ClipboardData(text: sheetUri.toString()));
+                await Clipboard.setData(
+                    ClipboardData(text: sheetUri.toString()));
                 // Let the user know the link was copied
                 if (context.mounted) {
                   DialogUtils.showSuccessDialog(

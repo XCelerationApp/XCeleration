@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../utils/sheet_utils.dart';
-import '../../../utils/database_helper.dart';
-import '../widgets/action_button.dart';
 import '../controller/runners_management_controller.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/components/button_components.dart';
+import '../../../core/utils/sheet_utils.dart';
+import '../../../core/utils/database_helper.dart';
 import '../widgets/list_titles.dart';
 import '../widgets/runner_search_bar.dart';
 import '../widgets/runners_list.dart';
@@ -69,7 +69,6 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
       onBack: widget.onBack,
       onContentChanged: widget.onContentChanged,
     );
-    _controller.setContext(context);
     _controller.init();
   }
 
@@ -130,16 +129,16 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          ActionButton(
+          SharedActionButton(
             text: 'Add Runner',
             icon: Icons.person_add_alt_1,
             onPressed: () =>
                 _controller.showRunnerSheet(context: context, runner: null),
           ),
-          ActionButton(
+          SharedActionButton(
             text: 'Load Runners',
             icon: Icons.table_chart,
-            onPressed: _controller.handleSpreadsheetLoad,
+            onPressed: () => _controller.handleSpreadsheetLoad(context),
           ),
         ],
       ),

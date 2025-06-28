@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
-import '../../../utils/enums.dart';
-import '../../../assistant/race_timer/model/timing_record.dart';
+import '../../../core/utils/enums.dart';
+import '../../../shared/models/time_record.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
 
 class ConflictHeader extends StatelessWidget {
@@ -23,10 +23,9 @@ class ConflictHeader extends StatelessWidget {
     final String title = type == RecordType.extraTime
         ? 'Extra Time Detected'
         : 'Missing Time Detected';
-    final String description =
-        type == RecordType.extraTime
-            ? 'There are more times than runners. Please select the extra time that should be removed from the results by clicking the X button next to it.'
-            : 'There are more runners than times. Please enter a missing time to the correct runner by clicking the + button next to it.';
+    final String description = type == RecordType.extraTime
+        ? 'There are more times than runners. Please select the extra time that should be removed from the results by clicking the X button next to it.'
+        : 'There are more runners than times. Please enter a missing time to the correct runner by clicking the + button next to it.';
 
     return Container(
       padding: const EdgeInsets.all(16),

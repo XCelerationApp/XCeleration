@@ -16,26 +16,26 @@ class KeyboardAccessoryBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!controller.isRecording || !(Platform.isIOS || Platform.isAndroid) || !controller.isKeyboardVisible ||
+    if (!controller.isRecording ||
+        !(Platform.isIOS || Platform.isAndroid) ||
+        !controller.isKeyboardVisible ||
         controller.bibRecords.isEmpty) {
       return const SizedBox.shrink();
     }
-    return Column(
-      children: [
-        Padding(
+    return Column(children: [
+      Padding(
           padding: EdgeInsets.symmetric(horizontal: 4),
           child: Container(
             height: 44,
             decoration: BoxDecoration(
-              color: Color(0xFFD2D5DB), // iOS numeric keypad color
-              border: Border(
-                top: BorderSide(
-                  color: Color(0xFFBBBBBB),
-                  width: 0.5,
+                color: Color(0xFFD2D5DB), // iOS numeric keypad color
+                border: Border(
+                  top: BorderSide(
+                    color: Color(0xFFBBBBBB),
+                    width: 0.5,
+                  ),
                 ),
-              ),
-              borderRadius: BorderRadius.circular(4)
-            ),
+                borderRadius: BorderRadius.circular(4)),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
@@ -57,10 +57,8 @@ class KeyboardAccessoryBar extends StatelessWidget {
                 ),
               ],
             ),
-          )
-        ),
-        const SizedBox(height: 6)
-      ]
-    );
+          )),
+      const SizedBox(height: 6)
+    ]);
   }
 }

@@ -56,29 +56,32 @@ class ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveBackgroundColor = backgroundColor ?? 
-        (isPrimary ? AppColors.primaryColor : Colors.white);
-    
-    final effectiveTextColor = textColor ?? 
-        (isPrimary ? Colors.white : AppColors.primaryColor);
-    
+    final effectiveBackgroundColor =
+        backgroundColor ?? (isPrimary ? AppColors.primaryColor : Colors.white);
+
+    final effectiveTextColor =
+        textColor ?? (isPrimary ? Colors.white : AppColors.primaryColor);
+
     final effectiveBorderRadius = borderRadius ?? 12.0;
-    
+
     final effectiveIconSize = iconSize ?? _getIconSizeForButtonSize(size);
     final effectiveFontSize = fontSize ?? _getFontSizeForButtonSize(size);
     final effectiveFontWeight = fontWeight ?? FontWeight.w500;
 
     // Get dimensions based on size
     Size buttonSize = _getSizeForButtonSize(size);
-    EdgeInsetsGeometry buttonPadding = padding ?? _getPaddingForButtonSize(size);
-    
+    EdgeInsetsGeometry buttonPadding =
+        padding ?? _getPaddingForButtonSize(size);
+
     // For full width buttons, we need to override the width
     final Widget buttonContent = size == ButtonSize.fullWidth
         ? SizedBox(
             width: double.infinity,
-            child: _buildButtonContent(effectiveTextColor, effectiveIconSize, effectiveFontSize, effectiveFontWeight),
+            child: _buildButtonContent(effectiveTextColor, effectiveIconSize,
+                effectiveFontSize, effectiveFontWeight),
           )
-        : _buildButtonContent(effectiveTextColor, effectiveIconSize, effectiveFontSize, effectiveFontWeight);
+        : _buildButtonContent(effectiveTextColor, effectiveIconSize,
+            effectiveFontSize, effectiveFontWeight);
 
     return SizedBox(
       width: size == ButtonSize.fullWidth ? double.infinity : buttonSize.width,
@@ -89,7 +92,8 @@ class ActionButton extends StatelessWidget {
           boxShadow: elevation > 0
               ? [
                   BoxShadow(
-                    color: ColorUtils.withOpacity(effectiveBackgroundColor, 0.3),
+                    color:
+                        ColorUtils.withOpacity(effectiveBackgroundColor, 0.3),
                     spreadRadius: 0,
                     blurRadius: elevation * 2,
                     offset: Offset(0, elevation),
@@ -102,17 +106,20 @@ class ActionButton extends StatelessWidget {
           style: ElevatedButton.styleFrom(
             backgroundColor: effectiveBackgroundColor,
             foregroundColor: effectiveTextColor,
-            disabledBackgroundColor: ColorUtils.withOpacity(effectiveBackgroundColor, 0.5),
-            disabledForegroundColor: ColorUtils.withOpacity(effectiveTextColor, 0.5),
+            disabledBackgroundColor:
+                ColorUtils.withOpacity(effectiveBackgroundColor, 0.5),
+            disabledForegroundColor:
+                ColorUtils.withOpacity(effectiveTextColor, 0.5),
             elevation: 0,
             padding: buttonPadding,
             minimumSize: Size(0, height ?? buttonSize.height),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(effectiveBorderRadius),
-              side: isPrimary 
-                  ? BorderSide.none 
+              side: isPrimary
+                  ? BorderSide.none
                   : BorderSide(
-                      color: borderColor ?? ColorUtils.withOpacity(AppColors.primaryColor, 0.3),
+                      color: borderColor ??
+                          ColorUtils.withOpacity(AppColors.primaryColor, 0.3),
                       width: 1,
                     ),
             ),
@@ -123,7 +130,8 @@ class ActionButton extends StatelessWidget {
     );
   }
 
-  Widget _buildButtonContent(Color textColor, double iconSize, double fontSize, FontWeight fontWeight) {
+  Widget _buildButtonContent(Color textColor, double iconSize, double fontSize,
+      FontWeight fontWeight) {
     if (icon != null) {
       return Row(
         mainAxisSize: MainAxisSize.min,
@@ -338,8 +346,10 @@ class CircleIconButton extends StatelessWidget {
           style: ElevatedButton.styleFrom(
             backgroundColor: effectiveBackgroundColor,
             foregroundColor: effectiveIconColor,
-            disabledBackgroundColor: ColorUtils.withOpacity(effectiveBackgroundColor, 0.5),
-            disabledForegroundColor: ColorUtils.withOpacity(effectiveIconColor, 0.5),
+            disabledBackgroundColor:
+                ColorUtils.withOpacity(effectiveBackgroundColor, 0.5),
+            disabledForegroundColor:
+                ColorUtils.withOpacity(effectiveIconColor, 0.5),
             padding: EdgeInsets.zero,
             shape: const CircleBorder(),
             elevation: 0,
@@ -430,7 +440,7 @@ class CircularButton extends StatelessWidget {
           ),
           child: Text(
             text,
-            style: fontSize <= 16 
+            style: fontSize <= 16
                 ? AppTypography.bodySemibold.copyWith(
                     color: Colors.white,
                     fontSize: fontSize,
@@ -501,7 +511,7 @@ class RoundedRectangleButton extends StatelessWidget {
           ),
           child: Text(
             text,
-            style: fontSize <= 16 
+            style: fontSize <= 16
                 ? AppTypography.bodySemibold.copyWith(
                     color: Colors.white,
                     fontSize: fontSize,
@@ -515,5 +525,97 @@ class RoundedRectangleButton extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// Shared ActionButton component that consolidates multiple ActionButton implementations
+class SharedActionButton extends StatelessWidget {
+  final String text;
+  final VoidCallback? onPressed;
+  final IconData? icon;
+  final bool isSelected;
+  final bool isPrimary;
+  final double? fontSize;
+  final FontWeight? fontWeight;
+  final double? borderRadius;
+  final EdgeInsets? padding;
+  final Color? backgroundColor;
+  final Color? textColor;
+  final Color? borderColor;
+  final double? elevation;
+  final double? height;
+  final ButtonSize? size;
+
+  const SharedActionButton({
+    super.key,
+    required this.text,
+    this.onPressed,
+    this.icon,
+    this.isSelected = false,
+    this.isPrimary = true,
+    this.fontSize,
+    this.fontWeight,
+    this.borderRadius,
+    this.padding,
+    this.backgroundColor,
+    this.textColor,
+    this.borderColor,
+    this.elevation,
+    this.height,
+    this.size,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (isSelected || (!isPrimary && icon != null)) {
+      // Use ToggleButton for selected states or secondary buttons with icons
+      return ToggleButton(
+        text: text,
+        icon: icon,
+        isSelected: isSelected,
+        onPressed: onPressed,
+        borderRadius: borderRadius ?? 12,
+        elevation: elevation ?? (isSelected ? 3 : 1),
+        fontSize: fontSize ?? 12,
+        fontWeight: fontWeight ?? FontWeight.w600,
+        padding:
+            padding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      );
+    } else if (height != null ||
+        backgroundColor != null ||
+        borderColor != null) {
+      // Use ActionButton for custom styled buttons
+      return ActionButton(
+        height: height ?? 50,
+        text: text,
+        icon: icon,
+        iconSize: 18,
+        fontSize: fontSize ?? 16,
+        textColor:
+            textColor ?? (isPrimary ? Colors.white : AppColors.mediumColor),
+        backgroundColor: backgroundColor ??
+            (isPrimary ? AppColors.primaryColor : AppColors.backgroundColor),
+        borderColor: borderColor ??
+            (isPrimary ? AppColors.primaryColor : AppColors.mediumColor),
+        fontWeight: fontWeight ?? FontWeight.w500,
+        padding:
+            padding ?? const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+        borderRadius: borderRadius ?? 12,
+        isPrimary: isPrimary,
+        onPressed: onPressed,
+      );
+    } else {
+      // Use PrimaryButton for simple primary actions
+      return PrimaryButton(
+        text: text,
+        onPressed: onPressed,
+        icon: icon,
+        size: size ?? ButtonSize.medium,
+        borderRadius: borderRadius ?? 12,
+        elevation: elevation ?? 4,
+        fontSize: fontSize ?? 16,
+        fontWeight: fontWeight ?? FontWeight.w600,
+      );
+    }
   }
 }

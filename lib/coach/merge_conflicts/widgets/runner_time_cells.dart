@@ -71,16 +71,18 @@ class ConfirmedRunnerTimeCell extends StatelessWidget {
 
 class ExtraTimeCell extends StatelessWidget {
   final String assignedTime;
-  final int index;
-  final int? removedTimeIndex;
+  final Set<int>? removedTimeIndices;
   final void Function(int)? onRemoveTime;
+  final bool isRemovedTime;
+  final int? removableTimeIndex;
 
   const ExtraTimeCell({
     super.key,
     required this.assignedTime,
-    required this.index,
-    this.removedTimeIndex,
+    this.removedTimeIndices,
     this.onRemoveTime,
+    this.isRemovedTime = false,
+    this.removableTimeIndex,
   });
 
   @override
@@ -89,13 +91,13 @@ class ExtraTimeCell extends StatelessWidget {
       children: [
         const SizedBox(width: 2),
         Expanded(
-          child: TimeDisplay(time: assignedTime),
+          child: TimeDisplay(time: isRemovedTime ? '' : assignedTime),
         ),
-        if (removedTimeIndex == null)
+        if (!isRemovedTime && onRemoveTime != null)
           CellActionIcon(
             icon: Icons.close,
             tooltip: 'Remove extra time',
-            onPressed: onRemoveTime != null ? () => onRemoveTime!(index) : null,
+            onPressed: () => onRemoveTime!(removableTimeIndex!),
           ),
       ],
     );
@@ -107,6 +109,7 @@ class MissingTimeCell extends StatelessWidget {
   final bool isManualEntry;
   final String assignedTime;
   final VoidCallback? onManualEntry;
+  final ValueChanged<String>? onSubmitted;
 
   const MissingTimeCell({
     super.key,
@@ -114,23 +117,32 @@ class MissingTimeCell extends StatelessWidget {
     required this.isManualEntry,
     required this.assignedTime,
     this.onManualEntry,
+    this.onSubmitted,
   });
 
   @override
   Widget build(BuildContext context) {
     if (isManualEntry) {
-      return TextField(
-        controller: controller,
-        autofocus: true,
-        decoration: const InputDecoration(
-          hintText: 'Enter missing time',
-          border: InputBorder.none,
-          enabledBorder: InputBorder.none,
-          focusedBorder: OutlineInputBorder(),
-        ),
-        style: AppTypography.smallBodySemibold.copyWith(
-          color: AppColors.darkColor,
-        ),
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Expanded(
+            child: TextField(
+              controller: controller,
+              autofocus: true,
+              decoration: const InputDecoration(
+                hintText: 'Enter missing time',
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: OutlineInputBorder(),
+              ),
+              style: AppTypography.smallBodySemibold.copyWith(
+                color: AppColors.darkColor,
+              ),
+              onSubmitted: onSubmitted,
+            ),
+          ),
+        ],
       );
     } else {
       return Row(

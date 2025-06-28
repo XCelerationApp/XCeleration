@@ -16,7 +16,6 @@ class BibNumberScreen extends StatefulWidget {
 }
 
 class _BibNumberScreenState extends State<BibNumberScreen> {
-
   late BibNumberController _controller;
 
   @override
@@ -26,7 +25,6 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
       context: context,
     );
   }
-
 
   @override
   void dispose() {
@@ -50,45 +48,37 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
             builder: (context, child) {
               return Scaffold(
                 resizeToAvoidBottomInset: true,
-                body: Column(
-                  children: [
-                    Padding(
+                body: Column(children: [
+                  Padding(
                       padding: EdgeInsets.symmetric(horizontal: 16),
-                      child: Column(                      
-                        children: [
-                          RoleBar(
-                            currentRole: Role.bibRecorder,
-                            tutorialManager: _controller.tutorialManager,
-                          ),
-                          const SizedBox(height: 16.0),
-
-                          RaceInfoHeaderWidget(controller: _controller),
-
-                          const SizedBox(height: 16),
-
-                          RaceControlsWidget(controller: _controller),
-                          const SizedBox(height: 8),
-                        ]
-                      )
-                    ),
-                    
-                    // Bib input list section - moved outside the inner Column
-                    Expanded(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16),
-                        child: BibListWidget(
-                          controller: _controller,
+                      child: Column(children: [
+                        RoleBar(
+                          currentRole: Role.bibRecorder,
+                          tutorialManager: _controller.tutorialManager,
                         ),
+                        const SizedBox(height: 16.0),
+                        RaceInfoHeaderWidget(controller: _controller),
+                        const SizedBox(height: 16),
+                        RaceControlsWidget(controller: _controller),
+                        const SizedBox(height: 8),
+                      ])),
+
+                  // Bib input list section - moved outside the inner Column
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16),
+                      child: BibListWidget(
+                        controller: _controller,
                       ),
                     ),
+                  ),
 
-                    // Keyboard accessory bar for mobile devices
-                    KeyboardAccessoryBar(
-                      controller: _controller,
-                      onDone: () => FocusScope.of(context).unfocus(),
-                    ),
-                  ]
-                ),
+                  // Keyboard accessory bar for mobile devices
+                  KeyboardAccessoryBar(
+                    controller: _controller,
+                    onDone: () => FocusScope.of(context).unfocus(),
+                  ),
+                ]),
               );
             },
           ),

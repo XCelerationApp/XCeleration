@@ -1,7 +1,6 @@
-
 import 'package:xceleration/coach/race_screen/widgets/runner_record.dart';
-import 'package:xceleration/assistant/race_timer/model/timing_record.dart';
-import 'package:xceleration/utils/time_formatter.dart';
+import '../../../shared/models/time_record.dart';
+import 'package:xceleration/core/utils/time_formatter.dart';
 
 bool validateRunnerInfo(List<RunnerRecord> records) {
   return records.every((runner) =>
@@ -23,15 +22,18 @@ String? validateTimes(
   for (var i = 0; i < times.length; i++) {
     final String time = times[i].trim();
     final runner = i < runners.length ? runners[i] : runners.last;
-    final bool validFormat = RegExp(r'^\d+:\d+\.\d+|^\d+\.\d+$').hasMatch(time);
+    final bool validFormat =
+        RegExp(r'^\d+:\d+\.\d+|^\d+\.\d+$').hasMatch(time);
     if (!validFormat) {
       return 'Invalid time format for runner with bib ${runner.bib}. Use MM:SS.ms or SS.ms';
     }
   }
   Duration lastConfirmedTime = lastConfirmed.elapsedTime.trim().isEmpty
       ? Duration.zero
-      : TimeFormatter.loadDurationFromString(lastConfirmed.elapsedTime) ?? Duration.zero;
-  Duration? conflictTime = TimeFormatter.loadDurationFromString(conflictRecord.elapsedTime);
+      : TimeFormatter.loadDurationFromString(lastConfirmed.elapsedTime) ??
+          Duration.zero;
+  Duration? conflictTime =
+      TimeFormatter.loadDurationFromString(conflictRecord.elapsedTime);
   for (var i = 0; i < times.length; i++) {
     final time = TimeFormatter.loadDurationFromString(times[i]);
     final runner = i < runners.length ? runners[i] : runners.last;
@@ -42,7 +44,10 @@ String? validateTimes(
       return 'Time for ${runner.name} must be after ${lastConfirmed.elapsedTime} and before ${conflictRecord.elapsedTime}';
     }
   }
-  if (!isAscendingOrder(times.map((time) => TimeFormatter.loadDurationFromString(time) ?? Duration.zero).toList())) {
+  if (!isAscendingOrder(times
+      .map(
+          (time) => TimeFormatter.loadDurationFromString(time) ?? Duration.zero)
+      .toList())) {
     return 'Times must be in ascending order';
   }
   return null;
@@ -53,4 +58,4 @@ bool isAscendingOrder(List<Duration> times) {
     if (times[i] >= times[i + 1]) return false;
   }
   return true;
-} 
+}

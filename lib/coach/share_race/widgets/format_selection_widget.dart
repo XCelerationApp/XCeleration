@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../utils/enums.dart';
+import '../../../core/utils/enums.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
 
 class FormatSelectionWidget extends StatelessWidget {
@@ -72,49 +72,48 @@ class FormatSelectionWidget extends StatelessWidget {
     required String description,
   }) {
     return InkWell(
-      onTap: () => onShareSelected(format),
-      borderRadius: BorderRadius.circular(16),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              size: 24,
-              color: ColorUtils.withOpacity(Colors.black54, 0.8),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: ColorUtils.withOpacity(Colors.black87, 0.9),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    description,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: ColorUtils.withOpacity(Colors.black54, 0.7),
-                      fontWeight: FontWeight.w400,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+        onTap: () => onShareSelected(format),
+        borderRadius: BorderRadius.circular(16),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                size: 24,
+                color: ColorUtils.withOpacity(Colors.black54, 0.8),
               ),
-            ),
-          ],
-        ),
-      )
-    );
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: ColorUtils.withOpacity(Colors.black87, 0.9),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      description,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: ColorUtils.withOpacity(Colors.black54, 0.7),
+                        fontWeight: FontWeight.w400,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ));
   }
 }

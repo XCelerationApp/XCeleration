@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/components/button_components.dart';
-import '../../../utils/database_helper.dart';
+import '../../../core/utils/database_helper.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
 import 'competing_teams_field.dart';
 import 'modern_detail_row.dart';
@@ -37,7 +37,7 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
     super.initState();
     _initializeControllers();
   }
-  
+
   @override
   void dispose() {
     _dateController.dispose();
@@ -47,24 +47,26 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
     _teamsController.dispose();
     super.dispose();
   }
-  
+
   void _initializeControllers() {
     final race = widget.controller.race!;
-    _dateController.text = race.raceDate != null 
-        ? DateFormat('yyyy-MM-dd').format(race.raceDate!) 
+    _dateController.text = race.raceDate != null
+        ? DateFormat('yyyy-MM-dd').format(race.raceDate!)
         : '';
     _locationController.text = race.location;
-    _distanceController.text = race.distance > 0 ? race.distance.toString() : '';
-    _unitController.text = race.distanceUnit.isNotEmpty ? race.distanceUnit : 'mi';
+    _distanceController.text =
+        race.distance > 0 ? race.distance.toString() : '';
+    _unitController.text =
+        race.distanceUnit.isNotEmpty ? race.distanceUnit : 'mi';
     _teamsController.text = race.teams.join(', ');
   }
-  
+
   void _toggleView() {
     setState(() {
       _showingRunners = !_showingRunners;
     });
   }
-  
+
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider.value(
@@ -76,12 +78,14 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
           final isSetup = race.flowState == 'setup';
           bool hasTeams = race.teams.isNotEmpty;
           int runnerCount = 0;
-          
-        return FutureBuilder(
-          future: DatabaseHelper.instance.getRaceRunners(race.raceId),
-          builder: (context, snapshot) {
-            // Default value for runners count
-            runnerCount = snapshot.hasData ? (snapshot.data as List).length : runnerCount;
+
+          return FutureBuilder(
+            future: DatabaseHelper.instance.getRaceRunners(race.raceId),
+            builder: (context, snapshot) {
+              // Default value for runners count
+              runnerCount = snapshot.hasData
+                  ? (snapshot.data as List).length
+                  : runnerCount;
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -96,7 +100,7 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
                             ),
                       ),
                       const SizedBox(height: 16),
-                      
+
                       // Form fields using new components
                       isSetup
                           ? Column(
@@ -173,14 +177,16 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
                                 ModernDetailRow(
                                   label: 'Race Date',
                                   value: race.raceDate != null
-                                      ? DateFormat('yyyy-MM-dd').format(race.raceDate!)
+                                      ? DateFormat('yyyy-MM-dd')
+                                          .format(race.raceDate!)
                                       : 'Not set',
                                   icon: Icons.calendar_today,
                                 ),
                                 const SizedBox(height: 12),
                                 ModernDetailRow(
                                   label: 'Distance',
-                                  value: '${race.distance} ${race.distanceUnit}',
+                                  value:
+                                      '${race.distance} ${race.distanceUnit}',
                                   icon: Icons.straighten,
                                 ),
                                 const SizedBox(height: 12),
@@ -194,7 +200,9 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
                       const SizedBox(height: 16),
                       // Clickable runners row with chevron - using custom layout
                       InkWell(
-                        onTap: widget.controller.race?.flowState == 'finished' ? _toggleView : null,
+                        onTap: widget.controller.race?.flowState == 'finished'
+                            ? _toggleView
+                            : null,
                         child: Container(
                           margin: const EdgeInsets.only(bottom: 16),
                           child: Row(
@@ -203,14 +211,12 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
                               Container(
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color: ColorUtils.withOpacity(AppColors.primaryColor, 0.1),
+                                  color: ColorUtils.withOpacity(
+                                      AppColors.primaryColor, 0.1),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
-                                child: Icon(
-                                  Icons.group_rounded, 
-                                  color: AppColors.primaryColor, 
-                                  size: 22
-                                ),
+                                child: Icon(Icons.group_rounded,
+                                    color: AppColors.primaryColor, size: 22),
                               ),
                               const SizedBox(width: 16),
                               // Content area
@@ -221,13 +227,15 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
                                     Text(
                                       'Runners',
                                       style: AppTypography.bodyRegular.copyWith(
-                                        color: ColorUtils.withOpacity(AppColors.darkColor, 0.6),
+                                        color: ColorUtils.withOpacity(
+                                            AppColors.darkColor, 0.6),
                                       ),
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
                                       '$runnerCount runner${runnerCount == 1 ? '' : 's'}',
-                                      style: AppTypography.bodySemibold.copyWith(
+                                      style:
+                                          AppTypography.bodySemibold.copyWith(
                                         color: AppColors.darkColor,
                                       ),
                                       maxLines: 1,
@@ -237,7 +245,8 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
                                 ),
                               ),
                               // Chevron icon - only show when race is finished
-                              if (widget.controller.race?.flowState == 'finished')
+                              if (widget.controller.race?.flowState ==
+                                  'finished')
                                 Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
@@ -253,7 +262,8 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
                                 SecondaryButton(
                                   text: 'Load Runners',
                                   icon: Icons.person_add,
-                                  onPressed: () => widget.controller.loadRunnersManagementScreen(context),
+                                  onPressed: () => widget.controller
+                                      .loadRunnersManagementScreen(context),
                                 ),
                               ]
                             ],

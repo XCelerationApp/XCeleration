@@ -2,13 +2,13 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>BUNDLE_ID</key>
+	<string>com.owendonnelley.xceleration</string>
 	<key>CLIENT_ID</key>
-	<string>529053126812-cuhlura1vskuup3lg6hpf6iup6mlje6v.apps.googleusercontent.com</string>
-	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.529053126812-cuhlura1vskuup3lg6hpf6iup6mlje6v</string>
+	<string>TO_BE_REPLACED_BY_SCRIPT</string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
-	<key>BUNDLE_ID</key>
-	<string>com.xceleration</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>TO_BE_REPLACED_BY_SCRIPT</string>
 </dict>
 </plist>

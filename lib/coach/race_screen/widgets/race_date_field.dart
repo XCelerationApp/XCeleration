@@ -30,7 +30,8 @@ class RaceDateField extends StatelessWidget {
         ),
         setSheetState: setSheetState,
         onChanged: (value) {
-          controller.validateDate(controller.dateController.text, setSheetState);
+          controller.validateDate(
+              controller.dateController.text, setSheetState);
           if (onChanged != null) onChanged!(value);
         },
       ),

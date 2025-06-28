@@ -34,7 +34,8 @@ class RaceLocationField extends StatelessWidget {
               error: controller.locationError,
               setSheetState: setSheetState,
               onChanged: (value) {
-                controller.validateLocation(controller.locationController.text, setSheetState);
+                controller.validateLocation(
+                    controller.locationController.text, setSheetState);
                 if (onChanged != null) onChanged!(value);
               },
               keyboardType: TextInputType.text,
@@ -48,7 +49,7 @@ class RaceLocationField extends StatelessWidget {
               child: IconButton(
                 icon: const Icon(Icons.my_location,
                     color: AppColors.primaryColor),
-                onPressed: controller.getCurrentLocation,
+                onPressed: () => controller.getCurrentLocation(context),
               ),
             ),
           ]

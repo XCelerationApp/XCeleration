@@ -1,6 +1,6 @@
 import 'package:mockito/mockito.dart';
 import 'package:xceleration/coach/race_screen/widgets/runner_record.dart';
-import 'package:xceleration/utils/database_helper.dart';
+import 'package:xceleration/core/utils/database_helper.dart';
 
 class MockDatabaseHelper extends Mock implements DatabaseHelper {
   static final MockDatabaseHelper _instance = MockDatabaseHelper._internal();
@@ -56,9 +56,10 @@ class MockDatabaseHelper extends Mock implements DatabaseHelper {
     }
     return null;
   }
-  
+
   @override
-  Future<List<RunnerRecord>> getRaceRunnersByBibs(int raceId, List<String> bibNumbers) async {
+  Future<List<RunnerRecord>> getRaceRunnersByBibs(
+      int raceId, List<String> bibNumbers) async {
     List<RunnerRecord> results = [];
     for (String bib in bibNumbers) {
       // Only add non-null runners to the list

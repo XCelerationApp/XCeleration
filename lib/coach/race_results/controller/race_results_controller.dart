@@ -1,7 +1,7 @@
 import '../model/results_record.dart';
 import '../model/team_record.dart';
 import 'package:collection/collection.dart';
-import 'package:xceleration/utils/database_helper.dart';
+import 'package:xceleration/core/utils/database_helper.dart';
 
 class RaceResultsController {
   final int raceId;
@@ -11,7 +11,7 @@ class RaceResultsController {
   List<ResultsRecord> individualResults = [];
   List<TeamRecord> overallTeamResults = [];
   List<List<TeamRecord>>? headToHeadTeamResults;
-  
+
   String get raceName => _raceName;
 
   RaceResultsController({
@@ -33,10 +33,9 @@ class RaceResultsController {
     } catch (e) {
       _raceName = 'Race Results';
     }
-    
+
     // Get race results from database
-    final List<ResultsRecord> results =
-        await dbHelper.getRaceResults(raceId);
+    final List<ResultsRecord> results = await dbHelper.getRaceResults(raceId);
 
     if (results.isEmpty) {
       isLoading = false;
@@ -57,7 +56,8 @@ class RaceResultsController {
     // DEEP COPY: Create completely independent copies for team results
     overallTeamResults = teamResults.map((r) => TeamRecord.from(r)).toList();
 
-    final List<TeamRecord> scoringTeams = teamResults.where((r) => r.score != 0).toList();
+    final List<TeamRecord> scoringTeams =
+        teamResults.where((r) => r.score != 0).toList();
 
     if (scoringTeams.length > 3 || scoringTeams.length < 2) {
       isLoading = false;
@@ -94,7 +94,11 @@ class RaceResultsController {
   List<TeamRecord> _calculateTeamResults(List<ResultsRecord> allResults) {
     final teams = _getTeamsFromResults(allResults);
     final teamCopy = teams.map((r) => TeamRecord.from(r)).toList();
-    final scoringRunners = teamCopy.where((r) => r.score != 0).map((r) => r.topSeven).expand((r) => r).toList();
+    final scoringRunners = teamCopy
+        .where((r) => r.score != 0)
+        .map((r) => r.topSeven)
+        .expand((r) => r)
+        .toList();
     updateResultsPlaces(scoringRunners);
     final scoredTeams = _getTeamsFromResults(allResults);
     for (var i = 0; i < teams.length; i++) {
@@ -103,6 +107,7 @@ class RaceResultsController {
     }
     return teams;
   }
+
   List<TeamRecord> _getTeamsFromResults(List<ResultsRecord> results) {
     final List<TeamRecord> teams = [];
     for (var team in groupBy(results, (result) => result.school).entries) {

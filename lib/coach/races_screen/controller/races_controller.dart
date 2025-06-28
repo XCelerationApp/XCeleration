@@ -6,8 +6,9 @@ import 'package:geolocator/geolocator.dart';
 import 'package:xceleration/coach/races_screen/widgets/race_creation_sheet.dart';
 import 'package:xceleration/coach/runners_management_screen/screen/runners_management_screen.dart';
 import 'package:xceleration/core/components/dialog_utils.dart';
-import 'package:xceleration/utils/database_helper.dart' show DatabaseHelper;
-import 'package:xceleration/utils/sheet_utils.dart' show sheet;
+import 'package:xceleration/core/utils/database_helper.dart'
+    show DatabaseHelper;
+import 'package:xceleration/core/utils/sheet_utils.dart' show sheet;
 import '../../../shared/models/race.dart';
 import '../../../core/services/tutorial_manager.dart';
 import '../../../core/services/event_bus.dart';
@@ -68,9 +69,10 @@ class RacesController extends ChangeNotifier {
         if (context.mounted) setupTutorials();
       });
     });
-    
+
     // Subscribe to race flow state change events
-    _eventSubscription = EventBus.instance.on(EventTypes.raceFlowStateChanged, (event) {
+    _eventSubscription =
+        EventBus.instance.on(EventTypes.raceFlowStateChanged, (event) {
       // Reload races when any race's flow state changes
       loadRaces();
     });
@@ -113,7 +115,7 @@ class RacesController extends ChangeNotifier {
         },
       ),
     );
-    
+
     // If a valid race ID was returned and the context is still mounted,
     // navigate to the race screen
     if (newRaceId != null && context.mounted) {
@@ -150,7 +152,6 @@ class RacesController extends ChangeNotifier {
     });
   }
 
-
   void resetControllers() {
     nameController.text = '';
     locationController.text = '';
@@ -170,7 +171,7 @@ class RacesController extends ChangeNotifier {
     dateError = null;
     distanceError = null;
     teamsError = null;
-    
+
     notifyListeners();
   }
 
@@ -184,7 +185,7 @@ class RacesController extends ChangeNotifier {
     notifyListeners();
     return true;
   }
-  
+
   // For simplified creation, we only validate the race name
   bool validateRaceCreation() {
     return validateRaceName();
@@ -192,28 +193,29 @@ class RacesController extends ChangeNotifier {
 
   // Checks if all required fields are filled for a complete setup
   Future<bool> isSetupComplete(Race race) async {
-    final moreThanFiveRunnersPerTeam = await RunnersManagementScreen.checkMinimumRunnersLoaded(race.raceId);
-    return race.raceName.isNotEmpty && 
-           race.location.isNotEmpty && 
-           race.raceDate != null && 
-           race.distance > 0 &&
-           race.distanceUnit.isNotEmpty && 
-           race.teams.isNotEmpty &&
-           race.teamColors.isNotEmpty &&
-           moreThanFiveRunnersPerTeam;
+    final moreThanFiveRunnersPerTeam =
+        await RunnersManagementScreen.checkMinimumRunnersLoaded(race.raceId);
+    return race.raceName.isNotEmpty &&
+        race.location.isNotEmpty &&
+        race.raceDate != null &&
+        race.distance > 0 &&
+        race.distanceUnit.isNotEmpty &&
+        race.teams.isNotEmpty &&
+        race.teamColors.isNotEmpty &&
+        moreThanFiveRunnersPerTeam;
   }
 
   Future<void> getCurrentLocation() async {
     try {
       LocationPermission permission = await Geolocator.checkPermission();
-      
+
       // Check if context is still mounted after async operation
       if (!context.mounted) return;
-      
+
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
       }
-      
+
       // Check if context is still mounted after async operation
       if (!context.mounted) return;
 
@@ -231,7 +233,7 @@ class RacesController extends ChangeNotifier {
 
       bool locationEnabled = await Geolocator.isLocationServiceEnabled();
       if (!context.mounted) return; // Check if context is still valid
-      
+
       if (!locationEnabled) {
         DialogUtils.showErrorDialog(context,
             message: 'Location services are disabled');
@@ -243,7 +245,7 @@ class RacesController extends ChangeNotifier {
       final placemarks =
           await placemarkFromCoordinates(position.latitude, position.longitude);
       if (!context.mounted) return; // Check if context is still valid
-      
+
       final placemark = placemarks.first;
       locationController.text =
           '${placemark.subThoroughfare} ${placemark.thoroughfare}, ${placemark.locality}, ${placemark.administrativeArea} ${placemark.postalCode}';
@@ -328,7 +330,7 @@ class RacesController extends ChangeNotifier {
     await loadRaces(); // Refresh the races list
     return newRaceId;
   }
-  
+
   // Update an existing race
   Future<void> updateRace(Race race) async {
     await DatabaseHelper.instance.updateRace(race);

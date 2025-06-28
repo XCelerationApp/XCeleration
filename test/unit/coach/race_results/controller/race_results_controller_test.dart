@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:xceleration/coach/race_results/controller/race_results_controller.dart';
 import 'package:mockito/mockito.dart';
-import 'package:xceleration/utils/database_helper.dart';
+import 'package:xceleration/core/utils/database_helper.dart';
 import 'package:xceleration/coach/race_results/model/results_record.dart';
 
 // Manual mock class
@@ -11,7 +11,7 @@ class MockDatabaseHelper extends Mock implements DatabaseHelper {
     if (raceId == 1) {
       return [
         ResultsRecord(
-          place: 0, 
+          place: 0,
           name: 'Runner B',
           school: 'School B',
           finishTime: Duration(minutes: 20),
@@ -46,10 +46,10 @@ void main() {
 
     setUp(() async {
       mockDbHelper = MockDatabaseHelper();
-      
+
       // Initialize controller with mock
       controller = RaceResultsController(raceId: 0, dbHelper: mockDbHelper);
-      
+
       // Wait for the async initialization to complete
       while (controller.isLoading) {
         await Future.delayed(Duration(milliseconds: 10));
@@ -69,20 +69,21 @@ void main() {
 
     setUp(() async {
       mockDbHelper = MockDatabaseHelper();
-      
+
       // Initialize controller with mock
       controller = RaceResultsController(raceId: 1, dbHelper: mockDbHelper);
-      
+
       // Wait for the async initialization to complete
       while (controller.isLoading) {
         await Future.delayed(Duration(milliseconds: 10));
       }
     });
 
-    test('should properly sort runners by finish time', () async {   
+    test('should properly sort runners by finish time', () async {
       // Verify results were sorted by finish time
       expect(controller.individualResults.length, 2);
-      expect(controller.individualResults[0].name, 'Runner A'); // Faster runner first
+      expect(controller.individualResults[0].name,
+          'Runner A'); // Faster runner first
       expect(controller.individualResults[0].place, 1); // Should be place 1
       expect(controller.individualResults[1].name, 'Runner B');
       expect(controller.individualResults[1].place, 2); // Should be place 2

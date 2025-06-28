@@ -30,7 +30,7 @@ class _PermissionsDialogState extends State<PermissionsDialog> {
     });
 
     final statuses = await _permissionsService.checkAllPermissions();
-    
+
     if (mounted) {
       setState(() {
         _permissionStatuses = statuses;
@@ -40,7 +40,8 @@ class _PermissionsDialogState extends State<PermissionsDialog> {
   }
 
   Widget _buildPermissionTile(Permission permission, PermissionStatus status) {
-    final String permissionName = _permissionsService.getPermissionName(permission);
+    final String permissionName =
+        _permissionsService.getPermissionName(permission);
     final IconData iconData = _getPermissionIcon(permission);
     final Color statusColor = _getStatusColor(status);
     final String statusText = _getStatusText(status);
@@ -68,7 +69,8 @@ class _PermissionsDialogState extends State<PermissionsDialog> {
                 backgroundColor: AppColors.primaryColor,
                 foregroundColor: Colors.white,
                 textStyle: const TextStyle(fontSize: 12),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               ),
               child: Text(status.isPermanentlyDenied ? 'Settings' : 'Request'),
             ),
@@ -129,18 +131,21 @@ class _PermissionsDialogState extends State<PermissionsDialog> {
   Future<void> _requestPermission(Permission permission) async {
     // Get the current status (since status is a Future<PermissionStatus>)
     final PermissionStatus status = await permission.status;
-    
+
     if (status.isPermanentlyDenied) {
-      final bool openedSettings = await _permissionsService.openSystemSettings();
+      final bool openedSettings =
+          await _permissionsService.openSystemSettings();
       if (!openedSettings && mounted) {
         DialogUtils.showErrorDialog(
           context,
-          message: 'Could not open app settings. Please open them manually to grant permissions.',
+          message:
+              'Could not open app settings. Please open them manually to grant permissions.',
         );
       }
     } else {
-      final bool granted = await _permissionsService.requestPermission(permission);
-      
+      final bool granted =
+          await _permissionsService.requestPermission(permission);
+
       if (mounted) {
         if (granted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -157,7 +162,7 @@ class _PermissionsDialogState extends State<PermissionsDialog> {
             ),
           );
         }
-        
+
         // Refresh the status
         _loadPermissions();
       }
@@ -203,7 +208,8 @@ class _PermissionsDialogState extends State<PermissionsDialog> {
                         child: ListView(
                           shrinkWrap: true,
                           children: _permissionStatuses.entries
-                              .map((entry) => _buildPermissionTile(entry.key, entry.value))
+                              .map((entry) =>
+                                  _buildPermissionTile(entry.key, entry.value))
                               .toList(),
                         ),
                       ),
@@ -244,7 +250,8 @@ class PermissionRequestButton extends StatefulWidget {
   });
 
   @override
-  State<PermissionRequestButton> createState() => _PermissionRequestButtonState();
+  State<PermissionRequestButton> createState() =>
+      _PermissionRequestButtonState();
 }
 
 class _PermissionRequestButtonState extends State<PermissionRequestButton> {
@@ -276,8 +283,9 @@ class _PermissionRequestButtonState extends State<PermissionRequestButton> {
       if (_status?.isPermanentlyDenied ?? false) {
         await _permissionsService.openSystemSettings();
       } else {
-        final bool granted = await _permissionsService.requestPermission(widget.permission);
-        
+        final bool granted =
+            await _permissionsService.requestPermission(widget.permission);
+
         if (granted) {
           widget.onGranted?.call();
         } else {
@@ -298,7 +306,7 @@ class _PermissionRequestButtonState extends State<PermissionRequestButton> {
   Widget build(BuildContext context) {
     final bool isGranted = _status?.isGranted ?? false;
     final bool isPermanentlyDenied = _status?.isPermanentlyDenied ?? false;
-    
+
     return ElevatedButton.icon(
       onPressed: isGranted ? null : _requestPermission,
       icon: _isLoading
@@ -371,12 +379,13 @@ Future<bool> requestPermission(
   String? message,
 }) async {
   final PermissionsService permissionsService = PermissionsService();
-  final bool isGranted = await permissionsService.isPermissionGranted(permission);
-  
+  final bool isGranted =
+      await permissionsService.isPermissionGranted(permission);
+
   if (isGranted) {
     return true;
   }
-  
+
   if (message != null && context.mounted) {
     // ignore: use_build_context_synchronously
     final bool shouldRequest = await DialogUtils.showConfirmationDialog(
@@ -385,11 +394,11 @@ Future<bool> requestPermission(
       content: message,
       confirmText: 'Grant Permission',
     );
-    
+
     if (!shouldRequest) {
       return false;
     }
   }
-  
+
   return await permissionsService.requestPermission(permission);
 }

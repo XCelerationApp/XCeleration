@@ -59,7 +59,8 @@ class _ShareActionButtonState extends State<ShareActionButton>
                   icon: widget.icon,
                   borderRadius: 12,
                   elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
                   iconSize: 18,
                   onPressed: () {
                     if (widget.onPressed != null) {
@@ -75,7 +76,8 @@ class _ShareActionButtonState extends State<ShareActionButton>
                   icon: widget.icon,
                   borderRadius: 12,
                   elevation: 2,
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
                   iconSize: 18,
                   onPressed: () {
                     if (widget.onPressed != null) {
