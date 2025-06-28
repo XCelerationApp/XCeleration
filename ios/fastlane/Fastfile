@@ -75,50 +75,111 @@ platform :ios do
       if ENV["CD"]
         UI.message("Setting up Xcode path for CI/CD...")
         sh "sudo xcode-select -s /Applications/Xcode.app" rescue UI.message("Could not set Xcode path, proceeding with current path")
+        
+        # Verify Xcode installation and tools
+        UI.message("Verifying Xcode configuration...")
+        sh "xcode-select -p" rescue UI.message("Could not get Xcode path")
+        sh "xcodebuild -version" rescue UI.message("Could not get Xcode version")
+        sh "xcrun --find xcodebuild" rescue UI.message("Could not find xcodebuild")
       end
 
       # Build the Flutter app, injecting the new build number.
       if ENV["CD"]
-        # For CI/CD, use gym with automatic provisioning
-        UI.message("Building for CI/CD with automatic provisioning...")
+        # For CI/CD, use gym with proper setup and error handling
+        UI.message("Building for CI/CD with gym and automatic provisioning...")
         
-        # Build Flutter project with proper iOS configuration
+        # Clean and prepare Flutter project
+        UI.message("Cleaning Flutter project...")
         sh "flutter", "clean"
-        sh "flutter", "pub", "get"
-        sh "flutter", "build", "ios", "--release", "--no-codesign", "--build-number=#{new_build_number}"
         
-        # Then use gym to build and sign the IPA with automatic provisioning
-        gym(
-          workspace: "Runner.xcworkspace",
-          scheme: "Runner",
-          configuration: "Release",
-          clean: true,  # Clean build for CI/CD reliability
-          archive_path: "../build/ios/archive/Runner.xcarchive",
-          output_directory: "../build/ios/ipa",
-          output_name: "xceleration.ipa",
-          export_method: "app-store",
-          build_path: "../build/ios",
-          derived_data_path: "../build/ios/DerivedData",
-          export_options: {
-            method: "app-store",
-            teamID: "Y39YWD6Q4X",
-            signingStyle: "automatic",
-            uploadBitcode: false,
-            uploadSymbols: true,
-            compileBitcode: false,
-            manageAppVersionAndBuildNumber: false
-          },
-          suppress_xcode_output: false,
-          xcargs: "-allowProvisioningUpdates"
-        )
+        # Ensure build directory is clean
+        UI.message("Cleaning build directories...")
+        sh "rm -rf ../build/ios" rescue UI.message("Build directory didn't exist")
+        
+        UI.message("Getting Flutter dependencies...")
+        sh "flutter", "pub", "get"
+        
+        # Regenerate native splash screen
+        UI.message("Regenerating native splash screen...")
+        sh "dart run flutter_native_splash:create" rescue UI.message("Could not regenerate splash screen")
+        
+        # Build Flutter project without code signing first
+        UI.message("Building Flutter iOS project (no code signing)...")
+        sh "flutter", "build", "ios", "--release", "--no-codesign", "--build-number=#{new_build_number}", "--verbose"
+        
+        # Then use gym to build and sign the IPA with better error handling
+        UI.message("Creating signed IPA with gym...")
+        begin
+          gym(
+            workspace: "Runner.xcworkspace",
+            scheme: "Runner",
+            configuration: "Release",
+            clean: false,  # Don't clean since we just built
+            archive_path: "../build/ios/archive/Runner.xcarchive",
+            output_directory: "../build/ios/ipa",
+            output_name: "xceleration.ipa",
+            export_method: "app-store",
+            export_options: {
+              method: "app-store",
+              teamID: "Y39YWD6Q4X",
+              signingStyle: "automatic",
+              uploadBitcode: false,
+              uploadSymbols: true,
+              compileBitcode: false,
+              manageAppVersionAndBuildNumber: false,
+              signingCertificate: "Apple Distribution",
+              provisioningProfiles: {}
+            },
+                         xcargs: "-allowProvisioningUpdates",
+            buildlog_path: "../build/ios/logs",
+            suppress_xcode_output: false,
+            verbose: true
+          )
+          UI.success("Gym build completed successfully!")
+        rescue => e
+          UI.error("Gym build failed with error: #{e.message}")
+          UI.message("Checking for detailed build logs...")
+          
+          # Check build logs
+          begin
+            log_files = Dir.glob("../build/ios/logs/*.log")
+            if !log_files.empty?
+              UI.message("Build log content:")
+              sh "tail -50 #{log_files.first}"
+            end
+          rescue
+            UI.message("Could not read build logs")
+          end
+          
+          # Check signing setup
+          UI.message("Checking code signing setup...")
+          sh "security find-identity -v -p codesigning" rescue UI.message("Could not list signing identities")
+          sh "xcrun xcodebuild -showBuildSettings -workspace Runner.xcworkspace -scheme Runner -configuration Release" rescue UI.message("Could not show build settings")
+          
+          raise e
+        end
       else
         # For local development, use the standard Flutter build
         sh "flutter", "build", "ipa", "--release", "--build-number=#{new_build_number}"
       end
 
       # Upload to TestFlight (will use the globally set API key)
+      if ENV["CD"]
+        # For CI/CD, gym creates the IPA with a specific name
+        ipa_path = "../build/ios/ipa/xceleration.ipa"
+      else
+        # For local builds, find the IPA file created by Flutter build
+        ipa_files = Dir.glob("../build/ios/ipa/*.ipa")
+        if ipa_files.empty?
+          UI.user_error!("No IPA file found in ../build/ios/ipa/")
+        end
+        ipa_path = ipa_files.first
+      end
+      
+      UI.message("Using IPA: #{ipa_path}")
+      
       upload_to_testflight(
-        ipa: "../build/ios/ipa/xceleration.ipa",
+        ipa: ipa_path,
         skip_waiting_for_build_processing: true,
         distribute_external: false,  # Keep this false for internal testing only
         notify_external_testers: false,  # Not needed for internal testing
