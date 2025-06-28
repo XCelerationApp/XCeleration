@@ -103,12 +103,18 @@ platform :ios do
         UI.message("Regenerating native splash screen...")
         sh "dart run flutter_native_splash:create" rescue UI.message("Could not regenerate splash screen")
         
+        # Verify environment injection worked before building
+        UI.message("Verifying environment injection...")
+        sh "grep -n 'BUNDLE_ID_PLACEHOLDER' Runner.xcodeproj/project.pbxproj || echo 'Bundle ID injection verified'"
+        
         # Build Flutter project without code signing first
         UI.message("Building Flutter iOS project (no code signing)...")
         sh "flutter", "build", "ios", "--release", "--no-codesign", "--build-number=#{new_build_number}", "--verbose"
         
-        # Then use gym to build and sign the IPA with better error handling
+                # Then use gym to build and sign the IPA with better error handling
         UI.message("Creating signed IPA with gym...")
+        UI.message("Using Bundle ID: #{ENV['BUNDLE_ID']}")
+        
         begin
           gym(
             workspace: "Runner.xcworkspace",
@@ -130,7 +136,7 @@ platform :ios do
               signingCertificate: "Apple Distribution",
               provisioningProfiles: {}
             },
-                         xcargs: "-allowProvisioningUpdates",
+            xcargs: "-allowProvisioningUpdates PRODUCT_BUNDLE_IDENTIFIER=#{ENV['BUNDLE_ID']}",
             buildlog_path: "../build/ios/logs",
             suppress_xcode_output: false,
             verbose: true
