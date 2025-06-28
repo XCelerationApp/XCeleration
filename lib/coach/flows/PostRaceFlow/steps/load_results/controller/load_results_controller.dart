@@ -514,18 +514,18 @@ class LoadResultsController with ChangeNotifier {
       if (i >= runnerRecords.length) break;
       
       final runnerRecord = runnerRecords[i];
-      final TimeRecord = records[i];
+      final timeRecord = records[i];
       
       // Convert elapsed time string to Duration
       Duration finishDuration;
-      finishDuration = TimeFormatter.loadDurationFromString(TimeRecord.elapsedTime) ?? Duration.zero;
+      finishDuration = TimeFormatter.loadDurationFromString(timeRecord.elapsedTime) ?? Duration.zero;
       
       // Get or create runner ID
       int runnerId = runnerRecord.runnerId ?? await _findRunnerId(runnerRecord);
       
       mergedRecords.add(ResultsRecord(
         bib: runnerRecord.bib,
-        place: TimeRecord.place!,
+        place: timeRecord.place!,
         name: runnerRecord.name,
         school: runnerRecord.school,
         grade: runnerRecord.grade,

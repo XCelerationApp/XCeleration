@@ -8,6 +8,7 @@ import '../../../core/components/dialog_utils.dart';
 import '../../../utils/enums.dart';
 import '../../../assistant/race_timer/model/timing_record.dart';
 import '../../merge_conflicts/services/merge_conflicts_service.dart';
+import '../services/simple_conflict_resolver.dart';
 
 class MergeConflictsController with ChangeNotifier {
   late final int raceId;
@@ -16,6 +17,30 @@ class MergeConflictsController with ChangeNotifier {
   List<Chunk> chunks = [];
   Map<int, dynamic> selectedTimes = {};
   BuildContext? _context;
+
+  // Mode switching for comparison
+  bool _useSimpleMode = false;
+  bool get useSimpleMode => _useSimpleMode;
+
+  void toggleMode() {
+    _useSimpleMode = !_useSimpleMode;
+    Logger.d('Switched to ${_useSimpleMode ? "Simple" : "Complex"} mode');
+    notifyListeners();
+  }
+
+  void setSimpleMode(bool isSimple) {
+    if (_useSimpleMode != isSimple) {
+      _useSimpleMode = isSimple;
+      Logger.d('Mode set to ${_useSimpleMode ? "Simple" : "Complex"}');
+      notifyListeners();
+    }
+  }
+
+  String get currentModeString => _useSimpleMode ? 'Simple' : 'Complex';
+
+  String get modeDescription => _useSimpleMode
+      ? 'Streamlined conflict resolution with direct controls'
+      : 'Advanced conflict resolution with detailed chunk management';
 
   MergeConflictsController({
     required this.raceId,
@@ -264,122 +289,160 @@ class MergeConflictsController with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> handleMissingTimesResolution(
-    Chunk chunk,
-  ) async {
+  Future<void> handleMissingTimesResolution(Chunk chunk) async {
     try {
-    final resolveData = chunk.resolve;
-    if (resolveData == null) throw Exception('No resolve data found');
-    if (chunk.controllers['timeControllers'] == null) {
-      throw Exception('No time controllers found');
-    }
-    final runners = chunk.runners;
-    final List<String> times = chunk.controllers['timeControllers']!
-        .map((controller) => controller.text.toString())
-        .toList()
-        .cast<String>();
-    final conflictRecord = resolveData.conflictRecord;
-    final timesError = MergeConflictsService.validateTimes(
-      times, runners, resolveData.lastConfirmedRecord, conflictRecord);
-    if (timesError != null) {
-      DialogUtils.showErrorDialog(context, message: timesError);
-      return;
-    }
-    final records = timingData.records;
-    final lastConfirmedRunnerPlace = resolveData.lastConfirmedPlace;
-    for (int i = 0; i < runners.length; i++) {
-      final int currentPlace = (i + lastConfirmedRunnerPlace + 1).toInt();
-      Logger.d('Current place: $currentPlace');
-      var record = records.firstWhere(
-          (element) => element.place == currentPlace,
-          orElse: () => TimeRecord(
-              elapsedTime: '',
-              isConfirmed: false,
-              conflict: null,
-              type: RecordType.runnerTime,
-              place: currentPlace,
-              previousPlace: null,
-              textColor: null));
+      // Validate required data
+      final resolveData = chunk.resolve;
+      final timeControllers = chunk.controllers['timeControllers'];
 
-      record.elapsedTime = times[i];
-      record.type = RecordType.runnerTime;
-      record.place = currentPlace;
-      record.isConfirmed = true;
-      record.conflict = null;
-      record.textColor = null;
-    }
-    MergeConflictsService.updateConflictRecord(
-      conflictRecord,
-      lastConfirmedRunnerPlace + runners.length,
-    );
-    timingData.records[timingData.records.indexOf(conflictRecord)] = conflictRecord;
+      if (resolveData == null) {
+        _showError('Missing resolve data for conflict');
+        return;
+      }
+      if (timeControllers == null) {
+        _showError('Missing time input controllers');
+        return;
+      }
+
+      // Extract user input
+      final List<String> times = timeControllers
+          .map((controller) => controller.text.toString())
+          .toList()
+          .cast<String>();
+
+      Logger.d('Resolving missing times with inputs: $times');
+
+      // Validate times
+      final timesError = MergeConflictsService.validateTimes(
+          times,
+          chunk.runners,
+          resolveData.lastConfirmedRecord,
+          resolveData.conflictRecord);
+      if (timesError != null) {
+        _showError(timesError);
+        return;
+      }
+      // Update records with new times
+      final conflictRecord = resolveData.conflictRecord;
+      final lastConfirmedRunnerPlace = resolveData.lastConfirmedPlace;
+
+      for (int i = times.length - 1; i >= 0; i--) {
+        final int currentPlace = (conflictRecord.place! - i).toInt();
+        Logger.d(
+            'Updating place $currentPlace with time ${times[times.length - i - 1]}');
+
+        var record = timingData.records.firstWhere(
+            (element) => element.place == currentPlace,
+            orElse: () => TimeRecord(
+                elapsedTime: '',
+                type: RecordType.runnerTime,
+                isConfirmed: false,
+                conflict: null,
+                place: currentPlace,
+                previousPlace: null,
+                textColor: null));
+
+        record.elapsedTime = times[times.length - i - 1];
+        record.type = RecordType.runnerTime;
+        record.place = currentPlace;
+        record.isConfirmed = true;
+        record.conflict = null;
+        record.textColor = null;
+      }
+
+      // Mark conflict as resolved
+      MergeConflictsService.updateConflictRecord(
+        conflictRecord,
+        lastConfirmedRunnerPlace + chunk.runners.length,
+      );
+      timingData.records[timingData.records.indexOf(conflictRecord)] =
+          conflictRecord;
 
     notifyListeners();
 
     showSuccessMessage();
     await consolidateConfirmedTimes();
     } catch (e, stackTrace) {
-      if (context.mounted) {
-        Logger.e('An error occurred while resolving conflict: ${e.toString()}', context: context, error: e, stackTrace: stackTrace);
-      }
-      else {
-        Logger.e('An error occurred while resolving conflict: ${e.toString()}', error: e, stackTrace: stackTrace);
-      }
+      Logger.e('Error resolving missing times: $e',
+          context: context.mounted ? context : null,
+          error: e,
+          stackTrace: stackTrace);
+      _showError('Failed to resolve missing times. Please try again.');
     }
   }
 
-  Future<void> handleExtraTimesResolution(
-    Chunk chunk,
-  ) async {
+  Future<void> handleExtraTimesResolution(Chunk chunk) async {
     try {
-    if (chunk.controllers['timeControllers'] == null) {
-      throw Exception('No time controllers found');
-    }
-    final List<String> times = chunk.controllers['timeControllers']!
-        .map((controller) => controller.text.toString())
-        .toList()
-        .cast<String>();
-    Logger.d('times: $times');
-    Logger.d('records: ${chunk.records}');
-    List<TimeRecord> records = chunk.records;
-    final resolveData = chunk.resolve;
-    if (resolveData == null) throw Exception('No resolve data found');
-    final availableTimes = resolveData.availableTimes;
-    final TimeRecord conflictRecord = resolveData.conflictRecord;
-    final lastConfirmedIndex = resolveData.lastConfirmedIndex ?? -1;
-    final lastConfirmedPlace = resolveData.lastConfirmedPlace;
-    Logger.d('lastConfirmedPlace: $lastConfirmedPlace');
-    List<RunnerRecord> runners = resolveData.conflictingRunners;
-    
-    final timesError = MergeConflictsService.validateTimes(
-      times, runners, resolveData.lastConfirmedRecord, conflictRecord);
-    if (timesError != null) {
-      DialogUtils.showErrorDialog(context, message: timesError);
-      return;
-    }
+      // Validate required data
+      final timeControllers = chunk.controllers['timeControllers'];
+      final resolveData = chunk.resolve;
+
+      if (timeControllers == null) {
+        _showError('Missing time input controllers');
+        return;
+      }
+      if (resolveData == null) {
+        _showError('Missing resolve data for conflict');
+        return;
+      }
+
+      // Extract user input
+      final List<String> times = timeControllers
+          .map((controller) => controller.text.toString())
+          .toList()
+          .cast<String>();
+
+      Logger.d('Resolving extra times with selections: $times');
+      Logger.d('Available times: ${resolveData.availableTimes}');
+
+      List<TimeRecord> records = chunk.records;
+      final availableTimes = resolveData.availableTimes;
+      final TimeRecord conflictRecord = resolveData.conflictRecord;
+      final lastConfirmedIndex = resolveData.lastConfirmedIndex ?? -1;
+      final lastConfirmedPlace = resolveData.lastConfirmedPlace;
+      Logger.d('lastConfirmedPlace: $lastConfirmedPlace');
+      List<RunnerRecord> runners = resolveData.conflictingRunners;
+
+      final timesError = MergeConflictsService.validateTimes(
+          times, runners, resolveData.lastConfirmedRecord, conflictRecord);
+      if (timesError != null) {
+        _showError(timesError);
+        return;
+      }
 
     final unusedTimes =
         availableTimes.where((time) => !times.contains(time)).toList();
 
-    if (unusedTimes.isEmpty) {
-      DialogUtils.showErrorDialog(context,
-          message: 'Please select a time for each runner.');
-      return;
-    }
-    Logger.d('Unused times: $unusedTimes');
-    final List<TimeRecord> unusedRecords = records
-        .where((record) => unusedTimes.contains(record.elapsedTime))
-        .toList();
-    Logger.d('Unused records: $unusedRecords');
+      if (unusedTimes.isEmpty) {
+        _showError('Please select a time for each runner.');
+        return;
+      }
+
+      if (unusedTimes.length + times.length != availableTimes.length) {
+        Logger.e(
+            'Time selection mismatch: unused(${unusedTimes.length}) + selected(${times.length}) != available(${availableTimes.length})');
+        _showError('Please select a time for each runner.');
+        return;
+      }
+
+      Logger.d('Unused times: $unusedTimes');
+      timingData.records
+          .removeWhere((record) => unusedTimes.contains(record.elapsedTime));
+      // Logger.d('Unused records: $unusedRecords');
 
     Logger.d('records: $records');
     Logger.d('runners before: $runners');
 
-    records = timingData.records
-        .where((record) => !unusedTimes.contains(record.elapsedTime))
-        .toList();
-    notifyListeners();
-    records = timingData.records;
+      final usedRecords = records
+          .where((record) => !unusedTimes.contains(record.elapsedTime))
+          .toList();
+
+      if (usedRecords.length != runners.length) {
+        Logger.e(
+            'Record count mismatch: usedRecords(${usedRecords.length}) != runners(${runners.length})');
+        _showError('Please select a time for each runner.');
+        return;
+      }
 
     Logger.d('runners: $runners');
     for (int i = 0; i < runners.length; i++) {
@@ -421,12 +484,11 @@ class MergeConflictsController with ChangeNotifier {
     consolidateConfirmedTimes();
     await createChunks();
     } catch (e, stackTrace) {
-      if (context.mounted) {
-        Logger.e('An error occurred while resolving conflict: ${e.toString()}', context: context, error: e, stackTrace: stackTrace);
-      }
-      else {
-        Logger.e('An error occurred while resolving conflict: ${e.toString()}', error: e, stackTrace: stackTrace);
-      }
+      Logger.e('Error resolving extra times: $e',
+          context: context.mounted ? context : null,
+          error: e,
+          stackTrace: stackTrace);
+      _showError('Failed to resolve extra times. Please try again.');
     }
   }
 
@@ -523,6 +585,172 @@ class MergeConflictsController with ChangeNotifier {
     }
 
     notifyListeners();
+  }
+
+  // New method to update a single record in timingData
+  void updateRecordInTimingData(TimeRecord updatedRecord) {
+    final index = timingData.records.indexWhere((record) =>
+        record.place == updatedRecord.place &&
+        record.type == updatedRecord.type);
+    if (index != -1) {
+      timingData.records[index] = updatedRecord;
+      Logger.d(
+          'Updated record in timingData: place=${updatedRecord.place}, time=${updatedRecord.elapsedTime}');
+    } else {
+      Logger.e(
+          'Failed to update record in timingData: Record not found. Place: ${updatedRecord.place}, Time: ${updatedRecord.elapsedTime}');
+    }
+    notifyListeners();
+  }
+
+  /// Helper method to show error dialogs consistently
+  void _showError(String message) {
+    Logger.e(message);
+    if (context.mounted) {
+      DialogUtils.showErrorDialog(context, message: message);
+    }
+  }
+
+  // ============================================================================
+  // SIMPLE MODE METHODS - Direct conflict resolution without complex abstractions
+  // ============================================================================
+
+  /// Simple alternative to handleMissingTimesResolution
+  /// Uses direct logic instead of chunks and services
+  Future<void> handleMissingTimesSimple({
+    required List<String> userTimes,
+    required int conflictPlace,
+  }) async {
+    try {
+      Logger.d('Simple mode: Resolving missing times at place $conflictPlace');
+
+      // Use simple resolver
+      final updatedRecords = SimpleConflictResolver.resolveMissingTimes(
+        timingRecords: timingData.records,
+        runners: runnerRecords,
+        userTimes: userTimes,
+        conflictPlace: conflictPlace,
+      );
+
+      // Update timing data
+      timingData.records = updatedRecords;
+
+      // Clean up any duplicates
+      timingData.records = SimpleConflictResolver.cleanupDuplicateConfirmations(
+        timingData.records,
+      );
+
+      notifyListeners();
+      showSuccessMessage();
+    } catch (e, stackTrace) {
+      Logger.e('Simple mode error resolving missing times: $e',
+          context: context.mounted ? context : null,
+          error: e,
+          stackTrace: stackTrace);
+      _showError('Failed to resolve missing times. Please try again.');
+    }
+  }
+
+  /// Simple alternative to handleExtraTimesResolution
+  /// Uses direct logic instead of chunks and services
+  Future<void> handleExtraTimesSimple({
+    required List<String> timesToRemove,
+    required int conflictPlace,
+  }) async {
+    try {
+      Logger.d('Simple mode: Resolving extra times at place $conflictPlace');
+
+      // Use simple resolver
+      final updatedRecords = SimpleConflictResolver.resolveExtraTimes(
+        timingRecords: timingData.records,
+        timesToRemove: timesToRemove,
+        conflictPlace: conflictPlace,
+      );
+
+      // Update timing data
+      timingData.records = updatedRecords;
+
+      // Clean up any duplicates
+      timingData.records = SimpleConflictResolver.cleanupDuplicateConfirmations(
+        timingData.records,
+      );
+
+      notifyListeners();
+      showSuccessMessage();
+    } catch (e, stackTrace) {
+      Logger.e('Simple mode error resolving extra times: $e',
+          context: context.mounted ? context : null,
+          error: e,
+          stackTrace: stackTrace);
+      _showError('Failed to resolve extra times. Please try again.');
+    }
+  }
+
+  /// Get all conflicts using simple identification
+  List<ConflictInfo> getConflictsSimple() {
+    return SimpleConflictResolver.identifyConflicts(timingData.records);
+  }
+
+  /// Check if there are any unresolved conflicts in simple mode
+  bool hasUnresolvedConflictsSimple() {
+    return getConflictsSimple().isNotEmpty;
+  }
+
+  /// Load mock data for testing purposes
+  Future<void> loadMockData(
+      List<RunnerRecord> mockRunners, TimingData mockTimingData) async {
+    try {
+      Logger.d(
+          'Loading mock data: ${mockRunners.length} runners, ${mockTimingData.records.length} records');
+
+      // Replace current data with mock data
+      runnerRecords = List.from(mockRunners);
+      timingData.records = List.from(mockTimingData.records);
+      timingData.endTime = mockTimingData.endTime;
+      timingData.startTime = mockTimingData.startTime;
+
+      // Reset state
+      chunks.clear();
+      selectedTimes.clear();
+
+      // Recreate chunks with new data
+      await createChunks();
+
+      Logger.d('Mock data loaded successfully');
+      notifyListeners();
+    } catch (e, stackTrace) {
+      Logger.e('Error loading mock data: $e',
+          context: context.mounted ? context : null,
+          error: e,
+          stackTrace: stackTrace);
+      rethrow;
+    }
+  }
+
+  /// Clear all data for testing purposes
+  Future<void> clearAllData() async {
+    try {
+      Logger.d('Clearing all data');
+
+      // Clear all data
+      runnerRecords.clear();
+      timingData.records.clear();
+      timingData.endTime = '';
+      timingData.startTime = null;
+
+      // Reset state
+      chunks.clear();
+      selectedTimes.clear();
+
+      Logger.d('All data cleared successfully');
+      notifyListeners();
+    } catch (e, stackTrace) {
+      Logger.e('Error clearing data: $e',
+          context: context.mounted ? context : null,
+          error: e,
+          stackTrace: stackTrace);
+      rethrow;
+    }
   }
 
   @override

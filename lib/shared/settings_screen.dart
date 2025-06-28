@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/typography.dart';
 import 'role_screen.dart';
 import '../coach/races_screen/screen/races_screen.dart';
 import '../core/components/dialog_utils.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
+import '../coach/merge_conflicts/screen/mock_data_test_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   final String currentRole;
@@ -69,6 +71,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // Role Selection Section
               _buildSectionHeader('Role'),
               _buildRoleSelection(context),
+
+              // Development Tools Section (only in debug mode)
+              if (kDebugMode) ...[
+                const SizedBox(height: 24),
+                _buildSectionHeader('Development Tools'),
+                _buildDevelopmentTools(context),
+              ],
             ],
           ),
         ],
@@ -108,6 +117,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _selectedRole == 'timer' ||
               _selectedRole == 'bib recorder',
           onTap: () => _changeRole('assistant'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDevelopmentTools(BuildContext context) {
+    return Column(
+      children: [
+        _buildRoleItem(
+          context,
+          'Mock Data Testing',
+          'Test conflict resolution with realistic scenarios',
+          Icons.science,
+          isSelected: false,
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const MockDataTestScreen(),
+            ),
+          ),
         ),
       ],
     );
