@@ -71,12 +71,20 @@ platform :ios do
     end
 
     begin
+      # Ensure correct Xcode path is set for CI/CD
+      if ENV["CD"]
+        UI.message("Setting up Xcode path for CI/CD...")
+        sh "sudo xcode-select -s /Applications/Xcode.app" rescue UI.message("Could not set Xcode path, proceeding with current path")
+      end
+
       # Build the Flutter app, injecting the new build number.
       if ENV["CD"]
         # For CI/CD, use gym with automatic provisioning
         UI.message("Building for CI/CD with automatic provisioning...")
         
-        # First, build the Flutter project without code signing
+        # Build Flutter project with proper iOS configuration
+        sh "flutter", "clean"
+        sh "flutter", "pub", "get"
         sh "flutter", "build", "ios", "--release", "--no-codesign", "--build-number=#{new_build_number}"
         
         # Then use gym to build and sign the IPA with automatic provisioning
@@ -84,19 +92,24 @@ platform :ios do
           workspace: "Runner.xcworkspace",
           scheme: "Runner",
           configuration: "Release",
-          clean: false,  # Don't clean since we just built
+          clean: true,  # Clean build for CI/CD reliability
           archive_path: "../build/ios/archive/Runner.xcarchive",
           output_directory: "../build/ios/ipa",
           output_name: "xceleration.ipa",
           export_method: "app-store",
+          build_path: "../build/ios",
+          derived_data_path: "../build/ios/DerivedData",
           export_options: {
             method: "app-store",
             teamID: "Y39YWD6Q4X",
             signingStyle: "automatic",
             uploadBitcode: false,
             uploadSymbols: true,
-            compileBitcode: false
-          }
+            compileBitcode: false,
+            manageAppVersionAndBuildNumber: false
+          },
+          suppress_xcode_output: false,
+          xcargs: "-allowProvisioningUpdates"
         )
       else
         # For local development, use the standard Flutter build
