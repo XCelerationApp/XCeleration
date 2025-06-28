@@ -38,8 +38,6 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
   void _initializeState() {
     final controller =
         Provider.of<MergeConflictsController>(context, listen: false);
-    final controller =
-        Provider.of<MergeConflictsController>(context, listen: false);
     controller.setContext(context);
     controller.initState();
     controller.addListener(_rebuildUi);
@@ -69,8 +67,6 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final controller =
-        Provider.of<MergeConflictsController>(context, listen: false);
     final controller =
         Provider.of<MergeConflictsController>(context, listen: false);
     controller.updateRunnerInfo();
@@ -189,8 +185,6 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
 
   @override
   void dispose() {
-    final controller =
-        Provider.of<MergeConflictsController>(context, listen: false);
     final controller =
         Provider.of<MergeConflictsController>(context, listen: false);
     controller.removeListener(_rebuildUi);

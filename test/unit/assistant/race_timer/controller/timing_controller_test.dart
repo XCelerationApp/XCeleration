@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
 import 'package:xceleration/assistant/race_timer/controller/timing_controller.dart';
-import 'package:xceleration/utils/enums.dart';
 import 'package:flutter/services.dart';
+import 'package:xceleration/core/utils/enums.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
