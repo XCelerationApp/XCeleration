@@ -112,22 +112,28 @@ void main() {
       expect(mockData.runners.length, equals(12));
       expect(mockData.scenarioName, equals('Complex Scenario'));
 
-      // Should have multiple conflict types
+      // Should have multiple conflict types (3 missing time + 4 extra time = 7 total)
       final conflictRecords =
           mockData.timingData.records.where((r) => r.conflict != null).toList();
-      expect(conflictRecords.length, greaterThan(3));
+      expect(conflictRecords.length, equals(7));
 
-      // Should have multiple TBD records
+      // Should have 2 TBD records (places 2-3)
       final tbdRecords = mockData.timingData.records
           .where((r) => r.elapsedTime == 'TBD')
           .toList();
-      expect(tbdRecords.length, greaterThan(1));
+      expect(tbdRecords.length, equals(2));
 
-      // Should have multiple extra time records
+      // Should have 1 extra time record
       final extraTimeRecords = mockData.timingData.records
           .where((r) => r.type == RecordType.extraTime)
           .toList();
-      expect(extraTimeRecords.length, greaterThan(1));
+      expect(extraTimeRecords.length, equals(1));
+
+      // Should have missing time records
+      final missingTimeRecords = mockData.timingData.records
+          .where((r) => r.type == RecordType.missingTime)
+          .toList();
+      expect(missingTimeRecords.length, equals(1));
     });
 
     test('generates realistic runner data', () {
