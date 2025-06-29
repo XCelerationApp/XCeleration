@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:path/path.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/core/services/device_connection_service.dart';
 import 'package:xceleration/core/utils/decode_utils.dart';
