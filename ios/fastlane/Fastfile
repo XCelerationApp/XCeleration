@@ -19,9 +19,17 @@ dotenv_path = File.join(__dir__, "..", "..", ".env")
 Dotenv.load(dotenv_path) if File.exist?(dotenv_path)
 
 # Check if environment variables are set
-required_env_vars = ["APP_STORE_CONNECT_API_KEY_ID", "APP_STORE_CONNECT_ISSUER_ID", "APP_STORE_CONNECT_API_KEY_BASE64", "BUNDLE_ID"]
+required_env_vars = ["APP_STORE_CONNECT_API_KEY_ID", "APP_STORE_CONNECT_ISSUER_ID", "APP_STORE_CONNECT_API_KEY_BASE64", "BUNDLE_ID", "TEAM_ID", "FASTLANE_MATCH_REPO_URL"]
+optional_env_vars = ["MATCH_PASSWORD"]
+
 required_env_vars.each do |var|
   UI.user_error!("Missing required environment variable: #{var}") unless ENV[var]
+end
+
+optional_env_vars.each do |var|
+  if !ENV[var]
+    UI.important("⚠️ Optional environment variable #{var} not set. You may be prompted for this value.")
+  end
 end
 
 default_platform(:ios)
@@ -116,7 +124,7 @@ platform :ios do
         update_code_signing_settings(
           path: "Runner.xcodeproj",
           use_automatic_signing: true,
-          team_id: "Y39YWD6Q4X",
+          team_id: ENV["TEAM_ID"],
           targets: ["Runner", "RunnerTests"]
         )
         UI.success("✅ Signing environment ready")
@@ -162,27 +170,66 @@ platform :ios do
       # Ensure output directories exist
       sh "mkdir -p ../../build/ios/ipa"
       sh "mkdir -p ../../build/ios/archive"
+
       
-      # Use fastlane to build, archive and sign all in one step
-      UI.message("Building, archiving and signing with fastlane...")
-      
-      # Set environment variable to disable conflicting Xcode scripts during build
+      # Set environment variable to prevent Xcode scripts from interfering during build
       ENV["FASTLANE_BUILD"] = "true"
       
+      # Step 6a: Build Flutter app (without signing) - matches what Flutter does
+      UI.message("Building Flutter app for iOS...")
+      sh "cd .. && flutter build ios --release --build-number=#{new_build_number}"
+      
+      # Step 6b: Archive and sign with fastlane (using the pre-built Flutter app)
+      UI.message("Archiving and signing with fastlane...")
+      
+      
       begin
+        # Archive manually without running build scripts again
+        UI.message("Creating archive manually...")
+        sh "xcodebuild", "-workspace", "../Runner.xcworkspace", "-scheme", "Runner", "-configuration", "Release", "-archivePath", "../../../build/ios/archive/Runner.xcarchive", "archive"
+        ENV.delete("FASTLANE_BUILD")
+        
+        # Always use app-store export method for TestFlight uploads
+        export_method = "app-store"
+        UI.message("Using app-store export method for TestFlight upload")
+        
+        # Use Match for team certificate management
+        UI.message("Setting up certificates and profiles using Match...")
+        begin
+          match(
+            type: "appstore",
+            readonly: true,  # Don't create new certificates, just fetch existing ones
+            app_identifier: ENV["BUNDLE_ID"]
+          )
+          UI.success("✅ Match certificates and profiles ready for app-store export")
+        rescue => e
+          UI.important("⚠️ Match readonly failed: #{e.message}")
+          UI.message("Trying to create certificates (first-time setup)...")
+          
+          # If readonly fails, try to create new certificates (first-time setup)
+          begin
+            match(
+              type: "appstore",
+              readonly: false,  # Allow creating new certificates
+              app_identifier: ENV["BUNDLE_ID"]
+            )
+            UI.success("✅ Match created new certificates and profiles")
+          rescue => create_error
+            UI.user_error!("❌ Match certificate creation failed: #{create_error.message}")
+          end
+        end
+        
+        # Then export the archive
+        UI.message("Exporting IPA from archive...")
         build_app(
-          workspace: "Runner.xcworkspace",
-          scheme: "Runner",
-          configuration: "Release",
-          export_method: "app-store-connect",  # Use the non-deprecated method
+          export_method: export_method,  # Use app-store if Distribution cert available, ad-hoc otherwise
           output_directory: "../../build/ios/ipa",
           output_name: "Runner.ipa",
-          skip_build_archive: false,
+          skip_build_archive: true,  # Skip building, just export the existing archive
           archive_path: "../../build/ios/archive/Runner.xcarchive",
-          build_number: new_build_number.to_s,  # Set build number directly
           export_options: {
-            method: "app-store-connect",
-            teamID: "Y39YWD6Q4X",
+            method: export_method,
+            teamID: ENV["TEAM_ID"],
             signingStyle: "automatic",
             uploadBitcode: false,
             uploadSymbols: false,
@@ -191,19 +238,28 @@ platform :ios do
           }
         )
       ensure
-        # Re-enable Xcode scripts for cleanup
+        # Clean up FASTLANE_BUILD flag after build
         ENV.delete("FASTLANE_BUILD")
-        UI.message("Re-enabled Xcode scripts for cleanup")
       end
       
-      UI.success("✅ #{build_type} build completed successfully!")
+      UI.success("✅ #{build_type} build completed successfully! Ready for TestFlight upload.")
 
-      # Upload to TestFlight (same for both local and CI/CD)
+      # Upload to TestFlight
       ipa_files = Dir.glob("../../build/ios/ipa/*.ipa")
       bundle_id = ENV["BUNDLE_ID"]
       
+      # Also try absolute path if relative path doesn't work
       if ipa_files.empty?
-        UI.user_error!("No IPA file found for upload")
+        ipa_files = Dir.glob("/Users/teodonnelley/Programming/build/ios/ipa/*.ipa")
+      end
+      
+      # Try using the lane context if available
+      if ipa_files.empty? && lane_context[SharedValues::IPA_OUTPUT_PATH]
+        ipa_files = [lane_context[SharedValues::IPA_OUTPUT_PATH]]
+      end
+      
+      if ipa_files.empty?
+        UI.user_error!("No IPA file found for upload. Checked: ../../build/ios/ipa/*.ipa and lane context")
       end
       
       ipa_path = File.expand_path(ipa_files.first)
