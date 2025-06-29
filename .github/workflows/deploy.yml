@@ -32,6 +32,23 @@ jobs:
       - name: Create .env file
         run: echo "${{ secrets.DOTENV }}" > .env
 
+      - name: Configure Git for Match repository access
+        run: |
+          git config --global user.email "action@github.com"
+          git config --global user.name "GitHub Action"
+          # Configure Git to use GitHub token for same-organization repository access
+          git config --global url."https://${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
+
+      - name: Cache Flutter dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            .dart_tool
+          key: ${{ runner.os }}-flutter-deps-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-flutter-deps-
+
       - name: Get Flutter dependencies
         run: flutter pub get
 
