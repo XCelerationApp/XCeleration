@@ -6,6 +6,12 @@
 
 set -euo pipefail
 
+# Skip if running from fastlane (fastlane handles injection itself)
+if [[ "${FASTLANE_BUILD:-}" == "true" ]]; then
+  echo "[inject_env] Skipping injection - running from fastlane"
+  exit 0
+fi
+
 #--------------------------------------
 # Paths
 #--------------------------------------
@@ -29,6 +35,7 @@ GID_CLIENT_ID=""
 REVERSED_CLIENT_ID=""
 GID_SERVER_CLIENT_ID=""
 BUNDLE_ID=""
+TEAM_ID=""
 
 while IFS= read -r LINE; do
   # Ignore comments, empty lines, and lines without '='
@@ -43,19 +50,20 @@ while IFS= read -r LINE; do
   # Trim whitespace from KEY
   KEY=$(echo "$KEY" | xargs)
 
-  # Trim whitespace and quotes from VALUE
-  VALUE=$(echo "$VALUE" | xargs | tr -d "'\"")
+  # Trim whitespace, quotes, and any trailing characters like % from VALUE
+  VALUE=$(echo "$VALUE" | xargs | tr -d "'\"%" | sed 's/[[:space:]]*$//')
 
   case "$KEY" in
     GOOGLE_IOS_OAUTH_CLIENT_ID) GID_CLIENT_ID="$VALUE" ;;
     GOOGLE_IOS_OAUTH_REVERSED_CLIENT_ID) REVERSED_CLIENT_ID="$VALUE" ;;
     GOOGLE_WEB_OAUTH_CLIENT_ID) GID_SERVER_CLIENT_ID="$VALUE" ;;
     BUNDLE_ID) BUNDLE_ID="$VALUE" ;;
+    TEAM_ID) TEAM_ID="$VALUE" ;;
   esac
 done < "$ENV_FILE"
 
 # Validate presence
-if [[ -z "$GID_CLIENT_ID" || -z "$REVERSED_CLIENT_ID" || -z "$GID_SERVER_CLIENT_ID" || -z "$BUNDLE_ID" ]]; then
+if [[ -z "$GID_CLIENT_ID" || -z "$REVERSED_CLIENT_ID" || -z "$GID_SERVER_CLIENT_ID" || -z "$BUNDLE_ID" || -z "$TEAM_ID" ]]; then
   echo "[inject_env] Required keys missing in .env – aborting build."
   exit 1
 fi
@@ -70,12 +78,16 @@ plist_set_or_add() {
 }
 
 #--------------------------------------
-# Inject bundle ID into project.pbxproj
+# Inject bundle ID and team ID into project.pbxproj
 #--------------------------------------
 if [[ -f "$PROJECT_FILE" ]]; then
   # Use sed to replace BUNDLE_ID_PLACEHOLDER with actual bundle ID
   sed -i '' "s/BUNDLE_ID_PLACEHOLDER/$BUNDLE_ID/g" "$PROJECT_FILE"
   echo "[inject_env] Injected bundle ID into project.pbxproj"
+  
+  # Use sed to replace TEAM_ID_PLACEHOLDER with actual team ID
+  sed -i '' "s/TEAM_ID_PLACEHOLDER/$TEAM_ID/g" "$PROJECT_FILE"
+  echo "[inject_env] Injected team ID into project.pbxproj"
 fi
 
 #--------------------------------------
@@ -88,7 +100,7 @@ plist_set_or_add "GIDServerClientID" "$GID_SERVER_CLIENT_ID" "string"
 /usr/libexec/PlistBuddy -c "Delete :CFBundleURLTypes:0:CFBundleURLSchemes:0" "$PLIST_FILE" 2>/dev/null || true
 /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes:0 string $REVERSED_CLIENT_ID" "$PLIST_FILE"
 
-echo "[inject_env] Successfully injected GID_CLIENT_ID, REVERSED_CLIENT_ID, GID_SERVER_CLIENT_ID, and BUNDLE_ID into configuration files"
+echo "[inject_env] Successfully injected GID_CLIENT_ID, REVERSED_CLIENT_ID, GID_SERVER_CLIENT_ID, BUNDLE_ID, and TEAM_ID into configuration files"
 
 #--------------------------------------
 # Inject values into GoogleService-Info.plist

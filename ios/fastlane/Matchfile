@@ -1,0 +1,8 @@
+git_url(ENV["FASTLANE_MATCH_REPO_URL"])
+
+storage_mode("git")
+
+type("appstore") # Default to appstore for TestFlight uploads
+
+app_identifier(ENV["BUNDLE_ID"])
+team_id(ENV["TEAM_ID"])

@@ -3,6 +3,12 @@
 
 set -euo pipefail
 
+# Skip if running from fastlane (fastlane handles cleanup itself)
+if [[ "${FASTLANE_BUILD:-}" == "true" ]]; then
+  echo "[revert_env] Skipping revert - running from fastlane"
+  exit 0
+fi
+
 #--------------------------------------
 # Paths and Placeholder
 #--------------------------------------
@@ -11,6 +17,7 @@ GOOGLE_PLIST="$SRCROOT/Runner/GoogleService-Info.plist"
 PROJECT_FILE="$SRCROOT/Runner.xcodeproj/project.pbxproj"
 PLACEHOLDER="TO_BE_REPLACED_BY_SCRIPT"
 BUNDLE_ID_PLACEHOLDER="BUNDLE_ID_PLACEHOLDER"
+TEAM_ID_PLACEHOLDER="TEAM_ID_PLACEHOLDER"
 
 #--------------------------------------
 # Helper to call PlistBuddy
@@ -26,7 +33,7 @@ plist_set() {
 #--------------------------------------
 # Helper to revert project.pbxproj
 #--------------------------------------
-revert_bundle_id_in_project() {
+revert_project_injections() {
   local ENV_FILE="$SRCROOT/../.env"
   
   if [[ -f "$PROJECT_FILE" && -f "$ENV_FILE" ]]; then
@@ -36,13 +43,20 @@ revert_bundle_id_in_project() {
       sed -i '' "s/$BUNDLE_ID/$BUNDLE_ID_PLACEHOLDER/g" "$PROJECT_FILE"
       echo "[revert_env] Reverted bundle ID in project.pbxproj"
     fi
+    
+    # Extract the team ID from .env to replace it back with placeholder
+    TEAM_ID=$(grep "^TEAM_ID" "$ENV_FILE" | cut -d'=' -f2 | xargs | tr -d "'\"")
+    if [[ -n "$TEAM_ID" ]]; then
+      sed -i '' "s/$TEAM_ID/$TEAM_ID_PLACEHOLDER/g" "$PROJECT_FILE"
+      echo "[revert_env] Reverted team ID in project.pbxproj"
+    fi
   fi
 }
 
 #--------------------------------------
 # Revert project.pbxproj
 #--------------------------------------
-revert_bundle_id_in_project
+revert_project_injections
 
 #--------------------------------------
 # Revert Info.plist
