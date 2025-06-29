@@ -13,11 +13,9 @@ import 'package:xceleration/core/utils/time_formatter.dart';
 import 'package:xceleration/coach/resolve_bib_number_screen/widgets/bib_conflicts_overview.dart';
 import 'package:xceleration/coach/merge_conflicts/screen/merge_conflicts_screen.dart';
 import 'package:provider/provider.dart';
-
 import '../../../../../../core/utils/encode_utils.dart' as encode_utils;
 import '../../../../../merge_conflicts/controller/merge_conflicts_controller.dart';
 import '../../../../../race_results/model/results_record.dart';
-
 
 /// Controller that manages loading and processing of race results
 class LoadResultsController with ChangeNotifier {
@@ -153,15 +151,17 @@ class LoadResultsController with ChangeNotifier {
         Logger.d('Difference: $diff');
         if (diff > 0) {
           Logger.d('Removing $diff records from runnerRecords');
-          timingData!.records = removeExtraTime(diff, timingData!.records, runnerRecords!.length, timingData!.endTime);
+          timingData!.records = removeExtraTime(diff, timingData!.records,
+              runnerRecords!.length, timingData!.endTime);
         } else if (diff < 0) {
           Logger.d('Adding $diff records to timingData');
-          timingData!.records = addMissingTime(diff.abs(), timingData!.records, runnerRecords!.length, timingData!.endTime);
+          timingData!.records = addMissingTime(diff.abs(), timingData!.records,
+              runnerRecords!.length, timingData!.endTime);
         }
-      }
-      else if (timingData!.records.last.type == RecordType.runnerTime) {
+      } else if (timingData!.records.last.type == RecordType.runnerTime) {
         Logger.d('Last record is a runner time');
-        timingData!.records = confirmTimes(timingData!.records, timingData!.records.length, timingData!.endTime);
+        timingData!.records = confirmTimes(timingData!.records,
+            timingData!.records.length, timingData!.endTime);
       }
     }
   }

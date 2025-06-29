@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_nearby_connections/flutter_nearby_connections.dart';
 import 'package:mockito/mockito.dart';
