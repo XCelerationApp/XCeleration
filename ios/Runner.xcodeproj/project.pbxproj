@@ -350,10 +350,11 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
+				"$(DERIVED_FILE_DIR)/env_injection_complete.txt",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${SRCROOT}/scripts/inject_env.sh\"\n";
+			shellScript = "\"${SRCROOT}/scripts/inject_env.sh\"\necho \"Env injection completed at $(date)\" > \"${DERIVED_FILE_DIR}/env_injection_complete.txt\"\n";
 		};
 		C5781BFF2E0A5FB300A1D2C0 /* Revert Env Injection Script */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -368,10 +369,11 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
+				"$(DERIVED_FILE_DIR)/env_revert_complete.txt",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${SRCROOT}/scripts/revert_env_injection.sh\"\n";
+			shellScript = "\"${SRCROOT}/scripts/revert_env_injection.sh\"\necho \"Env revert completed at $(date)\" > \"${DERIVED_FILE_DIR}/env_revert_complete.txt\"\n";
 		};
 		DDD335C29BB2C87E6F275CFC /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
