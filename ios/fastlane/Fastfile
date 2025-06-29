@@ -141,9 +141,7 @@ platform :ios do
             UI.message("Continuing with build...")
           end
           
-          # Set CI/CD specific timeouts
-          ENV["FASTLANE_XCODE_LIST_TIMEOUT"] = "120"
-          ENV["FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT"] = "120"
+
           
           UI.success("✅ CI/CD environment configured")
         else

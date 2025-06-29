@@ -1,7 +1,27 @@
 # Load environment variables first
 require 'dotenv'
 dotenv_path = File.join(__dir__, "..", "..", ".env")
-Dotenv.load(dotenv_path) if File.exist?(dotenv_path)
+
+# Ensure .env file exists
+unless File.exist?(dotenv_path)
+  puts "❌ ERROR: .env file not found at #{dotenv_path}"
+  puts "Please ensure the .env file exists and contains the required environment variables."
+  exit 1
+end
+
+# Load environment variables
+Dotenv.load(dotenv_path)
+
+# Check required environment variables
+required_vars = ["FASTLANE_MATCH_REPO_URL", "BUNDLE_ID", "TEAM_ID"]
+missing_vars = required_vars.select { |var| ENV[var].nil? || ENV[var].empty? }
+
+unless missing_vars.empty?
+  puts "❌ ERROR: Missing required environment variables in .env file:"
+  missing_vars.each { |var| puts "  - #{var}" }
+  puts "Please add these variables to your .env file."
+  exit 1
+end
 
 git_url(ENV["FASTLANE_MATCH_REPO_URL"])
 
