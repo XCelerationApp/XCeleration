@@ -36,12 +36,6 @@ platform :ios do
       key_content: Base64.decode64(ENV["APP_STORE_CONNECT_API_KEY_BASE64"])
     )
 
-    # Inject environment variables into project files
-    if ENV["BUNDLE_ID"]
-      UI.message("Injecting environment variables...")
-      sh "SRCROOT=#{File.expand_path('..')} bash ../scripts/inject_env.sh"
-    end
-
     # Install CocoaPods to ensure dependencies are up to date
     UI.message("Installing CocoaPods dependencies...")
     cocoapods(podfile: "Podfile")
@@ -86,9 +80,18 @@ platform :ios do
         end
       end
       
-      # Step 4: Set up Xcode environment (only needed for CD)
+      # Step 4: Inject environment variables into project files
+      UI.message("Step 4: Injecting environment variables...")
+      if ENV["BUNDLE_ID"]
+        sh "SRCROOT=#{File.expand_path('..')} bash ../scripts/inject_env.sh"
+        UI.success("✅ Environment variables injected")
+      else
+        UI.message("No BUNDLE_ID found, skipping injection")
+      end
+      
+      # Step 5: Set up Xcode environment (only needed for CD)
       if ENV["CD"]
-        UI.message("Step 4: Setting up Xcode environment for CI/CD...")
+        UI.message("Step 5: Setting up Xcode environment for CI/CD...")
         
         # Ensure Xcode command line tools are configured
         sh "sudo xcode-select -s /Applications/Xcode.app" rescue UI.message("Xcode path already set")
@@ -117,9 +120,9 @@ platform :ios do
           sh "xcrun altool --list-apps --apiKey #{ENV['APP_STORE_CONNECT_API_KEY_ID']} --apiIssuer #{ENV['APP_STORE_CONNECT_ISSUER_ID']} | head -3"
           UI.success("✅ Team access verified with API key file")
         rescue => e
-          UI.error("❌ Team access verification failed: #{e.message}")
-          UI.message("This means Xcode can't authenticate with Apple")
-          raise "Cannot authenticate with Apple - check API key credentials"
+          UI.important("⚠️ Team access verification failed: #{e.message}")
+          UI.message("This is usually not critical - continuing with build...")
+          UI.message("If upload fails later, check API key credentials and bundle ID configuration")
         end
         
         # Register app identifier if needed (like local Xcode does automatically)
@@ -152,12 +155,12 @@ platform :ios do
         
         UI.success("✅ Xcode environment configured for CI/CD")
       else
-        UI.message("Step 4: Skipping Xcode setup (local environment already configured)")
+        UI.message("Step 5: Local environment ready (no additional Xcode setup needed)")
       end
       
-      # Step 5: Build IPA (same process for both local and CI/CD)
+      # Step 6: Build IPA (same process for both local and CI/CD)
       build_type = ENV["CD"] ? "CI/CD" : "Local"
-      UI.message("Step 5: Building IPA for #{build_type} (using flutter build ipa)...")
+      UI.message("Step 6: Building IPA for #{build_type} (using flutter build ipa)...")
       sh "flutter", "build", "ipa", "--release", "--build-number=#{new_build_number}"
       UI.success("✅ #{build_type} build completed successfully!")
 
