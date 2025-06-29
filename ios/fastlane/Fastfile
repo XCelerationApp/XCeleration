@@ -159,9 +159,35 @@ platform :ios do
         end
       end
       
-      # Step 5: Build IPA using fastlane build_app (consistent for both local and CI/CD)
+      # Step 5: Set up certificates and profiles using Match (BEFORE building)
+      UI.message("Step 5: Setting up certificates and profiles using Match...")
+      begin
+        match(
+          type: "appstore",
+          readonly: true,  # Don't create new certificates, just fetch existing ones
+          app_identifier: ENV["BUNDLE_ID"]
+        )
+        UI.success("✅ Match certificates and profiles ready")
+      rescue => e
+        UI.important("⚠️ Match readonly failed: #{e.message}")
+        UI.message("Trying to create certificates (first-time setup)...")
+        
+        # If readonly fails, try to create new certificates (first-time setup)
+        begin
+          match(
+            type: "appstore",
+            readonly: false,  # Allow creating new certificates
+            app_identifier: ENV["BUNDLE_ID"]
+          )
+          UI.success("✅ Match created new certificates and profiles")
+        rescue => create_error
+          UI.user_error!("❌ Match certificate creation failed: #{create_error.message}")
+        end
+      end
+      
+      # Step 6: Build IPA using fastlane build_app (consistent for both local and CI/CD)
       build_type = ENV["CD"] ? "CI/CD" : "Local"
-      UI.message("Step 5: Building IPA for #{build_type} using fastlane build_app...")
+      UI.message("Step 6: Building IPA for #{build_type} using fastlane build_app...")
       
       # Ensure output directories exist
       sh "mkdir -p ../../build/ios/ipa"
@@ -171,11 +197,11 @@ platform :ios do
       # Set environment variable to prevent Xcode scripts from interfering during build
       ENV["FASTLANE_BUILD"] = "true"
       
-      # Step 5a: Build Flutter app (without signing) - matches what Flutter does
+      # Step 6a: Build Flutter app (with signing now available)
       UI.message("Building Flutter app for iOS...")
       sh "cd .. && flutter build ios --release --build-number=#{new_build_number}"
       
-      # Step 5b: Archive and sign with fastlane (using the pre-built Flutter app)
+      # Step 6b: Archive and sign with fastlane (using the pre-built Flutter app)
       UI.message("Archiving and signing with fastlane...")
       
       
@@ -188,32 +214,6 @@ platform :ios do
         # Always use app-store export method for TestFlight uploads
         export_method = "app-store"
         UI.message("Using app-store export method for TestFlight upload")
-        
-        # Use Match for team certificate management
-        UI.message("Setting up certificates and profiles using Match...")
-        begin
-          match(
-            type: "appstore",
-            readonly: true,  # Don't create new certificates, just fetch existing ones
-            app_identifier: ENV["BUNDLE_ID"]
-          )
-          UI.success("✅ Match certificates and profiles ready for app-store export")
-        rescue => e
-          UI.important("⚠️ Match readonly failed: #{e.message}")
-          UI.message("Trying to create certificates (first-time setup)...")
-          
-          # If readonly fails, try to create new certificates (first-time setup)
-          begin
-            match(
-              type: "appstore",
-              readonly: false,  # Allow creating new certificates
-              app_identifier: ENV["BUNDLE_ID"]
-            )
-            UI.success("✅ Match created new certificates and profiles")
-          rescue => create_error
-            UI.user_error!("❌ Match certificate creation failed: #{create_error.message}")
-          end
-        end
         
         # Then export the archive
         UI.message("Exporting IPA from archive...")
