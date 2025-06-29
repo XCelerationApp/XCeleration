@@ -58,6 +58,9 @@ platform :ios do
       new_build_number = 1
     end
 
+    # Store API key file path for cleanup
+    api_key_file_path = nil
+
     begin
       # Step 1: Clean environment
       UI.message("Step 1: Cleaning build environment...")
@@ -90,35 +93,43 @@ platform :ios do
         # Ensure Xcode command line tools are configured
         sh "sudo xcode-select -s /Applications/Xcode.app" rescue UI.message("Xcode path already set")
         
-        # Verify team access with API key (like your local Apple ID authentication)
-        UI.message("Verifying team access with API key...")
+        # Create the actual API key file that Xcode/altool needs
+        UI.message("Setting up API key file for Xcode...")
+        api_key_path = "./private_keys"
+        sh "mkdir -p #{api_key_path}"
+        api_key_file_path = "#{api_key_path}/AuthKey_#{ENV['APP_STORE_CONNECT_API_KEY_ID']}.p8"
+        
+        # Write the base64 decoded API key to the .p8 file
+        File.write(api_key_file_path, Base64.decode64(ENV['APP_STORE_CONNECT_API_KEY_BASE64']))
+        UI.success("✅ API key file created at #{api_key_file_path}")
+        
+        # Verify the file was created correctly
+        if File.exist?(api_key_file_path) && File.size(api_key_file_path) > 0
+          UI.success("✅ API key file verified (#{File.size(api_key_file_path)} bytes)")
+        else
+          UI.error("❌ API key file creation failed")
+          raise "API key file was not created properly"
+        end
+        
+        # Verify team access with the API key file
+        UI.message("Verifying team access with API key file...")
         begin
-          # This is equivalent to your local Apple ID being signed in
           sh "xcrun altool --list-apps --apiKey #{ENV['APP_STORE_CONNECT_API_KEY_ID']} --apiIssuer #{ENV['APP_STORE_CONNECT_ISSUER_ID']} | head -3"
-          UI.success("✅ Team access verified")
+          UI.success("✅ Team access verified with API key file")
         rescue => e
           UI.error("❌ Team access verification failed: #{e.message}")
-          UI.message("This is equivalent to Apple ID not being signed in locally")
+          UI.message("This means Xcode can't authenticate with Apple")
           raise "Cannot authenticate with Apple - check API key credentials"
         end
         
-        # Configure automatic code signing (like your local Xcode project)
-        UI.message("Configuring automatic code signing...")
-        automatic_code_signing(
-          path: "Runner.xcodeproj",
-          use_automatic_signing: true,
-          team_id: "Y39YWD6Q4X"
-        )
-        
-        # Pre-register app identifier if needed (like local Xcode does automatically)
+        # Register app identifier if needed (like local Xcode does automatically)
         UI.message("Ensuring app identifier is registered...")
         begin
-          # This ensures the app ID exists in your developer account
           produce(
             app_identifier: ENV["BUNDLE_ID"],
             app_name: "XCeleration",
             team_id: "Y39YWD6Q4X",
-            skip_itc: false  # Don't create in App Store Connect if it doesn't exist
+            skip_itc: true  # Don't create in App Store Connect, just developer portal
           )
           UI.success("✅ App identifier verified/registered")
         rescue => e
@@ -126,21 +137,18 @@ platform :ios do
           UI.message("Continuing - app may already be registered")
         end
         
-        # Download/refresh provisioning profiles (like local Xcode does automatically)
-        UI.message("Setting up provisioning profiles...")
-        begin
-          # This downloads the latest provisioning profiles for your app
-          sigh(
-            app_identifier: ENV["BUNDLE_ID"],
-            team_id: "Y39YWD6Q4X",
-            readonly: true,  # Don't create new profiles, just download existing ones
-            output_path: "./profiles"
-          )
-          UI.success("✅ Provisioning profiles downloaded")
-        rescue => e
-          UI.message("Provisioning profile setup: #{e.message}")
-          UI.message("Will rely on automatic provisioning during build")
-        end
+        # Configure automatic code signing with proper team setup
+        UI.message("Configuring automatic code signing for CI/CD...")
+        update_code_signing_settings(
+          path: "Runner.xcodeproj",
+          use_automatic_signing: true,  # Keep automatic signing but with proper auth
+          team_id: "Y39YWD6Q4X",
+          targets: ["Runner", "RunnerTests"]
+        )
+        
+        # Set environment variables that flutter build ipa will use
+        ENV["FLUTTER_XCODE_CODE_SIGN_STYLE"] = "Automatic"
+        ENV["FLUTTER_XCODE_DEVELOPMENT_TEAM"] = "Y39YWD6Q4X"
         
         UI.success("✅ Xcode environment configured for CI/CD")
       else
@@ -178,10 +186,23 @@ platform :ios do
       UI.message("Reverting environment variable injection...")
       sh "SRCROOT=#{File.expand_path('..')} bash ../scripts/revert_env_injection.sh" rescue nil
       
+      # Clean up API key file
+      if api_key_file_path
+        UI.message("Cleaning up API key file...")
+        File.delete(api_key_file_path)
+        UI.success("✅ API key file cleaned up")
+      end
     end
   ensure
     # Fallback cleanup in case of any errors
     UI.message("Final cleanup...")
     sh "SRCROOT=#{File.expand_path('..')} bash ../scripts/revert_env_injection.sh" rescue nil
+    
+    # Clean up API key file if it exists
+    if api_key_file_path && File.exist?(api_key_file_path)
+      UI.message("Final API key cleanup...")
+      File.delete(api_key_file_path) rescue nil
+      UI.success("✅ API key file cleaned up")
+    end
   end
 end
