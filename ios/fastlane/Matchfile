@@ -1,3 +1,8 @@
+# Load environment variables first
+require 'dotenv'
+dotenv_path = File.join(__dir__, "..", "..", ".env")
+Dotenv.load(dotenv_path) if File.exist?(dotenv_path)
+
 git_url(ENV["FASTLANE_MATCH_REPO_URL"])
 
 storage_mode("git")

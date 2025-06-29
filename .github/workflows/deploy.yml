@@ -32,6 +32,11 @@ jobs:
       - name: Create .env file
         run: echo "${{ secrets.DOTENV }}" > .env
 
+      - name: Get Flutter dependencies
+        run: flutter pub get
+
       - name: Deploy to TestFlight via Fastlane
         working-directory: ./ios
+        env:
+          CD: true  # Indicate this is a CI/CD environment
         run: bundle exec fastlane deploy 
