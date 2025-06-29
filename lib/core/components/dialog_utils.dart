@@ -3,7 +3,6 @@ import 'package:xceleration/core/utils/logger.dart';
 import '../theme/typography.dart';
 import '../theme/app_colors.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-
 import 'dart:async';
 
 /// Exception thrown when an operation is canceled

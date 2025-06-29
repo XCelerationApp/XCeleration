@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../assistant/race_timer/screen/timing_screen.dart';
-
 import '../../../coach/races_screen/screen/races_screen.dart';
 
 /// Enum representing the assistant roles in the app
