@@ -869,6 +869,7 @@ class MergeConflictsController with ChangeNotifier {
       DialogUtils.showErrorDialog(context, message: message);
     }
   }
+
   /// Load mock data for testing purposes
   Future<void> loadMockData(
       List<RunnerRecord> mockRunners, TimingData mockTimingData) async {
