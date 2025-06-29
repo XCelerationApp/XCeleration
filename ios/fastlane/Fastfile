@@ -36,10 +36,11 @@ platform :ios do
       key_content: Base64.decode64(ENV["APP_STORE_CONNECT_API_KEY_BASE64"])
     )
 
+    # Install CocoaPods to ensure dependencies are up to date
+    UI.message("Installing CocoaPods dependencies...")
+    cocoapods(podfile: "Podfile")
+
     # Fetch the latest build number from TestFlight and increment it
-    # This avoids storing the build number in the repo and prevents conflicts
-    # The marketing version (e.g., 1.0.1) should be updated manually by developers.
-    
     begin
       latest_build_number = latest_testflight_build_number(
         app_identifier: ENV["BUNDLE_ID"]
@@ -51,17 +52,199 @@ platform :ios do
       new_build_number = 1
     end
 
-    # Build the Flutter app, injecting the new build number.
-    sh "flutter", "build", "ipa", "--release", "--build-number=#{new_build_number}"
+    # Store API key file path for cleanup
+    api_key_file_path = nil
 
-    # Upload to TestFlight (will use the globally set API key)
-    upload_to_testflight(
-      ipa: "../build/ios/ipa/xceleration.ipa",
-      skip_waiting_for_build_processing: true,
-      distribute_external: false,  # Keep this false for internal testing only
-      notify_external_testers: false,  # Not needed for internal testing
-      groups: ["XCeleration prototype"],  # internal group
-      changelog: "Latest updates and bug fixes"  # Optional but recommended
-    )
+    begin
+      # Step 1: Clean environment
+      UI.message("Step 1: Cleaning build environment...")
+      sh "flutter", "clean"
+      sh "rm -rf ../../build/ios" rescue UI.message("Build directory already clean")
+      
+      # Step 2: Prepare dependencies
+      UI.message("Step 2: Preparing Flutter dependencies...")
+      sh "flutter", "pub", "get"
+      
+      # Step 3: Handle splash screen (non-blocking)
+      UI.message("Step 3: Configuring splash screen...")
+      begin
+        sh "dart run flutter_native_splash:create"
+        UI.success("✅ Splash screen regenerated")
+      rescue => e
+        UI.important("⚠️ Splash screen generation failed: #{e.message}")
+        UI.message("Checking for existing splash files...")
+        if Dir.glob("../../ios/Runner/Assets.xcassets/LaunchImage.imageset/*").any?
+          UI.success("✅ Found existing splash files, continuing...")
+        else
+          UI.message("⚠️ No splash files found, but proceeding anyway...")
+        end
+      end
+      
+      # Step 4: Inject environment variables into project files
+      UI.message("Step 4: Injecting environment variables...")
+      if ENV["BUNDLE_ID"]
+        sh "SRCROOT=#{File.expand_path('..')} bash ../scripts/inject_env.sh"
+        UI.success("✅ Environment variables injected")
+      else
+        UI.message("No BUNDLE_ID found, skipping injection")
+      end
+      
+      # Step 5: Set up signing environment (shared for both local and CI/CD)
+      UI.message("Step 5: Setting up signing environment...")
+      
+      # Set up API key file for fastlane (both environments)
+      if ENV["APP_STORE_CONNECT_API_KEY_ID"] && ENV["APP_STORE_CONNECT_ISSUER_ID"] && ENV["APP_STORE_CONNECT_API_KEY_BASE64"]
+        UI.message("Setting up API key file for fastlane...")
+        api_key_path = "./private_keys"
+        sh "mkdir -p #{api_key_path}"
+        api_key_file_path = "#{api_key_path}/AuthKey_#{ENV['APP_STORE_CONNECT_API_KEY_ID']}.p8"
+        
+        # Write the base64 decoded API key to the .p8 file
+        File.write(api_key_file_path, Base64.decode64(ENV['APP_STORE_CONNECT_API_KEY_BASE64']))
+        UI.success("✅ API key file created at #{api_key_file_path}")
+        
+        # Verify the file was created correctly
+        if File.exist?(api_key_file_path) && File.size(api_key_file_path) > 0
+          UI.success("✅ API key file verified (#{File.size(api_key_file_path)} bytes)")
+        else
+          UI.error("❌ API key file creation failed")
+          raise "API key file was not created properly"
+        end
+        
+        # Configure automatic code signing
+        UI.message("Configuring automatic code signing...")
+        update_code_signing_settings(
+          path: "Runner.xcodeproj",
+          use_automatic_signing: true,
+          team_id: "Y39YWD6Q4X",
+          targets: ["Runner", "RunnerTests"]
+        )
+        UI.success("✅ Signing environment ready")
+        
+        # CI/CD specific setup
+        if ENV["CD"]
+          UI.message("Applying CI/CD specific configurations...")
+          
+          # Ensure Xcode command line tools are configured
+          sh "sudo xcode-select -s /Applications/Xcode.app" rescue UI.message("Xcode path already set")
+          
+          # Verify team access (optional)
+          begin
+            sh "xcrun altool --list-apps --apiKey #{ENV['APP_STORE_CONNECT_API_KEY_ID']} --apiIssuer #{ENV['APP_STORE_CONNECT_ISSUER_ID']} | head -3"
+            UI.success("✅ Team access verified")
+          rescue => e
+            UI.important("⚠️ Team access verification failed: #{e.message}")
+            UI.message("Continuing with build...")
+          end
+          
+          # Set CI/CD specific timeouts
+          ENV["FASTLANE_XCODE_LIST_TIMEOUT"] = "120"
+          ENV["FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT"] = "120"
+          
+          UI.success("✅ CI/CD environment configured")
+        else
+          UI.success("✅ Local environment configured")
+        end
+        
+      else
+        UI.message("No API key environment variables found")
+        if ENV["CD"]
+          UI.user_error!("API key environment variables are required for CI/CD builds")
+        else
+          UI.message("Local build will rely on existing Xcode configuration")
+        end
+      end
+      
+      # Step 6: Build IPA using fastlane build_app (consistent for both local and CI/CD)
+      build_type = ENV["CD"] ? "CI/CD" : "Local"
+      UI.message("Step 6: Building IPA for #{build_type} using fastlane build_app...")
+      
+      # Ensure output directories exist
+      sh "mkdir -p ../../build/ios/ipa"
+      sh "mkdir -p ../../build/ios/archive"
+      
+      # Use fastlane to build, archive and sign all in one step
+      UI.message("Building, archiving and signing with fastlane...")
+      
+      # Set environment variable to disable conflicting Xcode scripts during build
+      ENV["FASTLANE_BUILD"] = "true"
+      
+      begin
+        build_app(
+          workspace: "Runner.xcworkspace",
+          scheme: "Runner",
+          configuration: "Release",
+          export_method: "app-store-connect",  # Use the non-deprecated method
+          output_directory: "../../build/ios/ipa",
+          output_name: "Runner.ipa",
+          skip_build_archive: false,
+          archive_path: "../../build/ios/archive/Runner.xcarchive",
+          build_number: new_build_number.to_s,  # Set build number directly
+          export_options: {
+            method: "app-store-connect",
+            teamID: "Y39YWD6Q4X",
+            signingStyle: "automatic",
+            uploadBitcode: false,
+            uploadSymbols: false,
+            compileBitcode: false,
+            manageAppVersionAndBuildNumber: false  # We handle build numbers ourselves
+          }
+        )
+      ensure
+        # Re-enable Xcode scripts for cleanup
+        ENV.delete("FASTLANE_BUILD")
+        UI.message("Re-enabled Xcode scripts for cleanup")
+      end
+      
+      UI.success("✅ #{build_type} build completed successfully!")
+
+      # Upload to TestFlight (same for both local and CI/CD)
+      ipa_files = Dir.glob("../../build/ios/ipa/*.ipa")
+      bundle_id = ENV["BUNDLE_ID"]
+      
+      if ipa_files.empty?
+        UI.user_error!("No IPA file found for upload")
+      end
+      
+      ipa_path = File.expand_path(ipa_files.first)
+      UI.message("Uploading IPA: #{ipa_path}")
+      
+      upload_to_testflight(
+        ipa: ipa_path,
+        skip_waiting_for_build_processing: true,
+        distribute_external: false,  # Keep this false for internal testing only
+        notify_external_testers: false,  # Not needed for internal testing
+        groups: ["XCeleration prototype"],  # internal group
+        changelog: "Latest updates and bug fixes"  # Optional but recommended
+      )
+      
+    ensure
+      # Cleanup function to be called in all cases
+      cleanup_build_artifacts
+    end
+  ensure
+    # Final cleanup in case of any errors
+    cleanup_build_artifacts
+  end
+
+  # Helper method to cleanup build artifacts
+  def cleanup_build_artifacts
+    UI.message("Cleaning up build artifacts...")
+    
+    # Revert environment injection to keep git clean
+    sh "SRCROOT=#{File.expand_path('..')} bash ../scripts/revert_env_injection.sh" rescue nil
+    
+    # Clean up API key files from both potential locations
+    [
+      "./private_keys/AuthKey_*.p8",
+      "ios/private_keys/AuthKey_*.p8"
+    ].each do |pattern|
+      Dir.glob(pattern).each do |key_file|
+        File.delete(key_file) rescue nil
+        UI.message("Cleaned up #{key_file}")
+      end
+    end
+    
+    UI.success("✅ Cleanup completed")
   end
 end
