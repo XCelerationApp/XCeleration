@@ -31,7 +31,7 @@ class MockDataGenerator {
     final records = <TimeRecord>[];
 
     // Add normal times for first few runners
-    for (int i = 1; i <= 3; i++) {
+    for (int i = 1; i <= 2; i++) {
       records.add(TimeRecord(
         elapsedTime: '$i.${(i * 15).toString().padLeft(2, '0')}',
         type: RecordType.runnerTime,
@@ -40,11 +40,20 @@ class MockDataGenerator {
       ));
     }
 
-    // Add missing time conflict at place 4
+    // Add confirmRunner record after place 2
+    records.add(TimeRecord(
+      elapsedTime: '2.30',
+      type: RecordType.confirmRunner,
+      place: 2,
+      isConfirmed: true,
+    ));
+
+    // Add missing time conflict at place 3
+    // First the TBD runner time record
     records.add(TimeRecord(
       elapsedTime: 'TBD',
       type: RecordType.runnerTime,
-      place: 4,
+      place: 3,
       isConfirmed: false,
       conflict: ConflictDetails(
         type: RecordType.missingTime,
@@ -52,13 +61,81 @@ class MockDataGenerator {
       ),
     ));
 
+    // Then the missingTime conflict record
     records.add(TimeRecord(
-      elapsedTime: '4.25',
+      elapsedTime: '3.25',
       type: RecordType.missingTime,
-      place: 4,
+      place: 3,
       conflict: ConflictDetails(
         type: RecordType.missingTime,
         data: {'offBy': 1, 'numTimes': runnerCount},
+      ),
+    ));
+
+    // Add remaining normal times
+    for (int i = 4; i <= runnerCount; i++) {
+      records.add(TimeRecord(
+        elapsedTime: '$i.${(i * 12).toString().padLeft(2, '0')}',
+        type: RecordType.runnerTime,
+        place: i,
+        isConfirmed: true,
+      ));
+    }
+
+    return MockRaceData(
+      runners: runners,
+      timingData:
+          TimingData(records: records, endTime: '${runnerCount + 2}.00'),
+      scenarioName: 'Missing Times Scenario',
+      description: 'Runner at place 3 has missing time (TBD)',
+    );
+  }
+
+  /// Generates scenario with extra time conflicts
+  static MockRaceData _generateExtraTimesScenario(int runnerCount) {
+    final runners = _generateRunners(runnerCount);
+    final records = <TimeRecord>[];
+
+    // Add normal times for first couple runners
+    for (int i = 1; i <= 2; i++) {
+      records.add(TimeRecord(
+        elapsedTime: '$i.${(i * 18).toString().padLeft(2, '0')}',
+        type: RecordType.runnerTime,
+        place: i,
+        isConfirmed: true,
+      ));
+    }
+
+    // Add confirmRunner after place 2
+    records.add(TimeRecord(
+      elapsedTime: '2.30',
+      type: RecordType.confirmRunner,
+      place: 2,
+      isConfirmed: true,
+    ));
+
+    // Add runner time records that will have extra times
+    for (int i = 3; i <= 4; i++) {
+      records.add(TimeRecord(
+        elapsedTime: '$i.${(i * 15).toString().padLeft(2, '0')}',
+        type: RecordType.runnerTime,
+        place: i == 4 ? null : i, // Extra runner gets place: null
+        isConfirmed: false, // Not confirmed because of extra time conflict
+        conflict: ConflictDetails(
+          type: RecordType.extraTime,
+          data: {'offBy': 1, 'numTimes': runnerCount + 1},
+        ),
+      ));
+    }
+
+    // Add the extra time record at place 4
+    records.add(TimeRecord(
+      elapsedTime: '4.25',
+      type: RecordType.extraTime,
+      place: null, // Extra time record - no corresponding runner place
+      conflict: ConflictDetails(
+        type: RecordType.extraTime,
+        data: {'offBy': 1, 'numTimes': runnerCount + 1},
       ),
     ));
 
@@ -75,50 +152,9 @@ class MockDataGenerator {
     return MockRaceData(
       runners: runners,
       timingData:
-          TimingData(records: records, endTime: '${runnerCount + 2}.00'),
-      scenarioName: 'Missing Times Scenario',
-      description: 'Runner at place 4 has missing time (TBD)',
-    );
-  }
-
-  /// Generates scenario with extra time conflicts
-  static MockRaceData _generateExtraTimesScenario(int runnerCount) {
-    final runners = _generateRunners(runnerCount);
-    final records = <TimeRecord>[];
-
-    // Add normal times
-    for (int i = 1; i <= runnerCount; i++) {
-      records.add(TimeRecord(
-        elapsedTime: '$i.${(i * 18).toString().padLeft(2, '0')}',
-        type: RecordType.runnerTime,
-        place: i,
-        isConfirmed: i != 3, // Place 3 will have conflict
-        conflict: i == 3
-            ? ConflictDetails(
-                type: RecordType.extraTime,
-                data: {'offBy': 1, 'numTimes': runnerCount + 1},
-              )
-            : null,
-      ));
-    }
-
-    // Add extra time record
-    records.add(TimeRecord(
-      elapsedTime: '3.25',
-      type: RecordType.extraTime,
-      place: 3,
-      conflict: ConflictDetails(
-        type: RecordType.extraTime,
-        data: {'offBy': 1, 'numTimes': runnerCount + 1},
-      ),
-    ));
-
-    return MockRaceData(
-      runners: runners,
-      timingData:
           TimingData(records: records, endTime: '${runnerCount + 1}.00'),
       scenarioName: 'Extra Times Scenario',
-      description: 'Extra time recorded at place 3 needs to be removed',
+      description: 'Extra time recorded at place 4 needs to be removed',
     );
   }
 
@@ -136,6 +172,14 @@ class MockDataGenerator {
         isConfirmed: true,
       ));
     }
+
+    // ConfirmRunner after place 2
+    records.add(TimeRecord(
+      elapsedTime: '2.30',
+      type: RecordType.confirmRunner,
+      place: 2,
+      isConfirmed: true,
+    ));
 
     // Missing time conflict at place 3
     records.add(TimeRecord(
@@ -167,9 +211,17 @@ class MockDataGenerator {
       isConfirmed: true,
     ));
 
-    // Extra time conflict at place 5
+    // Normal time at place 5
     records.add(TimeRecord(
-      elapsedTime: '5.05',
+      elapsedTime: '5.75',
+      type: RecordType.runnerTime,
+      place: 5,
+      isConfirmed: true,
+    ));
+
+    // Extra time conflict at places 5-6 (extra runner gets place: null)
+    records.add(TimeRecord(
+      elapsedTime: '6.05',
       type: RecordType.runnerTime,
       place: null,
       isConfirmed: false,
@@ -179,18 +231,27 @@ class MockDataGenerator {
       ),
     ));
 
+    // Add the extra time record
     records.add(TimeRecord(
-      elapsedTime: '5.12',
+      elapsedTime: '6.25',
       type: RecordType.extraTime,
-      place: 5,
+      place: null, // Extra time record - no corresponding runner place
       conflict: ConflictDetails(
         type: RecordType.extraTime,
         data: {'offBy': 1, 'numTimes': runnerCount + 1},
       ),
     ));
 
+    // Normal time at place 6
+    records.add(TimeRecord(
+      elapsedTime: '6.48',
+      type: RecordType.runnerTime,
+      place: 6,
+      isConfirmed: true,
+    ));
+
     // Remaining normal times
-    for (int i = 6; i <= runnerCount; i++) {
+    for (int i = 7; i <= runnerCount; i++) {
       records.add(TimeRecord(
         elapsedTime: '$i.${(i * 8).toString().padLeft(2, '0')}',
         type: RecordType.runnerTime,
@@ -204,7 +265,7 @@ class MockDataGenerator {
       timingData:
           TimingData(records: records, endTime: '${runnerCount + 1}.00'),
       scenarioName: 'Mixed Conflicts Scenario',
-      description: 'Missing time at place 3, extra time at place 5',
+      description: 'Missing time at place 3, extra time at place 6',
     );
   }
 
@@ -244,6 +305,14 @@ class MockDataGenerator {
       isConfirmed: true,
     ));
 
+    // ConfirmRunner after place 1
+    records.add(TimeRecord(
+      elapsedTime: '1.30',
+      type: RecordType.confirmRunner,
+      place: 1,
+      isConfirmed: true,
+    ));
+
     // Places 2-3: Missing times (offBy = 2)
     records.add(TimeRecord(
       elapsedTime: 'TBD',
@@ -252,7 +321,7 @@ class MockDataGenerator {
       isConfirmed: false,
       conflict: ConflictDetails(
         type: RecordType.missingTime,
-        data: {'offBy': 2, 'numTimes': runnerCount},
+        data: {'offBy': 2, 'numTimes': 3},
       ),
     ));
 
@@ -263,27 +332,18 @@ class MockDataGenerator {
       isConfirmed: false,
       conflict: ConflictDetails(
         type: RecordType.missingTime,
-        data: {'offBy': 2, 'numTimes': runnerCount},
+        data: {'offBy': 2, 'numTimes': 3},
       ),
     ));
 
-    records.add(TimeRecord(
-      elapsedTime: '2.45',
-      type: RecordType.missingTime,
-      place: 2,
-      conflict: ConflictDetails(
-        type: RecordType.missingTime,
-        data: {'offBy': 2, 'numTimes': runnerCount},
-      ),
-    ));
-
+    // Missing time conflict records
     records.add(TimeRecord(
       elapsedTime: '3.15',
       type: RecordType.missingTime,
       place: 3,
       conflict: ConflictDetails(
         type: RecordType.missingTime,
-        data: {'offBy': 2, 'numTimes': runnerCount},
+        data: {'offBy': 2, 'numTimes': 3},
       ),
     ));
 
@@ -297,7 +357,7 @@ class MockDataGenerator {
       ));
     }
 
-    // Places 6-7: Extra times
+    // Place 6: Extra times (offBy = 2)
     records.add(TimeRecord(
       elapsedTime: '6.15',
       type: RecordType.runnerTime,
@@ -305,27 +365,41 @@ class MockDataGenerator {
       isConfirmed: false,
       conflict: ConflictDetails(
         type: RecordType.extraTime,
-        data: {'offBy': 2, 'numTimes': runnerCount + 2},
+        data: {'offBy': 2, 'numTimes': 6},
       ),
     ));
 
+    // Extra runner records (place: null since they're extra)
     records.add(TimeRecord(
       elapsedTime: '6.22',
-      type: RecordType.extraTime,
-      place: 6,
+      type: RecordType.runnerTime,
+      place: null,
+      isConfirmed: false,
       conflict: ConflictDetails(
         type: RecordType.extraTime,
-        data: {'offBy': 2, 'numTimes': runnerCount + 2},
+        data: {'offBy': 2, 'numTimes': 6},
       ),
     ));
 
     records.add(TimeRecord(
       elapsedTime: '6.28',
-      type: RecordType.extraTime,
-      place: 6,
+      type: RecordType.runnerTime,
+      place: null,
+      isConfirmed: false,
       conflict: ConflictDetails(
         type: RecordType.extraTime,
-        data: {'offBy': 2, 'numTimes': runnerCount + 2},
+        data: {'offBy': 2, 'numTimes': 6},
+      ),
+    ));
+
+    // Extra time conflict records
+    records.add(TimeRecord(
+      elapsedTime: '6.35',
+      type: RecordType.extraTime,
+      place: null, // Extra time record - no corresponding runner place
+      conflict: ConflictDetails(
+        type: RecordType.extraTime,
+        data: {'offBy': 2, 'numTimes': 6},
       ),
     ));
 

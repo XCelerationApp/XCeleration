@@ -17,6 +17,9 @@ class Chunk {
   ResolveInformation? resolve;
   TimingData? timingData;
 
+  // Track removed time indices for extra time conflicts
+  Set<int> removedTimeIndices = <int>{};
+
   Chunk({
     required this.records,
     required this.type,
@@ -24,31 +27,55 @@ class Chunk {
     required this.conflictIndex,
   })  : joinedRecords = [],
         controllers = {} {
-    // Only keep runners whose (index+1) matches a record's place in this chunk
+    // Include runners whose places match any record in this chunk
     final recordPlaces = records.map((r) => r.place).toSet();
     this.runners = [];
 
-    // Filter runners and log those that are missing
+    // Filter runners based on places that exist in this chunk's records
     for (int i = 0; i < runners.length; i++) {
-      if (recordPlaces.contains(i + 1)) {
+      final runnerPlace = i + 1;
+      if (recordPlaces.contains(runnerPlace)) {
         this.runners.add(runners[i]);
+        Logger.d(
+            'Including runner ${runners[i].bib} (place $runnerPlace) in chunk');
       } else {
-        Logger.d('Runner ${runners[i].bib} is missing from this chunk');
+        Logger.d(
+            'Runner ${runners[i].bib} (place $runnerPlace) is missing from this chunk - recordPlaces: $recordPlaces');
       }
     }
     // Build joinedRecords by matching runner index+1 to record.place
     joinedRecords = [];
-    for (final record in records) {
-      if (record.type == RecordType.runnerTime &&
-          record.place != null &&
-          record.place! > 0) {
-        final placeIdx = record.place! - 1;
-        if (placeIdx >= 0 &&
-            placeIdx < runners.length &&
-            recordPlaces.contains(record.place)) {
-          joinedRecords
-              .add(JoinedRecord(runner: runners[placeIdx], timeRecord: record));
+
+    // Create joinedRecords for each runner that has a place in this chunk
+    for (final runner in this.runners) {
+      final runnerPlace = runners.indexOf(runner) + 1;
+
+      // Find the primary record for this runner (prefer runnerTime, then others)
+      TimeRecord? primaryRecord;
+
+      // First try to find a runnerTime record for this place
+      for (final record in records) {
+        if (record.place == runnerPlace &&
+            record.type == RecordType.runnerTime) {
+          primaryRecord = record;
+          break;
         }
+      }
+
+      // If no runnerTime record found, use any record with this place
+      if (primaryRecord == null) {
+        for (final record in records) {
+          if (record.place == runnerPlace) {
+            primaryRecord = record;
+            break;
+          }
+        }
+      }
+
+      // If we found a record for this runner, create a joinedRecord
+      if (primaryRecord != null) {
+        joinedRecords
+            .add(JoinedRecord(runner: runner, timeRecord: primaryRecord));
       }
     }
     // Use runners.length for controllers since they're based on runners
@@ -88,6 +115,22 @@ class Chunk {
       resolve =
           await resolveTooFewRunnerTimes(conflictIndex, timingData!, runners);
     }
+  }
+
+  /// Update the removed time indices from the UI
+  void updateRemovedTimeIndices(Set<int> indices) {
+    removedTimeIndices = Set.from(indices);
+    Logger.d('Chunk: Updated removedTimeIndices to $removedTimeIndices');
+  }
+
+  /// Get the list of times that should be removed based on UI selections
+  List<String> getRemovedTimes() {
+    if (resolve?.availableTimes == null) return [];
+
+    return removedTimeIndices
+        .where((index) => index < resolve!.availableTimes.length)
+        .map((index) => resolve!.availableTimes[index])
+        .toList();
   }
 
   Future<void> handleResolve(

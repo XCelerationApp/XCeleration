@@ -20,7 +20,6 @@ class RacesScreen extends StatefulWidget {
 class RacesScreenState extends State<RacesScreen> {
   final RacesController _controller = RacesController();
 
-
   @override
   void initState() {
     super.initState();
@@ -33,7 +32,6 @@ class RacesScreenState extends State<RacesScreen> {
     _controller.dispose();
     super.dispose();
   }
-
 
   @override
   Widget build(BuildContext context) {

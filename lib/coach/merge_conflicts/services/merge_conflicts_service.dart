@@ -47,12 +47,26 @@ class MergeConflictsService {
         Logger.d('Processing record: index=$i, record=${records[i]}');
         Logger.d(
             'Record type: ${records[i].type}, place: ${records[i].place}, conflict: ${records[i].conflict?.data}');
-        if (i >= records.length - 1 ||
-            records[i].type != RecordType.runnerTime) {
-          // Break off a chunk after a non-runnerTime record
+
+        // Check if we should break off a chunk
+        bool shouldBreakChunk = false;
+
+        if (records[i].type != RecordType.runnerTime) {
+          // Always break after non-runnerTime records (conflicts, confirmRunner)
+          shouldBreakChunk = true;
+        } else if (i == records.length - 1) {
+          // Break at the end of records
+          shouldBreakChunk = true;
+        }
+        // Never break after runnerTime records unless it's the end
+
+        if (shouldBreakChunk) {
           final chunkRecords = records.sublist(startIndex, i + 1);
           Logger.d(
               'Creating chunk with records.sublist($startIndex, ${i + 1})');
+          Logger.d(
+              'Chunk records: ${chunkRecords.map((r) => 'place=${r.place}, type=${r.type}').toList()}');
+
           newChunks.add(Chunk(
             records: chunkRecords,
             type: records[i].type,

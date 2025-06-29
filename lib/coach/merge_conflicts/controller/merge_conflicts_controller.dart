@@ -82,35 +82,52 @@ class MergeConflictsController with ChangeNotifier {
 
   Future<void> updateRunnerInfo() async {
     for (int i = 0; i < runnerRecords.length; i++) {
-      final record = timingData.records.firstWhere(
+      final place = i + 1;
+      final runner = runnerRecords[i];
+
+      final record = _findTimingRecordForPlace(place);
+      if (record == null || record.place == null) continue;
+
+      _updateRecordWithRunnerInfo(record, runner);
+    }
+  }
+
+  /// Find the timing record for a specific place
+  TimeRecord? _findTimingRecordForPlace(int place) {
+    try {
+      return timingData.records.firstWhere(
         (r) =>
             r.type == RecordType.runnerTime &&
-            r.place == i + 1 &&
+            r.place == place &&
             r.isConfirmed == true,
-        orElse: () => TimeRecord(
-            elapsedTime: '',
-            isConfirmed: false,
-            conflict: null,
-            type: RecordType.runnerTime,
-            place: i + 1,
-            previousPlace: null,
-            textColor: null),
       );
-      if (record.place == null) continue;
-      final runner = runnerRecords[i];
-      final int index = timingData.records.indexOf(record);
-      timingData.records[index] = TimeRecord(
-        elapsedTime: record.elapsedTime,
-        runnerNumber: runner.bib.toString(),
-        isConfirmed: record.isConfirmed,
-        conflict: record.conflict,
-        type: record.type,
-        place: record.place,
-        previousPlace: record.previousPlace,
-        textColor: record.textColor,
-        bib: runner.bib,
-      );
+    } catch (e) {
+      // No matching record found
+      return null;
     }
+  }
+
+  /// Update a timing record with runner information
+  void _updateRecordWithRunnerInfo(TimeRecord record, RunnerRecord runner) {
+    final recordIndex = timingData.records.indexOf(record);
+    if (recordIndex == -1) return;
+
+    timingData.records[recordIndex] = TimeRecord(
+      elapsedTime: record.elapsedTime,
+      runnerNumber: runner.bib,
+      isConfirmed: record.isConfirmed,
+      conflict: record.conflict,
+      type: record.type,
+      place: record.place,
+      previousPlace: record.previousPlace,
+      textColor: record.textColor,
+      bib: runner.bib,
+      name: runner.name,
+      grade: runner.grade,
+      school: runner.school,
+      runnerId: runner.runnerId,
+      raceId: raceId,
+    );
   }
 
   Future<void> createChunks() async {
@@ -229,24 +246,47 @@ class MergeConflictsController with ChangeNotifier {
 
   /// Returns the first unresolved conflict in the timing data, or [null, -1] if none.
   List<dynamic> getFirstConflict() {
-    final records = timingData.records;
-    final conflict = records.firstWhere(
-      (record) =>
-          record.type != RecordType.runnerTime &&
-          record.type != RecordType.confirmRunner,
-      orElse: () => TimeRecord(
-          elapsedTime: '',
-          type: RecordType.runnerTime,
-          runnerNumber: null,
-          isConfirmed: false,
-          conflict: null,
-          place: null,
-          previousPlace: null,
-          textColor: null),
+    final conflictRecord = _findFirstConflictRecord();
+
+    if (_hasValidConflict(conflictRecord)) {
+      final conflictIndex = timingData.records.indexOf(conflictRecord);
+      return [conflictRecord.type, conflictIndex];
+    }
+
+    return [null, -1];
+  }
+
+  /// Find the first record that represents a conflict
+  TimeRecord _findFirstConflictRecord() {
+    return timingData.records.firstWhere(
+      _isConflictRecordType,
+      orElse: _createEmptyTimeRecord,
     );
-    return conflict.elapsedTime != ''
-        ? [conflict.type, records.indexOf(conflict)]
-        : [null, -1];
+  }
+
+  /// Check if a record represents a conflict type
+  bool _isConflictRecordType(TimeRecord record) {
+    return record.type != RecordType.runnerTime &&
+        record.type != RecordType.confirmRunner;
+  }
+
+  /// Create an empty time record for when no conflicts are found
+  TimeRecord _createEmptyTimeRecord() {
+    return TimeRecord(
+      elapsedTime: '',
+      type: RecordType.runnerTime,
+      runnerNumber: null,
+      isConfirmed: false,
+      conflict: null,
+      place: null,
+      previousPlace: null,
+      textColor: null,
+    );
+  }
+
+  /// Check if the found record represents a valid conflict
+  bool _hasValidConflict(TimeRecord record) {
+    return record.elapsedTime.isNotEmpty;
   }
 
   /// Consolidates adjacent confirmRunner chunks into a single chunk,
@@ -254,148 +294,153 @@ class MergeConflictsController with ChangeNotifier {
   Future<void> consolidateConfirmedTimes() async {
     await createChunks();
 
+    _logConsolidationStart();
+
+    // Process chunks to consolidate adjacent confirmRunner chunks
+    _processChunksForConsolidation();
+
+    await createChunks();
+
+    _logConsolidationEnd();
+    notifyListeners();
+  }
+
+  /// Log the state before consolidation starts
+  void _logConsolidationStart() {
     Logger.d('Before consolidation: ${chunks.length} chunks');
     for (int x = 0; x < chunks.length; x++) {
       Logger.d(
           'Chunk $x: type=${chunks[x].type}, records=${chunks[x].records.length}, runners=${chunks[x].runners.length}');
     }
+  }
 
-    int i = 0;
-    while (i < chunks.length) {
-      // Only process confirmRunner chunks
-      if (chunks[i].type == RecordType.confirmRunner) {
-        int startIndex = i;
-        int endIndex = i;
-
-        // Find consecutive confirmRunner chunks
-        while (endIndex + 1 < chunks.length &&
-            chunks[endIndex + 1].type == RecordType.confirmRunner) {
-          endIndex++;
-        }
-
-        // If we found multiple adjacent confirmRunner chunks, consolidate them
-        if (endIndex > startIndex) {
-          Logger.d(
-              'Found consecutive confirmRunner chunks from $startIndex to $endIndex');
-          final confirmedRecords = chunks
-              .sublist(startIndex, endIndex + 1)
-              .expand((chunk) => chunk.records)
-              .where((record) => record.type == RecordType.confirmRunner)
-              .toList();
-          if (chunks[endIndex].records.last.type != RecordType.confirmRunner) {
-            throw Exception('Last record in chunk is not a confirmRunner');
-          }
-
-          Logger.d(
-              'Confirmed records before removal: ${confirmedRecords.map((r) => r.place)}');
-
-          confirmedRecords.removeLast();
-
-          Logger.d(
-              'Confirmed records after removal: ${confirmedRecords.length}');
-
-          Logger.d('Timing data records: ${timingData.records.length}');
-
-          timingData.records
-              .removeWhere((record) => confirmedRecords.contains(record));
-
-          Logger.d(
-              'Timing data records after removal: ${timingData.records.length}');
-
-          // Move to the next chunk after the consolidated one
-          i = startIndex + 1;
-        } else {
-          // Single chunk, move to next
-          i++;
-        }
-      } else {
-        // Not a confirmRunner chunk, move to next
-        i++;
-      }
-    }
-
-    await createChunks();
-
+  /// Log the state after consolidation ends
+  void _logConsolidationEnd() {
     Logger.d('Final chunks count: ${chunks.length}');
     for (int x = 0; x < chunks.length; x++) {
       Logger.d(
           'Final Chunk $x: type=${chunks[x].type}, records=${chunks[x].records.length}, runners=${chunks[x].runners.length}');
     }
+  }
 
-    notifyListeners();
+  /// Process all chunks to find and consolidate adjacent confirmRunner chunks
+  void _processChunksForConsolidation() {
+    int i = 0;
+    while (i < chunks.length) {
+      if (_isConfirmRunnerChunk(i)) {
+        final consecutiveRange = _findConsecutiveConfirmRunnerChunks(i);
+
+        if (_hasMultipleChunks(consecutiveRange)) {
+          _consolidateChunkRange(consecutiveRange);
+          i = consecutiveRange.start + 1; // Move past the consolidated chunks
+        } else {
+          i++; // Single chunk, move to next
+        }
+      } else {
+        i++; // Not a confirmRunner chunk, move to next
+      }
+    }
+  }
+
+  /// Check if the chunk at index is a confirmRunner chunk
+  bool _isConfirmRunnerChunk(int index) {
+    return chunks[index].type == RecordType.confirmRunner;
+  }
+
+  /// Find the range of consecutive confirmRunner chunks starting at index
+  _ChunkRange _findConsecutiveConfirmRunnerChunks(int startIndex) {
+    int endIndex = startIndex;
+
+    // Find consecutive confirmRunner chunks
+    while (endIndex + 1 < chunks.length &&
+        chunks[endIndex + 1].type == RecordType.confirmRunner) {
+      endIndex++;
+    }
+
+    return _ChunkRange(start: startIndex, end: endIndex);
+  }
+
+  /// Check if the range contains multiple chunks
+  bool _hasMultipleChunks(_ChunkRange range) {
+    return range.end > range.start;
+  }
+
+  /// Consolidate chunks in the given range
+  void _consolidateChunkRange(_ChunkRange range) {
+    Logger.d(
+        'Found consecutive confirmRunner chunks from ${range.start} to ${range.end}');
+
+    final recordsToRemove = _getRecordsToRemove(range);
+    _validateLastRecordIsConfirmRunner(range);
+    _removeRedundantRecords(recordsToRemove);
+  }
+
+  /// Get the list of records that should be removed during consolidation
+  List<dynamic> _getRecordsToRemove(_ChunkRange range) {
+    final confirmedRecords = chunks
+        .sublist(range.start, range.end + 1)
+        .expand((chunk) => chunk.records)
+        .where((record) => record.type == RecordType.confirmRunner)
+        .toList();
+
+    Logger.d(
+        'Confirmed records before removal: ${confirmedRecords.map((r) => r.place)}');
+
+    // Keep the last record, remove the rest
+    confirmedRecords.removeLast();
+
+    Logger.d('Confirmed records after removal: ${confirmedRecords.length}');
+
+    return confirmedRecords;
+  }
+
+  /// Validate that the last record in the range is a confirmRunner
+  void _validateLastRecordIsConfirmRunner(_ChunkRange range) {
+    if (chunks[range.end].records.last.type != RecordType.confirmRunner) {
+      throw Exception('Last record in chunk is not a confirmRunner');
+    }
+  }
+
+  /// Remove redundant records from timing data
+  void _removeRedundantRecords(List<dynamic> recordsToRemove) {
+    Logger.d('Timing data records: ${timingData.records.length}');
+
+    timingData.records
+        .removeWhere((record) => recordsToRemove.contains(record));
+
+    Logger.d('Timing data records after removal: ${timingData.records.length}');
   }
 
   Future<void> handleMissingTimesResolution(Chunk chunk) async {
     try {
-      // Validate required data
+      // Extract and validate input data
       final resolveData = chunk.resolve;
       final timeControllers = chunk.controllers['timeControllers'];
 
-      if (resolveData == null) {
-        _showError('Missing resolve data for conflict');
-        return;
-      }
-      if (timeControllers == null) {
-        _showError('Missing time input controllers');
+      if (resolveData == null || timeControllers == null) {
+        _showError('Missing required data for conflict resolution');
         return;
       }
 
-      // Extract user input
-      final List<String> times = timeControllers
-          .map((controller) => controller.text.toString())
-          .toList()
-          .cast<String>();
+      // Get user-provided times
+      final userTimes =
+          timeControllers.map((controller) => controller.text.trim()).toList();
 
-      Logger.d('Resolving missing times with inputs: $times');
+      Logger.d('Resolving missing times with inputs: $userTimes');
 
-      // Validate times
-      final timesError = MergeConflictsService.validateTimes(
-          times,
-          chunk.runners,
-          resolveData.lastConfirmedRecord,
-          resolveData.conflictRecord);
-      if (timesError != null) {
-        _showError(timesError);
+      // Validate user input
+      if (!_validateUserTimes(userTimes)) {
+        _showError('All time fields must be filled with valid times');
         return;
       }
-      // Update records with new times
-      final conflictRecord = resolveData.conflictRecord;
-      final lastConfirmedRunnerPlace = resolveData.lastConfirmedPlace;
 
-      for (int i = times.length - 1; i >= 0; i--) {
-        final int currentPlace = (conflictRecord.place! - i).toInt();
-        Logger.d(
-            'Updating place $currentPlace with time ${times[times.length - i - 1]}');
-
-        var record = timingData.records.firstWhere(
-            (element) => element.place == currentPlace,
-            orElse: () => TimeRecord(
-                elapsedTime: '',
-                type: RecordType.runnerTime,
-                isConfirmed: false,
-                conflict: null,
-                place: currentPlace,
-                previousPlace: null,
-                textColor: null));
-
-        record.elapsedTime = times[times.length - i - 1];
-        record.type = RecordType.runnerTime;
-        record.place = currentPlace;
-        record.isConfirmed = true;
-        record.conflict = null;
-        record.textColor = null;
-      }
+      // Apply the missing times to records
+      _applyMissingTimes(userTimes, resolveData);
 
       // Mark conflict as resolved
-      MergeConflictsService.updateConflictRecord(
-        conflictRecord,
-        lastConfirmedRunnerPlace + chunk.runners.length,
-      );
-      timingData.records[timingData.records.indexOf(conflictRecord)] =
-          conflictRecord;
+      _markConflictResolved(resolveData);
 
       notifyListeners();
-
       showSuccessMessage();
       await consolidateConfirmedTimes();
     } catch (e, stackTrace) {
@@ -407,117 +452,144 @@ class MergeConflictsController with ChangeNotifier {
     }
   }
 
+  /// Validate that all user-provided times are non-empty and valid
+  bool _validateUserTimes(List<String> times) {
+    return times.every((time) => time.isNotEmpty && time != 'TBD');
+  }
+
+  /// Apply user-provided times to the missing time records
+  void _applyMissingTimes(List<String> userTimes, dynamic resolveData) {
+    final conflictPlace = resolveData.conflictRecord.place!;
+
+    // Apply times in forward order (place 1, 2, 3...)
+    for (int i = 0; i < userTimes.length; i++) {
+      final targetPlace = conflictPlace - userTimes.length + 1 + i;
+      final userTime = userTimes[i];
+
+      Logger.d('Updating place $targetPlace with time $userTime');
+
+      // Find or create the record for this place
+      final recordIndex = timingData.records
+          .indexWhere((record) => record.place == targetPlace);
+
+      if (recordIndex != -1) {
+        // Update existing record
+        final record = timingData.records[recordIndex];
+        timingData.records[recordIndex] =
+            _createUpdatedRecord(record, userTime, targetPlace);
+      } else {
+        // Create new record if needed
+        timingData.records.add(_createNewTimeRecord(userTime, targetPlace));
+      }
+    }
+  }
+
+  /// Create an updated time record with the new time
+  TimeRecord _createUpdatedRecord(
+      TimeRecord original, String newTime, int place) {
+    return TimeRecord(
+      elapsedTime: newTime,
+      type: RecordType.runnerTime,
+      place: place,
+      isConfirmed: true,
+      conflict: null,
+      textColor: null,
+      runnerNumber: original.runnerNumber,
+      bib: original.bib,
+      name: original.name,
+      grade: original.grade,
+      school: original.school,
+      runnerId: original.runnerId,
+      raceId: original.raceId,
+      previousPlace: original.previousPlace,
+    );
+  }
+
+  /// Create a new time record
+  TimeRecord _createNewTimeRecord(String time, int place) {
+    return TimeRecord(
+      elapsedTime: time,
+      type: RecordType.runnerTime,
+      place: place,
+      isConfirmed: true,
+      conflict: null,
+      textColor: null,
+      previousPlace: null,
+    );
+  }
+
+  /// Mark the conflict as resolved
+  void _markConflictResolved(dynamic resolveData) {
+    final conflictRecord = resolveData.conflictRecord;
+    final lastConfirmedPlace = resolveData.lastConfirmedPlace;
+    final runnersCount = resolveData.conflictingRunners.length;
+
+    MergeConflictsService.updateConflictRecord(
+      conflictRecord,
+      lastConfirmedPlace + runnersCount,
+    );
+
+    final conflictIndex = timingData.records.indexOf(conflictRecord);
+    if (conflictIndex != -1) {
+      timingData.records[conflictIndex] = conflictRecord;
+    }
+  }
+
   Future<void> handleExtraTimesResolution(Chunk chunk) async {
     try {
-      // Validate required data
+      // Extract and validate input data
       final timeControllers = chunk.controllers['timeControllers'];
       final resolveData = chunk.resolve;
 
-      if (timeControllers == null) {
-        _showError('Missing time input controllers');
-        return;
-      }
-      if (resolveData == null) {
-        _showError('Missing resolve data for conflict');
+      if (timeControllers == null || resolveData == null) {
+        _showError('Missing required data for conflict resolution');
         return;
       }
 
-      // Extract user input
-      final List<String> times = timeControllers
-          .map((controller) => controller.text.toString())
-          .toList()
-          .cast<String>();
+      // Get user-selected times (only from non-removed controllers)
+      final selectedTimes = <String>[];
+      final removedTimes = chunk.getRemovedTimes();
 
-      Logger.d('Resolving extra times with selections: $times');
+      for (int i = 0; i < timeControllers.length; i++) {
+        final timeText = timeControllers[i].text.trim();
+        // Only include times that haven't been marked for removal
+        if (!removedTimes.contains(timeText)) {
+          selectedTimes.add(timeText);
+        }
+      }
+
+      Logger.d('Resolving extra times with selections: $selectedTimes');
       Logger.d('Available times: ${resolveData.availableTimes}');
 
-      List<TimeRecord> records = chunk.records;
-      final availableTimes = resolveData.availableTimes;
-      final TimeRecord conflictRecord = resolveData.conflictRecord;
-      final lastConfirmedIndex = resolveData.lastConfirmedIndex ?? -1;
-      final lastConfirmedPlace = resolveData.lastConfirmedPlace;
-      Logger.d('lastConfirmedPlace: $lastConfirmedPlace');
-      List<RunnerRecord> runners = resolveData.conflictingRunners;
+      // Validate selections and determine unused times
+      final validationResult = _validateExtraTimesSelection(selectedTimes,
+          resolveData.availableTimes, resolveData.conflictingRunners, chunk);
 
-      final timesError = MergeConflictsService.validateTimes(
-          times, runners, resolveData.lastConfirmedRecord, conflictRecord);
-      if (timesError != null) {
-        _showError(timesError);
+      if (!validationResult.isValid) {
+        _showError(validationResult.errorMessage);
         return;
       }
 
-      final unusedTimes =
-          availableTimes.where((time) => !times.contains(time)).toList();
+      // Update records with runner information first, then remove unused times
+      _updateRecordsWithRunnerInfo(
+          selectedTimes,
+          resolveData.conflictingRunners,
+          resolveData.lastConfirmedPlace,
+          resolveData.lastConfirmedIndex ?? -1,
+          chunk.records);
 
-      if (unusedTimes.isEmpty) {
-        _showError('Please select a time for each runner.');
-        return;
-      }
+      // Remove unused times from timing data after updating records
+      _removeUnusedTimes(validationResult.unusedTimes);
 
-      if (unusedTimes.length + times.length != availableTimes.length) {
-        Logger.e(
-            'Time selection mismatch: unused(${unusedTimes.length}) + selected(${times.length}) != available(${availableTimes.length})');
-        _showError('Please select a time for each runner.');
-        return;
-      }
+      // Mark conflict as resolved
+      _markConflictResolved(resolveData);
 
-      Logger.d('Unused times: $unusedTimes');
-      timingData.records
-          .removeWhere((record) => unusedTimes.contains(record.elapsedTime));
-      // Logger.d('Unused records: $unusedRecords');
+      // Clean up confirmation records
+      _cleanupConfirmationRecords(chunk.records, resolveData.conflictRecord);
 
-      Logger.d('records: $records');
-      Logger.d('runners before: $runners');
-
-      final usedRecords = records
-          .where((record) => !unusedTimes.contains(record.elapsedTime))
-          .toList();
-
-      if (usedRecords.length != runners.length) {
-        Logger.e(
-            'Record count mismatch: usedRecords(${usedRecords.length}) != runners(${runners.length})');
-        _showError('Please select a time for each runner.');
-        return;
-      }
-
-      Logger.d('runners: $runners');
-      for (int i = 0; i < runners.length; i++) {
-        final num currentPlace = i + lastConfirmedPlace + 1;
-        var record = records[lastConfirmedIndex + 1 + i];
-        final String bibNumber = runners[i].bib;
-
-        Logger.d('currentPlace: $currentPlace');
-
-        record.elapsedTime = times[i];
-        record.bib = bibNumber;
-        record.type = RecordType.runnerTime;
-        record.place = currentPlace.toInt();
-        record.isConfirmed = true;
-        record.conflict = null;
-        record.name = runners[i].name;
-        record.grade = runners[i].grade;
-        record.school = runners[i].school;
-        record.runnerId = runners[i].runnerId;
-        record.raceId = raceId;
-        record.textColor = AppColors.navBarTextColor.toString();
-      }
-      MergeConflictsService.updateConflictRecord(
-        conflictRecord,
-        lastConfirmedPlace + runners.length,
-      );
       notifyListeners();
-
-      // Delete all records with type confirm_runner between the conflict record and the last conflict
-      int conflictIndex = records.indexOf(conflictRecord);
-      int lastConflictIndex = records.lastIndexWhere((record) =>
-          record.conflict != null && records.indexOf(record) < conflictIndex);
-      timingData.records.removeWhere((record) =>
-          record.type == RecordType.confirmRunner &&
-          records.indexOf(record) > lastConflictIndex &&
-          records.indexOf(record) < conflictIndex);
-
       showSuccessMessage();
-      consolidateConfirmedTimes();
+      await consolidateConfirmedTimes();
       await createChunks();
     } catch (e, stackTrace) {
       Logger.e('Error resolving extra times: $e',
@@ -526,6 +598,133 @@ class MergeConflictsController with ChangeNotifier {
           stackTrace: stackTrace);
       _showError('Failed to resolve extra times. Please try again.');
     }
+  }
+
+  /// Validate extra times selection and return validation result
+  _ExtraTimesValidationResult _validateExtraTimesSelection(
+      List<String> selectedTimes,
+      List<String> availableTimes,
+      List<dynamic> runners,
+      Chunk chunk) {
+    final expectedRunnerCount = runners.length;
+    final expectedTimesToRemove = availableTimes.length - expectedRunnerCount;
+
+    Logger.d('Validation: selectedTimes=$selectedTimes');
+    Logger.d('Validation: availableTimes=$availableTimes');
+    Logger.d('Validation: expectedRunnerCount=$expectedRunnerCount');
+    Logger.d('Validation: expectedTimesToRemove=$expectedTimesToRemove');
+    Logger.d('Validation: removedTimeIndices=${chunk.removedTimeIndices}');
+
+    // Special case: if we have exactly the right number of times for runners,
+    // this shouldn't be treated as an extra times conflict
+    if (expectedTimesToRemove <= 0) {
+      return _ExtraTimesValidationResult(
+          isValid: false,
+          errorMessage:
+              'No extra times to remove. You have exactly the right number of times for your runners.',
+          unusedTimes: []);
+    }
+
+    // Get the times marked for removal from the UI
+    final removedTimes = chunk.getRemovedTimes();
+    Logger.d('Validation: removedTimes from UI=$removedTimes');
+
+    // Check if we have the right number of times marked for removal
+    if (removedTimes.length < expectedTimesToRemove) {
+      final stillNeedToRemove = expectedTimesToRemove - removedTimes.length;
+      return _ExtraTimesValidationResult(
+          isValid: false,
+          errorMessage:
+              'Please remove $stillNeedToRemove more time(s) by clicking the X button.',
+          unusedTimes: removedTimes);
+    }
+
+    if (removedTimes.length > expectedTimesToRemove) {
+      final tooManyRemoved = removedTimes.length - expectedTimesToRemove;
+      return _ExtraTimesValidationResult(
+          isValid: false,
+          errorMessage:
+              'Too many times removed. Please undo $tooManyRemoved removal(s).',
+          unusedTimes: removedTimes);
+    }
+
+    // Perfect! We have exactly the right number of times to remove
+    return _ExtraTimesValidationResult(
+        isValid: true, errorMessage: '', unusedTimes: removedTimes);
+  }
+
+  /// Remove unused times from timing data
+  void _removeUnusedTimes(List<String> unusedTimes) {
+    Logger.d('Removing unused times: $unusedTimes');
+    timingData.records
+        .removeWhere((record) => unusedTimes.contains(record.elapsedTime));
+  }
+
+  /// Update records with runner information
+  void _updateRecordsWithRunnerInfo(
+      List<String> selectedTimes,
+      List<dynamic> runners,
+      int lastConfirmedPlace,
+      int lastConfirmedIndex,
+      List<dynamic> chunkRecords) {
+    // Find remaining runner time records in the chunk (after removal of unused times)
+    final remainingRunnerRecords = chunkRecords
+        .where((record) => record.type == RecordType.runnerTime)
+        .toList();
+
+    Logger.d(
+        'Found ${remainingRunnerRecords.length} remaining runner time records to update');
+    Logger.d('Available runners: ${runners.length}');
+    Logger.d('Selected times: $selectedTimes');
+
+    // Update each remaining record with sequential places and selected times
+    for (int i = 0;
+        i < remainingRunnerRecords.length &&
+            i < runners.length &&
+            i < selectedTimes.length;
+        i++) {
+      final record = remainingRunnerRecords[i];
+      final runner = runners[i];
+      final selectedTime = selectedTimes[i];
+      final newPlace = lastConfirmedPlace + i + 1;
+
+      Logger.d(
+          'Updating record $i: newPlace=$newPlace, time=$selectedTime, runner=${runner.bib}');
+
+      // Update record with selected time and runner info
+      record.elapsedTime = selectedTime;
+      record.bib = runner.bib;
+      record.type = RecordType.runnerTime;
+      record.place = newPlace;
+      record.isConfirmed = true;
+      record.conflict = null;
+      record.name = runner.name;
+      record.grade = runner.grade;
+      record.school = runner.school;
+      record.runnerId = runner.runnerId;
+      record.raceId = raceId;
+      record.textColor = AppColors.navBarTextColor.toString();
+    }
+
+    final updatedCount = [
+      remainingRunnerRecords.length,
+      runners.length,
+      selectedTimes.length
+    ].reduce((a, b) => a < b ? a : b);
+    Logger.d('Successfully updated $updatedCount records');
+  }
+
+  /// Clean up confirmation records between conflicts
+  void _cleanupConfirmationRecords(
+      List<dynamic> records, dynamic conflictRecord) {
+    final conflictIndex = records.indexOf(conflictRecord);
+    final lastConflictIndex = records.lastIndexWhere((record) =>
+        record.conflict != null && records.indexOf(record) < conflictIndex);
+
+    timingData.records.removeWhere((record) =>
+        record.type == RecordType.confirmRunner &&
+        records.indexOf(record) > lastConflictIndex &&
+        records.indexOf(record) < conflictIndex);
   }
 
   void showSuccessMessage() {
@@ -538,78 +737,97 @@ class MergeConflictsController with ChangeNotifier {
   void clearAllConflicts() {
     Logger.d('Clearing all conflicts from timing data...');
 
-    // Go through all records and fix any issues that could cause null checks
-    int currentPlace = 1;
-    List<TimeRecord> confirmedRecords = [];
+    // Process each record to clear conflicts and fix issues
+    _processRecordsForConflictClearing();
 
-    // First pass: Set all place values and clear conflicts
+    // Ensure sequential places for runner time records
+    _ensureSequentialPlaces();
+
+    Logger.d('All conflicts cleared from timing data');
+  }
+
+  /// Process all records to clear conflicts and fix common issues
+  void _processRecordsForConflictClearing() {
     for (int i = 0; i < timingData.records.length; i++) {
       final record = timingData.records[i];
 
-      // 1. Fix missing place values for any record type
+      // Fix missing place values
       if (record.place == null) {
-        record.place = currentPlace;
+        record.place = i + 1;
         Logger.d(
-            'Assigned missing place $currentPlace to record with time ${record.elapsedTime}');
+            'Assigned missing place ${record.place} to record with time ${record.elapsedTime}');
       }
 
-      // 2. If it's a conflict record, convert it to confirmRunner
-      if (record.type == RecordType.missingTime ||
-          record.type == RecordType.extraTime) {
-        record.type = RecordType.confirmRunner;
-        record.isConfirmed = true;
-        record.textColor = Colors.green.toString();
-
-        // Ensure place is set (use index as fallback)
-        if (record.place == null) {
-          // Find the maximum place value used so far
-          final int maxPlace = timingData.records
-              .where((r) => r.place != null)
-              .map((r) => r.place!)
-              .fold(0, (max, place) => place > max ? place : max);
-          record.place = maxPlace + 1;
-          Logger.d(
-              'Assigned fallback place ${record.place} to conflict record');
-        }
+      // Convert conflict records to confirmed records
+      if (_isConflictRecord(record)) {
+        _convertToConfirmedRecord(record);
       }
 
-      // 3. For runner time records, ensure they have proper elapsed time
+      // Validate runner time records
       if (record.type == RecordType.runnerTime) {
-        if (record.elapsedTime == 'TBD' || record.elapsedTime.isEmpty) {
-          record.elapsedTime = '$currentPlace.0'; // Emergency placeholder
-          Logger.e(
-              'WARNING: Added placeholder time for record at place ${record.place}');
-          throw Exception(
-              'WARNING: Added placeholder time for record at place ${record.place}');
-        }
-
-        // Keep track of max place for runner time records
-        if (record.place! > currentPlace) {
-          currentPlace = record.place!;
-        }
-
-        // Mark as confirmed
-        record.isConfirmed = true;
-
-        // Add to the list of confirmed records
-        confirmedRecords.add(record);
+        _validateRunnerTimeRecord(record);
       }
 
-      // 4. Clear conflict data for all records
+      // Clear conflict data
       record.conflict = null;
     }
+  }
 
-    // Second pass: Ensure all runnerTime records are properly ordered by place
-    confirmedRecords.sort((a, b) => (a.place ?? 999).compareTo(b.place ?? 999));
+  /// Check if a record is a conflict record
+  bool _isConflictRecord(TimeRecord record) {
+    return record.type == RecordType.missingTime ||
+        record.type == RecordType.extraTime;
+  }
 
-    // Reassign places if needed to ensure sequential places
-    for (int i = 0; i < confirmedRecords.length; i++) {
-      confirmedRecords[i].place = i + 1;
+  /// Convert a conflict record to a confirmed record
+  void _convertToConfirmedRecord(TimeRecord record) {
+    record.type = RecordType.confirmRunner;
+    record.isConfirmed = true;
+    record.textColor = Colors.green.toString();
+
+    // Ensure place is set if missing
+    if (record.place == null) {
+      final maxPlace = _findMaxPlaceValue();
+      record.place = maxPlace + 1;
+      Logger.d('Assigned fallback place ${record.place} to conflict record');
+    }
+  }
+
+  /// Find the maximum place value currently in use
+  int _findMaxPlaceValue() {
+    return timingData.records
+        .where((r) => r.place != null)
+        .map((r) => r.place!)
+        .fold(0, (max, place) => place > max ? place : max);
+  }
+
+  /// Validate and fix runner time records
+  void _validateRunnerTimeRecord(TimeRecord record) {
+    if (record.elapsedTime == 'TBD' || record.elapsedTime.isEmpty) {
+      final placeholderTime = '${record.place ?? 1}.0';
+      record.elapsedTime = placeholderTime;
+      Logger.e(
+          'WARNING: Added placeholder time $placeholderTime for record at place ${record.place}');
+    }
+    record.isConfirmed = true;
+  }
+
+  /// Ensure all runner time records have sequential places (1, 2, 3...)
+  void _ensureSequentialPlaces() {
+    final runnerTimeRecords = timingData.records
+        .where((r) => r.type == RecordType.runnerTime)
+        .toList();
+
+    // Sort by current place
+    runnerTimeRecords.sort((a, b) => (a.place ?? 0).compareTo(b.place ?? 0));
+
+    // Reassign sequential places
+    for (int i = 0; i < runnerTimeRecords.length; i++) {
+      runnerTimeRecords[i].place = i + 1;
     }
 
     Logger.d(
-        'Fixed ${confirmedRecords.length} runner time records with proper places');
-    Logger.d('All conflicts cleared from timing data');
+        'Fixed ${runnerTimeRecords.length} runner time records with sequential places');
   }
 
   void updateSelectedTime(
@@ -800,4 +1018,28 @@ class MergeConflictsController with ChangeNotifier {
     _context = null;
     super.dispose();
   }
+}
+
+/// Helper class for extra times validation results
+class _ExtraTimesValidationResult {
+  final bool isValid;
+  final String errorMessage;
+  final List<String> unusedTimes;
+
+  _ExtraTimesValidationResult({
+    required this.isValid,
+    required this.errorMessage,
+    required this.unusedTimes,
+  });
+}
+
+/// Helper class for chunk range information
+class _ChunkRange {
+  final int start;
+  final int end;
+
+  _ChunkRange({
+    required this.start,
+    required this.end,
+  });
 }

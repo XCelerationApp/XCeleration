@@ -184,7 +184,19 @@ class _ChunkItemState extends State<ChunkItem> {
         }
       }
     } else if (chunkType == RecordType.extraTime) {
-      assignedTimes.addAll(availableTimes);
+      // For extra time conflicts, filter out removed times and assign remaining times to runners
+      List<String> nonRemovedTimes = [];
+      for (int i = 0; i < availableTimes.length; i++) {
+        if (!removedTimeIndices.contains(i)) {
+          nonRemovedTimes.add(availableTimes[i]);
+        }
+      }
+
+      // Assign the non-removed times to runners in order
+      assignedTimes = List.filled(runnerCount, '');
+      for (int i = 0; i < runnerCount && i < nonRemovedTimes.length; i++) {
+        assignedTimes[i] = nonRemovedTimes[i];
+      }
     }
 
     // DEBUG: Print availableTimes and runnerCount
@@ -203,9 +215,42 @@ class _ChunkItemState extends State<ChunkItem> {
               conflictRecord: record,
               startTime: previousChunkEndTime,
               endTime: record.elapsedTime,
+              offBy: offBy,
+              removedCount: chunkType == RecordType.extraTime
+                  ? removedTimeIndices.length
+                  : 0,
+              enteredCount: chunkType == RecordType.missingTime
+                  ? _manualEntries.length
+                  : 0,
             ),
           if (chunkType == RecordType.confirmRunner)
             ConfirmHeader(confirmRecord: record),
+          if (chunkType == RecordType.runnerTime)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  border: Border.all(color: Colors.green.shade300),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.check_circle,
+                        color: Colors.green.shade600, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Clean Results - No Conflicts',
+                      style: TextStyle(
+                        color: Colors.green.shade700,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           const SizedBox(height: 8),
           // Use _sortedJoinedRecords for rendering
           ..._sortedJoinedRecords.asMap().entries.map<Widget>((entry) {
@@ -252,10 +297,13 @@ class _ChunkItemState extends State<ChunkItem> {
                   },
                 );
               } else if (chunkType == RecordType.extraTime) {
-                final assignedTime = joinedRecord.timeRecord.elapsedTime;
+                final assignedTime = originalIndex < assignedTimes.length
+                    ? assignedTimes[originalIndex]
+                    : '';
                 final controller =
                     widget.chunk.controllers['timeControllers']![originalIndex];
                 controller.text = assignedTime;
+                final canRemoveMore = removedTimeIndices.length < offBy;
                 return RunnerTimeRecord(
                   index: originalIndex,
                   joinedRecord: joinedRecord,
@@ -266,6 +314,31 @@ class _ChunkItemState extends State<ChunkItem> {
                   availableTimes: availableTimes,
                   removedTimeIndices: removedTimeIndices,
                   textEditingController: controller,
+                  isRemovedTime: assignedTime.isNotEmpty &&
+                      removedTimeIndices
+                          .contains(availableTimes.indexOf(assignedTime)),
+                  onRemoveTime: canRemoveMore && assignedTime.isNotEmpty
+                      ? (timeIdx) {
+                          setState(() {
+                            // Find the index of the assigned time in availableTimes
+                            final timeIndexToRemove =
+                                availableTimes.indexOf(assignedTime);
+                            if (timeIndexToRemove != -1) {
+                              Logger.d(
+                                  'Before removal: removedTimeIndices=$removedTimeIndices, removing time "$assignedTime" at index $timeIndexToRemove');
+                              removedTimeIndices.add(timeIndexToRemove);
+                              Logger.d(
+                                  'After removal: removedTimeIndices=$removedTimeIndices');
+                              // Update the chunk with the removed indices
+                              widget.chunk
+                                  .updateRemovedTimeIndices(removedTimeIndices);
+                            }
+                          });
+                        }
+                      : null,
+                  removableTimeIndex: assignedTime.isNotEmpty
+                      ? availableTimes.indexOf(assignedTime)
+                      : -1,
                 );
               } else if (chunkType == RecordType.confirmRunner) {
                 return RunnerTimeRecord(
@@ -278,56 +351,89 @@ class _ChunkItemState extends State<ChunkItem> {
                   textEditingController: widget
                       .chunk.controllers['timeControllers']![originalIndex],
                 );
+              } else if (chunkType == RecordType.runnerTime) {
+                // Handle clean race scenarios - display runner times normally
+                final controller =
+                    widget.chunk.controllers['timeControllers']![originalIndex];
+                controller.text = joinedRecord.timeRecord.elapsedTime;
+                return RunnerTimeRecord(
+                  index: originalIndex,
+                  joinedRecord: joinedRecord,
+                  color: Colors.green,
+                  chunk: widget.chunk,
+                  controller: widget.controller,
+                  assignedTime: joinedRecord.timeRecord.elapsedTime,
+                  textEditingController: controller,
+                );
               }
             }
             return const SizedBox.shrink();
           }),
-          // Show all extra times that need to be removed
+          // Show extra times that haven't been removed - but only show as many as needed
           if (chunkType == RecordType.extraTime &&
-              availableTimes.length > runnerCount &&
-              removedTimeIndices.isEmpty)
-            ...List.generate(availableTimes.length - runnerCount,
-                (extraTimeIdx) {
-              final timeIdx = runnerCount + extraTimeIdx;
-              final extraTime = availableTimes[timeIdx];
-              final blankJoinedRecord =
-                  JoinedRecord.blank().copyWithExtraTimeLabel();
-              final extraTimeController =
-                  TextEditingController(text: extraTime);
-              return RunnerTimeRecord(
-                index: -1, // Dummy index for extra time row (no place)
-                joinedRecord: blankJoinedRecord,
-                color: AppColors.primaryColor,
-                chunk: widget.chunk,
-                controller: widget.controller,
-                isRemovedTime: removedTimeIndices.contains(timeIdx),
-                assignedTime: extraTime,
-                onRemoveTime: (timeIdx) {
-                  setState(() {
-                    Logger.d(
-                        'Before removal: removedTimeIndices=$removedTimeIndices, adding timeIdx=$timeIdx');
-                    removedTimeIndices.add(timeIdx);
-                    Logger.d(
-                        'After removal: removedTimeIndices=$removedTimeIndices');
-                  });
-                },
-                availableTimes: availableTimes,
-                removedTimeIndices: removedTimeIndices,
-                isExtraTimeRow: true,
-                textEditingController: extraTimeController,
-                removableTimeIndex: timeIdx,
-              );
-            }),
+              availableTimes.length > runnerCount)
+            ...() {
+              List<Widget> extraTimeWidgets = [];
+              int extraTimesShown = 0;
+              final maxExtraTimesToShow = offBy - removedTimeIndices.length;
+
+              for (int timeIdx = runnerCount;
+                  timeIdx < availableTimes.length &&
+                      extraTimesShown < maxExtraTimesToShow;
+                  timeIdx++) {
+                // Only show this extra time if it hasn't been removed
+                if (!removedTimeIndices.contains(timeIdx)) {
+                  final extraTime = availableTimes[timeIdx];
+                  final blankJoinedRecord =
+                      JoinedRecord.blank().copyWithExtraTimeLabel();
+                  final extraTimeController =
+                      TextEditingController(text: extraTime);
+                  final canRemoveMore = removedTimeIndices.length < offBy;
+
+                  extraTimeWidgets.add(RunnerTimeRecord(
+                    index: -1, // Dummy index for extra time row (no place)
+                    joinedRecord: blankJoinedRecord,
+                    color: AppColors.primaryColor,
+                    chunk: widget.chunk,
+                    controller: widget.controller,
+                    isRemovedTime:
+                        false, // This time is not removed (we filtered those out)
+                    assignedTime: extraTime,
+                    onRemoveTime: canRemoveMore
+                        ? (removedTimeIdx) {
+                            setState(() {
+                              Logger.d(
+                                  'Before removal: removedTimeIndices=$removedTimeIndices, adding timeIdx=$timeIdx');
+                              removedTimeIndices.add(timeIdx);
+                              Logger.d(
+                                  'After removal: removedTimeIndices=$removedTimeIndices');
+                              // Update the chunk with the removed indices
+                              widget.chunk
+                                  .updateRemovedTimeIndices(removedTimeIndices);
+                            });
+                          }
+                        : null,
+                    availableTimes: availableTimes,
+                    removedTimeIndices: removedTimeIndices,
+                    isExtraTimeRow: true,
+                    textEditingController: extraTimeController,
+                    removableTimeIndex: timeIdx,
+                  ));
+                  extraTimesShown++;
+                }
+              }
+              return extraTimeWidgets;
+            }(),
           // If any extra time is removed, show an Undo button below the times
           if (chunkType == RecordType.extraTime &&
-              availableTimes.length > runnerCount &&
               removedTimeIndices.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
               child: Center(
                 child: ElevatedButton.icon(
                   icon: const Icon(Icons.undo),
-                  label: const Text('Undo Remove Extra Time'),
+                  label: Text(
+                      'Undo Remove Extra Time (${removedTimeIndices.length}/$offBy removed)'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryColor,
                     foregroundColor: Colors.white,
@@ -338,6 +444,9 @@ class _ChunkItemState extends State<ChunkItem> {
                     setState(() {
                       if (removedTimeIndices.isNotEmpty) {
                         removedTimeIndices.remove(removedTimeIndices.last);
+                        // Update the chunk with the removed indices
+                        widget.chunk
+                            .updateRemovedTimeIndices(removedTimeIndices);
                       }
                     });
                   },
