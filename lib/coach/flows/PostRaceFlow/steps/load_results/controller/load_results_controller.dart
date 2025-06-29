@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:path/path.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/core/services/device_connection_service.dart';
 import 'package:xceleration/core/utils/decode_utils.dart';
 import 'package:xceleration/core/utils/enums.dart';
 import 'package:xceleration/coach/race_screen/widgets/runner_record.dart';
 import 'package:xceleration/coach/merge_conflicts/model/timing_data.dart';
+import 'package:xceleration/core/utils/runner_time_functions.dart';
 import '../../../../../../shared/models/time_record.dart';
 import '../../../../../../core/utils/database_helper.dart';
 import 'package:xceleration/core/utils/sheet_utils.dart';
@@ -16,6 +18,7 @@ import 'package:provider/provider.dart';
 import '../../../../../../core/utils/encode_utils.dart' as encode_utils;
 import '../../../../../merge_conflicts/controller/merge_conflicts_controller.dart';
 import '../../../../../race_results/model/results_record.dart';
+
 
 /// Controller that manages loading and processing of race results
 class LoadResultsController with ChangeNotifier {
@@ -87,359 +90,10 @@ class LoadResultsController with ChangeNotifier {
     if (savedResults != null && savedResults.isNotEmpty) {
       results = savedResults;
       resultsLoaded = true;
-    } else {
-      // // Add mock data when no real data exists
-      // results = _createMockResults();
-      // resultsLoaded = true;
-      // Logger.d('No saved results found. Using mock data instead.');
     }
 
     notifyListeners();
   }
-
-  // /// Creates mock result records for testing
-  // List<ResultsRecord> _createMockResults() {
-  //   List<ResultsRecord> mockResults = [
-  //     // Regular results (no conflicts)
-  //     ResultsRecord(
-  //       raceId: raceId,
-  //       runnerId: 101,
-  //       place: 1,
-  //       name: 'Alex Johnson',
-  //       school: 'Eagles',
-  //       grade: 12,
-  //       bib: '101',
-  //       finishTime: const Duration(minutes: 12, seconds: 34, milliseconds: 500),
-  //     ),
-  //     ResultsRecord(
-  //       raceId: raceId,
-  //       runnerId: 102,
-  //       place: 2,
-  //       name: 'Maria Garcia',
-  //       school: 'Falcons',
-  //       grade: 11,
-  //       bib: '202',
-  //       finishTime: const Duration(minutes: 12, seconds: 45, milliseconds: 300),
-  //     ),
-  //     ResultsRecord(
-  //       raceId: raceId,
-  //       runnerId: 103,
-  //       place: 3,
-  //       name: 'James Wilson',
-  //       school: 'Eagles',
-  //       grade: 10,
-  //       bib: '303',
-  //       finishTime: const Duration(minutes: 12, seconds: 58, milliseconds: 700),
-  //     ),
-  //   ];
-
-  //   // Creating a missing time conflict
-  //   // A runner with TBD (To Be Determined) time that needs to be resolved
-  //   ResultsRecord missingTimeResult = ResultsRecord(
-  //     raceId: raceId,
-  //     runnerId: 104,
-  //     place: 4,
-  //     name: 'Sophie Martinez',
-  //     school: 'Hawks',
-  //     grade: 12,
-  //     bib: '404',
-  //     finishTime: Duration.zero, // Missing time that needs to be resolved
-  //   );
-
-  //   // Adding more regular runners
-  //   ResultsRecord additionalResult1 = ResultsRecord(
-  //     raceId: raceId,
-  //     runnerId: 106,
-  //     place: 6,
-  //     name: 'Emily Parker',
-  //     school: 'Lions',
-  //     grade: 11,
-  //     bib: '606',
-  //     finishTime: const Duration(minutes: 13, seconds: 35, milliseconds: 200),
-  //   );
-
-  //   ResultsRecord additionalResult2 = ResultsRecord(
-  //     raceId: raceId,
-  //     runnerId: 107,
-  //     place: 7,
-  //     name: 'David Rodriguez',
-  //     school: 'Tigers',
-  //     grade: 10,
-  //     bib: '707',
-  //     finishTime: const Duration(minutes: 13, seconds: 46, milliseconds: 800),
-  //   );
-
-  //   // Set up the timing data and conflict for the runners
-  //   timingData = TimingData(
-  //     records: [
-  //       // First 3 confirmed runners
-  //       TimeRecord(
-  //         elapsedTime: '12:34.5',
-  //         isConfirmed: true,
-  //         type: RecordType.runnerTime,
-  //         place: 1,
-  //         name: 'Alex Johnson',
-  //         school: 'Eagles',
-  //         grade: 12,
-  //         bib: '101',
-  //       ),
-  //       TimeRecord(
-  //         elapsedTime: '12:45.3',
-  //         isConfirmed: true,
-  //         type: RecordType.runnerTime,
-  //         place: 2,
-  //         name: 'Maria Garcia',
-  //         school: 'Falcons',
-  //         grade: 11,
-  //         bib: '202',
-  //       ),
-  //       TimeRecord(
-  //         elapsedTime: '12:58.7',
-  //         isConfirmed: true,
-  //         type: RecordType.runnerTime,
-  //         place: 3,
-  //         name: 'James Wilson',
-  //         school: 'Eagles',
-  //         grade: 10,
-  //         bib: '303',
-  //       ),
-  //       // Missing time with TBD time
-  //       TimeRecord(
-  //         elapsedTime: 'TBD',
-  //         isConfirmed: false,
-  //         type: RecordType.runnerTime,
-  //         place: 4,
-  //         name: 'Sophie Martinez',
-  //         school: 'Hawks',
-  //         grade: 12,
-  //         bib: '404',
-  //         conflict: ConflictDetails(
-  //           type: RecordType.missingTime,
-  //           isResolved: false,
-  //           data: {'numTimes': 4, 'offBy': 1},
-  //         ),
-  //       ),
-  //       // Missing time conflict marker
-  //       TimeRecord(
-  //         elapsedTime: '13:22.6',
-  //         type: RecordType.missingTime,
-  //         place: 4,
-  //         conflict: ConflictDetails(
-  //           type: RecordType.missingTime,
-  //           isResolved: false,
-  //           data: {'numTimes': 4, 'offBy': 1},
-  //         ),
-  //       ),
-  //       // Regular confirmed runner
-  //       TimeRecord(
-  //         elapsedTime: '13:22.6',
-  //         isConfirmed: true,
-  //         type: RecordType.runnerTime,
-  //         place: 5,
-  //         name: 'Michael Brown',
-  //         school: 'Falcons',
-  //         grade: 9,
-  //         bib: '505',
-  //       ),
-  //       // Additional confirmed runners
-  //       TimeRecord(
-  //         elapsedTime: '13:35.2',
-  //         isConfirmed: true,
-  //         type: RecordType.runnerTime,
-  //         place: 6,
-  //         name: 'Emily Parker',
-  //         school: 'Lions',
-  //         grade: 11,
-  //         bib: '606',
-  //       ),
-  //       TimeRecord(
-  //         elapsedTime: '13:46.8',
-  //         isConfirmed: true,
-  //         type: RecordType.runnerTime,
-  //         place: 7,
-  //         name: 'David Rodriguez',
-  //         school: 'Tigers',
-  //         grade: 10,
-  //         bib: '707',
-  //       ),
-  //       // Additional confirmed runners
-  //       TimeRecord(
-  //         elapsedTime: '13:55.3',
-  //         isConfirmed: true,
-  //         type: RecordType.runnerTime,
-  //         place: 8,
-  //         name: 'Sarah Williams',
-  //         school: 'Panthers',
-  //         grade: 12,
-  //         bib: '808',
-  //       ),
-  //       TimeRecord(
-  //         elapsedTime: '14:07.9',
-  //         isConfirmed: true,
-  //         type: RecordType.runnerTime,
-  //         place: 9,
-  //         name: 'Ryan Thompson',
-  //         school: 'Lions',
-  //         grade: 11,
-  //         bib: '909',
-  //       ),
-  //       TimeRecord(
-  //         elapsedTime: '14:23.4',
-  //         isConfirmed: true,
-  //         type: RecordType.runnerTime,
-  //         place: 10,
-  //         name: 'Jessica Lee',
-  //         school: 'Eagles',
-  //         grade: 9,
-  //         bib: '1010',
-  //       ),
-  //     ],
-  //     endTime: '14:30.0',
-  //   );
-
-  //   // Add the runner records
-  //   runnerRecords = [
-  //     RunnerRecord(
-  //       runnerId: 101,
-  //       raceId: raceId,
-  //       name: 'Alex Johnson',
-  //       school: 'Eagles',
-  //       grade: 12,
-  //       bib: '101',
-  //     ),
-  //     RunnerRecord(
-  //       runnerId: 102,
-  //       raceId: raceId,
-  //       name: 'Maria Garcia',
-  //       school: 'Falcons',
-  //       grade: 11,
-  //       bib: '202',
-  //     ),
-  //     RunnerRecord(
-  //       runnerId: 103,
-  //       raceId: raceId,
-  //       name: 'James Wilson',
-  //       school: 'Eagles',
-  //       grade: 10,
-  //       bib: '303',
-  //     ),
-  //     RunnerRecord(
-  //       runnerId: 104,
-  //       raceId: raceId,
-  //       name: 'Sophie Martinez',
-  //       school: 'Hawks',
-  //       grade: 12,
-  //       bib: '404',
-  //     ),
-  //     RunnerRecord(
-  //       runnerId: 105,
-  //       raceId: raceId,
-  //       name: 'Michael Brown',
-  //       school: 'Falcons',
-  //       grade: 9,
-  //       bib: '505',
-  //     ),
-  //     RunnerRecord(
-  //       runnerId: 106,
-  //       raceId: raceId,
-  //       name: 'Emily Parker',
-  //       school: 'Lions',
-  //       grade: 11,
-  //       bib: '606',
-  //     ),
-  //     RunnerRecord(
-  //       runnerId: 107,
-  //       raceId: raceId,
-  //       name: 'David Rodriguez',
-  //       school: 'Tigers',
-  //       grade: 10,
-  //       bib: '707',
-  //     ),
-  //     RunnerRecord(
-  //       runnerId: 108,
-  //       raceId: raceId,
-  //       name: 'Sarah Williams',
-  //       school: 'Panthers',
-  //       grade: 12,
-  //       bib: '808',
-  //     ),
-  //     RunnerRecord(
-  //       runnerId: 109,
-  //       raceId: raceId,
-  //       name: 'Ryan Thompson',
-  //       school: 'Lions',
-  //       grade: 11,
-  //       bib: '909',
-  //     ),
-  //     RunnerRecord(
-  //       runnerId: 110,
-  //       raceId: raceId,
-  //       name: 'Jessica Lee',
-  //       school: 'Eagles',
-  //       grade: 9,
-  //       bib: '1010',
-  //     ),
-  //   ];
-
-  //   // Set conflict flags for the controller
-  //   hasBibConflicts = false; // No bib conflicts
-  //   hasTimingConflicts = true;
-
-  //   // Add the missing time result to our mock results
-  //   mockResults.add(missingTimeResult);
-
-  //   // Add one more regular result
-  //   mockResults.add(ResultsRecord(
-  //     raceId: raceId,
-  //     runnerId: 105,
-  //     place: 5,
-  //     name: 'Michael Brown',
-  //     school: 'Falcons',
-  //     grade: 9,
-  //     bib: '505',
-  //     finishTime: const Duration(minutes: 13, seconds: 22, milliseconds: 600),
-  //   ));
-
-  //   // Add additional runner results
-  //   mockResults.add(additionalResult1);
-  //   mockResults.add(additionalResult2);
-
-  //   // Add additional confirmed results
-  //   mockResults.add(ResultsRecord(
-  //     raceId: raceId,
-  //     runnerId: 108,
-  //     place: 8,
-  //     name: 'Sarah Williams',
-  //     school: 'Panthers',
-  //     grade: 12,
-  //     bib: '808',
-  //     finishTime: const Duration(minutes: 13, seconds: 55, milliseconds: 300),
-  //   ));
-
-  //   mockResults.add(ResultsRecord(
-  //     raceId: raceId,
-  //     runnerId: 109,
-  //     place: 9,
-  //     name: 'Ryan Thompson',
-  //     school: 'Lions',
-  //     grade: 11,
-  //     bib: '909',
-  //     finishTime: const Duration(minutes: 14, seconds: 7, milliseconds: 900),
-  //   ));
-
-  //   mockResults.add(ResultsRecord(
-  //     raceId: raceId,
-  //     runnerId: 110,
-  //     place: 10,
-  //     name: 'Jessica Lee',
-  //     school: 'Eagles',
-  //     grade: 9,
-  //     bib: '1010',
-  //     finishTime: const Duration(minutes: 14, seconds: 23, milliseconds: 400),
-  //   ));
-
-  //   return mockResults;
-  // }
 
   /// Saves race results to the database
   Future<void> saveRaceResults(List<ResultsRecord> resultRecords) async {
@@ -482,10 +136,34 @@ class LoadResultsController with ChangeNotifier {
 
       resultsLoaded = true;
       notifyListeners();
+
+      await _ensureBibNumberAndRunnerRecordLengthsAreEqual();
+
       await _checkForConflictsAndSaveResults();
     } else {
       Logger.d(
           'Missing data source: bibRecordsData or finishTimesData is null');
+    }
+  }
+
+  Future<void> _ensureBibNumberAndRunnerRecordLengthsAreEqual() async {
+    if (runnerRecords != null && timingData != null) {
+      if (runnerRecords!.length != timingData!.records.length) {
+        Logger.d('Bib number and runner record lengths are not equal');
+        int diff = runnerRecords!.length - timingData!.records.length;
+        Logger.d('Difference: $diff');
+        if (diff > 0) {
+          Logger.d('Removing $diff records from runnerRecords');
+          timingData!.records = removeExtraTime(diff, timingData!.records, runnerRecords!.length, timingData!.endTime);
+        } else if (diff < 0) {
+          Logger.d('Adding $diff records to timingData');
+          timingData!.records = addMissingTime(diff.abs(), timingData!.records, runnerRecords!.length, timingData!.endTime);
+        }
+      }
+      else if (timingData!.records.last.type == RecordType.runnerTime) {
+        Logger.d('Last record is a runner time');
+        timingData!.records = confirmTimes(timingData!.records, timingData!.records.length, timingData!.endTime);
+      }
     }
   }
 

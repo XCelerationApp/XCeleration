@@ -225,32 +225,6 @@ class _ChunkItemState extends State<ChunkItem> {
             ),
           if (chunkType == RecordType.confirmRunner)
             ConfirmHeader(confirmRecord: record),
-          if (chunkType == RecordType.runnerTime)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8.0),
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.green.shade50,
-                  border: Border.all(color: Colors.green.shade300),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.check_circle,
-                        color: Colors.green.shade600, size: 20),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Clean Results - No Conflicts',
-                      style: TextStyle(
-                        color: Colors.green.shade700,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
           const SizedBox(height: 8),
           // Use _sortedJoinedRecords for rendering
           ..._sortedJoinedRecords.asMap().entries.map<Widget>((entry) {

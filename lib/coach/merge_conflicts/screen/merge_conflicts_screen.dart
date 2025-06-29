@@ -8,9 +8,7 @@ import '../model/timing_data.dart';
 import '../../../core/components/instruction_card.dart';
 import '../widgets/chunk_list.dart';
 import 'package:provider/provider.dart';
-import '../demo/complexity_comparison.dart';
 import '../widgets/mock_data_selector.dart';
-import '../widgets/simple_conflict_widget.dart';
 
 class MergeConflictsScreen extends StatefulWidget {
   final int raceId;
@@ -164,20 +162,6 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
             child: const Icon(Icons.science),
           ),
           const SizedBox(height: 8),
-          FloatingActionButton.extended(
-            heroTag: 'compare_modes',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) =>
-                      ComplexityComparisonDemo(controller: controller),
-                ),
-              );
-            },
-            icon: const Icon(Icons.compare),
-            label: const Text('Compare Modes'),
-          ),
         ],
       ),
     );
@@ -326,9 +310,7 @@ class InstructionsAndList extends StatelessWidget {
           const SizedBox(height: 16),
 
           // Content based on mode
-          controller.useSimpleMode
-              ? SimpleConflictWidget(controller: controller)
-              : ChunkList(controller: controller),
+          ChunkList(controller: controller),
         ],
       ),
     );

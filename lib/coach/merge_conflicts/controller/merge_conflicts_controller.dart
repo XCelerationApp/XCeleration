@@ -8,7 +8,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/components/dialog_utils.dart';
 import '../../../shared/models/time_record.dart';
 import '../../merge_conflicts/services/merge_conflicts_service.dart';
-import '../services/simple_conflict_resolver.dart';
 
 class MergeConflictsController with ChangeNotifier {
   late final int raceId;
@@ -870,92 +869,6 @@ class MergeConflictsController with ChangeNotifier {
       DialogUtils.showErrorDialog(context, message: message);
     }
   }
-
-  // ============================================================================
-  // SIMPLE MODE METHODS - Direct conflict resolution without complex abstractions
-  // ============================================================================
-
-  /// Simple alternative to handleMissingTimesResolution
-  /// Uses direct logic instead of chunks and services
-  Future<void> handleMissingTimesSimple({
-    required List<String> userTimes,
-    required int conflictPlace,
-  }) async {
-    try {
-      Logger.d('Simple mode: Resolving missing times at place $conflictPlace');
-
-      // Use simple resolver
-      final updatedRecords = SimpleConflictResolver.resolveMissingTimes(
-        timingRecords: timingData.records,
-        runners: runnerRecords,
-        userTimes: userTimes,
-        conflictPlace: conflictPlace,
-      );
-
-      // Update timing data
-      timingData.records = updatedRecords;
-
-      // Clean up any duplicates
-      timingData.records = SimpleConflictResolver.cleanupDuplicateConfirmations(
-        timingData.records,
-      );
-
-      notifyListeners();
-      showSuccessMessage();
-    } catch (e, stackTrace) {
-      Logger.e('Simple mode error resolving missing times: $e',
-          context: context.mounted ? context : null,
-          error: e,
-          stackTrace: stackTrace);
-      _showError('Failed to resolve missing times. Please try again.');
-    }
-  }
-
-  /// Simple alternative to handleExtraTimesResolution
-  /// Uses direct logic instead of chunks and services
-  Future<void> handleExtraTimesSimple({
-    required List<String> timesToRemove,
-    required int conflictPlace,
-  }) async {
-    try {
-      Logger.d('Simple mode: Resolving extra times at place $conflictPlace');
-
-      // Use simple resolver
-      final updatedRecords = SimpleConflictResolver.resolveExtraTimes(
-        timingRecords: timingData.records,
-        timesToRemove: timesToRemove,
-        conflictPlace: conflictPlace,
-      );
-
-      // Update timing data
-      timingData.records = updatedRecords;
-
-      // Clean up any duplicates
-      timingData.records = SimpleConflictResolver.cleanupDuplicateConfirmations(
-        timingData.records,
-      );
-
-      notifyListeners();
-      showSuccessMessage();
-    } catch (e, stackTrace) {
-      Logger.e('Simple mode error resolving extra times: $e',
-          context: context.mounted ? context : null,
-          error: e,
-          stackTrace: stackTrace);
-      _showError('Failed to resolve extra times. Please try again.');
-    }
-  }
-
-  /// Get all conflicts using simple identification
-  List<ConflictInfo> getConflictsSimple() {
-    return SimpleConflictResolver.identifyConflicts(timingData.records);
-  }
-
-  /// Check if there are any unresolved conflicts in simple mode
-  bool hasUnresolvedConflictsSimple() {
-    return getConflictsSimple().isNotEmpty;
-  }
-
   /// Load mock data for testing purposes
   Future<void> loadMockData(
       List<RunnerRecord> mockRunners, TimingData mockTimingData) async {

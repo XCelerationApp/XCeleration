@@ -3,8 +3,6 @@ import 'package:provider/provider.dart';
 import '../controller/merge_conflicts_controller.dart';
 import '../widgets/mock_data_selector.dart';
 import '../widgets/chunk_list.dart';
-import '../widgets/simple_conflict_widget.dart';
-import '../demo/complexity_comparison.dart';
 import '../model/timing_data.dart';
 
 import '../../../core/theme/app_colors.dart';
@@ -67,22 +65,6 @@ class _MockDataTestScreenState extends State<MockDataTestScreen> {
           title: const Text('Mock Data Testing'),
           backgroundColor: Colors.green.shade700,
           foregroundColor: Colors.white,
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.compare),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ComplexityComparisonDemo(
-                      controller: _controller,
-                    ),
-                  ),
-                );
-              },
-              tooltip: 'Compare Modes',
-            ),
-          ],
         ),
         body: Container(
           color: AppColors.backgroundColor,
@@ -112,9 +94,7 @@ class _MockDataTestScreenState extends State<MockDataTestScreen> {
                           children: [
                             _buildDataSummaryHeader(controller),
                             Expanded(
-                              child: controller.useSimpleMode
-                                  ? SimpleConflictWidget(controller: controller)
-                                  : _buildComplexModeView(controller),
+                              child: _buildComplexModeView(controller),
                             ),
                           ],
                         ),
@@ -191,7 +171,7 @@ class _MockDataTestScreenState extends State<MockDataTestScreen> {
 
   Widget _buildDataSummaryHeader(MergeConflictsController controller) {
     final conflictCount = controller.useSimpleMode
-        ? controller.getConflictsSimple().length
+        ? 0
         : controller.getFirstConflict()[0] != null
             ? 1
             : 0;
