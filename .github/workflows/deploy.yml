@@ -9,7 +9,8 @@ jobs:
   detect-deployment-changes:
     name: Detect Deployment Changes
     runs-on: ubuntu-latest
-    if: github.event.pull_request.merged == true && github.event.pull_request.head.ref == 'dev'
+    # Only deploy when PR is merged to main (branch-check.yml ensures only dev can merge to main)
+    if: github.event.pull_request.merged == true
     outputs:
       should-deploy: ${{ steps.changes.outputs.should-deploy }}
       code-changed: ${{ steps.changes.outputs.code-changed }}
