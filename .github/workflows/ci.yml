@@ -11,6 +11,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -41,8 +44,7 @@ jobs:
         with:
           path: |
             .
-            !.git
-          key: workspace-${{ hashFiles('pubspec.lock') }}-${{ hashFiles('lib/**', 'test/**', 'analysis_options.yaml') }}-${{ runner.os }}
+          key: workspace-${{ github.sha }}-${{ runner.os }}
 
   lint_and_format:
     name: Lint and Format
@@ -54,10 +56,8 @@ jobs:
         with:
           path: |
             .
-            !.git
-          key: workspace-${{ hashFiles('pubspec.lock') }}-${{ hashFiles('lib/**', 'test/**', 'analysis_options.yaml') }}-${{ runner.os }}
+          key: workspace-${{ github.sha }}-${{ runner.os }}
           restore-keys: |
-            workspace-${{ hashFiles('pubspec.lock') }}-${{ runner.os }}-
             workspace-${{ runner.os }}-
 
       - name: Setup Flutter (cache only)
@@ -80,10 +80,8 @@ jobs:
         with:
           path: |
             .
-            !.git
-          key: workspace-${{ hashFiles('pubspec.lock') }}-${{ hashFiles('lib/**', 'test/**', 'analysis_options.yaml') }}-${{ runner.os }}
+          key: workspace-${{ github.sha }}-${{ runner.os }}
           restore-keys: |
-            workspace-${{ hashFiles('pubspec.lock') }}-${{ runner.os }}-
             workspace-${{ runner.os }}-
 
       - name: Setup Flutter (cache only)
@@ -130,10 +128,8 @@ jobs:
         with:
           path: |
             .
-            !.git
-          key: workspace-${{ hashFiles('pubspec.lock') }}-${{ hashFiles('lib/**', 'test/**', 'analysis_options.yaml') }}-${{ runner.os }}
+          key: workspace-${{ github.sha }}-${{ runner.os }}
           restore-keys: |
-            workspace-${{ hashFiles('pubspec.lock') }}-${{ runner.os }}-
             workspace-${{ runner.os }}-
 
       - name: Setup Flutter (cache only)
@@ -170,10 +166,8 @@ jobs:
         with:
           path: |
             .
-            !.git
-          key: workspace-${{ hashFiles('pubspec.lock') }}-${{ hashFiles('lib/**', 'test/**', 'analysis_options.yaml') }}-${{ runner.os }}
+          key: workspace-${{ github.sha }}-${{ runner.os }}
           restore-keys: |
-            workspace-${{ hashFiles('pubspec.lock') }}-${{ runner.os }}-
             workspace-${{ runner.os }}-
 
       - name: Setup Flutter (cache only)
