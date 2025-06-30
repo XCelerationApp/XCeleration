@@ -1,0 +1,139 @@
+name: Auto Create Draft PR
+
+on:
+  push:
+    branches-ignore:
+      - main
+      - dev
+
+# Grant necessary permissions for creating PRs and comments
+permissions:
+  contents: read         # Required to read repository content
+  pull-requests: write   # Required to create pull requests
+  issues: write         # Required to create comments
+
+jobs:
+  create-draft-pr:
+    name: Create Draft PR
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for existing PR
+        id: check-pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const branch = context.ref.replace('refs/heads/', '');
+            
+            console.log('🔍 Checking for existing PRs for branch: ' + branch);
+            
+            try {
+              const { data: pulls } = await github.rest.pulls.list({
+                owner,
+                repo,
+                head: owner + ':' + branch,
+                state: 'open'
+              });
+              
+              if (pulls.length > 0) {
+                console.log('✅ Found existing PR for branch ' + branch + ': #' + pulls[0].number);
+                core.setOutput('has_pr', 'true');
+                core.setOutput('pr_number', pulls[0].number);
+              } else {
+                console.log('❌ No existing PR found for branch ' + branch);
+                core.setOutput('has_pr', 'false');
+              }
+            } catch (error) {
+              console.error('Error checking for PRs: ' + error.message);
+              core.setOutput('has_pr', 'false');
+            }
+
+      - name: Create draft PR
+        if: steps.check-pr.outputs.has_pr == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const branch = context.ref.replace('refs/heads/', '');
+            const baseBranch = 'dev';
+            
+            console.log('🚀 Creating draft PR for branch: ' + branch + ' → ' + baseBranch);
+            
+            // Get the latest commit info for a better title
+            const { data: commit } = await github.rest.repos.getCommit({
+              owner,
+              repo,
+              ref: context.sha
+            });
+            
+            const commitMessage = commit.commit.message;
+            const firstLine = commitMessage.split('\n')[0];
+            
+            // Generate PR title from branch name and latest commit
+            const branchTitle = branch
+              .replace(/[-_]/g, ' ')
+              .replace(/\b\w/g, l => l.toUpperCase());
+            
+            const title = firstLine.length > 50 
+              ? branchTitle 
+              : branchTitle + ': ' + firstLine;
+            
+            // Generate PR body
+            const body = "## 🚧 Draft PR - Auto-created\\n\\n" +
+              "This PR was automatically created for branch `" + branch + "`.\\n\\n" +
+              "### Latest Changes\\n" +
+              "- " + firstLine + "\\n\\n" +
+              "### Branch Info\\n" +
+              "- **Source**: `" + branch + "`\\n" +
+              "- **Target**: `" + baseBranch + "`\\n" +
+              "- **Latest Commit**: " + context.sha.substring(0, 7) + "\\n\\n" +
+              "**Note**: This is a draft PR. Please review, update the description, and mark as ready for review when complete.";
+
+            try {
+              const { data: pr } = await github.rest.pulls.create({
+                owner,
+                repo,
+                title,
+                head: branch,
+                base: baseBranch,
+                body,
+                draft: true
+              });
+              
+              console.log('✅ Created draft PR #' + pr.number + ': ' + title);
+              
+              // Add a comment to the PR
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: pr.number,
+                body: "🤖 **Auto-created Draft PR**\\n\\n" +
+                      "This PR was automatically created when you pushed to the `" + branch + "` branch.\\n\\n" +
+                      "**Next steps:**\\n" +
+                      "1. 📝 Update this description with details about your changes\\n" +
+                      "2. ✅ Ensure your code passes CI checks\\n" +
+                      "3. 🔄 Mark as \\"Ready for review\\" when complete\\n\\n" +
+                      "The PR will automatically run CI checks once created. Happy coding! 🚀"
+              });
+              
+            } catch (error) {
+              console.error('❌ Failed to create PR: ' + error.message);
+              
+              if (error.message.includes('No commits between')) {
+                console.log('ℹ️ Branch ' + branch + ' has no new commits compared to ' + baseBranch);
+              } else {
+                throw error;
+              }
+            }
+
+      - name: PR already exists
+        if: steps.check-pr.outputs.has_pr == 'true'
+        run: |
+          echo "ℹ️ PR already exists for this branch (#${{ steps.check-pr.outputs.pr_number }})"
+          echo "Skipping PR creation." 
