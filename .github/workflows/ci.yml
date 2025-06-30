@@ -6,7 +6,6 @@ on:
 
 jobs:
 
-
   lint_and_format:
     name: Lint and Format
     runs-on: ubuntu-latest
