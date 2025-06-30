@@ -6,6 +6,12 @@ on:
       - main
       - dev
 
+# Grant necessary permissions for creating PRs and comments
+permissions:
+  contents: read         # Required to read repository content
+  pull-requests: write   # Required to create pull requests
+  issues: write         # Required to create comments
+
 jobs:
   create-draft-pr:
     name: Create Draft PR
