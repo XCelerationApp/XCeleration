@@ -6,21 +6,152 @@ on:
     branches: [ main ]
 
 jobs:
-  deploy-app:
-    name: Deploy Application
+  detect-deployment-changes:
+    name: Detect Deployment Changes
+    runs-on: ubuntu-latest
     if: github.event.pull_request.merged == true && github.event.pull_request.head.ref == 'dev'
+    outputs:
+      should-deploy: ${{ steps.changes.outputs.should-deploy }}
+      code-changed: ${{ steps.changes.outputs.code-changed }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Detect changes requiring deployment
+        id: changes
+        run: |
+          # Get the list of changed files in the merged PR
+          changed_files=$(git diff --name-only HEAD~1 HEAD)
+          echo "Changed files:"
+          echo "$changed_files"
+          
+          # Check for code/config changes that require deployment
+          if echo "$changed_files" | grep -E "(lib/|assets/|pubspec\.yaml|pubspec\.lock|ios/|android/|analysis_options\.yaml)" > /dev/null; then
+            echo "should-deploy=true" >> $GITHUB_OUTPUT
+            echo "code-changed=true" >> $GITHUB_OUTPUT
+            echo "🚀 Code or config changes detected - deployment required"
+          elif echo "$changed_files" | grep -vE "(\.md$|docs/|README|LICENSE|\.gitignore)" > /dev/null; then
+            echo "should-deploy=true" >> $GITHUB_OUTPUT
+            echo "code-changed=false" >> $GITHUB_OUTPUT
+            echo "🤔 Mixed changes detected - deploying to be safe"
+          else
+            echo "should-deploy=false" >> $GITHUB_OUTPUT
+            echo "code-changed=false" >> $GITHUB_OUTPUT
+            echo "📝 Documentation-only changes - skipping deployment"
+          fi
+
+  setup-environment:
+    name: Setup Environment
     runs-on: macos-latest
+    needs: detect-deployment-changes
+    if: needs.detect-deployment-changes.outputs.should-deploy == 'true'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           ref: main
 
+      - name: Cache Flutter dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            .dart_tool
+          key: ${{ runner.os }}-flutter-deps-${{ hashFiles('**/pubspec.lock') }}-${{ hashFiles('**/*.dart') }}
+          restore-keys: |
+            ${{ runner.os }}-flutter-deps-${{ hashFiles('**/pubspec.lock') }}-
+            ${{ runner.os }}-flutter-deps-
+            ubuntu-latest-flutter-deps-${{ hashFiles('**/pubspec.lock') }}-
+            ubuntu-latest-flutter-deps-
+
+      - name: Cache iOS dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ios/Pods
+            ios/.symlinks
+            ios/build/XCBuildData
+          key: ios-deps-${{ hashFiles('ios/Podfile.lock', '**/pubspec.lock') }}-${{ runner.os }}
+          restore-keys: |
+            ios-deps-${{ hashFiles('ios/Podfile.lock', '**/pubspec.lock') }}-
+            ios-deps-
+
+      - name: Cache build artifacts (try CI first)
+        uses: actions/cache@v4
+        with:
+          path: |
+            build/
+            .dart_tool/build/
+          key: build-${{ hashFiles('pubspec.lock') }}-${{ hashFiles('lib/**', 'assets/**', 'analysis_options.yaml') }}-${{ runner.os }}
+          restore-keys: |
+            build-${{ hashFiles('pubspec.lock') }}-${{ hashFiles('lib/**', 'assets/**', 'analysis_options.yaml') }}-ubuntu-latest
+            build-${{ hashFiles('pubspec.lock') }}-${{ runner.os }}-
+            build-${{ hashFiles('pubspec.lock') }}-ubuntu-latest-
+            build-${{ runner.os }}-
+            build-ubuntu-latest-
+
+      - name: Cache workspace
+        uses: actions/cache/save@v3
+        with:
+          path: |
+            .
+            !.git
+            !node_modules
+            !ios/Pods
+          key: workspace-${{ hashFiles('pubspec.lock') }}-${{ hashFiles('lib/**', 'test/**', 'analysis_options.yaml', 'ios/**/*.{swift,h,m,plist}') }}-${{ runner.os }}
+
+  setup-flutter:
+    name: Setup Flutter
+    runs-on: macos-latest
+    needs: [detect-deployment-changes, setup-environment]
+    if: needs.detect-deployment-changes.outputs.should-deploy == 'true'
+    steps:
+      - name: Restore workspace
+        uses: actions/cache/restore@v3
+        with:
+          path: |
+            .
+            !.git
+            !node_modules
+            !ios/Pods
+          key: workspace-${{ hashFiles('pubspec.lock') }}-${{ hashFiles('lib/**', 'test/**', 'analysis_options.yaml', 'ios/**/*.{swift,h,m,plist}') }}-${{ runner.os }}
+          restore-keys: |
+            workspace-${{ hashFiles('pubspec.lock') }}-${{ runner.os }}-
+            workspace-${{ runner.os }}-
+
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.32.5'
           cache: true
+
+      - name: Get Flutter dependencies
+        run: flutter pub get
+
+      - name: Create .env file
+        run: echo "${{ secrets.DOTENV }}" > .env
+
+  setup-ios:
+    name: Setup iOS Environment  
+    runs-on: macos-latest
+    needs: [detect-deployment-changes, setup-environment]
+    if: needs.detect-deployment-changes.outputs.should-deploy == 'true'
+    steps:
+      - name: Restore workspace
+        uses: actions/cache/restore@v3
+        with:
+          path: |
+            .
+            !.git
+            !node_modules
+            !ios/Pods
+          key: workspace-${{ hashFiles('pubspec.lock') }}-${{ hashFiles('lib/**', 'test/**', 'analysis_options.yaml', 'ios/**/*.{swift,h,m,plist}') }}-${{ runner.os }}
+          restore-keys: |
+            workspace-${{ hashFiles('pubspec.lock') }}-${{ runner.os }}-
+            workspace-${{ runner.os }}-
 
       - name: Set up Ruby and Bundler
         uses: ruby/setup-ruby@v1
@@ -29,9 +160,6 @@ jobs:
           bundler-cache: true
           working-directory: ./ios
 
-      - name: Create .env file
-        run: echo "${{ secrets.DOTENV }}" > .env
-
       - name: Configure Git for Match repository access
         run: |
           git config --global user.email "action@github.com"
@@ -39,21 +167,66 @@ jobs:
           # Configure Git to use GitHub token for same-organization repository access
           git config --global url."https://${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
 
-      - name: Cache Flutter dependencies
-        uses: actions/cache@v4
+      - name: Setup keychain for code signing
+        run: |
+          # Create a temporary keychain for CI (matching Match configuration)
+          security create-keychain -p temp_keychain_password fastlane_tmp_keychain
+          security default-keychain -s fastlane_tmp_keychain
+          security unlock-keychain -p temp_keychain_password fastlane_tmp_keychain
+          security set-keychain-settings -t 3600 -l fastlane_tmp_keychain
+          # Add keychain to search list
+          security list-keychains -d user -s fastlane_tmp_keychain
+
+  deploy-app:
+    name: Deploy Application
+    runs-on: macos-latest
+    needs: [detect-deployment-changes, setup-flutter, setup-ios]
+    if: needs.detect-deployment-changes.outputs.should-deploy == 'true'
+    steps:
+      - name: Restore workspace
+        uses: actions/cache/restore@v3
         with:
           path: |
-            ~/.pub-cache
-            .dart_tool
-          key: ${{ runner.os }}-flutter-deps-${{ hashFiles('**/pubspec.lock') }}
+            .
+            !.git
+            !node_modules
+            !ios/Pods
+          key: workspace-${{ hashFiles('pubspec.lock') }}-${{ hashFiles('lib/**', 'test/**', 'analysis_options.yaml', 'ios/**/*.{swift,h,m,plist}') }}-${{ runner.os }}
           restore-keys: |
-            ${{ runner.os }}-flutter-deps-
+            workspace-${{ hashFiles('pubspec.lock') }}-${{ runner.os }}-
+            workspace-${{ runner.os }}-
 
-      - name: Get Flutter dependencies
-        run: flutter pub get
+      - name: Set up Flutter (cache only)
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.32.5'
+          cache: true
+
+      - name: Set up Ruby (cache only)
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2.8'
+          bundler-cache: true
+          working-directory: ./ios
+
+      - name: Restore keychain setup
+        run: |
+          # Create a temporary keychain for CI (matching Match configuration)
+          security create-keychain -p temp_keychain_password fastlane_tmp_keychain
+          security default-keychain -s fastlane_tmp_keychain
+          security unlock-keychain -p temp_keychain_password fastlane_tmp_keychain
+          security set-keychain-settings -t 3600 -l fastlane_tmp_keychain
+          # Add keychain to search list
+          security list-keychains -d user -s fastlane_tmp_keychain
 
       - name: Deploy to TestFlight via Fastlane
         working-directory: ./ios
         env:
           CD: true  # Indicate this is a CI/CD environment
-        run: bundle exec fastlane deploy 
+        run: bundle exec fastlane deploy
+
+      - name: Cleanup keychain
+        if: always()  # Always run cleanup, even if previous steps failed
+        run: |
+          # Remove the temporary keychain
+          security delete-keychain fastlane_tmp_keychain || true 

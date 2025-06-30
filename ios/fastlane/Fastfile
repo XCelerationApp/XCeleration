@@ -19,11 +19,18 @@ dotenv_path = File.join(__dir__, "..", "..", ".env")
 Dotenv.load(dotenv_path) if File.exist?(dotenv_path)
 
 # Check if environment variables are set
-required_env_vars = ["APP_STORE_CONNECT_API_KEY_ID", "APP_STORE_CONNECT_ISSUER_ID", "APP_STORE_CONNECT_API_KEY_BASE64", "BUNDLE_ID", "TEAM_ID", "FASTLANE_MATCH_REPO_URL"]
+required_env_vars = [
+  "APP_STORE_CONNECT_API_KEY_ID", 
+  "APP_STORE_CONNECT_ISSUER_ID", 
+  "APP_STORE_CONNECT_API_KEY_BASE64", 
+  "BUNDLE_ID", 
+  "TEAM_ID", 
+  "FASTLANE_MATCH_REPO_URL"
+]
 optional_env_vars = ["MATCH_PASSWORD"]
 
 required_env_vars.each do |var|
-  UI.user_error!("Missing required environment variable: #{var}") unless ENV[var]
+  UI.user_error!("❌ Missing required environment variable: #{var}") unless ENV[var]
 end
 
 optional_env_vars.each do |var|
@@ -159,6 +166,15 @@ platform :ios do
       
       # Step 5: Set up certificates and profiles using Match (BEFORE building)
       UI.message("Step 5: Setting up certificates and profiles using Match...")
+      
+      # Set up CI-specific Match environment if in CI/CD
+      if ENV["CD"]
+        UI.message("Configuring Match for CI/CD environment...")
+        ENV["MATCH_KEYCHAIN_NAME"] = "fastlane_tmp_keychain"
+        ENV["MATCH_KEYCHAIN_PASSWORD"] = "temp_keychain_password"
+        UI.success("✅ Match environment configured for CI/CD")
+      end
+      
       begin
         match(
           type: "appstore",
