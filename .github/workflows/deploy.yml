@@ -56,7 +56,19 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
 
+      - name: Cache Flutter SDK
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ runner.tool_cache }}/flutter
+            ~/.flutter
+          key: flutter-sdk-${{ runner.os }}-3.32.5
+          restore-keys: |
+            flutter-sdk-${{ runner.os }}-
+            flutter-sdk-ubuntu-latest-3.32.5
+
       - name: Cache Flutter dependencies
+        id: flutter-deps
         uses: actions/cache@v4
         with:
           path: |
@@ -137,11 +149,24 @@ jobs:
           flutter-version: '3.32.5'
           cache: true
 
-      - name: Get Flutter dependencies
+      - name: Check Flutter dependencies cache
+        id: flutter-deps-check
+        run: |
+          if [ -f ".dart_tool/package_config.json" ] && [ -d ".dart_tool/flutter_build" ]; then
+            echo "cache-hit=true" >> $GITHUB_OUTPUT
+            echo "✅ Flutter dependencies already available"
+          else
+            echo "cache-hit=false" >> $GITHUB_OUTPUT
+            echo "🔄 Flutter dependencies need installation"
+          fi
+
+      - name: Get Flutter dependencies (if needed)
+        if: steps.flutter-deps-check.outputs.cache-hit != 'true'
         run: flutter pub get
 
-      - name: Create .env file
-        run: echo "${{ secrets.DOTENV }}" > .env
+      - name: Verify Flutter dependencies (if cached)
+        if: steps.flutter-deps-check.outputs.cache-hit == 'true'
+        run: flutter pub deps --json > /dev/null || flutter pub get
 
   setup-ios:
     name: Setup iOS Environment  
@@ -170,29 +195,12 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
 
-      - name: Set up Ruby and Bundler
+      - name: Set up Ruby and Bundler (cache setup only)
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.2.8'
           bundler-cache: true
           working-directory: ./ios
-
-      - name: Configure Git for Match repository access
-        run: |
-          git config --global user.email "action@github.com"
-          git config --global user.name "GitHub Action"
-          # Configure Git to use GitHub token for same-organization repository access
-          git config --global url."https://${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
-
-      - name: Setup keychain for code signing
-        run: |
-          # Create a temporary keychain for CI (matching Match configuration)
-          security create-keychain -p temp_keychain_password fastlane_tmp_keychain
-          security default-keychain -s fastlane_tmp_keychain
-          security unlock-keychain -p temp_keychain_password fastlane_tmp_keychain
-          security set-keychain-settings -t 3600 -l fastlane_tmp_keychain
-          # Add keychain to search list
-          security list-keychains -d user -s fastlane_tmp_keychain
 
   deploy-app:
     name: Deploy Application
@@ -227,12 +235,32 @@ jobs:
           flutter-version: '3.32.5'
           cache: true
 
+      - name: Verify Flutter setup
+        run: |
+          flutter --version
+          flutter doctor --android-licenses || true
+          echo "✅ Flutter environment ready"
+
       - name: Set up Ruby (cache only)
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.2.8'
           bundler-cache: true
           working-directory: ./ios
+
+      - name: Create .env file
+        run: |
+          echo "Creating .env file for deployment..."
+          echo "${{ secrets.DOTENV }}" > .env
+          echo "✅ .env file created in $(pwd)/.env"
+          ls -la .env
+
+      - name: Configure Git for Match repository access
+        run: |
+          git config --global user.email "action@github.com"
+          git config --global user.name "GitHub Action"
+          # Configure Git to use GitHub token for same-organization repository access
+          git config --global url."https://${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
 
       - name: Restore keychain setup
         run: |
