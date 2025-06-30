@@ -118,7 +118,7 @@ jobs:
                       "**Next steps:**\\n" +
                       "1. 📝 Update this description with details about your changes\\n" +
                       "2. ✅ Ensure your code passes CI checks\\n" +
-                      "3. 🔄 Mark as \\"Ready for review\\" when complete\\n\\n" +
+                      "3. 🔄 Mark as 'Ready for review' when complete\\n\\n" +
                       "The PR will automatically run CI checks once created. Happy coding! 🚀"
               });
               
