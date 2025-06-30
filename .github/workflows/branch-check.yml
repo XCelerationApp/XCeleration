@@ -4,6 +4,12 @@ on:
   pull_request:
     branches: [ main ]
 
+# Grant necessary permissions for auto-merge
+permissions:
+  contents: write        # Required to merge PRs
+  pull-requests: write   # Required to merge pull requests
+  issues: write         # Required to create comments
+
 jobs:
   check-branch:
     name: Check Source Branch
