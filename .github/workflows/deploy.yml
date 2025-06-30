@@ -101,7 +101,7 @@ jobs:
             !.git
             !node_modules
             !ios/Pods
-          key: workspace-${{ hashFiles('pubspec.lock') }}-${{ hashFiles('lib/**', 'test/**', 'analysis_options.yaml', 'ios/**/*.{swift,h,m,plist}') }}-${{ runner.os }}
+          key: deploy-workspace-${{ github.sha }}-${{ runner.os }}
 
   setup-flutter:
     name: Setup Flutter
@@ -110,6 +110,7 @@ jobs:
     if: needs.detect-deployment-changes.outputs.should-deploy == 'true'
     steps:
       - name: Restore workspace
+        id: workspace-cache
         uses: actions/cache/restore@v3
         with:
           path: |
@@ -117,10 +118,16 @@ jobs:
             !.git
             !node_modules
             !ios/Pods
-          key: workspace-${{ hashFiles('pubspec.lock') }}-${{ hashFiles('lib/**', 'test/**', 'analysis_options.yaml', 'ios/**/*.{swift,h,m,plist}') }}-${{ runner.os }}
+          key: deploy-workspace-${{ github.sha }}-${{ runner.os }}
           restore-keys: |
-            workspace-${{ hashFiles('pubspec.lock') }}-${{ runner.os }}-
-            workspace-${{ runner.os }}-
+            deploy-workspace-${{ runner.os }}-
+          fail-on-cache-miss: false
+
+      - name: Fallback checkout (if cache failed)
+        if: steps.workspace-cache.outputs.cache-hit != 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: main
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -141,6 +148,7 @@ jobs:
     if: needs.detect-deployment-changes.outputs.should-deploy == 'true'
     steps:
       - name: Restore workspace
+        id: workspace-cache
         uses: actions/cache/restore@v3
         with:
           path: |
@@ -148,10 +156,16 @@ jobs:
             !.git
             !node_modules
             !ios/Pods
-          key: workspace-${{ hashFiles('pubspec.lock') }}-${{ hashFiles('lib/**', 'test/**', 'analysis_options.yaml', 'ios/**/*.{swift,h,m,plist}') }}-${{ runner.os }}
+          key: deploy-workspace-${{ github.sha }}-${{ runner.os }}
           restore-keys: |
-            workspace-${{ hashFiles('pubspec.lock') }}-${{ runner.os }}-
-            workspace-${{ runner.os }}-
+            deploy-workspace-${{ runner.os }}-
+          fail-on-cache-miss: false
+
+      - name: Fallback checkout (if cache failed)
+        if: steps.workspace-cache.outputs.cache-hit != 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: main
 
       - name: Set up Ruby and Bundler
         uses: ruby/setup-ruby@v1
@@ -184,6 +198,7 @@ jobs:
     if: needs.detect-deployment-changes.outputs.should-deploy == 'true'
     steps:
       - name: Restore workspace
+        id: workspace-cache
         uses: actions/cache/restore@v3
         with:
           path: |
@@ -191,10 +206,16 @@ jobs:
             !.git
             !node_modules
             !ios/Pods
-          key: workspace-${{ hashFiles('pubspec.lock') }}-${{ hashFiles('lib/**', 'test/**', 'analysis_options.yaml', 'ios/**/*.{swift,h,m,plist}') }}-${{ runner.os }}
+          key: deploy-workspace-${{ github.sha }}-${{ runner.os }}
           restore-keys: |
-            workspace-${{ hashFiles('pubspec.lock') }}-${{ runner.os }}-
-            workspace-${{ runner.os }}-
+            deploy-workspace-${{ runner.os }}-
+          fail-on-cache-miss: false
+
+      - name: Fallback checkout (if cache failed)
+        if: steps.workspace-cache.outputs.cache-hit != 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: main
 
       - name: Set up Flutter (cache only)
         uses: subosito/flutter-action@v2

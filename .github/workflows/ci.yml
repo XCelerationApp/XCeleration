@@ -42,7 +42,7 @@ jobs:
           path: |
             .
             !.git
-          key: workspace-${{ hashFiles('pubspec.lock') }}-${{ hashFiles('lib/**', 'test/**', 'analysis_options.yaml') }}-${{ runner.os }}
+          key: workspace-${{ github.sha }}-${{ runner.os }}
 
   lint_and_format:
     name: Lint and Format
@@ -55,9 +55,8 @@ jobs:
           path: |
             .
             !.git
-          key: workspace-${{ hashFiles('pubspec.lock') }}-${{ hashFiles('lib/**', 'test/**', 'analysis_options.yaml') }}-${{ runner.os }}
+          key: workspace-${{ github.sha }}-${{ runner.os }}
           restore-keys: |
-            workspace-${{ hashFiles('pubspec.lock') }}-${{ runner.os }}-
             workspace-${{ runner.os }}-
 
       - name: Setup Flutter (cache only)
@@ -81,9 +80,8 @@ jobs:
           path: |
             .
             !.git
-          key: workspace-${{ hashFiles('pubspec.lock') }}-${{ hashFiles('lib/**', 'test/**', 'analysis_options.yaml') }}-${{ runner.os }}
+          key: workspace-${{ github.sha }}-${{ runner.os }}
           restore-keys: |
-            workspace-${{ hashFiles('pubspec.lock') }}-${{ runner.os }}-
             workspace-${{ runner.os }}-
 
       - name: Setup Flutter (cache only)
@@ -131,9 +129,8 @@ jobs:
           path: |
             .
             !.git
-          key: workspace-${{ hashFiles('pubspec.lock') }}-${{ hashFiles('lib/**', 'test/**', 'analysis_options.yaml') }}-${{ runner.os }}
+          key: workspace-${{ github.sha }}-${{ runner.os }}
           restore-keys: |
-            workspace-${{ hashFiles('pubspec.lock') }}-${{ runner.os }}-
             workspace-${{ runner.os }}-
 
       - name: Setup Flutter (cache only)
@@ -171,9 +168,8 @@ jobs:
           path: |
             .
             !.git
-          key: workspace-${{ hashFiles('pubspec.lock') }}-${{ hashFiles('lib/**', 'test/**', 'analysis_options.yaml') }}-${{ runner.os }}
+          key: workspace-${{ github.sha }}-${{ runner.os }}
           restore-keys: |
-            workspace-${{ hashFiles('pubspec.lock') }}-${{ runner.os }}-
             workspace-${{ runner.os }}-
 
       - name: Setup Flutter (cache only)
