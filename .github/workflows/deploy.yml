@@ -101,8 +101,50 @@ jobs:
         run: |
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
-          # Configure Git to use GitHub token for same-organization repository access
-          git config --global url."https://${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
+          # Configure Git to use Personal Access Token for Match repository access
+          # Use PAT if available, fallback to GITHUB_TOKEN
+          if [ -n "${{ secrets.PERSONAL_ACCESS_TOKEN }}" ]; then
+            echo "Using Personal Access Token for enhanced permissions"
+            git config --global url."https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/".insteadOf "https://github.com/"
+          else
+            echo "Using default GITHUB_TOKEN (limited permissions)"
+            git config --global url."https://${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
+          fi
+
+      - name: Verify GitHub access and Match repository
+        run: |
+          echo "🔍 Verifying GitHub authentication..."
+          
+          # Use same token logic as above
+          if [ -n "${{ secrets.PERSONAL_ACCESS_TOKEN }}" ]; then
+            TOKEN="${{ secrets.PERSONAL_ACCESS_TOKEN }}"
+            echo "Testing with Personal Access Token"
+          else
+            TOKEN="${{ secrets.GITHUB_TOKEN }}"
+            echo "Testing with default GitHub Token"
+          fi
+          
+          # Test basic GitHub API access
+          curl -H "Authorization: token $TOKEN" \
+               -H "Accept: application/vnd.github.v3+json" \
+               https://api.github.com/user || echo "❌ GitHub API access failed"
+          
+          # Extract repository URL from .env and test access
+          MATCH_REPO_URL=$(grep "FASTLANE_MATCH_REPO_URL" .env | cut -d'=' -f2 | tr -d '"' || echo "not_found")
+          echo "📍 Match repository URL: $MATCH_REPO_URL"
+          
+          if [ "$MATCH_REPO_URL" != "not_found" ] && [ -n "$MATCH_REPO_URL" ]; then
+            # Extract owner/repo from URL
+            REPO_PATH=$(echo "$MATCH_REPO_URL" | sed 's|https://github.com/||' | sed 's|\.git||')
+            echo "🎯 Testing access to: $REPO_PATH"
+            
+            # Test repository access via API
+            curl -H "Authorization: token $TOKEN" \
+                 -H "Accept: application/vnd.github.v3+json" \
+                 "https://api.github.com/repos/$REPO_PATH" || echo "❌ Cannot access Match repository"
+          else
+            echo "⚠️ FASTLANE_MATCH_REPO_URL not found in .env"
+          fi
 
       - name: Restore keychain setup
         run: |

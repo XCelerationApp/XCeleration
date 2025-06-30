@@ -15,7 +15,21 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Get changed Dart files
+        id: dart-changes
+        uses: tj-actions/changed-files@v39
+        with:
+          files: |
+            **/*.dart
+
+      - name: Skip formatting (no Dart changes)
+        if: steps.dart-changes.outputs.any_changed == 'false'
+        run: |
+          echo "⏭️ Skipping formatting - no Dart files changed"
+          echo "✅ Formatting step completed (skipped)"
+
       - name: Cache Flutter dependencies
+        if: steps.dart-changes.outputs.any_changed == 'true'
         uses: actions/cache@v4
         with:
           path: |
@@ -26,6 +40,7 @@ jobs:
             ${{ runner.os }}-flutter-deps-
 
       - name: Setup Flutter
+        if: steps.dart-changes.outputs.any_changed == 'true'
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.32.5'
@@ -33,9 +48,11 @@ jobs:
           cache: true
 
       - name: Get Flutter dependencies
+        if: steps.dart-changes.outputs.any_changed == 'true'
         run: flutter pub get
 
       - name: Check formatting
+        if: steps.dart-changes.outputs.any_changed == 'true'
         run: dart format --output=none --set-exit-if-changed .
 
   analyze:
@@ -47,7 +64,21 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Get changed Dart files
+        id: dart-changes
+        uses: tj-actions/changed-files@v39
+        with:
+          files: |
+            **/*.dart
+
+      - name: Skip analysis (no Dart changes)
+        if: steps.dart-changes.outputs.any_changed == 'false'
+        run: |
+          echo "⏭️ Skipping analysis - no Dart files changed"
+          echo "✅ Analysis step completed (skipped)"
+
       - name: Cache Flutter dependencies
+        if: steps.dart-changes.outputs.any_changed == 'true'
         uses: actions/cache@v4
         with:
           path: |
@@ -58,6 +89,7 @@ jobs:
             ${{ runner.os }}-flutter-deps-
 
       - name: Setup Flutter
+        if: steps.dart-changes.outputs.any_changed == 'true'
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.32.5'
@@ -65,17 +97,12 @@ jobs:
           cache: true
 
       - name: Get Flutter dependencies
+        if: steps.dart-changes.outputs.any_changed == 'true'
         run: flutter pub get
 
       - name: Create .env file for analyzer
+        if: steps.dart-changes.outputs.any_changed == 'true'
         run: touch .env
-
-      - name: Get changed Dart files
-        id: dart-changes
-        uses: tj-actions/changed-files@v39
-        with:
-          files: |
-            **/*.dart
 
       - name: Analyze changed files only (faster)
         if: steps.dart-changes.outputs.any_changed == 'true'
@@ -91,12 +118,6 @@ jobs:
           
           echo "✅ Incremental analysis complete!"
 
-      - name: Skip analysis (no Dart changes)
-        if: steps.dart-changes.outputs.any_changed == 'false'
-        run: |
-          echo "⏭️ Skipping analysis - no Dart files changed"
-          echo "✅ Analysis step completed (skipped)"
-
   test:
     name: Run Tests
     runs-on: ubuntu-latest
@@ -106,7 +127,21 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Get changed Dart files
+        id: dart-changes
+        uses: tj-actions/changed-files@v39
+        with:
+          files: |
+            **/*.dart
+
+      - name: Skip tests (no Dart changes)
+        if: steps.dart-changes.outputs.any_changed == 'false'
+        run: |
+          echo "⏭️ Skipping tests - no Dart files changed"
+          echo "✅ Test step completed (skipped)"
+
       - name: Cache Flutter dependencies
+        if: steps.dart-changes.outputs.any_changed == 'true'
         uses: actions/cache@v4
         with:
           path: |
@@ -117,6 +152,7 @@ jobs:
             ${{ runner.os }}-flutter-deps-
 
       - name: Setup Flutter
+        if: steps.dart-changes.outputs.any_changed == 'true'
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.32.5'
@@ -124,27 +160,16 @@ jobs:
           cache: true
 
       - name: Get Flutter dependencies
+        if: steps.dart-changes.outputs.any_changed == 'true'
         run: flutter pub get
 
       - name: Create .env file for tests
+        if: steps.dart-changes.outputs.any_changed == 'true'
         run: touch .env
-
-      - name: Get changed Dart files
-        id: dart-changes
-        uses: tj-actions/changed-files@v39
-        with:
-          files: |
-            **/*.dart
 
       - name: Run unit and widget tests
         if: steps.dart-changes.outputs.any_changed == 'true'
         run: flutter test --concurrency=4
-
-      - name: Skip tests (no Dart changes)
-        if: steps.dart-changes.outputs.any_changed == 'false'
-        run: |
-          echo "⏭️ Skipping tests - no Dart files changed"
-          echo "✅ Test step completed (skipped)"
 
   build:
     name: Build
@@ -156,7 +181,25 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Get changed build-relevant files
+        id: build-changes
+        uses: tj-actions/changed-files@v39
+        with:
+          files: |
+            lib/**
+            assets/**
+            pubspec.yaml
+            pubspec.lock
+            analysis_options.yaml
+
+      - name: Skip build (no relevant changes)
+        if: steps.build-changes.outputs.any_changed == 'false'
+        run: |
+          echo "⏭️ Skipping build - no build-relevant files changed"
+          echo "✅ Build step completed (skipped)"
+
       - name: Cache Flutter dependencies
+        if: steps.build-changes.outputs.any_changed == 'true'
         uses: actions/cache@v4
         with:
           path: |
@@ -167,6 +210,7 @@ jobs:
             ${{ runner.os }}-flutter-deps-
 
       - name: Setup Flutter
+        if: steps.build-changes.outputs.any_changed == 'true'
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.32.5'
@@ -174,17 +218,19 @@ jobs:
           cache: true
 
       - name: Get Flutter dependencies
+        if: steps.build-changes.outputs.any_changed == 'true'
         run: flutter pub get
 
       - name: Create .env file
-        if: github.event.pull_request.head.repo.full_name == github.repository
+        if: steps.build-changes.outputs.any_changed == 'true' && github.event.pull_request.head.repo.full_name == github.repository
         run: echo "${{ secrets.DOTENV }}" > .env
 
       - name: Create empty .env file for forks
-        if: github.event.pull_request.head.repo.full_name != github.repository
+        if: steps.build-changes.outputs.any_changed == 'true' && github.event.pull_request.head.repo.full_name != github.repository
         run: touch .env
 
       - name: Cache build artifacts
+        if: steps.build-changes.outputs.any_changed == 'true'
         id: build-cache
         uses: actions/cache@v4
         with:
@@ -197,14 +243,14 @@ jobs:
             build-${{ runner.os }}-
 
       - name: Build from cache (if available)
-        if: steps.build-cache.outputs.cache-hit == 'true'
+        if: steps.build-changes.outputs.any_changed == 'true' && steps.build-cache.outputs.cache-hit == 'true'
         run: |
           echo "✅ Build artifacts restored from cache!"
           echo "📦 Skipping build - no relevant changes detected"
           ls -la build/ || echo "Build directory structure:"
 
       - name: Build from source (cache miss)
-        if: steps.build-cache.outputs.cache-hit != 'true'
+        if: steps.build-changes.outputs.any_changed == 'true' && steps.build-cache.outputs.cache-hit != 'true'
         run: |
           echo "🔨 Building from source..."
           flutter build bundle

@@ -172,6 +172,12 @@ platform :ios do
         UI.message("Configuring Match for CI/CD environment...")
         ENV["MATCH_KEYCHAIN_NAME"] = "fastlane_tmp_keychain"
         ENV["MATCH_KEYCHAIN_PASSWORD"] = "temp_keychain_password"
+        
+        # Ensure repository URL is in HTTPS format for CI/CD
+        if ENV["FASTLANE_MATCH_REPO_URL"]&.start_with?("git@github.com:")
+          UI.user_error!("❌ FASTLANE_MATCH_REPO_URL must be in HTTPS format: https://github.com/your-org/certificates-repo")
+        end
+        
         UI.success("✅ Match environment configured for CI/CD")
       end
       
@@ -225,7 +231,21 @@ platform :ios do
           UI.important("- TEAM_ID: #{ENV['TEAM_ID']}")
           UI.important("- MATCH_REPO_URL: #{ENV['FASTLANE_MATCH_REPO_URL'] ? 'set' : 'not set'}")
           UI.important("- MATCH_PASSWORD: #{ENV['MATCH_PASSWORD'] ? 'set' : 'not set'}")
-          UI.user_error!("❌ Match certificate creation failed: #{error_msg}")
+          
+          # Check if this is a repository access issue
+          if error_msg.include?("cloning") || error_msg.include?("repository") || error_msg.include?("access")
+            UI.important("")
+            UI.important("🔧 TROUBLESHOOTING STEPS:")
+            UI.important("1. Ensure FASTLANE_MATCH_REPO_URL uses HTTPS format: https://github.com/your-org/certificates-repo")
+            UI.important("2. Verify the repository exists and GitHub token has access")
+            UI.important("3. For first-time setup, create the repository manually first")
+            UI.important("4. Make sure MATCH_PASSWORD is set if the repository is encrypted")
+            UI.important("")
+            
+                         UI.user_error!("❌ Match certificate creation failed: #{error_msg}")
+          else
+            UI.user_error!("❌ Match certificate creation failed: #{error_msg}")
+          end
         end
       end
       
