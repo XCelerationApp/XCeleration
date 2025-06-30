@@ -43,8 +43,11 @@ jobs:
             echo "📝 Documentation-only changes - skipping deployment"
           fi
 
-  setup-environment:
-    name: Setup Environment
+
+
+
+  deploy-app:
+    name: Deploy Application
     runs-on: macos-latest
     needs: detect-deployment-changes
     if: needs.detect-deployment-changes.outputs.should-deploy == 'true'
@@ -56,92 +59,15 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
 
-      - name: Cache Flutter SDK
-        uses: actions/cache@v4
-        with:
-          path: |
-            ${{ runner.tool_cache }}/flutter
-            ~/.flutter
-          key: flutter-sdk-${{ runner.os }}-3.32.5
-          restore-keys: |
-            flutter-sdk-${{ runner.os }}-
-            flutter-sdk-ubuntu-latest-3.32.5
-
       - name: Cache Flutter dependencies
-        id: flutter-deps
         uses: actions/cache@v4
         with:
           path: |
             ~/.pub-cache
             .dart_tool
-          key: ${{ runner.os }}-flutter-deps-${{ hashFiles('**/pubspec.lock') }}-${{ hashFiles('**/*.dart') }}
+          key: ${{ runner.os }}-flutter-deps-${{ hashFiles('**/pubspec.lock') }}
           restore-keys: |
-            ${{ runner.os }}-flutter-deps-${{ hashFiles('**/pubspec.lock') }}-
             ${{ runner.os }}-flutter-deps-
-            ubuntu-latest-flutter-deps-${{ hashFiles('**/pubspec.lock') }}-
-            ubuntu-latest-flutter-deps-
-
-      - name: Cache iOS dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ios/Pods
-            ios/.symlinks
-            ios/build/XCBuildData
-          key: ios-deps-${{ hashFiles('ios/Podfile.lock', '**/pubspec.lock') }}-${{ runner.os }}
-          restore-keys: |
-            ios-deps-${{ hashFiles('ios/Podfile.lock', '**/pubspec.lock') }}-
-            ios-deps-
-
-      - name: Cache build artifacts (try CI first)
-        uses: actions/cache@v4
-        with:
-          path: |
-            build/
-            .dart_tool/build/
-          key: build-${{ hashFiles('pubspec.lock') }}-${{ hashFiles('lib/**', 'assets/**', 'analysis_options.yaml') }}-${{ runner.os }}
-          restore-keys: |
-            build-${{ hashFiles('pubspec.lock') }}-${{ hashFiles('lib/**', 'assets/**', 'analysis_options.yaml') }}-ubuntu-latest
-            build-${{ hashFiles('pubspec.lock') }}-${{ runner.os }}-
-            build-${{ hashFiles('pubspec.lock') }}-ubuntu-latest-
-            build-${{ runner.os }}-
-            build-ubuntu-latest-
-
-      - name: Cache workspace
-        uses: actions/cache/save@v3
-        with:
-          path: |
-            .
-            !node_modules
-            !ios/Pods
-          key: deploy-workspace-${{ github.sha }}-${{ runner.os }}
-
-  setup-flutter:
-    name: Setup Flutter
-    runs-on: macos-latest
-    needs: [detect-deployment-changes, setup-environment]
-    if: needs.detect-deployment-changes.outputs.should-deploy == 'true'
-    steps:
-      - name: Restore workspace
-        id: workspace-cache
-        uses: actions/cache/restore@v3
-        with:
-          path: |
-            .
-            !node_modules
-            !ios/Pods
-          key: deploy-workspace-${{ github.sha }}-${{ runner.os }}
-          restore-keys: |
-            deploy-workspace-${{ runner.os }}-
-          fail-on-cache-miss: false
-
-      - name: Fallback checkout (if cache failed)
-        if: steps.workspace-cache.outputs.cache-hit != 'true'
-        uses: actions/checkout@v4
-        with:
-          ref: main
-          fetch-depth: 0
-          persist-credentials: true
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -149,99 +75,15 @@ jobs:
           flutter-version: '3.32.5'
           cache: true
 
-      - name: Check Flutter dependencies cache
-        id: flutter-deps-check
-        run: |
-          if [ -f ".dart_tool/package_config.json" ] && [ -d ".dart_tool/flutter_build" ]; then
-            echo "cache-hit=true" >> $GITHUB_OUTPUT
-            echo "✅ Flutter dependencies already available"
-          else
-            echo "cache-hit=false" >> $GITHUB_OUTPUT
-            echo "🔄 Flutter dependencies need installation"
-          fi
-
-      - name: Get Flutter dependencies (if needed)
-        if: steps.flutter-deps-check.outputs.cache-hit != 'true'
+      - name: Get Flutter dependencies
         run: flutter pub get
-
-      - name: Verify Flutter dependencies (if cached)
-        if: steps.flutter-deps-check.outputs.cache-hit == 'true'
-        run: flutter pub deps --json > /dev/null || flutter pub get
-
-  setup-ios:
-    name: Setup iOS Environment  
-    runs-on: macos-latest
-    needs: [detect-deployment-changes, setup-environment]
-    if: needs.detect-deployment-changes.outputs.should-deploy == 'true'
-    steps:
-      - name: Restore workspace
-        id: workspace-cache
-        uses: actions/cache/restore@v3
-        with:
-          path: |
-            .
-            !node_modules
-            !ios/Pods
-          key: deploy-workspace-${{ github.sha }}-${{ runner.os }}
-          restore-keys: |
-            deploy-workspace-${{ runner.os }}-
-          fail-on-cache-miss: false
-
-      - name: Fallback checkout (if cache failed)
-        if: steps.workspace-cache.outputs.cache-hit != 'true'
-        uses: actions/checkout@v4
-        with:
-          ref: main
-          fetch-depth: 0
-          persist-credentials: true
-
-      - name: Set up Ruby and Bundler (cache setup only)
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.2.8'
-          bundler-cache: true
-          working-directory: ./ios
-
-  deploy-app:
-    name: Deploy Application
-    runs-on: macos-latest
-    needs: [detect-deployment-changes, setup-flutter, setup-ios]
-    if: needs.detect-deployment-changes.outputs.should-deploy == 'true'
-    steps:
-      - name: Restore workspace
-        id: workspace-cache
-        uses: actions/cache/restore@v3
-        with:
-          path: |
-            .
-            !node_modules
-            !ios/Pods
-          key: deploy-workspace-${{ github.sha }}-${{ runner.os }}
-          restore-keys: |
-            deploy-workspace-${{ runner.os }}-
-          fail-on-cache-miss: false
-
-      - name: Fallback checkout (if cache failed)
-        if: steps.workspace-cache.outputs.cache-hit != 'true'
-        uses: actions/checkout@v4
-        with:
-          ref: main
-          fetch-depth: 0
-          persist-credentials: true
-
-      - name: Set up Flutter (cache only)
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.32.5'
-          cache: true
 
       - name: Verify Flutter setup
         run: |
           flutter --version
-          flutter doctor --android-licenses || true
           echo "✅ Flutter environment ready"
 
-      - name: Set up Ruby (cache only)
+      - name: Set up Ruby and Bundler
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.2.8'
