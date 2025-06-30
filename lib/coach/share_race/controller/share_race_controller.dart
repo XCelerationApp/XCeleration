@@ -7,11 +7,9 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
-
 import '../../../core/utils/enums.dart';
 import '../../race_results/model/team_record.dart';
 import '../../race_results/model/results_record.dart';
-
 import '../../../core/utils/sheet_utils.dart';
 import '../../../core/utils/google_sheets_service.dart';
 import '../../../../../core/components/dialog_utils.dart';

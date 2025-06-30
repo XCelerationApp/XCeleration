@@ -121,7 +121,7 @@ platform :ios do
           UI.error("❌ API key file creation failed")
           raise "API key file was not created properly"
         end
-        
+
         # Configure automatic code signing
         UI.message("Configuring automatic code signing...")
         update_code_signing_settings(

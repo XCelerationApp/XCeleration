@@ -1,6 +1,5 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
-
 import '../../../core/theme/app_colors.dart';
 import '../../race_screen/widgets/runner_record.dart';
 import '../controller/runners_management_controller.dart';

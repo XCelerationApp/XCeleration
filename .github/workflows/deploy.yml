@@ -229,4 +229,4 @@ jobs:
         if: always()  # Always run cleanup, even if previous steps failed
         run: |
           # Remove the temporary keychain
-          security delete-keychain fastlane_tmp_keychain || true 
+          security delete-keychain fastlane_tmp_keychain || true
