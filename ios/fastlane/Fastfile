@@ -179,23 +179,53 @@ platform :ios do
         match(
           type: "appstore",
           readonly: true,  # Don't create new certificates, just fetch existing ones
-          app_identifier: ENV["BUNDLE_ID"]
+          app_identifier: ENV["BUNDLE_ID"],
+          git_url: ENV["FASTLANE_MATCH_REPO_URL"],
+          team_id: ENV["TEAM_ID"],
+          storage_mode: "git",
+          shallow_clone: true,  # Faster for CI/CD
+          clone_branch_directly: true,  # More reliable for CI/CD
+          force_for_new_devices: false,  # Don't regenerate for readonly
+          skip_confirmation: true,  # Don't prompt in CI/CD
+          verbose: true  # More detailed output for debugging
         )
         UI.success("✅ Match certificates and profiles ready")
       rescue => e
-        UI.important("⚠️ Match readonly failed: #{e.message}")
+        error_msg = e.respond_to?(:message) && e.message ? e.message : e.to_s
+        UI.important("⚠️ Match readonly failed: #{error_msg}")
         UI.message("Trying to create certificates (first-time setup)...")
+        
+        # Check required environment variables before attempting certificate creation
+        unless ENV["FASTLANE_MATCH_REPO_URL"]
+          UI.user_error!("❌ FASTLANE_MATCH_REPO_URL environment variable is required for Match")
+        end
         
         # If readonly fails, try to create new certificates (first-time setup)
         begin
           match(
             type: "appstore",
             readonly: false,  # Allow creating new certificates
-            app_identifier: ENV["BUNDLE_ID"]
+            app_identifier: ENV["BUNDLE_ID"],
+            git_url: ENV["FASTLANE_MATCH_REPO_URL"],
+            team_id: ENV["TEAM_ID"],
+            storage_mode: "git",
+            shallow_clone: true,
+            clone_branch_directly: true,
+            force_for_new_devices: true,  # Allow regeneration when creating
+            skip_confirmation: true,
+            verbose: true
           )
           UI.success("✅ Match created new certificates and profiles")
         rescue => create_error
-          UI.user_error!("❌ Match certificate creation failed: #{create_error.message}")
+          error_msg = create_error.respond_to?(:message) && create_error.message ? create_error.message : create_error.to_s
+          UI.important("Match creation error details:")
+          UI.important("- Error class: #{create_error.class}")
+          UI.important("- Error message: #{error_msg}")
+          UI.important("- BUNDLE_ID: #{ENV['BUNDLE_ID']}")
+          UI.important("- TEAM_ID: #{ENV['TEAM_ID']}")
+          UI.important("- MATCH_REPO_URL: #{ENV['FASTLANE_MATCH_REPO_URL'] ? 'set' : 'not set'}")
+          UI.important("- MATCH_PASSWORD: #{ENV['MATCH_PASSWORD'] ? 'set' : 'not set'}")
+          UI.user_error!("❌ Match certificate creation failed: #{error_msg}")
         end
       end
       
@@ -232,19 +262,15 @@ platform :ios do
         # Then export the archive
         UI.message("Exporting IPA from archive...")
         build_app(
-          export_method: export_method,  # Use app-store if Distribution cert available, ad-hoc otherwise
+          export_method: export_method,
           output_directory: "../../build/ios/ipa",
           output_name: "Runner.ipa",
-          skip_build_archive: true,  # Skip building, just export the existing archive
+          skip_build_archive: true,
           archive_path: "../../build/ios/archive/Runner.xcarchive",
           export_options: {
-            method: export_method,
             teamID: ENV["TEAM_ID"],
-            signingStyle: "automatic",
-            uploadBitcode: false,
-            uploadSymbols: false,
-            compileBitcode: false,
-            manageAppVersionAndBuildNumber: false  # We handle build numbers ourselves
+            manageAppVersionAndBuildNumber: false,
+            uploadSymbols: true  # Keep symbols for crash reporting
           }
         )
       ensure
