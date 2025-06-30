@@ -85,14 +85,14 @@ jobs:
               : branchTitle + ': ' + firstLine;
             
             // Generate PR body
-            const body = "## 🚧 Draft PR - Auto-created\\n\\n" +
-              "This PR was automatically created for branch `" + branch + "`.\\n\\n" +
-              "### Latest Changes\\n" +
-              "- " + firstLine + "\\n\\n" +
-              "### Branch Info\\n" +
-              "- **Source**: `" + branch + "`\\n" +
-              "- **Target**: `" + baseBranch + "`\\n" +
-              "- **Latest Commit**: " + context.sha.substring(0, 7) + "\\n\\n" +
+            const body = "## 🚧 Draft PR - Auto-created\n\n" +
+              "This PR was automatically created for branch `" + branch + "`.\n\n" +
+              "### Latest Changes\n" +
+              "- " + firstLine + "\n\n" +
+              "### Branch Info\n" +
+              "- **Source**: `" + branch + "`\n" +
+              "- **Target**: `" + baseBranch + "`\n" +
+              "- **Latest Commit**: " + context.sha.substring(0, 7) + "\n\n" +
               "**Note**: This is a draft PR. Please review, update the description, and mark as ready for review when complete.";
 
             try {
@@ -113,12 +113,12 @@ jobs:
                 owner,
                 repo,
                 issue_number: pr.number,
-                body: "🤖 **Auto-created Draft PR**\\n\\n" +
-                      "This PR was automatically created when you pushed to the `" + branch + "` branch.\\n\\n" +
-                      "**Next steps:**\\n" +
-                      "1. 📝 Update this description with details about your changes\\n" +
-                      "2. ✅ Ensure your code passes CI checks\\n" +
-                      "3. 🔄 Mark as \\"Ready for review\\" when complete\\n\\n" +
+                body: "🤖 **Auto-created Draft PR**\n\n" +
+                      "This PR was automatically created when you pushed to the `" + branch + "` branch.\n\n" +
+                      "**Next steps:**\n" +
+                      "1. 📝 Update this description with details about your changes\n" +
+                      "2. ✅ Ensure your code passes CI checks\n" +
+                      "3. 🔄 Mark as 'Ready for review' when complete\n\n" +
                       "The PR will automatically run CI checks once created. Happy coding! 🚀"
               });
               
