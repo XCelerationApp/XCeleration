@@ -5,25 +5,26 @@ on:
     branches: [ dev ]
 
 jobs:
-  setup:
-    name: Setup Environment
+
+
+  lint_and_format:
+    name: Lint and Format
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          persist-credentials: true
 
-      - name: Cache Flutter SDK
-        uses: actions/cache@v3
+      - name: Cache Flutter dependencies
+        uses: actions/cache@v4
         with:
           path: |
-            ${{ runner.tool_cache }}/flutter
-            ~/.flutter
-          key: flutter-sdk-${{ runner.os }}-3.32.5
+            ~/.pub-cache
+            .dart_tool
+          key: ${{ runner.os }}-flutter-deps-${{ hashFiles('**/pubspec.lock') }}
           restore-keys: |
-            flutter-sdk-${{ runner.os }}-
+            ${{ runner.os }}-flutter-deps-
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -32,58 +33,8 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Cache pub dependencies
-        id: pub-cache
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.pub-cache
-            .dart_tool
-          key: ${{ runner.os }}-flutter-deps-${{ hashFiles('**/pubspec.lock') }}-${{ hashFiles('**/*.dart') }}
-          restore-keys: |
-            ${{ runner.os }}-flutter-deps-${{ hashFiles('**/pubspec.lock') }}-
-            ${{ runner.os }}-flutter-deps-
-
-      - name: Install dependencies (if cache miss)
-        if: steps.pub-cache.outputs.cache-hit != 'true'
+      - name: Get Flutter dependencies
         run: flutter pub get
-
-      - name: Verify dependencies (if cache hit)
-        if: steps.pub-cache.outputs.cache-hit == 'true'
-        run: |
-          echo "✅ Dependencies restored from cache"
-          flutter pub deps --json > /dev/null || flutter pub get
-
-      - name: Create empty .env file for analyzer
-        run: touch .env
-
-      - name: Cache workspace
-        uses: actions/cache/save@v3
-        with:
-          path: |
-            .
-          key: workspace-${{ github.sha }}-${{ runner.os }}
-
-  lint_and_format:
-    name: Lint and Format
-    runs-on: ubuntu-latest
-    needs: setup
-    steps:
-      - name: Restore workspace
-        uses: actions/cache/restore@v3
-        with:
-          path: |
-            .
-          key: workspace-${{ github.sha }}-${{ runner.os }}
-          restore-keys: |
-            workspace-${{ runner.os }}-
-
-      - name: Setup Flutter (cache only)
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.32.5'
-          channel: 'stable'
-          cache: true
 
       - name: Check formatting
         run: dart format --output=none --set-exit-if-changed .
@@ -91,23 +42,34 @@ jobs:
   analyze:
     name: Analyze Code
     runs-on: ubuntu-latest
-    needs: setup
     steps:
-      - name: Restore workspace
-        uses: actions/cache/restore@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Cache Flutter dependencies
+        uses: actions/cache@v4
         with:
           path: |
-            .
-          key: workspace-${{ github.sha }}-${{ runner.os }}
+            ~/.pub-cache
+            .dart_tool
+          key: ${{ runner.os }}-flutter-deps-${{ hashFiles('**/pubspec.lock') }}
           restore-keys: |
-            workspace-${{ runner.os }}-
+            ${{ runner.os }}-flutter-deps-
 
-      - name: Setup Flutter (cache only)
+      - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.32.5'
           channel: 'stable'
           cache: true
+
+      - name: Get Flutter dependencies
+        run: flutter pub get
+
+      - name: Create .env file for analyzer
+        run: touch .env
 
       - name: Get changed Dart files
         id: dart-changes
@@ -139,23 +101,34 @@ jobs:
   test:
     name: Run Tests
     runs-on: ubuntu-latest
-    needs: setup
     steps:
-      - name: Restore workspace
-        uses: actions/cache/restore@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Cache Flutter dependencies
+        uses: actions/cache@v4
         with:
           path: |
-            .
-          key: workspace-${{ github.sha }}-${{ runner.os }}
+            ~/.pub-cache
+            .dart_tool
+          key: ${{ runner.os }}-flutter-deps-${{ hashFiles('**/pubspec.lock') }}
           restore-keys: |
-            workspace-${{ runner.os }}-
+            ${{ runner.os }}-flutter-deps-
 
-      - name: Setup Flutter (cache only)
+      - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.32.5'
           channel: 'stable'
           cache: true
+
+      - name: Get Flutter dependencies
+        run: flutter pub get
+
+      - name: Create .env file for tests
+        run: touch .env
 
       - name: Get changed Dart files
         id: dart-changes
@@ -177,35 +150,32 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-    needs: [setup, lint_and_format, analyze, test]
+    needs: [lint_and_format, analyze, test]
     steps:
-      - name: Restore workspace
-        uses: actions/cache/restore@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Cache Flutter dependencies
+        uses: actions/cache@v4
         with:
           path: |
-            .
-          key: workspace-${{ github.sha }}-${{ runner.os }}
+            ~/.pub-cache
+            .dart_tool
+          key: ${{ runner.os }}-flutter-deps-${{ hashFiles('**/pubspec.lock') }}
           restore-keys: |
-            workspace-${{ runner.os }}-
+            ${{ runner.os }}-flutter-deps-
 
-      - name: Setup Flutter (cache only)
+      - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.32.5'
           channel: 'stable'
           cache: true
 
-      - name: Cache build artifacts
-        id: build-cache
-        uses: actions/cache@v3
-        with:
-          path: |
-            build/
-            .dart_tool/build/
-          key: build-${{ hashFiles('pubspec.lock') }}-${{ hashFiles('lib/**', 'assets/**', 'analysis_options.yaml') }}-${{ runner.os }}
-          restore-keys: |
-            build-${{ hashFiles('pubspec.lock') }}-${{ runner.os }}-
-            build-${{ runner.os }}-
+      - name: Get Flutter dependencies
+        run: flutter pub get
 
       - name: Create .env file
         if: github.event.pull_request.head.repo.full_name == github.repository
@@ -214,6 +184,18 @@ jobs:
       - name: Create empty .env file for forks
         if: github.event.pull_request.head.repo.full_name != github.repository
         run: touch .env
+
+      - name: Cache build artifacts
+        id: build-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            build/
+            .dart_tool/build/
+          key: build-${{ hashFiles('pubspec.lock') }}-${{ hashFiles('lib/**', 'assets/**', 'analysis_options.yaml') }}-${{ runner.os }}
+          restore-keys: |
+            build-${{ hashFiles('pubspec.lock') }}-${{ runner.os }}-
+            build-${{ runner.os }}-
 
       - name: Build from cache (if available)
         if: steps.build-cache.outputs.cache-hit == 'true'
