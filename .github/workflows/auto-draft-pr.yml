@@ -80,7 +80,7 @@ jobs:
               .replace(/[-_]/g, ' ')
               .replace(/\b\w/g, l => l.toUpperCase());
             
-            const title = firstLine.length > 50 
+            const title = firstLine.length > 40 
               ? branchTitle 
               : branchTitle + ': ' + firstLine;
             

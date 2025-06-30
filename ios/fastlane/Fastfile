@@ -35,7 +35,7 @@ end
 
 optional_env_vars.each do |var|
   if !ENV[var]
-    UI.important("⚠️ Optional environment variable #{var} not set. You may be prompted for this value.")
+    UI.important("⚠️ Environment variable #{var} not set (optional). You may be prompted for this value.")
   end
 end
 
