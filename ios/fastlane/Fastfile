@@ -299,7 +299,7 @@ platform :ios do
         # Let build_app handle both archive and export
         # Both use manual signing with Match certificates (Runner target only)
         build_app(
-          workspace: "../Runner.xcworkspace",
+          workspace: "Runner.xcworkspace",
           scheme: "Runner",
           configuration: "Release",
           export_method: "app-store",
