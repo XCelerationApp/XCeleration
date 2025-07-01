@@ -237,14 +237,13 @@ platform :ios do
         end
       end
       
-      # Step 5.5: Code signing will be handled via command-line parameters
-      # This avoids modifying project files and affecting Pod targets
-      UI.message("Match certificates ready - code signing will be handled via build parameters")
-      UI.success("✅ Ready to build with Match certificates")
+      # Step 5.5: Match certificates are ready for hybrid signing approach
+      UI.message("Match certificates installed - using automatic signing for build, manual for export")
+      UI.success("✅ Ready to build with hybrid signing approach")
       
-      # Step 6: Build IPA using fastlane build_app (consistent for both local and CI/CD)
+      # Step 6: Build IPA using hybrid signing approach
       build_type = ENV["CD"] ? "CI/CD" : "Local"
-      UI.message("Step 6: Building IPA for #{build_type} using fastlane build_app...")
+      UI.message("Step 6: Building IPA for #{build_type} using hybrid signing approach...")
       
       # Ensure output directories exist
       sh "mkdir -p ../../build/ios/ipa"
@@ -254,30 +253,21 @@ platform :ios do
       # Set environment variable to prevent Xcode scripts from interfering during build
       ENV["FASTLANE_BUILD"] = "true"
       
-      # Step 6a: Build Flutter app (with signing now available)
+      # Step 6a: Build Flutter app (with automatic signing for build phase)
       UI.message("Building Flutter app for iOS...")
-      # Build without signing - let xcodebuild handle signing with Match certificates
-      sh "cd .. && flutter build ios --release --no-codesign --build-number=#{new_build_number}"
+      # Build with automatic signing - simpler and doesn't conflict with Pods
+      sh "cd .. && flutter build ios --release --build-number=#{new_build_number}"
       
-      # Step 6b: Archive and sign with fastlane (using the pre-built Flutter app)
-      UI.message("Archiving and signing with fastlane...")
+      # Step 6b: Archive and export (automatic for archive, manual for export)
+      UI.message("Archiving with automatic signing, exporting with manual signing...")
       
       
       begin
-        # Archive manually without running build scripts again
-        UI.message("Creating archive manually...")
-        # Use explicit signing parameters with Match certificates, targeting only iOS devices
-        sh "xcodebuild", "-workspace", "../Runner.xcworkspace", "-scheme", "Runner", "-configuration", "Release", "-destination", "generic/platform=iOS", "-archivePath", "../../../build/ios/archive/Runner.xcarchive", "CODE_SIGN_IDENTITY=Apple Distribution", "PROVISIONING_PROFILE_SPECIFIER=match AppStore #{ENV['BUNDLE_ID']}", "DEVELOPMENT_TEAM=#{ENV['TEAM_ID']}", "ONLY_ACTIVE_ARCH=NO", "archive"
-        ENV.delete("FASTLANE_BUILD")
+        # Use fastlane's build_app to handle both archiving and export
+        # This avoids the workspace-wide signing issues with xcodebuild
+        UI.message("Building and archiving with fastlane build_app...")
         
-        # Use app-store export method for TestFlight uploads
-        export_method = "app-store"
-        UI.message("Using app-store export method for TestFlight upload")
-        
-        # Then export the archive
-        UI.message("Exporting IPA from archive...")
-        
-        # Configure export options - use manual signing with Match
+        # Configure export options - use manual signing only for export
         export_options = {
           method: "app-store",
           teamID: ENV["TEAM_ID"],
@@ -290,16 +280,24 @@ platform :ios do
             ENV["BUNDLE_ID"] => "match AppStore #{ENV['BUNDLE_ID']}"
           }
         }
-        UI.message("Using manual signing with Match certificates for consistent builds")
+        UI.message("Using manual signing for export with explicit Match profile")
         
+        # Let build_app handle both archive and export
+        # Archive uses automatic signing, export uses manual signing with explicit profiles
         build_app(
-          export_method: export_method,
+          workspace: "../Runner.xcworkspace",
+          scheme: "Runner",
+          configuration: "Release",
+          export_method: "app-store",
           output_directory: "../../build/ios/ipa",
           output_name: "Runner.ipa",
-          skip_build_archive: true,
           archive_path: "../../build/ios/archive/Runner.xcarchive",
+          include_bitcode: false,
+          include_symbols: true,
           export_options: export_options
         )
+        
+        ENV.delete("FASTLANE_BUILD")
       ensure
         # Clean up FASTLANE_BUILD flag after build
         ENV.delete("FASTLANE_BUILD")
