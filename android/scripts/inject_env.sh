@@ -1,17 +1,26 @@
 #!/usr/bin/env bash
-# inject_env.sh – reads .env and writes required keys into Android build.gradle
+# inject_env.sh – reads .env and writes required keys into Android build configuration
+# This script is intended to be called from Android build processes.
+# It makes the .env file the single source of truth for both Dart runtime and
+# native-side values required at compile time.
 
 set -euo pipefail
+
+# Skip if running from fastlane (fastlane handles injection itself)
+if [[ "${FASTLANE_BUILD:-}" == "true" ]]; then
+  echo "[inject_env] Skipping injection - running from fastlane"
+  exit 0
+fi
 
 #--------------------------------------
 # Paths
 #--------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ENV_FILE="$SCRIPT_DIR/../.env"
-BUILD_GRADLE_FILE="$SCRIPT_DIR/app/build.gradle"
+ENV_FILE="$SCRIPT_DIR/../../.env"
+BUILD_GRADLE_FILE="$SCRIPT_DIR/../app/build.gradle"
 
 #--------------------------------------
-# Early exit when .env is absent
+# Early exit when .env is absent (e.g. teammate without secrets)
 #--------------------------------------
 if [[ ! -f "$ENV_FILE" ]]; then
   echo "[inject_env] .env not found at $ENV_FILE – skipping Android injection."
@@ -19,7 +28,7 @@ if [[ ! -f "$ENV_FILE" ]]; then
 fi
 
 #--------------------------------------
-# Parse required keys from .env
+# Parse required keys from .env (simple key=value, ignores comments)
 #--------------------------------------
 BUNDLE_ID=""
 
@@ -36,8 +45,8 @@ while IFS= read -r LINE; do
   # Trim whitespace from KEY
   KEY=$(echo "$KEY" | xargs)
 
-  # Trim whitespace and quotes from VALUE
-  VALUE=$(echo "$VALUE" | xargs | tr -d "'\"")
+  # Trim whitespace, quotes, and any trailing characters like % from VALUE
+  VALUE=$(echo "$VALUE" | xargs | tr -d "'\"%" | sed 's/[[:space:]]*$//')
 
   case "$KEY" in
     BUNDLE_ID) BUNDLE_ID="$VALUE" ;;
