@@ -237,13 +237,27 @@ platform :ios do
         end
       end
       
-      # Step 5.5: Match certificates are ready for hybrid signing approach
-      UI.message("Match certificates installed - using automatic signing for build, manual for export")
-      UI.success("✅ Ready to build with hybrid signing approach")
+      # Step 5.5: Configure manual signing for Runner target only
+      UI.message("Configuring manual signing for Runner target...")
+      profile_name = "match AppStore #{ENV['BUNDLE_ID']}"
       
-      # Step 6: Build IPA using hybrid signing approach
+      # Configure ONLY the Runner target with manual signing
+      # This avoids affecting Pod targets which should stay automatic
+      update_code_signing_settings(
+        path: "Runner.xcodeproj",
+        use_automatic_signing: false,
+        team_id: ENV["TEAM_ID"],
+        targets: ["Runner"],  # ONLY Runner - not RunnerTests, not Pods
+        code_sign_identity: "Apple Distribution",
+        profile_name: profile_name,
+        bundle_identifier: ENV["BUNDLE_ID"]
+      )
+      
+      UI.success("✅ Manual signing configured for Runner target only")
+      
+      # Step 6: Build IPA with manual signing for Runner target
       build_type = ENV["CD"] ? "CI/CD" : "Local"
-      UI.message("Step 6: Building IPA for #{build_type} using hybrid signing approach...")
+      UI.message("Step 6: Building IPA for #{build_type} with Runner target manual signing...")
       
       # Ensure output directories exist
       sh "mkdir -p ../../build/ios/ipa"
@@ -253,13 +267,13 @@ platform :ios do
       # Set environment variable to prevent Xcode scripts from interfering during build
       ENV["FASTLANE_BUILD"] = "true"
       
-      # Step 6a: Build Flutter app (with automatic signing for build phase)
+      # Step 6a: Build Flutter app (skip code signing)
       UI.message("Building Flutter app for iOS...")
-      # Build with automatic signing - simpler and doesn't conflict with Pods
-      sh "cd .. && flutter build ios --release --build-number=#{new_build_number}"
+      # Build without signing - manual signing configured for Runner target will be used during archive
+      sh "cd .. && flutter build ios --release --no-codesign --build-number=#{new_build_number}"
       
-      # Step 6b: Archive and export (automatic for archive, manual for export)
-      UI.message("Archiving with automatic signing, exporting with manual signing...")
+      # Step 6b: Archive and export with manual signing
+      UI.message("Archiving and exporting with manual signing for Runner target...")
       
       
       begin
@@ -267,7 +281,7 @@ platform :ios do
         # This avoids the workspace-wide signing issues with xcodebuild
         UI.message("Building and archiving with fastlane build_app...")
         
-        # Configure export options - use manual signing only for export
+        # Configure export options - use manual signing for archive and export
         export_options = {
           method: "app-store",
           teamID: ENV["TEAM_ID"],
@@ -280,10 +294,10 @@ platform :ios do
             ENV["BUNDLE_ID"] => "match AppStore #{ENV['BUNDLE_ID']}"
           }
         }
-        UI.message("Using manual signing for export with explicit Match profile")
+        UI.message("Using manual signing for both archive and export with Match certificates")
         
         # Let build_app handle both archive and export
-        # Archive uses automatic signing, export uses manual signing with explicit profiles
+        # Both use manual signing with Match certificates (Runner target only)
         build_app(
           workspace: "../Runner.xcworkspace",
           scheme: "Runner",
