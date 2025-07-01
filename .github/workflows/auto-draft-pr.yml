@@ -153,7 +153,7 @@ jobs:
               
               title = firstLine.length > 50 ? branchTitle : branchTitle + ': ' + firstLine;
               
-              body = "Auto-created draft PR from `" + sourceBranch + "` → `" + targetBranch + "`";
+              body = `Auto-created draft PR from \`${sourceBranch}\` → \`${targetBranch}\``;
               
               commentBody = "**Next steps:**\n" +
                 "1. Update description\n" +
@@ -207,72 +207,13 @@ jobs:
                 }
               });
               
-              // Get recent commits for display (up to 10)
-              const recentCommits = comparison.commits.slice(-10).map(commit => {
-                const shortSha = commit.sha.substring(0, 7);
-                const firstLine = commit.commit.message.split('\\n')[0];
-                const truncatedMessage = firstLine.length > 80 ? firstLine.substring(0, 77) + '...' : firstLine;
-                return `- ${truncatedMessage} (${shortSha})`;
-              });
+              // Generate title and content
+              title = `Production Deployment (${commitCount} ${commitCount === 1 ? 'commit' : 'commits'})`;
               
-              // Generate comprehensive title
-              if (commitCount <= 5) {
-                title = `Production Deployment (${commitCount} ${commitCount === 1 ? 'commit' : 'commits'})`;
-              } else if (commitCount <= 20) {
-                title = `Production Deployment - Full Sync (${commitCount} commits)`;
-              } else {
-                title = `Production Deployment - Major Sync (${commitCount} commits)`;
-              }
+              body = `Auto-created release PR: \`${sourceBranch}\` → \`${targetBranch}\`\n\nSyncs ${commitCount} commit${commitCount === 1 ? '' : 's'} from dev to main for production deployment.`;
               
-              // Generate detailed body
-              let syncType = 'regular';
-              if (commitCount > 10) syncType = 'full';
-              if (commitCount > 30) syncType = 'major';
-              
-                             // Build change analysis section
-               let changeAnalysis = '## 📈 Change Analysis\\n';
-               if (commitAnalysis.features.length > 0) changeAnalysis += `- **Features/Enhancements**: ${commitAnalysis.features.length} commits\\n`;
-               if (commitAnalysis.fixes.length > 0) changeAnalysis += `- **Bug fixes**: ${commitAnalysis.fixes.length} commits\\n`;
-               if (commitAnalysis.conflicts.length > 0) changeAnalysis += `- **Conflict resolutions**: ${commitAnalysis.conflicts.length} commits\\n`;
-               if (commitAnalysis.deployments.length > 0) changeAnalysis += `- **Deployment changes**: ${commitAnalysis.deployments.length} commits\\n`;
-               if (commitAnalysis.other.length > 0) changeAnalysis += `- **Other changes**: ${commitAnalysis.other.length} commits\\n`;
-               
-               // Build body sections
-               const syncSummary = `## 📊 Sync Summary\\n- **Total commits**: ${commitCount}\\n- **Sync type**: ${syncType} sync\\n- **Trigger**: ${triggerInfo}\\n\\n`;
-               const recentChanges = `## 📝 Recent Changes\\n${recentCommits.join('\\n')}${commitCount > 10 ? `\\n\\n_...and ${commitCount - 10} earlier commits_` : ''}\\n\\n`;
-               const ensures = `## 🎯 This PR Ensures\\n✅ **Complete sync** - All ${commitCount} commits from dev will be merged to main\\n✅ **No missing changes** - Prevents future conflicts from accumulated commits\\n✅ **Production readiness** - All dev changes ready for deployment\\n\\n`;
-               
-               body = `🚀 **Full Sync Release PR**: \`${sourceBranch}\` → \`${targetBranch}\`\\n\\n` +
-                      syncSummary + changeAnalysis + '\\n' + recentChanges + ensures +
-                      '---\\n🤖 *Auto-generated full sync PR to prevent partial sync issues*';
-
-                             // Build comment body sections
-               let commentBody = '🚀 **Full Production Deployment Sync**\\n\\n';
-               commentBody += 'This PR represents a **complete sync** of all pending changes from dev to main.\\n\\n';
-               
-               if (commitCount > 15) {
-                 commentBody += `⚠️ **Large changeset detected** (${commitCount} commits)\\n`;
-                 commentBody += '- This indicates accumulated changes that need to be synced\\n';
-                 commentBody += '- Review carefully before merging\\n';
-                 commentBody += '- Consider if any changes need staging/testing first\\n\\n';
-               }
-               
-               commentBody += '**⚠️ Deployment Impact**\\n';
-               commentBody += '- Merging will trigger automatic deployment to production\\n';
-               commentBody += `- All ${commitCount} commit${commitCount === 1 ? '' : 's'} will be deployed at once\\n\\n`;
-               
-               commentBody += '**✅ Next Steps**\\n';
-               commentBody += `1. **Review the ${commitCount} commits** in the "Files changed" tab\\n`;
-               commentBody += '2. **Verify all changes** are production-ready\\n';
-               commentBody += '3. **Mark as ready for review** when safe to deploy\\n';
-               commentBody += '4. **Merge when ready** - this will deploy to production\\n\\n';
-               
-               if (commitAnalysis.conflicts.length > 0) {
-                 commentBody += '**🔧 Conflict Resolutions Included**\\n';
-                 commentBody += `This PR includes ${commitAnalysis.conflicts.length} conflict resolution${commitAnalysis.conflicts.length === 1 ? '' : 's'}, ensuring clean merges going forward.\\n\\n`;
-               }
-               
-               commentBody += '---\\n💡 **Preventing Future Issues**: This full sync approach prevents the "partial sync" problem that causes recurring conflicts.';
+              commentBody = `Ready for production deployment\n\n` +
+                           `Review changes and mark ready for review when safe to deploy.`;
             }
             
             core.setOutput('title', title);
@@ -383,7 +324,7 @@ jobs:
                 .replace(/\b\w/g, l => l.toUpperCase());
               
               updatedTitle = firstLine.length > 50 ? branchTitle : branchTitle + ': ' + firstLine;
-              updatedBody = "Auto-created draft PR from `" + sourceBranch + "` → `" + targetBranch + "`\n\n" +
+              updatedBody = `Auto-created draft PR from \`${sourceBranch}\` → \`${targetBranch}\`\n\n` +
                           `**Last updated**: ${new Date().toISOString().split('T')[0]} after new commits`;
               
             } else if (prType === 'release') {
@@ -403,66 +344,12 @@ jobs:
                 return;
               }
               
-              // Analyze commits by type
-              const commitAnalysis = {
-                features: [],
-                fixes: [],
-                conflicts: [],
-                deployments: [],
-                other: []
-              };
+              // Generate updated title and body
+              updatedTitle = `Production Deployment (${commitCount} ${commitCount === 1 ? 'commit' : 'commits'})`;
               
-              comparison.commits.forEach(commit => {
-                const message = commit.commit.message.toLowerCase();
-                if (message.includes('resolve') && (message.includes('conflict') || message.includes('merge'))) {
-                  commitAnalysis.conflicts.push(commit);
-                } else if (message.includes('fix') || message.includes('bug')) {
-                  commitAnalysis.fixes.push(commit);
-                } else if (message.includes('feature') || message.includes('add') || message.includes('implement')) {
-                  commitAnalysis.features.push(commit);
-                } else if (message.includes('deploy') || message.includes('production')) {
-                  commitAnalysis.deployments.push(commit);
-                } else {
-                  commitAnalysis.other.push(commit);
-                }
-              });
-              
-              // Get recent commits for display
-              const recentCommits = comparison.commits.slice(-10).map(commit => {
-                const shortSha = commit.sha.substring(0, 7);
-                const firstLine = commit.commit.message.split('\\n')[0];
-                const truncatedMessage = firstLine.length > 80 ? firstLine.substring(0, 77) + '...' : firstLine;
-                return `- ${truncatedMessage} (${shortSha})`;
-              });
-              
-              // Generate updated title
-              if (commitCount <= 5) {
-                updatedTitle = `Production Deployment (${commitCount} ${commitCount === 1 ? 'commit' : 'commits'})`;
-              } else if (commitCount <= 20) {
-                updatedTitle = `Production Deployment - Full Sync (${commitCount} commits)`;
-              } else {
-                updatedTitle = `Production Deployment - Major Sync (${commitCount} commits)`;
-              }
-              
-              // Generate updated body with fresh statistics
-              let syncType = 'regular';
-              if (commitCount > 10) syncType = 'full';
-              if (commitCount > 30) syncType = 'major';
-              
-              let changeAnalysis = '## 📈 Change Analysis\\n';
-              if (commitAnalysis.features.length > 0) changeAnalysis += `- **Features/Enhancements**: ${commitAnalysis.features.length} commits\\n`;
-              if (commitAnalysis.fixes.length > 0) changeAnalysis += `- **Bug fixes**: ${commitAnalysis.fixes.length} commits\\n`;
-              if (commitAnalysis.conflicts.length > 0) changeAnalysis += `- **Conflict resolutions**: ${commitAnalysis.conflicts.length} commits\\n`;
-              if (commitAnalysis.deployments.length > 0) changeAnalysis += `- **Deployment changes**: ${commitAnalysis.deployments.length} commits\\n`;
-              if (commitAnalysis.other.length > 0) changeAnalysis += `- **Other changes**: ${commitAnalysis.other.length} commits\\n`;
-              
-              const syncSummary = `## 📊 Sync Summary\\n- **Total commits**: ${commitCount}\\n- **Sync type**: ${syncType} sync\\n- **Last updated**: ${new Date().toISOString().split('T')[0]}\\n- **Trigger**: ${triggerInfo}\\n\\n`;
-              const recentChanges = `## 📝 Recent Changes\\n${recentCommits.join('\\n')}${commitCount > 10 ? `\\n\\n_...and ${commitCount - 10} earlier commits_` : ''}\\n\\n`;
-              const ensures = `## 🎯 This PR Ensures\\n✅ **Complete sync** - All ${commitCount} commits from dev will be merged to main\\n✅ **No missing changes** - Prevents future conflicts from accumulated commits\\n✅ **Production readiness** - All dev changes ready for deployment\\n\\n`;
-              
-              updatedBody = `🚀 **Full Sync Release PR**: \`${sourceBranch}\` → \`${targetBranch}\`\\n\\n` +
-                           syncSummary + changeAnalysis + '\\n' + recentChanges + ensures +
-                           '---\\n🤖 *Auto-generated full sync PR with updated statistics*';
+              updatedBody = `Auto-created release PR: \`${sourceBranch}\` → \`${targetBranch}\`\n\n` +
+                           `Syncs ${commitCount} commit${commitCount === 1 ? '' : 's'} from dev to main for production deployment.\n\n` +
+                           `**Last updated**: ${new Date().toISOString().split('T')[0]}`;
             }
             
                          // Update the PR title and body
