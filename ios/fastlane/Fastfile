@@ -53,7 +53,7 @@ platform :ios do
 
     # Install CocoaPods to ensure dependencies are up to date
     UI.message("Installing CocoaPods dependencies...")
-    cocoapods(podfile: "Podfile")
+    cocoapods(podfile: "Podfile", silent: true)
 
     # Fetch the latest build number from TestFlight and increment it
     begin
@@ -73,13 +73,13 @@ platform :ios do
     begin
       # Step 1: Clean environment
       UI.message("Step 1: Cleaning build environment...")
-      sh "flutter", "clean"
+      sh "flutter clean > /dev/null"  # Hide stdout but show errors
       sh "rm -rf ../../build/ios" rescue UI.message("Build directory already clean")
       
       # Step 2: Handle splash screen (non-blocking)
       UI.message("Step 2: Configuring splash screen...")
       begin
-        sh "dart run flutter_native_splash:create"
+        sh "dart run flutter_native_splash:create > /dev/null"  # Hide stdout but show errors
         UI.success("✅ Splash screen regenerated")
       rescue => e
         UI.important("⚠️ Splash screen generation failed: #{e.message}")
@@ -94,7 +94,7 @@ platform :ios do
       # Step 3: Inject environment variables into project files
       UI.message("Step 3: Injecting environment variables...")
       if ENV["BUNDLE_ID"]
-        sh "SRCROOT=#{File.expand_path('..')} bash ../scripts/inject_env.sh"
+        sh "SRCROOT=#{File.expand_path('..')} bash ../scripts/inject_env.sh > /dev/null"  # Hide stdout but show errors
         UI.success("✅ Environment variables injected")
       else
         UI.message("No BUNDLE_ID found, skipping injection")
@@ -126,12 +126,12 @@ platform :ios do
         if ENV["CD"]
           UI.message("Applying CI/CD specific configurations...")
           
-          # Ensure Xcode command line tools are configured
-          sh "sudo xcode-select -s /Applications/Xcode.app" rescue UI.message("Xcode path already set")
+          # Xcode version already configured in GitHub Actions workflow
+          UI.message("Using Xcode configured in CI environment")
           
           # Verify team access (optional)
           begin
-            sh "xcrun altool --list-apps --apiKey #{ENV['APP_STORE_CONNECT_API_KEY_ID']} --apiIssuer #{ENV['APP_STORE_CONNECT_ISSUER_ID']} | head -3"
+            sh "xcrun altool --list-apps --apiKey #{ENV['APP_STORE_CONNECT_API_KEY_ID']} --apiIssuer #{ENV['APP_STORE_CONNECT_ISSUER_ID']} > /dev/null"
             UI.success("✅ Team access verified")
           rescue => e
             UI.important("⚠️ Team access verification failed: #{e.message}")
@@ -180,8 +180,7 @@ platform :ios do
           shallow_clone: true,  # Faster for CI/CD
           clone_branch_directly: true,  # More reliable for CI/CD
           force_for_new_devices: false,  # Don't regenerate for readonly
-          skip_confirmation: true,  # Don't prompt in CI/CD
-          verbose: true  # More detailed output for debugging
+          skip_confirmation: true  # Don't prompt in CI/CD
         )
         UI.success("✅ Match certificates and profiles ready")
       rescue => e
@@ -206,8 +205,7 @@ platform :ios do
             shallow_clone: true,
             clone_branch_directly: true,
             force_for_new_devices: true,  # Allow regeneration when creating
-            skip_confirmation: true,
-            verbose: true
+            skip_confirmation: true
           )
           UI.success("✅ Match created new certificates and profiles")
         rescue => create_error
@@ -270,7 +268,8 @@ platform :ios do
       # Step 6a: Build Flutter app (skip code signing)
       UI.message("Building Flutter app for iOS...")
       # Build without signing - manual signing configured for Runner target will be used during archive
-      sh "cd .. && flutter build ios --release --no-codesign --build-number=#{new_build_number}"
+      # Note: --quiet reduces output but errors will still be shown
+      sh "cd .. && flutter build ios --release --no-codesign --build-number=#{new_build_number} --quiet"
       
       # Step 6b: Archive and export with manual signing
       UI.message("Archiving and exporting with manual signing for Runner target...")
@@ -308,7 +307,9 @@ platform :ios do
           archive_path: "../../build/ios/archive/Runner.xcarchive",
           include_bitcode: false,
           include_symbols: true,
-          export_options: export_options
+          export_options: export_options,
+          silent: true,  # Reduce verbose output during archiving
+          suppress_xcode_output: true  # Suppress detailed Xcode output
         )
         
         ENV.delete("FASTLANE_BUILD")
@@ -363,7 +364,7 @@ platform :ios do
     UI.message("Cleaning up build artifacts...")
     
     # Revert environment injection to keep git clean
-    sh "SRCROOT=#{File.expand_path('..')} bash ../scripts/revert_env_injection.sh" rescue nil
+    sh "SRCROOT=#{File.expand_path('..')} bash ../scripts/revert_env_injection.sh > /dev/null" rescue nil
     
     # Clean up API key files from both potential locations
     [

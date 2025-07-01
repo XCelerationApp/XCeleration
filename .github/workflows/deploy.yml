@@ -49,7 +49,7 @@ jobs:
 
   deploy-app:
     name: Deploy Application
-    runs-on: macos-latest
+    runs-on: macos-15  # Use macOS 15 which has Xcode 16+
     needs: detect-deployment-changes
     if: needs.detect-deployment-changes.outputs.should-deploy == 'true'
     steps:
@@ -70,6 +70,27 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-flutter-deps-
 
+      - name: Select Xcode version
+        run: |
+          echo "Available Xcode versions:"
+          ls /Applications/Xcode*.app 2>/dev/null || echo "No Xcode apps found in /Applications/"
+          
+          # Try to select the latest Xcode 16+ version
+          if [ -d "/Applications/Xcode_16.2.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+          elif [ -d "/Applications/Xcode_16.1.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.1.app/Contents/Developer
+          elif [ -d "/Applications/Xcode_16.0.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.0.app/Contents/Developer
+          else
+            echo "Using default Xcode installation"
+            sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          fi
+          
+          echo "Selected Xcode version:"
+          xcodebuild -version
+          echo "✅ Xcode version configured"
+
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -83,6 +104,23 @@ jobs:
         run: |
           flutter --version
           echo "✅ Flutter environment ready"
+
+      - name: Verify iOS SDK version
+        run: |
+          echo "Checking iOS SDK version compatibility..."
+          xcodebuild -showsdks | grep iphoneos
+          
+          # Get the latest iOS SDK version
+          IOS_SDK_VERSION=$(xcodebuild -showsdks | grep iphoneos | tail -1 | sed 's/.*iphoneos//' | tr -d ' ')
+          echo "Latest iOS SDK version: $IOS_SDK_VERSION"
+          
+          # Check if it's iOS 18.0 or later (required for App Store)
+          if [[ $(echo "$IOS_SDK_VERSION 18.0" | tr " " "\n" | sort -V | tail -1) == "$IOS_SDK_VERSION" ]]; then
+            echo "✅ iOS SDK $IOS_SDK_VERSION meets App Store requirements (iOS 18.0+)"
+          else
+            echo "❌ iOS SDK $IOS_SDK_VERSION is too old. iOS 18.0+ required for App Store submission."
+            exit 1
+          fi
 
       - name: Set up Ruby and Bundler
         uses: ruby/setup-ruby@v1
@@ -131,18 +169,18 @@ jobs:
                https://api.github.com/user || echo "❌ GitHub API access failed"
           
           # Extract repository URL from .env and test access
-          MATCH_REPO_URL=$(grep "FASTLANE_MATCH_REPO_URL" .env | cut -d'=' -f2 | tr -d '"' || echo "not_found")
+          MATCH_REPO_URL=$(grep "FASTLANE_MATCH_REPO_URL" .env | cut -d'=' -f2 | tr -d '"' | tr -d "'" || echo "not_found")
           echo "📍 Match repository URL: $MATCH_REPO_URL"
           
           if [ "$MATCH_REPO_URL" != "not_found" ] && [ -n "$MATCH_REPO_URL" ]; then
-            # Extract owner/repo from URL
-            REPO_PATH=$(echo "$MATCH_REPO_URL" | sed 's|https://github.com/||' | sed 's|\.git||')
+            # Extract owner/repo from URL and remove any remaining quotes
+            REPO_PATH=$(echo "$MATCH_REPO_URL" | sed 's|https://github.com/||' | sed 's|\.git||' | tr -d "'" | tr -d '"')
             echo "🎯 Testing access to: $REPO_PATH"
             
             # Test repository access via API
-            curl -H "Authorization: token $TOKEN" \
+            curl -s -H "Authorization: token $TOKEN" \
                  -H "Accept: application/vnd.github.v3+json" \
-                 "https://api.github.com/repos/$REPO_PATH" || echo "❌ Cannot access Match repository"
+                 "https://api.github.com/repos/$REPO_PATH" > /dev/null 2>&1 && echo "✅ Match repository accessible" || echo "❌ Cannot access Match repository"
           else
             echo "⚠️ FASTLANE_MATCH_REPO_URL not found in .env"
           fi
