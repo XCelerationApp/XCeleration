@@ -237,19 +237,10 @@ platform :ios do
         end
       end
       
-      # Step 5.5: Configure code signing with Match certificates
-      UI.message("Configuring manual code signing with Match certificates...")
-      profile_name = "match AppStore #{ENV['BUNDLE_ID']}"
-      update_code_signing_settings(
-        path: "Runner.xcodeproj",
-        use_automatic_signing: false,
-        team_id: ENV["TEAM_ID"],
-        targets: ["Runner", "RunnerTests"],
-        code_sign_identity: "Apple Distribution",
-        profile_name: profile_name,
-        bundle_identifier: ENV["BUNDLE_ID"]
-      )
-      UI.success("✅ Code signing configured with Match certificates")
+      # Step 5.5: Code signing will be handled via command-line parameters
+      # This avoids modifying project files and affecting Pod targets
+      UI.message("Match certificates ready - code signing will be handled via build parameters")
+      UI.success("✅ Ready to build with Match certificates")
       
       # Step 6: Build IPA using fastlane build_app (consistent for both local and CI/CD)
       build_type = ENV["CD"] ? "CI/CD" : "Local"
@@ -275,8 +266,8 @@ platform :ios do
       begin
         # Archive manually without running build scripts again
         UI.message("Creating archive manually...")
-        # Use explicit signing parameters with Match certificates
-        sh "xcodebuild", "-workspace", "../Runner.xcworkspace", "-scheme", "Runner", "-configuration", "Release", "-archivePath", "../../../build/ios/archive/Runner.xcarchive", "CODE_SIGN_IDENTITY=Apple Distribution", "PROVISIONING_PROFILE_SPECIFIER=match AppStore #{ENV['BUNDLE_ID']}", "DEVELOPMENT_TEAM=#{ENV['TEAM_ID']}", "archive"
+        # Use explicit signing parameters with Match certificates, targeting only iOS devices
+        sh "xcodebuild", "-workspace", "../Runner.xcworkspace", "-scheme", "Runner", "-configuration", "Release", "-destination", "generic/platform=iOS", "-archivePath", "../../../build/ios/archive/Runner.xcarchive", "CODE_SIGN_IDENTITY=Apple Distribution", "PROVISIONING_PROFILE_SPECIFIER=match AppStore #{ENV['BUNDLE_ID']}", "DEVELOPMENT_TEAM=#{ENV['TEAM_ID']}", "ONLY_ACTIVE_ARCH=NO", "archive"
         ENV.delete("FASTLANE_BUILD")
         
         # Use app-store export method for TestFlight uploads
