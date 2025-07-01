@@ -132,7 +132,7 @@ jobs:
               
               const branchTitle = sourceBranch
                 .replace(/\//g, ' - ')                  // "/" becomes " - "
-                .replace(/[^a-zA-Z0-9]/g, ' ')          // everything else (including "-") becomes " "
+                .replace(/[^a-zA-Z0-9\-\s]/g, ' ')      // everything else (except "-" and spaces) becomes " "
                 .replace(/\b\w/g, l => l.toUpperCase()); // capitalize first letter of each word
               
               title = firstLine.length > 50 ? branchTitle : branchTitle + ': ' + firstLine;
