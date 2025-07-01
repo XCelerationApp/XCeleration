@@ -5,6 +5,9 @@ on:
     branches-ignore:
       - main
       - dev
+  pull_request:
+    types: [closed]
+    branches: [dev]
 
 # Grant necessary permissions for creating PRs and comments
 permissions:
@@ -13,40 +16,83 @@ permissions:
   issues: write         # Required to create comments
 
 jobs:
+  determine-pr-type:
+    name: Determine PR Type
+    runs-on: ubuntu-latest
+    outputs:
+      should-create-pr: ${{ steps.determine.outputs.should-create-pr }}
+      pr-type: ${{ steps.determine.outputs.pr-type }}
+      source-branch: ${{ steps.determine.outputs.source-branch }}
+      target-branch: ${{ steps.determine.outputs.target-branch }}
+      trigger-info: ${{ steps.determine.outputs.trigger-info }}
+    steps:
+      - name: Determine PR requirements
+        id: determine
+        run: |
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            # Feature branch push - create PR to dev
+            branch_name="${{ github.ref_name }}"
+            echo "should-create-pr=true" >> $GITHUB_OUTPUT
+            echo "pr-type=feature" >> $GITHUB_OUTPUT
+            echo "source-branch=$branch_name" >> $GITHUB_OUTPUT
+            echo "target-branch=dev" >> $GITHUB_OUTPUT
+            echo "trigger-info=push to $branch_name" >> $GITHUB_OUTPUT
+            echo "🔄 Feature branch push detected: $branch_name → dev"
+          elif [[ "${{ github.event_name }}" == "pull_request" && "${{ github.event.pull_request.merged }}" == "true" && "${{ github.event.pull_request.base.ref }}" == "dev" ]]; then
+            # PR merged to dev - create PR to main
+            echo "should-create-pr=true" >> $GITHUB_OUTPUT
+            echo "pr-type=release" >> $GITHUB_OUTPUT
+            echo "source-branch=dev" >> $GITHUB_OUTPUT
+            echo "target-branch=main" >> $GITHUB_OUTPUT
+            echo "trigger-info=PR #${{ github.event.pull_request.number }} merged to dev" >> $GITHUB_OUTPUT
+            echo "🚀 Release PR needed: dev → main (triggered by PR #${{ github.event.pull_request.number }})"
+          else
+            echo "should-create-pr=false" >> $GITHUB_OUTPUT
+            echo "❌ No PR creation needed for this event"
+          fi
+
   create-draft-pr:
     name: Create Draft PR
     runs-on: ubuntu-latest
-    if: github.event_name == 'push'
+    needs: determine-pr-type
+    if: needs.determine-pr-type.outputs.should-create-pr == 'true'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
+          ref: ${{ needs.determine-pr-type.outputs.source-branch }}
           fetch-depth: 0
 
       - name: Check for existing PR
         id: check-pr
         uses: actions/github-script@v7
+        env:
+          SOURCE_BRANCH: ${{ needs.determine-pr-type.outputs.source-branch }}
+          TARGET_BRANCH: ${{ needs.determine-pr-type.outputs.target-branch }}
         with:
           script: |
             const { owner, repo } = context.repo;
-            const branch = context.ref.replace('refs/heads/', '');
+            const sourceBranch = process.env.SOURCE_BRANCH;
+            const targetBranch = process.env.TARGET_BRANCH;
             
-            console.log('🔍 Checking for existing PRs for branch: ' + branch);
+            console.log(`🔍 Checking for existing PR: ${sourceBranch} → ${targetBranch}`);
             
             try {
               const { data: pulls } = await github.rest.pulls.list({
                 owner,
                 repo,
-                head: owner + ':' + branch,
+                head: owner + ':' + sourceBranch,
+                base: targetBranch,
                 state: 'open'
               });
               
               if (pulls.length > 0) {
-                console.log('✅ Found existing PR for branch ' + branch + ': #' + pulls[0].number);
+                console.log(`✅ Found existing PR: #${pulls[0].number}`);
                 core.setOutput('has_pr', 'true');
                 core.setOutput('pr_number', pulls[0].number);
+                core.setOutput('pr_title', pulls[0].title);
               } else {
-                console.log('❌ No existing PR found for branch ' + branch);
+                console.log('❌ No existing PR found');
                 core.setOutput('has_pr', 'false');
               }
             } catch (error) {
@@ -54,86 +100,145 @@ jobs:
               core.setOutput('has_pr', 'false');
             }
 
-      - name: Create draft PR
-        if: steps.check-pr.outputs.has_pr == 'false'
+      - name: Generate PR content
+        id: generate-content
+        if: needs.determine-pr-type.outputs.should-create-pr == 'true' && steps.check-pr.outputs.has_pr == 'false'
         uses: actions/github-script@v7
+        env:
+          PR_TYPE: ${{ needs.determine-pr-type.outputs.pr-type }}
+          SOURCE_BRANCH: ${{ needs.determine-pr-type.outputs.source-branch }}
+          TARGET_BRANCH: ${{ needs.determine-pr-type.outputs.target-branch }}
+          TRIGGER_INFO: ${{ needs.determine-pr-type.outputs.trigger-info }}
         with:
           script: |
             const { owner, repo } = context.repo;
-            const branch = context.ref.replace('refs/heads/', '');
-            const baseBranch = 'dev';
+            const prType = process.env.PR_TYPE;
+            const sourceBranch = process.env.SOURCE_BRANCH;
+            const targetBranch = process.env.TARGET_BRANCH;
+            const triggerInfo = process.env.TRIGGER_INFO;
             
-            console.log('🚀 Creating draft PR for branch: ' + branch + ' → ' + baseBranch);
+            let title, body, commentBody;
             
-            // Get the latest commit info for a better title
-            const { data: commit } = await github.rest.repos.getCommit({
-              owner,
-              repo,
-              ref: context.sha
-            });
+            if (prType === 'feature') {
+              // Feature branch PR content
+              const { data: commit } = await github.rest.repos.getCommit({
+                owner,
+                repo,
+                ref: context.sha
+              });
+              
+              const commitMessage = commit.commit.message;
+              const firstLine = commitMessage.split('\n')[0];
+              
+              const branchTitle = sourceBranch
+                .replace(/\//g, ' - ')                  // "/" becomes " - "
+                .replace(/[^a-zA-Z0-9]/g, ' ')          // everything else (including "-") becomes " "
+                .replace(/\b\w/g, l => l.toUpperCase()); // capitalize first letter of each word
+              
+              title = firstLine.length > 50 ? branchTitle : branchTitle + ': ' + firstLine;
+              
+              body = "Auto-created draft PR from `" + sourceBranch + "` → `" + targetBranch + "`";
+              
+              commentBody = "**Next steps:**\n" +
+                "1. Update description\n" +
+                "2. Mark ready for review when complete";
             
-            const commitMessage = commit.commit.message;
-            const firstLine = commitMessage.split('\n')[0];
+            } else if (prType === 'release') {
+              // Release PR content
+              const { data: comparison } = await github.rest.repos.compareCommits({
+                owner,
+                repo,
+                base: targetBranch,
+                head: sourceBranch
+              });
+              
+              const commitCount = comparison.commits.length;
+              const recentCommits = comparison.commits.slice(-5);
+              
+              title = "Production Deployment";
+              
+              body = "🚀 Auto-created release PR from `" + sourceBranch + "` → `" + targetBranch + "`\n\n" +
+                `${commitCount} commit${commitCount !== 1 ? 's' : ''} ready for production.`;
+              
+              commentBody = "**⚠️ Production deployment**\n" +
+                "Merging will trigger auto-deploy to production.\n\n" +
+                "**Next steps:**\n" +
+                "1. Review changes\n" +
+                "2. Mark ready when safe to deploy";
+            }
             
-            // Generate PR title from branch name and latest commit
-            const branchTitle = branch
-              .replace(/[-_]/g, ' ')
-              .replace(/\b\w/g, l => l.toUpperCase());
-            
-            const title = firstLine.length > 50 
-              ? branchTitle 
-              : branchTitle + ': ' + firstLine;
-            
-            // Generate PR body
-            const body = "## 🚧 Draft PR - Auto-created\n\n" +
-              "This PR was automatically created for branch `" + branch + "`.\n\n" +
-              "### Latest Changes\n" +
-              "- " + firstLine + "\n\n" +
-              "### Branch Info\n" +
-              "- **Source**: `" + branch + "`\n" +
-              "- **Target**: `" + baseBranch + "`\n" +
-              "- **Latest Commit**: " + context.sha.substring(0, 7) + "\n\n" +
-              "**Note**: This is a draft PR. Please review, update the description, and mark as ready for review when complete.";
+            core.setOutput('title', title);
+            core.setOutput('body', body);
+            core.setOutput('comment_body', commentBody);
 
+      - name: Create PR
+        if: needs.determine-pr-type.outputs.should-create-pr == 'true' && steps.check-pr.outputs.has_pr == 'false'
+        uses: actions/github-script@v7
+        env:
+          SOURCE_BRANCH: ${{ needs.determine-pr-type.outputs.source-branch }}
+          TARGET_BRANCH: ${{ needs.determine-pr-type.outputs.target-branch }}
+          PR_TITLE: ${{ steps.generate-content.outputs.title }}
+          PR_BODY: ${{ steps.generate-content.outputs.body }}
+          PR_COMMENT_BODY: ${{ steps.generate-content.outputs.comment_body }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const sourceBranch = process.env.SOURCE_BRANCH;
+            const targetBranch = process.env.TARGET_BRANCH;
+            
+            const title = process.env.PR_TITLE;
+            const body = process.env.PR_BODY;
+            const commentBody = process.env.PR_COMMENT_BODY;
+            
+            console.log(`🚀 Creating draft PR: ${sourceBranch} → ${targetBranch}`);
+            
             try {
               const { data: pr } = await github.rest.pulls.create({
                 owner,
                 repo,
                 title,
-                head: branch,
-                base: baseBranch,
+                head: sourceBranch,
+                base: targetBranch,
                 body,
                 draft: true
               });
               
-              console.log('✅ Created draft PR #' + pr.number + ': ' + title);
+              console.log(`✅ Created draft PR #${pr.number}: ${title}`);
               
-              // Add a comment to the PR
+              // Add initial comment
               await github.rest.issues.createComment({
                 owner,
                 repo,
                 issue_number: pr.number,
-                body: "🤖 **Auto-created Draft PR**\n\n" +
-                      "This PR was automatically created when you pushed to the `" + branch + "` branch.\n\n" +
-                      "**Next steps:**\n" +
-                      "1. 📝 Update this description with details about your changes\n" +
-                      "2. ✅ Ensure your code passes CI checks\n" +
-                      "3. 🔄 Mark as 'Ready for review' when complete\n\n" +
-                      "The PR will automatically run CI checks once created. Happy coding! 🚀"
+                body: commentBody
               });
               
             } catch (error) {
               console.error('❌ Failed to create PR: ' + error.message);
               
               if (error.message.includes('No commits between')) {
-                console.log('ℹ️ Branch ' + branch + ' has no new commits compared to ' + baseBranch);
+                console.log(`ℹ️ ${sourceBranch} has no new commits compared to ${targetBranch}`);
               } else {
                 throw error;
               }
             }
 
-      - name: PR already exists
-        if: steps.check-pr.outputs.has_pr == 'true'
+      - name: Summary
+        if: needs.determine-pr-type.outputs.should-create-pr == 'true'
+        env:
+          PR_TYPE: ${{ needs.determine-pr-type.outputs.pr-type }}
+          SOURCE_BRANCH: ${{ needs.determine-pr-type.outputs.source-branch }}
+          TARGET_BRANCH: ${{ needs.determine-pr-type.outputs.target-branch }}
+          TRIGGER_INFO: ${{ needs.determine-pr-type.outputs.trigger-info }}
+          HAS_PR: ${{ steps.check-pr.outputs.has_pr }}
+          PR_NUMBER: ${{ steps.check-pr.outputs.pr_number }}
         run: |
-          echo "ℹ️ PR already exists for this branch (#${{ steps.check-pr.outputs.pr_number }})"
-          echo "Skipping PR creation." 
+          echo "🎉 Auto-draft PR workflow completed!"
+          echo "PR Type: $PR_TYPE"
+          echo "Direction: $SOURCE_BRANCH → $TARGET_BRANCH"
+          echo "Trigger: $TRIGGER_INFO"
+          if [[ "$HAS_PR" == "true" ]]; then
+            echo "Action: Skipped (PR #$PR_NUMBER already exists)"
+          else
+            echo "Action: Created new draft PR"
+          fi 
