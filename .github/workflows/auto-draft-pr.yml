@@ -66,11 +66,14 @@ jobs:
       - name: Check for existing PR
         id: check-pr
         uses: actions/github-script@v7
+        env:
+          SOURCE_BRANCH: ${{ needs.determine-pr-type.outputs.source-branch }}
+          TARGET_BRANCH: ${{ needs.determine-pr-type.outputs.target-branch }}
         with:
           script: |
             const { owner, repo } = context.repo;
-            const sourceBranch = '${{ needs.determine-pr-type.outputs.source-branch }}';
-            const targetBranch = '${{ needs.determine-pr-type.outputs.target-branch }}';
+            const sourceBranch = process.env.SOURCE_BRANCH;
+            const targetBranch = process.env.TARGET_BRANCH;
             
             console.log(`🔍 Checking for existing PR: ${sourceBranch} → ${targetBranch}`);
             
@@ -100,12 +103,18 @@ jobs:
       - name: Generate PR content
         id: generate-content
         uses: actions/github-script@v7
+        env:
+          PR_TYPE: ${{ needs.determine-pr-type.outputs.pr-type }}
+          SOURCE_BRANCH: ${{ needs.determine-pr-type.outputs.source-branch }}
+          TARGET_BRANCH: ${{ needs.determine-pr-type.outputs.target-branch }}
+          TRIGGER_INFO: ${{ needs.determine-pr-type.outputs.trigger-info }}
         with:
           script: |
             const { owner, repo } = context.repo;
-            const prType = '${{ needs.determine-pr-type.outputs.pr-type }}';
-            const sourceBranch = '${{ needs.determine-pr-type.outputs.source-branch }}';
-            const targetBranch = '${{ needs.determine-pr-type.outputs.target-branch }}';
+            const prType = process.env.PR_TYPE;
+            const sourceBranch = process.env.SOURCE_BRANCH;
+            const targetBranch = process.env.TARGET_BRANCH;
+            const triggerInfo = process.env.TRIGGER_INFO;
             
             let title, body, commentBody;
             
@@ -121,8 +130,9 @@ jobs:
               const firstLine = commitMessage.split('\n')[0];
               
               const branchTitle = sourceBranch
-                .replace(/[-_]/g, ' ')
-                .replace(/\b\w/g, l => l.toUpperCase());
+                .replace(/\//g, '-')                    // "/" becomes "-"
+                .replace(/[^a-zA-Z0-9-]/g, ' ')        // everything else becomes " "
+                .replace(/\b\w/g, l => l.toUpperCase()); // capitalize first letter of each word
               
               title = firstLine.length > 50 ? branchTitle : branchTitle + ': ' + firstLine;
               
@@ -156,12 +166,12 @@ jobs:
               const commitCount = comparison.commits.length;
               const recentCommits = comparison.commits.slice(-5);
               
-                             title = `Dev -> Main`;
+              title = "Dev -> Main";
               
               body = "## 🚀 Production Release - Auto-created\n\n" +
                 "This PR was automatically created after merging changes to `" + sourceBranch + "`.\n\n" +
                 "### Latest Trigger\n" +
-                "- **${{ needs.determine-pr-type.outputs.trigger-info }}**\n\n" +
+                "- **" + triggerInfo + "**\n\n" +
                 "### Recent Changes Ready for Production\n";
               
               recentCommits.forEach(commit => {
@@ -179,7 +189,7 @@ jobs:
               
               commentBody = "🤖 **Auto-created Release PR**\n\n" +
                 "This PR was automatically created after merging changes to the `" + sourceBranch + "` branch.\n\n" +
-                "**Latest trigger**: ${{ needs.determine-pr-type.outputs.trigger-info }}\n\n" +
+                "**Latest trigger**: " + triggerInfo + "\n\n" +
                 "**Next steps:**\n" +
                 "1. 🔍 Review all changes since last production release\n" +
                 "2. 🧪 Ensure all tests pass and staging looks good\n" +
@@ -194,18 +204,29 @@ jobs:
 
       - name: Create or update PR
         uses: actions/github-script@v7
+        env:
+          PR_TYPE: ${{ needs.determine-pr-type.outputs.pr-type }}
+          SOURCE_BRANCH: ${{ needs.determine-pr-type.outputs.source-branch }}
+          TARGET_BRANCH: ${{ needs.determine-pr-type.outputs.target-branch }}
+          TRIGGER_INFO: ${{ needs.determine-pr-type.outputs.trigger-info }}
+          HAS_PR: ${{ steps.check-pr.outputs.has_pr }}
+          EXISTING_PR_NUMBER: ${{ steps.check-pr.outputs.pr_number }}
+          PR_TITLE: ${{ steps.generate-content.outputs.title }}
+          PR_BODY: ${{ steps.generate-content.outputs.body }}
+          PR_COMMENT_BODY: ${{ steps.generate-content.outputs.comment_body }}
         with:
           script: |
             const { owner, repo } = context.repo;
-            const sourceBranch = '${{ needs.determine-pr-type.outputs.source-branch }}';
-            const targetBranch = '${{ needs.determine-pr-type.outputs.target-branch }}';
-            const prType = '${{ needs.determine-pr-type.outputs.pr-type }}';
-            const hasPr = '${{ steps.check-pr.outputs.has_pr }}' === 'true';
-            const existingPrNumber = '${{ steps.check-pr.outputs.pr_number }}';
+            const sourceBranch = process.env.SOURCE_BRANCH;
+            const targetBranch = process.env.TARGET_BRANCH;
+            const prType = process.env.PR_TYPE;
+            const triggerInfo = process.env.TRIGGER_INFO;
+            const hasPr = process.env.HAS_PR === 'true';
+            const existingPrNumber = process.env.EXISTING_PR_NUMBER;
             
-            const title = `${{ steps.generate-content.outputs.title }}`;
-            const body = `${{ steps.generate-content.outputs.body }}`;
-            const commentBody = `${{ steps.generate-content.outputs.comment_body }}`;
+            const title = process.env.PR_TITLE;
+            const body = process.env.PR_BODY;
+            const commentBody = process.env.PR_COMMENT_BODY;
             
             if (!hasPr) {
               // Create new PR
@@ -249,7 +270,7 @@ jobs:
               if (prType === 'feature') {
                 updateComment = `🔄 **New changes pushed**\n\nThis PR has been updated with new changes from the \`${sourceBranch}\` branch.`;
               } else if (prType === 'release') {
-                updateComment = `🔄 **New changes merged to ${sourceBranch}**\n\n**Latest trigger**: ${{ needs.determine-pr-type.outputs.trigger-info }}\n\nThis PR now includes the latest changes. Please review and merge when ready to deploy to production. 🚀`;
+                updateComment = `🔄 **New changes merged to ${sourceBranch}**\n\n**Latest trigger**: ${triggerInfo}\n\nThis PR now includes the latest changes. Please review and merge when ready to deploy to production. 🚀`;
               }
               
               await github.rest.issues.createComment({
@@ -263,13 +284,20 @@ jobs:
             }
 
       - name: Summary
+        env:
+          PR_TYPE: ${{ needs.determine-pr-type.outputs.pr-type }}
+          SOURCE_BRANCH: ${{ needs.determine-pr-type.outputs.source-branch }}
+          TARGET_BRANCH: ${{ needs.determine-pr-type.outputs.target-branch }}
+          TRIGGER_INFO: ${{ needs.determine-pr-type.outputs.trigger-info }}
+          HAS_PR: ${{ steps.check-pr.outputs.has_pr }}
+          PR_NUMBER: ${{ steps.check-pr.outputs.pr_number }}
         run: |
           echo "🎉 Auto-draft PR workflow completed!"
-          echo "PR Type: ${{ needs.determine-pr-type.outputs.pr-type }}"
-          echo "Direction: ${{ needs.determine-pr-type.outputs.source-branch }} → ${{ needs.determine-pr-type.outputs.target-branch }}"
-          echo "Trigger: ${{ needs.determine-pr-type.outputs.trigger-info }}"
-          if [[ "${{ steps.check-pr.outputs.has_pr }}" == "true" ]]; then
-            echo "Action: Updated existing PR #${{ steps.check-pr.outputs.pr_number }}"
+          echo "PR Type: $PR_TYPE"
+          echo "Direction: $SOURCE_BRANCH → $TARGET_BRANCH"
+          echo "Trigger: $TRIGGER_INFO"
+          if [[ "$HAS_PR" == "true" ]]; then
+            echo "Action: Updated existing PR #$PR_NUMBER"
           else
             echo "Action: Created new draft PR"
           fi 
