@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xceleration/core/components/dialog_utils.dart';
 import 'package:xceleration/core/theme/typography.dart';
 import '../../../shared/role_bar/models/role_enums.dart';
@@ -35,15 +36,25 @@ class InstructionsBanner extends StatelessWidget {
   }
 
   /// Shows a modal bottom sheet with placeholder instructions using the shared sheet function and app typography.
+  /// Only shows instructions once per role using shared preferences.
   static Future<void> showInstructionsSheet(
       BuildContext context, Role role) async {
-    await DialogUtils.showMessageDialog(
-      context,
-      title: 'Instructions',
-      message: _getInstructions(role),
-      doneText: 'Got it',
-      barrierTint: 0.3,
-    );
+    final prefs = await SharedPreferences.getInstance();
+    final key = 'instructions_shown_${role.name}';
+    final hasShownBefore = prefs.getBool(key) ?? false;
+
+    if (!hasShownBefore && context.mounted) {
+      await DialogUtils.showMessageDialog(
+        context,
+        title: 'Instructions',
+        message: _getInstructions(role),
+        doneText: 'Got it',
+        barrierTint: 0.3,
+      );
+
+      // Mark instructions as shown for this role
+      await prefs.setBool(key, true);
+    }
   }
 
   /// Returns the instructions for the given role.
