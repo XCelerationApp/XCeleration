@@ -53,7 +53,7 @@ jobs:
                 pull_number: pr.number,
                 commit_title: `${pr.title} (#${pr.number}) - Auto-merged`,
                 commit_message: `Automatically merged dev to main after branch check passed.\n\nAuthor: @${pr.user.login}`,
-                merge_method: 'squash',
+                merge_method: 'merge',
               });
               
               console.log('✅ PR successfully auto-merged!');
