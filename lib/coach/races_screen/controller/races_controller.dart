@@ -305,8 +305,7 @@ class RacesController extends ChangeNotifier {
   }
 
   Future<void> editRace(Race race) async {
-    await RaceController.showRaceScreen(context, this, race.raceId,
-        screenMode: RaceScreenMode.editMode);
+    await RaceController.showRaceScreen(context, this, race.raceId);
   }
 
   Future<void> deleteRace(Race race) async {

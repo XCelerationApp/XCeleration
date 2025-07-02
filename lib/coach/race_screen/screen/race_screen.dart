@@ -133,7 +133,7 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
                   secondPage: RunnersManagementScreen(
                     raceId: controller.raceId,
                     showHeader: false,
-                    isViewMode: !controller.isInEditMode,
+                    isViewMode: !controller.canEdit,
                   ),
                 ),
               )

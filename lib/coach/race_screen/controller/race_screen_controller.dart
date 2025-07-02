@@ -17,12 +17,6 @@ import '../../races_screen/controller/races_controller.dart';
 import '../services/race_service.dart';
 import 'package:provider/provider.dart';
 
-/// Enum to define the interaction mode of the race screen
-enum RaceScreenMode {
-  editMode,
-  viewMode,
-}
-
 /// Controller class for the RaceScreen that handles all business logic
 class RaceController with ChangeNotifier {
   // Race data
@@ -33,8 +27,238 @@ class RaceController with ChangeNotifier {
 
   // UI state properties
   bool isLocationButtonVisible = true; // Control visibility of location button
-  RaceScreenMode screenMode =
-      RaceScreenMode.viewMode; // Track screen interaction mode
+
+  // Individual field edit states
+  bool isEditingName = false;
+  bool isEditingLocation = false;
+  bool isEditingDate = false;
+  bool isEditingDistance = false;
+
+  // Change tracking
+  Map<String, dynamic> originalValues = {};
+  Set<String> changedFields = {};
+  bool get hasUnsavedChanges => changedFields.isNotEmpty;
+
+  // Permission system - determines if user can edit fields
+  bool get canEdit {
+    if (race == null) return true; // Allow editing during initial setup
+    final flowState = race!.flowState;
+    // Allow editing during setup and setup completed states
+    return flowState == Race.FLOW_SETUP ||
+        flowState == Race.FLOW_SETUP_COMPLETED ||
+        flowState == Race.FLOW_PRE_RACE;
+  }
+
+  // Field edit state management methods
+  void startEditingField(String fieldName) {
+    switch (fieldName) {
+      case 'name':
+        isEditingName = true;
+        break;
+      case 'location':
+        isEditingLocation = true;
+        break;
+      case 'date':
+        isEditingDate = true;
+        break;
+      case 'distance':
+        isEditingDistance = true;
+        break;
+    }
+    notifyListeners();
+  }
+
+  void stopEditingField(String fieldName) {
+    switch (fieldName) {
+      case 'name':
+        isEditingName = false;
+        break;
+      case 'location':
+        isEditingLocation = false;
+        break;
+      case 'date':
+        isEditingDate = false;
+        break;
+      case 'distance':
+        isEditingDistance = false;
+        break;
+    }
+    notifyListeners();
+  }
+
+  // Check if field should be shown as editable (empty during setup or currently being edited)
+  bool shouldShowAsEditable(String fieldName) {
+    if (!canEdit) return false;
+
+    // Always show as editable if currently being edited
+    switch (fieldName) {
+      case 'name':
+        return isEditingName || (race?.raceName.isEmpty ?? true);
+      case 'location':
+        return isEditingLocation || (race?.location.isEmpty ?? true);
+      case 'date':
+        return isEditingDate || (race?.raceDate == null);
+      case 'distance':
+        return isEditingDistance || (race?.distance == 0);
+      default:
+        return false;
+    }
+  }
+
+  // Change tracking methods
+  void _storeOriginalValue(String fieldName) {
+    if (!originalValues.containsKey(fieldName)) {
+      switch (fieldName) {
+        case 'name':
+          originalValues[fieldName] = race?.raceName ?? '';
+          break;
+        case 'location':
+          originalValues[fieldName] = race?.location ?? '';
+          break;
+        case 'date':
+          originalValues[fieldName] = race?.raceDate;
+          break;
+        case 'distance':
+          originalValues[fieldName] = race?.distance ?? 0;
+          break;
+        case 'unit':
+          originalValues[fieldName] = race?.distanceUnit ?? 'mi';
+          break;
+      }
+    }
+  }
+
+  void trackFieldChange(String fieldName) {
+    _storeOriginalValue(fieldName);
+
+    dynamic currentValue;
+    switch (fieldName) {
+      case 'name':
+        currentValue = nameController.text;
+        break;
+      case 'location':
+        currentValue = locationController.text;
+        break;
+      case 'date':
+        currentValue = dateController.text.isNotEmpty
+            ? DateTime.tryParse(dateController.text)
+            : null;
+        break;
+      case 'distance':
+        currentValue = double.tryParse(distanceController.text) ?? 0;
+        break;
+      case 'unit':
+        currentValue = unitController.text;
+        break;
+    }
+
+    // Check if the current value differs from original
+    if (currentValue != originalValues[fieldName]) {
+      changedFields.add(fieldName);
+    } else {
+      changedFields.remove(fieldName);
+    }
+
+    notifyListeners();
+  }
+
+  // Handle field focus loss with potential autosave
+  Future<void> handleFieldFocusLoss(
+      BuildContext context, String fieldName) async {
+    trackFieldChange(fieldName);
+
+    // Autosave if not in setup flow
+    if (!_isSetupFlow() && hasUnsavedChanges) {
+      await saveAllChanges(context);
+    }
+  }
+
+  // Check if currently in setup flow
+  bool _isSetupFlow() {
+    final flowState = race?.flowState;
+    return flowState == Race.FLOW_SETUP ||
+        flowState == Race.FLOW_SETUP_COMPLETED;
+  }
+
+  void revertAllChanges() {
+    for (String fieldName in Set<String>.from(changedFields)) {
+      _revertField(fieldName);
+    }
+    changedFields.clear();
+    originalValues.clear();
+    notifyListeners();
+  }
+
+  void _revertField(String fieldName) {
+    if (originalValues.containsKey(fieldName)) {
+      switch (fieldName) {
+        case 'name':
+          nameController.text = originalValues[fieldName] ?? '';
+          break;
+        case 'location':
+          locationController.text = originalValues[fieldName] ?? '';
+          break;
+        case 'date':
+          final date = originalValues[fieldName] as DateTime?;
+          dateController.text =
+              date != null ? DateFormat('yyyy-MM-dd').format(date) : '';
+          break;
+        case 'distance':
+          distanceController.text = (originalValues[fieldName] ?? 0).toString();
+          break;
+        case 'unit':
+          unitController.text = originalValues[fieldName] ?? 'mi';
+          break;
+      }
+    }
+  }
+
+  Future<void> saveAllChanges(BuildContext context) async {
+    if (!hasUnsavedChanges) return;
+
+    // Validate all changed fields
+    bool allValid = true;
+    for (String fieldName in changedFields) {
+      switch (fieldName) {
+        case 'name':
+          nameError = RaceService.validateName(nameController.text);
+          if (nameError != null) allValid = false;
+          break;
+        case 'location':
+          locationError = RaceService.validateLocation(locationController.text);
+          if (locationError != null) allValid = false;
+          break;
+        case 'date':
+          dateError = RaceService.validateDate(dateController.text);
+          if (dateError != null) allValid = false;
+          break;
+        case 'distance':
+          distanceError = RaceService.validateDistance(distanceController.text);
+          if (distanceError != null) allValid = false;
+          break;
+      }
+    }
+
+    if (!allValid) {
+      notifyListeners(); // Update UI to show validation errors
+      return;
+    }
+
+    // Save the changes
+    await saveRaceDetails(context);
+
+    // Clear change tracking
+    changedFields.clear();
+    originalValues.clear();
+
+    // Stop editing all fields
+    isEditingName = false;
+    isEditingLocation = false;
+    isEditingDate = false;
+    isEditingDistance = false;
+
+    notifyListeners();
+  }
 
   // Navigation state
   bool _showingRunnersManagement = false;
@@ -67,47 +291,25 @@ class RaceController with ChangeNotifier {
   // Flow state
   String get flowState => race?.flowState ?? 'setup';
 
-  // Helper getter for checking if in edit mode
-  bool get isInEditMode => screenMode == RaceScreenMode.editMode;
-
   RacesController parentController;
 
-  RaceController(
-      {required this.raceId,
-      required this.parentController,
-      this.screenMode = RaceScreenMode.viewMode});
+  RaceController({
+    required this.raceId,
+    required this.parentController,
+  });
 
   static Future<void> showRaceScreen(
       BuildContext context, RacesController parentController, int raceId,
-      {RaceScreenPage page = RaceScreenPage.main,
-      RaceScreenMode screenMode = RaceScreenMode.viewMode}) async {
-    // Load race data to determine the appropriate screen mode
-    final race = await DatabaseHelper.instance.getRaceById(raceId);
-
-    // Determine final screen mode based on race state and requested mode
-    RaceScreenMode finalScreenMode = screenMode;
-    if (race != null) {
-      // Always use edit mode if race is in setup state
-      if (race.flowState == Race.FLOW_SETUP) {
-        finalScreenMode = RaceScreenMode.editMode;
-      }
-      // Force view mode if race cannot be edited (processing results or finished)
-      else if (screenMode == RaceScreenMode.editMode) {
-        if (race.flowState == Race.FLOW_POST_RACE ||
-            race.flowState == Race.FLOW_FINISHED) {
-          finalScreenMode = RaceScreenMode.viewMode;
-        }
-      }
-    }
+      {RaceScreenPage page = RaceScreenPage.main}) async {
     if (!context.mounted) return;
 
     await sheet(
       context: context,
       body: ChangeNotifierProvider(
         create: (_) => RaceController(
-            raceId: raceId,
-            parentController: parentController,
-            screenMode: finalScreenMode),
+          raceId: raceId,
+          parentController: parentController,
+        ),
         child: RaceScreen(
           raceId: raceId,
           parentController: parentController,
@@ -221,6 +423,43 @@ class RaceController with ChangeNotifier {
     if (setupComplete && context.mounted) {
       await updateRaceFlowState(context, Race.FLOW_SETUP_COMPLETED);
     }
+  }
+
+  // Individual field save methods with validation
+  Future<bool> saveFieldIfValid(BuildContext context, String fieldName) async {
+    // Validate the specific field first
+    bool isValid = true;
+    switch (fieldName) {
+      case 'name':
+        nameError = RaceService.validateName(nameController.text);
+        isValid = nameError == null;
+        break;
+      case 'location':
+        locationError = RaceService.validateLocation(locationController.text);
+        isValid = locationError == null;
+        break;
+      case 'date':
+        dateError = RaceService.validateDate(dateController.text);
+        isValid = dateError == null;
+        break;
+      case 'distance':
+        distanceError = RaceService.validateDistance(distanceController.text);
+        isValid = distanceError == null;
+        break;
+    }
+
+    if (!isValid) {
+      notifyListeners(); // Update UI to show validation errors
+      return false;
+    }
+
+    // Save the changes
+    await saveRaceDetails(context);
+
+    // Stop editing this field
+    stopEditingField(fieldName);
+
+    return true;
   }
 
   /// Show color picker dialog for team color
@@ -429,8 +668,8 @@ class RaceController with ChangeNotifier {
   /// Navigate to runners management screen with confirmation if needed
   Future<void> loadRunnersManagementScreenWithConfirmation(BuildContext context,
       {bool isViewMode = false}) async {
-    // Check if we need to show confirmation dialog only in edit mode
-    if (!isViewMode && _shouldShowRunnersEditConfirmation()) {
+    // Check if we need to show confirmation dialog only when user can edit
+    if (canEdit && !isViewMode && _shouldShowRunnersEditConfirmation()) {
       final confirmed = await DialogUtils.showConfirmationDialog(
         context,
         title: 'Edit Runners',
