@@ -11,7 +11,6 @@ import '../../flows/controller/flow_controller.dart';
 import '../../../core/services/device_connection_service.dart';
 import '../../../core/services/event_bus.dart';
 import 'package:intl/intl.dart'; // Import the intl package for date formatting
-import 'package:flutter_colorpicker/flutter_colorpicker.dart'; // Import for color picker
 import 'package:geolocator/geolocator.dart'; // Import for geolocation
 import '../../races_screen/controller/races_controller.dart';
 import '../services/race_service.dart';
@@ -275,11 +274,6 @@ class RaceController with ChangeNotifier {
   final TextEditingController unitController = TextEditingController();
   final TextEditingController userlocationController = TextEditingController();
 
-  // Team management
-  List<TextEditingController> teamControllers = [];
-  List<Color> teamColors = [];
-  String? teamsError;
-
   // Validation error messages
   String? nameError;
   String? locationError;
@@ -354,46 +348,8 @@ class RaceController with ChangeNotifier {
       distanceController.text =
           race!.distance > 0 ? race!.distance.toString() : '';
       unitController.text = race!.distanceUnit;
-      _initializeTeamControllers();
+      // Teams are now managed by RunnersManagementController
     }
-  }
-
-  /// Initialize team controllers from race data
-  void _initializeTeamControllers() {
-    if (race != null) {
-      teamControllers.clear();
-      teamColors.clear();
-
-      // If no teams exist yet, add one empty controller
-      if (race!.teams.isEmpty) {
-        teamControllers.add(TextEditingController());
-        teamColors.add(Colors.white); // Default first team color
-      } else {
-        // Create controllers for each team
-        for (var i = 0; i < race!.teams.length; i++) {
-          var controller = TextEditingController(text: race!.teams[i]);
-          teamControllers.add(controller);
-
-          // Use the color from race.teamColors if available
-          if (i < race!.teamColors.length) {
-            teamColors.add(race!.teamColors[i]);
-          } else {
-            // Create a new color based on index
-            teamColors.add(HSLColor.fromAHSL(
-                    1.0, (360 / race!.teams.length * i) % 360, 0.7, 0.5)
-                .toColor());
-          }
-        }
-      }
-    }
-  }
-
-  /// Add a new team field
-  void addTeamField() {
-    teamControllers.add(TextEditingController());
-
-    teamColors.add(Colors.white);
-    notifyListeners();
   }
 
   Future<void> saveRaceDetails(BuildContext context) async {
@@ -404,8 +360,6 @@ class RaceController with ChangeNotifier {
       dateController: dateController,
       distanceController: distanceController,
       unitController: unitController,
-      teamControllers: teamControllers,
-      teamColors: teamColors,
     );
     // Refresh the race data
     race = await loadRace();
@@ -418,7 +372,6 @@ class RaceController with ChangeNotifier {
       locationController: locationController,
       dateController: dateController,
       distanceController: distanceController,
-      teamControllers: teamControllers,
     );
     if (setupComplete && context.mounted) {
       await updateRaceFlowState(context, Race.FLOW_SETUP_COMPLETED);
@@ -460,50 +413,6 @@ class RaceController with ChangeNotifier {
     stopEditingField(fieldName);
 
     return true;
-  }
-
-  /// Show color picker dialog for team color
-  void showColorPicker(BuildContext context, StateSetter setSheetState,
-      TextEditingController teamController) {
-    final index = teamControllers.indexOf(teamController);
-    if (index < 0) return;
-
-    Color pickerColor = teamColors[index];
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Pick a color for this team'),
-          content: SingleChildScrollView(
-            child: ColorPicker(
-              pickerColor: pickerColor,
-              onColorChanged: (color) {
-                pickerColor = color;
-              },
-              pickerAreaHeightPercent: 0.8,
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                setSheetState(() {
-                  teamColors[index] = pickerColor;
-                });
-                Navigator.of(context).pop();
-              },
-              child: const Text('Select'),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   /// Load the race data and any saved results
@@ -625,8 +534,7 @@ class RaceController with ChangeNotifier {
           nameController: nameController,
           locationController: locationController,
           dateController: dateController,
-          distanceController: distanceController,
-          teamControllers: teamControllers);
+          distanceController: distanceController);
 
       if (!canAdvance) {
         return;
@@ -693,8 +601,24 @@ class RaceController with ChangeNotifier {
   }
 
   /// Navigate back to race details
-  void navigateToRaceDetails() {
+  Future<void> navigateToRaceDetails() async {
     _showingRunnersManagement = false;
+
+    // Refresh race data to get updated team information
+    await refreshRaceData();
+
+    notifyListeners();
+  }
+
+  /// Refresh race data from database
+  Future<void> refreshRaceData() async {
+    final previousTeamCount = race?.teams.length ?? 0;
+    race = await loadRaceDataOnly();
+    await loadRunnersCount();
+    final newTeamCount = race?.teams.length ?? 0;
+
+    Logger.d(
+        'Race data refreshed: $previousTeamCount -> $newTeamCount teams, $runnersCount runners');
     notifyListeners();
   }
 

@@ -28,18 +28,26 @@ export '../../coach/race_screen/widgets/tab_bar.dart';
 export '../../coach/race_screen/widgets/tab_bar_view.dart';
 export '../../coach/race_screen/widgets/flow_notification.dart';
 export '../../coach/race_screen/widgets/race_status_indicator.dart';
+export '../../coach/race_screen/widgets/inline_editable_field.dart';
+export '../../coach/race_screen/widgets/unsaved_changes_bar.dart';
+export '../../coach/race_screen/widgets/runner_record.dart';
+export '../../coach/race_screen/widgets/modern_detail_row.dart';
+export '../../coach/race_screen/widgets/detail_card.dart';
 
 // Widgets - Form Fields
 export '../../coach/race_screen/widgets/race_name_field.dart';
 export '../../coach/race_screen/widgets/race_location_field.dart';
 export '../../coach/race_screen/widgets/race_date_field.dart';
 export '../../coach/race_screen/widgets/race_distance_field.dart';
-export '../../coach/race_screen/widgets/competing_teams_field.dart';
 
 // Widgets - Races List
 export '../../coach/races_screen/widgets/races_list.dart';
 export '../../coach/races_screen/widgets/race_card.dart';
 export '../../coach/races_screen/widgets/race_creation_sheet.dart';
+export '../../coach/races_screen/widgets/action_button.dart';
+export '../../coach/races_screen/widgets/race_coach_mark.dart';
+export '../../coach/races_screen/widgets/race_tutorial_coach_mark.dart'
+    hide RaceCoachMark;
 
 // Widgets - Flow Components
 export '../../coach/flows/widgets/flow_indicator.dart';

@@ -5,7 +5,6 @@ import '../../../core/theme/typography.dart';
 import '../../../core/utils/database_helper.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
 import 'package:xceleration/core/components/textfield_utils.dart';
-import 'modern_detail_row.dart';
 import '../controller/race_screen_controller.dart';
 import 'inline_editable_field.dart';
 import 'package:provider/provider.dart';
@@ -159,6 +158,10 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
               runnerCount = snapshot.hasData
                   ? (snapshot.data as List).length
                   : runnerCount;
+
+              // Calculate team count
+              int teamCount = race.teams.length;
+
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -222,12 +225,7 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
                           return '${race.distance} ${race.distanceUnit}';
                         },
                       ),
-                      // Teams field - read-only for now
-                      ModernDetailRow(
-                        label: 'Teams',
-                        value: race.teams.join(', '),
-                        icon: Icons.groups,
-                      ),
+
                       const SizedBox(height: 16),
                       runnerCount == 0
                           ? Container(
@@ -248,7 +246,7 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
                                   ),
                                 ),
                                 child: Text(
-                                  'Load Runners',
+                                  'Load Teams and Runners',
                                   style: TextStyle(
                                     color: AppColors.primaryColor,
                                     fontWeight: FontWeight.w600,
@@ -283,7 +281,7 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
                                             CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            'Runners',
+                                            'Teams and Runners',
                                             style: AppTypography.bodyRegular
                                                 .copyWith(
                                               color: ColorUtils.withOpacity(
@@ -292,7 +290,7 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
                                           ),
                                           const SizedBox(height: 4),
                                           Text(
-                                            '$runnerCount runner${runnerCount == 1 ? '' : 's'}',
+                                            '$teamCount team${teamCount == 1 ? '' : 's'}, $runnerCount runner${runnerCount == 1 ? '' : 's'}',
                                             style: AppTypography.bodySemibold
                                                 .copyWith(
                                               color: AppColors.darkColor,

@@ -16,7 +16,7 @@ class RunnerInputForm extends StatefulWidget {
   final List<String> schoolOptions;
 
   /// Callback when the form is submitted
-  final Function(RunnerRecord) onSubmit;
+  final Future<void> Function(RunnerRecord) onSubmit;
 
   /// Initial runner data (for editing)
   final RunnerRecord? initialRunner;
@@ -33,6 +33,9 @@ class RunnerInputForm extends StatefulWidget {
   /// Whether to show the bib field
   final bool showBibField;
 
+  /// Callback when a new team is created
+  final Future<void> Function(String)? onTeamCreated;
+
   const RunnerInputForm({
     super.key,
     this.initialName,
@@ -46,6 +49,7 @@ class RunnerInputForm extends StatefulWidget {
     this.submitButtonText = 'Create',
     this.useSheetLayout = true,
     this.showBibField = true,
+    this.onTeamCreated,
   });
 
   @override
@@ -64,6 +68,12 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
   String? schoolError;
   String? bibError;
 
+  // Track updated school options including newly created teams
+  late List<String> _currentSchoolOptions;
+
+  // Track the team that needs to be created when form is submitted
+  String? _pendingTeamCreation;
+
   @override
   void initState() {
     super.initState();
@@ -73,6 +83,9 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
     gradeController = TextEditingController();
     schoolController = TextEditingController();
     bibController = TextEditingController();
+
+    // Initialize school options
+    _currentSchoolOptions = List.from(widget.schoolOptions);
 
     // Initialize with existing data if editing
     if (widget.initialRunner != null) {
@@ -181,12 +194,17 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
         bibController.text.isEmpty;
   }
 
-  void handleSubmit() {
+  Future<void> handleSubmit() async {
     if (hasErrors()) {
       return;
     }
 
     try {
+      // Create any pending team before submitting the runner
+      if (_pendingTeamCreation != null && widget.onTeamCreated != null) {
+        await widget.onTeamCreated!(_pendingTeamCreation!);
+      }
+
       final runner = RunnerRecord(
         name: nameController.text,
         grade: int.tryParse(gradeController.text) ?? 0,
@@ -195,10 +213,204 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
         raceId: widget.raceId,
       );
 
-      widget.onSubmit(runner);
+      await widget.onSubmit(runner);
     } catch (e) {
       Logger.e('Error in runner input form: $e');
     }
+  }
+
+  void _handleSchoolChange(String value) {
+    // Clear pending team creation when school selection changes
+    _pendingTeamCreation = null;
+
+    // Check if this is a new team that was created in the dialog
+    if (value.isNotEmpty &&
+        !widget.schoolOptions.contains(value) &&
+        _currentSchoolOptions.contains(value)) {
+      // Mark this team as pending creation (will be created on form submit)
+      _pendingTeamCreation = value;
+    }
+
+    validateSchool(value);
+  }
+
+  Widget _buildSchoolField() {
+    if (_currentSchoolOptions.isEmpty) {
+      // If no school options, show text field for manual entry
+      return textfield_utils.buildTextField(
+        context: context,
+        controller: schoolController,
+        hint: 'Enter school name',
+        error: schoolError,
+        onChanged: (value) {
+          _pendingTeamCreation = value;
+        },
+        setSheetState: setState,
+      );
+    } else {
+      // Show dropdown with option to add new
+      return _buildSchoolDropdown();
+    }
+  }
+
+  Widget _buildSchoolDropdown() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Focus(
+          onFocusChange: (hasFocus) {
+            if (!hasFocus) {
+              _handleSchoolChange(schoolController.text);
+            }
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              color: schoolError != null
+                  ? Colors.red.withAlpha((0.05 * 255).round())
+                  : Colors.grey.withAlpha((0.05 * 255).round()),
+              border: Border.all(
+                  color: schoolError != null
+                      ? Colors.red.withAlpha((0.5 * 255).round())
+                      : Colors.grey.withAlpha((0.5 * 255).round())),
+              borderRadius: BorderRadius.circular(12.0),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: ButtonTheme(
+                alignedDropdown: true,
+                child: DropdownButton<String>(
+                  value: (schoolController.text.isEmpty ||
+                          !_currentSchoolOptions
+                              .contains(schoolController.text))
+                      ? null
+                      : schoolController.text,
+                  hint: Text(
+                      widget.onTeamCreated != null
+                          ? 'Select School or Create New'
+                          : 'Select School',
+                      style: TextStyle(color: Colors.grey)),
+                  isExpanded: true,
+                  items: [
+                    // Existing schools
+                    ..._currentSchoolOptions.map((item) => DropdownMenuItem(
+                          value: item,
+                          child: Text(item),
+                        )),
+                    // Add new team option only if team creation is allowed
+                    if (widget.onTeamCreated != null)
+                      const DropdownMenuItem(
+                        value: '__CREATE_NEW__',
+                        child: Row(
+                          children: [
+                            Icon(Icons.add, size: 16, color: Colors.blue),
+                            SizedBox(width: 8),
+                            Text('Create New Team',
+                                style: TextStyle(color: Colors.blue)),
+                          ],
+                        ),
+                      ),
+                  ],
+                  onChanged: (value) {
+                    if (value == '__CREATE_NEW__') {
+                      _showCreateNewTeamDialog();
+                    } else {
+                      setState(() => schoolController.text = value ?? '');
+                      _handleSchoolChange(value ?? '');
+                    }
+                  },
+                ),
+              ),
+            ),
+          ),
+        ),
+        if (schoolError != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 4, left: 12),
+            child: Text(
+              schoolError!,
+              style: const TextStyle(
+                color: Colors.red,
+                fontSize: 12,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  void _showCreateNewTeamDialog() {
+    final TextEditingController newTeamController = TextEditingController();
+    String? newTeamError;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Create New Team'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Enter the name for the new team:'),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: newTeamController,
+                    autofocus: true,
+                    decoration: InputDecoration(
+                      hintText: 'Team name',
+                      border: const OutlineInputBorder(),
+                      errorText: newTeamError,
+                    ),
+                    onChanged: (value) {
+                      setDialogState(() {
+                        if (value.trim().isEmpty) {
+                          newTeamError = 'Please enter a team name';
+                        } else if (_currentSchoolOptions
+                            .contains(value.trim())) {
+                          newTeamError = 'Team already exists';
+                        } else {
+                          newTeamError = null;
+                        }
+                      });
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: newTeamError == null &&
+                          newTeamController.text.trim().isNotEmpty
+                      ? () {
+                          final newTeamName = newTeamController.text.trim();
+
+                          // Add to local options and update controller
+                          setState(() {
+                            _currentSchoolOptions.add(newTeamName);
+                            _currentSchoolOptions.sort();
+                            schoolController.text = newTeamName;
+                          });
+
+                          // Mark as pending creation (will be created when form is submitted)
+                          _pendingTeamCreation = newTeamName;
+
+                          _handleSchoolChange(newTeamName);
+                          Navigator.of(context).pop();
+                        }
+                      : null,
+                  child: const Text('Create'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   Widget buildInputField(String label, Widget inputWidget) {
@@ -259,23 +471,7 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
         const SizedBox(height: 16),
         buildInputField(
           'School',
-          widget.schoolOptions.isEmpty
-              ? textfield_utils.buildTextField(
-                  context: context,
-                  controller: schoolController,
-                  hint: 'Enter school name',
-                  error: schoolError,
-                  onChanged: validateSchool,
-                  setSheetState: setState,
-                )
-              : textfield_utils.buildDropdown(
-                  controller: schoolController,
-                  hint: 'Select School',
-                  error: schoolError,
-                  onChanged: validateSchool,
-                  setSheetState: setState,
-                  items: widget.schoolOptions..sort(),
-                ),
+          _buildSchoolField(),
         ),
         if (widget.showBibField) ...[
           const SizedBox(height: 16),

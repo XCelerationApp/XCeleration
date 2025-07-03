@@ -194,7 +194,8 @@ class RacesController extends ChangeNotifier {
   // Checks if all required fields are filled for a complete setup
   Future<bool> isSetupComplete(Race race) async {
     final moreThanFiveRunnersPerTeam =
-        await RunnersManagementScreen.checkMinimumRunnersLoaded(race.raceId);
+        await TeamsAndRunnersManagementWidget.checkMinimumRunnersLoaded(
+            race.raceId);
     return race.raceName.isNotEmpty &&
         race.location.isNotEmpty &&
         race.raceDate != null &&

@@ -119,7 +119,13 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
                 child: SlidingPageView(
                   showSecondPage: controller.showingRunnersManagement,
                   secondPageTitle: 'Runners',
-                  onBackToFirst: controller.navigateToRaceDetails,
+                  onBackToFirst: () {
+                    // Handle async navigation in a fire-and-forget manner
+                    controller.navigateToRaceDetails().catchError((error) {
+                      // Log error but don't block UI
+                      debugPrint('Error navigating to race details: $error');
+                    });
+                  },
                   firstPage: Column(
                     children: [
                       RaceHeader(controller: controller),
@@ -130,10 +136,16 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
                       ),
                     ],
                   ),
-                  secondPage: RunnersManagementScreen(
+                  secondPage: TeamsAndRunnersManagementWidget(
                     raceId: controller.raceId,
                     showHeader: false,
                     isViewMode: !controller.canEdit,
+                    onContentChanged: () {
+                      // Refresh race data when runners/teams change
+                      controller.refreshRaceData().catchError((error) {
+                        debugPrint('Error refreshing race data: $error');
+                      });
+                    },
                   ),
                 ),
               )

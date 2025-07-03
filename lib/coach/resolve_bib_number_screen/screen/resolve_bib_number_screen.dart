@@ -75,14 +75,14 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
     }
   }
 
-  void _handleSubmitRunner(RunnerRecord runner) {
+  Future<void> _handleSubmitRunner(RunnerRecord runner) async {
     // Transfer form data to controller for resolution
     _controller.nameController.text = runner.name;
     _controller.gradeController.text = runner.grade.toString();
     _controller.schoolController.text = runner.school;
 
     // Now call the controller's method to create the runner
-    _controller.createNewRunner();
+    await _controller.createNewRunner();
   }
 
   Widget _buildCreateNewForm() {
@@ -96,6 +96,8 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
           schoolOptions: _schools,
           raceId: _controller.raceId,
           onSubmit: _handleSubmitRunner,
+          // No team creation allowed when resolving bib conflicts
+          onTeamCreated: null,
           submitButtonText: 'Create New Runner',
           useSheetLayout: false,
           showBibField: false,

@@ -14,7 +14,7 @@ class ReviewRunnersStep extends FlowStep {
           title: 'Review Runners',
           description:
               'Make sure all runner information is correct before the race starts. You can make any last-minute changes here.',
-          content: RunnersManagementScreen(
+          content: TeamsAndRunnersManagementWidget(
             raceId: raceId,
             showHeader: false,
             onBack: null,
@@ -30,7 +30,7 @@ class ReviewRunnersStep extends FlowStep {
 
   Future<void> checkRunners() async {
     final hasEnoughRunners =
-        await RunnersManagementScreen.checkMinimumRunnersLoaded(raceId);
+        await TeamsAndRunnersManagementWidget.checkMinimumRunnersLoaded(raceId);
     Logger.d('Has enough runners: $hasEnoughRunners');
     if (_canProceed != hasEnoughRunners) {
       _canProceed = hasEnoughRunners;
@@ -40,7 +40,7 @@ class ReviewRunnersStep extends FlowStep {
 
   @override
   Widget get content {
-    return RunnersManagementScreen(
+    return TeamsAndRunnersManagementWidget(
       raceId: raceId,
       showHeader: false,
       onBack: null,

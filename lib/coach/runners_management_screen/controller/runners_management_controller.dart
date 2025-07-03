@@ -86,6 +86,106 @@ class RunnersManagementController with ChangeNotifier {
     notifyListeners();
   }
 
+  /// Create a new team with a generated color
+  Future<void> createTeam(String teamName) async {
+    if (teamName.trim().isEmpty) return;
+
+    final trimmedName = teamName.trim();
+
+    // Check if team already exists
+    if (teams.any((team) => team.name == trimmedName)) return;
+
+    // Generate a new color for the team
+    final newColor = _generateTeamColor(teams.length);
+
+    // Add to local teams list
+    final newTeam = Team(name: trimmedName, color: newColor);
+    teams.add(newTeam);
+    teams.sort((a, b) => a.name.compareTo(b.name));
+
+    // Save to database
+    await _saveTeamsToDatabase();
+
+    notifyListeners();
+    onContentChanged?.call();
+    Logger.d('Created new team: $trimmedName');
+  }
+
+  /// Generate a color for a team based on the current number of teams
+  Color _generateTeamColor(int index) {
+    // Generate distinct colors using HSL color space
+    final hue = (360 / 8 * index) % 360; // Spread across color wheel
+    return HSLColor.fromAHSL(1.0, hue, 0.7, 0.5).toColor();
+  }
+
+  /// Save teams to database
+  Future<void> _saveTeamsToDatabase() async {
+    final teamNames = teams.map((team) => team.name).toList();
+    final teamColors = teams.map((team) => team.color.toARGB32()).toList();
+
+    await DatabaseHelper.instance.updateRaceField(raceId, 'teams', teamNames);
+    await DatabaseHelper.instance
+        .updateRaceField(raceId, 'teamColors', teamColors);
+  }
+
+  /// Delete a team from the local list and database
+  Future<void> _deleteTeam(String teamName) async {
+    if (teamName.trim().isEmpty) return;
+
+    final trimmedName = teamName.trim();
+
+    // Remove from local teams list
+    teams.removeWhere((team) => team.name == trimmedName);
+
+    // Save updated teams to database
+    await _saveTeamsToDatabase();
+
+    notifyListeners();
+    onContentChanged?.call();
+    Logger.d('Deleted team: $trimmedName');
+  }
+
+  /// Create multiple teams from a list of team names (used when loading from spreadsheet)
+  Future<void> createTeamsFromList(List<String> teamNames) async {
+    bool teamsAdded = false;
+
+    for (final teamName in teamNames) {
+      final trimmedName = teamName.trim();
+      if (trimmedName.isEmpty) continue;
+
+      // Check if team already exists
+      if (teams.any((team) => team.name == trimmedName)) continue;
+
+      // Generate a new color for the team
+      final newColor = _generateTeamColor(teams.length);
+
+      // Add to local teams list
+      final newTeam = Team(name: trimmedName, color: newColor);
+      teams.add(newTeam);
+      teamsAdded = true;
+
+      Logger.d('Created new team from spreadsheet: $trimmedName');
+    }
+
+    if (teamsAdded) {
+      teams.sort((a, b) => a.name.compareTo(b.name));
+      await _saveTeamsToDatabase();
+      notifyListeners();
+      onContentChanged?.call();
+    }
+  }
+
+  /// Extract unique team names from a list of runners
+  List<String> extractUniqueTeams(List<RunnerRecord> runners) {
+    final teamNames = runners
+        .map((runner) => runner.school.trim())
+        .where((school) => school.isNotEmpty)
+        .toSet()
+        .toList();
+    teamNames.sort();
+    return teamNames;
+  }
+
   Future<void> loadRunners() async {
     Logger.d('Loading runners...');
     runners = await DatabaseHelper.instance.getRaceRunners(raceId);
@@ -151,14 +251,30 @@ class RunnersManagementController with ChangeNotifier {
   }
 
   Future<void> deleteRunner(RunnerRecord runner) async {
+    // Store the team name before deletion
+    final deletedRunnerTeam = runner.school;
+
+    // Delete the runner from database
     await DatabaseHelper.instance.deleteRaceRunner(raceId, runner.bib);
+
+    // Reload runners to get updated list
     await loadRunners();
+
+    // Check if this was the last runner from their team
+    final remainingRunnersFromTeam =
+        runners.where((r) => r.school == deletedRunnerTeam).toList();
+
+    if (remainingRunnersFromTeam.isEmpty) {
+      // Delete the team since no runners remain
+      await _deleteTeam(deletedRunnerTeam);
+      Logger.d('Deleted team "$deletedRunnerTeam" as no runners remain');
+    }
   }
 
   // Dialog and Action Methods
   Future<void> showRunnerSheet({
     required BuildContext context,
-    RunnerRecord? runner,
+    required RunnerRecord? runner,
   }) async {
     final title = runner == null ? 'Add Runner' : 'Edit Runner';
 
@@ -189,6 +305,10 @@ class RunnersManagementController with ChangeNotifier {
               WidgetsBinding.instance.addPostFrameCallback((_) async {
                 await handleRunnerSubmission(context, runnerCopy);
               });
+            },
+            onTeamCreated: (String teamName) async {
+              // Handle new team creation
+              await createTeam(teamName);
             },
             submitButtonText: runner == null ? 'Create' : 'Save',
             useSheetLayout: true,
@@ -304,14 +424,20 @@ class RunnersManagementController with ChangeNotifier {
     final confirmed = await DialogUtils.showConfirmationDialog(
       context,
       title: 'Confirm Deletion',
-      content: 'Are you sure you want to delete all runners?',
+      content:
+          'Are you sure you want to delete all runners? This will also remove all teams.',
     );
 
     if (!confirmed) return;
 
     await DatabaseHelper.instance.deleteAllRaceRunners(raceId);
 
+    // Clear all teams since no runners remain
+    teams.clear();
+    await _saveTeamsToDatabase();
+
     await loadRunners();
+    Logger.d('Deleted all runners and cleared all teams');
   }
 
   Future<void> showSampleSpreadsheet(BuildContext context) async {
@@ -515,6 +641,39 @@ class RunnersManagementController with ChangeNotifier {
     final List<RunnerRecord> runnerData = await processSpreadsheet(
         raceId, false, context,
         useGoogleDrive: useGoogleDrive);
+
+    if (runnerData.isEmpty) return;
+
+    // Extract unique teams from the spreadsheet data
+    final uniqueTeams = extractUniqueTeams(runnerData);
+    final existingTeamNames = teams.map((team) => team.name).toList();
+    final newTeams = uniqueTeams
+        .where((teamName) => !existingTeamNames.contains(teamName))
+        .toList();
+
+    // Create new teams if any are found
+    if (newTeams.isNotEmpty && context.mounted) {
+      final shouldCreateTeams = await DialogUtils.showConfirmationDialog(
+        context,
+        title: 'New Teams Found',
+        content:
+            'Found ${newTeams.length} new team(s): ${newTeams.join(', ')}.\n\nDo you want to create these teams?',
+        confirmText: 'Create Teams',
+        cancelText: 'Cancel',
+      );
+
+      if (shouldCreateTeams) {
+        await createTeamsFromList(newTeams);
+        Logger.d('Created ${newTeams.length} new teams from spreadsheet');
+      } else {
+        // Filter out runners from teams that weren't created
+        runnerData.removeWhere((runner) => newTeams.contains(runner.school));
+        if (runnerData.isEmpty) {
+          Logger.d('No runners to import after filtering out new teams');
+          return;
+        }
+      }
+    }
 
     final schools = (await DatabaseHelper.instance.getRaceById(raceId))?.teams;
 

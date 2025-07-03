@@ -14,8 +14,6 @@ class RaceService {
     required TextEditingController dateController,
     required TextEditingController distanceController,
     required TextEditingController unitController,
-    required List<TextEditingController> teamControllers,
-    required List<Color> teamColors,
   }) async {
     // First, always update the race name
     await DatabaseHelper.instance
@@ -41,11 +39,7 @@ class RaceService {
     await DatabaseHelper.instance.updateRaceField(raceId, 'distance', distance);
     await DatabaseHelper.instance
         .updateRaceField(raceId, 'distanceUnit', unitController.text);
-    await saveTeamData(
-      raceId: raceId,
-      teamControllers: teamControllers,
-      teamColors: teamColors,
-    );
+    // Note: Teams are now managed separately by RunnersManagementController
   }
 
   /// Checks if all requirements are met to advance to setup_complete.
@@ -56,40 +50,27 @@ class RaceService {
     required TextEditingController locationController,
     required TextEditingController dateController,
     required TextEditingController distanceController,
-    required List<TextEditingController> teamControllers,
   }) async {
     if (race?.flowState != Race.FLOW_SETUP) return true;
+
     // Check for minimum runners
     final hasMinimumRunners =
-        await RunnersManagementScreen.checkMinimumRunnersLoaded(raceId);
+        await TeamsAndRunnersManagementWidget.checkMinimumRunnersLoaded(raceId);
+
+    // Get current race data to check for teams
+    final currentRace = await DatabaseHelper.instance.getRaceById(raceId);
+    final hasTeams = currentRace != null && currentRace.teams.isNotEmpty;
+
     // Check if essential race fields are filled
     final fieldsComplete = nameController.text.isNotEmpty &&
         locationController.text.isNotEmpty &&
         dateController.text.isNotEmpty &&
         distanceController.text.isNotEmpty &&
-        teamControllers
-            .where((controller) => controller.text.isNotEmpty)
-            .isNotEmpty;
-    Logger.d(
-        'hasMinimumRunners: $hasMinimumRunners, fieldsComplete: $fieldsComplete');
-    return hasMinimumRunners && fieldsComplete;
-  }
+        hasTeams;
 
-  /// Saves team data to the database.
-  static Future<void> saveTeamData({
-    required int raceId,
-    required List<TextEditingController> teamControllers,
-    required List<Color> teamColors,
-  }) async {
-    // Compose teams and colors
-    final teams = teamControllers
-        .map((controller) => controller.text.trim())
-        .where((text) => text.isNotEmpty)
-        .toList();
-    final colors = teamColors.map((color) => color.toARGB32()).toList();
-    // Use raceId if available, otherwise skip
-    await DatabaseHelper.instance.updateRaceField(raceId, 'teams', teams);
-    await DatabaseHelper.instance.updateRaceField(raceId, 'teamColors', colors);
+    Logger.d(
+        'hasMinimumRunners: $hasMinimumRunners, fieldsComplete: $fieldsComplete, hasTeams: $hasTeams');
+    return hasMinimumRunners && fieldsComplete;
   }
 
   /// Validation helpers for form fields.

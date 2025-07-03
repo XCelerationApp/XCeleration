@@ -10,7 +10,7 @@ import '../widgets/runner_search_bar.dart';
 import '../widgets/runners_list.dart';
 
 // Main Screen
-class RunnersManagementScreen extends StatefulWidget {
+class TeamsAndRunnersManagementWidget extends StatefulWidget {
   final int raceId;
   final VoidCallback? onBack;
   final VoidCallback? onContentChanged;
@@ -45,7 +45,7 @@ class RunnersManagementScreen extends StatefulWidget {
     return true;
   }
 
-  const RunnersManagementScreen({
+  const TeamsAndRunnersManagementWidget({
     super.key,
     required this.raceId,
     this.showHeader,
@@ -55,11 +55,12 @@ class RunnersManagementScreen extends StatefulWidget {
   });
 
   @override
-  State<RunnersManagementScreen> createState() =>
-      _RunnersManagementScreenState();
+  State<TeamsAndRunnersManagementWidget> createState() =>
+      _TeamsAndRunnersManagementWidgetState();
 }
 
-class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
+class _TeamsAndRunnersManagementWidgetState
+    extends State<TeamsAndRunnersManagementWidget> {
   late RunnersManagementController _controller;
 
   @override
@@ -97,7 +98,7 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
                   children: [
                     if (controller.showHeader) ...[
                       createSheetHeader(
-                        'Race Runners',
+                        'Teams and Runners',
                         backArrow: true,
                         context: context,
                         onBack: widget.onBack,
