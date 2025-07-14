@@ -24,7 +24,7 @@ class RaceResultsController {
   Future<void> _calculateResults() async {
     // Get race name from database
     try {
-      final race = await dbHelper.getRaceById(raceId);
+      final race = await dbHelper.getRace(raceId);
       if (race != null) {
         _raceName = race.raceName;
       } else {
@@ -110,9 +110,10 @@ class RaceResultsController {
 
   List<TeamRecord> _getTeamsFromResults(List<ResultsRecord> results) {
     final List<TeamRecord> teams = [];
-    for (var team in groupBy(results, (result) => result.school).entries) {
+    for (var team in groupBy(results, (result) => result.team).entries) {
       final teamRecord = TeamRecord(
-        school: team.key,
+        team: team.key,
+        teamAbbreviation: team.value.first.teamAbbreviation,
         runners: team.value,
       );
       teams.add(teamRecord);

@@ -1,38 +1,46 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/utils/database_helper.dart';
 import 'package:xceleration/core/utils/logger.dart';
+import 'package:xceleration/shared/models/database/race_runner.dart';
+import 'package:xceleration/shared/models/database/team_participant.dart';
 import '../../../core/components/dropup_button.dart';
 import 'package:flutter/services.dart';
 import 'package:xceleration/core/theme/typography.dart';
 import '../../../core/components/dialog_utils.dart';
 import '../../../core/components/runner_input_form.dart';
-import '../../../core/utils/database_helper.dart';
 import '../../../core/utils/file_processing.dart';
 import '../../../core/utils/sheet_utils.dart';
 import '../../race_screen/widgets/runner_record.dart';
-import '../model/team.dart';
+import '../../../shared/models/database/master_race.dart';
+import '../../../shared/models/database/runner.dart';
+import '../../../shared/models/database/team.dart';
+import '../../../core/components/create_team_sheet.dart';
+import '../widgets/existing_teams_browser_dialog.dart';
+import '../../../shared/models/database/race_participant.dart';
 
 class RunnersManagementController with ChangeNotifier {
-  List<RunnerRecord> runners = [];
-  List<RunnerRecord> filteredRunners = [];
-  final List<Team> teams = [];
-  bool isLoading = true;
-  bool showHeader = true;
-  String searchAttribute = 'Bib Number';
-  final TextEditingController searchController = TextEditingController();
-
-  // Sheet controllers
-  TextEditingController? nameController;
-  TextEditingController? gradeController;
-  TextEditingController? schoolController;
-  TextEditingController? bibController;
-
   final int raceId;
   final VoidCallback? onBack;
   final VoidCallback? onContentChanged;
   final bool isViewMode;
+  bool showHeader = true;
+
+  // Use MasterRace for all data management
+  late final MasterRace masterRace;
+
+  // Database Helper
+  final DatabaseHelper db = DatabaseHelper.instance;
+
+  // Store the listener function to properly remove it later
+  late final VoidCallback _masterRaceListener;
+
+  // UI state
+  bool isLoading = true;
+  String searchAttribute = 'Bib Number';
+  final TextEditingController searchController = TextEditingController();
 
   // Store initial state to compare with final state
-  List<RunnerRecord> _initialRunners = [];
+  List<RaceRunner> _initialRaceRunners = [];
 
   RunnersManagementController({
     required this.raceId,
@@ -40,201 +48,86 @@ class RunnersManagementController with ChangeNotifier {
     this.onBack,
     this.onContentChanged,
     this.isViewMode = false,
-  });
+  }) {
+    masterRace = MasterRace.getInstance(raceId);
+
+    // Create and store the listener function
+    _masterRaceListener = () {
+      _updateFilteredRaceRunners();
+      notifyListeners();
+    };
+
+    // Listen to changes from MasterRace
+    masterRace.addListener(_masterRaceListener);
+  }
 
   Future<void> init() async {
-    initControllers();
     await loadData();
   }
 
   Future<void> loadData() async {
     Logger.d('Loading data...');
-    await Future.wait([
-      loadRunners(),
-      loadTeams(),
-    ]);
-    isLoading = false;
+    isLoading = true;
     notifyListeners();
-    Logger.d('Data loaded');
-  }
 
-  void initControllers() {
-    disposeControllers(); // Clean up any existing controllers first
-    nameController = TextEditingController();
-    gradeController = TextEditingController();
-    schoolController = TextEditingController();
-    bibController = TextEditingController();
-  }
+    try {
+      // Load initial data through MasterRace (will be cached)
+      final raceRunners = await masterRace.raceRunners;
+      final teams = await masterRace.teams;
 
-  void disposeControllers() {
-    nameController?.dispose();
-    gradeController?.dispose();
-    schoolController?.dispose();
-    bibController?.dispose();
-    nameController = null;
-    gradeController = null;
-    schoolController = null;
-    bibController = null;
-  }
+      // Capture initial state on first load
+      if (_initialRaceRunners.isEmpty) {
+        _initialRaceRunners = List.from(raceRunners);
+      }
 
-  Future<void> loadTeams() async {
-    final race = await DatabaseHelper.instance.getRaceById(raceId);
-    teams.clear();
-    for (var i = 0; i < race!.teams.length; i++) {
-      teams.add(Team(name: race.teams[i], color: race.teamColors[i]));
-    }
-    notifyListeners();
-  }
-
-  /// Create a new team with a generated color
-  Future<void> createTeam(String teamName) async {
-    if (teamName.trim().isEmpty) return;
-
-    final trimmedName = teamName.trim();
-
-    // Check if team already exists
-    if (teams.any((team) => team.name == trimmedName)) return;
-
-    // Generate a new color for the team
-    final newColor = _generateTeamColor(teams.length);
-
-    // Add to local teams list
-    final newTeam = Team(name: trimmedName, color: newColor);
-    teams.add(newTeam);
-    teams.sort((a, b) => a.name.compareTo(b.name));
-
-    // Save to database
-    await _saveTeamsToDatabase();
-
-    notifyListeners();
-    onContentChanged?.call();
-    Logger.d('Created new team: $trimmedName');
-  }
-
-  /// Generate a color for a team based on the current number of teams
-  Color _generateTeamColor(int index) {
-    // Generate distinct colors using HSL color space
-    final hue = (360 / 8 * index) % 360; // Spread across color wheel
-    return HSLColor.fromAHSL(1.0, hue, 0.7, 0.5).toColor();
-  }
-
-  /// Save teams to database
-  Future<void> _saveTeamsToDatabase() async {
-    final teamNames = teams.map((team) => team.name).toList();
-    final teamColors = teams.map((team) => team.color.toARGB32()).toList();
-
-    await DatabaseHelper.instance.updateRaceField(raceId, 'teams', teamNames);
-    await DatabaseHelper.instance
-        .updateRaceField(raceId, 'teamColors', teamColors);
-  }
-
-  /// Delete a team from the local list and database
-  Future<void> _deleteTeam(String teamName) async {
-    if (teamName.trim().isEmpty) return;
-
-    final trimmedName = teamName.trim();
-
-    // Remove from local teams list
-    teams.removeWhere((team) => team.name == trimmedName);
-
-    // Save updated teams to database
-    await _saveTeamsToDatabase();
-
-    notifyListeners();
-    onContentChanged?.call();
-    Logger.d('Deleted team: $trimmedName');
-  }
-
-  /// Create multiple teams from a list of team names (used when loading from spreadsheet)
-  Future<void> createTeamsFromList(List<String> teamNames) async {
-    bool teamsAdded = false;
-
-    for (final teamName in teamNames) {
-      final trimmedName = teamName.trim();
-      if (trimmedName.isEmpty) continue;
-
-      // Check if team already exists
-      if (teams.any((team) => team.name == trimmedName)) continue;
-
-      // Generate a new color for the team
-      final newColor = _generateTeamColor(teams.length);
-
-      // Add to local teams list
-      final newTeam = Team(name: trimmedName, color: newColor);
-      teams.add(newTeam);
-      teamsAdded = true;
-
-      Logger.d('Created new team from spreadsheet: $trimmedName');
-    }
-
-    if (teamsAdded) {
-      teams.sort((a, b) => a.name.compareTo(b.name));
-      await _saveTeamsToDatabase();
+      _updateFilteredRaceRunners();
+      isLoading = false;
       notifyListeners();
       onContentChanged?.call();
+
+      Logger.d(
+          'Data loaded: ${raceRunners.length} race runners, ${teams.length} teams');
+    } catch (e) {
+      Logger.e('Error loading data: $e');
+      isLoading = false;
+      notifyListeners();
     }
   }
 
-  /// Extract unique team names from a list of runners
-  List<String> extractUniqueTeams(List<RunnerRecord> runners) {
-    final teamNames = runners
-        .map((runner) => runner.school.trim())
-        .where((school) => school.isNotEmpty)
-        .toSet()
-        .toList();
-    teamNames.sort();
-    return teamNames;
-  }
+  // ============================================================================
+  // DATA ACCESS (delegated to MasterRace)
+  // ============================================================================
 
-  Future<void> loadRunners() async {
-    Logger.d('Loading runners...');
-    runners = await DatabaseHelper.instance.getRaceRunners(raceId);
-    filteredRunners = runners;
-    sortRunners();
+  // ============================================================================
+  // SEARCH AND FILTERING
+  // ============================================================================
 
-    // Capture initial state on first load
-    if (_initialRunners.isEmpty) {
-      _initialRunners = List.from(runners);
-    }
+  void filterRaceRunners(String query) async {
+    
+    final searchAttr = switch (searchAttribute) {
+      'Bib Number' => 'bib',
+      'Name' => 'name',
+      'Grade' => 'grade',
+      'Team' => 'team',
+      _ => 'all',
+    };
 
-    notifyListeners();
-    onContentChanged?.call();
-  }
-
-  void sortRunners() {
-    runners.sort((a, b) {
-      final schoolCompare = a.school.compareTo(b.school);
-      if (schoolCompare != 0) return schoolCompare;
-      return a.name.compareTo(b.name);
-    });
-  }
-
-  void filterRunners(String query) {
-    if (query.isEmpty) {
-      filteredRunners = List.from(runners);
-    } else {
-      filteredRunners = runners.where((runner) {
-        final value = switch (searchAttribute) {
-          'Bib Number' => runner.bib,
-          'Name' => runner.name.toLowerCase(),
-          'Grade' => runner.grade.toString(),
-          'School' => runner.school.toLowerCase(),
-          String() => '',
-        };
-        return value.contains(query.toLowerCase());
-      }).toList();
-    }
+    await masterRace.searchRaceRunners(query, searchAttr);
     notifyListeners();
   }
 
-  Future<void> handleRunnerAction(
-      BuildContext context, String action, RunnerRecord runner) async {
+  void _updateFilteredRaceRunners() async {
+    filterRaceRunners(searchController.text);
+  }
+  // ============================================================================
+  // RUNNER OPERATIONS
+  // ============================================================================
+
+  Future<void> handleRaceRunnerAction(
+      BuildContext context, String action, RaceRunner raceRunner) async {
     switch (action) {
       case 'Edit':
-        await showRunnerSheet(
-          context: context,
-          runner: runner,
-        );
+        await showRaceRunnerSheet(context: context, raceRunner: raceRunner);
         break;
       case 'Delete':
         final confirmed = await DialogUtils.showConfirmationDialog(
@@ -243,182 +136,231 @@ class RunnersManagementController with ChangeNotifier {
           content: 'Are you sure you want to delete this runner?',
         );
         if (confirmed) {
-          await deleteRunner(runner);
-          await loadRunners();
+          await deleteRaceRunner(raceRunner);
         }
         break;
     }
   }
 
-  Future<void> deleteRunner(RunnerRecord runner) async {
-    // Store the team name before deletion
-    final deletedRunnerTeam = runner.school;
-
-    // Delete the runner from database
-    await DatabaseHelper.instance.deleteRaceRunner(raceId, runner.bib);
-
-    // Reload runners to get updated list
-    await loadRunners();
-
-    // Check if this was the last runner from their team
-    final remainingRunnersFromTeam =
-        runners.where((r) => r.school == deletedRunnerTeam).toList();
-
-    if (remainingRunnersFromTeam.isEmpty) {
-      // Delete the team since no runners remain
-      await _deleteTeam(deletedRunnerTeam);
-      Logger.d('Deleted team "$deletedRunnerTeam" as no runners remain');
+  Future<void> deleteRaceRunner(RaceRunner raceRunner) async {
+    try {
+      await masterRace.removeRaceRunner(raceRunner);
+      onContentChanged?.call();
+      Logger.d('Deleted runner: ${raceRunner.runner.runnerId}');
+    } catch (e) {
+      Logger.e('Error deleting runner: $e');
+      throw Exception('Failed to delete runner: $e');
     }
   }
 
-  // Dialog and Action Methods
-  Future<void> showRunnerSheet({
+  Future<void> showRaceRunnerSheet({
     required BuildContext context,
-    required RunnerRecord? runner,
+    RaceRunner? raceRunner,
   }) async {
-    final title = runner == null ? 'Add Runner' : 'Edit Runner';
+    final title = raceRunner == null ? 'Add Runner' : 'Edit Runner';
+    final teamsList = await masterRace.teams;
+    if (!context.mounted) return;
 
     try {
       await sheet(
-          context: context,
-          body: RunnerInputForm(
-            initialName: runner?.name,
-            initialGrade: runner?.grade.toString(),
-            initialSchool: runner?.school,
-            initialBib: runner?.bib,
-            schoolOptions: teams.map((team) => team.name).toList()..sort(),
-            raceId: raceId,
-            initialRunner: runner,
-            onSubmit: (RunnerRecord runner) async {
-              // Make a copy of the runner data to avoid any issues
-              final RunnerRecord runnerCopy = RunnerRecord(
-                bib: runner.bib,
-                name: runner.name,
-                grade: runner.grade,
-                school: runner.school,
-                raceId: runner.raceId,
-                runnerId: runner.runnerId,
-                flags: runner.flags,
-              );
-
-              // Use post-frame callback to ensure form is fully done
-              WidgetsBinding.instance.addPostFrameCallback((_) async {
-                await handleRunnerSubmission(context, runnerCopy);
-              });
-            },
-            onTeamCreated: (String teamName) async {
-              // Handle new team creation
-              await createTeam(teamName);
-            },
-            submitButtonText: runner == null ? 'Create' : 'Save',
-            useSheetLayout: true,
-            showBibField: true,
-          ),
-          title: title);
-    } finally {
-      // No need to dispose controllers as the form manages them internally now
+        context: context,
+        body: RunnerInputForm(
+          masterRace: masterRace,
+          teamOptions: teamsList,
+          initialRaceRunner: raceRunner,
+          onSubmit: (RaceRunner raceRunner) async {
+            await handleRunnerSubmission(context, raceRunner);
+          },
+          onTeamCreated: (Team team) async {
+            await createTeam(team);
+          },
+          submitButtonText: raceRunner == null ? 'Create' : 'Save',
+          useSheetLayout: true,
+          showBibField: true,
+        ),
+        title: title,
+      );
+    } catch (e) {
+      Logger.e('Error showing runner sheet: $e');
     }
   }
 
   Future<void> handleRunnerSubmission(
-      BuildContext context, RunnerRecord runner) async {
+      BuildContext context, RaceRunner raceRunner) async {
     try {
-      RunnerRecord? existingRunner;
-      existingRunner =
-          await DatabaseHelper.instance.getRaceRunnerByBib(raceId, runner.bib);
-      Logger.d('existingRunner: ${existingRunner?.toMap()}');
+      final existingRunner =
+          await masterRace.db.getRunnerByBib(raceRunner.runner.bibNumber!);
 
-      if (existingRunner != null) {
-        // If we're updating the same runner (same ID), just update
-        if (existingRunner.runnerId == runner.runnerId) {
-          Logger.d('Updating runner: ${runner.toMap()}');
-          await updateRunner(runner);
-        } else {
-          // If a different runner exists with this bib, ask for confirmation
-          // Check if context is still mounted before showing dialog
-          if (!context.mounted) return;
+      if (existingRunner != null &&
+          existingRunner.runnerId != raceRunner.runner.runnerId) {
+        // Different runner exists with this bib
+        if (!context.mounted) return;
 
-          final shouldOverwrite = await DialogUtils.showConfirmationDialog(
-            context,
-            title: 'Overwrite Runner',
-            content:
-                'A runner with bib number ${runner.bib} already exists. Do you want to overwrite it?',
-          );
+        final shouldOverwrite = await DialogUtils.showConfirmationDialog(
+          context,
+          title: 'Overwrite Runner',
+          content:
+              'A runner with bib number ${raceRunner.runner.bibNumber!} already exists. Do you want to overwrite it?',
+        );
 
-          if (!shouldOverwrite) return;
+        if (!shouldOverwrite) return;
 
-          // Check if context is still mounted after confirmation dialog
-          if (!context.mounted) return;
-
-          await DatabaseHelper.instance.deleteRaceRunner(raceId, runner.bib);
-          await insertRunner(runner);
-        }
-      } else {
-        await insertRunner(runner);
+        // Remove existing runner first
+        await masterRace.removeRaceRunner(raceRunner);
       }
 
-      await loadRunners();
-      if (onContentChanged != null) {
-        onContentChanged!();
+      if (raceRunner.runner.runnerId == null) {
+        // Create new runner
+        final newRunnerId = await masterRace.db.createRunner(raceRunner.runner);
+        await masterRace.addRaceParticipant(RaceParticipant(
+          raceId: raceId,
+          runnerId: newRunnerId,
+          teamId: raceRunner.team.teamId,
+        ));
+      } else {
+        // Update existing runner - need to implement update in MasterRace
+        // For now, remove and re-add
+        await masterRace.db.removeRunner(raceRunner.runner.runnerId!);
+        final newRunnerId = await masterRace.db.createRunner(raceRunner.runner);
+        await masterRace.addRaceParticipant(RaceParticipant(
+          raceId: raceId,
+          runnerId: newRunnerId,
+          teamId: raceRunner.team.teamId,
+        ));
+      }
+
+      onContentChanged?.call();
+      Logger.d('Runner submission successful: ${raceRunner.runner.name}');
+
+      if (context.mounted) {
+        Navigator.of(context).pop();
       }
     } catch (e) {
+      Logger.e('Error handling runner submission: $e');
       throw Exception('Failed to save runner: $e');
     }
-
-    // Check if context is still mounted after async operations
-    if (!context.mounted) return;
-    Navigator.of(context).pop();
   }
 
-  Future<void> insertRunner(RunnerRecord runner) async {
-    Logger.d('Inserting runner: ${runner.toMap()}');
-    await DatabaseHelper.instance.insertRaceRunner(runner);
-  }
+  // ============================================================================
+  // TEAM OPERATIONS
+  // ============================================================================
 
-  Future<void> updateRunner(RunnerRecord runner) async {
-    await DatabaseHelper.instance.updateRaceRunner(runner);
-  }
+  Future<void> createTeam(Team team) async {
+    if (team.name == null || team.name!.trim().isEmpty) return;
 
-  /// Reset flow state to sharing runners if actual changes were made
-  Future<void> _resetFlowStateOnExit() async {
-    // Compare current runners with initial state
-    if (!_hasActualChanges()) return;
+    try {
+      // Check if team already exists
+      final existingTeam = await masterRace.getTeamByName(team.name!);
+      if (existingTeam != null) {
+        Logger.d('Team already exists: ${team.name}');
+        return;
+      }
 
-    final race = await DatabaseHelper.instance.getRaceById(raceId);
-    if (race == null) return;
+      await db.createTeam(team);
 
-    // Check if flow state should be reset to sharing runners
-    final shouldReset = _shouldResetToSharingRunners(race.flowState);
-    if (shouldReset) {
-      Logger.d(
-          'Resetting flow state to sharing runners due to runner modifications');
-      await DatabaseHelper.instance.updateRaceFlowState(raceId, 'pre-race');
+      await masterRace.addTeamParticipant(TeamParticipant(
+        raceId: raceId,
+        teamId: team.teamId!,
+        colorOverride: team.color?.value,
+      ));
+      onContentChanged?.call();
+      Logger.d('Created new team: ${team.name}');
+      loadData();
+    } catch (e) {
+      Logger.e('Error creating team: $e');
+      throw Exception('Failed to create team: $e');
     }
   }
 
-  /// Check if there are actual changes between initial and current runners
-  bool _hasActualChanges() {
-    if (_initialRunners.length != runners.length) return true;
-
-    // Convert to sets of runner identifiers for comparison
-    final initialIds = _initialRunners
-        .map((r) => '${r.bib}-${r.name}-${r.school}-${r.grade}')
-        .toSet();
-    final currentIds =
-        runners.map((r) => '${r.bib}-${r.name}-${r.school}-${r.grade}').toSet();
-
-    return !initialIds.containsAll(currentIds) ||
-        !currentIds.containsAll(initialIds);
+  Future<void> showAddRunnerToTeam(BuildContext context, Team team) async {
+    await showRaceRunnerSheet(
+      context: context,
+      raceRunner: null,
+    );
   }
 
-  /// Check if flow state should be reset to sharing runners when runners are modified
-  bool _shouldResetToSharingRunners(String? flowState) {
-    if (flowState == null) return false;
-
-    // Reset to sharing runners if the race is past the sharing runners step
-    // This includes pre-race-completed and post-race states
-    return flowState == 'pre-race-completed' || flowState == 'post-race';
+  Future<void> showImportRunnersToTeam(BuildContext context, Team team) async {
+    await loadSpreadsheet(context, team);
   }
+
+  Future<void> showCreateTeamSheet(BuildContext context) async {
+    await sheet(
+      context: context,
+      title: 'Create New Team',
+      body: CreateTeamSheet(
+        masterRace: masterRace,
+        createTeam: createTeam,
+      ),
+    );
+  }
+
+  Future<void> showExistingTeamsBrowser(BuildContext context) async {
+    try {
+      final otherTeams = await masterRace.getOtherTeams();
+
+      if (otherTeams.isEmpty) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No teams available from other races.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
+
+      if (!context.mounted) return;
+
+      // Convert to the format expected by the dialog
+      final availableTeamMaps = otherTeams.map((team) => team.toMap()).toList();
+
+      final selectedTeams = await showDialog<List<Map<String, dynamic>>>(
+        context: context,
+        builder: (context) => ExistingTeamsBrowserDialog(
+          availableTeams: availableTeamMaps,
+          raceId: raceId,
+        ),
+      );
+
+      if (selectedTeams != null && selectedTeams.isNotEmpty) {
+        // Add selected teams to the race
+        for (final teamData in selectedTeams) {
+          final team = teamData['team'];
+          await masterRace.addTeamParticipant(TeamParticipant(
+            raceId: raceId,
+            teamId: team.teamId!,
+            colorOverride: team.color?.value.toInt(),
+          ));
+
+          // Add selected runners if any
+          final selectedRunnerIds = teamData['runners'] as List<int>? ?? [];
+          for (final runnerId in selectedRunnerIds) {
+            await masterRace.addRaceParticipant(RaceParticipant(
+              raceId: raceId,
+              runnerId: runnerId,
+              teamId: team.teamId!,
+            ));
+          }
+        }
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Added ${selectedTeams.length} team(s) to race'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      Logger.e('Error showing existing teams browser: $e');
+    }
+  }
+
+  // ============================================================================
+  // BULK OPERATIONS
+  // ============================================================================
 
   Future<void> confirmDeleteAllRunners(BuildContext context) async {
     final confirmed = await DialogUtils.showConfirmationDialog(
@@ -430,55 +372,114 @@ class RunnersManagementController with ChangeNotifier {
 
     if (!confirmed) return;
 
-    await DatabaseHelper.instance.deleteAllRaceRunners(raceId);
+    try {
+      final raceParticipantsList = await masterRace.raceParticipants;
+      for (final raceParticipant in raceParticipantsList) {
+        if (raceParticipant.runnerId != null) {
+          await masterRace.removeRaceParticipant(raceParticipant);
+        }
+      }
 
-    // Clear all teams since no runners remain
-    teams.clear();
-    await _saveTeamsToDatabase();
+      final teamsList = await masterRace.teams;
+      for (final team in teamsList) {
+        await masterRace.removeTeamFromRace(TeamParticipant(
+          raceId: raceId,
+          teamId: team.teamId!,
+        ));
+      }
 
-    await loadRunners();
-    Logger.d('Deleted all runners and cleared all teams');
+      onContentChanged?.call();
+      Logger.d('Deleted all runners');
+    } catch (e) {
+      Logger.e('Error deleting all runners: $e');
+    }
   }
 
-  Future<void> showSampleSpreadsheet(BuildContext context) async {
-    final file = await rootBundle
-        .loadString('assets/sample_sheets/sample_spreadsheet.csv');
+  Future<void> loadSpreadsheet(BuildContext context, Team team) async {
+    final bool useGoogleDrive = await showSpreadsheetLoadSheet(context);
 
-    // Check if context is still mounted after async operation
-    if (!context.mounted) return;
+    try {
+      final List<Map<String, dynamic>> importData = await processSpreadsheet(
+        context,
+        useGoogleDrive: useGoogleDrive,
+      );
 
-    final lines = file.split('\n');
-    final table = Table(
-      border: TableBorder.all(color: Colors.grey),
-      children: lines.map((line) {
-        final cells = line.split(',');
-        return TableRow(
-          children: cells.map((cell) {
-            return TableCell(
-              verticalAlignment: TableCellVerticalAlignment.middle,
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Text(cell),
-              ),
-            );
-          }).toList(),
+      if (importData.isEmpty) return;
+
+      final existingRunners = <Runner>[];
+
+      for (final runnerData in importData) {
+        final runner = Runner(
+          name: runnerData['name'] as String,
+          bibNumber: runnerData['bibNumber'] as String,
+          grade: int.parse(runnerData['grade'] as String),
         );
-      }).toList(),
-    );
+        if (runner.bibNumber == null) {
+          Logger.e('Runner has no bib number: ${runner.name}');
+          continue;
+        }
+        final existingRunner = await db.getRunnerByBib(runner.bibNumber!);
+        if (existingRunner != null) {
+          if (existingRunner.name == runner.name &&
+              existingRunner.grade == runner.grade &&
+              existingRunner.bibNumber == runner.bibNumber) {
+            // Runner already exists with the same bib number, name, and grade, no need to create a new one
+            continue;
+          }
+          existingRunners.add(existingRunner);
+          continue;
+        }
+        final newRunnerId = await db.createRunner(runner);
+        await masterRace.addRaceParticipant(RaceParticipant(
+          raceId: raceId,
+          runnerId: newRunnerId,
+          teamId: team.teamId!,
+        ));
+      }
 
-    await sheet(
-      context: context,
-      title: 'Sample Spreadsheet',
-      body: SingleChildScrollView(
-        child: table,
-      ),
-    );
-    return;
+      if (existingRunners.isNotEmpty) {
+        if (!context.mounted) return;
+
+        final shouldOverwrite = await DialogUtils.showConfirmationDialog(
+          context,
+          title: 'Overwrite Existing Runners',
+          content:
+              '${existingRunners.length} runner(s) already exist with the same bib numbers. Do you want to overwrite them?',
+        );
+
+        if (shouldOverwrite) {
+          for (final existingRunner in existingRunners) {
+            await db.removeRunner(existingRunner.runnerId!);
+            final newRunnerId = await db.createRunner(existingRunner);
+            await masterRace.addRaceParticipant(RaceParticipant(
+              raceId: raceId,
+              runnerId: newRunnerId,
+              teamId: team.teamId!,
+            ));
+          }
+        }
+      }
+
+      onContentChanged?.call();
+    } catch (e) {
+      Logger.e('Error handling spreadsheet load: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error importing runners: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
-  Future<Map<String, dynamic>?> showSpreadsheetLoadSheet(
-      BuildContext context) async {
-    return await sheet(
+  // ============================================================================
+  // UTILITY METHODS AND DIALOGS
+  // ============================================================================
+
+  Future<bool> showSpreadsheetLoadSheet(BuildContext context) async {
+    final result = await sheet(
       context: context,
       title: 'Import Runners',
       titleSize: 24,
@@ -506,7 +507,6 @@ class RunnersManagementController with ChangeNotifier {
                   ),
                 ),
                 const SizedBox(height: 20),
-                // Title
                 const Text(
                   'Import Runners from Spreadsheet',
                   style: TextStyle(
@@ -517,14 +517,12 @@ class RunnersManagementController with ChangeNotifier {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 12),
-                // Description
                 const Text(
-                  'Import your runners from a CSV or Excel spreadsheet. The file should have Name, Grade, School, and Bib Number columns in that order.',
+                  'Import your runners from a CSV or Excel spreadsheet. The file should have Name, Grade, and Bib Number columns in that order.',
                   style: AppTypography.bodyMedium,
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 20),
-                // View Sample Button
                 TextButton(
                   onPressed: () => showSampleSpreadsheet(context),
                   style: TextButton.styleFrom(
@@ -536,8 +534,6 @@ class RunnersManagementController with ChangeNotifier {
                   ),
                 ),
                 const SizedBox(height: 24),
-
-                // Import Button with Dropup Menu
                 SizedBox(
                   width: double.infinity,
                   child: DropupButton<Map<String, dynamic>>(
@@ -566,7 +562,6 @@ class RunnersManagementController with ChangeNotifier {
                         child: const Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            // Icon(Icons.cloud, color: Color(0xFFE2572B), size: 20),
                             Text('Select Google Sheet',
                                 style: TextStyle(fontWeight: FontWeight.w500)),
                             Icon(Icons.arrow_forward_ios,
@@ -581,7 +576,6 @@ class RunnersManagementController with ChangeNotifier {
                           children: [
                             Text('Select Local File',
                                 style: TextStyle(fontWeight: FontWeight.w500)),
-                            // Icon(Icons.folder_open, color: Color(0xFFE2572B), size: 20),
                             Icon(Icons.arrow_forward_ios,
                                 color: Color(0xFFE2572B), size: 20),
                           ],
@@ -593,165 +587,89 @@ class RunnersManagementController with ChangeNotifier {
                       children: [
                         Icon(Icons.file_upload, size: 20, color: Colors.white),
                         SizedBox(width: 8),
-                        Text(
-                          'Import Spreadsheet',
-                          style: AppTypography.bodyMedium,
-                        ),
+                        Text('Import Spreadsheet',
+                            style: AppTypography.bodyMedium),
                       ],
                     ),
                   ),
                 ),
-                // const SizedBox(height: 12),
-
-                // SizedBox(
-                //   width: double.infinity,
-                //   child: OutlinedButton(
-                //     onPressed: () => Navigator.of(context).pop(),
-                //     style: OutlinedButton.styleFrom(
-                //       foregroundColor: Colors.grey[700],
-                //       side: BorderSide(color: Colors.grey[400]!),
-                //       padding: const EdgeInsets.symmetric(vertical: 12),
-                //       shape: RoundedRectangleBorder(
-                //         borderRadius: BorderRadius.circular(8),
-                //       ),
-                //     ),
-                //     child: const Text(
-                //       'Cancel',
-                //       style: AppTypography.bodyMedium,
-                //     ),
-                //   ),
-                // ),
               ],
             ),
           );
         },
       ),
     );
+    return result['useGoogleDrive'] ?? false;
   }
 
-  Future<void> handleSpreadsheetLoad(BuildContext context) async {
-    final result = await showSpreadsheetLoadSheet(context);
-    if (result == null) return;
+  Future<void> showSampleSpreadsheet(BuildContext context) async {
+    final file = await rootBundle
+        .loadString('assets/sample_sheets/sample_spreadsheet.csv');
 
-    // Check if context is still mounted after sheet is closed
     if (!context.mounted) return;
 
-    final bool useGoogleDrive = result['useGoogleDrive'] ?? false;
+    final lines = file.split('\n');
+    final table = Table(
+      border: TableBorder.all(color: Colors.grey),
+      children: lines.map((line) {
+        final cells = line.split(',');
+        return TableRow(
+          children: cells.map((cell) {
+            return TableCell(
+              verticalAlignment: TableCellVerticalAlignment.middle,
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text(cell),
+              ),
+            );
+          }).toList(),
+        );
+      }).toList(),
+    );
 
-    final List<RunnerRecord> runnerData = await processSpreadsheet(
-        raceId, false, context,
-        useGoogleDrive: useGoogleDrive);
+    await sheet(
+      context: context,
+      title: 'Sample Spreadsheet',
+      body: SingleChildScrollView(child: table),
+    );
+  }
 
-    if (runnerData.isEmpty) return;
+  // ============================================================================
+  // CONVERSION UTILITIES
+  // ============================================================================
 
-    // Extract unique teams from the spreadsheet data
-    final uniqueTeams = extractUniqueTeams(runnerData);
-    final existingTeamNames = teams.map((team) => team.name).toList();
-    final newTeams = uniqueTeams
-        .where((teamName) => !existingTeamNames.contains(teamName))
-        .toList();
+  /// Convert Runner to RunnerRecord for compatibility with existing forms
+  RaceRunner _convertToRaceRunner(Runner runner, Team team) {
+    return RaceRunner(
+      raceId: raceId,
+      runner: runner,
+      team: team,
+    );
+  }
 
-    // Create new teams if any are found
-    if (newTeams.isNotEmpty && context.mounted) {
-      final shouldCreateTeams = await DialogUtils.showConfirmationDialog(
-        context,
-        title: 'New Teams Found',
-        content:
-            'Found ${newTeams.length} new team(s): ${newTeams.join(', ')}.\n\nDo you want to create these teams?',
-        confirmText: 'Create Teams',
-        cancelText: 'Cancel',
-      );
+  /// Convert RunnerRecord back to Runner
+  Runner _convertFromRunnerRecord(RunnerRecord record) {
+    return Runner(
+      runnerId: record.runnerId,
+      name: record.name,
+      bibNumber: record.bib,
+      grade: record.grade == 0 ? null : record.grade,
+    );
+  }
 
-      if (shouldCreateTeams) {
-        await createTeamsFromList(newTeams);
-        Logger.d('Created ${newTeams.length} new teams from spreadsheet');
-      } else {
-        // Filter out runners from teams that weren't created
-        runnerData.removeWhere((runner) => newTeams.contains(runner.school));
-        if (runnerData.isEmpty) {
-          Logger.d('No runners to import after filtering out new teams');
-          return;
-        }
-      }
-    }
+  /// Get team name for a runner (placeholder - would need proper implementation)
+  Future<String?> _getTeamNameForRunner(Runner? runner) async {
+    if (runner?.runnerId == null) return null;
 
-    final schools = (await DatabaseHelper.instance.getRaceById(raceId))?.teams;
-
-    final overwriteRunners = [];
-    final runnersFromDifferentSchool = [];
-    final runnersToAdd = [];
-    for (final runner in runnerData) {
-      dynamic existingRunner;
-      existingRunner =
-          await DatabaseHelper.instance.getRaceRunnerByBib(raceId, runner.bib);
-      if (existingRunner != null &&
-          runner.bib == existingRunner.bib &&
-          runner.name == existingRunner.name &&
-          runner.school == existingRunner.school &&
-          runner.grade == existingRunner.grade) {
-        continue;
-      }
-
-      if (schools != null && !schools.contains(runner.school)) {
-        runnersFromDifferentSchool.add(runner);
-        continue;
-      }
-      if (existingRunner != null) {
-        overwriteRunners.add(runner);
-      } else {
-        runnersToAdd.add(runner);
-      }
-    }
-
-    if (runnersFromDifferentSchool.isNotEmpty && context.mounted) {
-      final schools =
-          runnersFromDifferentSchool.map((runner) => runner.school).toSet();
-      final schoolsList = schools.toList();
-      final schoolsString = schoolsList.join(', ');
-
-      final shouldContinue = await DialogUtils.showConfirmationDialog(
-        context,
-        title: 'Runners from Different Schools',
-        content:
-            '${runnersFromDifferentSchool.length} runners are from different schools: $schoolsString. They will not be imported. Do you want to continue?',
-      );
-
-      if (!shouldContinue) return;
-    }
-
-    for (final runner in runnersToAdd) {
-      await DatabaseHelper.instance.insertRaceRunner(runner);
-    }
-    await loadRunners();
-
-    if (overwriteRunners.isEmpty) return;
-    final overwriteRunnersBibs =
-        overwriteRunners.map((runner) => runner.bib).toList();
-
-    if (context.mounted) {
-      final shouldOverwriteRunners = await DialogUtils.showConfirmationDialog(
-        context,
-        title: 'Confirm Overwrite',
-        content:
-            'Are you sure you want to overwrite the following runners with bib numbers: ${overwriteRunnersBibs.join(', ')}?',
-      );
-      if (!shouldOverwriteRunners) return;
-    } else {
-      Logger.d('Context not mounted, overwriting runners');
-    }
-    for (final runner in overwriteRunners) {
-      await DatabaseHelper.instance.deleteRaceRunner(raceId, runner.bib);
-      await DatabaseHelper.instance.insertRaceRunner(runner);
-    }
-    await loadRunners();
+    // This would need proper implementation to get team from runner
+    // For now, return a placeholder
+    return 'Default Team';
   }
 
   @override
   void dispose() {
-    // Reset flow state if changes were made during this session
-    _resetFlowStateOnExit();
     searchController.dispose();
-    disposeControllers();
+    masterRace.removeListener(_masterRaceListener);
     super.dispose();
   }
 }

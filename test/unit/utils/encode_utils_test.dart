@@ -152,14 +152,16 @@ void main() {
             bib: '101',
             name: 'John Doe',
             grade: 10,
-            school: 'High School',
+            team: 'Team 1',
+            teamAbbreviation: 'T1',
           ),
           RunnerRecord(
             raceId: 1,
             bib: '102',
             name: 'Jane Smith',
             grade: 11,
-            school: 'Another High School',
+            team: 'Team 2',
+            teamAbbreviation: 'T2',
           ),
         ];
 

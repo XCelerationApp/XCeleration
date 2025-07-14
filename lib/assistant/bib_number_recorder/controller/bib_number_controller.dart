@@ -3,21 +3,22 @@ import 'package:flutter/material.dart';
 import 'package:xceleration/core/theme/app_colors.dart';
 import 'package:xceleration/core/theme/typography.dart';
 import 'package:xceleration/core/utils/enums.dart' hide RunnerRecordFlags;
-import '../../../coach/race_screen/widgets/runner_record.dart';
 import '../../../core/components/dialog_utils.dart';
 import '../../../core/services/tutorial_manager.dart';
 import '../../../shared/role_bar/models/role_enums.dart' as role_enums;
 import '../../../shared/role_bar/role_bar.dart';
 import '../../../shared/role_bar/widgets/role_selector_sheet.dart';
 import '../../../core/utils/logger.dart';
-import '../../../core/utils/decode_utils.dart';
 import '../../../core/utils/sheet_utils.dart';
 import '../../../core/components/device_connection_widget.dart';
 import '../../../core/services/device_connection_service.dart';
+import '../../../core/utils/decode_utils.dart';
+import 'package:xceleration/shared/models/timing_records/bib_datum.dart';
+import '../model/bib_record.dart';
 
 class BibNumberController extends BibNumberDataController {
   final BuildContext context;
-  late final List<RunnerRecord> runners;
+  late final List<BibDatum> runners;
   late final ScrollController scrollController;
 
   late final DevicesManager devices;
@@ -75,15 +76,6 @@ class BibNumberController extends BibNumberDataController {
   }
 
   Future<void> _checkForRunners(BuildContext context) async {
-    // Logger.d('Checking for runners');
-    // Logger.d('Checking for runners');
-    // Logger.d((await DatabaseHelper.instance.getAllRaces()).map((race) => race.raceId).toString());
-    // runners.addAll(await DatabaseHelper.instance.getRaceRunners(3));
-    // runners.addAll(await DatabaseHelper.instance.getRaceRunners(2));
-    // runners.addAll(await DatabaseHelper.instance.getRaceRunners(1));
-    // runners.add(RunnerRecord(bib: '1', name: 'Teo Donnelley', raceId: 0, grade: 11, school: 'AW'));
-    // notifyListeners();
-    // return;
     if (runners.isEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         showDialog(
@@ -137,7 +129,8 @@ class BibNumberController extends BibNumberDataController {
       try {
         Logger.d('Data received: $data');
         // Process data outside of setState
-        final loadedRunners = await decodeEncodedRunners(data, context);
+        final loadedRunners =
+            await BibDecodeUtils.decodeEncodedRunners(data, context);
 
         // Check if the widget is still mounted before using context
         if (!context.mounted) return;
@@ -154,7 +147,7 @@ class BibNumberController extends BibNumberDataController {
         final runnerInCorrectFormat = loadedRunners.every((runner) =>
             runner.bib.isNotEmpty &&
             runner.name.isNotEmpty &&
-            runner.school.isNotEmpty);
+            runner.teamAbbreviation.isNotEmpty);
 
         if (!runnerInCorrectFormat) {
           Logger.e(
@@ -291,7 +284,7 @@ class BibNumberController extends BibNumberDataController {
                 Expanded(
                   flex: 2,
                   child: Text(
-                    'School',
+                    'Team',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
@@ -352,13 +345,13 @@ class BibNumberController extends BibNumberDataController {
                         Expanded(
                           flex: 2,
                           child: Text(
-                            runner.school,
+                            runner.teamAbbreviation,
                             style: const TextStyle(fontSize: 15),
                           ),
                         ),
                         Expanded(
                           child: Text(
-                            runner.grade.toString(),
+                            runner.grade,
                             style: const TextStyle(fontSize: 15),
                           ),
                         ),
@@ -443,7 +436,7 @@ class BibNumberController extends BibNumberDataController {
   }
 
   /// Gets a runner by bib number if it exists in the list of runners
-  RunnerRecord? getRunnerByBib(String bib) {
+  BibDatum? getRunnerByBib(String bib) {
     for (final runner in runners) {
       if (runner.bib == bib) {
         return runner;
@@ -453,8 +446,7 @@ class BibNumberController extends BibNumberDataController {
   }
 
   // Bib number validation and handling
-  Future<void> validateBibNumber(
-      int index, String bibNumber, List<double>? confidences) async {
+  Future<void> validateBibNumber(int index, String bibNumber) async {
     if (index < 0 || index >= _bibRecords.length) {
       return;
     }
@@ -464,42 +456,42 @@ class BibNumberController extends BibNumberDataController {
 
     // Special handling for empty inputs
     if (bibNumber.isEmpty) {
-      record.name = '';
-      record.school = '';
-      record.flags = const RunnerRecordFlags(
-        notInDatabase: false,
-        duplicateBibNumber: false,
-        lowConfidenceScore: false,
+      final updatedRecord = BibDatumRecord(
+        bib: bibNumber,
+        name: '',
+        teamAbbreviation: '',
+        grade: '',
+        flags: const BibDatumRecordFlags(
+          notInDatabase: false,
+          duplicateBibNumber: false,
+        ),
       );
-      updateBibRecord(index, record);
+      updateBibRecord(index, updatedRecord);
       return;
     }
 
     // Try to parse the bib number
     if (!bibNumber.contains(RegExp(r'^[0-9]+$'))) {
       // Not a valid number
-      record.name = '';
-      record.school = '';
-      record.flags = RunnerRecordFlags(
-        notInDatabase: true,
-        duplicateBibNumber: false,
-        lowConfidenceScore:
-            confidences != null && confidences.any((score) => score < 0.85),
+      final updatedRecord = BibDatumRecord(
+        bib: bibNumber,
+        name: '',
+        teamAbbreviation: '',
+        grade: '',
+        flags: BibDatumRecordFlags(
+          notInDatabase: true,
+          duplicateBibNumber: false,
+        ),
       );
-      updateBibRecord(index, record);
+      updateBibRecord(index, updatedRecord);
       return;
     }
 
     // Check for a matching runner
-    RunnerRecord? matchedRunner = getRunnerByBib(bibNumber);
+    BibDatum? matchedRunner = getRunnerByBib(bibNumber);
 
     if (matchedRunner != null) {
       // Found a match in database
-      record.name = matchedRunner.name;
-      record.school = matchedRunner.school;
-      record.grade = matchedRunner.grade;
-      record.raceId = matchedRunner.raceId;
-
       // Check for duplicate entries
       bool isDuplicate = false;
       int count = 0;
@@ -513,28 +505,31 @@ class BibNumberController extends BibNumberDataController {
         }
       }
 
-      record.flags = RunnerRecordFlags(
-        notInDatabase: false,
-        duplicateBibNumber: isDuplicate,
-        lowConfidenceScore:
-            confidences != null && confidences.any((score) => score < 0.85),
+      final updatedRecord = BibDatumRecord(
+        bib: bibNumber,
+        name: matchedRunner.name,
+        teamAbbreviation: matchedRunner.teamAbbreviation,
+        grade: matchedRunner.grade,
+        flags: BibDatumRecordFlags(
+          notInDatabase: false,
+          duplicateBibNumber: isDuplicate,
+        ),
       );
+      updateBibRecord(index, updatedRecord);
     } else {
       // No match in database
-      record.name = '';
-      record.school = '';
-      record.grade = -1;
-      record.raceId = -1;
-      record.flags = RunnerRecordFlags(
-        notInDatabase: true,
-        duplicateBibNumber: false,
-        lowConfidenceScore:
-            confidences != null && confidences.any((score) => score < 0.85),
+      final updatedRecord = BibDatumRecord(
+        bib: bibNumber,
+        name: '',
+        teamAbbreviation: '',
+        grade: '',
+        flags: BibDatumRecordFlags(
+          notInDatabase: true,
+          duplicateBibNumber: false,
+        ),
       );
+      updateBibRecord(index, updatedRecord);
     }
-
-    // Update the bib record with the runner information
-    updateBibRecord(index, record);
   }
 
   void addBib() {
@@ -550,7 +545,6 @@ class BibNumberController extends BibNumberDataController {
   /// Handles bib number changes with optimizations to prevent UI jumping
   Future<void> handleBibNumber(
     String bibNumber, {
-    List<double>? confidences,
     int? index,
   }) async {
     // Cancel any pending debounce timer
@@ -562,29 +556,24 @@ class BibNumberController extends BibNumberDataController {
         final record = _bibRecords[index];
 
         // Update text immediately without revalidating
-        record.bib = bibNumber;
-        updateBibRecord(index, record);
+        final updatedRecord = record.copyWith(bib: bibNumber);
+        updateBibRecord(index, updatedRecord);
 
         // Debounce the validation to prevent rapid UI updates while typing
         _debounceTimer = Timer(const Duration(milliseconds: 300), () async {
-          // Only validate if we still have focus to prevent unnecessary updates
-          if (focusNodes.length > index && focusNodes[index].hasFocus) {
-            await validateBibNumber(index, bibNumber, confidences);
-          }
+          await validateBibNumber(index, bibNumber); 
         });
       }
     } else {
       // Add new record
-      addBibRecord(RunnerRecord(
+      addBibRecord(BibDatumRecord(
         bib: bibNumber,
         name: '',
-        raceId: -1,
-        grade: -1,
-        school: '',
-        flags: const RunnerRecordFlags(
+        teamAbbreviation: '',
+        grade: '',
+        flags: const BibDatumRecordFlags(
           notInDatabase: false,
           duplicateBibNumber: false,
-          lowConfidenceScore: false,
         ),
       ));
 
@@ -597,7 +586,7 @@ class BibNumberController extends BibNumberDataController {
       _debounceTimer = Timer(const Duration(milliseconds: 300), () async {
         final newIndex = _bibRecords.length - 1;
         if (newIndex >= 0) {
-          await validateBibNumber(newIndex, bibNumber, confidences);
+          await validateBibNumber(newIndex, bibNumber);
         }
       });
     }
@@ -610,8 +599,7 @@ class BibNumberController extends BibNumberDataController {
         for (var i = 0; i < _bibRecords.length; i++) {
           if (i != index) {
             // Skip the one we're currently editing
-            await validateBibNumber(
-                i, _bibRecords[i].bib, i == index ? confidences : null);
+            await validateBibNumber(i, _bibRecords[i].bib);
           }
         }
       });
@@ -670,7 +658,7 @@ class BibNumberController extends BibNumberDataController {
 }
 
 class BibNumberDataController extends ChangeNotifier {
-  final List<RunnerRecord> _bibRecords = [];
+  final List<BibDatumRecord> _bibRecords = [];
   final List<TextEditingController> controllers = [];
   final List<FocusNode> focusNodes = [];
 
@@ -683,11 +671,11 @@ class BibNumberDataController extends ChangeNotifier {
     notifyListeners();
   }
 
-  List<RunnerRecord> get bibRecords => _bibRecords;
+  List<BibDatumRecord> get bibRecords => _bibRecords;
 
   bool get canAddBib {
     if (_bibRecords.isEmpty) return true;
-    final RunnerRecord lastBib = _bibRecords.last;
+    final BibDatumRecord lastBib = _bibRecords.last;
     if (lastBib.bib.isEmpty && focusNodes.last.hasPrimaryFocus) return false;
     return true;
   }
@@ -698,7 +686,7 @@ class BibNumberDataController extends ChangeNotifier {
     if (!(_bibRecords.length == controllers.length &&
         controllers.length == focusNodes.length)) {
       // Save existing bib records
-      final existingRecords = List<RunnerRecord>.from(_bibRecords);
+      final existingRecords = List<BibDatumRecord>.from(_bibRecords);
 
       // Clear and dispose all existing controllers and focus nodes
       for (var controller in controllers) {
@@ -725,7 +713,7 @@ class BibNumberDataController extends ChangeNotifier {
 
   /// Adds a new bib record with the specified runner record.
   /// Returns the index of the added record.
-  int addBibRecord(RunnerRecord record) {
+  int addBibRecord(BibDatumRecord record) {
     _bibRecords.add(record);
 
     final newIndex = _bibRecords.length - 1;
@@ -747,7 +735,7 @@ class BibNumberDataController extends ChangeNotifier {
   }
 
   /// Updates an existing bib record at the specified index.
-  void updateBibRecord(int index, RunnerRecord record) {
+  void updateBibRecord(int index, BibDatumRecord record) {
     if (index < 0 || index >= _bibRecords.length) return;
 
     // Ensure collections are in sync
@@ -818,8 +806,8 @@ class BibNumberDataController extends ChangeNotifier {
   }
 
   /// Returns all unique bib numbers and the corresponding runner records
-  Map<String, RunnerRecord> getBibsAndRunners() {
-    final map = <String, RunnerRecord>{};
+  Map<String, BibDatumRecord> getBibsAndRunners() {
+    final map = <String, BibDatumRecord>{};
     for (final record in _bibRecords) {
       if (record.bib.isNotEmpty) {
         map[record.bib] = record;

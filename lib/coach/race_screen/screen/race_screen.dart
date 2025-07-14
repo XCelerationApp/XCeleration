@@ -6,7 +6,7 @@ import '../widgets/tab_bar_view.dart';
 import '../widgets/race_header.dart';
 import '../widgets/race_details_tab.dart';
 import '../../../core/services/event_bus.dart';
-import '../../../shared/models/race.dart';
+import '../../../shared/models/database/race.dart';
 import 'dart:async';
 import '../../races_screen/controller/races_controller.dart';
 import '../../runners_management_screen/screen/runners_management_screen.dart';

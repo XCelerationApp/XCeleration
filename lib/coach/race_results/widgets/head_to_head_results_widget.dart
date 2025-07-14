@@ -104,7 +104,7 @@ class HeadToHeadResultsWidget extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          team.school,
+          team.teamAbbreviation,
           style: AppTypography.headerSemibold,
           textAlign: TextAlign.center,
           overflow: TextOverflow.ellipsis,

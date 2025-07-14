@@ -3,15 +3,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/components/dialog_utils.dart';
 import 'package:xceleration/core/utils/logger.dart';
-import 'package:xceleration/coach/race_screen/widgets/runner_record.dart';
 import 'google_drive_service.dart';
 import 'file_utils.dart';
 
 /// Process a spreadsheet for runner data, either from local storage or Google Drive
 /// Uses the modern GoogleDriveService with drive.file scope for Google Drive operations
-Future<List<RunnerRecord>> processSpreadsheet(
-    int raceId, bool isTeam, BuildContext context,
-    {bool useGoogleDrive = false}) async {
+Future<List<Map<String, dynamic>>> processSpreadsheet(BuildContext context, {bool useGoogleDrive = false}) async {
   File? selectedFile;
   final navigatorContext = Navigator.of(context, rootNavigator: true).context;
 
@@ -32,11 +29,11 @@ Future<List<RunnerRecord>> processSpreadsheet(
     }
 
     Logger.d('File selected: ${selectedFile.path}');
-    List<RunnerRecord>? result;
+    List<Map<String, dynamic>>? result;
     if (!context.mounted) context = navigatorContext;
     // Process the spreadsheet with loading dialog if context is mounted
     if (context.mounted) {
-      result = await DialogUtils.executeWithLoadingDialog<List<RunnerRecord>>(
+      result = await DialogUtils.executeWithLoadingDialog<List<Map<String, dynamic>>>(
           context, operation: () async {
         final parsedData = await FileUtils.parseSpreadsheetFile(selectedFile!);
 
@@ -52,7 +49,7 @@ Future<List<RunnerRecord>> processSpreadsheet(
           return [];
         }
 
-        return _processSpreadsheetData(parsedData, raceId, isTeam);
+        return _processSpreadsheetData(parsedData);
       }, loadingMessage: 'Processing spreadsheet...');
     } else {
       // If context is not mounted, process without loading dialog
@@ -67,7 +64,7 @@ Future<List<RunnerRecord>> processSpreadsheet(
         return [];
       }
 
-      result = _processSpreadsheetData(parsedData, raceId, isTeam);
+      result = _processSpreadsheetData(parsedData);
       Logger.d('Result: $result');
     }
 
@@ -90,17 +87,17 @@ Future<List<RunnerRecord>> processSpreadsheet(
   }
 }
 
-/// Convert spreadsheet data to runner records
-List<RunnerRecord> _processSpreadsheetData(
-    List<List<dynamic>> data, int raceId, bool isTeam) {
-  final List<RunnerRecord> runnerData = [];
+/// Process the spreadsheet data to get the runner data
+List<Map<String, dynamic>> _processSpreadsheetData(
+    List<List<dynamic>> data) {
+  final List<Map<String, dynamic>> runnerData = [];
 
   // Skip header row
   for (int i = 1; i < data.length; i++) {
     final row = data[i];
 
     // Ensure the row is not empty and contains the required columns
-    if (row.isNotEmpty && row.length >= 4) {
+    if (row.isNotEmpty && row.length >= 3) {
       // Parse the row data
       String name = row[0]?.toString() ?? '';
       // Handle grade which may be an int, double, or string
@@ -113,11 +110,9 @@ List<RunnerRecord> _processSpreadsheetData(
             (double.tryParse(rawGrade?.toString().trim() ?? '')?.round() ?? 0);
       }
 
-      String school = row[2]?.toString().trim() ?? '';
-
       // Handle bib number which may come back as a numeric type with a trailing decimal (e.g. 1.0)
       String bibNumber;
-      final dynamic rawBib = row[3];
+      final dynamic rawBib = row[2];
       if (rawBib is num) {
         bibNumber = rawBib.toInt().toString();
       } else {
@@ -133,28 +128,13 @@ List<RunnerRecord> _processSpreadsheetData(
       // Validate the parsed data
       if (name.isNotEmpty &&
           grade > 0 &&
-          school.isNotEmpty &&
           bibNumber.isNotEmpty &&
           bibNumberInt >= 0) {
-        if (isTeam) {
-          runnerData.add(RunnerRecord(
-            name: name,
-            school: school,
-            grade: grade,
-            bib: bibNumber,
-            runnerId: -1,
-            raceId: raceId,
-          ));
-        } else {
-          runnerData.add(RunnerRecord(
-            name: name,
-            school: school,
-            grade: grade,
-            bib: bibNumber,
-            runnerId: -1,
-            raceId: raceId,
-          ));
-        }
+        runnerData.add({
+          'name': name,
+          'grade': grade,
+          'bib': bibNumber,
+        });
       } else {
         Logger.d('Invalid data in row: $row');
       }

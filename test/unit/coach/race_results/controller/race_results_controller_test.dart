@@ -13,7 +13,8 @@ class MockDatabaseHelper extends Mock implements DatabaseHelper {
         ResultsRecord(
           place: 0,
           name: 'Runner B',
-          school: 'School B',
+          team: 'Team B',
+          teamAbbreviation: 'TB',
           finishTime: Duration(minutes: 20),
           grade: 12,
           bib: '102',
@@ -23,7 +24,8 @@ class MockDatabaseHelper extends Mock implements DatabaseHelper {
         ResultsRecord(
           place: 0,
           name: 'Runner A',
-          school: 'School A',
+          team: 'Team A',
+          teamAbbreviation: 'TA',
           finishTime: Duration(minutes: 16, seconds: 40),
           grade: 11,
           bib: '101',

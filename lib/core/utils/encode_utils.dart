@@ -1,48 +1,42 @@
 import 'package:xceleration/core/utils/logger.dart';
-import '../../shared/models/time_record.dart';
-import '../../coach/race_screen/widgets/runner_record.dart';
-import 'enums.dart';
-import 'database_helper.dart';
+import 'package:xceleration/shared/models/timing_records/bib_datum.dart';
+import 'package:xceleration/shared/models/timing_records/timing_datum.dart';
+import '../../shared/models/database/master_race.dart';
 
-/// Encodes a list of runners for a race into a string format
-Future<String> getEncodedRunnersData(int raceId) async {
-  final runners = await DatabaseHelper.instance.getRaceRunners(raceId);
-  Logger.d('Runners count: ${runners.length}');
-  return runners
-      .map((runner) => [
-            Uri.encodeComponent(runner.bib),
-            Uri.encodeComponent(runner.name),
-            Uri.encodeComponent(runner.school),
-            Uri.encodeComponent(runner.grade.toString()),
-          ].join(','))
-      .join(' ');
+
+class BibEncodeUtils {
+  /// Encodes a list of runners for a race into a string format
+  static Future<String> getEncodedRunnersBibData(MasterRace masterRace) async {
+    final raceParticipants = await masterRace.raceParticipants;
+    Logger.d('Runners count: ${raceParticipants.length}');
+
+    // Parallelize the async operations using Future.wait
+    final futures = raceParticipants.map((runner) async {
+      final raceRunner =
+          await masterRace.getRaceRunnerFromRaceParticipant(runner);
+      if (raceRunner == null) return '';
+      final bibDatum = BibDatum.fromRaceRunner(raceRunner);
+      return bibDatum.encode();
+    });
+
+    final encodedBibData = await Future.wait(futures);
+    return encodedBibData.where((encodedBibDatum) => encodedBibDatum.isNotEmpty).join(' ');
+  }
 }
 
-/// Encodes timing records into a string format
-String encodeTimeRecords(List<TimeRecord> records) {
-  return records
-      .map((record) {
-        if (record.type == RecordType.runnerTime) {
-          return record.elapsedTime;
-        }
-
-        // Handle conflict records with proper null checking
-        if (record.conflict != null) {
-          final data = record.conflict!.data;
-          if (data != null &&
-              data.containsKey('offBy') &&
-              data['offBy'] != null) {
-            return '${record.type} ${data['offBy']} ${record.elapsedTime}';
-          }
-        }
-
+class TimingEncodeUtils {
+  /// Encodes timing records into a string format
+  static Future<String> encodeTimeRecords(List<TimingDatum> timingData) async {
+    // Parallelize the encoding operations
+    final futures = timingData.map((timingDatum) async {
+      try {
+        return timingDatum.toEncodedString();
+      } catch (e) {
         return '';
-      })
-      .where((element) => element.isNotEmpty)
-      .join(',');
-}
+      }
+    });
 
-/// Encodes bib records into a string format
-String encodeBibRecords(List<RunnerRecord> runners) {
-  return runners.map((runner) => runner.bib).join(',');
+    final encodedTimingData = await Future.wait(futures);
+    return encodedTimingData.where((encodedTimingDatum) => encodedTimingDatum.isNotEmpty).join(',');
+  }
 }

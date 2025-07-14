@@ -1,28 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/utils/sheet_utils.dart';
 import '../utils/logger.dart';
 import './textfield_utils.dart' as textfield_utils;
-import '../../coach/race_screen/widgets/runner_record.dart';
 import '../components/button_components.dart';
+import '../../shared/models/database/team.dart';
+import '../../shared/models/database/race_runner.dart';
+import '../../shared/models/database/runner.dart';
+import 'create_team_sheet.dart';
+import '../../shared/models/database/master_race.dart';
 
 /// A shared widget for runner input form used across the app
 class RunnerInputForm extends StatefulWidget {
-  /// Initial values for the form fields
-  final String? initialName;
-  final String? initialGrade;
-  final String? initialSchool;
-  final String? initialBib;
+  /// Race ID associated with this runner
+  final MasterRace masterRace;
 
-  /// List of available school/team names
-  final List<String> schoolOptions;
+  /// List of available team names
+  final List<Team> teamOptions;
 
   /// Callback when the form is submitted
-  final Future<void> Function(RunnerRecord) onSubmit;
+  final Future<void> Function(RaceRunner) onSubmit;
 
   /// Initial runner data (for editing)
-  final RunnerRecord? initialRunner;
+  final RaceRunner? initialRaceRunner;
 
-  /// Race ID associated with this runner
-  final int raceId;
+  /// Required team data (for creating a new runner with a specific team)
+  final Team? requiredTeam;
 
   /// Button text for the submit button
   final String submitButtonText;
@@ -34,18 +36,15 @@ class RunnerInputForm extends StatefulWidget {
   final bool showBibField;
 
   /// Callback when a new team is created
-  final Future<void> Function(String)? onTeamCreated;
+  final Future<void> Function(Team)? onTeamCreated;
 
   const RunnerInputForm({
     super.key,
-    this.initialName,
-    this.initialGrade,
-    this.initialSchool,
-    this.initialBib,
-    required this.schoolOptions,
+    required this.masterRace,
+    required this.teamOptions,
     required this.onSubmit,
-    required this.raceId,
-    this.initialRunner,
+    this.initialRaceRunner,
+    this.requiredTeam,
     this.submitButtonText = 'Create',
     this.useSheetLayout = true,
     this.showBibField = true,
@@ -60,19 +59,24 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
   // Internal controllers that will be managed by this widget
   late TextEditingController nameController;
   late TextEditingController gradeController;
-  late TextEditingController schoolController;
+  late TextEditingController teamController;
+  late TextEditingController teamAbbreviationController;
   late TextEditingController bibController;
 
   String? nameError;
   String? gradeError;
-  String? schoolError;
+  String? teamError;
+  String? teamAbbreviationError;
   String? bibError;
 
-  // Track updated school options including newly created teams
-  late List<String> _currentSchoolOptions;
+  // Track updated team options including newly created teams
+  late List<Team> _currentTeamOptions;
+
+  // Track the currently selected team
+  Team? _selectedTeam;
 
   // Track the team that needs to be created when form is submitted
-  String? _pendingTeamCreation;
+  Team? _pendingTeamCreation;
 
   @override
   void initState() {
@@ -81,28 +85,27 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
     // Initialize controllers
     nameController = TextEditingController();
     gradeController = TextEditingController();
-    schoolController = TextEditingController();
+    teamController = TextEditingController();
+    teamAbbreviationController = TextEditingController();
     bibController = TextEditingController();
 
-    // Initialize school options
-    _currentSchoolOptions = List.from(widget.schoolOptions);
+    // Initialize team options
+    _currentTeamOptions = List.from(widget.teamOptions);
 
     // Initialize with existing data if editing
-    if (widget.initialRunner != null) {
-      nameController.text = widget.initialRunner!.name;
-      gradeController.text = widget.initialRunner!.grade.toString();
-      schoolController.text = widget.initialRunner!.school;
-      bibController.text = widget.initialRunner!.bib;
-    } else {
-      // Use initial values if provided
-      if (widget.initialName != null) nameController.text = widget.initialName!;
-      if (widget.initialGrade != null) {
-        gradeController.text = widget.initialGrade!;
-      }
-      if (widget.initialSchool != null) {
-        schoolController.text = widget.initialSchool!;
-      }
-      if (widget.initialBib != null) bibController.text = widget.initialBib!;
+    if (widget.initialRaceRunner != null) {
+      nameController.text = widget.initialRaceRunner!.runner.name!;
+      gradeController.text = widget.initialRaceRunner!.runner.grade!.toString();
+      teamController.text = widget.initialRaceRunner!.team.name!;
+      bibController.text = widget.initialRaceRunner!.runner.bibNumber!;
+      _selectedTeam = widget.initialRaceRunner!.team;
+      teamAbbreviationController.text =
+          widget.initialRaceRunner!.team.abbreviation ?? '';
+    }
+    if (widget.requiredTeam != null) {
+      teamController.text = widget.requiredTeam!.name!;
+      _selectedTeam = widget.requiredTeam!;
+      teamAbbreviationController.text = widget.requiredTeam!.abbreviation ?? '';
     }
   }
 
@@ -111,7 +114,8 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
     // Clean up controllers when the widget is disposed
     nameController.dispose();
     gradeController.dispose();
-    schoolController.dispose();
+    teamController.dispose();
+    teamAbbreviationController.dispose();
     bibController.dispose();
     super.dispose();
   }
@@ -151,14 +155,39 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
     }
   }
 
-  void validateSchool(String value) {
-    if (value.isEmpty) {
+  void validateTeam(Team? value) {
+    if (value == null) {
       setState(() {
-        schoolError = 'Please select a school';
+        teamError = 'Please select a team';
+      });
+    } else if (value.name == null || value.name!.isEmpty) {
+      setState(() {
+        teamError = 'Please enter a team name';
+      });
+    } else if (value.color == null) {
+      setState(() {
+        teamError = 'Please enter a team color';
       });
     } else {
       setState(() {
-        schoolError = null;
+        teamError = null;
+      });
+    }
+  }
+
+  void validateTeamAbbreviation(String value) {
+    if (value.isEmpty) {
+      setState(() {
+        teamAbbreviationError = 'Please enter a team abbreviation';
+      });
+    } else if (value.length > 3) {
+      setState(() {
+        teamAbbreviationError =
+            'Team abbreviation must be 3 characters or less';
+      });
+    } else {
+      setState(() {
+        teamAbbreviationError = null;
       });
     }
   }
@@ -172,9 +201,9 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
       setState(() {
         bibError = 'Please enter a valid bib number';
       });
-    } else if (int.parse(value) < 0) {
+    } else if (int.parse(value) <= 0) {
       setState(() {
-        bibError = 'Please enter a bib number greater than or equal to 0';
+        bibError = 'Please enter a bib number greater than 0';
       });
     } else {
       setState(() {
@@ -184,13 +213,13 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
   }
 
   bool hasErrors() {
-    return schoolError != null ||
+    return teamError != null ||
         bibError != null ||
         gradeError != null ||
         nameError != null ||
         nameController.text.isEmpty ||
         gradeController.text.isEmpty ||
-        schoolController.text.isEmpty ||
+        teamController.text.isEmpty ||
         bibController.text.isEmpty;
   }
 
@@ -205,12 +234,14 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
         await widget.onTeamCreated!(_pendingTeamCreation!);
       }
 
-      final runner = RunnerRecord(
-        name: nameController.text,
-        grade: int.tryParse(gradeController.text) ?? 0,
-        school: schoolController.text,
-        bib: bibController.text,
-        raceId: widget.raceId,
+      final runner = RaceRunner(
+        raceId: widget.masterRace.raceId,
+        runner: Runner(
+          name: nameController.text,
+          grade: int.tryParse(gradeController.text) ?? 0,
+          bibNumber: bibController.text,
+        ),
+        team: _selectedTeam!,
       );
 
       await widget.onSubmit(runner);
@@ -219,57 +250,74 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
     }
   }
 
-  void _handleSchoolChange(String value) {
-    // Clear pending team creation when school selection changes
+  void _handleTeamChange(Team? value) {
+    // Clear pending team creation when team selection changes
     _pendingTeamCreation = null;
+    _selectedTeam = value;
+
+    // Update text controller with team name
+    if (value != null && value.name != null) {
+      teamController.text = value.name!;
+      teamAbbreviationController.text = value.abbreviation ?? '';
+    } else {
+      teamController.text = '';
+      teamAbbreviationController.text = '';
+    }
 
     // Check if this is a new team that was created in the dialog
-    if (value.isNotEmpty &&
-        !widget.schoolOptions.contains(value) &&
-        _currentSchoolOptions.contains(value)) {
+    if (value != null &&
+        value.isValid &&
+        !widget.teamOptions.contains(value) &&
+        _currentTeamOptions.contains(value)) {
       // Mark this team as pending creation (will be created on form submit)
       _pendingTeamCreation = value;
     }
 
-    validateSchool(value);
+    validateTeam(value);
   }
 
-  Widget _buildSchoolField() {
-    if (_currentSchoolOptions.isEmpty) {
-      // If no school options, show text field for manual entry
+  Widget _buildTeamField() {
+    if (widget.requiredTeam != null && widget.requiredTeam!.name != null) {
+      return Text(widget.requiredTeam!.name!);
+    }
+    if (_currentTeamOptions.isEmpty) {
+      // If no team options, show text field for manual entry
       return textfield_utils.buildTextField(
         context: context,
-        controller: schoolController,
-        hint: 'Enter school name',
-        error: schoolError,
+        controller: teamController,
+        hint: 'Enter team name',
+        error: teamError,
         onChanged: (value) {
-          _pendingTeamCreation = value;
+          // Create a temporary team object for validation
+          final tempTeam =
+              Team(name: value, abbreviation: Team.generateAbbreviation(value));
+          _handleTeamChange(tempTeam);
         },
         setSheetState: setState,
       );
     } else {
       // Show dropdown with option to add new
-      return _buildSchoolDropdown();
+      return _buildTeamDropdown();
     }
   }
 
-  Widget _buildSchoolDropdown() {
+  Widget _buildTeamDropdown() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Focus(
           onFocusChange: (hasFocus) {
             if (!hasFocus) {
-              _handleSchoolChange(schoolController.text);
+              validateTeam(_selectedTeam);
             }
           },
           child: Container(
             decoration: BoxDecoration(
-              color: schoolError != null
+              color: teamError != null
                   ? Colors.red.withAlpha((0.05 * 255).round())
                   : Colors.grey.withAlpha((0.05 * 255).round()),
               border: Border.all(
-                  color: schoolError != null
+                  color: teamError != null
                       ? Colors.red.withAlpha((0.5 * 255).round())
                       : Colors.grey.withAlpha((0.5 * 255).round())),
               borderRadius: BorderRadius.circular(12.0),
@@ -277,28 +325,28 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
             child: DropdownButtonHideUnderline(
               child: ButtonTheme(
                 alignedDropdown: true,
-                child: DropdownButton<String>(
-                  value: (schoolController.text.isEmpty ||
-                          !_currentSchoolOptions
-                              .contains(schoolController.text))
-                      ? null
-                      : schoolController.text,
+                child: DropdownButton<Team?>(
+                  value: _selectedTeam != null &&
+                          _currentTeamOptions.contains(_selectedTeam)
+                      ? _selectedTeam
+                      : null,
                   hint: Text(
                       widget.onTeamCreated != null
-                          ? 'Select School or Create New'
-                          : 'Select School',
+                          ? 'Select Team or Create New'
+                          : 'Select Team',
                       style: TextStyle(color: Colors.grey)),
                   isExpanded: true,
                   items: [
-                    // Existing schools
-                    ..._currentSchoolOptions.map((item) => DropdownMenuItem(
-                          value: item,
-                          child: Text(item),
-                        )),
+                    // Existing teams
+                    ..._currentTeamOptions
+                        .map((team) => DropdownMenuItem<Team?>(
+                              value: team,
+                              child: Text(team.name ?? ''),
+                            )),
                     // Add new team option only if team creation is allowed
                     if (widget.onTeamCreated != null)
-                      const DropdownMenuItem(
-                        value: '__CREATE_NEW__',
+                      const DropdownMenuItem<Team?>(
+                        value: null,
                         child: Row(
                           children: [
                             Icon(Icons.add, size: 16, color: Colors.blue),
@@ -310,11 +358,10 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
                       ),
                   ],
                   onChanged: (value) {
-                    if (value == '__CREATE_NEW__') {
+                    if (value == null && widget.onTeamCreated != null) {
                       _showCreateNewTeamDialog();
                     } else {
-                      setState(() => schoolController.text = value ?? '');
-                      _handleSchoolChange(value ?? '');
+                      _handleTeamChange(value);
                     }
                   },
                 ),
@@ -322,11 +369,11 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
             ),
           ),
         ),
-        if (schoolError != null)
+        if (teamError != null)
           Padding(
             padding: const EdgeInsets.only(top: 4, left: 12),
             child: Text(
-              schoolError!,
+              teamError!,
               style: const TextStyle(
                 color: Colors.red,
                 fontSize: 12,
@@ -337,80 +384,33 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
     );
   }
 
-  void _showCreateNewTeamDialog() {
-    final TextEditingController newTeamController = TextEditingController();
-    String? newTeamError;
-
-    showDialog(
+  void _showCreateNewTeamDialog() async {
+    // Use the CreateTeamSheet dialog instead of the inline dialog
+    final newTeam = await sheet(
       context: context,
-      builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text('Create New Team'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text('Enter the name for the new team:'),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: newTeamController,
-                    autofocus: true,
-                    decoration: InputDecoration(
-                      hintText: 'Team name',
-                      border: const OutlineInputBorder(),
-                      errorText: newTeamError,
-                    ),
-                    onChanged: (value) {
-                      setDialogState(() {
-                        if (value.trim().isEmpty) {
-                          newTeamError = 'Please enter a team name';
-                        } else if (_currentSchoolOptions
-                            .contains(value.trim())) {
-                          newTeamError = 'Team already exists';
-                        } else {
-                          newTeamError = null;
-                        }
-                      });
-                    },
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  child: const Text('Cancel'),
-                ),
-                TextButton(
-                  onPressed: newTeamError == null &&
-                          newTeamController.text.trim().isNotEmpty
-                      ? () {
-                          final newTeamName = newTeamController.text.trim();
-
-                          // Add to local options and update controller
-                          setState(() {
-                            _currentSchoolOptions.add(newTeamName);
-                            _currentSchoolOptions.sort();
-                            schoolController.text = newTeamName;
-                          });
-
-                          // Mark as pending creation (will be created when form is submitted)
-                          _pendingTeamCreation = newTeamName;
-
-                          _handleSchoolChange(newTeamName);
-                          Navigator.of(context).pop();
-                        }
-                      : null,
-                  child: const Text('Create'),
-                ),
-              ],
-            );
+      body: Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: CreateTeamSheet(
+          masterRace: widget.masterRace,
+          createTeam: (Team createdTeam) async {
+            Navigator.of(context).pop(createdTeam);
           },
-        );
-      },
+        ),
+      ),
     );
+
+    if (newTeam != null) {
+      setState(() {
+        _currentTeamOptions.add(newTeam);
+        _currentTeamOptions.sort((a, b) => a.name!.compareTo(b.name!));
+      });
+      _handleTeamChange(newTeam);
+      if (widget.onTeamCreated != null) {
+        await widget.onTeamCreated!(newTeam);
+      }
+    }
   }
 
   Widget buildInputField(String label, Widget inputWidget) {
@@ -470,8 +470,8 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
         ),
         const SizedBox(height: 16),
         buildInputField(
-          'School',
-          _buildSchoolField(),
+          'Team',
+          _buildTeamField(),
         ),
         if (widget.showBibField) ...[
           const SizedBox(height: 16),

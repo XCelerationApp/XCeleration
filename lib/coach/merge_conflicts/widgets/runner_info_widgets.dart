@@ -69,8 +69,8 @@ class RunnerInfo extends StatelessWidget {
           children: [
             if (runner.bib.isNotEmpty)
               InfoChip(label: 'Bib ${runner.bib}', color: accentColor),
-            if (runner.school.isNotEmpty)
-              InfoChip(label: runner.school, color: accentColor),
+            if (runner.teamAbbreviation.isNotEmpty)
+              InfoChip(label: runner.teamAbbreviation, color: accentColor),
           ],
         ),
       ],

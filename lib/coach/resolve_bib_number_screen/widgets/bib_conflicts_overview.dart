@@ -1,21 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/utils/sheet_utils.dart';
+import 'package:xceleration/shared/models/database/master_race.dart';
+import 'package:xceleration/shared/models/database/race_runner.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
-import '../../race_screen/widgets/runner_record.dart';
 import '../screen/resolve_bib_number_screen.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
 
 class BibConflictsOverview extends StatefulWidget {
-  final List<RunnerRecord> records;
-  final Function(List<RunnerRecord>) onConflictSelected;
-  final int raceId;
+  final List<RaceRunner> raceRunners;
+  final Function(List<RaceRunner>) onConflictSelected;
+  final MasterRace masterRace;
 
   const BibConflictsOverview({
     super.key,
-    required this.records,
+    required this.raceRunners,
     required this.onConflictSelected,
-    required this.raceId,
+    required this.masterRace,
   });
 
   @override
@@ -23,30 +24,67 @@ class BibConflictsOverview extends StatefulWidget {
 }
 
 class _BibConflictsOverviewState extends State<BibConflictsOverview> {
-  late List<RunnerRecord> _records;
+  late List<RaceRunner> _raceRunners;
+  List<RaceRunner>? _unknownRaceRunners;
+  List<RaceRunner>? _duplicateRaceRunners;
+  List<RaceRunner>? _errorRaceRunners;
 
   @override
   void initState() {
     super.initState();
-    _records = widget.records;
+    _raceRunners = widget.raceRunners;
+
+    _getErrorRaceRunners();
+  }
+
+  Future<void> _getErrorRaceRunners() async {
+    final allRaceRunners = await widget.masterRace.raceRunners;
+    final allRaceRunnerBibNumbers = allRaceRunners.map((rr) => rr.runner.bibNumber!).toList();
+
+    final unknownRaceRunnersFutures = _raceRunners.map((raceRunner) async {
+      final bibNumber = raceRunner.runner.bibNumber;
+      if (bibNumber == null || !allRaceRunnerBibNumbers.contains(bibNumber)) {
+        return raceRunner;
+      }
+      return null;
+    }).toList();
+
+    final unknownRaceRunnersResults = await Future.wait(unknownRaceRunnersFutures);
+    _unknownRaceRunners = unknownRaceRunnersResults.whereType<RaceRunner>().toList();
+
+    final raceRunnersCopy = List.from(_raceRunners);
+
+    final duplicateRaceRunnersFutures = allRaceRunners.map((raceRunner) async {
+      if (!raceRunnersCopy.remove(raceRunner)) {
+        return raceRunner;
+      }
+      return null;
+    }).toList();
+
+    final duplicateRaceRunnersResults = await Future.wait(duplicateRaceRunnersFutures);
+    _duplicateRaceRunners = duplicateRaceRunnersResults.whereType<RaceRunner>().toList();
+
+    _errorRaceRunners = [..._unknownRaceRunners!, ..._duplicateRaceRunners!];
   }
 
   @override
   void didUpdateWidget(BibConflictsOverview oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.records != oldWidget.records) {
+    if (widget.raceRunners != oldWidget.raceRunners) {
       setState(() {
-        _records = widget.records;
+        _raceRunners = widget.raceRunners;
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final errorRecords =
-        _records.where((record) => record.error != null).toList();
+    if (_unknownRaceRunners == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    final errorRaceRunners = _errorRaceRunners!;
 
-    if (errorRecords.isEmpty) {
+    if (errorRaceRunners.isEmpty) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -92,7 +130,7 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '${errorRecords.length} Unfound Bib Numbers',
+                '${errorRaceRunners.length} Unfound Bib Numbers',
                 style: AppTypography.headerSemibold.copyWith(
                   color: AppColors.darkColor,
                 ),
@@ -113,10 +151,10 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
           margin: const EdgeInsets.symmetric(horizontal: 16),
           child: ListView.separated(
             padding: const EdgeInsets.symmetric(vertical: 12),
-            itemCount: errorRecords.length,
+            itemCount: errorRaceRunners.length,
             separatorBuilder: (context, index) => const SizedBox(height: 12),
             itemBuilder: (context, index) =>
-                _buildConflictTile(context, errorRecords[index], index),
+                _buildConflictTile(context, errorRaceRunners[index], index),
           ),
         ),
       ],
@@ -124,7 +162,7 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
   }
 
   Widget _buildConflictTile(
-      BuildContext context, RunnerRecord record, int index) {
+      BuildContext context, RaceRunner raceRunner, int index) {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(
@@ -136,23 +174,27 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
       ),
       child: InkWell(
         onTap: () async {
-          final updatedRecord = await sheet(
+          final updatedRaceRunner = await sheet(
             context: context,
-            title: 'Resolve Bib #${record.bib} Conflict',
+            title: 'Resolve Bib #${raceRunner.runner.bibNumber} Conflict',
             body: ResolveBibNumberScreen(
-              record: record,
-              raceId: widget.raceId,
-              records: _records,
+              raceRunner: raceRunner,
+              raceId: widget.masterRace.raceId,
+              raceRunners: _raceRunners,
               onComplete: (record) => Navigator.pop(context, record),
             ),
           );
 
-          if (updatedRecord != null) {
+          if (updatedRaceRunner != null) {
             setState(() {
-              record = updatedRecord;
+              _raceRunners.remove(raceRunner);
+              _raceRunners.insert(index, updatedRaceRunner);
+              _unknownRaceRunners!.remove(raceRunner);
+              _duplicateRaceRunners!.remove(raceRunner);
+              _errorRaceRunners!.remove(raceRunner);
             });
-            if (_records.every((r) => r.error == null)) {
-              widget.onConflictSelected(_records);
+            if (_errorRaceRunners!.isEmpty) {
+              widget.onConflictSelected(_raceRunners);
             }
           }
         },
@@ -162,7 +204,7 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
           child: Row(
             children: [
               Hero(
-                tag: 'bib-${record.bib}',
+                tag: 'bib-${raceRunner.runner.bibNumber}',
                 child: Container(
                   width: 46,
                   height: 46,
@@ -180,7 +222,7 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
                   ),
                   child: Center(
                     child: Text(
-                      '#${record.bib}',
+                      '#${raceRunner.runner.bibNumber}',
                       style: TextStyle(
                         color: AppColors.primaryColor,
                         fontWeight: FontWeight.bold,
@@ -196,7 +238,7 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      record.error ?? 'Bib number not found',
+                      _duplicateRaceRunners!.contains(raceRunner) ? 'Duplicate Bib Number' : 'Bib number not found',
                       style: AppTypography.bodyRegular.copyWith(
                         letterSpacing: 0.1,
                       ),

@@ -1,12 +1,12 @@
-import 'package:collection/collection.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../race_screen/widgets/runner_record.dart';
+import '../../../shared/models/database/runner.dart';
+import '../../../shared/models/database/team.dart';
 import '../controller/runners_management_controller.dart';
 
 class RunnerListItem extends StatelessWidget {
-  final RunnerRecord runner;
+  final Runner runner;
+  final Team team;
   final Function(String) onAction;
   final RunnersManagementController controller;
   final bool isViewMode;
@@ -14,6 +14,7 @@ class RunnerListItem extends StatelessWidget {
   const RunnerListItem({
     super.key,
     required this.runner,
+    required this.team,
     required this.onAction,
     required this.controller,
     this.isViewMode = false,
@@ -21,15 +22,11 @@ class RunnerListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final teams = controller.teams;
-    final team = teams.firstWhereOrNull(
-      (team) => team.name == runner.school,
-    );
-    final bibColor = team != null ? team.color : AppColors.mediumColor;
+    final bibColor = team.color;
 
     Widget runnerRow = Container(
       decoration: BoxDecoration(
-        color: bibColor.withAlpha((0.1 * 255).round()),
+        color: bibColor!.withAlpha((0.1 * 255).round()),
       ),
       child: Column(
         children: [
@@ -44,7 +41,7 @@ class RunnerListItem extends StatelessWidget {
                     child: Padding(
                       padding: const EdgeInsets.only(right: 16.0),
                       child: Text(
-                        runner.name,
+                        runner.name!,
                         style: const TextStyle(fontSize: 16),
                         overflow: TextOverflow.ellipsis,
                         maxLines: 1,
@@ -55,7 +52,8 @@ class RunnerListItem extends StatelessWidget {
                     flex: 2,
                     child: Center(
                       child: Text(
-                        runner.school,
+                        team.abbreviation ??
+                            team.name!.substring(0, 1).toUpperCase(),
                         style:
                             const TextStyle(fontSize: 16, color: Colors.black),
                         overflow: TextOverflow.ellipsis,
@@ -67,7 +65,7 @@ class RunnerListItem extends StatelessWidget {
                     flex: 2,
                     child: Center(
                       child: Text(
-                        runner.grade.toString(),
+                        runner.grade?.toString() ?? '-',
                         style:
                             const TextStyle(fontSize: 16, color: Colors.black),
                         overflow: TextOverflow.ellipsis,
@@ -79,7 +77,7 @@ class RunnerListItem extends StatelessWidget {
                     flex: 2,
                     child: Center(
                       child: Text(
-                        runner.bib,
+                        runner.bibNumber!,
                         style: TextStyle(
                           color: bibColor,
                           fontSize: 16,
@@ -103,7 +101,7 @@ class RunnerListItem extends StatelessWidget {
     }
 
     return Slidable(
-      key: Key(runner.bib),
+      key: Key(runner.bibNumber!),
       endActionPane: ActionPane(
         motion: const ScrollMotion(),
         children: [

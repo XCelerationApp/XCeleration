@@ -6,10 +6,9 @@ import 'package:geolocator/geolocator.dart';
 import 'package:xceleration/coach/races_screen/widgets/race_creation_sheet.dart';
 import 'package:xceleration/coach/runners_management_screen/screen/runners_management_screen.dart';
 import 'package:xceleration/core/components/dialog_utils.dart';
-import 'package:xceleration/core/utils/database_helper.dart'
-    show DatabaseHelper;
 import 'package:xceleration/core/utils/sheet_utils.dart' show sheet;
-import '../../../shared/models/race.dart';
+import '../../../shared/models/database/race.dart';
+import '../../../shared/models/database/master_race.dart';
 import '../../../core/services/tutorial_manager.dart';
 import '../../../core/services/event_bus.dart';
 import 'dart:async';
@@ -193,16 +192,24 @@ class RacesController extends ChangeNotifier {
 
   // Checks if all required fields are filled for a complete setup
   Future<bool> isSetupComplete(Race race) async {
+    if (race.raceId == null) {
+      throw Exception('Race ID is null');
+    }
     final moreThanFiveRunnersPerTeam =
         await TeamsAndRunnersManagementWidget.checkMinimumRunnersLoaded(
-            race.raceId);
-    return race.raceName.isNotEmpty &&
-        race.location.isNotEmpty &&
+            race.raceId!);
+
+    // Get teams using MasterRace
+    final masterRace = MasterRace.getInstance(race.raceId!);
+    final teams = await masterRace.teams;
+
+    return race.raceName?.isNotEmpty == true &&
+        race.location?.isNotEmpty == true &&
         race.raceDate != null &&
-        race.distance > 0 &&
-        race.distanceUnit.isNotEmpty &&
-        race.teams.isNotEmpty &&
-        race.teamColors.isNotEmpty &&
+        race.distance != null &&
+        race.distance! > 0 &&
+        race.distanceUnit?.isNotEmpty == true &&
+        teams.isNotEmpty &&
         moreThanFiveRunnersPerTeam;
   }
 
@@ -306,10 +313,16 @@ class RacesController extends ChangeNotifier {
   }
 
   Future<void> editRace(Race race) async {
-    await RaceController.showRaceScreen(context, this, race.raceId);
+    if (race.raceId == null) {
+      throw Exception('Race ID is null');
+    }
+    await RaceController.showRaceScreen(context, this, race.raceId!);
   }
 
   Future<void> deleteRace(Race race) async {
+    if (race.raceId == null) {
+      throw Exception('Race ID is null');
+    }
     final confirmed = await DialogUtils.showConfirmationDialog(
       context,
       title: 'Delete Race',
@@ -320,21 +333,21 @@ class RacesController extends ChangeNotifier {
     );
 
     if (confirmed == true) {
-      await DatabaseHelper.instance.deleteRace(race.raceId);
+      await RacesService.deleteRace(race.raceId!);
       await loadRaces();
     }
   }
 
   // Create a new race with minimal information
   Future<int> createRace(Race race) async {
-    final newRaceId = await DatabaseHelper.instance.insertRace(race);
+    final newRaceId = await RacesService.createRace(race);
     await loadRaces(); // Refresh the races list
     return newRaceId;
   }
 
   // Update an existing race
   Future<void> updateRace(Race race) async {
-    await DatabaseHelper.instance.updateRace(race);
+    await RacesService.updateRace(race);
     await loadRaces(); // Refresh the races list
   }
 

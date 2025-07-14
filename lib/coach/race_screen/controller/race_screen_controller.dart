@@ -5,8 +5,8 @@ import 'package:xceleration/coach/race_screen/screen/race_screen.dart';
 import 'package:xceleration/core/utils/sheet_utils.dart' show sheet;
 import '../../../core/components/dialog_utils.dart';
 import '../../../core/utils/enums.dart' hide EventTypes;
-import '../../../core/utils/database_helper.dart';
-import '../../../shared/models/race.dart';
+import '../../../shared/models/database/race.dart';
+import '../../../shared/models/database/master_race.dart';
 import '../../flows/controller/flow_controller.dart';
 import '../../../core/services/device_connection_service.dart';
 import '../../../core/services/event_bus.dart';
@@ -23,6 +23,10 @@ class RaceController with ChangeNotifier {
   int raceId;
   bool isRaceSetup = false;
   late TabController tabController;
+  late final MasterRace masterRace;
+
+  // Store the listener function to properly remove it later
+  late final VoidCallback _masterRaceListener;
 
   // UI state properties
   bool isLocationButtonVisible = true; // Control visibility of location button
@@ -92,9 +96,9 @@ class RaceController with ChangeNotifier {
     // Always show as editable if currently being edited
     switch (fieldName) {
       case 'name':
-        return isEditingName || (race?.raceName.isEmpty ?? true);
+        return isEditingName || (race?.raceName?.isEmpty ?? true);
       case 'location':
-        return isEditingLocation || (race?.location.isEmpty ?? true);
+        return isEditingLocation || (race?.location?.isEmpty ?? true);
       case 'date':
         return isEditingDate || (race?.raceDate == null);
       case 'distance':
@@ -290,7 +294,28 @@ class RaceController with ChangeNotifier {
   RaceController({
     required this.raceId,
     required this.parentController,
-  });
+  }) {
+    masterRace = MasterRace.getInstance(raceId);
+    _masterRaceListener = _onMasterRaceUpdate;
+    masterRace.addListener(_masterRaceListener);
+  }
+
+  @override
+  void dispose() {
+    masterRace.removeListener(_masterRaceListener);
+    nameController.dispose();
+    locationController.dispose();
+    dateController.dispose();
+    distanceController.dispose();
+    unitController.dispose();
+    userlocationController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _onMasterRaceUpdate() async {
+    await loadRaceDataOnly();
+    notifyListeners();
+  }
 
   static Future<void> showRaceScreen(
       BuildContext context, RacesController parentController, int raceId,
@@ -324,10 +349,10 @@ class RaceController with ChangeNotifier {
 
     _initializeControllers();
     flowController = MasterFlowController(raceController: this);
-    loadRunnersCount();
+    await loadRunnersCount();
 
     // Set initial flow state to setup if it's a new race
-    if (race != null && race!.flowState.isEmpty) {
+    if (race != null && race!.flowState!.isEmpty) {
       await updateRaceFlowState(context, Race.FLOW_SETUP);
 
       // Check if context is still mounted after updating race flow state
@@ -340,14 +365,15 @@ class RaceController with ChangeNotifier {
   /// Initialize controllers from race data
   void _initializeControllers() {
     if (race != null) {
-      nameController.text = race!.raceName;
-      locationController.text = race!.location;
+      nameController.text = race!.raceName ?? '';
+      locationController.text = race!.location ?? '';
       dateController.text = race!.raceDate != null
           ? DateFormat('yyyy-MM-dd').format(race!.raceDate!)
           : '';
-      distanceController.text =
-          race!.distance > 0 ? race!.distance.toString() : '';
-      unitController.text = race!.distanceUnit;
+      distanceController.text = race!.distance != null && race!.distance! > 0
+          ? race!.distance.toString()
+          : '';
+      unitController.text = race!.distanceUnit ?? 'mi';
       // Teams are now managed by RunnersManagementController
     }
   }
@@ -417,27 +443,25 @@ class RaceController with ChangeNotifier {
 
   /// Load the race data and any saved results
   Future<Race?> loadRace() async {
-    final loadedRace = await DatabaseHelper.instance.getRaceById(raceId);
+    final loadedRace = await masterRace.race;
 
     // Populate controllers with race data
-    if (loadedRace != null) {
-      nameController.text = loadedRace.raceName;
-      locationController.text = loadedRace.location;
-      if (loadedRace.raceDate != null) {
-        dateController.text =
-            DateFormat('yyyy-MM-dd').format(loadedRace.raceDate!);
-      }
-      distanceController.text = loadedRace.distance.toString();
-      unitController.text = loadedRace.distanceUnit;
+    nameController.text = loadedRace.raceName!;
+    locationController.text = loadedRace.location ?? '';
+    if (loadedRace.raceDate != null) {
+      dateController.text =
+          DateFormat('yyyy-MM-dd').format(loadedRace.raceDate!);
     }
+    distanceController.text = loadedRace.distance.toString();
+    unitController.text = loadedRace.distanceUnit ?? 'mi';
 
     return loadedRace;
   }
 
   /// Load race data without overwriting form controllers (preserves unsaved changes)
   Future<Race?> loadRaceDataOnly() async {
-    final loadedRace = await DatabaseHelper.instance.getRaceById(raceId);
-    return loadedRace;
+    race = await masterRace.race;
+    return race;
   }
 
   /// Update the race flow state
@@ -448,8 +472,14 @@ class RaceController with ChangeNotifier {
     }
     final navigatorContext = Navigator.of(context);
     String previousState = race?.flowState ?? '';
-    await DatabaseHelper.instance.updateRaceFlowState(raceId, newState);
-    race = race?.copyWith(flowState: newState);
+
+    final currentRace = race;
+    if (currentRace == null) {
+      Logger.e('Cannot update race flow state because race is null');
+      return;
+    }
+    race = currentRace.copyWith(flowState: newState);
+    await masterRace.updateRace(race!);
     notifyListeners();
 
     // Show setup completion dialog if transitioning from setup to setup-completed
@@ -523,7 +553,7 @@ class RaceController with ChangeNotifier {
   Future<void> continueRaceFlow(BuildContext context) async {
     if (race == null) return;
 
-    String currentState = race!.flowState;
+    String currentState = race!.flowState!;
 
     // Handle setup state differently - don't treat it as a flow
     if (currentState == Race.FLOW_SETUP) {
@@ -570,7 +600,7 @@ class RaceController with ChangeNotifier {
     if (!context.mounted) return;
 
     // Use the flow controller to handle the navigation
-    await flowController.handleFlowNavigation(context, race!.flowState);
+    await flowController.handleFlowNavigation(context, race!.flowState!);
   }
 
   /// Navigate to runners management screen with confirmation if needed
@@ -612,10 +642,15 @@ class RaceController with ChangeNotifier {
 
   /// Refresh race data from database
   Future<void> refreshRaceData() async {
-    final previousTeamCount = race?.teams.length ?? 0;
+    final previousTeams = await masterRace.teams;
+    final previousTeamCount = previousTeams.length;
+
     race = await loadRaceDataOnly();
     await loadRunnersCount();
-    final newTeamCount = race?.teams.length ?? 0;
+
+    // Reload teams to get updated count
+    final newTeams = await masterRace.teams;
+    final newTeamCount = newTeams.length;
 
     Logger.d(
         'Race data refreshed: $previousTeamCount -> $newTeamCount teams, $runnersCount runners');
@@ -750,12 +785,9 @@ class RaceController with ChangeNotifier {
 
   /// Load runners count for this race
   Future<void> loadRunnersCount() async {
-    if (race != null) {
-      final runners =
-          await DatabaseHelper.instance.getRaceRunners(race!.raceId);
-      runnersCount = runners.length;
-      notifyListeners();
-    }
+    final raceRunners = await masterRace.raceRunners;
+    runnersCount = raceRunners.length;
+    notifyListeners();
   }
 }
 

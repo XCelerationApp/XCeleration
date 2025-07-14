@@ -21,7 +21,8 @@ void main() {
                 bib: (i + 1).toString(),
                 name: 'Runner ${i + 1}',
                 grade: 10,
-                school: 'School',
+                team: 'Team',
+                teamAbbreviation: 'T',
               ));
 
       // Create timing records with a missing time at place 3
@@ -143,7 +144,8 @@ void main() {
     //     bib: (i+1).toString(),
     //     name: 'Runner ${i+1}',
     //     grade: 10,
-    //     school: 'School',
+    //     team: 'Team',
+    //     teamAbbreviation: 'T',
     //   ));
 
     //   // Create timing records with a specific pattern to trigger the error
@@ -207,7 +209,8 @@ void main() {
                 bib: (i + 9).toString(),
                 name: 'Runner ${i + 9}',
                 grade: 10,
-                school: 'School',
+                team: 'Team',
+                teamAbbreviation: 'T',
               ));
 
       // Create timing records with a valid scenario
@@ -280,7 +283,8 @@ void main() {
     //     bib: (i+1).toString(),
     //     name: 'Runner ${i+1}',
     //     grade: 10,
-    //     school: 'School',
+    //     team: 'Team',
+    //     teamAbbreviation: 'T',
     //   ));
 
     //   // Create timing records to trigger the invalid range in resolveTooFewRunnerTimes
@@ -417,7 +421,8 @@ void main() {
                 bib: (i + 1).toString(),
                 name: 'Runner ${i + 1}',
                 grade: 10,
-                school: 'School',
+                team: 'Team',
+                teamAbbreviation: 'T',
               ));
 
       // Create records with non-sequential places (1, 3, 5)
@@ -522,7 +527,8 @@ void main() {
                   'Matthew'
                 ][i],
                 grade: 10,
-                school: 'School',
+                team: 'Team',
+                teamAbbreviation: 'T',
               ));
 
       // Recreate the timing records from the error log
@@ -772,7 +778,8 @@ void main() {
                   'Alexander'
                 ][i],
                 grade: 10,
-                school: 'School',
+                team: 'Team',
+                teamAbbreviation: 'T',
               ));
 
       // Create timing records with various edge cases for "too many runner times"

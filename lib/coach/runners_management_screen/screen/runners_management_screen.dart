@@ -4,7 +4,7 @@ import '../controller/runners_management_controller.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/components/button_components.dart';
 import '../../../core/utils/sheet_utils.dart';
-import '../../../core/utils/database_helper.dart';
+import '../../../shared/models/database/master_race.dart';
 import '../widgets/list_titles.dart';
 import '../widgets/runner_search_bar.dart';
 import '../widgets/runners_list.dart';
@@ -19,29 +19,13 @@ class TeamsAndRunnersManagementWidget extends StatefulWidget {
 
   // Add a static method that can be called from outside
   static Future<bool> checkMinimumRunnersLoaded(int raceId) async {
-    final race = await DatabaseHelper.instance.getRaceById(raceId);
-    final runners = await DatabaseHelper.instance.getRaceRunners(raceId);
-    // Check if we have any runners at all
-    if (runners.isEmpty) {
-      return false;
-    }
-
-    // Check if each team has at least 5 runners (minimum for a race)
-    final teamRunnerCounts = <String, int>{};
-    for (final runner in runners) {
-      final team = runner.school;
-      teamRunnerCounts[team] = (teamRunnerCounts[team] ?? 0) + 1;
-    }
-
-    // Verify each team in the race has enough runners
-    for (final teamName in race!.teams) {
-      final runnerCount = teamRunnerCounts[teamName] ?? 0;
-      if (runnerCount < 1) {
-        // only checking 1 for testing purposes
+    final masterRace = MasterRace.getInstance(raceId);
+    final teamToRaceRunnersMap = await masterRace.teamtoRaceRunnersMap;
+    for (final runners in teamToRaceRunnersMap.values) {
+      if (runners.isEmpty) {
         return false;
       }
     }
-
     return true;
   }
 
@@ -109,7 +93,7 @@ class _TeamsAndRunnersManagementWidgetState
                       _buildActionButtons(),
                       const SizedBox(height: 12),
                     ],
-                    if (controller.runners.isNotEmpty) ...[
+                    if (!controller.isLoading) ...[
                       _buildSearchSection(),
                       const SizedBox(height: 8),
                       const ListTitles(),
@@ -134,18 +118,21 @@ class _TeamsAndRunnersManagementWidgetState
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8.0),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          SharedActionButton(
-            text: 'Add Runner',
-            icon: Icons.person_add_alt_1,
-            onPressed: () =>
-                _controller.showRunnerSheet(context: context, runner: null),
+          Expanded(
+            child: SharedActionButton(
+              text: 'Create Team',
+              icon: Icons.group_add,
+              onPressed: () => _controller.showCreateTeamSheet(context),
+            ),
           ),
-          SharedActionButton(
-            text: 'Load Runners',
-            icon: Icons.table_chart,
-            onPressed: () => _controller.handleSpreadsheetLoad(context),
+          const SizedBox(width: 16),
+          Expanded(
+            child: SharedActionButton(
+              text: 'Import Teams',
+              icon: Icons.content_copy,
+              onPressed: () => _controller.showExistingTeamsBrowser(context),
+            ),
           ),
         ],
       ),
@@ -156,11 +143,11 @@ class _TeamsAndRunnersManagementWidgetState
     return RunnerSearchBar(
       controller: _controller.searchController,
       searchAttribute: _controller.searchAttribute,
-      onSearchChanged: _controller.filterRunners,
+      onSearchChanged: () => _controller.filterRaceRunners(_controller.searchController.text),
       onAttributeChanged: (value) {
         setState(() {
           _controller.searchAttribute = value!;
-          _controller.filterRunners(_controller.searchController.text);
+          _controller.filterRaceRunners(_controller.searchController.text);
         });
       },
       onDeleteAll: _controller.isViewMode

@@ -493,19 +493,20 @@ class FormattedResultsController {
 
     // Team Results Section
     buffer.writeln('Team Results');
-    buffer.writeln('Place\tSchool\tScore\tSplit Time\tAverage Time');
+    buffer.writeln('PlaceTeam\tScore\tSplit Time\tAverage Time');
     for (final team in controller.overallTeamResults) {
       buffer.writeln(
-          '${team.place}\t${team.school}\t${team.score != 0 ? team.score : 'N/A'}\t'
+          '${team.place}\t${team.teamAbbreviation}\t${team.score != 0 ? team.score : 'N/A'}\t'
           '${team.split != Duration.zero ? TimeFormatter.formatDuration(team.split) : 'N/A'}\t'
           '${team.avgTime != Duration.zero ? TimeFormatter.formatDuration(team.avgTime) : 'N/A'}');
     }
 
     // Individual Results Section
     buffer.writeln('\nIndividual Results');
-    buffer.writeln('Place\tName\tSchool\tTime');
+    buffer.writeln('Place\tNameTeam\tTime');
     for (final runner in controller.individualResults) {
-      buffer.writeln('${runner.place}\t${runner.name}\t${runner.school}\t'
+      buffer.writeln(
+          '${runner.place}\t${runner.name}\t${runner.teamAbbreviation}\t'
           '${TimeFormatter.formatDuration(runner.finishTime)}');
     }
 
@@ -548,10 +549,10 @@ class FormattedResultsController {
     final List<List<dynamic>> sheetsData = [
       // Team Results Section
       ['Team Results'],
-      ['Place', 'School', 'Score', 'Scorers', 'Split Time', 'Average Time'],
+      ['Place', 'Team', 'Score', 'Scorers', 'Split Time', 'Average Time'],
       ...params.overallTeamResults.map((team) => [
             team.place,
-            team.school,
+            team.teamAbbreviation,
             team.score != 0 ? team.score : 'N/A',
             team.scorers.isNotEmpty
                 ? [
@@ -583,10 +584,10 @@ class FormattedResultsController {
               : team2.topSeven.length;
 
           // Create a header for this matchup
-          final matchupHeader = ['${team1.school} vs ${team2.school}', '', ''];
+          final matchupHeader = ['${team1.team} vs ${team2.team}', '', ''];
 
           // Create column headers
-          final columnHeaders = ['', team1.school, team2.school];
+          final columnHeaders = ['', team1.team, team2.team];
 
           // Create data rows for each runner
           List<List<dynamic>> runnerRows = [];
@@ -629,11 +630,11 @@ class FormattedResultsController {
 
       // Individual Results Section
       ['Individual Results'],
-      ['Place', 'Name', 'School', 'Time'],
+      ['Place', 'Name', 'Team', 'Time'],
       ...params.individualResults.map((runner) => [
             runner.place,
             runner.name,
-            runner.school,
+            runner.teamAbbreviation,
             runner.finishTime,
           ]),
     ];
@@ -690,7 +691,7 @@ class FormattedResultsController {
           pw.TableHelper.fromTextArray(
             headers: [
               'Place',
-              'School',
+              'Team',
               'Score',
               'Scorers',
               'Split Time',
@@ -699,7 +700,7 @@ class FormattedResultsController {
             data: params.overallTeamResults
                 .map((team) => [
                       team.place.toString(),
-                      team.school.toString(),
+                      team.teamAbbreviation,
                       team.score != 0 ? team.score.toString() : 'N/A',
                       team.scorers.isNotEmpty
                           ? [
@@ -730,12 +731,11 @@ class FormattedResultsController {
             for (final matchup in params.headToHeadTeamResults!) ...[
               pw.Header(
                   level: 2,
-                  child:
-                      pw.Text('${matchup[0].school} vs ${matchup[1].school}')),
+                  child: pw.Text('${matchup[0].team} vs ${matchup[1].team}')),
 
               // Table with the results
               pw.TableHelper.fromTextArray(
-                headers: ['', matchup[0].school, matchup[1].school],
+                headers: ['', matchup[0].team, matchup[1].team],
                 data: _generateHeadToHeadRows(matchup[0], matchup[1]),
               ),
 
@@ -748,12 +748,12 @@ class FormattedResultsController {
           // Individual Results Section
           pw.Header(level: 1, child: pw.Text('Individual Results')),
           pw.TableHelper.fromTextArray(
-            headers: ['Place', 'Name', 'School', 'Time'],
+            headers: ['Place', 'Name', 'Team', 'Time'],
             data: params.individualResults
                 .map((runner) => [
                       runner.place.toString(),
                       runner.name.toString(),
-                      runner.school.toString(),
+                      runner.teamAbbreviation,
                       TimeFormatter.formatDuration(runner.finishTime),
                     ])
                 .toList(),

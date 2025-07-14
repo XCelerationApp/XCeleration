@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/utils/logger.dart';
-import '../../../shared/models/race.dart';
-import '../../../core/utils/database_helper.dart';
+import '../../../shared/models/database/race.dart';
+import '../../../shared/models/database/master_race.dart';
 import 'package:intl/intl.dart';
 import '../../runners_management_screen/screen/runners_management_screen.dart';
 
@@ -15,10 +15,6 @@ class RaceService {
     required TextEditingController distanceController,
     required TextEditingController unitController,
   }) async {
-    // First, always update the race name
-    await DatabaseHelper.instance
-        .updateRaceField(raceId, 'raceName', nameController.text.trim());
-
     // Parse date
     DateTime? date;
     if (dateController.text.isNotEmpty) {
@@ -31,14 +27,16 @@ class RaceService {
       distance =
           (parsedDistance != null && parsedDistance > 0) ? parsedDistance : 0;
     }
-    // Update the race in database
-    await DatabaseHelper.instance
-        .updateRaceField(raceId, 'location', locationController.text);
-    await DatabaseHelper.instance
-        .updateRaceField(raceId, 'raceDate', date?.toIso8601String());
-    await DatabaseHelper.instance.updateRaceField(raceId, 'distance', distance);
-    await DatabaseHelper.instance
-        .updateRaceField(raceId, 'distanceUnit', unitController.text);
+    // Update the race in database using MasterRace
+    final masterRace = MasterRace.getInstance(raceId);
+    await masterRace.updateRace(Race(
+      raceId: raceId,
+      raceName: nameController.text.trim(),
+      location: locationController.text,
+      raceDate: date,
+      distance: distance,
+      distanceUnit: unitController.text,
+    ));
     // Note: Teams are now managed separately by RunnersManagementController
   }
 
@@ -57,9 +55,10 @@ class RaceService {
     final hasMinimumRunners =
         await TeamsAndRunnersManagementWidget.checkMinimumRunnersLoaded(raceId);
 
-    // Get current race data to check for teams
-    final currentRace = await DatabaseHelper.instance.getRaceById(raceId);
-    final hasTeams = currentRace != null && currentRace.teams.isNotEmpty;
+    // Get current race data to check for teams using MasterRace
+    final masterRace = MasterRace.getInstance(raceId);
+    final teams = await masterRace.teams;
+    final hasTeams = teams.isNotEmpty;
 
     // Check if essential race fields are filled
     final fieldsComplete = nameController.text.isNotEmpty &&

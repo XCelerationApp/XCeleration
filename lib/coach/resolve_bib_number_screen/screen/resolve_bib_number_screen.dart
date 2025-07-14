@@ -5,22 +5,22 @@ import 'package:xceleration/core/components/textfield_utils.dart';
 import '../controller/resolve_bib_number_controller.dart';
 import '../widgets/search_results.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../race_screen/widgets/runner_record.dart';
 import '../../../core/components/runner_input_form.dart';
-import '../../../core/utils/database_helper.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
+import 'package:xceleration/shared/models/database/race_runner.dart';
+import 'package:xceleration/shared/models/database/team.dart';
 
 class ResolveBibNumberScreen extends StatefulWidget {
-  final List<RunnerRecord> records;
+  final List<RaceRunner> raceRunners;
   final int raceId;
-  final RunnerRecord record;
-  final Function(RunnerRecord) onComplete;
+  final RaceRunner raceRunner;
+  final Function(RaceRunner) onComplete;
 
   const ResolveBibNumberScreen({
     super.key,
-    required this.records,
+    required this.raceRunners,
     required this.raceId,
-    required this.record,
+    required this.raceRunner,
     required this.onComplete,
   });
 
@@ -30,19 +30,20 @@ class ResolveBibNumberScreen extends StatefulWidget {
 
 class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
   late ResolveBibNumberController _controller;
-  List<String> _schools = [];
+  List<Team> _teams = [];
+  bool _isLoadingTeams = true;
 
   @override
   void initState() {
     super.initState();
     _controller = ResolveBibNumberController(
-      records: widget.records,
+      raceRunners: widget.raceRunners,
       raceId: widget.raceId,
       onComplete: widget.onComplete,
-      record: widget.record,
+      raceRunner: widget.raceRunner,
     );
     _controller.setContext(context);
-    _loadSchools();
+    _loadTeams();
     // Ensure "Choose Existing Runner" is selected by default
     _controller.showCreateNew = false;
     // Initialize search with empty query to load all available runners
@@ -57,45 +58,55 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
     super.dispose();
   }
 
-  Future<void> _loadSchools() async {
-    // Load schools from the database
-    final race = await DatabaseHelper.instance.getRaceById(_controller.raceId);
+  Future<void> _loadTeams() async {
+    try {
+      // Load teams using the controller's teams getter (from MasterRace)
+      final teams = await _controller.teams;
 
-    // Check if widget is still mounted before calling setState
-    if (!mounted) return;
+      // Check if widget is still mounted before calling setState
+      if (!mounted) return;
 
-    if (race != null) {
       setState(() {
-        _schools = race.teams;
+        _teams = teams;
+        _isLoadingTeams = false;
       });
-    } else {
+    } catch (e) {
+      // Check if widget is still mounted before calling setState
+      if (!mounted) return;
+
       setState(() {
-        _schools = [];
+        _teams = [];
+        _isLoadingTeams = false;
       });
     }
   }
 
-  Future<void> _handleSubmitRunner(RunnerRecord runner) async {
+  Future<void> _handleSubmit(RaceRunner raceRunner) async {
     // Transfer form data to controller for resolution
-    _controller.nameController.text = runner.name;
-    _controller.gradeController.text = runner.grade.toString();
-    _controller.schoolController.text = runner.school;
+    _controller.nameController.text = raceRunner.runner.name!;
+    _controller.gradeController.text = raceRunner.runner.grade!.toString();
+    _controller.teamController.text = raceRunner.team.name!;
 
     // Now call the controller's method to create the runner
     await _controller.createNewRunner();
   }
 
   Widget _buildCreateNewForm() {
+    if (_isLoadingTeams) {
+      return const Expanded(
+        child: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     return Expanded(
       child: SingleChildScrollView(
         child: RunnerInputForm(
-          initialName: _controller.nameController.text,
-          initialGrade: _controller.gradeController.text,
-          initialSchool: _controller.schoolController.text,
-          initialBib: _controller.record.bib,
-          schoolOptions: _schools,
-          raceId: _controller.raceId,
-          onSubmit: _handleSubmitRunner,
+          initialRaceRunner: _controller.raceRunner,
+          teamOptions: _teams,
+          masterRace: _controller.masterRace,
+          onSubmit: _handleSubmit,
           // No team creation allowed when resolving bib conflicts
           onTeamCreated: null,
           submitButtonText: 'Create New Runner',
@@ -108,21 +119,6 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_controller.record.error == null) {
-      // Use a post-frame callback instead of Future.microtask
-      // This avoids the BuildContext async gap warning
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          Navigator.of(context).pop();
-        }
-      });
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
-
     return ChangeNotifierProvider.value(
       value: _controller,
       child: Scaffold(
@@ -173,7 +169,7 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'We could not identify this runner with bib number ${_controller.record.bib}.\nPlease choose an existing runner or create a new one.',
+                                'We could not identify this runner with bib number ${_controller.raceRunner.runner.bibNumber}.\nPlease choose an existing runner or create a new one.',
                                 style: const TextStyle(fontSize: 14),
                               ),
                             ],

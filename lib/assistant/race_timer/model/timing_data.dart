@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
-import 'dart:convert';
-import '../../../core/utils/enums.dart';
-import '../../../shared/models/time_record.dart';
+import 'package:xceleration/core/utils/enums.dart';
+import 'package:xceleration/shared/models/timing_records/conflict.dart';
+import 'package:xceleration/shared/models/timing_records/timing_datum.dart';
 
 class TimingData with ChangeNotifier {
-  List<TimeRecord> _records = [];
+  List<TimingDatum> _records = [];
   DateTime? _startTime;
   Duration? _endTime;
   bool _raceStopped = true;
 
-  List<TimeRecord> get records => _records;
-  set records(List<TimeRecord> value) {
+  List<TimingDatum> get records => _records;
+  set records(List<TimingDatum> value) {
     _records = value;
     notifyListeners();
   }
@@ -23,50 +23,20 @@ class TimingData with ChangeNotifier {
     notifyListeners();
   }
 
-  void addRecord(String elapsedTime,
-      {String? runnerNumber,
-      bool isConfirmed = false,
-      ConflictDetails? conflict,
-      RecordType type = RecordType.runnerTime,
-      int place = 0,
-      Color? textColor}) {
-    _records.add(TimeRecord(
-      elapsedTime: elapsedTime,
-      runnerNumber: runnerNumber,
-      isConfirmed: isConfirmed,
-      conflict: conflict,
-      type: type,
-      place: place,
-      textColor: textColor,
-    ));
+  void addRecord(TimingDatum record) {
+    _records.add(record);
     notifyListeners();
   }
 
-  void updateRecord(int runnerId,
-      {String? runnerNumber,
-      bool? isConfirmed,
-      ConflictDetails? conflict,
-      RecordType? type,
-      int? place,
-      int? previousPlace,
-      Color? textColor}) {
-    final index = _records.indexWhere((record) => record.runnerId == runnerId);
+  void updateRecord(TimingDatum record, int index) {
     if (index >= 0) {
-      _records[index] = _records[index].copyWith(
-        runnerNumber: runnerNumber,
-        isConfirmed: isConfirmed,
-        conflict: conflict,
-        type: type,
-        place: place,
-        previousPlace: previousPlace,
-        textColor: textColor,
-      );
+      _records[index] = record;
       notifyListeners();
     }
   }
 
-  void removeRecord(int runnerId) {
-    _records.removeWhere((record) => record.runnerId == runnerId);
+  void removeRecord(int index) {
+    _records.removeAt(index);
     notifyListeners();
   }
 
@@ -80,36 +50,9 @@ class TimingData with ChangeNotifier {
     notifyListeners();
   }
 
-  String encode() {
-    List<String> recordMaps = _records
-        .map((record) => (record.type == RecordType.runnerTime)
-            ? record.elapsedTime
-            : (record.type == RecordType.confirmRunner)
-                ? '${record.type.toString()} ${record.place} ${record.elapsedTime}'
-                : '${record.type.toString()} ${record.conflict?.data?["offBy"]} ${record.elapsedTime}')
-        .toList();
-    return recordMaps.join(',');
-  }
-
-  void decode(String jsonString) {
-    final Map<String, dynamic> data = jsonDecode(jsonString);
-
-    if (data.containsKey('records') && data['records'] is List) {
-      _records = (data['records'] as List)
-          .map((recordMap) => TimeRecord.fromMap(recordMap))
-          .toList();
-    }
-
-    if (data.containsKey('end_time') && data['end_time'] != null) {
-      _endTime = Duration(milliseconds: data['end_time']);
-    }
-
-    notifyListeners();
-  }
-
   // Helper methods
   int getNumberOfConfirmedTimes() {
-    return _records.where((record) => record.isConfirmed).length;
+    return _records.where((record) => record.conflict?.type == ConflictType.confirmRunner).length;
   }
 
   int getNumberOfTimes() {

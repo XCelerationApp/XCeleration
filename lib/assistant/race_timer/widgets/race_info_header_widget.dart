@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/utils/enums.dart';
 import '../controller/timing_controller.dart';
 import '../../../core/components/race_components.dart';
 
@@ -29,7 +28,7 @@ class RaceInfoHeaderWidget extends StatelessWidget {
 
     // Calculate runner count by explicitly counting each type
     final runnerTimeCount = controller.records
-        .where((r) => r.type == RecordType.runnerTime && r.place != null)
+        .where((r) => r.conflict == null)
         .length;
 
     return RaceStatusHeaderWidget(

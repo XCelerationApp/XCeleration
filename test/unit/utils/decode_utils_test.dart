@@ -30,7 +30,8 @@ void main() {
               raceId: 1,
               bib: '101',
               name: 'John Doe',
-              school: 'Test School',
+              team: 'Team',
+              teamAbbreviation: 'T',
               grade: 10,
             ));
 
@@ -227,7 +228,7 @@ void main() {
       test('should decode encoded runners correctly', () async {
         // Arrange
         final encodedRunners =
-            'John%20Doe,High%20School,10th%20Grade,10 Jane%20Smith,Another%20High%20School,11th%20Grade,11';
+            'John%20Doe,Team,10th%20Grade,10 Jane%20Smith,Team,11th%20Grade,11';
 
         // Act
         final result = await decodeEncodedRunners(encodedRunners, mockContext);
@@ -239,7 +240,7 @@ void main() {
 
       test('should handle malformed runner data gracefully', () async {
         // Arrange - missing a field
-        final encodedRunners = 'John%20Doe,High%20School,10';
+        final encodedRunners = 'John%20Doe,Team,10';
 
         // Act
         final result = await decodeEncodedRunners(encodedRunners, mockContext);
@@ -263,8 +264,7 @@ void main() {
 
       test('should handle runners with special characters in names', () async {
         // Arrange - runner with special characters
-        final encodedRunners =
-            'O%27Connor%20John,St.%20Mary%27s%20School,12th%20Grade,15';
+        final encodedRunners = '1,John,St.%20Mary%27s,12th%20Grade,12';
 
         // Act
         final result = await decodeEncodedRunners(encodedRunners, mockContext);
@@ -272,15 +272,15 @@ void main() {
         // Assert - should decode URL encoded characters correctly
         expect(result, isNotNull);
         expect(result!.length, equals(1));
-        expect(result[0].bib, equals("O'Connor John"));
-        expect(result[0].name, equals("St. Mary's School"));
-        expect(result[0].school, equals('12th Grade'));
-        expect(result[0].grade, equals(15));
+        expect(result[0].bib, equals('1'));
+        expect(result[0].name, equals('John'));
+        expect(result[0].team, equals('St. Mary\'s'));
+        expect(result[0].grade, equals(12));
       });
 
       test('should handle malformed URL encoding', () async {
         // Arrange - malformed URL encoding (% followed by invalid hex)
-        final encodedRunners = 'Mal%2GFormed,School,Grade,15';
+        final encodedRunners = 'Mal%2GFormed,Team,Grade,15';
 
         // Act
         final result = await decodeEncodedRunners(encodedRunners, mockContext);
@@ -291,7 +291,7 @@ void main() {
 
       test('should handle partial or incomplete runner data', () async {
         // Arrange - incomplete runner data with missing field but correct fields count
-        final encodedRunners = ',Empty%20School,11th%20Grade,12';
+        final encodedRunners = ',Empty%20Team,11th%20Grade,12';
 
         // Act
         final result = await decodeEncodedRunners(encodedRunners, mockContext);
@@ -299,7 +299,7 @@ void main() {
         // Assert - should create runner with empty name
         expect(result, isNotNull);
         expect(result!.length, equals(1));
-        expect(result[0].name, 'Empty School');
+        expect(result[0].name, 'Empty Team');
       });
     });
 
@@ -361,7 +361,8 @@ void main() {
           bib: '101',
           name: 'John Doe',
           grade: 10,
-          school: 'High School',
+          team: 'Team',
+          teamAbbreviation: 'T',
         );
 
         // Act & Assert
@@ -376,7 +377,8 @@ void main() {
           bib: '101',
           name: 'Unknown',
           grade: 0,
-          school: 'Unknown',
+          team: 'Unknown',
+          teamAbbreviation: 'N/A',
           error: 'Runner not found',
         );
 
@@ -391,7 +393,8 @@ void main() {
           bib: '', // Empty bib
           name: 'John Doe',
           grade: 10,
-          school: 'High School',
+          team: 'Team',
+          teamAbbreviation: 'T',
         );
 
         // Act & Assert

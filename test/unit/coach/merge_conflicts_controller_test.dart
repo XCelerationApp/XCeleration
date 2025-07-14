@@ -115,14 +115,16 @@ void main() {
         required String bib,
         required String name,
         required int grade,
-        required String school}) {
+        required String team,
+        required String teamAbbreviation}) {
       return RunnerRecord(
           runnerId: id,
           raceId: 1,
           bib: bib,
           name: name,
           grade: grade,
-          school: school);
+          team: team,
+          teamAbbreviation: teamAbbreviation);
     }
 
     // Helper function to create a Chunk
@@ -164,7 +166,8 @@ void main() {
                 bib: (i + 1).toString(),
                 name: 'Runner ${i + 1}',
                 grade: 10,
-                school: 'School',
+                team: 'Team',
+                teamAbbreviation: 'T',
               ));
 
       // Set up mock context first
@@ -251,13 +254,33 @@ void main() {
 
         final runnerRecords = [
           createRunnerRecord(
-              id: 1, bib: '1', name: 'Runner 1', grade: 10, school: 'School 1'),
+              id: 1,
+              bib: '1',
+              name: 'Runner 1',
+              grade: 10,
+              team: 'Team 1',
+              teamAbbreviation: 'T1'),
           createRunnerRecord(
-              id: 2, bib: '2', name: 'Runner 2', grade: 10, school: 'School 2'),
+              id: 2,
+              bib: '2',
+              name: 'Runner 2',
+              grade: 10,
+              team: 'Team 2',
+              teamAbbreviation: 'T2'),
           createRunnerRecord(
-              id: 3, bib: '3', name: 'Runner 3', grade: 10, school: 'School 3'),
+              id: 3,
+              bib: '3',
+              name: 'Runner 3',
+              grade: 10,
+              team: 'Team 3',
+              teamAbbreviation: 'T3'),
           createRunnerRecord(
-              id: 4, bib: '4', name: 'Runner 4', grade: 10, school: 'School 4'),
+              id: 4,
+              bib: '4',
+              name: 'Runner 4',
+              grade: 10,
+              team: 'Team 4',
+              teamAbbreviation: 'T4'),
         ];
 
         controller.timingData.records = records;
@@ -344,10 +367,10 @@ void main() {
     //     ];
 
     //     final runnerRecords = [
-    //       createRunnerRecord(id: 1, bib: '1', name: 'Runner 1', grade: 10, school: 'School 1'),
-    //       createRunnerRecord(id: 2, bib: '2', name: 'Runner 2', grade: 10, school: 'School 2'),
-    //       createRunnerRecord(id: 3, bib: '3', name: 'Runner 3', grade: 10, school: 'School 3'),
-    //       createRunnerRecord(id: 4, bib: '4', name: 'Runner 4', grade: 10, school: 'School 4'),
+    //       createRunnerRecord(id: 1, bib: '1', name: 'Runner 1', grade: 10, team: 'Team 1', teamAbbreviation: 'T1'),
+    //       createRunnerRecord(id: 2, bib: '2', name: 'Runner 2', grade: 10, team: 'Team 2', teamAbbreviation: 'T2'),
+    //       createRunnerRecord(id: 3, bib: '3', name: 'Runner 3', grade: 10, team: 'Team 3', teamAbbreviation: 'T3'),
+    //       createRunnerRecord(id: 4, bib: '4', name: 'Runner 4', grade: 10, team: 'Team 4', teamAbbreviation: 'T4'),
     //     ];
 
     //     controller.timingData.records = records;
@@ -597,7 +620,8 @@ void main() {
               bib: '10$i',
               name: 'Runner $i',
               grade: 8 + i,
-              school: 'High School'));
+              team: 'Team',
+              teamAbbreviation: 'T'));
         }
 
         // Create timing records for first chunk (places 1-3)
@@ -711,37 +735,43 @@ void main() {
             bib: '101',
             name: 'Runner 1',
             grade: 9,
-            school: 'High School');
+            team: 'Team',
+            teamAbbreviation: 'T');
         final runner2 = createRunnerRecord(
             id: 2,
             bib: '102',
             name: 'Runner 2',
             grade: 10,
-            school: 'High School');
+            team: 'Team',
+            teamAbbreviation: 'T');
         final runner3 = createRunnerRecord(
             id: 3,
             bib: '103',
             name: 'Runner 3',
             grade: 11,
-            school: 'High School');
+            team: 'Team',
+            teamAbbreviation: 'T');
         final runner4 = createRunnerRecord(
             id: 4,
             bib: '104',
             name: 'Runner 4',
             grade: 12,
-            school: 'High School');
+            team: 'Team',
+            teamAbbreviation: 'T');
         final runner5 = createRunnerRecord(
             id: 5,
             bib: '105',
             name: 'Runner 5',
             grade: 13,
-            school: 'High School');
+            team: 'Team',
+            teamAbbreviation: 'T');
         final runner6 = createRunnerRecord(
             id: 6,
             bib: '106',
             name: 'Runner 6',
             grade: 14,
-            school: 'High School');
+            team: 'Team',
+            teamAbbreviation: 'T');
 
         // Setup timing data
         controller.timingData.records = [
@@ -852,37 +882,43 @@ void main() {
             bib: '101',
             name: 'Runner 1',
             grade: 9,
-            school: 'High School');
+            team: 'Team',
+            teamAbbreviation: 'T');
         final runner2 = createRunnerRecord(
             id: 2,
             bib: '102',
             name: 'Runner 2',
             grade: 10,
-            school: 'High School');
+            team: 'Team',
+            teamAbbreviation: 'T');
         final runner3 = createRunnerRecord(
             id: 3,
             bib: '103',
             name: 'Runner 3',
             grade: 11,
-            school: 'High School');
+            team: 'Team',
+            teamAbbreviation: 'T');
         final runner4 = createRunnerRecord(
             id: 4,
             bib: '104',
             name: 'Runner 4',
             grade: 12,
-            school: 'High School');
+            team: 'Team',
+            teamAbbreviation: 'T');
         final runner5 = createRunnerRecord(
             id: 5,
             bib: '105',
             name: 'Runner 5',
             grade: 13,
-            school: 'High School');
+            team: 'Team',
+            teamAbbreviation: 'T');
         final runner6 = createRunnerRecord(
             id: 6,
             bib: '106',
             name: 'Runner 6',
             grade: 14,
-            school: 'High School');
+            team: 'Team',
+            teamAbbreviation: 'T');
 
         // Setup timing data
         controller.timingData.records = [
@@ -1036,61 +1072,71 @@ void main() {
             bib: '101',
             name: 'Runner 1',
             grade: 9,
-            school: 'High School');
+            team: 'Team',
+            teamAbbreviation: 'T');
         final runner2 = createRunnerRecord(
             id: 2,
             bib: '102',
             name: 'Runner 2',
             grade: 10,
-            school: 'High School');
+            team: 'Team',
+            teamAbbreviation: 'T');
         final runner3 = createRunnerRecord(
             id: 3,
             bib: '103',
             name: 'Runner 3',
             grade: 11,
-            school: 'High School');
+            team: 'Team',
+            teamAbbreviation: 'T');
         final runner4 = createRunnerRecord(
             id: 4,
             bib: '104',
             name: 'Runner 4',
             grade: 12,
-            school: 'High School');
+            team: 'Team',
+            teamAbbreviation: 'T');
         final runner5 = createRunnerRecord(
             id: 5,
             bib: '105',
             name: 'Runner 5',
             grade: 13,
-            school: 'High School');
+            team: 'Team',
+            teamAbbreviation: 'T');
         final runner6 = createRunnerRecord(
             id: 6,
             bib: '106',
             name: 'Runner 6',
             grade: 14,
-            school: 'High School');
+            team: 'Team',
+            teamAbbreviation: 'T');
         final runner7 = createRunnerRecord(
             id: 7,
             bib: '107',
             name: 'Runner 7',
             grade: 15,
-            school: 'High School');
+            team: 'Team',
+            teamAbbreviation: 'T');
         final runner8 = createRunnerRecord(
             id: 8,
             bib: '108',
             name: 'Runner 8',
             grade: 16,
-            school: 'High School');
+            team: 'Team',
+            teamAbbreviation: 'T');
         final runner9 = createRunnerRecord(
             id: 9,
             bib: '109',
             name: 'Runner 9',
             grade: 17,
-            school: 'High School');
+            team: 'Team',
+            teamAbbreviation: 'T');
         final runner10 = createRunnerRecord(
             id: 10,
             bib: '110',
             name: 'Runner 10',
             grade: 18,
-            school: 'High School');
+            team: 'Team',
+            teamAbbreviation: 'T');
 
         // Setup timing data
         controller.timingData.records = [
@@ -1292,37 +1338,43 @@ void main() {
             bib: '101',
             name: 'Runner 1',
             grade: 9,
-            school: 'High School');
+            team: 'Team',
+            teamAbbreviation: 'T');
         final runner2 = createRunnerRecord(
             id: 2,
             bib: '102',
             name: 'Runner 2',
             grade: 10,
-            school: 'High School');
+            team: 'Team',
+            teamAbbreviation: 'T');
         final runner3 = createRunnerRecord(
             id: 3,
             bib: '103',
             name: 'Runner 3',
             grade: 11,
-            school: 'High School');
+            team: 'Team',
+            teamAbbreviation: 'T');
         final runner4 = createRunnerRecord(
             id: 4,
             bib: '104',
             name: 'Runner 4',
             grade: 12,
-            school: 'High School');
+            team: 'Team',
+            teamAbbreviation: 'T');
         final runner5 = createRunnerRecord(
             id: 5,
             bib: '105',
             name: 'Runner 5',
             grade: 13,
-            school: 'High School');
+            team: 'Team',
+            teamAbbreviation: 'T');
         final runner6 = createRunnerRecord(
             id: 6,
             bib: '106',
             name: 'Runner 6',
             grade: 14,
-            school: 'High School');
+            team: 'Team',
+            teamAbbreviation: 'T');
 
         // Setup timing data
         controller.timingData.records = [

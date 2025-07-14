@@ -425,13 +425,14 @@ class MockDataGenerator {
 
   /// Generates realistic runner records
   static List<RunnerRecord> _generateRunners(int count) {
-    final schools = [
+    final teams = [
       'Lincoln High',
       'Washington Middle',
       'Roosevelt Elementary',
       'Jefferson Academy',
       'Madison Prep'
     ];
+    final teamAbbreviations = ['LH', 'WM', 'RE', 'JA', 'MP'];
     final firstNames = [
       'Alex',
       'Jordan',
@@ -461,7 +462,9 @@ class MockDataGenerator {
       final bibNumber = (index + 1).toString().padLeft(3, '0');
       final firstName = firstNames[index % firstNames.length];
       final lastName = lastNames[index % lastNames.length];
-      final school = schools[index % schools.length];
+      final team = teams[index % teams.length];
+      final teamAbbreviation =
+          teamAbbreviations[index % teamAbbreviations.length];
       final grade = 9 + (index % 4); // Grades 9-12
 
       return RunnerRecord(
@@ -469,7 +472,8 @@ class MockDataGenerator {
         raceId: 1,
         bib: bibNumber,
         name: '$firstName $lastName',
-        school: school,
+        team: team,
+        teamAbbreviation: teamAbbreviation,
         grade: grade,
       );
     });

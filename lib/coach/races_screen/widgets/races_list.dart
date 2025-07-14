@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import '../../../coach/races_screen/controller/races_controller.dart';
-import '../../../shared/models/race.dart';
+import '../../../shared/models/database/race.dart';
 import '../../../../core/theme/typography.dart';
 import 'race_card.dart';
 import '../../flows/widgets/flow_section_header.dart';
@@ -46,17 +46,17 @@ class RacesList extends StatelessWidget {
           if (raceInProgress.isNotEmpty) ...[
             FlowSectionHeader(title: 'In Progress'),
             ...raceInProgress.map((race) => RaceCard(
-                race: race, flowState: race.flowState, controller: controller)),
+                race: race, flowState: race.flowState!, controller: controller)),
           ],
           if (upcomingRaces.isNotEmpty) ...[
             FlowSectionHeader(title: 'Upcoming'),
             ...upcomingRaces.map((race) => RaceCard(
-                race: race, flowState: race.flowState, controller: controller)),
+                race: race, flowState: race.flowState!, controller: controller)),
           ],
           if (finishedRaces.isNotEmpty) ...[
             FlowSectionHeader(title: 'Finished'),
             ...finishedRaces.map((race) => RaceCard(
-                race: race, flowState: race.flowState, controller: controller)),
+                race: race, flowState: race.flowState!, controller: controller)),
           ],
         ],
       ),

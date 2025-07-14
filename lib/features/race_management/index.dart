@@ -10,7 +10,7 @@ export '../../coach/flows/PreRaceFlow/controller/pre_race_controller.dart';
 export '../../coach/flows/PostRaceFlow/controller/post_race_controller.dart';
 
 // Models
-export '../../shared/models/race.dart';
+export '../../shared/models/database/race.dart';
 export '../../coach/flows/model/flow_model.dart';
 
 // Screens

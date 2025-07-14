@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
-import '../../../shared/models/race.dart';
+import '../../../shared/models/database/race.dart';
 import '../controller/race_screen_controller.dart';
 import '../widgets/flow_notification.dart';
 import 'unsaved_changes_bar.dart';
@@ -121,11 +121,11 @@ class _RaceHeaderState extends State<RaceHeader> {
                       : null,
                   child: Center(
                     child: Text(
-                      widget.controller.race!.raceName.isEmpty
+                      widget.controller.race!.raceName!.isEmpty
                           ? 'Tap to set race name'
-                          : widget.controller.race!.raceName,
+                          : widget.controller.race!.raceName!,
                       style: AppTypography.titleLarge.copyWith(
-                        color: widget.controller.race!.raceName.isEmpty
+                        color: widget.controller.race!.raceName!.isEmpty
                             ? AppColors.lightColor
                             : AppColors.primaryColor,
                       ),
@@ -140,9 +140,9 @@ class _RaceHeaderState extends State<RaceHeader> {
         // Only show flow notification for non-finished states
         if (widget.controller.race!.flowState != Race.FLOW_FINISHED)
           FlowNotification(
-            flowState: widget.controller.race!.flowState,
-            color: _getStatusColor(widget.controller.race!.flowState),
-            icon: _getStatusIcon(widget.controller.race!.flowState),
+            flowState: widget.controller.race!.flowState!,
+            color: _getStatusColor(widget.controller.race!.flowState!),
+            icon: _getStatusIcon(widget.controller.race!.flowState!),
             continueAction: () => widget.controller.continueRaceFlow(context),
           ),
 

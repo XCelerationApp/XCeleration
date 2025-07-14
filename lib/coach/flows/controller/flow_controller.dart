@@ -9,10 +9,10 @@ import '../../flows/widgets/flow_indicator.dart';
 import '../PreRaceFlow/controller/pre_race_controller.dart';
 import '../PostRaceFlow/controller/post_race_controller.dart';
 import 'dart:async';
-import '../../../core/utils/database_helper.dart';
 import '../../../coach/race_screen/controller/race_screen_controller.dart';
 import '../../../core/services/event_bus.dart';
-import '../../../shared/models/race.dart';
+import '../../../shared/models/database/race.dart';
+import '../../../shared/models/database/master_race.dart';
 
 /// Controller class for handling all flow-related operations
 class MasterFlowController {
@@ -28,10 +28,11 @@ class MasterFlowController {
   /// Continue the race flow based on the current state
   Future<void> continueRaceFlow(BuildContext context) async {
     if (raceController.race == null) {
-      // If race is null, try to load it
-      raceController.race =
-          await DatabaseHelper.instance.getRaceById(raceController.raceId);
-      if (raceController.race == null) {
+      // If race is null, try to load it through MasterRace
+      final masterRace = MasterRace.getInstance(raceController.raceId);
+      try {
+        raceController.race = await masterRace.race;
+      } catch (e) {
         Logger.d('Error: Race not found');
         return;
       }
@@ -52,8 +53,9 @@ class MasterFlowController {
 
   /// Update the race flow state
   Future<void> updateRaceFlowState(String newState) async {
-    await DatabaseHelper.instance
-        .updateRaceFlowState(raceController.raceId, newState);
+    final masterRace = MasterRace.getInstance(raceController.raceId);
+    await masterRace.updateRace(flowState: newState);
+
     if (raceController.race != null) {
       raceController.race = raceController.race!.copyWith(flowState: newState);
     }

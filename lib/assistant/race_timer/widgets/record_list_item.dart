@@ -1,18 +1,25 @@
 import 'package:flutter/material.dart';
-import '../../../shared/models/time_record.dart';
+import 'package:xceleration/shared/models/timing_records/conflict.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/utils/enums.dart';
 
+
 class RunnerTimeRecordItem extends StatelessWidget {
-  final TimeRecord record;
   final int index;
   final BuildContext context;
+  final String time;
+  final Conflict? conflict;
+  final int place;
+  final Color textColor;
 
   const RunnerTimeRecordItem({
     super.key,
-    required this.record,
     required this.index,
+    required this.time,
+    this.conflict,
+    required this.place,
+    required this.textColor,
     required this.context,
   });
 
@@ -34,23 +41,15 @@ class RunnerTimeRecordItem extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            '${record.place ?? ''}',
+            '$place',
             style: AppTypography.headerSemibold.copyWith(
-              color: record.textColor != null
-                  ? AppColors.confirmRunnerColor
-                  : null,
+              color: textColor,
             ),
           ),
           Text(
-            record.elapsedTime,
+            time,
             style: AppTypography.headerSemibold.copyWith(
-              color: record.conflict == null
-                  ? (record.isConfirmed == true
-                      ? AppColors.confirmRunnerColor
-                      : null)
-                  : (record.conflict!.type != RecordType.confirmRunner
-                      ? AppColors.redColor
-                      : AppColors.confirmRunnerColor),
+              color: textColor,
             ),
           ),
         ],
@@ -60,14 +59,14 @@ class RunnerTimeRecordItem extends StatelessWidget {
 }
 
 class ConfirmationRecordItem extends StatelessWidget {
-  final TimeRecord record;
   final int index;
+  final String time;
   final BuildContext context;
 
   const ConfirmationRecordItem({
     super.key,
-    required this.record,
     required this.index,
+    required this.time,
     required this.context,
   });
 
@@ -89,7 +88,7 @@ class ConfirmationRecordItem extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
           Text(
-            'Confirmed: ${record.elapsedTime}',
+            'Confirmed: $time',
             style: AppTypography.headerSemibold.copyWith(
               color: Colors.green[700],
             ),
@@ -101,14 +100,16 @@ class ConfirmationRecordItem extends StatelessWidget {
 }
 
 class ConflictRecordItem extends StatelessWidget {
-  final TimeRecord record;
   final int index;
   final BuildContext context;
+  final String time;
+  final Conflict conflict;
 
   const ConflictRecordItem({
     super.key,
-    required this.record,
     required this.index,
+    required this.time,
+    required this.conflict,
     required this.context,
   });
 
@@ -130,9 +131,9 @@ class ConflictRecordItem extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
           Text(
-            record.type == RecordType.missingTime
-                ? 'Missing Time at ${record.elapsedTime}'
-                : 'Extra Time at ${record.elapsedTime}',
+            conflict.type == ConflictType.missingTime
+                ? 'Missing Time at $time'
+                : 'Extra Time at $time',
             style: AppTypography.headerSemibold.copyWith(
               color: AppColors.redColor,
             ),

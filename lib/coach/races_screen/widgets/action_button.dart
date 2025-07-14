@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import '../../../core/components/button_components.dart';
-import '../../../shared/models/race.dart';
+import '../../../shared/models/database/race.dart';
 import '../controller/races_controller.dart';
 
 class ActionButton extends StatelessWidget {
@@ -30,23 +30,12 @@ class ActionButton extends StatelessWidget {
         raceId: (isEditing && raceId != null ? raceId : 0)!,
         raceName: controller.nameController.text,
         location: '',
-        raceDate: null,
+        raceDate: null, // Now nullable in database schema
         distance: 0,
         distanceUnit: 'mi',
-        teams: [],
-        teamColors: [],
-        // location: controller.locationController.text,
-        // raceDate: DateTime.parse(controller.dateController.text),
-        // distance: double.parse(controller.distanceController.text),
-        // distanceUnit: controller.unitController.text,
-        // teams: controller.teamControllers
-        //     .map((controller) => controller.text.trim())
-        //     .where((text) => text.isNotEmpty)
-        //     .toList(),
-        // teamColors: controller.teamColors,
         flowState: 'setup',
       );
-      int newRaceId = race.raceId;
+      int newRaceId = race.raceId!;
 
       if (isEditing && raceId != null) {
         await controller.updateRace(race);

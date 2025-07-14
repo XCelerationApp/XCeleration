@@ -7,7 +7,8 @@ bool validateRunnerInfo(List<RunnerRecord> records) {
       runner.bib.isNotEmpty &&
       runner.name.isNotEmpty &&
       runner.grade > 0 &&
-      runner.school.isNotEmpty);
+      runner.team.isNotEmpty &&
+      runner.teamAbbreviation.isNotEmpty);
 }
 
 String? validateTimes(

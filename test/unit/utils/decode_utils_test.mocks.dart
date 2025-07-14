@@ -14,7 +14,7 @@ import 'package:xceleration/coach/race_screen/model/race_result.dart' as _i7;
 import 'package:xceleration/coach/race_screen/widgets/runner_record.dart'
     as _i5;
 import 'package:xceleration/core/utils/database_helper.dart' as _i3;
-import 'package:xceleration/shared/models/race.dart' as _i6;
+import 'package:xceleration/shared/models/database/race.dart' as _i6;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values

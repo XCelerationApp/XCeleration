@@ -5,7 +5,8 @@ class RunnerRecord {
       name: 'Extra Time',
       raceId: raceId,
       grade: grade,
-      school: school,
+      team: team,
+      teamAbbreviation: teamAbbreviation,
       runnerId: runnerId,
       time: time,
       error: error,
@@ -19,7 +20,8 @@ class RunnerRecord {
       name: '',
       raceId: 0,
       grade: 0,
-      school: '',
+      team: '',
+      teamAbbreviation: '',
       runnerId: null,
       time: null,
       error: null,
@@ -32,7 +34,8 @@ class RunnerRecord {
   }
   String bib;
   String name;
-  String school;
+  String team;
+  String teamAbbreviation;
   int grade;
   int raceId;
   int? runnerId;
@@ -45,7 +48,8 @@ class RunnerRecord {
     required this.name,
     required this.raceId,
     required this.grade,
-    required this.school,
+    required this.team,
+    required this.teamAbbreviation,
     this.runnerId,
     this.time,
     this.error,
@@ -65,9 +69,10 @@ class RunnerRecord {
     return RunnerRecord(
       bib: map['bib_number'],
       name: map['name'],
-      school: map['school'] ?? '',
+      team: map['team'] ?? '',
+      teamAbbreviation: map['team_abbreviation'] ?? '',
       grade: map['grade'] ?? 0,
-      raceId: map['race_id'],
+      raceId: map['race_id'] ?? 0, // Default for global runners
       runnerId: map['runner_id'],
       time: map['time'],
       error: map['error'],
@@ -79,6 +84,24 @@ class RunnerRecord {
     );
   }
 
+  /// Factory constructor for joined query results from the new normalized schema
+  factory RunnerRecord.fromJoinedMap(Map<String, dynamic> map) {
+    return RunnerRecord(
+      bib: map['bib_number'],
+      name: map['name'],
+      team: map['team'] ?? '',
+      teamAbbreviation: map['team_abbreviation'] ?? '',
+      grade: map['grade'] ?? 0,
+      raceId: map['race_id'],
+      runnerId: map['runner_id'],
+      flags: const RunnerRecordFlags(
+        notInDatabase: false,
+        duplicateBibNumber: false,
+        lowConfidenceScore: false,
+      ),
+    );
+  }
+
   Map<String, dynamic> toMap({database = false}) {
     if (database) {
       return {
@@ -86,7 +109,7 @@ class RunnerRecord {
         'name': name,
         'race_id': raceId,
         'grade': grade,
-        'school': school,
+        'team': team,
       };
     }
     return {
@@ -94,7 +117,7 @@ class RunnerRecord {
       'name': name,
       'race_id': raceId,
       'grade': grade,
-      'school': school,
+      'team': team,
       'runner_id': runnerId,
       'time': time,
       'error': error,

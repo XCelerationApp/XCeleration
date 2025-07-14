@@ -3,7 +3,7 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import '../controller/races_controller.dart';
 import '../../race_screen/controller/race_screen_controller.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../shared/models/race.dart';
+import '../../../shared/models/database/race.dart';
 import '../../../core/theme/typography.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
 import 'package:intl/intl.dart';
@@ -48,7 +48,7 @@ class RaceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Slidable(
-      key: Key(race.race_id.toString()),
+      key: Key(race.raceId!.toString()),
       endActionPane: ActionPane(
         extentRatio: 0.5,
         motion: const DrawerMotion(),
@@ -117,7 +117,7 @@ class RaceCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           child: InkWell(
             onTap: () => RaceController.showRaceScreen(
-                context, controller, race.race_id),
+                context, controller, race.raceId!),
             child: Padding(
               padding: const EdgeInsets.only(
                   left: 24.0, right: 24.0, top: 16.0, bottom: 16.0),
@@ -128,7 +128,7 @@ class RaceCard extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          race.raceName,
+                          race.raceName!,
                           style: AppTypography.headerSemibold,
                         ),
                       ),
@@ -155,7 +155,7 @@ class RaceCard extends StatelessWidget {
                   ),
 
                   // Only show location if not empty
-                  if (race.location.isNotEmpty) ...[
+                  if (race.location != null && race.location!.isNotEmpty) ...[
                     const SizedBox(height: 8),
                     Row(
                       children: [
@@ -167,7 +167,7 @@ class RaceCard extends StatelessWidget {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            race.location,
+                            race.location!,
                             style: AppTypography.bodyRegular
                                 .copyWith(color: Colors.black54),
                             overflow: TextOverflow.ellipsis,
@@ -179,7 +179,7 @@ class RaceCard extends StatelessWidget {
                   ],
 
                   // Only show date if not null
-                  if (race.race_date != null) ...[
+                  if (race.raceDate != null) ...[
                     const SizedBox(height: 8),
                     Row(
                       children: [
@@ -190,7 +190,7 @@ class RaceCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          DateFormat('MMM d, y').format(race.race_date!),
+                          DateFormat('MMM d, y').format(race.raceDate!),
                           style: AppTypography.bodyRegular
                               .copyWith(color: Colors.black54),
                         ),
@@ -199,7 +199,7 @@ class RaceCard extends StatelessWidget {
                   ],
 
                   // Only show distance if greater than 0
-                  if (race.distance > 0) ...[
+                  if (race.distance != null && race.distance! > 0) ...[
                     const SizedBox(height: 8),
                     Row(
                       children: [
@@ -210,7 +210,7 @@ class RaceCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          '${race.distance} ${race.distanceUnit}',
+                          '${race.distance!} ${race.distanceUnit ?? ''}',
                           style: AppTypography.headerSemibold.copyWith(
                             color: AppColors.primaryColor,
                           ),

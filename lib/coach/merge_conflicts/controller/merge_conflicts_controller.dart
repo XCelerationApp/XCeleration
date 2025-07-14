@@ -123,7 +123,8 @@ class MergeConflictsController with ChangeNotifier {
       bib: runner.bib,
       name: runner.name,
       grade: runner.grade,
-      school: runner.school,
+      team: runner.team,
+      teamAbbreviation: runner.teamAbbreviation,
       runnerId: runner.runnerId,
       raceId: raceId,
     );
@@ -497,7 +498,8 @@ class MergeConflictsController with ChangeNotifier {
       bib: original.bib,
       name: original.name,
       grade: original.grade,
-      school: original.school,
+      team: original.team,
+      teamAbbreviation: original.teamAbbreviation,
       runnerId: original.runnerId,
       raceId: original.raceId,
       previousPlace: original.previousPlace,
@@ -699,7 +701,8 @@ class MergeConflictsController with ChangeNotifier {
       record.conflict = null;
       record.name = runner.name;
       record.grade = runner.grade;
-      record.school = runner.school;
+      record.team = runner.team;
+      record.teamAbbreviation = runner.teamAbbreviation;
       record.runnerId = runner.runnerId;
       record.raceId = raceId;
       record.textColor = AppColors.navBarTextColor.toString();

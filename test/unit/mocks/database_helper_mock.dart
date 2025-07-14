@@ -20,7 +20,8 @@ class MockDatabaseHelper extends Mock implements DatabaseHelper {
         bib: '101',
         name: 'John Doe',
         grade: 10,
-        school: 'High School',
+        team: 'Team A',
+        teamAbbreviation: 'TA',
       ),
       RunnerRecord(
         runnerId: 2,
@@ -28,7 +29,8 @@ class MockDatabaseHelper extends Mock implements DatabaseHelper {
         bib: '102',
         name: 'Jane Smith',
         grade: 11,
-        school: 'Another High School',
+        team: 'Team B',
+        teamAbbreviation: 'TB',
       ),
     ];
   }
@@ -42,7 +44,8 @@ class MockDatabaseHelper extends Mock implements DatabaseHelper {
         bib: '101',
         name: 'John Doe',
         grade: 10,
-        school: 'High School',
+        team: 'Team A',
+        teamAbbreviation: 'TA',
       );
     } else if (bib == '102') {
       return RunnerRecord(
@@ -51,7 +54,8 @@ class MockDatabaseHelper extends Mock implements DatabaseHelper {
         bib: '102',
         name: 'Jane Smith',
         grade: 11,
-        school: 'Another High School',
+        team: 'Team B',
+        teamAbbreviation: 'TB',
       );
     }
     return null;

@@ -149,7 +149,8 @@ void main() {
         expect(runner.runnerId, equals(i + 1));
         expect(runner.bib, isNotEmpty);
         expect(runner.name, isNotEmpty);
-        expect(runner.school, isNotEmpty);
+        expect(runner.team, isNotEmpty);
+        expect(runner.teamAbbreviation, isNotEmpty);
         expect(runner.grade, greaterThan(0));
 
         // Verify bib number format (should be 3 digits)

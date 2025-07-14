@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
-import '../../../shared/models/race.dart';
+import '../../../shared/models/database/race.dart';
 import '../controller/race_screen_controller.dart';
 
 class UnsavedChangesBar extends StatelessWidget {

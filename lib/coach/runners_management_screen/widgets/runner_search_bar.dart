@@ -5,7 +5,7 @@ import 'package:xceleration/core/utils/color_utils.dart';
 class RunnerSearchBar extends StatelessWidget {
   final TextEditingController controller;
   final String searchAttribute;
-  final Function(String) onSearchChanged;
+  final Function() onSearchChanged;
   final Function(String?) onAttributeChanged;
   final VoidCallback? onDeleteAll;
   final bool isViewMode;
@@ -71,7 +71,7 @@ class RunnerSearchBar extends StatelessWidget {
                         borderSide: BorderSide(color: AppColors.lightColor),
                       ),
                     ),
-                    onChanged: onSearchChanged,
+                    onChanged: (_) => onSearchChanged(),
                   ),
                 ),
               ),
@@ -99,7 +99,7 @@ class RunnerSearchBar extends StatelessWidget {
                       child: DropdownButton<String>(
                         value: searchAttribute,
                         onChanged: onAttributeChanged,
-                        items: ['Bib Number', 'Name', 'Grade', 'School']
+                        items: ['Bib Number', 'Name', 'Grade', 'Team']
                             .map((value) => DropdownMenuItem(
                                   value: value,
                                   child: Text(

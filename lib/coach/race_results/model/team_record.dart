@@ -2,7 +2,8 @@ import 'results_record.dart';
 
 class TeamRecord {
   late int score;
-  final String school;
+  final String team;
+  final String teamAbbreviation;
   late final List<ResultsRecord> scorers;
   late final List<ResultsRecord> nonScorers;
   final List<ResultsRecord> runners;
@@ -11,7 +12,8 @@ class TeamRecord {
   late Duration avgTime;
 
   TeamRecord({
-    required this.school,
+    required this.team,
+    required this.teamAbbreviation,
     required this.runners,
     this.place,
   }) {
@@ -24,7 +26,8 @@ class TeamRecord {
   List<ResultsRecord> get topSeven => runners.take(7).toList();
 
   factory TeamRecord.from(TeamRecord other) => TeamRecord(
-        school: other.school,
+        team: other.team,
+        teamAbbreviation: other.teamAbbreviation,
         // Create deep copies of all runners to prevent reference issues
         runners: other.runners.map((r) => ResultsRecord.copy(r)).toList(),
         place: other.place,

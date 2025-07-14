@@ -31,14 +31,6 @@ class PreRaceController {
     _reviewRunnersStep = ReviewRunnersStep(
       raceId: raceId,
       onNext: () async {
-        // DEBUG: Log runners loaded for this race
-        final runners = await DatabaseHelper.instance.getRaceRunners(raceId);
-        Logger.d(
-            'PRE-RACE DEBUG: Runners for raceId=raceId: count=${runners.length}');
-        for (var r in runners) {
-          Logger.d(
-              'PRE-RACE DEBUG: Runner: bib=${r.bib}, name=${r.name}, school=${r.school}, grade=${r.grade}');
-        }
         final encoded = await encode_utils.getEncodedRunnersData(raceId);
         Logger.d(
             'PRE-RACE DEBUG: Encoded runners data length: ${encoded.length}');

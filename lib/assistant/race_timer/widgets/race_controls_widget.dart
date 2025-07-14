@@ -63,7 +63,7 @@ class RaceControlsWidget extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
               borderRadius: 30,
               isPrimary: false,
-              onPressed: () => sheet(
+              onPressed: () async => sheet(
                 context: context,
                 title: 'Share Times',
                 body: deviceConnectionWidget(
@@ -71,7 +71,7 @@ class RaceControlsWidget extends StatelessWidget {
                   DeviceConnectionService.createDevices(
                     DeviceName.raceTimer,
                     DeviceType.advertiserDevice,
-                    data: controller.encode(),
+                    data: await controller.encodedRecords(),
                   ),
                 ),
               ),

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
-import '../../../core/utils/database_helper.dart';
+import '../../../shared/models/database/master_race.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
 import 'package:xceleration/core/components/textfield_utils.dart';
 import '../controller/race_screen_controller.dart';
@@ -41,17 +41,21 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
     super.dispose();
   }
 
-  void _initializeControllers() {
+  void _initializeControllers() async {
     final race = widget.controller.race!;
     _dateController.text = race.raceDate != null
         ? DateFormat('yyyy-MM-dd').format(race.raceDate!)
         : '';
-    _locationController.text = race.location;
+    _locationController.text = race.location ?? '';
     _distanceController.text =
-        race.distance > 0 ? race.distance.toString() : '';
+        race.distance != null && race.distance! > 0 ? race.distance.toString() : '';
     _unitController.text =
-        race.distanceUnit.isNotEmpty ? race.distanceUnit : 'mi';
-    _teamsController.text = race.teams.join(', ');
+        race.distanceUnit != null && race.distanceUnit!.isNotEmpty ? race.distanceUnit! : 'mi';
+
+    // Get teams from MasterRace instead of deprecated race.teams
+    final masterRace = MasterRace.getInstance(race.raceId!);
+    final teams = await masterRace.teams;
+    _teamsController.text = teams.map((team) => team.name).join(', ');
   }
 
   Widget _buildLocationEditWidget(BuildContext context) {
@@ -150,17 +154,22 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
         animation: widget.controller,
         builder: (context, _) {
           final race = widget.controller.race!;
-          int runnerCount = 0;
+          final masterRace = MasterRace.getInstance(race.raceId!);
 
           return FutureBuilder(
-            future: DatabaseHelper.instance.getRaceRunners(race.raceId),
+            future: Future.wait([
+              masterRace.raceRunners,
+              masterRace.teams,
+            ]),
             builder: (context, snapshot) {
-              runnerCount = snapshot.hasData
-                  ? (snapshot.data as List).length
-                  : runnerCount;
+              if (!snapshot.hasData) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-              // Calculate team count
-              int teamCount = race.teams.length;
+              final raceRunners = snapshot.data![0] as List;
+              final teams = snapshot.data![1] as List;
+              final runnerCount = raceRunners.length;
+              final teamCount = teams.length;
 
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

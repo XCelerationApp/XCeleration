@@ -81,10 +81,10 @@ class LoadResultsController with ChangeNotifier {
 
   /// Loads saved results from the database
   Future<void> loadResults() async {
-    final List<ResultsRecord>? savedResults =
-        await DatabaseHelper.instance.getRaceResultsData(raceId);
+    final List<ResultsRecord> savedResults =
+        await DatabaseHelper.instance.getRaceResults(raceId);
 
-    if (savedResults != null && savedResults.isNotEmpty) {
+    if (savedResults.isNotEmpty) {
       results = savedResults;
       resultsLoaded = true;
     }
@@ -215,7 +215,8 @@ class LoadResultsController with ChangeNotifier {
         bib: runnerRecord.bib,
         place: timeRecord.place!,
         name: runnerRecord.name,
-        school: runnerRecord.school,
+        team: runnerRecord.team,
+        teamAbbreviation: runnerRecord.teamAbbreviation,
         grade: runnerRecord.grade,
         finishTime: finishDuration,
         raceId: raceId,

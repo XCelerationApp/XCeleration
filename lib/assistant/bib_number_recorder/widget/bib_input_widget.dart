@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/typography.dart';
-import '../../../coach/race_screen/widgets/runner_record.dart';
+import '../model/bib_record.dart';
 import '../controller/bib_number_controller.dart';
 
 class BibInputWidget extends StatelessWidget {
   final int index;
   final BibNumberController controller;
-  late final RunnerRecord record;
+  late final BibDatumRecord record;
 
   BibInputWidget({
     super.key,
@@ -117,7 +117,7 @@ class BibInputWidget extends StatelessWidget {
           ),
           Flexible(
             child: Text(
-              '${record.name}, ${record.school}',
+              '${record.name}, ${record.teamAbbreviation}',
               textAlign: TextAlign.center,
               style: AppTypography.bodyRegular,
               overflow: TextOverflow.ellipsis,
@@ -133,7 +133,6 @@ class BibInputWidget extends StatelessWidget {
     final errors = <String>[];
     if (record.flags.duplicateBibNumber) errors.add('Duplicate Bib Number');
     if (record.flags.notInDatabase) errors.add('Runner not found');
-    if (record.flags.lowConfidenceScore) errors.add('Low Confidence Score');
 
     return Row(
       mainAxisSize: MainAxisSize.min,
