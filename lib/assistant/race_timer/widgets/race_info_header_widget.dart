@@ -26,15 +26,21 @@ class RaceInfoHeaderWidget extends StatelessWidget {
       statusColor = AppColors.primaryColor;
     }
 
-    // Calculate runner count by explicitly counting each type
-    final runnerTimeCount = controller.records
-        .where((r) => r.conflict == null)
-        .length;
+    // Get the last non-null place among uiRecords, or null if none
+    late final int? lastPlace;
+    try {
+      lastPlace = controller.uiRecords
+          .lastWhere((r) => r.place != null,
+              orElse: () => throw Exception('No place found'))
+          .place;
+    } catch (e) {
+      lastPlace = null;
+    }
 
     return RaceStatusHeaderWidget(
       status: status,
       statusColor: statusColor,
-      runnerCount: controller.records.isNotEmpty ? runnerTimeCount : null,
+      runnerCount: lastPlace,
       recordLabel: 'Runners',
     );
   }

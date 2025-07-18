@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:xceleration/assistant/race_timer/model/ui_record.dart';
 import '../../../core/utils/enums.dart';
 import '../model/timing_data.dart';
-import '../../../core/utils/encode_utils.dart';
 import '../../../core/utils/logger.dart';
 import '../../../core/utils/time_formatter.dart';
 import '../../../core/components/dialog_utils.dart';
@@ -52,12 +52,12 @@ class TimingController extends TimingData {
   }
 
   void startRace() {
-    final hasStoppedRace = endTime != null && records.isNotEmpty;
+    final hasStoppedRace = endTime != null && hasTimingData;
 
     if (hasStoppedRace) {
       // Continue the race instead of starting a new one
       _continueRace();
-    } else if (records.isNotEmpty) {
+    } else if (hasTimingData) {
       // Ask for confirmation before starting a new race
       _showStartRaceDialog();
     } else {
@@ -75,7 +75,7 @@ class TimingController extends TimingData {
   Future<void> _showStartRaceDialog() async {
     if (_context == null) return;
 
-    if (records.isNotEmpty) {
+    if (hasTimingData) {
       final confirmed = await DialogUtils.showConfirmationDialog(
         _context!,
         title: 'Start a New Race',
@@ -118,10 +118,6 @@ class TimingController extends TimingData {
     }
   }
 
-  Future<String> encodedRecords() async {
-    return await TimingEncodeUtils.encodeTimeRecords(records);
-  }
-
   Future<void> handleLogButtonPress() async {
     // Log the time first
     logTime();
@@ -147,9 +143,9 @@ class TimingController extends TimingData {
       return;
     }
 
-    final difference =
-        TimeFormatter.formatDuration(DateTime.now().difference(startTime!));
-    addRecord(TimingDatum(time: difference));
+    final time =
+        TimeFormatter.formatDuration(getCurrentDuration(startTime, endTime));
+    addRunnerTimeRecord(TimingDatum(time: time));
     scrollToBottom(scrollController);
     notifyListeners();
   }
@@ -162,14 +158,31 @@ class TimingController extends TimingData {
       }
       return;
     }
-    final currentDuration = getCurrentDuration(startTime, endTime);
+    final time =
+        TimeFormatter.formatDuration(getCurrentDuration(startTime, endTime));
 
-    if (records.last.conflict?.type == ConflictType.confirmRunner) {
-      records.last.time = TimeFormatter.formatDuration(currentDuration);
-      notifyListeners();
+    addConfirmRecord(TimingDatum(
+        time: time,
+        conflict: Conflict(type: ConflictType.confirmRunner, offBy: 1)));
+    scrollToBottom(scrollController);
+    notifyListeners();
+  }
+
+  Future<void> addMissingTime() async {
+    if (startTime == null) {
+      if (_context != null) {
+        DialogUtils.showErrorDialog(_context!,
+            message: 'Race must be started to mark a missing time.');
+      }
       return;
     }
-    records.add(TimingDatum(time: TimeFormatter.formatDuration(currentDuration), conflict: Conflict(type: ConflictType.confirmRunner, offBy: 1)));
+
+    final time =
+        TimeFormatter.formatDuration(getCurrentDuration(startTime, endTime));
+
+    addMissingTimeRecord(TimingDatum(
+        time: time,
+        conflict: Conflict(type: ConflictType.missingTime, offBy: 1)));
     scrollToBottom(scrollController);
     notifyListeners();
   }
@@ -182,153 +195,75 @@ class TimingController extends TimingData {
       }
       return;
     }
-
-    if (records.isNotEmpty &&
-        records.last.conflict?.type == ConflictType.confirmRunner) {
-      DialogUtils.showErrorDialog(_context!,
-          message: 'You cannot remove a confirmed time.');
-      return;
-    }
-
     final currentDuration = getCurrentDuration(startTime, endTime);
 
-    // Check if previous record is also an extraTime conflict
-    if (records.isNotEmpty &&
-        records.last.conflict?.type == ConflictType.extraTime) {
-      final int offBy = records.last.conflict!.offBy + 1;
-      if (!await _validateExtraTimeConflict()) return;
-      records.last.conflict!.offBy = offBy;
-      records.last.time = TimeFormatter.formatDuration(currentDuration);
-      notifyListeners();
-      return;
-    }
-
-    if (records.isNotEmpty &&
-        records.last.conflict?.type == ConflictType.missingTime) {
-      final int offBy = records.last.conflict!.offBy - 1;
-      if (offBy <= 0) {
-        records.removeLast();
-        notifyListeners();
-        return;
-      }
-      records.last.conflict!.offBy = offBy;
-      records.last.time = TimeFormatter.formatDuration(currentDuration);
-      notifyListeners();
-      return;
-    }
-
-    final int offBy = 1;
-
-    records.add(TimingDatum(
+    final extraTimeRecord = TimingDatum(
         time: TimeFormatter.formatDuration(currentDuration),
-        conflict: Conflict(type: ConflictType.extraTime, offBy: offBy)));
-    if (!await _validateExtraTimeConflict()) {
-      // There is only one unconfirmed time, and user does not want to remove it
-      // remove the extra time conflict, since the user canceled
-      records.removeLast();
+        conflict: Conflict(type: ConflictType.extraTime, offBy: 1));
+    if (!await _validateExtraTimeConflict(extraTimeRecord)) {
       return;
     }
+    addExtraTimeRecord(extraTimeRecord);
     scrollToBottom(scrollController);
     notifyListeners();
   }
 
-  Future<bool> _validateExtraTimeConflict() async {
-    if (_context == null) return false;
-
-    final conflict = records.last.conflict;
-    if (conflict == null) return false;
-
-    if (conflict.type == ConflictType.confirmRunner) {
+  Future<bool> _validateExtraTimeConflict(TimingDatum record) async {
+    if (record.conflict?.type == ConflictType.confirmRunner) {
+      DialogUtils.showErrorDialog(_context!,
+          message: 'You cannot remove a confirmed time.');
       return false;
     }
-
-    final numOtherRecords = records.length - 1;
-
-    // Get the first conflict starting from the end, excluding the last record
-
-    late int numUnconfirmedRecords;
-
-    final lastConflictIndex = records
-        .take(records.length > 1 ? numOtherRecords : 0)
-        .toList()
-        .lastIndexWhere((r) => r.conflict != null);
-    if (lastConflictIndex == -1) {
-      numUnconfirmedRecords = numOtherRecords;
-    } else {
-      numUnconfirmedRecords = numOtherRecords - lastConflictIndex;
-    }
-    // If off by is less than the number of records (excluding the last record, which is the current conflict), then the conflict is valid
-    if (conflict.offBy < numUnconfirmedRecords) {
+    if (record.conflict?.type == ConflictType.missingTime) {
       return true;
-    } else if (conflict.offBy == numUnconfirmedRecords) {
+    }
+
+    int offBy = record.hasConflict ? record.conflict!.offBy : 0;
+    offBy++;
+
+    final int numRunnerRecords = currentChunk.timingData.length;
+
+    // If off by is less than the number of records (excluding the last record, which is the current conflict), then the conflict is valid
+    if (offBy < numRunnerRecords) {
+      return true;
+    } else if (offBy == numRunnerRecords) {
       // let the user decide if they want to remove all the unconfirmed times
-      return _handleTimesDeletion();
+      if (await _handleTimesDeletion(offBy)) {
+        deleteCurrentChunk();
+        return true;
+      } else {
+        return false;
+      }
     } else {
       return false;
     }
   }
 
-  Future<bool> _handleTimesDeletion() async {
+  Future<bool> _handleTimesDeletion(int offBy) async {
     if (_context == null) return false;
-
-    final conflict = records.last.conflict;
-    if (conflict == null) return false;
-
-    if (conflict.type != ConflictType.extraTime) {
-      return false;
-    }
-
-    final offBy = conflict.offBy;
 
     final confirmed = await DialogUtils.showConfirmationDialog(_context!,
         content:
             'This will delete the last $offBy finish times, are you sure you want to continue?',
         title: 'Confirm Deletion');
     if (confirmed) {
-      records.removeRange(records.length - offBy - 1, records.length);
-      notifyListeners();
       return true;
     }
     return false;
   }
 
-  Future<void> addMissingTime() async {
-    if (startTime == null) {
-      if (_context != null) {
-        DialogUtils.showErrorDialog(_context!,
-            message: 'Race must be started to mark a missing time.');
-      }
-      return;
-    }
-
-    final currentDuration = getCurrentDuration(startTime, endTime);
-
-    // Check if previous record is also a missingTime conflict
-    if (records.isNotEmpty &&
-        records.last.conflict?.type == ConflictType.missingTime) {
-      records.last.conflict!.offBy += 1;
-      records.last.time = TimeFormatter.formatDuration(currentDuration);
-      notifyListeners();
-      return;
-    } else {
-      records.add(TimingDatum(
-          time: TimeFormatter.formatDuration(currentDuration),
-          conflict: Conflict(type: ConflictType.missingTime, offBy: 1)));
-      scrollToBottom(scrollController);
-      notifyListeners();
-    }
-  }
-
-  void undoLastConflict() {
-    final conflict = records.last.conflict;
-    if (conflict == null) {
-      Logger.d('No conflict found');
-      return;
-    }
-    records.removeLast();
-    scrollToBottom(scrollController);
-    notifyListeners();
-  }
+  // void undoLastConflict() {
+  //   if (!currentChunk.hasConflict) {
+  //     Logger.d('No conflict found');
+  //     return;
+  //   }
+  //   currentChunk.conflictRecord == null;
+  //   if (currentChunk.isEmpty) {
+  //     deleteCurrentChunk();
+  //   }
+  //   scrollToBottom(scrollController);
+  //   notifyListeners();
+  // }
 
   void clearRaceTimes() {
     if (_context == null) return;
@@ -364,75 +299,87 @@ class TimingController extends TimingData {
     return DateTime.now().difference(startTime);
   }
 
-  bool hasUndoableConflict() {
-    return records.isNotEmpty && records.last.conflict != null;
-  }
+  // bool hasUndoableConflict() {
+  //   return currentChunk.hasConflict;
+  // }
 
-  Future<bool> confirmRecordDeletion(TimingDatum record) async {
+  Future<bool> handleRecordDeletion(UIRecord record) async {
+    final bool isUnconfirmed = record.textColor == Colors.black;
     if (_context == null) return false;
     // Get the index of the record
-    if (record.conflict == null) {
-      final int index = records.indexOf(record);
-      if (index == -1) return false;
-
-      // Go towards the end of the records list until a conflict record is found
-      TimingDatum? conflictRecord;
-      for (int i = index; i < records.length; i++) {
-        final r = records[i];
-        if (r.conflict != null) {
-          conflictRecord = r;
-          break;
-        }
-      }
-
-      if (conflictRecord?.conflict?.type == ConflictType.confirmRunner) {
-        DialogUtils.showErrorDialog(
-          _context!,
-          message: 'Cannot delete a confirmed time.',
-        );
+    if (isUnconfirmed) {
+      final int index =
+          currentChunk.timingData.indexOf(TimingDatum(time: record.time));
+      if (index == -1) {
+        Logger.e('cannot find record at index $index');
         return false;
-      } else if (conflictRecord?.conflict?.type != null) {
-        DialogUtils.showErrorDialog(
-          _context!,
-          message: 'Cannot delete a time that is part of a conflict.',
-        );
-        return false;
-      } else {
-        return await DialogUtils.showConfirmationDialog(
-          _context!,
-          title: 'Confirm Deletion',
-          content: 'Are you sure you want to delete this time?',
-        );
       }
+      if (await DialogUtils.showConfirmationDialog(
+        _context!,
+        title: 'Confirm Deletion',
+        content: 'Are you sure you want to delete this time?',
+      )) {
+        currentChunk.timingData.removeAt(index);
+        notifyListeners();
+        return true;
+      }
+      return false;
     } else {
-      if (records.last != record) {
-        if (record.conflict?.type == ConflictType.confirmRunner) {
+      if (record.type == RecordType.runnerTime ||
+          record.conflictTime != currentChunk.conflictRecord!.time) {
+        if (record.textColor == Colors.green) {
           DialogUtils.showErrorDialog(
             _context!,
-            message: 'Cannot delete a confirmation that is not the last one.',
+            message: record.type == RecordType.runnerTime ? 'Cannot delete a confirmed time.' : 'Cannot delete an earlier confirmation.',
           );
           return false;
         } else {
-            DialogUtils.showErrorDialog(
-              _context!,
-              message: 'Cannot undo a conflict that is not the last one.',
-            );
-            return false;
-          }
-      } else {
-        return await DialogUtils.showConfirmationDialog(
+          DialogUtils.showErrorDialog(
+            _context!,
+            message: 'Cannot delete a time that is part of a previous conflict.',
+          );
+          return false;
+        }
+      } else if (record.type == RecordType.missingTime) {
+        if (await DialogUtils.showConfirmationDialog(
           _context!,
-          title: 'Confirm Undo',
-          content: 'Are you sure you want to undo this conflict?',
-        );
+          title: 'Confirm Deletion',
+          content: 'Are you sure you want to delete this missing time?',
+        )) {
+          reduceCurrentConflictByOne();
+          return true;
+        }
+        return false;
+      } else if(record.type == RecordType.extraTime) {
+        if (await DialogUtils.showConfirmationDialog(
+          _context!,
+          title: 'Confirm Deletion',
+          content: 'Are you sure you want to delete this extra time?',
+        )) {
+          late final String? newTime;
+          if(record.time == currentChunk.conflictRecord!.time) {
+            newTime = currentChunk.timingData.last.time;
+          } else {
+            // dont change the time, since the current conflict time isnt being removed
+            newTime = null;
+          }
+          reduceCurrentConflictByOne(newTime: newTime);
+          return true;
+        }
+        return false;
+      } else if(record.type == RecordType.confirmRunner) {
+        if (await DialogUtils.showConfirmationDialog(
+          _context!,
+          title: 'Confirm Deletion',
+          content: 'Are you sure you want to delete this conflict?',
+        )) {
+          currentChunk.conflictRecord == null;
+          notifyListeners();
+          return true;
+        }
       }
+      return false;
     }
-  }
-
-  void dismissTimeRecord(TimingDatum record) {
-    records.remove(record);
-    scrollToBottom(scrollController);
-    notifyListeners();
   }
 
   @override

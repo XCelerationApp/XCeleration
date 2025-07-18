@@ -15,6 +15,8 @@ class TimingDatum {
     this.conflict,
   });
 
+  bool get hasConflict => conflict != null;
+
   /// Factory constructor for creating a blank TimeRecord
   factory TimingDatum.blank() {
     return TimingDatum(time: '');
@@ -36,20 +38,20 @@ class TimingDatum {
     return 'TimingData(time: $time, conflict: (${conflict == null ? 'null' : conflict.toString()})';
   }
 
-  String toEncodedString() {
+  String encode() {
     if (conflict == null) {
       return time;
     }
-    return '${conflict!.type} ${conflict!.offBy} $time';
+    return '${_compressionMap[conflict!.type]} ${conflict!.offBy} $time';
   }
 
   factory TimingDatum.fromEncodedString(String encodedString) {
-    if (encodedString.startsWith('ConflictType.')) {
+    if (_compressionMap.values.contains(encodedString)) {
       final parts = encodedString.split(' ');
       if (parts.length != 3) {
         throw Exception('Invalid encoded timing string: $encodedString');
       }
-      return TimingDatum(time: parts[2], conflict: Conflict(type: ConflictType.values.byName(parts[0]), offBy: int.parse(parts[1])));
+      return TimingDatum(time: parts[2], conflict: Conflict(type: _decompressionMap[parts[0]]!, offBy: int.parse(parts[1])));
     } else if (encodedString == 'TBD' || TimeFormatter.isDuration(encodedString)) {
       return TimingDatum(time: encodedString);
     }
@@ -69,3 +71,15 @@ class TimingDatum {
     return Object.hash(time, conflict);
   }
 }
+
+const Map<ConflictType, String> _compressionMap = {
+  ConflictType.confirmRunner: 'CR',
+  ConflictType.missingTime: 'MT',
+  ConflictType.extraTime: 'ET',
+};
+
+const Map<String, ConflictType> _decompressionMap = {
+  'CR': ConflictType.confirmRunner,
+  'MT': ConflictType.missingTime,
+  'ET': ConflictType.extraTime,
+};

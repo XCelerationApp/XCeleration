@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
 import '../controller/timing_controller.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
@@ -42,12 +41,6 @@ class BottomControlsWidget extends StatelessWidget {
             color: ColorUtils.withOpacity(Colors.grey, 0.3),
           ),
           _buildAdjustTimesButton(context),
-          if (controller.hasUndoableConflict())
-            _buildControlButton(
-              icon: Icons.undo,
-              color: AppColors.mediumColor,
-              onTap: controller.undoLastConflict,
-            ),
         ],
       ),
     );

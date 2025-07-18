@@ -21,7 +21,7 @@ class RaceControlsWidget extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         _buildRaceControlButton(context),
-        if (controller.raceStopped == true && controller.records.isNotEmpty)
+        if (controller.raceStopped == true && controller.hasTimingData)
           _buildShareButton(context),
         _buildLogButton(context),
       ],
@@ -84,15 +84,15 @@ class RaceControlsWidget extends StatelessWidget {
 
   Widget _buildLogButton(BuildContext context) {
     return CircularButton(
-      text: (controller.records.isNotEmpty && controller.raceStopped)
+      text: (controller.hasTimingData && controller.raceStopped)
           ? 'Clear'
           : 'Log',
-      color: (controller.records.isEmpty && controller.raceStopped)
+      color: (controller.hasTimingData && controller.raceStopped)
           ? const Color.fromARGB(255, 201, 201, 201)
           : const Color(0xFF777777),
       fontSize: 18,
       fontWeight: FontWeight.w600,
-      onPressed: (controller.records.isNotEmpty && controller.raceStopped)
+      onPressed: (controller.hasTimingData && controller.raceStopped)
           ? controller.clearRaceTimes
           : (controller.raceStopped ? null : controller.handleLogButtonPress),
     );

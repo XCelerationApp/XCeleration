@@ -1,11 +1,12 @@
+import 'package:xceleration/shared/models/database/master_race.dart';
+
 import '../model/results_record.dart';
 import '../model/team_record.dart';
 import 'package:collection/collection.dart';
-import 'package:xceleration/core/utils/database_helper.dart';
 
 class RaceResultsController {
   final int raceId;
-  final DatabaseHelper dbHelper;
+  final MasterRace masterRace;
   bool isLoading = true;
   String _raceName = 'Race Results';
   List<ResultsRecord> individualResults = [];
@@ -16,7 +17,7 @@ class RaceResultsController {
 
   RaceResultsController({
     required this.raceId,
-    required this.dbHelper,
+    required this.masterRace,
   }) {
     _calculateResults();
   }
@@ -24,18 +25,14 @@ class RaceResultsController {
   Future<void> _calculateResults() async {
     // Get race name from database
     try {
-      final race = await dbHelper.getRace(raceId);
-      if (race != null) {
-        _raceName = race.raceName;
-      } else {
-        _raceName = 'Race Results';
-      }
+      final race = await masterRace.race;
+      _raceName = race.raceName!;
     } catch (e) {
       _raceName = 'Race Results';
     }
 
     // Get race results from database
-    final List<ResultsRecord> results = await dbHelper.getRaceResults(raceId);
+    final List<ResultsRecord> results = await masterRace.results;
 
     if (results.isEmpty) {
       isLoading = false;

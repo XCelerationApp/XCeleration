@@ -30,7 +30,7 @@ class TimingEncodeUtils {
     // Parallelize the encoding operations
     final futures = timingData.map((timingDatum) async {
       try {
-        return timingDatum.toEncodedString();
+        return timingDatum.encode();
       } catch (e) {
         return '';
       }

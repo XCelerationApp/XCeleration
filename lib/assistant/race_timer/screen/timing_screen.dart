@@ -71,11 +71,11 @@ class _TimingScreenState extends State<TimingScreen>
                   ),
                   const SizedBox(height: 8),
                   RaceControlsWidget(controller: _controller),
-                  if (_controller.records.isNotEmpty)
+                  if (_controller.hasTimingData)
                     const SizedBox(height: 30),
                   Expanded(child: RecordsListWidget(controller: _controller)),
                   if (_controller.raceStopped == false &&
-                      _controller.records.isNotEmpty)
+                      _controller.hasTimingData)
                     BottomControlsWidget(
                       controller: _controller,
                     ),
