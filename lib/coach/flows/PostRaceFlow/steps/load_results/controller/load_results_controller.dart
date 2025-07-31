@@ -3,35 +3,33 @@ import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/core/services/device_connection_service.dart';
 import 'package:xceleration/core/utils/decode_utils.dart';
 import 'package:xceleration/core/utils/enums.dart';
-import 'package:xceleration/coach/race_screen/widgets/runner_record.dart';
-import 'package:xceleration/coach/merge_conflicts/model/timing_data.dart';
-import 'package:xceleration/core/utils/runner_time_functions.dart';
-import '../../../../../../shared/models/time_record.dart';
-import '../../../../../../core/utils/database_helper.dart';
+import 'package:xceleration/shared/models/database/master_race.dart';
+import 'package:xceleration/shared/models/timing_records/bib_datum.dart';
+import 'package:xceleration/shared/models/timing_records/conflict.dart';
 import 'package:xceleration/core/utils/sheet_utils.dart';
 import 'package:xceleration/core/utils/time_formatter.dart';
 import 'package:xceleration/coach/resolve_bib_number_screen/widgets/bib_conflicts_overview.dart';
 import 'package:xceleration/coach/merge_conflicts/screen/merge_conflicts_screen.dart';
 import 'package:provider/provider.dart';
-import '../../../../../../core/utils/encode_utils.dart' as encode_utils;
+import '../../../../../../core/utils/encode_utils.dart';
 import '../../../../../merge_conflicts/controller/merge_conflicts_controller.dart';
-import '../../../../../race_results/model/results_record.dart';
+import 'package:xceleration/shared/models/timing_records/timing_datum.dart';
+import 'package:xceleration/shared/models/database/base_models.dart';
+import 'package:xceleration/shared/models/timing_records/timing_chunk.dart';
 
 /// Controller that manages loading and processing of race results
 class LoadResultsController with ChangeNotifier {
-  final int raceId;
+  final MasterRace masterRace;
   bool _resultsLoaded = false;
   bool _hasBibConflicts = false;
   bool _hasTimingConflicts = false;
-  List<ResultsRecord> results = [];
-  TimingData? timingData;
-  List<RunnerRecord>? runnerRecords;
+  List<RaceResult> results = [];
+  List<TimingDatum>? timingData;
+  List<RaceRunner>? raceRunners;
   late final DevicesManager devices;
-  final Function() callback;
 
   LoadResultsController({
-    required this.raceId,
-    required this.callback,
+    required this.masterRace,
   }) {
     devices = DeviceConnectionService.createDevices(
       DeviceName.coach,
@@ -67,7 +65,7 @@ class LoadResultsController with ChangeNotifier {
   Future<void> resetDevices() async {
     devices.reset();
     // Re-encode and assign runner data after reset
-    final encoded = await encode_utils.getEncodedRunnersData(raceId);
+    final encoded = await BibEncodeUtils.getEncodedRunnersBibData(masterRace);
     devices.bibRecorder?.data = encoded;
     Logger.d('POST-RESET: Encoded runners data length: ${encoded.length}');
     resultsLoaded = false;
@@ -75,14 +73,14 @@ class LoadResultsController with ChangeNotifier {
     hasTimingConflicts = false;
     results = [];
     timingData = null;
-    runnerRecords = null;
+    raceRunners = null;
     notifyListeners();
   }
 
   /// Loads saved results from the database
   Future<void> loadResults() async {
-    final List<ResultsRecord> savedResults =
-        await DatabaseHelper.instance.getRaceResults(raceId);
+    final List<RaceResult> savedResults =
+        await masterRace.results;
 
     if (savedResults.isNotEmpty) {
       results = savedResults;
@@ -93,12 +91,9 @@ class LoadResultsController with ChangeNotifier {
   }
 
   /// Saves race results to the database
-  Future<void> saveRaceResults(List<ResultsRecord> resultRecords) async {
+  Future<void> saveRaceResults(List<RaceResult> results) async {
     try {
-      await DatabaseHelper.instance.saveRaceResults(
-        raceId,
-        resultRecords,
-      );
+      await masterRace.saveResults(results);
     } catch (e) {
       Logger.d('Error in saveRaceResults: $e');
       rethrow;
@@ -115,21 +110,41 @@ class LoadResultsController with ChangeNotifier {
         'Finish times data: ${finishTimesData != null ? "Available" : "Null"}');
 
     if (bibRecordsData != null && finishTimesData != null) {
-      runnerRecords = await processEncodedBibRecordsData(
-          DatabaseHelper.instance, bibRecordsData, context, raceId);
+      final List<BibDatum>? bibData = await BibDecodeUtils.decodeEncodedRunners(bibRecordsData, context);
+
+      Logger.d('Loaded bib data: ${bibData?.length ?? 'null'}');
+
+      raceRunners = bibData == null
+          ? []
+          : await Future.wait(
+              bibData.map((bibDatum) async {
+                final found = await masterRace.getRaceRunnerByBib(bibDatum.bib);
+                if (found != null) {
+                  return found;
+                } else {
+                  // Create a minimal RaceRunner with raceId and Runner with bib
+                  return RaceRunner(
+                    raceId: masterRace.raceId,
+                    runner: Runner(bibNumber: bibDatum.bib),
+                    team: Team(), // Provide a default/empty team if needed
+                  );
+                }
+              }),
+            );
+      if (raceRunners!.isEmpty) {
+        Logger.e('No race runners loaded');
+        raceRunners = null;
+      }
 
       // Check if context is still mounted after async operation
       if (!context.mounted) return;
 
-      Logger.d('Processed runner records: ${runnerRecords?.length ?? 0}');
+      timingData = await TimingDecodeUtils.decodeEncodedTimingData(finishTimesData);
 
-      timingData = await processEncodedTimingData(finishTimesData, context);
+      Logger.d('Loaded timing data: ${timingData?.length ?? 0}');
 
       // Check if context is still mounted after second async operation
       if (!context.mounted) return;
-
-      Logger.d(
-          'Processed timing data: ${timingData?.records.length ?? 0} records');
 
       resultsLoaded = true;
       notifyListeners();
@@ -138,201 +153,104 @@ class LoadResultsController with ChangeNotifier {
 
       await _checkForConflictsAndSaveResults();
     } else {
-      Logger.d(
-          'Missing data source: bibRecordsData or finishTimesData is null');
+      Logger.e(
+        'Missing data source: bibRecordsData or finishTimesData is null');
     }
   }
 
   Future<void> _ensureBibNumberAndRunnerRecordLengthsAreEqual() async {
-    if (runnerRecords != null && timingData != null) {
-      if (runnerRecords!.length != timingData!.records.length) {
+    if (raceRunners != null && timingData != null) {
+      if (raceRunners!.length != timingData!.length) {
         Logger.d('Bib number and runner record lengths are not equal');
-        int diff = runnerRecords!.length - timingData!.records.length;
+        int diff = raceRunners!.length - timingData!.length;
         Logger.d('Difference: $diff');
         if (diff > 0) {
           Logger.d('Removing $diff records from runnerRecords');
-          timingData!.records = removeExtraTime(diff, timingData!.records,
-              runnerRecords!.length, timingData!.endTime);
+          timingData!.removeRange(timingData!.length - diff, timingData!.length);
         } else if (diff < 0) {
           Logger.d('Adding $diff records to timingData');
-          timingData!.records = addMissingTime(diff.abs(), timingData!.records,
-              runnerRecords!.length, timingData!.endTime);
+          timingData!.add(TimingDatum(
+            time: 'EQUALIZING_MISSING_TIMES',
+            conflict: Conflict(type: ConflictType.missingTime, offBy: diff.abs()),
+          ));
         }
-      } else if (timingData!.records.last.type == RecordType.runnerTime) {
-        Logger.d('Last record is a runner time');
-        timingData!.records = confirmTimes(timingData!.records,
-            timingData!.records.length, timingData!.endTime);
+      // } else if (timingData!.last.type == RecordType.runnerTime) {
+      //   Logger.d('Last record is a runner time');
+      //   timingData!.records = confirmTimes(timingData!.records,
+      //       timingData!.records.length, timingData!.endTime,
+      //   );
       }
     }
   }
 
   Future<void> _checkForConflictsAndSaveResults() async {
-    hasBibConflicts =
-        runnerRecords != null ? containsBibConflicts(runnerRecords!) : false;
-    hasTimingConflicts =
-        timingData != null ? containsTimingConflicts(timingData!) : false;
+    hasBibConflicts = containsBibConflicts();
+    hasTimingConflicts = containsTimingConflicts();
     notifyListeners();
 
     if (!hasBibConflicts &&
         !hasTimingConflicts &&
         timingData != null &&
-        runnerRecords != null) {
-      final List<ResultsRecord> mergedResults =
-          await _mergeRunnerRecordsWithTimingData(timingData!, runnerRecords!);
-      Logger.d('Data merged, created ${mergedResults.length} result records');
-
-      results = mergedResults;
+        raceRunners != null) {
+      await _mergeBibDataWithTimingDataAndSaveResults();
       notifyListeners();
-      await saveRaceResults(mergedResults);
-      callback();
     }
   }
 
   /// Merges runner records with timing data
-  Future<List<ResultsRecord>> _mergeRunnerRecordsWithTimingData(
-      TimingData timingData, List<RunnerRecord> runnerRecords) async {
-    final List<ResultsRecord> mergedRecords = [];
-    final List<TimeRecord> records = timingData.records
-        .where((record) => record.type == RecordType.runnerTime)
-        .toList();
+  Future<List<RaceResult>> _mergeBibDataWithTimingDataAndSaveResults() async {
+    timingData = timingData?.where((record) => !record.hasConflict).toList();
 
-    for (var i = 0; i < records.length; i++) {
-      if (i >= runnerRecords.length) break;
+    if (timingData == null || raceRunners == null) {
+      Logger.e('Timing data or race runners is null');
+      return [];
+    }
 
-      final runnerRecord = runnerRecords[i];
-      final timeRecord = records[i];
+    for (var i = 1; i <= timingData!.length; i++) {
+
+      final raceRunner = raceRunners![i];
+      final timingDatum = timingData![i];
 
       // Convert elapsed time string to Duration
       Duration finishDuration;
       finishDuration =
-          TimeFormatter.loadDurationFromString(timeRecord.elapsedTime) ??
+          TimeFormatter.loadDurationFromString(timingDatum.time) ??
               Duration.zero;
 
-      // Get or create runner ID
-      int runnerId = runnerRecord.runnerId ?? await _findRunnerId(runnerRecord);
+      final runner = raceRunner.runner;
+      final team = raceRunner.team;
 
-      mergedRecords.add(ResultsRecord(
-        bib: runnerRecord.bib,
-        place: timeRecord.place!,
-        name: runnerRecord.name,
-        team: runnerRecord.team,
-        teamAbbreviation: runnerRecord.teamAbbreviation,
-        grade: runnerRecord.grade,
+      masterRace.addResult(RaceResult(
+        runner: runner,
+        team: team,
+        place: i,
         finishTime: finishDuration,
-        raceId: raceId,
-        runnerId: runnerId,
       ));
     }
-    return mergedRecords;
-  }
-
-  /// Gets an existing runner ID or creates a new one if needed
-  Future<int> _findRunnerId(RunnerRecord record) async {
-    if (record.runnerId != null) {
-      return record.runnerId!;
-    }
-
-    try {
-      // Try to find runner by bib number in this race
-      final runner =
-          await DatabaseHelper.instance.getRaceRunnerByBib(raceId, record.bib);
-      if (runner != null && runner.runnerId != null) {
-        Logger.d(
-            'Found existing runner ID: ${runner.runnerId} for bib ${record.bib}');
-        return runner.runnerId!;
-      }
-
-      Logger.d('No runner ID found for bib ${record.bib}, using 0 as fallback');
-      return 0; // Fallback ID if we can't find a valid ID
-    } catch (e) {
-      Logger.d('Error finding runner ID: $e');
-      return 0; // Fallback ID in case of error
-    }
-  }
-
-  /// Loads test data for development purposes
-  Future<void> loadTestData(BuildContext context) async {
-    Logger.d('Loading test data...');
-    // Fake encoded data strings
-    final fakeBibRecordsData = '1 2 30 101';
-    final fakeFinishTimesData = TimingData(records: [
-      TimeRecord(
-        elapsedTime: '1.0',
-        isConfirmed: true,
-        conflict: null,
-        type: RecordType.runnerTime,
-        place: 1,
-      ),
-      TimeRecord(
-        elapsedTime: '2.0',
-        isConfirmed: true,
-        conflict: null,
-        type: RecordType.runnerTime,
-        place: 2,
-      ),
-      TimeRecord(
-        elapsedTime: '3.0',
-        isConfirmed: true,
-        conflict: null,
-        type: RecordType.runnerTime,
-        place: 3,
-      ),
-      TimeRecord(
-        elapsedTime: '3.5',
-        isConfirmed: true,
-        conflict: null,
-        place: 3,
-        type: RecordType.confirmRunner,
-      ),
-      TimeRecord(
-        elapsedTime: 'TBD',
-        isConfirmed: false,
-        conflict: ConflictDetails(
-          type: RecordType.missingTime,
-          data: {'numTimes': 4, 'offBy': 1},
-        ),
-        place: 4,
-        type: RecordType.runnerTime,
-      ),
-      TimeRecord(
-        elapsedTime: '4.0',
-        isConfirmed: false,
-        conflict: ConflictDetails(
-          type: RecordType.missingTime,
-          data: {'numTimes': 4, 'offBy': 1},
-        ),
-        place: 4,
-        type: RecordType.missingTime,
-      ),
-    ], endTime: '13.7');
-
-    // Inject fake data into the devices
-    devices.bibRecorder?.data = fakeBibRecordsData;
-    devices.raceTimer?.data = fakeFinishTimesData.encode();
-
-    // Process the fake data
-    await processReceivedData(context);
+    results = await masterRace.results;
+    Logger.d('Data merged, created ${results.length} result records');
+    return results;
   }
 
   /// Shows sheet for resolving bib conflicts
   Future<void> showBibConflictsSheet(BuildContext context) async {
-    if (runnerRecords == null) return;
+    if (raceRunners == null) return;
 
-    final List<RunnerRecord>? updatedRunnerRecords = await sheet(
+    final List<RaceRunner>? updatedRaceRunners = await sheet(
       context: context,
       title: 'Resolve Bib Numbers',
       body: BibConflictsOverview(
-        records: runnerRecords!,
-        raceId: raceId,
-        onConflictSelected: (records) {
-          Navigator.pop(context, records);
+        masterRace: masterRace,
+        raceRunners: raceRunners!,
+        onResolved: (updatedRaceRunners) {
+          Navigator.pop(context, updatedRaceRunners);
         },
       ),
     );
 
     // Update runner records if a result was returned
-    if (updatedRunnerRecords != null) {
-      runnerRecords = updatedRunnerRecords;
+    if (updatedRaceRunners != null) {
+      raceRunners = updatedRaceRunners;
       await _checkForConflictsAndSaveResults();
 
       // If there are still timing conflicts, open the timing conflicts sheet
@@ -347,21 +265,21 @@ class LoadResultsController with ChangeNotifier {
 
   /// Shows sheet for resolving timing conflicts
   Future<void> showTimingConflictsSheet(BuildContext context) async {
-    if (timingData == null || runnerRecords == null) return;
+    if (timingData == null || raceRunners == null) return;
 
     final updatedTimingData = await sheet(
       context: context,
       title: 'Resolve Timing Conflicts',
       body: ChangeNotifierProvider(
         create: (_) => MergeConflictsController(
-          raceId: raceId,
-          timingData: timingData!,
-          runnerRecords: runnerRecords!,
+          masterRace: masterRace,
+          timingChunks: timingChunksFromTimingData(timingData!),
+          raceRunners: raceRunners!,
         ),
         child: MergeConflictsScreen(
-          raceId: raceId,
-          timingData: timingData!,
-          runnerRecords: runnerRecords!,
+          masterRace: masterRace,
+          timingChunks: timingChunksFromTimingData(timingData!),
+          raceRunners: raceRunners!,
         ),
       ),
       useBottomPadding: false,
@@ -376,12 +294,12 @@ class LoadResultsController with ChangeNotifier {
   }
 
   /// Checks if there are any bib conflicts in the provided records
-  bool containsBibConflicts(List<RunnerRecord> records) {
-    return records.any((record) => record.error != null);
+  bool containsBibConflicts() {
+    return raceRunners?.any((raceRunner) => !raceRunner.isValid) ?? false;
   }
 
   /// Checks if there are any timing conflicts in the timing data
-  bool containsTimingConflicts(TimingData data) {
-    return data.records.any((record) => record.conflict != null);
+  bool containsTimingConflicts() {
+    return timingData?.any((record) => record.hasConflict) ?? false;
   }
 }

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:xceleration/shared/role_bar/role_bar.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/role_bar/models/role_enums.dart';
@@ -8,7 +7,6 @@ import '../../../core/components/coach_mark.dart';
 import '../controller/races_controller.dart';
 import '../widgets/race_tutorial_coach_mark.dart';
 import '../widgets/races_list.dart';
-import '../../merge_conflicts/screen/mock_data_test_screen.dart';
 
 class RacesScreen extends StatefulWidget {
   const RacesScreen({super.key});
@@ -44,22 +42,6 @@ class RacesScreenState extends State<RacesScreen> {
                 floatingActionButton: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Debug-only Mock Data FAB
-                    if (kDebugMode) ...[
-                      FloatingActionButton(
-                        heroTag: 'mock_data_debug',
-                        onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const MockDataTestScreen(),
-                          ),
-                        ),
-                        backgroundColor: Colors.green,
-                        mini: true,
-                        child: const Icon(Icons.science),
-                      ),
-                      const SizedBox(height: 8),
-                    ],
                     // Main Create Race FAB
                     CoachMark(
                       id: 'create_race_button_tutorial',

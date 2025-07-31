@@ -1,17 +1,17 @@
 import 'package:xceleration/core/utils/logger.dart';
-import '../../../../core/utils/database_helper.dart';
+import 'package:xceleration/shared/models/database/master_race.dart';
 import '../../controller/flow_controller.dart';
 import '../../model/flow_model.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/utils/enums.dart';
 import '../../../../core/services/device_connection_service.dart';
-import '../../../../core/utils/encode_utils.dart' as encode_utils;
+import '../../../../core/utils/encode_utils.dart';
 import '../steps/review_runners/review_runners_step.dart';
 import '../steps/share_runners/share_runners_step.dart';
 import '../steps/flow_complete/pre_race_flow_complete.dart';
 
 class PreRaceController {
-  final int raceId;
+  final MasterRace masterRace;
   late ReviewRunnersStep _reviewRunnersStep;
   late ShareRunnersStep _shareRunnersStep;
   late PreRaceFlowCompleteStep _preRaceFlowCompleteStep;
@@ -23,15 +23,15 @@ class PreRaceController {
     data: '',
   );
 
-  PreRaceController({required this.raceId}) {
+  PreRaceController({required this.masterRace}) {
     _initializeSteps();
   }
 
   void _initializeSteps() {
     _reviewRunnersStep = ReviewRunnersStep(
-      raceId: raceId,
+      masterRace: masterRace,
       onNext: () async {
-        final encoded = await encode_utils.getEncodedRunnersData(raceId);
+        final encoded = await BibEncodeUtils.getEncodedRunnersBibData(masterRace);
         Logger.d(
             'PRE-RACE DEBUG: Encoded runners data length: ${encoded.length}');
         if (encoded == '') {

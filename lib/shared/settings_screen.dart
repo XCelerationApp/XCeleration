@@ -6,7 +6,6 @@ import 'role_screen.dart';
 import '../coach/races_screen/screen/races_screen.dart';
 import '../core/components/dialog_utils.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
-import '../coach/merge_conflicts/screen/mock_data_test_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   final String currentRole;
@@ -125,19 +124,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildDevelopmentTools(BuildContext context) {
     return Column(
       children: [
-        _buildRoleItem(
-          context,
-          'Mock Data Testing',
-          'Test conflict resolution with realistic scenarios',
-          Icons.science,
-          isSelected: false,
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const MockDataTestScreen(),
-            ),
-          ),
-        ),
+        // _buildRoleItem(
+        //   context,
+        //   'Mock Data Testing',
+        //   'Test conflict resolution with realistic scenarios',
+        //   Icons.science,
+        //   isSelected: false,
+        //   onTap: () => Navigator.push(
+        //     context,
+        //     MaterialPageRoute(
+        //       builder: (context) => const MockDataTestScreen(),
+        //     ),
+        //   ),
+        // ),
       ],
     );
   }

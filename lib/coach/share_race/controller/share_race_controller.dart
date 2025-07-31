@@ -7,42 +7,39 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
+import 'package:xceleration/shared/services/race_results_service.dart';
 import '../../../core/utils/enums.dart';
 import '../../race_results/model/team_record.dart';
-import '../../race_results/model/results_record.dart';
 import '../../../core/utils/sheet_utils.dart';
 import '../../../core/utils/google_sheets_service.dart';
 import '../../../../../core/components/dialog_utils.dart';
 import '../screen/share_race_screen.dart';
-import '../../race_results/controller/race_results_controller.dart';
 import '../widgets/google_sheet_dialog_widgets.dart';
 
 /// Controller class responsible for all sharing logic in the app
 class ShareRaceController extends ChangeNotifier {
-  late FormattedResultsController _formattedResultsController;
+  final RaceResultsData raceResultsData;
   late ShareResultsController _shareResultsController;
 
   ShareRaceController({
-    required RaceResultsController controller,
+    required this.raceResultsData,
   }) {
-    _formattedResultsController =
-        FormattedResultsController(controller: controller);
     _shareResultsController = ShareResultsController(
-      formattedResultsController: _formattedResultsController,
+      raceResultsData: raceResultsData,
     );
   }
 
   /// Show the share race bottom sheet
   static Future<dynamic> showShareRaceSheet({
     required BuildContext context,
-    required RaceResultsController controller,
+    required RaceResultsData raceResultsData,
   }) {
     return sheet(
       context: context,
       title: 'Share Race',
       body: ShareSheetScreen(
         controller: ShareRaceController(
-          controller: controller,
+          raceResultsData: raceResultsData,
         ),
       ),
     );
@@ -69,14 +66,14 @@ class ShareRaceController extends ChangeNotifier {
 
 class ShareResultsController {
   late FormattedResultsController _formattedResultsController;
-  late String title;
   final GoogleSheetsService _googleSheetsService = GoogleSheetsService.instance;
+  final RaceResultsData raceResultsData;
 
   ShareResultsController({
-    required FormattedResultsController formattedResultsController,
+    required this.raceResultsData,
   }) {
-    _formattedResultsController = formattedResultsController;
-    title = '${formattedResultsController.raceName} Results';
+    _formattedResultsController =
+        FormattedResultsController(raceResultsData: raceResultsData);
   }
 
   /// Handle plain text format - copy to clipboard
@@ -166,7 +163,8 @@ class ShareResultsController {
       try {
         spreadsheetId = await DialogUtils.executeWithLoadingDialog<String?>(
           context,
-          operation: () => _googleSheetsService.createSheet(title: title),
+          operation: () => _googleSheetsService.createSheet(
+              title: raceResultsData.resultsTitle),
           loadingMessage: 'Creating Google Sheet...',
         );
         if (spreadsheetId == null) {
@@ -272,7 +270,7 @@ class ShareResultsController {
   Future<void> _showGoogleSheetOptions(
       BuildContext context, Uri sheetUri) async {
     final result = await showGoogleSheetOptionsDialog(context,
-        title: title, sheetUri: sheetUri);
+        title: raceResultsData.resultsTitle, sheetUri: sheetUri);
     if (!context.mounted) return;
     // Handle the selected action if user selected an option
     if (result != null) {
@@ -318,8 +316,8 @@ class ShareResultsController {
               context,
               ShareParams(
                 text: sheetUri.toString(),
-                subject: title,
-                title: title,
+                subject: raceResultsData.resultsTitle,
+                title: raceResultsData.resultsTitle,
               ));
           break;
 
@@ -348,7 +346,7 @@ class ShareResultsController {
           final bytes = await pdfData.save();
 
           // Create PDF file for sharing
-          final String pdfFileName = '$title.pdf';
+          final String pdfFileName = '${raceResultsData.resultsTitle}.pdf';
           return XFile.fromData(
             bytes,
             name: pdfFileName,
@@ -364,9 +362,9 @@ class ShareResultsController {
               context,
               ShareParams(
                 files: [xFile],
-                subject: title,
-                fileNameOverrides: [title],
-                title: title,
+                subject: raceResultsData.resultsTitle,
+                fileNameOverrides: [raceResultsData.resultsTitle],
+                title: raceResultsData.resultsTitle,
               ));
         } else {
           Logger.d('Context not mounted, PDF not shared');
@@ -398,35 +396,8 @@ class ShareResultsController {
   }
 }
 
-// Parameter classes for isolate computation
-class _SheetsDataParams {
-  final List<TeamRecord> overallTeamResults;
-  final List<List<TeamRecord>>? headToHeadTeamResults;
-  final List<ResultsRecord> individualResults;
-
-  _SheetsDataParams({
-    required this.overallTeamResults,
-    required this.headToHeadTeamResults,
-    required this.individualResults,
-  });
-}
-
-class _PdfParams {
-  final List<TeamRecord> overallTeamResults;
-  final List<List<TeamRecord>>? headToHeadTeamResults;
-  final List<ResultsRecord> individualResults;
-  final String raceName;
-
-  _PdfParams({
-    required this.overallTeamResults,
-    required this.headToHeadTeamResults,
-    required this.individualResults,
-    required this.raceName,
-  });
-}
-
 class FormattedResultsController {
-  final RaceResultsController controller;
+  final RaceResultsData raceResultsData;
   String? _formattedResultsText;
   List<List<dynamic>>? _formattedSheetsData;
   pw.Document? _formattedPdf;
@@ -444,21 +415,8 @@ class FormattedResultsController {
   bool _pdfGenerationStarted = false;
 
   FormattedResultsController({
-    required this.controller,
-  }) {
-    // Only initialize the race name in constructor
-    _initRaceName();
-  }
-
-  void _initRaceName() {
-    // Default fallback name in case we can't get the actual race name
-    raceName = 'Race Results';
-
-    // Try to get the actual race name from controller
-    if (controller.raceName.isNotEmpty) {
-      raceName = controller.raceName;
-    }
-  }
+    required this.raceResultsData,
+  });
 
   // Async getters that lazily initialize and cache results
   Future<String> get formattedResultsText async {
@@ -473,8 +431,7 @@ class FormattedResultsController {
     _textGenerationStarted = true;
     try {
       // Generate text asynchronously in a microtask to avoid blocking the UI
-      _formattedResultsText =
-          await Future.microtask(() => _getFormattedText(controller));
+      _formattedResultsText = await Future.microtask(() => _getFormattedText(raceResultsData));
       if (!_textCompleter.isCompleted) {
         _textCompleter.complete(_formattedResultsText);
       }
@@ -488,15 +445,15 @@ class FormattedResultsController {
   }
 
   // Text Formatting Methods - Made static for compute() function
-  static String _getFormattedText(RaceResultsController controller) {
+  static String _getFormattedText(RaceResultsData raceResultsData) {
     final StringBuffer buffer = StringBuffer();
 
     // Team Results Section
     buffer.writeln('Team Results');
     buffer.writeln('PlaceTeam\tScore\tSplit Time\tAverage Time');
-    for (final team in controller.overallTeamResults) {
+    for (final team in raceResultsData.overallTeamResults) {
       buffer.writeln(
-          '${team.place}\t${team.teamAbbreviation}\t${team.score != 0 ? team.score : 'N/A'}\t'
+          '${team.place}\t${team.team.abbreviation!}\t${team.score != 0 ? team.score : 'N/A'}\t'
           '${team.split != Duration.zero ? TimeFormatter.formatDuration(team.split) : 'N/A'}\t'
           '${team.avgTime != Duration.zero ? TimeFormatter.formatDuration(team.avgTime) : 'N/A'}');
     }
@@ -504,10 +461,10 @@ class FormattedResultsController {
     // Individual Results Section
     buffer.writeln('\nIndividual Results');
     buffer.writeln('Place\tNameTeam\tTime');
-    for (final runner in controller.individualResults) {
+    for (final runner in raceResultsData.individualResults) {
       buffer.writeln(
-          '${runner.place}\t${runner.name}\t${runner.teamAbbreviation}\t'
-          '${TimeFormatter.formatDuration(runner.finishTime)}');
+          '${runner.place}\t${runner.runner!.name!}\t${runner.team!.abbreviation!}\t'
+          '${TimeFormatter.formatDuration(runner.finishTime!)}');
     }
 
     return buffer.toString();
@@ -527,11 +484,7 @@ class FormattedResultsController {
     try {
       // Process asynchronously in a microtask to avoid blocking the UI
       _formattedSheetsData =
-          await Future.microtask(() => _getSheetsData(_SheetsDataParams(
-                overallTeamResults: controller.overallTeamResults,
-                headToHeadTeamResults: controller.headToHeadTeamResults,
-                individualResults: controller.individualResults,
-              )));
+          await Future.microtask(() => _getSheetsData(raceResultsData));
       if (!_sheetsDataCompleter.isCompleted) {
         _sheetsDataCompleter.complete(_formattedSheetsData);
       }
@@ -545,14 +498,14 @@ class FormattedResultsController {
   }
 
   // Data Formatting Methods - Made static for compute() function
-  static List<List<dynamic>> _getSheetsData(_SheetsDataParams params) {
+  static List<List<dynamic>> _getSheetsData(RaceResultsData raceResultsData) {
     final List<List<dynamic>> sheetsData = [
       // Team Results Section
       ['Team Results'],
       ['Place', 'Team', 'Score', 'Scorers', 'Split Time', 'Average Time'],
-      ...params.overallTeamResults.map((team) => [
+      ...raceResultsData.overallTeamResults.map((team) => [
             team.place,
-            team.teamAbbreviation,
+            team.team.abbreviation!,
             team.score != 0 ? team.score : 'N/A',
             team.scorers.isNotEmpty
                 ? [
@@ -573,8 +526,8 @@ class FormattedResultsController {
       [],
 
       // Head-to-Head Team Results Sections
-      if (params.headToHeadTeamResults != null) ...[
-        ...params.headToHeadTeamResults!.expand((matchup) {
+      if (raceResultsData.headToHeadTeamResults.isNotEmpty) ...[
+        ...raceResultsData.headToHeadTeamResults.expand((matchup) {
           final team1 = matchup[0];
           final team2 = matchup[1];
 
@@ -596,13 +549,13 @@ class FormattedResultsController {
             String team1Place =
                 i < team1.topSeven.length ? '#${team1.topSeven[i].place}' : '';
             String team1Name =
-                i < team1.topSeven.length ? team1.topSeven[i].name : '';
+                i < team1.topSeven.length ? team1.topSeven[i].runner!.name! : '';
 
             // Runner from second team (if exists)
             String team2Place =
                 i < team2.topSeven.length ? '#${team2.topSeven[i].place}' : '';
             String team2Name =
-                i < team2.topSeven.length ? team2.topSeven[i].name : '';
+                i < team2.topSeven.length ? team2.topSeven[i].runner!.name! : '';
 
             runnerRows.add([
               '${i + 1}',
@@ -631,10 +584,10 @@ class FormattedResultsController {
       // Individual Results Section
       ['Individual Results'],
       ['Place', 'Name', 'Team', 'Time'],
-      ...params.individualResults.map((runner) => [
+      ...raceResultsData.individualResults.map((runner) => [
             runner.place,
-            runner.name,
-            runner.teamAbbreviation,
+            runner.runner!.name!,
+            runner.team!.abbreviation!,
             runner.finishTime,
           ]),
     ];
@@ -655,12 +608,7 @@ class FormattedResultsController {
     _pdfGenerationStarted = true;
     try {
       // Process asynchronously in a microtask to avoid blocking the UI
-      _formattedPdf = await Future.microtask(() => _getPdfDocument(_PdfParams(
-            overallTeamResults: controller.overallTeamResults,
-            headToHeadTeamResults: controller.headToHeadTeamResults,
-            individualResults: controller.individualResults,
-            raceName: raceName,
-          )));
+      _formattedPdf = await Future.microtask(() => _getPdfDocument(raceResultsData));
       if (!_pdfCompleter.isCompleted) {
         _pdfCompleter.complete(_formattedPdf);
       }
@@ -674,7 +622,7 @@ class FormattedResultsController {
   }
 
   // Static method for PDF generation - made static for compute() function
-  static pw.Document _getPdfDocument(_PdfParams params) {
+  static pw.Document _getPdfDocument(RaceResultsData raceResultsData) {
     final pdf = pw.Document();
 
     pdf.addPage(
@@ -683,7 +631,7 @@ class FormattedResultsController {
           // Title
           pw.Header(
             level: 0,
-            child: pw.Text(params.raceName, style: pw.TextStyle(fontSize: 24)),
+            child: pw.Text(raceResultsData.resultsTitle, style: pw.TextStyle(fontSize: 24)),
           ),
 
           // Team Results Section
@@ -697,10 +645,10 @@ class FormattedResultsController {
               'Split Time',
               'Average Time'
             ],
-            data: params.overallTeamResults
+            data: raceResultsData.overallTeamResults
                 .map((team) => [
                       team.place.toString(),
-                      team.teamAbbreviation,
+                      team.team.abbreviation!,
                       team.score != 0 ? team.score.toString() : 'N/A',
                       team.scorers.isNotEmpty
                           ? [
@@ -723,12 +671,12 @@ class FormattedResultsController {
           pw.SizedBox(height: 20),
 
           // Head-to-Head Team Results Sections
-          if (params.headToHeadTeamResults != null) ...[
+          if (raceResultsData.headToHeadTeamResults.isNotEmpty) ...[
             pw.Header(level: 1, child: pw.Text('Head-to-Head Team Results')),
             pw.SizedBox(height: 10),
 
             // Generate each head-to-head matchup section
-            for (final matchup in params.headToHeadTeamResults!) ...[
+            for (final matchup in raceResultsData.headToHeadTeamResults) ...[
               pw.Header(
                   level: 2,
                   child: pw.Text('${matchup[0].team} vs ${matchup[1].team}')),
@@ -749,12 +697,12 @@ class FormattedResultsController {
           pw.Header(level: 1, child: pw.Text('Individual Results')),
           pw.TableHelper.fromTextArray(
             headers: ['Place', 'Name', 'Team', 'Time'],
-            data: params.individualResults
+            data: raceResultsData.individualResults
                 .map((runner) => [
                       runner.place.toString(),
-                      runner.name.toString(),
-                      runner.teamAbbreviation,
-                      TimeFormatter.formatDuration(runner.finishTime),
+                      runner.runner!.name!,
+                      runner.team!.abbreviation!,
+                      TimeFormatter.formatDuration(runner.finishTime!),
                     ])
                 .toList(),
           ),
@@ -777,13 +725,13 @@ class FormattedResultsController {
       String team1Place =
           i < team1.topSeven.length ? '#${team1.topSeven[i].place}' : '';
       String team1Name =
-          i < team1.topSeven.length ? team1.topSeven[i].name : '';
+          i < team1.topSeven.length ? team1.topSeven[i].runner!.name! : '';
 
       // Runner from second team (if exists)
       String team2Place =
           i < team2.topSeven.length ? '#${team2.topSeven[i].place}' : '';
       String team2Name =
-          i < team2.topSeven.length ? team2.topSeven[i].name : '';
+          i < team2.topSeven.length ? team2.topSeven[i].runner!.name! : '';
 
       rows.add([
         '${i + 1}',

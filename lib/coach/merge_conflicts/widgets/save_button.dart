@@ -15,7 +15,7 @@ class SaveButton extends StatelessWidget {
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
         child: GestureDetector(
-          onTap: () => controller.saveResults(),
+          onTap: () => controller.returnMergedData(),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             decoration: BoxDecoration(

@@ -8,11 +8,11 @@ class RaceResult {
   final int? raceId;
   final Runner? runner;
   final Team? team;
-  final int? place;
+  int? place;
   final Duration? finishTime;
   final DateTime? createdAt;
 
-  const RaceResult({
+  RaceResult({
     this.resultId,
     this.raceId,
     this.runner,
@@ -139,6 +139,17 @@ class RaceResult {
     );
   }
 
+  static RaceResult copy(RaceResult result) {
+    return RaceResult(
+      resultId: result.resultId,
+      raceId: result.raceId,
+      runner: result.runner,
+      team: result.team,
+      place: result.place,
+      finishTime: result.finishTime,
+      createdAt: result.createdAt,
+    );
+  }
   @override
   String toString() {
     return 'RaceResult(place: $place, runner: ${runner?.name}, time: $formattedFinishTime)';
@@ -154,6 +165,20 @@ class RaceResult {
         other.runner == runner &&
         other.place == place &&
         other.finishTime == finishTime;
+  }
+
+  int comparePlaceTo(RaceResult other) {
+    if (place == null && other.place == null) return 0;
+    if (place == null) return 1;
+    if (other.place == null) return -1;
+    return place!.compareTo(other.place!);
+  }
+
+  int compareTimeTo(RaceResult other) {
+    if (finishTime == null && other.finishTime == null) return 0;
+    if (finishTime == null) return 1;
+    if (other.finishTime == null) return -1;
+    return finishTime!.compareTo(other.finishTime!);
   }
 
   @override

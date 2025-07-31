@@ -2,20 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/coach/flows/model/flow_model.dart';
 import '../../../../runners_management_screen/screen/runners_management_screen.dart';
+import 'package:xceleration/shared/models/database/master_race.dart';
 
 class ReviewRunnersStep extends FlowStep {
   bool _canProceed = false;
-  final int raceId;
+  final MasterRace masterRace;
 
   ReviewRunnersStep({
-    required this.raceId,
+    required this.masterRace,
     required VoidCallback onNext,
   }) : super(
           title: 'Review Runners',
           description:
               'Make sure all runner information is correct before the race starts. You can make any last-minute changes here.',
           content: TeamsAndRunnersManagementWidget(
-            raceId: raceId,
+            masterRace: masterRace,
             showHeader: false,
             onBack: null,
             isViewMode: false,
@@ -30,7 +31,7 @@ class ReviewRunnersStep extends FlowStep {
 
   Future<void> checkRunners() async {
     final hasEnoughRunners =
-        await TeamsAndRunnersManagementWidget.checkMinimumRunnersLoaded(raceId);
+        await TeamsAndRunnersManagementWidget.checkMinimumRunnersLoaded(masterRace);
     Logger.d('Has enough runners: $hasEnoughRunners');
     if (_canProceed != hasEnoughRunners) {
       _canProceed = hasEnoughRunners;
@@ -41,7 +42,7 @@ class ReviewRunnersStep extends FlowStep {
   @override
   Widget get content {
     return TeamsAndRunnersManagementWidget(
-      raceId: raceId,
+      masterRace: masterRace,
       showHeader: false,
       onBack: null,
       onContentChanged: () async {

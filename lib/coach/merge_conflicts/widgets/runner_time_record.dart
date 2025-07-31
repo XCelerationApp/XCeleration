@@ -1,59 +1,33 @@
 import 'package:flutter/material.dart';
 import '../../../core/utils/enums.dart';
 import '../controller/merge_conflicts_controller.dart';
-import '../model/joined_record.dart';
-import '../model/chunk.dart';
+import 'package:xceleration/coach/merge_conflicts/utils/timing_data_converter.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/color_utils.dart';
 import 'runner_info_widgets.dart';
 import 'runner_time_cells.dart';
 
 class RunnerTimeRecord extends StatelessWidget {
-  final bool isExtraTimeRow;
-  final ValueChanged<String>? onTimeSubmitted;
-  final int? removableTimeIndex;
-  final int? removedTimeIndex = null;
+  final UIRecord record;
 
   const RunnerTimeRecord({
     super.key,
-    this.isExtraTimeRow = false,
+    required this.record,
     required this.controller,
-    required this.joinedRecord,
-    required this.color,
     required this.chunk,
-    required this.index,
-    required this.textEditingController,
-    this.isManualEntry = false,
-    this.assignedTime = '',
-    this.onManualEntry,
-    this.isRemovedTime = false,
-    this.onRemoveTime,
-    this.availableTimes,
-    this.removedTimeIndices,
-    this.onTimeSubmitted,
-    this.removableTimeIndex,
+    required this.chunkIndex,
   });
 
   final MergeConflictsController controller;
-  final JoinedRecord joinedRecord;
-  final Color color;
-  final Chunk chunk;
-  final int index;
-  final TextEditingController textEditingController;
-  final bool isManualEntry;
-  final String assignedTime;
-  final VoidCallback? onManualEntry;
-  // Extra time support
-  final bool isRemovedTime;
-  final void Function(int)? onRemoveTime;
-  final List<String>? availableTimes;
-  final Set<int>? removedTimeIndices;
+  final UIChunk chunk;
+  final int chunkIndex;
 
   @override
   Widget build(BuildContext context) {
-    final runner = joinedRecord.runner;
-    final timeRecord = joinedRecord.timeRecord;
-    final hasConflict = chunk.resolve != null;
+    final raceRunner = record.runner;
+    final time = record.time;
+    final place = record.place;
+    final hasConflict = chunk.conflict.type != ConflictType.confirmRunner;
 
     final Color conflictColor =
         hasConflict ? AppColors.primaryColor : Colors.green;
@@ -86,16 +60,14 @@ class RunnerTimeRecord extends StatelessWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    if (!isExtraTimeRow &&
-                        timeRecord.place != null &&
-                        index != -1) ...[
+                    if (place != null) ...[
                       PlaceNumber(
-                          place: timeRecord.place!, color: conflictColor),
+                          place: place, color: conflictColor),
                       const SizedBox(width: 10),
                     ],
                     Expanded(
                       child: RunnerInfo(
-                        runner: runner,
+                        raceRunner: raceRunner,
                         accentColor: conflictColor,
                       ),
                     ),
@@ -118,22 +90,18 @@ class RunnerTimeRecord extends StatelessWidget {
                     horizontal: 14), // Remove vertical padding
                 child: SizedBox.expand(
                   child: hasConflict
-                      ? (chunk.type == RecordType.missingTime
-                          ? MissingTimeCell(
-                              controller: textEditingController,
-                              isManualEntry: isManualEntry,
-                              assignedTime: assignedTime,
-                              onManualEntry: onManualEntry,
-                              onSubmitted: onTimeSubmitted,
-                            )
-                          : ExtraTimeCell(
-                              assignedTime: assignedTime,
-                              removedTimeIndices: removedTimeIndices,
-                              removableTimeIndex: removableTimeIndex,
-                              onRemoveTime: onRemoveTime,
-                              isRemovedTime: isRemovedTime,
-                            ))
-                      : ConfirmedRunnerTimeCell(time: timeRecord.elapsedTime),
+                  ? (chunk.conflict.type == ConflictType.missingTime
+                    ? MissingTimeCell(
+                      controller: record.timeController,
+                      time: time,
+                      onSubmitted: (newValue) => chunk.onMissingTimeSubmitted(context, chunkIndex, newValue),
+                      onChanged: (newValue) => chunk.onMissingTimeChanged(context, chunkIndex, newValue),
+                    )
+                    : ExtraTimeCell(
+                      time: time,
+                      onRemoveExtraTime: () => chunk.onRemoveExtraTime(chunkIndex),
+                    ))
+                  : ConfirmedRunnerTimeCell(time: time),
                 ),
               ),
             ),

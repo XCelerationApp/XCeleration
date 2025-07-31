@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/utils/enums.dart' hide EventTypes;
+import 'package:xceleration/shared/models/database/master_race.dart';
 import '../controller/race_screen_controller.dart';
 import '../widgets/tab_bar.dart';
 import '../widgets/tab_bar_view.dart';
@@ -15,12 +16,12 @@ import 'package:provider/provider.dart';
 
 class RaceScreen extends StatefulWidget {
   final RacesController parentController;
-  final int raceId;
+  final MasterRace masterRace;
   final RaceScreenPage page;
   const RaceScreen({
     super.key,
     required this.parentController,
-    required this.raceId,
+    required this.masterRace,
     this.page = RaceScreenPage.main,
   });
 
@@ -78,7 +79,8 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
     _flowStateSubscription =
         EventBus.instance.on(EventTypes.raceFlowStateChanged, (event) {
       // Only handle events for this race
-      if (event.data != null && event.data['raceId'] == widget.raceId) {
+      if (event.data != null &&
+          event.data['raceId'] == widget.masterRace.raceId) {
         _refreshRaceData();
       }
     });
@@ -90,19 +92,13 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
       _isLoading = true;
     });
     final controller = Provider.of<RaceController>(context, listen: false);
-    final updatedRace = await controller.loadRace();
-    if (mounted && updatedRace != null) {
-      setState(() {
-        controller.race = updatedRace;
-        _isLoading = false;
-      });
-    }
+    await controller.loadRace();
   }
 
   @override
   Widget build(BuildContext context) {
     final controller = Provider.of<RaceController>(context);
-    if (_isLoading || controller.race == null) {
+    if (_isLoading) {
       return const Center(
         child: CircularProgressIndicator(),
       );
@@ -110,52 +106,71 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
     return AnimatedBuilder(
       animation: controller,
       builder: (context, child) {
-        return Column(
-          mainAxisSize: MainAxisSize.max,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (controller.race!.flowState != Race.FLOW_FINISHED) ...[
-              Expanded(
-                child: SlidingPageView(
-                  showSecondPage: controller.showingRunnersManagement,
-                  secondPageTitle: 'Runners',
-                  onBackToFirst: () {
-                    // Handle async navigation in a fire-and-forget manner
-                    controller.navigateToRaceDetails().catchError((error) {
-                      // Log error but don't block UI
-                      debugPrint('Error navigating to race details: $error');
-                    });
-                  },
-                  firstPage: Column(
-                    children: [
-                      RaceHeader(controller: controller),
-                      Expanded(
-                        child: SingleChildScrollView(
-                          child: RaceDetailsTab(controller: controller),
-                        ),
+        return FutureBuilder<String>(
+          future: controller.flowState,
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            return Column(
+              mainAxisSize: MainAxisSize.max,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (snapshot.data! != Race.FLOW_FINISHED) ...[
+                  Expanded(
+                    child: SlidingPageView(
+                      showSecondPage: controller.showingRunnersManagement,
+                      secondPageTitle: 'Runners',
+                      onBackToFirst: () {
+                        // Handle async navigation in a fire-and-forget manner
+                        controller.navigateToRaceDetails().catchError((error) {
+                          // Log error but don't block UI
+                          debugPrint(
+                              'Error navigating to race details: $error');
+                        });
+                      },
+                      firstPage: Column(
+                        children: [
+                          RaceHeader(controller: controller),
+                          Expanded(
+                            child: SingleChildScrollView(
+                              child: RaceDetailsTab(controller: controller),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  secondPage: TeamsAndRunnersManagementWidget(
-                    raceId: controller.raceId,
-                    showHeader: false,
-                    isViewMode: !controller.canEdit,
-                    onContentChanged: () {
-                      // Refresh race data when runners/teams change
-                      controller.refreshRaceData().catchError((error) {
-                        debugPrint('Error refreshing race data: $error');
-                      });
-                    },
-                  ),
-                ),
-              )
-            ] else ...[
-              // Tab Bar for finished races
-              TabBarWidget(controller: controller),
-              // Tab Bar View
-              TabBarViewWidget(controller: controller),
-            ],
-          ],
+                      secondPage: FutureBuilder<bool>(
+                        future: controller.canEdit,
+                        builder: (context, snapshot) {
+                          if (!snapshot.hasData) {
+                            return const Center(
+                                child: CircularProgressIndicator());
+                          }
+                          return TeamsAndRunnersManagementWidget(
+                            masterRace: widget.masterRace,
+                            showHeader: false,
+                            isViewMode: !snapshot.data!,
+                            onContentChanged: () {
+                              // Refresh race data when runners/teams change
+                              controller.refreshRaceData().catchError((error) {
+                                debugPrint(
+                                    'Error refreshing race data: $error');
+                              });
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  )
+                ] else ...[
+                  // Tab Bar for finished races
+                  TabBarWidget(controller: controller),
+                  // Tab Bar View
+                  TabBarViewWidget(controller: controller),
+                ],
+              ],
+            );
+          },
         );
       },
     );

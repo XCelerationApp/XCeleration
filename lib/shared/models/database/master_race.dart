@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:xceleration/shared/models/database/race_runner.dart';
 import '../../../core/utils/database_helper.dart';
 import '../../services/race_results_service.dart';
+import '../../../coach/race_results/model/team_record.dart';
 import 'base_models.dart';
 
 /// Central orchestrator for all race-related data and operations
@@ -114,6 +114,9 @@ class MasterRace with ChangeNotifier {
 
   /// Get race results (lazy loaded and sorted by place)
   Future<List<RaceResult>> get results async {
+    if ((await race).flowState != 'FINISHED') {
+      throw Exception('Race is not finished');
+    }
     if (_results == null) {
       await _loadResults();
     }
@@ -159,11 +162,14 @@ class MasterRace with ChangeNotifier {
   // ============================================================================
 
   /// Get team standings (sorted by score)
-  Future<List<TeamStanding>> get teamStandings async {
+  Future<List<TeamRecord>> get teamStandings async {
     final resultsList = await results;
-    final teamsList = await teams;
 
-    return RaceResultsService.calculateTeamStandings(resultsList, teamsList);
+    return RaceResultsService.calculateTeamResults(resultsList);
+  }
+
+  Future<RaceResultsData> get raceResultsData async {
+    return RaceResultsService.calculateCompleteRaceResults(this);
   }
 
   // ============================================================================
@@ -249,14 +255,24 @@ class MasterRace with ChangeNotifier {
     ));
   }
 
-  /// Save race results
-  Future<void> saveResults(List<RaceResult> results) async {
-    // Convert to database format and save
-    final dbResults = results.map((r) => r.toMap()).toList();
-    // Note: This would need a proper implementation in DatabaseHelper
-    // For now, we'll just invalidate the cache
+  Future<void> addResult(RaceResult result) async {
+    if (result.raceId == null) {
+      result = result.copyWith(raceId: raceId);
+    }
+    if (result.raceId != raceId) {
+      throw Exception('Race result race ID does not match race ID');
+    }
+
+    await db.addRaceResult(result);
     _results = null;
     notifyListeners();
+  }
+
+  /// Save race results
+  Future<void> saveResults(List<RaceResult> results) async {
+    for (final result in results) {
+      await addResult(result);
+    }
   }
 
   // ============================================================================
@@ -304,6 +320,7 @@ class MasterRace with ChangeNotifier {
         }),
       );
     }
+
     if (query.isEmpty) {
       _filteredSearchResults = await teamtoRaceRunnersMap;
       await sortSearchResults();
@@ -431,42 +448,5 @@ class MasterRace with ChangeNotifier {
     _results =
         resultsData.map((data) => RaceResult.fromMap(data.toMap())).toList();
     notifyListeners();
-  }
-}
-
-/// Represents team standings in a race
-class TeamStanding {
-  final Team team;
-  final int score;
-  final int? place;
-  final List<RaceResult> scoringRunners;
-  final List<RaceResult> allRunners;
-  final Duration? split; // Time difference between 1st and 5th scorer
-
-  const TeamStanding({
-    required this.team,
-    required this.score,
-    this.place,
-    required this.scoringRunners,
-    required this.allRunners,
-    this.split,
-  });
-
-  TeamStanding copyWith({
-    Team? team,
-    int? score,
-    int? place,
-    List<RaceResult>? scoringRunners,
-    List<RaceResult>? allRunners,
-    Duration? split,
-  }) {
-    return TeamStanding(
-      team: team ?? this.team,
-      score: score ?? this.score,
-      place: place ?? this.place,
-      scoringRunners: scoringRunners ?? this.scoringRunners,
-      allRunners: allRunners ?? this.allRunners,
-      split: split ?? this.split,
-    );
   }
 }

@@ -63,18 +63,23 @@ class RaceControlsWidget extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
               borderRadius: 30,
               isPrimary: false,
-              onPressed: () async => sheet(
-                context: context,
-                title: 'Share Times',
-                body: deviceConnectionWidget(
-                  context,
-                  DeviceConnectionService.createDevices(
-                    DeviceName.raceTimer,
-                    DeviceType.advertiserDevice,
-                    data: await controller.encodedRecords(),
+              onPressed: () async {
+                final encodedData = await controller.encodedRecords();
+                if (!context.mounted) return;
+
+                sheet(
+                  context: context,
+                  title: 'Share Times',
+                  body: deviceConnectionWidget(
+                    context,
+                    DeviceConnectionService.createDevices(
+                      DeviceName.raceTimer,
+                      DeviceType.advertiserDevice,
+                      data: encodedData,
+                    ),
                   ),
-                ),
-              ),
+                );
+              },
             );
           },
         ),

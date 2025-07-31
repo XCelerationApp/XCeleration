@@ -19,11 +19,9 @@ import 'package:provider/provider.dart';
 /// Controller class for the RaceScreen that handles all business logic
 class RaceController with ChangeNotifier {
   // Race data
-  Race? race;
-  int raceId;
   bool isRaceSetup = false;
   late TabController tabController;
-  late final MasterRace masterRace;
+  final MasterRace masterRace;
 
   // Store the listener function to properly remove it later
   late final VoidCallback _masterRaceListener;
@@ -43,9 +41,9 @@ class RaceController with ChangeNotifier {
   bool get hasUnsavedChanges => changedFields.isNotEmpty;
 
   // Permission system - determines if user can edit fields
-  bool get canEdit {
-    if (race == null) return true; // Allow editing during initial setup
-    final flowState = race!.flowState;
+  Future<bool> get canEdit async {
+    final race = await masterRace.race;
+    final flowState = race.flowState;
     // Allow editing during setup and setup completed states
     return flowState == Race.FLOW_SETUP ||
         flowState == Race.FLOW_SETUP_COMPLETED ||
@@ -90,42 +88,44 @@ class RaceController with ChangeNotifier {
   }
 
   // Check if field should be shown as editable (empty during setup or currently being edited)
-  bool shouldShowAsEditable(String fieldName) {
-    if (!canEdit) return false;
+  Future<bool> shouldShowAsEditable(String fieldName) async {
+    if (!(await canEdit)) return false;
+    final race = await masterRace.race;
 
     // Always show as editable if currently being edited
     switch (fieldName) {
       case 'name':
-        return isEditingName || (race?.raceName?.isEmpty ?? true);
+        return isEditingName || (race.raceName?.isEmpty ?? true);
       case 'location':
-        return isEditingLocation || (race?.location?.isEmpty ?? true);
+        return isEditingLocation || (race.location?.isEmpty ?? true);
       case 'date':
-        return isEditingDate || (race?.raceDate == null);
+        return isEditingDate || (race.raceDate == null);
       case 'distance':
-        return isEditingDistance || (race?.distance == 0);
+        return isEditingDistance || (race.distance == 0);
       default:
         return false;
     }
   }
 
   // Change tracking methods
-  void _storeOriginalValue(String fieldName) {
+  Future<void> _storeOriginalValue(String fieldName) async {
+    final race = await masterRace.race;
     if (!originalValues.containsKey(fieldName)) {
       switch (fieldName) {
         case 'name':
-          originalValues[fieldName] = race?.raceName ?? '';
+          originalValues[fieldName] = race.raceName ?? '';
           break;
         case 'location':
-          originalValues[fieldName] = race?.location ?? '';
+          originalValues[fieldName] = race.location ?? '';
           break;
         case 'date':
-          originalValues[fieldName] = race?.raceDate;
+          originalValues[fieldName] = race.raceDate;
           break;
         case 'distance':
-          originalValues[fieldName] = race?.distance ?? 0;
+          originalValues[fieldName] = race.distance ?? 0;
           break;
         case 'unit':
-          originalValues[fieldName] = race?.distanceUnit ?? 'mi';
+          originalValues[fieldName] = race.distanceUnit ?? 'mi';
           break;
       }
     }
@@ -171,14 +171,15 @@ class RaceController with ChangeNotifier {
     trackFieldChange(fieldName);
 
     // Autosave if not in setup flow
-    if (!_isSetupFlow() && hasUnsavedChanges) {
+    if (!(await _isSetupFlow()) && hasUnsavedChanges && context.mounted) {
       await saveAllChanges(context);
     }
   }
 
   // Check if currently in setup flow
-  bool _isSetupFlow() {
-    final flowState = race?.flowState;
+  Future<bool> _isSetupFlow() async {
+    final race = await masterRace.race;
+    final flowState = race.flowState;
     return flowState == Race.FLOW_SETUP ||
         flowState == Race.FLOW_SETUP_COMPLETED;
   }
@@ -287,15 +288,17 @@ class RaceController with ChangeNotifier {
   late MasterFlowController flowController;
 
   // Flow state
-  String get flowState => race?.flowState ?? 'setup';
+  Future<String> get flowState async {
+    final race = await masterRace.race;
+    return race.flowState ?? 'setup';
+  }
 
   RacesController parentController;
 
   RaceController({
-    required this.raceId,
+    required this.masterRace,
     required this.parentController,
   }) {
-    masterRace = MasterRace.getInstance(raceId);
     _masterRaceListener = _onMasterRaceUpdate;
     masterRace.addListener(_masterRaceListener);
   }
@@ -312,13 +315,12 @@ class RaceController with ChangeNotifier {
     super.dispose();
   }
 
-  Future<void> _onMasterRaceUpdate() async {
-    await loadRaceDataOnly();
+  void _onMasterRaceUpdate() {
     notifyListeners();
   }
 
-  static Future<void> showRaceScreen(
-      BuildContext context, RacesController parentController, int raceId,
+  static Future<void> showRaceScreen(BuildContext context,
+      RacesController parentController, MasterRace masterRace,
       {RaceScreenPage page = RaceScreenPage.main}) async {
     if (!context.mounted) return;
 
@@ -326,11 +328,11 @@ class RaceController with ChangeNotifier {
       context: context,
       body: ChangeNotifierProvider(
         create: (_) => RaceController(
-          raceId: raceId,
+          masterRace: masterRace,
           parentController: parentController,
         ),
         child: RaceScreen(
-          raceId: raceId,
+          masterRace: masterRace,
           parentController: parentController,
           page: page,
         ),
@@ -342,7 +344,8 @@ class RaceController with ChangeNotifier {
   }
 
   Future<void> init(BuildContext context) async {
-    race = await loadRace();
+    await loadRace();
+    final race = await masterRace.race;
 
     // Check if context is still mounted after loading race
     if (!context.mounted) return;
@@ -352,7 +355,7 @@ class RaceController with ChangeNotifier {
     await loadRunnersCount();
 
     // Set initial flow state to setup if it's a new race
-    if (race != null && race!.flowState!.isEmpty) {
+    if (race.flowState!.isEmpty && context.mounted) {
       await updateRaceFlowState(context, Race.FLOW_SETUP);
 
       // Check if context is still mounted after updating race flow state
@@ -363,24 +366,22 @@ class RaceController with ChangeNotifier {
   }
 
   /// Initialize controllers from race data
-  void _initializeControllers() {
-    if (race != null) {
-      nameController.text = race!.raceName ?? '';
-      locationController.text = race!.location ?? '';
-      dateController.text = race!.raceDate != null
-          ? DateFormat('yyyy-MM-dd').format(race!.raceDate!)
-          : '';
-      distanceController.text = race!.distance != null && race!.distance! > 0
-          ? race!.distance.toString()
-          : '';
-      unitController.text = race!.distanceUnit ?? 'mi';
-      // Teams are now managed by RunnersManagementController
-    }
+  Future<void> _initializeControllers() async {
+    final race = await masterRace.race;
+    nameController.text = race.raceName ?? '';
+    locationController.text = race.location ?? '';
+    dateController.text = race.raceDate != null
+        ? DateFormat('yyyy-MM-dd').format(race.raceDate!)
+        : '';
+    distanceController.text = race.distance != null && race.distance! > 0
+        ? race.distance.toString()
+        : '';
+    unitController.text = race.distanceUnit ?? 'mi';
   }
 
   Future<void> saveRaceDetails(BuildContext context) async {
     await RaceService.saveRaceDetails(
-      raceId: raceId,
+      masterRace: masterRace,
       nameController: nameController,
       locationController: locationController,
       dateController: dateController,
@@ -388,12 +389,10 @@ class RaceController with ChangeNotifier {
       unitController: unitController,
     );
     // Refresh the race data
-    race = await loadRace();
+    await loadRace();
     notifyListeners();
-    // Check if we can move to setup_complete
     final setupComplete = await RaceService.checkSetupComplete(
-      race: race,
-      raceId: raceId,
+      masterRace: masterRace,
       nameController: nameController,
       locationController: locationController,
       dateController: dateController,
@@ -442,11 +441,11 @@ class RaceController with ChangeNotifier {
   }
 
   /// Load the race data and any saved results
-  Future<Race?> loadRace() async {
+  Future<void> loadRace() async {
     final loadedRace = await masterRace.race;
 
     // Populate controllers with race data
-    nameController.text = loadedRace.raceName!;
+    nameController.text = loadedRace.raceName ?? '';
     locationController.text = loadedRace.location ?? '';
     if (loadedRace.raceDate != null) {
       dateController.text =
@@ -454,14 +453,6 @@ class RaceController with ChangeNotifier {
     }
     distanceController.text = loadedRace.distance.toString();
     unitController.text = loadedRace.distanceUnit ?? 'mi';
-
-    return loadedRace;
-  }
-
-  /// Load race data without overwriting form controllers (preserves unsaved changes)
-  Future<Race?> loadRaceDataOnly() async {
-    race = await masterRace.race;
-    return race;
   }
 
   /// Update the race flow state
@@ -471,15 +462,12 @@ class RaceController with ChangeNotifier {
       Logger.d('Context not mounted - attempting to use navigator context');
     }
     final navigatorContext = Navigator.of(context);
-    String previousState = race?.flowState ?? '';
+    final race = await masterRace.race;
+    String previousState = race.flowState ?? '';
 
     final currentRace = race;
-    if (currentRace == null) {
-      Logger.e('Cannot update race flow state because race is null');
-      return;
-    }
-    race = currentRace.copyWith(flowState: newState);
-    await masterRace.updateRace(race!);
+    final updatedRace = currentRace.copyWith(flowState: newState);
+    await masterRace.updateRace(updatedRace);
     notifyListeners();
 
     // Show setup completion dialog if transitioning from setup to setup-completed
@@ -502,18 +490,19 @@ class RaceController with ChangeNotifier {
 
     // Publish an event when race flow state changes
     EventBus.instance.fire(EventTypes.raceFlowStateChanged, {
-      'raceId': raceId,
+      'raceId': masterRace.raceId,
       'newState': newState,
-      'race': race,
+      'race': updatedRace,
     });
   }
 
   /// Mark the current flow as completed
   Future<void> markCurrentFlowCompleted(BuildContext context) async {
-    if (race == null) return;
+    final race = await masterRace.race;
+    if (!context.mounted) return;
 
     // Update to the completed state for the current flow
-    String completedState = race!.completedFlowState;
+    String completedState = race.completedFlowState;
     await updateRaceFlowState(context, completedState);
 
     // Check if the context is still mounted before using ScaffoldMessenger
@@ -522,10 +511,11 @@ class RaceController with ChangeNotifier {
 
   /// Begin the next flow in the sequence
   Future<void> beginNextFlow(BuildContext context) async {
-    if (race == null) return;
+    final race = await masterRace.race;
+    if (!context.mounted) return;
 
     // Determine the next non-completed flow state
-    String nextState = race!.nextFlowState;
+    String nextState = race.nextFlowState;
 
     // If the next state is a completed state, skip to the one after that
     if (nextState.contains(Race.FLOW_COMPLETED_SUFFIX)) {
@@ -551,16 +541,16 @@ class RaceController with ChangeNotifier {
 
   /// Continue the race flow based on the current state
   Future<void> continueRaceFlow(BuildContext context) async {
-    if (race == null) return;
+    final race = await masterRace.race;
+    if (!context.mounted) return;
 
-    String currentState = race!.flowState!;
+    String currentState = race.flowState!;
 
     // Handle setup state differently - don't treat it as a flow
     if (currentState == Race.FLOW_SETUP) {
       // Just check if we can advance to setup_complete
       final canAdvance = await RaceService.checkSetupComplete(
-          race: race!,
-          raceId: raceId,
+          masterRace: masterRace,
           nameController: nameController,
           locationController: locationController,
           dateController: dateController,
@@ -600,14 +590,21 @@ class RaceController with ChangeNotifier {
     if (!context.mounted) return;
 
     // Use the flow controller to handle the navigation
-    await flowController.handleFlowNavigation(context, race!.flowState!);
+    // race is updated in the async operation, so we need to get the latest race
+    final currentRace = await masterRace.race;
+    if (!context.mounted) return;
+    await flowController.handleFlowNavigation(context, currentRace.flowState!);
   }
 
   /// Navigate to runners management screen with confirmation if needed
   Future<void> loadRunnersManagementScreenWithConfirmation(BuildContext context,
       {bool isViewMode = false}) async {
     // Check if we need to show confirmation dialog only when user can edit
-    if (canEdit && !isViewMode && _shouldShowRunnersEditConfirmation()) {
+    final canEditValue = await canEdit;
+    if (canEditValue &&
+        !isViewMode &&
+        await _shouldShowRunnersEditConfirmation() &&
+        context.mounted) {
       final confirmed = await DialogUtils.showConfirmationDialog(
         context,
         title: 'Edit Runners',
@@ -645,7 +642,6 @@ class RaceController with ChangeNotifier {
     final previousTeams = await masterRace.teams;
     final previousTeamCount = previousTeams.length;
 
-    race = await loadRaceDataOnly();
     await loadRunnersCount();
 
     // Reload teams to get updated count
@@ -658,11 +654,11 @@ class RaceController with ChangeNotifier {
   }
 
   /// Check if we should show confirmation dialog before editing runners
-  bool _shouldShowRunnersEditConfirmation() {
-    if (race == null) return false;
+  Future<bool> _shouldShowRunnersEditConfirmation() async {
+    final race = await masterRace.race;
 
     // Show confirmation only if runners have already been shared with assistants
-    final flowState = race!.flowState;
+    final flowState = race.flowState;
     return flowState == Race.FLOW_PRE_RACE_COMPLETED ||
         flowState == Race.FLOW_POST_RACE;
   }

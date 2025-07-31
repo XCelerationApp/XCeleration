@@ -13,6 +13,7 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'coach/race_screen/controller/race_screen_controller.dart';
 import 'coach/races_screen/controller/races_controller.dart';
+import 'shared/models/database/master_race.dart';
 
 /// EventBus provider wrapper for global event management
 class EventBusProvider extends ChangeNotifier {
@@ -64,8 +65,9 @@ void _runApp() async {
       providers: [
         ChangeNotifierProvider(create: (context) => EventBusProvider()),
         ChangeNotifierProvider(
-          create: (context) =>
-              RaceController(raceId: 0, parentController: RacesController()),
+          create: (context) => RaceController(
+              masterRace: MasterRace.getInstance(0),
+              parentController: RacesController()),
         ),
         ChangeNotifierProvider(create: (context) => RacesController()),
       ],

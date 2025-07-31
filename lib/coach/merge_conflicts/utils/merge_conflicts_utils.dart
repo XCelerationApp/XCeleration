@@ -1,6 +1,6 @@
 import 'package:xceleration/coach/race_screen/widgets/runner_record.dart';
-import '../../../shared/models/time_record.dart';
 import 'package:xceleration/core/utils/time_formatter.dart';
+import 'package:xceleration/shared/models/timing_records/timing_datum.dart';
 
 bool validateRunnerInfo(List<RunnerRecord> records) {
   return records.every((runner) =>
@@ -14,8 +14,8 @@ bool validateRunnerInfo(List<RunnerRecord> records) {
 String? validateTimes(
   List<String> times,
   List<RunnerRecord> runners,
-  TimeRecord lastConfirmed,
-  TimeRecord conflictRecord,
+  TimingDatum lastConfirmed,
+  TimingDatum conflictRecord,
 ) {
   if (times.any((time) => time.trim().isEmpty)) {
     return 'All time fields must be filled in';
@@ -29,12 +29,12 @@ String? validateTimes(
       return 'Invalid time format for runner with bib ${runner.bib}. Use MM:SS.ms or SS.ms';
     }
   }
-  Duration lastConfirmedTime = lastConfirmed.elapsedTime.trim().isEmpty
+  Duration lastConfirmedTime = lastConfirmed.time.trim().isEmpty
       ? Duration.zero
-      : TimeFormatter.loadDurationFromString(lastConfirmed.elapsedTime) ??
+      : TimeFormatter.loadDurationFromString(lastConfirmed.time) ??
           Duration.zero;
   Duration? conflictTime =
-      TimeFormatter.loadDurationFromString(conflictRecord.elapsedTime);
+      TimeFormatter.loadDurationFromString(conflictRecord.time);
   for (var i = 0; i < times.length; i++) {
     final time = TimeFormatter.loadDurationFromString(times[i]);
     final runner = i < runners.length ? runners[i] : runners.last;
@@ -42,7 +42,7 @@ String? validateTimes(
       return 'Enter a valid time for runner with bib ${runner.bib}';
     }
     if (time <= lastConfirmedTime || time >= (conflictTime ?? Duration.zero)) {
-      return 'Time for ${runner.name} must be after ${lastConfirmed.elapsedTime} and before ${conflictRecord.elapsedTime}';
+      return 'Time for ${runner.name} must be after ${lastConfirmed.time} and before ${conflictRecord.time}';
     }
   }
   if (!isAscendingOrder(times

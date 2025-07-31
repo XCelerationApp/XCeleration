@@ -45,7 +45,7 @@ class Team {
     final map = {
       'name': name,
       'abbreviation': abbreviation,
-      'color': color?.value,
+      'color': color?.toARGB32(),
     };
 
     if (teamId != null) {
@@ -80,8 +80,9 @@ class Team {
 
     // Split by spaces and take first letter of each word
     final words = teamName.trim().split(' ');
-    final initials = words.map((word) => word.isNotEmpty ? word[0] : '').join('');
-    
+    final initials =
+        words.map((word) => word.isNotEmpty ? word[0] : '').join('');
+
     // Return up to 3 characters, converted to uppercase
     return initials.length >= 3
         ? initials.substring(0, 3).toUpperCase()
@@ -97,7 +98,7 @@ class Team {
 
   @override
   String toString() {
-    return 'Team(id: $teamId, name: $name, abbreviation: $abbreviation, color: ${color?.value})';
+    return 'Team(id: $teamId, name: $name, abbreviation: $abbreviation, color: ${color?.toARGB32()})';
   }
 
   @override

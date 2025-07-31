@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/shared/models/database/race_result.dart';
 import '../../../../../race_results/widgets/collapsible_results_widget.dart';
-import '../../../../../race_results/model/results_record.dart';
 
 /// A table displaying race results with runner information and times
 class ResultsTable extends StatelessWidget {
   /// The race timing data to display
-  final List<ResultsRecord> results;
+  final List<RaceResult> results;
 
   /// Maximum number of rows to show before truncating
   final int maxVisibleRows;

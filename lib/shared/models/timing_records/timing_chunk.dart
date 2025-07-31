@@ -56,3 +56,35 @@ class TimingChunk {
             .toList());
   }
 }
+
+/// Splits a list of [TimingDatum]s into a single [TimingChunk] in a list.
+/// If you want to split by some logic (e.g., by conflict), you can modify this function.
+List<TimingChunk> timingChunksFromTimingData(List<TimingDatum> timingData) {
+  if (timingData.isEmpty) return [];
+  List<TimingChunk> chunks = [];
+  List<TimingDatum> currentTimingData = [];
+
+  for (final timingDatum in timingData) {
+    if (timingDatum.conflict != null) {
+      // When a conflict is found, create a chunk with the current timing data and this conflict
+      chunks.add(TimingChunk(
+        timingData: List<TimingDatum>.from(currentTimingData),
+        conflictRecord: timingDatum,
+      ));
+      currentTimingData.clear();
+    } else {
+      currentTimingData.add(timingDatum);
+    }
+  }
+
+  // If there is any remaining timing data without a conflict, add it as a chunk
+  if (currentTimingData.isNotEmpty) {
+    chunks.add(TimingChunk(
+      timingData: List<TimingDatum>.from(currentTimingData),
+      conflictRecord: null,
+    ));
+  }
+
+  return chunks;
+}
+

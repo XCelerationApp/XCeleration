@@ -35,7 +35,6 @@ class InlineEditableField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final shouldShowAsEditable = controller.shouldShowAsEditable(fieldName);
     final displayValue = getDisplayValue?.call() ?? textController.text;
     final isEmpty = displayValue.isEmpty ||
         displayValue == 'Not set' ||
@@ -43,9 +42,17 @@ class InlineEditableField extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      child: shouldShowAsEditable
-          ? _buildEditableMode(context)
-          : _buildViewMode(context, displayValue, isEmpty),
+      child: FutureBuilder<bool>(
+        future: controller.shouldShowAsEditable(fieldName),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          return snapshot.data!
+              ? _buildEditableMode(context)
+              : _buildViewMode(context, displayValue, isEmpty);
+        },
+      ),
     );
   }
 
@@ -85,21 +92,31 @@ class InlineEditableField extends StatelessWidget {
             ],
           ),
         ),
-        if (controller.canEdit) ...[
-          const SizedBox(width: 8),
-          InkWell(
-            onTap: () => controller.startEditingField(fieldName),
-            borderRadius: BorderRadius.circular(8),
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              child: Icon(
-                Icons.edit,
-                color: AppColors.primaryColor,
-                size: 20,
-              ),
-            ),
-          ),
-        ],
+        FutureBuilder<bool>(
+          future: controller.canEdit,
+          builder: (context, snapshot) {
+            if (snapshot.hasData && snapshot.data!) {
+              return Row(
+                children: [
+                  const SizedBox(width: 8),
+                  InkWell(
+                    onTap: () => controller.startEditingField(fieldName),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      child: Icon(
+                        Icons.edit,
+                        color: AppColors.primaryColor,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            }
+            return const SizedBox.shrink();
+          },
+        ),
       ],
     );
   }

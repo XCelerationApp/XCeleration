@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:xceleration/coach/race_screen/widgets/runner_record.dart';
+import 'package:xceleration/shared/models/database/race_runner.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
@@ -42,20 +42,23 @@ class PlaceNumber extends StatelessWidget {
 class RunnerInfo extends StatelessWidget {
   const RunnerInfo({
     super.key,
-    required this.runner,
+    required this.raceRunner,
     required this.accentColor,
   });
-  final RunnerRecord runner;
+  final RaceRunner? raceRunner;
   final Color accentColor;
 
   @override
   Widget build(BuildContext context) {
+    if (raceRunner == null) {
+      return const Text('Extra Time');
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          runner.name,
+          raceRunner!.runner.name!,
           style: AppTypography.smallBodySemibold.copyWith(
             color: AppColors.darkColor,
             letterSpacing: -0.1,
@@ -67,10 +70,10 @@ class RunnerInfo extends StatelessWidget {
           spacing: 6,
           runSpacing: 4,
           children: [
-            if (runner.bib.isNotEmpty)
-              InfoChip(label: 'Bib ${runner.bib}', color: accentColor),
-            if (runner.teamAbbreviation.isNotEmpty)
-              InfoChip(label: runner.teamAbbreviation, color: accentColor),
+            if (raceRunner!.runner.bibNumber != null)
+              InfoChip(label: 'Bib ${raceRunner!.runner.bibNumber!}', color: accentColor),
+            if (raceRunner!.team.abbreviation != null && raceRunner!.team.abbreviation!.isNotEmpty)
+              InfoChip(label: raceRunner!.team.abbreviation!, color: accentColor),
           ],
         ),
       ],

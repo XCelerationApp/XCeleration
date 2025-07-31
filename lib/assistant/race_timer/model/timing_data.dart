@@ -67,7 +67,7 @@ class TimingData with ChangeNotifier {
       currentChunk.conflictRecord!.conflict!.offBy++;
     } else if (currentChunk.conflictRecord!.conflict?.type ==
         ConflictType.extraTime) {
-        reduceCurrentConflictByOne(newTime: record.time);
+      reduceCurrentConflictByOne(newTime: record.time);
     } else {
       cacheCurrentChunk();
       currentChunk = TimingChunk(timingData: [], conflictRecord: record);
@@ -99,7 +99,8 @@ class TimingData with ChangeNotifier {
   }
 
   void reduceCurrentConflictByOne({String? newTime}) {
-    currentChunk.conflictRecord!.time = newTime ?? currentChunk.conflictRecord!.time;
+    currentChunk.conflictRecord!.time =
+        newTime ?? currentChunk.conflictRecord!.time;
     currentChunk.conflictRecord!.conflict!.offBy--;
     if (currentChunk.conflictRecord!.conflict!.offBy == 0) {
       currentChunk.conflictRecord = null;
@@ -134,6 +135,11 @@ class TimingData with ChangeNotifier {
   Future<String> encodedRecords() async {
     final List<TimingChunk> chunks = [];
     if (!currentChunk.isEmpty) {
+      if (!currentChunk.hasConflict && endTime != null) {
+        currentChunk.conflictRecord = TimingDatum(
+          time: endTime!.toString(),
+          conflict: Conflict(type: ConflictType.confirmRunner));
+      }
       chunks.add(currentChunk);
     }
     while (true) {

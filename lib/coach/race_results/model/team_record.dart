@@ -1,19 +1,18 @@
-import 'results_record.dart';
+import 'package:xceleration/shared/models/database/race_result.dart';
+import 'package:xceleration/shared/models/database/team.dart';
 
 class TeamRecord {
   late int score;
-  final String team;
-  final String teamAbbreviation;
-  late final List<ResultsRecord> scorers;
-  late final List<ResultsRecord> nonScorers;
-  final List<ResultsRecord> runners;
+  final Team team;
+  late final List<RaceResult> scorers;
+  late final List<RaceResult> nonScorers;
+  final List<RaceResult> runners;
   int? place;
   late Duration split;
   late Duration avgTime;
 
   TeamRecord({
     required this.team,
-    required this.teamAbbreviation,
     required this.runners,
     this.place,
   }) {
@@ -23,22 +22,21 @@ class TeamRecord {
     updateStats();
   }
 
-  List<ResultsRecord> get topSeven => runners.take(7).toList();
+  List<RaceResult> get topSeven => runners.take(7).toList();
 
   factory TeamRecord.from(TeamRecord other) => TeamRecord(
         team: other.team,
-        teamAbbreviation: other.teamAbbreviation,
         // Create deep copies of all runners to prevent reference issues
-        runners: other.runners.map((r) => ResultsRecord.copy(r)).toList(),
+        runners: other.runners.map((r) => RaceResult.copy(r)).toList(),
         place: other.place,
       );
 
   void updateStats() {
     if (scorers.isNotEmpty) {
-      score = scorers.fold<int>(0, (sum, runner) => sum + runner.place);
-      split = scorers.last.finishTime - scorers.first.finishTime;
+      score = scorers.fold<int>(0, (sum, runner) => sum + (runner.place ?? 0));
+      split = (scorers.last.finishTime ?? Duration.zero) - (scorers.first.finishTime ?? Duration.zero);
       avgTime = scorers.fold(
-              Duration.zero, (sum, runner) => sum + runner.finishTime) ~/
+              Duration.zero, (sum, runner) => sum + (runner.finishTime ?? Duration.zero)) ~/
           5;
     } else {
       score = 0;

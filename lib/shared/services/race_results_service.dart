@@ -1,86 +1,161 @@
 import '../models/database/race_result.dart';
 import '../models/database/team.dart';
 import '../models/database/master_race.dart';
+import '../../coach/race_results/model/team_record.dart';
+import 'package:collection/collection.dart';
 
 /// Service for calculating and processing race results
 class RaceResultsService {
-  /// Calculate team standings from race results
-  static List<TeamStanding> calculateTeamStandings(
-    List<RaceResult> results,
-    List<Team> teams,
-  ) {
-    final standings = <TeamStanding>[];
-
-    for (final team in teams) {
-      final teamResults = results
-          .where((result) => result.team?.teamId == team.teamId)
-          .where((result) => result.place != null)
-          .toList();
-
-      if (teamResults.isNotEmpty) {
-        // Sort by place
-        teamResults.sort((a, b) => a.place!.compareTo(b.place!));
-
-        // Take top 5 for scoring (standard cross country scoring)
-        final scoringRunners = teamResults.take(5).toList();
-
-        // Calculate team score (sum of places)
-        final score =
-            scoringRunners.fold<int>(0, (sum, result) => sum + result.place!);
-
-        // Calculate split between 1st and 5th scorer
-        Duration? split;
-        if (scoringRunners.length >= 2) {
-          final firstTime = scoringRunners.first.finishTime;
-          final lastTime = scoringRunners.last.finishTime;
-          if (firstTime != null && lastTime != null) {
-            split = lastTime - firstTime;
-          }
-        }
-
-        standings.add(TeamStanding(
-          team: team,
-          score: score,
-          scoringRunners: scoringRunners,
-          allRunners: teamResults,
-          split: split,
-        ));
-      }
+  /// Calculate team results from race results using the sophisticated controller logic
+  static List<TeamRecord> calculateTeamResults(List<RaceResult> allResults) {
+    final teams = _getTeamsFromResults(allResults);
+    final teamsCopy = teams.map((r) => TeamRecord.from(r)).toList();
+    final scoringRunners = teamsCopy
+        .where((r) => r.score != 0)
+        .map((r) => r.topSeven)
+        .expand((r) => r)
+        .toList();
+    updateResultsPlaces(scoringRunners);
+    final scoredTeams = _getTeamsFromResults(allResults);
+    for (var i = 0; i < teams.length; i++) {
+      teams[i].score = scoredTeams[i].score;
+      teams[i].place = scoredTeams[i].place;
     }
+    return teams;
+  }
 
-    // Sort by score (lower is better)
-    standings.sort((a, b) => a.score.compareTo(b.score));
-
-    // Assign places
-    for (int i = 0; i < standings.length; i++) {
-      standings[i] = standings[i].copyWith(place: i + 1);
+  /// Helper function to group results by team into TeamRecord objects
+  static List<TeamRecord> _getTeamsFromResults(List<RaceResult> results) {
+    final List<TeamRecord> teams = [];
+    for (var team in groupBy(results, (result) => result.team!).entries) {
+      final teamRecord = TeamRecord(
+        team: team.key,
+        runners: team.value,
+      );
+      teams.add(teamRecord);
     }
-
-    return standings;
+    return teams;
   }
 
   /// Calculate individual results with places assigned
   static List<RaceResult> calculateIndividualResults(List<RaceResult> results) {
-    // Filter out results without finish times
-    final finishedResults =
-        results.where((result) => result.finishTime != null).toList();
+    if (results.isEmpty) return [];
 
-    // Sort by finish time
-    finishedResults.sort((a, b) => a.finishTime!.compareTo(b.finishTime!));
+    _sortRunners(results);
+    updateResultsPlaces(results);
+    // Create deep copies to prevent reference issues
+    return results.map((r) => RaceResult.copy(r)).toList();
+  }
 
-    // Assign places
-    final updatedResults = <RaceResult>[];
-    for (int i = 0; i < finishedResults.length; i++) {
-      updatedResults.add(finishedResults[i].copyWith(place: i + 1));
+  /// Calculate head-to-head matchups between teams
+  static List<List<TeamRecord>> calculateHeadToHeadResults(
+      List<TeamRecord> teamResults) {
+    final List<TeamRecord> scoringTeams =
+        teamResults.where((r) => r.score != 0).toList();
+
+    if (scoringTeams.length > 3 || scoringTeams.length < 2) {
+      return [];
     }
 
-    // Add back results without finish times
-    final unfinishedResults =
-        results.where((result) => result.finishTime == null).toList();
+    final List<List<TeamRecord>> headToHeadResults = [];
+    for (var i = 0; i < scoringTeams.length; i++) {
+      for (var j = i + 1; j < scoringTeams.length; j++) {
+        // DEEP COPY: Create independent copies for each head-to-head matchup
+        final teamA = TeamRecord.from(scoringTeams[i]);
+        final teamB = TeamRecord.from(scoringTeams[j]);
 
-    updatedResults.addAll(unfinishedResults);
+        // Combine and sort runners for this specific matchup
+        // These are already deep copies from TeamRecord.from
+        final filteredRunners = [...teamA.topSeven, ...teamB.topSeven];
+        _sortRunners(filteredRunners);
+        updateResultsPlaces(filteredRunners);
 
-    return updatedResults;
+        // Update stats based on the new places
+        teamA.updateStats();
+        teamB.updateStats();
+
+        final matchup = [teamA, teamB];
+        sortAndPlaceTeams(matchup);
+        headToHeadResults.add(matchup);
+      }
+    }
+
+    return headToHeadResults;
+  }
+
+  /// Update places for a list of results
+  static void updateResultsPlaces(List<RaceResult> results) {
+    for (int i = 0; i < results.length; i++) {
+      results[i].place = i + 1;
+    }
+  }
+
+  /// Sort runners by their finish time
+  static void _sortRunners(List<RaceResult> results) {
+    results.sort((a, b) => a.compareTimeTo(b));
+  }
+
+  /// Sort teams by score and assign places
+  static void sortAndPlaceTeams(List<TeamRecord> teams) {
+    teams.sort((a, b) {
+      if (a.score == 0 && b.score == 0) return 0;
+      if (a.score == 0) return 1;
+      if (b.score == 0) return -1;
+      return a.score - b.score;
+    });
+    for (int i = 0; i < teams.length; i++) {
+      teams[i].place = i + 1;
+    }
+  }
+
+  /// Complete race results calculation - main orchestrator function
+  static Future<RaceResultsData> calculateCompleteRaceResults(
+      MasterRace masterRace) async {
+    // Get race name from database
+    String resultsTitle = 'Race Results';
+    try {
+      final race = await masterRace.race;
+      final raceName = race.raceName!;
+      resultsTitle = '${raceName.isNotEmpty ? raceName : 'Race'} Results';
+    } catch (e) {
+      resultsTitle = 'Race Results';
+    }
+
+    // Get race results from database
+    final List<RaceResult> results = await masterRace.results;
+
+    if (results.isEmpty) {
+      return RaceResultsData(
+        resultsTitle: resultsTitle,
+        individualResults: [],
+        overallTeamResults: [],
+        headToHeadTeamResults: [],
+      );
+    }
+
+    // Calculate individual results
+    final individualResults = calculateIndividualResults(results);
+
+    // Calculate team results
+    final teamResults = calculateTeamResults(results);
+    sortAndPlaceTeams(teamResults);
+
+    // DEEP COPY: Create completely independent copies for team results
+    final overallTeamResults =
+        teamResults.map((r) => TeamRecord.from(r)).toList();
+
+    // Calculate head-to-head matchups
+    List<List<TeamRecord>> headToHeadTeamResults = [];
+    if (teamResults.length >= 2 && teamResults.length <= 4) {
+      headToHeadTeamResults = calculateHeadToHeadResults(teamResults);
+    }
+
+    return RaceResultsData(
+      resultsTitle: resultsTitle,
+      individualResults: individualResults,
+      overallTeamResults: overallTeamResults,
+      headToHeadTeamResults: headToHeadTeamResults,
+    );
   }
 
   /// Get results filtered by team
@@ -124,21 +199,19 @@ class RaceResultsService {
     final averageMilliseconds = totalMilliseconds ~/ finishedResults.length;
     return Duration(milliseconds: averageMilliseconds);
   }
+}
 
-  /// Get grade-specific results
-  static List<RaceResult> getResultsByGrade(
-    List<RaceResult> results,
-    int grade,
-  ) {
-    return results.where((result) => result.runner?.grade == grade).toList();
-  }
+/// Data class to hold complete race results
+class RaceResultsData {
+  final String resultsTitle;
+  final List<RaceResult> individualResults;
+  final List<TeamRecord> overallTeamResults;
+  final List<List<TeamRecord>> headToHeadTeamResults;
 
-  /// Calculate grade-specific standings
-  static List<RaceResult> calculateGradeStandings(
-    List<RaceResult> results,
-    int grade,
-  ) {
-    final gradeResults = getResultsByGrade(results, grade);
-    return calculateIndividualResults(gradeResults);
-  }
+  const RaceResultsData({
+    required this.resultsTitle,
+    required this.individualResults,
+    required this.overallTeamResults,
+    required this.headToHeadTeamResults,
+  });
 }

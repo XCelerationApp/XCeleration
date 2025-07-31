@@ -4,7 +4,6 @@ import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:xceleration/coach/races_screen/widgets/race_creation_sheet.dart';
-import 'package:xceleration/coach/runners_management_screen/screen/runners_management_screen.dart';
 import 'package:xceleration/core/components/dialog_utils.dart';
 import 'package:xceleration/core/utils/sheet_utils.dart' show sheet;
 import '../../../shared/models/database/race.dart';
@@ -120,9 +119,10 @@ class RacesController extends ChangeNotifier {
     if (newRaceId != null && context.mounted) {
       // Add a small delay to let the UI settle after sheet dismissal
       await Future.delayed(const Duration(milliseconds: 300));
+      final masterRace = MasterRace.getInstance(newRaceId);
 
       if (context.mounted) {
-        await RaceController.showRaceScreen(context, this, newRaceId);
+        await RaceController.showRaceScreen(context, this, masterRace);
       }
     }
   }
@@ -188,29 +188,6 @@ class RacesController extends ChangeNotifier {
   // For simplified creation, we only validate the race name
   bool validateRaceCreation() {
     return validateRaceName();
-  }
-
-  // Checks if all required fields are filled for a complete setup
-  Future<bool> isSetupComplete(Race race) async {
-    if (race.raceId == null) {
-      throw Exception('Race ID is null');
-    }
-    final moreThanFiveRunnersPerTeam =
-        await TeamsAndRunnersManagementWidget.checkMinimumRunnersLoaded(
-            race.raceId!);
-
-    // Get teams using MasterRace
-    final masterRace = MasterRace.getInstance(race.raceId!);
-    final teams = await masterRace.teams;
-
-    return race.raceName?.isNotEmpty == true &&
-        race.location?.isNotEmpty == true &&
-        race.raceDate != null &&
-        race.distance != null &&
-        race.distance! > 0 &&
-        race.distanceUnit?.isNotEmpty == true &&
-        teams.isNotEmpty &&
-        moreThanFiveRunnersPerTeam;
   }
 
   Future<void> getCurrentLocation() async {
@@ -316,7 +293,8 @@ class RacesController extends ChangeNotifier {
     if (race.raceId == null) {
       throw Exception('Race ID is null');
     }
-    await RaceController.showRaceScreen(context, this, race.raceId!);
+    final masterRace = MasterRace.getInstance(race.raceId!);
+    await RaceController.showRaceScreen(context, this, masterRace);
   }
 
   Future<void> deleteRace(Race race) async {

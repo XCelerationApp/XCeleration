@@ -70,19 +70,13 @@ class ConfirmedRunnerTimeCell extends StatelessWidget {
 }
 
 class ExtraTimeCell extends StatelessWidget {
-  final String assignedTime;
-  final Set<int>? removedTimeIndices;
-  final void Function(int)? onRemoveTime;
-  final bool isRemovedTime;
-  final int? removableTimeIndex;
+  final String time;
+  final void Function() onRemoveExtraTime;
 
   const ExtraTimeCell({
     super.key,
-    required this.assignedTime,
-    this.removedTimeIndices,
-    this.onRemoveTime,
-    this.isRemovedTime = false,
-    this.removableTimeIndex,
+    required this.time,
+    required this.onRemoveExtraTime,
   });
 
   @override
@@ -91,14 +85,13 @@ class ExtraTimeCell extends StatelessWidget {
       children: [
         const SizedBox(width: 2),
         Expanded(
-          child: TimeDisplay(time: isRemovedTime ? '' : assignedTime),
+          child: TimeDisplay(time: time),
         ),
-        if (!isRemovedTime && onRemoveTime != null)
-          CellActionIcon(
-            icon: Icons.close,
-            tooltip: 'Remove extra time',
-            onPressed: () => onRemoveTime!(removableTimeIndex!),
-          ),
+        CellActionIcon(
+          icon: Icons.close,
+          tooltip: 'Remove extra time',
+          onPressed: () => onRemoveExtraTime(),
+        ),
       ],
     );
   }
@@ -106,23 +99,21 @@ class ExtraTimeCell extends StatelessWidget {
 
 class MissingTimeCell extends StatelessWidget {
   final TextEditingController controller;
-  final bool isManualEntry;
-  final String assignedTime;
-  final VoidCallback? onManualEntry;
-  final ValueChanged<String>? onSubmitted;
+  final String time;
+  final ValueChanged<String> onSubmitted;
+  final ValueChanged<String> onChanged;
 
   const MissingTimeCell({
     super.key,
     required this.controller,
-    required this.isManualEntry,
-    required this.assignedTime,
-    this.onManualEntry,
-    this.onSubmitted,
+    required this.time,
+    required this.onSubmitted,
+    required this.onChanged,
   });
 
   @override
   Widget build(BuildContext context) {
-    if (isManualEntry) {
+    if (time == 'TBD') {
       return Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -148,12 +139,12 @@ class MissingTimeCell extends StatelessWidget {
       return Row(
         children: [
           Expanded(
-            child: TimeDisplay(time: assignedTime),
+            child: TimeDisplay(time: time),
           ),
           CellActionIcon(
             icon: Icons.add_circle_outline,
             tooltip: 'Enter manual time',
-            onPressed: onManualEntry,
+            onPressed: () => onChanged(controller.text),
           ),
         ],
       );

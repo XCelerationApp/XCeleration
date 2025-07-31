@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/coach/race_results/widgets/collapsible_results_widget.dart';
 import '../../../core/theme/typography.dart';
-import '../controller/race_results_controller.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
+import 'package:xceleration/shared/services/race_results_service.dart';
 
 class TeamResultsWidget extends StatelessWidget {
-  final RaceResultsController controller;
+  final RaceResultsData raceResultsData;
 
   const TeamResultsWidget({
     super.key,
-    required this.controller,
+    required this.raceResultsData,
   });
 
   @override
@@ -38,7 +38,7 @@ class TeamResultsWidget extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             CollapsibleResultsWidget(
-                results: controller.overallTeamResults, initialVisibleCount: 3),
+                results: raceResultsData.overallTeamResults, initialVisibleCount: 3),
           ],
         ),
       ),

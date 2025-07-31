@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/coach/share_race/controller/share_race_controller.dart';
+import 'package:xceleration/shared/models/database/master_race.dart';
+import 'package:xceleration/shared/services/race_results_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
 import '../widgets/share_button.dart';
 import '../widgets/individual_results_widget.dart';
 import '../widgets/head_to_head_results.dart';
 import '../widgets/team_results_widget.dart';
-import '../controller/race_results_controller.dart';
-import 'package:xceleration/core/utils/database_helper.dart';
 
 class ResultsScreen extends StatefulWidget {
-  final int raceId;
+  final MasterRace masterRace;
 
   const ResultsScreen({
     super.key,
-    required this.raceId,
+    required this.masterRace,
   });
 
   @override
@@ -22,12 +22,20 @@ class ResultsScreen extends StatefulWidget {
 }
 
 class ResultsScreenState extends State<ResultsScreen> {
-  late final RaceResultsController _controller;
+  late final RaceResultsData _raceResultsData;
+  bool _isLoading = true;
   @override
   void initState() {
     super.initState();
-    _controller = RaceResultsController(
-        raceId: widget.raceId, dbHelper: DatabaseHelper.instance);
+    loadRaceResults();
+  }
+
+  Future<void> loadRaceResults() async {
+    _raceResultsData =
+        await RaceResultsService.calculateCompleteRaceResults(widget.masterRace);
+    setState(() {
+      _isLoading = false;
+    });
   }
 
   @override
@@ -36,14 +44,14 @@ class ResultsScreenState extends State<ResultsScreen> {
       color: AppColors.backgroundColor,
       child: Stack(
         children: [
-          if (_controller.isLoading) ...[
+          if (_isLoading) ...[
             const Center(
               child: CircularProgressIndicator(),
             ),
           ] else ...[
             Column(
               children: [
-                if (_controller.individualResults.isEmpty) ...[
+                if (_raceResultsData.individualResults.isEmpty) ...[
                   const Expanded(
                     child: Center(
                       child: Text(
@@ -61,21 +69,20 @@ class ResultsScreenState extends State<ResultsScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            if (_controller.headToHeadTeamResults != null &&
-                                _controller.headToHeadTeamResults!.isNotEmpty &&
-                                _controller.overallTeamResults.length == 2) ...[
+                            if (_raceResultsData.headToHeadTeamResults.isNotEmpty &&
+                                _raceResultsData.overallTeamResults.length == 2) ...[
                               // Head to Head Results
                               HeadToHeadResults(
-                                controller: _controller,
+                                raceResultsData: _raceResultsData,
                               ),
                             ] else ...[
                               TeamResultsWidget(
-                                controller: _controller,
+                                raceResultsData: _raceResultsData,
                               ),
                             ],
                             // Individual Results Widget
                             IndividualResultsWidget(
-                              controller: _controller,
+                              raceResultsData: _raceResultsData,
                               initialVisibleCount: 5,
                             ),
                             // Add bottom padding for scrolling
@@ -96,7 +103,7 @@ class ResultsScreenState extends State<ResultsScreen> {
             child: ShareButton(onPressed: () {
               ShareRaceController.showShareRaceSheet(
                 context: context,
-                controller: _controller,
+                raceResultsData: _raceResultsData,
               );
             }),
           ),

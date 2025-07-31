@@ -11,15 +11,14 @@ import '../widgets/runners_list.dart';
 
 // Main Screen
 class TeamsAndRunnersManagementWidget extends StatefulWidget {
-  final int raceId;
+  final MasterRace masterRace;
   final VoidCallback? onBack;
   final VoidCallback? onContentChanged;
   final bool? showHeader;
   final bool isViewMode;
 
   // Add a static method that can be called from outside
-  static Future<bool> checkMinimumRunnersLoaded(int raceId) async {
-    final masterRace = MasterRace.getInstance(raceId);
+  static Future<bool> checkMinimumRunnersLoaded(MasterRace masterRace) async {
     final teamToRaceRunnersMap = await masterRace.teamtoRaceRunnersMap;
     for (final runners in teamToRaceRunnersMap.values) {
       if (runners.isEmpty) {
@@ -31,7 +30,7 @@ class TeamsAndRunnersManagementWidget extends StatefulWidget {
 
   const TeamsAndRunnersManagementWidget({
     super.key,
-    required this.raceId,
+    required this.masterRace,
     this.showHeader,
     this.onBack,
     this.onContentChanged,
@@ -51,7 +50,7 @@ class _TeamsAndRunnersManagementWidgetState
   void initState() {
     super.initState();
     _controller = RunnersManagementController(
-      raceId: widget.raceId,
+      masterRace: widget.masterRace,
       showHeader: widget.showHeader ?? true,
       onBack: widget.onBack,
       onContentChanged: widget.onContentChanged,

@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/shared/models/database/race_result.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
 import '../model/team_record.dart';
-import '../model/results_record.dart';
 import 'collapsible_results_widget.dart';
 
 class HeadToHeadResultsWidget extends StatelessWidget {
   final List<TeamRecord> matchup;
   late final TeamRecord teamA;
   late final TeamRecord teamB;
-  late final List<ResultsRecord> allResults;
+  late final List<RaceResult> allResults;
 
   HeadToHeadResultsWidget({super.key, required this.matchup}) {
     teamA = matchup[0];
@@ -17,7 +17,7 @@ class HeadToHeadResultsWidget extends StatelessWidget {
 
     // We'll show a selection of top 3 runners combined from both teams
     allResults = [...teamA.topSeven, ...teamB.topSeven];
-    allResults.sort((a, b) => a.place.compareTo(b.place));
+    allResults.sort((a, b) => a.comparePlaceTo(b));
   }
 
   @override
@@ -104,7 +104,7 @@ class HeadToHeadResultsWidget extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          team.teamAbbreviation,
+          team.team.abbreviation!,
           style: AppTypography.headerSemibold,
           textAlign: TextAlign.center,
           overflow: TextOverflow.ellipsis,

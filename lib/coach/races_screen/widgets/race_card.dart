@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:xceleration/shared/models/database/master_race.dart';
 import '../controller/races_controller.dart';
 import '../../race_screen/controller/race_screen_controller.dart';
 import '../../../core/theme/app_colors.dart';
@@ -116,8 +117,11 @@ class RaceCard extends StatelessWidget {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(16),
           child: InkWell(
-            onTap: () => RaceController.showRaceScreen(
-                context, controller, race.raceId!),
+            onTap: () async {
+              final masterRace = MasterRace.getInstance(race.raceId!);
+              await RaceController.showRaceScreen(
+                  context, controller, masterRace);
+            },
             child: Padding(
               padding: const EdgeInsets.only(
                   left: 24.0, right: 24.0, top: 16.0, bottom: 16.0),

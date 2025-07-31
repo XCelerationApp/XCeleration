@@ -8,15 +8,15 @@ import '../screen/resolve_bib_number_screen.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
 
 class BibConflictsOverview extends StatefulWidget {
-  final List<RaceRunner> raceRunners;
-  final Function(List<RaceRunner>) onConflictSelected;
   final MasterRace masterRace;
+  final List<RaceRunner> raceRunners;
+  final Function(List<RaceRunner>) onResolved;
 
   const BibConflictsOverview({
     super.key,
-    required this.raceRunners,
-    required this.onConflictSelected,
     required this.masterRace,
+    required this.raceRunners,
+    required this.onResolved,
   });
 
   @override
@@ -41,28 +41,21 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
     final allRaceRunners = await widget.masterRace.raceRunners;
     final allRaceRunnerBibNumbers = allRaceRunners.map((rr) => rr.runner.bibNumber!).toList();
 
-    final unknownRaceRunnersFutures = _raceRunners.map((raceRunner) async {
+    _unknownRaceRunners = allRaceRunners.map((raceRunner) {
       final bibNumber = raceRunner.runner.bibNumber;
-      if (bibNumber == null || !allRaceRunnerBibNumbers.contains(bibNumber)) {
+      if (!allRaceRunnerBibNumbers.contains(bibNumber)) {
         return raceRunner;
       }
       return null;
-    }).toList();
-
-    final unknownRaceRunnersResults = await Future.wait(unknownRaceRunnersFutures);
-    _unknownRaceRunners = unknownRaceRunnersResults.whereType<RaceRunner>().toList();
+    }).whereType<RaceRunner>().toList();
 
     final raceRunnersCopy = List.from(_raceRunners);
-
-    final duplicateRaceRunnersFutures = allRaceRunners.map((raceRunner) async {
+    _duplicateRaceRunners = allRaceRunners.map((raceRunner) {
       if (!raceRunnersCopy.remove(raceRunner)) {
         return raceRunner;
       }
       return null;
-    }).toList();
-
-    final duplicateRaceRunnersResults = await Future.wait(duplicateRaceRunnersFutures);
-    _duplicateRaceRunners = duplicateRaceRunnersResults.whereType<RaceRunner>().toList();
+    }).whereType<RaceRunner>().toList();
 
     _errorRaceRunners = [..._unknownRaceRunners!, ..._duplicateRaceRunners!];
   }
@@ -194,7 +187,7 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
               _errorRaceRunners!.remove(raceRunner);
             });
             if (_errorRaceRunners!.isEmpty) {
-              widget.onConflictSelected(_raceRunners);
+              widget.onResolved(_raceRunners);
             }
           }
         },

@@ -12,7 +12,6 @@ import 'dart:async';
 import '../../../coach/race_screen/controller/race_screen_controller.dart';
 import '../../../core/services/event_bus.dart';
 import '../../../shared/models/database/race.dart';
-import '../../../shared/models/database/master_race.dart';
 
 /// Controller class for handling all flow-related operations
 class MasterFlowController {
@@ -21,27 +20,18 @@ class MasterFlowController {
   late PostRaceController postRaceController;
 
   MasterFlowController({required this.raceController}) {
-    preRaceController = PreRaceController(raceId: raceController.raceId);
-    postRaceController = PostRaceController(raceId: raceController.raceId);
+    preRaceController = PreRaceController(masterRace: raceController.masterRace);
+    postRaceController = PostRaceController(masterRace: raceController.masterRace);
   }
 
   /// Continue the race flow based on the current state
   Future<void> continueRaceFlow(BuildContext context) async {
-    if (raceController.race == null) {
-      // If race is null, try to load it through MasterRace
-      final masterRace = MasterRace.getInstance(raceController.raceId);
-      try {
-        raceController.race = await masterRace.race;
-      } catch (e) {
-        Logger.d('Error: Race not found');
-        return;
-      }
-    }
+
 
     // Check if context is still mounted after async operation
     if (!context.mounted) return;
 
-    switch (raceController.race!.flowState) {
+    switch (await raceController.flowState) {
       case Race.FLOW_PRE_RACE:
         await _preRaceFlow(context);
         break;
@@ -52,22 +42,18 @@ class MasterFlowController {
   }
 
   /// Update the race flow state
-  Future<void> updateRaceFlowState(String newState) async {
-    final masterRace = MasterRace.getInstance(raceController.raceId);
-    await masterRace.updateRace(flowState: newState);
-
-    if (raceController.race != null) {
-      raceController.race = raceController.race!.copyWith(flowState: newState);
-    }
+  Future<void> updateRaceFlowState(BuildContext context, String newState) async {
+    
+    await raceController.updateRaceFlowState(context, newState);
 
     Logger.d(
-        'MasterFlowController: Flow state changed to $newState for race: ${raceController.raceId}');
+        'MasterFlowController: Flow state changed to $newState for race: ${raceController.masterRace.raceId}');
 
     // Fire event (for components that use the event bus)
     EventBus.instance.fire(EventTypes.raceFlowStateChanged, {
-      'raceId': raceController.raceId,
+      'raceId': raceController.masterRace.raceId,
       'newState': newState,
-      'race': raceController.race,
+      'race': await raceController.masterRace.race,
     });
   }
 
@@ -111,8 +97,10 @@ class MasterFlowController {
     // If not completed, just return
     if (!completed) return false;
 
+    if (!context.mounted) return false;
+
     // Mark as pre-race-completed instead of moving directly to post-race
-    await updateRaceFlowState(Race.FLOW_PRE_RACE_COMPLETED);
+    await updateRaceFlowState(context, Race.FLOW_PRE_RACE_COMPLETED);
 
     // Return to race screen without starting the next flow automatically
     return true;
@@ -133,8 +121,10 @@ class MasterFlowController {
     // If not completed, just return
     if (!completed) return false;
 
+    if (!context.mounted) return false;
+
     // Set the race state directly to finished after post-race flow completes
-    await updateRaceFlowState(Race.FLOW_FINISHED);
+    await updateRaceFlowState(context, Race.FLOW_FINISHED);
 
     // Add a short delay to let the UI settle
     await Future.delayed(const Duration(milliseconds: 500));

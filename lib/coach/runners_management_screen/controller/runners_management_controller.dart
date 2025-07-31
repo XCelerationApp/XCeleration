@@ -10,7 +10,6 @@ import '../../../core/components/dialog_utils.dart';
 import '../../../core/components/runner_input_form.dart';
 import '../../../core/utils/file_processing.dart';
 import '../../../core/utils/sheet_utils.dart';
-import '../../race_screen/widgets/runner_record.dart';
 import '../../../shared/models/database/master_race.dart';
 import '../../../shared/models/database/runner.dart';
 import '../../../shared/models/database/team.dart';
@@ -19,14 +18,13 @@ import '../widgets/existing_teams_browser_dialog.dart';
 import '../../../shared/models/database/race_participant.dart';
 
 class RunnersManagementController with ChangeNotifier {
-  final int raceId;
   final VoidCallback? onBack;
   final VoidCallback? onContentChanged;
   final bool isViewMode;
   bool showHeader = true;
 
   // Use MasterRace for all data management
-  late final MasterRace masterRace;
+  final MasterRace masterRace;
 
   // Database Helper
   final DatabaseHelper db = DatabaseHelper.instance;
@@ -43,14 +41,12 @@ class RunnersManagementController with ChangeNotifier {
   List<RaceRunner> _initialRaceRunners = [];
 
   RunnersManagementController({
-    required this.raceId,
+    required this.masterRace,
     this.showHeader = true,
     this.onBack,
     this.onContentChanged,
     this.isViewMode = false,
   }) {
-    masterRace = MasterRace.getInstance(raceId);
-
     // Create and store the listener function
     _masterRaceListener = () {
       _updateFilteredRaceRunners();
@@ -103,7 +99,6 @@ class RunnersManagementController with ChangeNotifier {
   // ============================================================================
 
   void filterRaceRunners(String query) async {
-    
     final searchAttr = switch (searchAttribute) {
       'Bib Number' => 'bib',
       'Name' => 'name',
@@ -213,7 +208,7 @@ class RunnersManagementController with ChangeNotifier {
         // Create new runner
         final newRunnerId = await masterRace.db.createRunner(raceRunner.runner);
         await masterRace.addRaceParticipant(RaceParticipant(
-          raceId: raceId,
+          raceId: masterRace.raceId,
           runnerId: newRunnerId,
           teamId: raceRunner.team.teamId,
         ));
@@ -223,7 +218,7 @@ class RunnersManagementController with ChangeNotifier {
         await masterRace.db.removeRunner(raceRunner.runner.runnerId!);
         final newRunnerId = await masterRace.db.createRunner(raceRunner.runner);
         await masterRace.addRaceParticipant(RaceParticipant(
-          raceId: raceId,
+          raceId: masterRace.raceId,
           runnerId: newRunnerId,
           teamId: raceRunner.team.teamId,
         ));
@@ -259,9 +254,9 @@ class RunnersManagementController with ChangeNotifier {
       await db.createTeam(team);
 
       await masterRace.addTeamParticipant(TeamParticipant(
-        raceId: raceId,
+        raceId: masterRace.raceId,
         teamId: team.teamId!,
-        colorOverride: team.color?.value,
+        colorOverride: team.color?.toARGB32(),
       ));
       onContentChanged?.call();
       Logger.d('Created new team: ${team.name}');
@@ -319,7 +314,7 @@ class RunnersManagementController with ChangeNotifier {
         context: context,
         builder: (context) => ExistingTeamsBrowserDialog(
           availableTeams: availableTeamMaps,
-          raceId: raceId,
+          raceId: masterRace.raceId,
         ),
       );
 
@@ -328,16 +323,16 @@ class RunnersManagementController with ChangeNotifier {
         for (final teamData in selectedTeams) {
           final team = teamData['team'];
           await masterRace.addTeamParticipant(TeamParticipant(
-            raceId: raceId,
+            raceId: masterRace.raceId,
             teamId: team.teamId!,
-            colorOverride: team.color?.value.toInt(),
+            colorOverride: team.color?.toARGB32(),
           ));
 
           // Add selected runners if any
           final selectedRunnerIds = teamData['runners'] as List<int>? ?? [];
           for (final runnerId in selectedRunnerIds) {
             await masterRace.addRaceParticipant(RaceParticipant(
-              raceId: raceId,
+              raceId: masterRace.raceId,
               runnerId: runnerId,
               teamId: team.teamId!,
             ));
@@ -383,7 +378,7 @@ class RunnersManagementController with ChangeNotifier {
       final teamsList = await masterRace.teams;
       for (final team in teamsList) {
         await masterRace.removeTeamFromRace(TeamParticipant(
-          raceId: raceId,
+          raceId: masterRace.raceId,
           teamId: team.teamId!,
         ));
       }
@@ -397,6 +392,7 @@ class RunnersManagementController with ChangeNotifier {
 
   Future<void> loadSpreadsheet(BuildContext context, Team team) async {
     final bool useGoogleDrive = await showSpreadsheetLoadSheet(context);
+    if (!context.mounted) return;
 
     try {
       final List<Map<String, dynamic>> importData = await processSpreadsheet(
@@ -431,7 +427,7 @@ class RunnersManagementController with ChangeNotifier {
         }
         final newRunnerId = await db.createRunner(runner);
         await masterRace.addRaceParticipant(RaceParticipant(
-          raceId: raceId,
+          raceId: masterRace.raceId,
           runnerId: newRunnerId,
           teamId: team.teamId!,
         ));
@@ -452,7 +448,7 @@ class RunnersManagementController with ChangeNotifier {
             await db.removeRunner(existingRunner.runnerId!);
             final newRunnerId = await db.createRunner(existingRunner);
             await masterRace.addRaceParticipant(RaceParticipant(
-              raceId: raceId,
+              raceId: masterRace.raceId,
               runnerId: newRunnerId,
               teamId: team.teamId!,
             ));
@@ -632,38 +628,6 @@ class RunnersManagementController with ChangeNotifier {
       title: 'Sample Spreadsheet',
       body: SingleChildScrollView(child: table),
     );
-  }
-
-  // ============================================================================
-  // CONVERSION UTILITIES
-  // ============================================================================
-
-  /// Convert Runner to RunnerRecord for compatibility with existing forms
-  RaceRunner _convertToRaceRunner(Runner runner, Team team) {
-    return RaceRunner(
-      raceId: raceId,
-      runner: runner,
-      team: team,
-    );
-  }
-
-  /// Convert RunnerRecord back to Runner
-  Runner _convertFromRunnerRecord(RunnerRecord record) {
-    return Runner(
-      runnerId: record.runnerId,
-      name: record.name,
-      bibNumber: record.bib,
-      grade: record.grade == 0 ? null : record.grade,
-    );
-  }
-
-  /// Get team name for a runner (placeholder - would need proper implementation)
-  Future<String?> _getTeamNameForRunner(Runner? runner) async {
-    if (runner?.runnerId == null) return null;
-
-    // This would need proper implementation to get team from runner
-    // For now, return a placeholder
-    return 'Default Team';
   }
 
   @override

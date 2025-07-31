@@ -4,3 +4,4 @@ export 'runner.dart';
 export 'team.dart';
 export 'race_participant.dart';
 export 'team_participant.dart';
+export 'race_runner.dart';

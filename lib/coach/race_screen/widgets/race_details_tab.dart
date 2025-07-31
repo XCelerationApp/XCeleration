@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:xceleration/shared/models/database/race.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../../shared/models/database/master_race.dart';
@@ -12,7 +13,10 @@ import 'dart:io';
 
 class RaceDetailsTab extends StatefulWidget {
   final RaceController controller;
-  const RaceDetailsTab({super.key, required this.controller});
+  late final MasterRace masterRace;
+  RaceDetailsTab({super.key, required this.controller}) {
+    masterRace = controller.masterRace;
+  }
 
   @override
   State<RaceDetailsTab> createState() => _RaceDetailsTabState();
@@ -42,15 +46,18 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
   }
 
   void _initializeControllers() async {
-    final race = widget.controller.race!;
+    final race = await widget.masterRace.race;
     _dateController.text = race.raceDate != null
         ? DateFormat('yyyy-MM-dd').format(race.raceDate!)
         : '';
     _locationController.text = race.location ?? '';
-    _distanceController.text =
-        race.distance != null && race.distance! > 0 ? race.distance.toString() : '';
+    _distanceController.text = race.distance != null && race.distance! > 0
+        ? race.distance.toString()
+        : '';
     _unitController.text =
-        race.distanceUnit != null && race.distanceUnit!.isNotEmpty ? race.distanceUnit! : 'mi';
+        race.distanceUnit != null && race.distanceUnit!.isNotEmpty
+            ? race.distanceUnit!
+            : 'mi';
 
     // Get teams from MasterRace instead of deprecated race.teams
     final masterRace = MasterRace.getInstance(race.raceId!);
@@ -153,13 +160,12 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
       child: AnimatedBuilder(
         animation: widget.controller,
         builder: (context, _) {
-          final race = widget.controller.race!;
-          final masterRace = MasterRace.getInstance(race.raceId!);
 
           return FutureBuilder(
             future: Future.wait([
-              masterRace.raceRunners,
-              masterRace.teams,
+              widget.masterRace.raceRunners,
+              widget.masterRace.teams,
+              widget.masterRace.race,
             ]),
             builder: (context, snapshot) {
               if (!snapshot.hasData) {
@@ -168,6 +174,7 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
 
               final raceRunners = snapshot.data![0] as List;
               final teams = snapshot.data![1] as List;
+              final race = snapshot.data![2] as Race;
               final runnerCount = raceRunners.length;
               final teamCount = teams.length;
 
@@ -240,90 +247,104 @@ class _RaceDetailsTabState extends State<RaceDetailsTab> {
                           ? Container(
                               margin: const EdgeInsets.only(bottom: 16),
                               width: double.infinity,
-                              child: TextButton(
-                                onPressed: () => widget.controller
-                                    .loadRunnersManagementScreenWithConfirmation(
-                                        context,
-                                        isViewMode: !widget.controller.canEdit),
-                                style: TextButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 16, vertical: 12),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    side: BorderSide(
-                                        color: AppColors.primaryColor),
-                                  ),
-                                ),
-                                child: Text(
-                                  'Load Teams and Runners',
-                                  style: TextStyle(
-                                    color: AppColors.primaryColor,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
+                              child: FutureBuilder<bool>(
+                                future: widget.controller.canEdit,
+                                builder: (context, snapshot) {
+                                  final isViewMode = !(snapshot.data ?? false);
+                                  return TextButton(
+                                    onPressed: () => widget.controller
+                                        .loadRunnersManagementScreenWithConfirmation(
+                                            context,
+                                            isViewMode: isViewMode),
+                                    style: TextButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 16, vertical: 12),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        side: BorderSide(
+                                            color: AppColors.primaryColor),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      'Load Teams and Runners',
+                                      style: TextStyle(
+                                        color: AppColors.primaryColor,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
                             )
-                          : InkWell(
-                              onTap: () => widget.controller
-                                  .loadRunnersManagementScreenWithConfirmation(
-                                      context,
-                                      isViewMode: !widget.controller.canEdit),
-                              child: Container(
-                                margin: const EdgeInsets.only(bottom: 16),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(10),
-                                      decoration: BoxDecoration(
-                                        color: ColorUtils.withOpacity(
-                                            AppColors.primaryColor, 0.1),
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      child: Icon(Icons.group_rounded,
-                                          color: AppColors.primaryColor,
-                                          size: 22),
-                                    ),
-                                    const SizedBox(width: 16),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            'Teams and Runners',
-                                            style: AppTypography.bodyRegular
-                                                .copyWith(
-                                              color: ColorUtils.withOpacity(
-                                                  AppColors.darkColor, 0.6),
-                                            ),
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            '$teamCount team${teamCount == 1 ? '' : 's'}, $runnerCount runner${runnerCount == 1 ? '' : 's'}',
-                                            style: AppTypography.bodySemibold
-                                                .copyWith(
-                                              color: AppColors.darkColor,
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    Row(
-                                      mainAxisSize: MainAxisSize.min,
+                          : FutureBuilder<bool>(
+                              future: widget.controller.canEdit,
+                              builder: (context, snapshot) {
+                                final isViewMode = !(snapshot.data ?? false);
+                                return InkWell(
+                                  onTap: () => widget.controller
+                                      .loadRunnersManagementScreenWithConfirmation(
+                                          context,
+                                          isViewMode: isViewMode),
+                                  child: Container(
+                                    margin: const EdgeInsets.only(bottom: 16),
+                                    child: Row(
                                       children: [
-                                        const SizedBox(width: 8),
-                                        Icon(
-                                          Icons.chevron_right,
-                                          color: AppColors.primaryColor,
-                                          size: 28,
+                                        Container(
+                                          padding: const EdgeInsets.all(10),
+                                          decoration: BoxDecoration(
+                                            color: ColorUtils.withOpacity(
+                                                AppColors.primaryColor, 0.1),
+                                            borderRadius:
+                                                BorderRadius.circular(10),
+                                          ),
+                                          child: Icon(Icons.group_rounded,
+                                              color: AppColors.primaryColor,
+                                              size: 22),
+                                        ),
+                                        const SizedBox(width: 16),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                'Teams and Runners',
+                                                style: AppTypography.bodyRegular
+                                                    .copyWith(
+                                                  color: ColorUtils.withOpacity(
+                                                      AppColors.darkColor, 0.6),
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                '$teamCount team${teamCount == 1 ? '' : 's'}, $runnerCount runner${runnerCount == 1 ? '' : 's'}',
+                                                style: AppTypography
+                                                    .bodySemibold
+                                                    .copyWith(
+                                                  color: AppColors.darkColor,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const SizedBox(width: 8),
+                                            Icon(
+                                              Icons.chevron_right,
+                                              color: AppColors.primaryColor,
+                                              size: 28,
+                                            ),
+                                          ],
                                         ),
                                       ],
                                     ),
-                                  ],
-                                ),
-                              ),
+                                  ),
+                                );
+                              },
                             )
                     ],
                   ),

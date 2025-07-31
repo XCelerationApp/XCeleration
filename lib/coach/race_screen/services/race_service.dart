@@ -8,7 +8,7 @@ import '../../runners_management_screen/screen/runners_management_screen.dart';
 class RaceService {
   /// Saves race details to the database.
   static Future<void> saveRaceDetails({
-    required int raceId,
+    required MasterRace masterRace,
     required TextEditingController nameController,
     required TextEditingController locationController,
     required TextEditingController dateController,
@@ -28,9 +28,9 @@ class RaceService {
           (parsedDistance != null && parsedDistance > 0) ? parsedDistance : 0;
     }
     // Update the race in database using MasterRace
-    final masterRace = MasterRace.getInstance(raceId);
+
     await masterRace.updateRace(Race(
-      raceId: raceId,
+      raceId: masterRace.raceId,
       raceName: nameController.text.trim(),
       location: locationController.text,
       raceDate: date,
@@ -42,21 +42,20 @@ class RaceService {
 
   /// Checks if all requirements are met to advance to setup_complete.
   static Future<bool> checkSetupComplete({
-    required Race? race,
-    required int raceId,
+    required MasterRace masterRace,
     required TextEditingController nameController,
     required TextEditingController locationController,
     required TextEditingController dateController,
     required TextEditingController distanceController,
   }) async {
-    if (race?.flowState != Race.FLOW_SETUP) return true;
+    final race = await masterRace.race;
+    if (race.flowState != Race.FLOW_SETUP) return true;
 
     // Check for minimum runners
     final hasMinimumRunners =
-        await TeamsAndRunnersManagementWidget.checkMinimumRunnersLoaded(raceId);
+        await TeamsAndRunnersManagementWidget.checkMinimumRunnersLoaded(
+            masterRace);
 
-    // Get current race data to check for teams using MasterRace
-    final masterRace = MasterRace.getInstance(raceId);
     final teams = await masterRace.teams;
     final hasTeams = teams.isNotEmpty;
 

@@ -451,9 +451,6 @@ class BibNumberController extends BibNumberDataController {
       return;
     }
 
-    // Get the record to update
-    final record = _bibRecords[index];
-
     // Special handling for empty inputs
     if (bibNumber.isEmpty) {
       final updatedRecord = BibDatumRecord(

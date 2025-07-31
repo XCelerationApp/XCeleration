@@ -665,9 +665,17 @@ class DatabaseHelper {
     });
   }
 
+  Future<void> addRaceResult(RaceResult result) async {
+    if (await getRaceResult(result) != null) {
+      throw Exception('RaceResult already exists');
+    }
+    final db = await _database;
+    await db.insert('race_results', result.toMap());
+  }
+
   Future<RaceResult?> getRaceResult(RaceResult raceResult) async {
-    if (raceResult.raceId == null || raceResult.runner?.runnerId == null) {
-      throw Exception('Race or runner not given');
+    if (!raceResult.isValid) {
+      throw Exception('RaceResult is not valid');
     }
     final db = await _database;
     final results = await db.query(

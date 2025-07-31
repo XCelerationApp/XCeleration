@@ -47,44 +47,62 @@ class _TimingScreenState extends State<TimingScreen>
     // Set the context in the controller for dialog management
     _controller.setContext(context);
 
-    // Use AnimatedBuilder to rebuild when the controller changes
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        return TutorialRoot(
-          tutorialManager: tutorialManager,
-          child: Scaffold(
-            body: Padding(
-              padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  RoleBar(
-                    currentRole: Role.timer,
-                    tutorialManager: tutorialManager,
-                  ),
-                  const SizedBox(height: 16),
-                  RaceInfoHeaderWidget(controller: _controller),
-                  const SizedBox(height: 8),
-                  TimerDisplayWidget(
-                    controller: _controller,
-                  ),
-                  const SizedBox(height: 8),
-                  RaceControlsWidget(controller: _controller),
-                  if (_controller.hasTimingData)
-                    const SizedBox(height: 30),
-                  Expanded(child: RecordsListWidget(controller: _controller)),
-                  if (_controller.raceStopped == false &&
-                      _controller.hasTimingData)
-                    BottomControlsWidget(
-                      controller: _controller,
-                    ),
-                ],
+    return TutorialRoot(
+      tutorialManager: tutorialManager,
+      child: Scaffold(
+        body: Padding(
+          padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              RoleBar(
+                currentRole: Role.timer,
+                tutorialManager: tutorialManager,
               ),
-            ),
+              const SizedBox(height: 16),
+              // Only rebuild the parts that depend on controller state
+              AnimatedBuilder(
+                animation: _controller,
+                builder: (context, child) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      RaceInfoHeaderWidget(controller: _controller),
+                      const SizedBox(height: 8),
+                      TimerDisplayWidget(
+                        controller: _controller,
+                      ),
+                      const SizedBox(height: 8),
+                      RaceControlsWidget(controller: _controller),
+                      if (_controller.hasTimingData) const SizedBox(height: 30),
+                    ],
+                  );
+                },
+              ),
+              Expanded(
+                child: AnimatedBuilder(
+                  animation: _controller,
+                  builder: (context, child) {
+                    return RecordsListWidget(controller: _controller);
+                  },
+                ),
+              ),
+              AnimatedBuilder(
+                animation: _controller,
+                builder: (context, child) {
+                  if (_controller.raceStopped == false &&
+                      _controller.hasTimingData) {
+                    return BottomControlsWidget(
+                      controller: _controller,
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 

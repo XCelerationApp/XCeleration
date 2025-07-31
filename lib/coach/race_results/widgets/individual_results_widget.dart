@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/typography.dart';
-import '../controller/race_results_controller.dart';
 import 'collapsible_results_widget.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
+import 'package:xceleration/shared/services/race_results_service.dart';
 
 class IndividualResultsWidget extends StatelessWidget {
-  final RaceResultsController controller;
+  final RaceResultsData raceResultsData;
   final int initialVisibleCount;
 
   const IndividualResultsWidget({
     super.key,
-    required this.controller,
+    required this.raceResultsData,
     this.initialVisibleCount = 5,
   });
 
@@ -42,7 +42,7 @@ class IndividualResultsWidget extends StatelessWidget {
                   style: AppTypography.titleSemibold,
                 ),
                 Text(
-                  '${controller.individualResults.length} Runners',
+                  '${raceResultsData.individualResults.length} Runners',
                   style: AppTypography.bodyRegular.copyWith(
                     color: Colors.black54,
                   ),
@@ -51,7 +51,7 @@ class IndividualResultsWidget extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             CollapsibleResultsWidget(
-              results: controller.individualResults,
+              results: raceResultsData.individualResults,
               initialVisibleCount: initialVisibleCount,
             ),
           ],
