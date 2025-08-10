@@ -1,4 +1,3 @@
-
 /// Represents a team in the racing application
 class TeamParticipant {
   final int? raceId;
@@ -16,7 +15,7 @@ class TeamParticipant {
     return TeamParticipant(
       raceId: map['race_id'],
       teamId: map['team_id'],
-      colorOverride: map['color_override'],
+      colorOverride: map['team_color_override'],
     );
   }
 
@@ -25,7 +24,7 @@ class TeamParticipant {
     final map = {
       'race_id': raceId,
       'team_id': teamId,
-      'color_override': colorOverride,
+      'team_color_override': colorOverride,
     };
     return map;
   }
@@ -60,9 +59,7 @@ class TeamParticipant {
 
   @override
   int get hashCode {
-    return raceId.hashCode ^
-        teamId.hashCode ^
-        colorOverride.hashCode;
+    return raceId.hashCode ^ teamId.hashCode ^ colorOverride.hashCode;
   }
 
   bool get isValid {

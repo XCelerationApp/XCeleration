@@ -589,11 +589,13 @@ class DatabaseHelper {
   Future<RaceParticipant?> getRaceParticipantByBib(
       int raceId, String bibNumber) async {
     final db = await _database;
-    final results = await db.query(
-      'race_participants',
-      where: 'race_id = ?',
-      whereArgs: [raceId],
-    );
+    final results = await db.rawQuery('''
+      SELECT rp.race_id, rp.runner_id, rp.team_id
+      FROM race_participants rp
+      JOIN runners r ON r.runner_id = rp.runner_id
+      WHERE rp.race_id = ? AND r.bib_number = ?
+      LIMIT 1
+    ''', [raceId, bibNumber]);
     return results.isNotEmpty ? RaceParticipant.fromMap(results.first) : null;
   }
 
