@@ -15,13 +15,16 @@ class DatabaseHelper {
     return _initializedDatabase!;
   }
 
+  // Expose a public connection getter for services like SyncService
+  Future<Database> get databaseConn async => await _database;
+
   Future<Database> _initDB(String fileName) async {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, fileName);
 
     return await openDatabase(
       path,
-      version: 9,
+      version: 10,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -32,11 +35,14 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE runners (
         runner_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        uuid TEXT UNIQUE,
         name TEXT NOT NULL CHECK(length(name) > 0),
         grade INTEGER CHECK(grade >= 9 AND grade <= 12),
         bib_number TEXT UNIQUE NOT NULL CHECK(length(bib_number) > 0),
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        deleted_at TEXT,
+        is_dirty INTEGER NOT NULL DEFAULT 0
       )
     ''');
 
@@ -44,11 +50,14 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE teams (
         team_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        uuid TEXT UNIQUE,
         name TEXT NOT NULL CHECK(length(name) > 0),
         abbreviation TEXT CHECK(length(abbreviation) <= 3),
         color INTEGER DEFAULT 0xFF2196F3,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        deleted_at TEXT,
+        is_dirty INTEGER NOT NULL DEFAULT 0,
         UNIQUE (name)
       )
     ''');
@@ -94,6 +103,7 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE races (
         race_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        uuid TEXT UNIQUE,
         name TEXT NOT NULL CHECK(length(name) > 0),
         race_date TEXT DEFAULT '',
         location TEXT DEFAULT '',
@@ -101,7 +111,9 @@ class DatabaseHelper {
         distance_unit TEXT DEFAULT 'mi',
         flow_state TEXT DEFAULT 'setup',
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        deleted_at TEXT,
+        is_dirty INTEGER NOT NULL DEFAULT 0
       )
     ''');
 
@@ -109,16 +121,26 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE race_results (
         result_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        uuid TEXT UNIQUE,
         race_id INTEGER NOT NULL,
         runner_id INTEGER NOT NULL,
         place INTEGER,
         finish_time INTEGER,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        deleted_at TEXT,
+        is_dirty INTEGER NOT NULL DEFAULT 0,
         FOREIGN KEY (race_id) REFERENCES races(race_id) ON DELETE CASCADE,
         FOREIGN KEY (runner_id) REFERENCES runners(runner_id) ON DELETE CASCADE,
         UNIQUE (race_id, runner_id),
         UNIQUE (race_id, place)
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS sync_state (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
       )
     ''');
 
@@ -163,7 +185,61 @@ class DatabaseHelper {
         'CREATE INDEX idx_race_results_place ON race_results(race_id, place)');
   }
 
-  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {}
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 10) {
+      // Add sync-friendly columns if they don't exist
+      try {
+        await db.execute('ALTER TABLE runners ADD COLUMN uuid TEXT');
+      } catch (_) {}
+      try {
+        await db.execute('ALTER TABLE runners ADD COLUMN deleted_at TEXT');
+      } catch (_) {}
+      try {
+        await db.execute(
+            'ALTER TABLE runners ADD COLUMN is_dirty INTEGER NOT NULL DEFAULT 0');
+      } catch (_) {}
+
+      try {
+        await db.execute('ALTER TABLE teams ADD COLUMN uuid TEXT');
+      } catch (_) {}
+      try {
+        await db.execute('ALTER TABLE teams ADD COLUMN deleted_at TEXT');
+      } catch (_) {}
+      try {
+        await db.execute(
+            'ALTER TABLE teams ADD COLUMN is_dirty INTEGER NOT NULL DEFAULT 0');
+      } catch (_) {}
+
+      try {
+        await db.execute('ALTER TABLE races ADD COLUMN uuid TEXT');
+      } catch (_) {}
+      try {
+        await db.execute('ALTER TABLE races ADD COLUMN deleted_at TEXT');
+      } catch (_) {}
+      try {
+        await db.execute(
+            'ALTER TABLE races ADD COLUMN is_dirty INTEGER NOT NULL DEFAULT 0');
+      } catch (_) {}
+
+      try {
+        await db.execute('ALTER TABLE race_results ADD COLUMN uuid TEXT');
+      } catch (_) {}
+      try {
+        await db.execute('ALTER TABLE race_results ADD COLUMN deleted_at TEXT');
+      } catch (_) {}
+      try {
+        await db.execute(
+            'ALTER TABLE race_results ADD COLUMN is_dirty INTEGER NOT NULL DEFAULT 0');
+      } catch (_) {}
+
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS sync_state (
+          key TEXT PRIMARY KEY,
+          value TEXT NOT NULL
+        )
+      ''');
+    }
+  }
 
   // ============================================================================
   // CORE ENTITY OPERATIONS
