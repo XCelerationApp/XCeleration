@@ -20,7 +20,6 @@ class DatabaseHelper {
   Future<Database> get databaseConn async => await _database;
 
   Future<Database> _initDB(String fileName) async {
-    deleteDatabase();
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, fileName);
 
