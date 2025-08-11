@@ -14,9 +14,7 @@ class RemoteApiClient {
   Future<void> init() async {
     if (_initialized) return;
     final url = dotenv.env['SUPABASE_URL'];
-    // Prefer new publishable key; fallback to legacy anon for compatibility
-    final publicKey = dotenv.env['SUPABASE_PUBLISHABLE_KEY'] ??
-        dotenv.env['SUPABASE_ANON_KEY'];
+    final publicKey = dotenv.env['SUPABASE_PUBLISHABLE_KEY'];
     if (url == null || publicKey == null) {
       Logger.d('Supabase env vars not set; skipping init');
       return;
