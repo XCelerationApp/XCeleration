@@ -7,6 +7,7 @@ class RemoteApiClient {
   static final RemoteApiClient instance = RemoteApiClient._();
 
   bool _initialized = false;
+  bool get isInitialized => _initialized;
 
   SupabaseClient get client => Supabase.instance.client;
 

@@ -25,8 +25,34 @@ class SyncService {
   static const String cursorRaces = 'cursor.races';
   static const String cursorRaceResults = 'cursor.race_results';
 
+  Future<bool> _tableExists(Database db, String table) async {
+    final rows = await db.rawQuery(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+      [table],
+    );
+    return rows.isNotEmpty;
+  }
+
+  Future<bool> _hasNormalizedSchema(Database db) async {
+    final needed = [
+      'runners',
+      'teams',
+      'races',
+      'race_participants',
+      'race_results'
+    ];
+    for (final t in needed) {
+      if (!await _tableExists(db, t)) return false;
+    }
+    return true;
+  }
+
   Future<void> ensureLocalUuids() async {
     final db = await DatabaseHelper.instance.databaseConn;
+    if (!await _hasNormalizedSchema(db)) {
+      Logger.d('Sync skipped: normalized schema not found yet.');
+      return;
+    }
     Future<void> assignUuids(String table, String idCol) async {
       final rows = await db.query(
         table,
@@ -68,6 +94,10 @@ class SyncService {
   Future<void> syncAll() async {
     try {
       await RemoteApiClient.instance.init();
+      if (!RemoteApiClient.instance.isInitialized) {
+        Logger.d('Remote not configured; skipping sync.');
+        return;
+      }
       await ensureLocalUuids();
       await pushAll();
       await pullAll();
@@ -81,6 +111,10 @@ class SyncService {
   Future<void> pushAll() async {
     final client = RemoteApiClient.instance.client;
     final db = await DatabaseHelper.instance.databaseConn;
+    if (!await _hasNormalizedSchema(db)) {
+      Logger.d('Push skipped: normalized schema not found yet.');
+      return;
+    }
 
     Future<void> pushTable(String table, String onConflict) async {
       final rows = await db.query(table, where: 'is_dirty = 1');
@@ -109,6 +143,10 @@ class SyncService {
   Future<void> pullAll() async {
     final client = RemoteApiClient.instance.client;
     final db = await DatabaseHelper.instance.databaseConn;
+    if (!await _hasNormalizedSchema(db)) {
+      Logger.d('Pull skipped: normalized schema not found yet.');
+      return;
+    }
 
     Future<void> pullTable(String table, String idCol) async {
       final cursorKey = 'cursor.$table';

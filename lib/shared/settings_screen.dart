@@ -7,6 +7,7 @@ import '../coach/races_screen/screen/races_screen.dart';
 import '../core/components/dialog_utils.dart';
 import 'package:xceleration/core/services/sync_service.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
+import 'package:xceleration/core/utils/database_helper.dart';
 
 class SettingsScreen extends StatefulWidget {
   final String currentRole;
@@ -136,6 +137,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 loadingMessage: 'Please wait...', operation: () async {
               await SyncService.instance.syncAll();
             });
+          },
+        ),
+        _buildRoleItem(
+          context,
+          'Delete Local Database',
+          'Remove the local SQLite DB. It will be recreated on next launch.',
+          Icons.delete_forever,
+          isSelected: false,
+          onTap: () async {
+            final confirmed = await DialogUtils.showConfirmationDialog(
+              context,
+              title: 'Delete local database?',
+              content:
+                  'This will permanently remove all local data on this device. Continue?',
+              confirmText: 'Delete',
+              cancelText: 'Cancel',
+            );
+            if (!confirmed) return;
+
+            await DialogUtils.executeWithLoadingDialog(context,
+                loadingMessage: 'Deleting local database...',
+                operation: () async {
+              await DatabaseHelper.instance.deleteDatabase();
+            });
+
+            if (!mounted) return;
+            DialogUtils.showSuccessDialog(
+              context,
+              message: 'Local database deleted.',
+            );
           },
         ),
       ],

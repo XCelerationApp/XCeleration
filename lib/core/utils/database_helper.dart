@@ -259,6 +259,8 @@ class DatabaseHelper {
       'name': runner.name,
       'bib_number': runner.bibNumber,
       'grade': runner.grade,
+      'is_dirty': 1,
+      'updated_at': DateTime.now().toIso8601String(),
     });
 
     return result;
@@ -309,7 +311,9 @@ class DatabaseHelper {
       throw Exception('Runner is not valid');
     }
     final db = await _database;
-    await db.update('runners', runner.toMap(includeUpdatedAt: true),
+    final map = runner.toMap(includeUpdatedAt: true);
+    map['is_dirty'] = 1;
+    await db.update('runners', map,
         where: 'runner_id = ?', whereArgs: [runner.runnerId]);
   }
 
@@ -335,6 +339,8 @@ class DatabaseHelper {
       'abbreviation':
           team.abbreviation ?? Team.generateAbbreviation(team.name!),
       'color': team.color ?? 0xFF2196F3,
+      'is_dirty': 1,
+      'updated_at': DateTime.now().toIso8601String(),
     });
   }
 
@@ -388,6 +394,7 @@ class DatabaseHelper {
 
     if (updates.isNotEmpty) {
       updates['updated_at'] = DateTime.now().toIso8601String();
+      updates['is_dirty'] = 1;
       await db.update('teams', updates,
           where: 'team_id = ?', whereArgs: [team.teamId]);
     }
@@ -407,7 +414,10 @@ class DatabaseHelper {
       throw Exception('Race is not valid');
     }
     final db = await _database;
-    return await db.insert('races', race.toMap());
+    final map = race.toMap();
+    map['is_dirty'] = 1;
+    map['updated_at'] = DateTime.now().toIso8601String();
+    return await db.insert('races', map);
   }
 
   Future<Race?> getRace(int raceId) async {
@@ -434,8 +444,10 @@ class DatabaseHelper {
       throw Exception('Race with id ${race.raceId} not found');
     }
     final db = await _database;
-    await db.update('races', race.toMap(includeUpdatedAt: true),
-        where: 'race_id = ?', whereArgs: [race.raceId]);
+    final rmap = race.toMap(includeUpdatedAt: true);
+    rmap['is_dirty'] = 1;
+    await db
+        .update('races', rmap, where: 'race_id = ?', whereArgs: [race.raceId]);
   }
 
   Future<void> deleteRace(int raceId) async {
@@ -603,6 +615,8 @@ class DatabaseHelper {
         'race_id': raceParticipant.raceId,
         'runner_id': raceParticipant.runnerId,
         'team_id': raceParticipant.teamId,
+        'is_dirty': 1,
+        'updated_at': DateTime.now().toIso8601String(),
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
@@ -613,7 +627,10 @@ class DatabaseHelper {
       throw Exception('RaceParticipant not found');
     }
     final db = await _database;
-    await db.update('race_participants', raceParticipant.toMap(),
+    final pmap = raceParticipant.toMap();
+    pmap['is_dirty'] = 1;
+    pmap['updated_at'] = DateTime.now().toIso8601String();
+    await db.update('race_participants', pmap,
         where: 'race_id = ? AND runner_id = ?',
         whereArgs: [raceParticipant.raceId!, raceParticipant.runnerId!]);
   }
@@ -748,7 +765,10 @@ class DatabaseHelper {
       throw Exception('RaceResult already exists');
     }
     final db = await _database;
-    await db.insert('race_results', result.toMap());
+    final rr = result.toMap();
+    rr['is_dirty'] = 1;
+    rr['updated_at'] = DateTime.now().toIso8601String();
+    await db.insert('race_results', rr);
   }
 
   Future<RaceResult?> getRaceResult(RaceResult raceResult) async {
@@ -795,7 +815,9 @@ class DatabaseHelper {
           'Result for runner ${raceResult.runner?.runnerId} in race ${raceResult.raceId} not found');
     }
     final db = await _database;
-    await db.update('race_results', raceResult.toMap(includeUpdatedAt: true),
+    final rrmap = raceResult.toMap(includeUpdatedAt: true);
+    rrmap['is_dirty'] = 1;
+    await db.update('race_results', rrmap,
         where: 'race_id = ? AND runner_id = ?',
         whereArgs: [raceResult.raceId!, raceResult.runner!.runnerId!]);
   }
