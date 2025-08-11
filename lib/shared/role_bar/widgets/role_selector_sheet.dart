@@ -5,6 +5,8 @@ import '../../../core/theme/app_colors.dart';
 import '../models/role_enums.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/components/page_route_animations.dart';
+import '../../../core/services/auth_service.dart';
+import '../../role_screen.dart';
 
 /// Sheet for selecting roles or profiles
 class RoleSelectorSheet {
@@ -70,13 +72,16 @@ class RoleSelectorSheet {
         padding: const EdgeInsets.symmetric(vertical: 0, horizontal: 8.0),
         child: ListView.separated(
           shrinkWrap: true,
-          itemCount: roles.length,
+          itemCount: roles.length + 1,
           separatorBuilder: (context, index) => const SizedBox(height: 16),
           itemBuilder: (context, index) {
-            return _buildRoleListTile(
-              context: context,
-              role: roles[index],
-            );
+            if (index < roles.length) {
+              return _buildRoleListTile(
+                context: context,
+                role: roles[index],
+              );
+            }
+            return _buildSignOutTile(context);
           },
         ),
       ),
@@ -118,6 +123,37 @@ class RoleSelectorSheet {
                   ],
                 ),
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  static Widget _buildSignOutTile(BuildContext context) {
+    return Card(
+      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      color: Theme.of(context).cardColor,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () async {
+          await AuthService.instance.signOut();
+          if (!context.mounted) return;
+          Navigator.of(context).pop();
+          Navigator.of(context).pushAndRemoveUntil(
+            RolePageRouteAnimation(child: const RoleScreen()),
+            (route) => false,
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 18.0, horizontal: 16.0),
+          child: Row(
+            children: [
+              Icon(Icons.logout,
+                  size: 28, color: AppColors.selectedRoleTextColor),
+              const SizedBox(width: 12),
+              Text('Sign out', style: AppTypography.bodySemibold),
             ],
           ),
         ),

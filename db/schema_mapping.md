@@ -31,6 +31,13 @@ Sync fields
 - deleted_at: tombstone for soft deletes; present remote; recommended to add locally.
 - is_dirty: local-only flag to mark unsynced changes; not present remote.
 
+Ownership scoping for per-account data
+
+- Remote tables include `owner_user_id uuid not null` (except purely relationship tables where it’s derived).
+- RLS enforces `owner_user_id = auth.uid()`; participants/results inherit ownership via their race.
+- Client push: set `owner_user_id` from the signed-in user.
+- Client pull: always filter by `owner_user_id = currentUserId`.
+
 Indexes and constraints
 
 - Keep unique constraints aligned: runners.bib_number, race_results (race_id, runner_id), race_results (race_id, place).
