@@ -1,14 +1,18 @@
 // ignore_for_file: constant_identifier_names, non_constant_identifier_names
 
-
 class Race {
   final int? raceId;
+  final String? uuid;
   final String? raceName;
   final DateTime? raceDate;
   final String? location;
   final double? distance;
   final String? distanceUnit;
   final String? flowState;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+  final DateTime? deletedAt;
+  final int? isDirty;
 
   // Flow state static constants
   static const String FLOW_SETUP = 'setup';
@@ -33,18 +37,24 @@ class Race {
 
   Race({
     this.raceId,
+    this.uuid,
     this.raceName,
     this.raceDate,
     this.location,
     this.distance,
     this.distanceUnit,
     this.flowState,
+    this.createdAt,
+    this.updatedAt,
+    this.deletedAt,
+    this.isDirty,
   });
 
   // Create a Race from JSON
   static Race fromJson(Map<String, dynamic> race) {
     return Race(
       raceId: int.parse(race['race_id'].toString()),
+      uuid: race['uuid'],
       raceName: race['name'],
       raceDate:
           race['race_date'] != null ? DateTime.parse(race['race_date']) : null,
@@ -54,12 +64,21 @@ class Race {
           : 0.0,
       distanceUnit: race['distance_unit'] ?? 'mi',
       flowState: race['flow_state'] ?? FLOW_SETUP,
+      createdAt: race['created_at'] != null
+          ? DateTime.parse(race['created_at'])
+          : null,
+      updatedAt: race['updated_at'] != null
+          ? DateTime.parse(race['updated_at'])
+          : null,
+      deletedAt: race['deleted_at'] != null
+          ? DateTime.parse(race['deleted_at'])
+          : null,
+      isDirty: race['is_dirty'],
     );
   }
 
   // Convert a Race into a Map
-  Map<String, dynamic> toMap(
-      {bool includeId = false, bool includeUpdatedAt = false}) {
+  Map<String, dynamic> toMap() {
     final map = {
       'name': raceName,
       'race_date': raceDate?.toIso8601String(),
@@ -67,14 +86,11 @@ class Race {
       'distance': distance,
       'distance_unit': distanceUnit,
       'flow_state': flowState,
+      'created_at': createdAt?.toIso8601String(),
+      'updated_at': DateTime.now().toIso8601String(),
+      'deleted_at': deletedAt?.toIso8601String(),
+      'is_dirty': isDirty,
     };
-
-    if (includeId && raceId != null) {
-      map['race_id'] = raceId!;
-    }
-    if (includeUpdatedAt) {
-      map['updated_at'] = DateTime.now().toIso8601String();
-    }
 
     return map;
   }
@@ -82,21 +98,31 @@ class Race {
   // Create a copy of Race with some fields replaced
   Race copyWith({
     int? raceId,
+    String? uuid,
     String? raceName,
     DateTime? raceDate,
     String? location,
     double? distance,
     String? distanceUnit,
     String? flowState,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    DateTime? deletedAt,
+    int? isDirty,
   }) {
     return Race(
       raceId: raceId ?? this.raceId,
+      uuid: uuid ?? this.uuid,
       raceName: raceName ?? this.raceName,
       raceDate: raceDate ?? this.raceDate,
       location: location ?? this.location,
       distance: distance ?? this.distance,
       distanceUnit: distanceUnit ?? this.distanceUnit,
       flowState: flowState ?? this.flowState,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      isDirty: isDirty ?? this.isDirty,
     );
   }
 

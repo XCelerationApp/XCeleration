@@ -26,6 +26,7 @@ class RaceController with ChangeNotifier {
   final MasterRace masterRace;
 
   // Store the listener function to properly remove it later
+  // ignore: unused_field
   late final VoidCallback _masterRaceListener;
 
   // UI state properties

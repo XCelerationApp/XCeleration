@@ -154,7 +154,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               confirmText: 'Delete',
               cancelText: 'Cancel',
             );
-            if (!confirmed) return;
+            if (!confirmed || !context.mounted) return;
 
             await DialogUtils.executeWithLoadingDialog(context,
                 loadingMessage: 'Deleting local database...',
@@ -162,7 +162,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               await DatabaseHelper.instance.deleteDatabase();
             });
 
-            if (!mounted) return;
+            if (!context.mounted) return;
             DialogUtils.showSuccessDialog(
               context,
               message: 'Local database deleted.',

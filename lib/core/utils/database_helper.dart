@@ -2,6 +2,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../../shared/models/database/base_models.dart';
 import 'package:xceleration/core/utils/logger.dart';
+import 'local_schema.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
@@ -19,227 +20,26 @@ class DatabaseHelper {
   Future<Database> get databaseConn async => await _database;
 
   Future<Database> _initDB(String fileName) async {
+    deleteDatabase();
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, fileName);
 
     return await openDatabase(
       path,
-      version: 10,
+      version: 12,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
   }
 
   Future<void> _createDB(Database db, int version) async {
-    // 1. RUNNERS - Global runners with permanent bib numbers
-    await db.execute('''
-      CREATE TABLE runners (
-        runner_id INTEGER PRIMARY KEY AUTOINCREMENT,
-        uuid TEXT UNIQUE,
-        name TEXT NOT NULL CHECK(length(name) > 0),
-        grade INTEGER CHECK(grade >= 9 AND grade <= 12),
-        bib_number TEXT UNIQUE NOT NULL CHECK(length(bib_number) > 0),
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        deleted_at TEXT,
-        is_dirty INTEGER NOT NULL DEFAULT 0
-      )
-    ''');
-
-    // 2. TEAMS - Global teams with abbreviations
-    await db.execute('''
-      CREATE TABLE teams (
-        team_id INTEGER PRIMARY KEY AUTOINCREMENT,
-        uuid TEXT UNIQUE,
-        name TEXT NOT NULL CHECK(length(name) > 0),
-        abbreviation TEXT CHECK(length(abbreviation) <= 3),
-        color INTEGER DEFAULT 0xFF2196F3,
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        deleted_at TEXT,
-        is_dirty INTEGER NOT NULL DEFAULT 0,
-        UNIQUE (name)
-      )
-    ''');
-
-    // 3. TEAM_ROSTERS - Which runners belong to which teams
-    await db.execute('''
-      CREATE TABLE team_rosters (
-        team_id INTEGER NOT NULL,
-        runner_id INTEGER NOT NULL,
-        joined_date TEXT DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (team_id, runner_id),
-        FOREIGN KEY (team_id) REFERENCES teams(team_id) ON DELETE CASCADE,
-        FOREIGN KEY (runner_id) REFERENCES runners(runner_id) ON DELETE CASCADE
-      )
-    ''');
-
-    // 4. RACE_TEAM_PARTICIPATION - Teams participating in races
-    await db.execute('''
-      CREATE TABLE race_team_participation (
-        race_id INTEGER NOT NULL,
-        team_id INTEGER NOT NULL,
-        team_color_override INTEGER,
-        PRIMARY KEY (race_id, team_id),
-        FOREIGN KEY (race_id) REFERENCES races(race_id) ON DELETE CASCADE,
-        FOREIGN KEY (team_id) REFERENCES teams(team_id) ON DELETE CASCADE
-      )
-    ''');
-
-    // 5. RACE_PARTICIPANTS - Individual runner participation
-    await db.execute('''
-      CREATE TABLE race_participants (
-        race_id INTEGER NOT NULL,
-        runner_id INTEGER NOT NULL,
-        team_id INTEGER NOT NULL,
-        PRIMARY KEY (race_id, runner_id),
-        FOREIGN KEY (race_id) REFERENCES races(race_id) ON DELETE CASCADE,
-        FOREIGN KEY (runner_id) REFERENCES runners(runner_id) ON DELETE CASCADE,
-        FOREIGN KEY (team_id) REFERENCES teams(team_id) ON DELETE CASCADE
-      )
-    ''');
-
-    // 6. RACES - Core race information
-    await db.execute('''
-      CREATE TABLE races (
-        race_id INTEGER PRIMARY KEY AUTOINCREMENT,
-        uuid TEXT UNIQUE,
-        name TEXT NOT NULL CHECK(length(name) > 0),
-        race_date TEXT DEFAULT '',
-        location TEXT DEFAULT '',
-        distance REAL DEFAULT 0,
-        distance_unit TEXT DEFAULT 'mi',
-        flow_state TEXT DEFAULT 'setup',
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        deleted_at TEXT,
-        is_dirty INTEGER NOT NULL DEFAULT 0
-      )
-    ''');
-
-    // 7. RACE_RESULTS - Pure results data
-    await db.execute('''
-      CREATE TABLE race_results (
-        result_id INTEGER PRIMARY KEY AUTOINCREMENT,
-        uuid TEXT UNIQUE,
-        race_id INTEGER NOT NULL,
-        runner_id INTEGER NOT NULL,
-        place INTEGER,
-        finish_time INTEGER,
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        deleted_at TEXT,
-        is_dirty INTEGER NOT NULL DEFAULT 0,
-        FOREIGN KEY (race_id) REFERENCES races(race_id) ON DELETE CASCADE,
-        FOREIGN KEY (runner_id) REFERENCES runners(runner_id) ON DELETE CASCADE,
-        UNIQUE (race_id, runner_id),
-        UNIQUE (race_id, place)
-      )
-    ''');
-
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS sync_state (
-        key TEXT PRIMARY KEY,
-        value TEXT NOT NULL
-      )
-    ''');
-
-    await _createIndexes(db);
-  }
-
-  Future<void> _createIndexes(Database db) async {
-    // Runner indexes
-    await db
-        .execute('CREATE INDEX idx_runners_name_grade ON runners(name, grade)');
-    await db.execute('CREATE INDEX idx_runners_name ON runners(name)');
-    await db.execute('CREATE INDEX idx_runners_bib ON runners(bib_number)');
-
-    // Team indexes
-    await db.execute('CREATE INDEX idx_teams_name ON teams(name)');
-    await db
-        .execute('CREATE INDEX idx_teams_abbreviation ON teams(abbreviation)');
-
-    // Team roster indexes
-    await db
-        .execute('CREATE INDEX idx_team_rosters_team ON team_rosters(team_id)');
-    await db.execute(
-        'CREATE INDEX idx_team_rosters_runner ON team_rosters(runner_id)');
-
-    // Race team participation indexes
-    await db.execute(
-        'CREATE INDEX idx_race_team_participation_race ON race_team_participation(race_id)');
-
-    // Participant indexes
-    await db.execute(
-        'CREATE INDEX idx_race_participants_race ON race_participants(race_id)');
-    await db.execute(
-        'CREATE INDEX idx_race_participants_team ON race_participants(team_id)');
-
-    // Race indexes
-    await db.execute('CREATE INDEX idx_races_date ON races(race_date)');
-
-    // Results indexes
-    await db
-        .execute('CREATE INDEX idx_race_results_race ON race_results(race_id)');
-    await db.execute(
-        'CREATE INDEX idx_race_results_place ON race_results(race_id, place)');
-  }
-
-  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < 10) {
-      // Add sync-friendly columns if they don't exist
-      try {
-        await db.execute('ALTER TABLE runners ADD COLUMN uuid TEXT');
-      } catch (_) {}
-      try {
-        await db.execute('ALTER TABLE runners ADD COLUMN deleted_at TEXT');
-      } catch (_) {}
-      try {
-        await db.execute(
-            'ALTER TABLE runners ADD COLUMN is_dirty INTEGER NOT NULL DEFAULT 0');
-      } catch (_) {}
-
-      try {
-        await db.execute('ALTER TABLE teams ADD COLUMN uuid TEXT');
-      } catch (_) {}
-      try {
-        await db.execute('ALTER TABLE teams ADD COLUMN deleted_at TEXT');
-      } catch (_) {}
-      try {
-        await db.execute(
-            'ALTER TABLE teams ADD COLUMN is_dirty INTEGER NOT NULL DEFAULT 0');
-      } catch (_) {}
-
-      try {
-        await db.execute('ALTER TABLE races ADD COLUMN uuid TEXT');
-      } catch (_) {}
-      try {
-        await db.execute('ALTER TABLE races ADD COLUMN deleted_at TEXT');
-      } catch (_) {}
-      try {
-        await db.execute(
-            'ALTER TABLE races ADD COLUMN is_dirty INTEGER NOT NULL DEFAULT 0');
-      } catch (_) {}
-
-      try {
-        await db.execute('ALTER TABLE race_results ADD COLUMN uuid TEXT');
-      } catch (_) {}
-      try {
-        await db.execute('ALTER TABLE race_results ADD COLUMN deleted_at TEXT');
-      } catch (_) {}
-      try {
-        await db.execute(
-            'ALTER TABLE race_results ADD COLUMN is_dirty INTEGER NOT NULL DEFAULT 0');
-      } catch (_) {}
-
-      await db.execute('''
-        CREATE TABLE IF NOT EXISTS sync_state (
-          key TEXT PRIMARY KEY,
-          value TEXT NOT NULL
-        )
-      ''');
+    // Execute centralized schema
+    for (final stmt in splitSqlStatements(localSchemaSql)) {
+      await db.execute(stmt);
     }
   }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {}
 
   // ============================================================================
   // CORE ENTITY OPERATIONS
@@ -311,7 +111,7 @@ class DatabaseHelper {
       throw Exception('Runner is not valid');
     }
     final db = await _database;
-    final map = runner.toMap(includeUpdatedAt: true);
+    final map = runner.toMap();
     map['is_dirty'] = 1;
     await db.update('runners', map,
         where: 'runner_id = ?', whereArgs: [runner.runnerId]);
@@ -339,7 +139,7 @@ class DatabaseHelper {
       'abbreviation':
           team.abbreviation ?? Team.generateAbbreviation(team.name!),
       // Store color as ARGB int; avoid passing a MaterialColor/Color object
-      'color': team.color?.toARGB32() ?? 0xFF2196F3,
+      'color': team.color?.toARGB32() ?? 0,
       'is_dirty': 1,
       'updated_at': DateTime.now().toIso8601String(),
     });
@@ -445,7 +245,7 @@ class DatabaseHelper {
       throw Exception('Race with id ${race.raceId} not found');
     }
     final db = await _database;
-    final rmap = race.toMap(includeUpdatedAt: true);
+    final rmap = race.toMap();
     rmap['is_dirty'] = 1;
     await db
         .update('races', rmap, where: 'race_id = ?', whereArgs: [race.raceId]);
@@ -530,7 +330,11 @@ class DatabaseHelper {
     final db = await _database;
     await db.update(
       'race_participants',
-      {'team_id': newTeamId, 'updated_at': DateTime.now().toIso8601String()},
+      {
+        'team_id': newTeamId,
+        'updated_at': DateTime.now().toIso8601String(),
+        'is_dirty': 1,
+      },
       where: 'race_id = ? AND runner_id = ?',
       whereArgs: [raceId, runnerId],
     );
@@ -884,7 +688,7 @@ class DatabaseHelper {
           'Result for runner ${raceResult.runner?.runnerId} in race ${raceResult.raceId} not found');
     }
     final db = await _database;
-    final rrmap = raceResult.toMap(includeUpdatedAt: true);
+    final rrmap = raceResult.toMap();
     rrmap['is_dirty'] = 1;
     await db.update('race_results', rrmap,
         where: 'race_id = ? AND runner_id = ?',

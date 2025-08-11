@@ -42,7 +42,7 @@ class _AddRunnersToTeamSheetState extends State<AddRunnersToTeamSheet> {
           children: [
             const SizedBox(height: 4),
             const Text(
-              'Choose how you want to add runners to this team:',
+              'Choose how you want to add runners to this team',
               style: TextStyle(color: Colors.black54),
             ),
             const SizedBox(height: 16),

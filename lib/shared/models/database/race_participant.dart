@@ -3,11 +3,19 @@ class RaceParticipant {
   final int? raceId;
   final int? runnerId;
   final int? teamId;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+  final DateTime? deletedAt;
+  final int? isDirty;
 
   const RaceParticipant({
     this.raceId,
     this.runnerId,
     this.teamId,
+    this.createdAt,
+    this.updatedAt,
+    this.deletedAt,
+    this.isDirty,
   });
 
   /// Create a Team from a database map
@@ -16,20 +24,27 @@ class RaceParticipant {
       raceId: map['race_id'],
       runnerId: map['runner_id'],
       teamId: map['team_id'],
+      createdAt:
+          map['created_at'] != null ? DateTime.parse(map['created_at']) : null,
+      updatedAt:
+          map['updated_at'] != null ? DateTime.parse(map['updated_at']) : null,
+      deletedAt:
+          map['deleted_at'] != null ? DateTime.parse(map['deleted_at']) : null,
+      isDirty: map['is_dirty'],
     );
   }
 
   /// Convert Team to a map for database storage
-  Map<String, dynamic> toMap({bool includeId = false}) {
+  Map<String, dynamic> toMap() {
     final map = {
       'race_id': raceId,
       'runner_id': runnerId,
       'team_id': teamId,
+      'created_at': createdAt?.toIso8601String(),
+      'updated_at': DateTime.now().toIso8601String(),
+      'deleted_at': deletedAt?.toIso8601String(),
+      'is_dirty': isDirty,
     };
-
-    if (includeId && teamId != null) {
-      map['team_id'] = teamId!;
-    }
 
     return map;
   }
@@ -39,11 +54,19 @@ class RaceParticipant {
     int? raceId,
     int? runnerId,
     int? teamId,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    DateTime? deletedAt,
+    int? isDirty,
   }) {
     return RaceParticipant(
       raceId: raceId ?? this.raceId,
       runnerId: runnerId ?? this.runnerId,
       teamId: teamId ?? this.teamId,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      isDirty: isDirty ?? this.isDirty,
     );
   }
 

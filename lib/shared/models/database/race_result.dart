@@ -5,21 +5,29 @@ import 'team.dart';
 /// Represents a race result with runner and timing information
 class RaceResult {
   final int? resultId;
+  final String? uuid;
   final int? raceId;
   final Runner? runner;
   final Team? team;
   int? place;
   final Duration? finishTime;
   final DateTime? createdAt;
+  final DateTime? updatedAt;
+  final DateTime? deletedAt;
+  final int? isDirty;
 
   RaceResult({
     this.resultId,
+    this.uuid,
     this.raceId,
     this.runner,
     this.team,
     this.place,
     this.finishTime,
     this.createdAt,
+    this.updatedAt,
+    this.deletedAt,
+    this.isDirty,
   });
 
   /// Create a RaceResult from a database map with joined data
@@ -53,6 +61,7 @@ class RaceResult {
 
     return RaceResult(
       resultId: map['result_id'],
+      uuid: map['uuid'],
       raceId: map['race_id'],
       runner: runner,
       team: team,
@@ -60,6 +69,11 @@ class RaceResult {
       finishTime: finishTime,
       createdAt:
           map['created_at'] != null ? DateTime.parse(map['created_at']) : null,
+      updatedAt:
+          map['updated_at'] != null ? DateTime.parse(map['updated_at']) : null,
+      deletedAt:
+          map['deleted_at'] != null ? DateTime.parse(map['deleted_at']) : null,
+      isDirty: map['is_dirty'],
     );
   }
 
@@ -88,21 +102,17 @@ class RaceResult {
   }
 
   /// Convert to database map
-  Map<String, dynamic> toMap(
-      {bool includeId = false, bool includeUpdatedAt = false}) {
+  Map<String, dynamic> toMap() {
     final Map<String, dynamic> map = {
       'race_id': raceId,
       'runner_id': runner?.runnerId,
       'place': place,
       'finish_time': finishTime?.inMilliseconds,
+      'created_at': createdAt?.toIso8601String(),
+      'updated_at': DateTime.now().toIso8601String(),
+      'deleted_at': deletedAt?.toIso8601String(),
+      'is_dirty': isDirty,
     };
-
-    if (includeId && resultId != null) {
-      map['result_id'] = resultId!;
-    }
-    if (includeUpdatedAt) {
-      map['updated_at'] = DateTime.now().toIso8601String();
-    }
 
     return map;
   }
@@ -121,35 +131,48 @@ class RaceResult {
   /// Create a copy with some fields replaced
   RaceResult copyWith({
     int? resultId,
+    String? uuid,
     int? raceId,
     Runner? runner,
     Team? team,
     int? place,
     Duration? finishTime,
     DateTime? createdAt,
+    DateTime? updatedAt,
+    DateTime? deletedAt,
+    int? isDirty,
   }) {
     return RaceResult(
       resultId: resultId ?? this.resultId,
+      uuid: uuid ?? this.uuid,
       raceId: raceId ?? this.raceId,
       runner: runner ?? this.runner,
       team: team ?? this.team,
       place: place ?? this.place,
       finishTime: finishTime ?? this.finishTime,
       createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      isDirty: isDirty ?? this.isDirty,
     );
   }
 
   static RaceResult copy(RaceResult result) {
     return RaceResult(
       resultId: result.resultId,
+      uuid: result.uuid,
       raceId: result.raceId,
       runner: result.runner,
       team: result.team,
       place: result.place,
       finishTime: result.finishTime,
       createdAt: result.createdAt,
+      updatedAt: result.updatedAt,
+      deletedAt: result.deletedAt,
+      isDirty: result.isDirty,
     );
   }
+
   @override
   String toString() {
     return 'RaceResult(place: $place, runner: ${runner?.name}, time: $formattedFinishTime)';
