@@ -15,13 +15,16 @@ class DatabaseHelper {
     return _initializedDatabase!;
   }
 
+  // Expose a public connection getter for services like SyncService
+  Future<Database> get databaseConn async => await _database;
+
   Future<Database> _initDB(String fileName) async {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, fileName);
 
     return await openDatabase(
       path,
-      version: 9,
+      version: 10,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -32,11 +35,14 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE runners (
         runner_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        uuid TEXT UNIQUE,
         name TEXT NOT NULL CHECK(length(name) > 0),
         grade INTEGER CHECK(grade >= 9 AND grade <= 12),
         bib_number TEXT UNIQUE NOT NULL CHECK(length(bib_number) > 0),
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        deleted_at TEXT,
+        is_dirty INTEGER NOT NULL DEFAULT 0
       )
     ''');
 
@@ -44,11 +50,14 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE teams (
         team_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        uuid TEXT UNIQUE,
         name TEXT NOT NULL CHECK(length(name) > 0),
         abbreviation TEXT CHECK(length(abbreviation) <= 3),
         color INTEGER DEFAULT 0xFF2196F3,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        deleted_at TEXT,
+        is_dirty INTEGER NOT NULL DEFAULT 0,
         UNIQUE (name)
       )
     ''');
@@ -94,6 +103,7 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE races (
         race_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        uuid TEXT UNIQUE,
         name TEXT NOT NULL CHECK(length(name) > 0),
         race_date TEXT DEFAULT '',
         location TEXT DEFAULT '',
@@ -101,7 +111,9 @@ class DatabaseHelper {
         distance_unit TEXT DEFAULT 'mi',
         flow_state TEXT DEFAULT 'setup',
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        deleted_at TEXT,
+        is_dirty INTEGER NOT NULL DEFAULT 0
       )
     ''');
 
@@ -109,16 +121,26 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE race_results (
         result_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        uuid TEXT UNIQUE,
         race_id INTEGER NOT NULL,
         runner_id INTEGER NOT NULL,
         place INTEGER,
         finish_time INTEGER,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        deleted_at TEXT,
+        is_dirty INTEGER NOT NULL DEFAULT 0,
         FOREIGN KEY (race_id) REFERENCES races(race_id) ON DELETE CASCADE,
         FOREIGN KEY (runner_id) REFERENCES runners(runner_id) ON DELETE CASCADE,
         UNIQUE (race_id, runner_id),
         UNIQUE (race_id, place)
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS sync_state (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
       )
     ''');
 
@@ -163,7 +185,61 @@ class DatabaseHelper {
         'CREATE INDEX idx_race_results_place ON race_results(race_id, place)');
   }
 
-  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {}
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 10) {
+      // Add sync-friendly columns if they don't exist
+      try {
+        await db.execute('ALTER TABLE runners ADD COLUMN uuid TEXT');
+      } catch (_) {}
+      try {
+        await db.execute('ALTER TABLE runners ADD COLUMN deleted_at TEXT');
+      } catch (_) {}
+      try {
+        await db.execute(
+            'ALTER TABLE runners ADD COLUMN is_dirty INTEGER NOT NULL DEFAULT 0');
+      } catch (_) {}
+
+      try {
+        await db.execute('ALTER TABLE teams ADD COLUMN uuid TEXT');
+      } catch (_) {}
+      try {
+        await db.execute('ALTER TABLE teams ADD COLUMN deleted_at TEXT');
+      } catch (_) {}
+      try {
+        await db.execute(
+            'ALTER TABLE teams ADD COLUMN is_dirty INTEGER NOT NULL DEFAULT 0');
+      } catch (_) {}
+
+      try {
+        await db.execute('ALTER TABLE races ADD COLUMN uuid TEXT');
+      } catch (_) {}
+      try {
+        await db.execute('ALTER TABLE races ADD COLUMN deleted_at TEXT');
+      } catch (_) {}
+      try {
+        await db.execute(
+            'ALTER TABLE races ADD COLUMN is_dirty INTEGER NOT NULL DEFAULT 0');
+      } catch (_) {}
+
+      try {
+        await db.execute('ALTER TABLE race_results ADD COLUMN uuid TEXT');
+      } catch (_) {}
+      try {
+        await db.execute('ALTER TABLE race_results ADD COLUMN deleted_at TEXT');
+      } catch (_) {}
+      try {
+        await db.execute(
+            'ALTER TABLE race_results ADD COLUMN is_dirty INTEGER NOT NULL DEFAULT 0');
+      } catch (_) {}
+
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS sync_state (
+          key TEXT PRIMARY KEY,
+          value TEXT NOT NULL
+        )
+      ''');
+    }
+  }
 
   // ============================================================================
   // CORE ENTITY OPERATIONS
@@ -183,6 +259,8 @@ class DatabaseHelper {
       'name': runner.name,
       'bib_number': runner.bibNumber,
       'grade': runner.grade,
+      'is_dirty': 1,
+      'updated_at': DateTime.now().toIso8601String(),
     });
 
     return result;
@@ -233,7 +311,9 @@ class DatabaseHelper {
       throw Exception('Runner is not valid');
     }
     final db = await _database;
-    await db.update('runners', runner.toMap(includeUpdatedAt: true),
+    final map = runner.toMap(includeUpdatedAt: true);
+    map['is_dirty'] = 1;
+    await db.update('runners', map,
         where: 'runner_id = ?', whereArgs: [runner.runnerId]);
   }
 
@@ -260,6 +340,8 @@ class DatabaseHelper {
           team.abbreviation ?? Team.generateAbbreviation(team.name!),
       // Store color as ARGB int; avoid passing a MaterialColor/Color object
       'color': team.color?.toARGB32() ?? 0xFF2196F3,
+      'is_dirty': 1,
+      'updated_at': DateTime.now().toIso8601String(),
     });
   }
 
@@ -313,6 +395,7 @@ class DatabaseHelper {
 
     if (updates.isNotEmpty) {
       updates['updated_at'] = DateTime.now().toIso8601String();
+      updates['is_dirty'] = 1;
       await db.update('teams', updates,
           where: 'team_id = ?', whereArgs: [team.teamId]);
     }
@@ -332,7 +415,10 @@ class DatabaseHelper {
       throw Exception('Race is not valid');
     }
     final db = await _database;
-    return await db.insert('races', race.toMap());
+    final map = race.toMap();
+    map['is_dirty'] = 1;
+    map['updated_at'] = DateTime.now().toIso8601String();
+    return await db.insert('races', map);
   }
 
   Future<Race?> getRace(int raceId) async {
@@ -359,8 +445,10 @@ class DatabaseHelper {
       throw Exception('Race with id ${race.raceId} not found');
     }
     final db = await _database;
-    await db.update('races', race.toMap(includeUpdatedAt: true),
-        where: 'race_id = ?', whereArgs: [race.raceId]);
+    final rmap = race.toMap(includeUpdatedAt: true);
+    rmap['is_dirty'] = 1;
+    await db
+        .update('races', rmap, where: 'race_id = ?', whereArgs: [race.raceId]);
   }
 
   Future<void> deleteRace(int raceId) async {
@@ -596,6 +684,8 @@ class DatabaseHelper {
         'race_id': raceParticipant.raceId,
         'runner_id': raceParticipant.runnerId,
         'team_id': raceParticipant.teamId,
+        'is_dirty': 1,
+        'updated_at': DateTime.now().toIso8601String(),
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
@@ -606,7 +696,10 @@ class DatabaseHelper {
       throw Exception('RaceParticipant not found');
     }
     final db = await _database;
-    await db.update('race_participants', raceParticipant.toMap(),
+    final pmap = raceParticipant.toMap();
+    pmap['is_dirty'] = 1;
+    pmap['updated_at'] = DateTime.now().toIso8601String();
+    await db.update('race_participants', pmap,
         where: 'race_id = ? AND runner_id = ?',
         whereArgs: [raceParticipant.raceId!, raceParticipant.runnerId!]);
   }
@@ -658,11 +751,13 @@ class DatabaseHelper {
   Future<RaceParticipant?> getRaceParticipantByBib(
       int raceId, String bibNumber) async {
     final db = await _database;
-    final results = await db.query(
-      'race_participants',
-      where: 'race_id = ?',
-      whereArgs: [raceId],
-    );
+    final results = await db.rawQuery('''
+      SELECT rp.race_id, rp.runner_id, rp.team_id
+      FROM race_participants rp
+      JOIN runners r ON r.runner_id = rp.runner_id
+      WHERE rp.race_id = ? AND r.bib_number = ?
+      LIMIT 1
+    ''', [raceId, bibNumber]);
     return results.isNotEmpty ? RaceParticipant.fromMap(results.first) : null;
   }
 
@@ -739,7 +834,10 @@ class DatabaseHelper {
       throw Exception('RaceResult already exists');
     }
     final db = await _database;
-    await db.insert('race_results', result.toMap());
+    final rr = result.toMap();
+    rr['is_dirty'] = 1;
+    rr['updated_at'] = DateTime.now().toIso8601String();
+    await db.insert('race_results', rr);
   }
 
   Future<RaceResult?> getRaceResult(RaceResult raceResult) async {
@@ -786,7 +884,9 @@ class DatabaseHelper {
           'Result for runner ${raceResult.runner?.runnerId} in race ${raceResult.raceId} not found');
     }
     final db = await _database;
-    await db.update('race_results', raceResult.toMap(includeUpdatedAt: true),
+    final rrmap = raceResult.toMap(includeUpdatedAt: true);
+    rrmap['is_dirty'] = 1;
+    await db.update('race_results', rrmap,
         where: 'race_id = ? AND runner_id = ?',
         whereArgs: [raceResult.raceId!, raceResult.runner!.runnerId!]);
   }

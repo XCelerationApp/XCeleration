@@ -5,7 +5,9 @@ import '../core/theme/typography.dart';
 import 'role_screen.dart';
 import '../coach/races_screen/screen/races_screen.dart';
 import '../core/components/dialog_utils.dart';
+import 'package:xceleration/core/services/sync_service.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
+import 'package:xceleration/core/utils/database_helper.dart';
 import '../core/components/page_route_animations.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -124,19 +126,49 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildDevelopmentTools(BuildContext context) {
     return Column(
       children: [
-        // _buildRoleItem(
-        //   context,
-        //   'Mock Data Testing',
-        //   'Test conflict resolution with realistic scenarios',
-        //   Icons.science,
-        //   isSelected: false,
-        //   onTap: () => Navigator.push(
-        //     context,
-        //     MaterialPageRoute(
-        //       builder: (context) => const MockDataTestScreen(),
-        //     ),
-        //   ),
-        // ),
+        _buildRoleItem(
+          context,
+          'Sync Now',
+          'Push and pull data with the remote database',
+          Icons.sync,
+          isSelected: false,
+          onTap: () async {
+            await DialogUtils.executeWithLoadingDialog(context,
+                loadingMessage: 'Please wait...', operation: () async {
+              await SyncService.instance.syncAll();
+            });
+          },
+        ),
+        _buildRoleItem(
+          context,
+          'Delete Local Database',
+          'Remove the local SQLite DB. It will be recreated on next launch.',
+          Icons.delete_forever,
+          isSelected: false,
+          onTap: () async {
+            final confirmed = await DialogUtils.showConfirmationDialog(
+              context,
+              title: 'Delete local database?',
+              content:
+                  'This will permanently remove all local data on this device. Continue?',
+              confirmText: 'Delete',
+              cancelText: 'Cancel',
+            );
+            if (!confirmed) return;
+
+            await DialogUtils.executeWithLoadingDialog(context,
+                loadingMessage: 'Deleting local database...',
+                operation: () async {
+              await DatabaseHelper.instance.deleteDatabase();
+            });
+
+            if (!mounted) return;
+            DialogUtils.showSuccessDialog(
+              context,
+              message: 'Local database deleted.',
+            );
+          },
+        ),
       ],
     );
   }
