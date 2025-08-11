@@ -69,7 +69,7 @@ class MasterRace with ChangeNotifier {
   /// Get all runners in the race (lazy loaded)
   Future<List<RaceParticipant>> get raceParticipants async {
     if (_raceParticipants == null) {
-      _loadRaceParticipants();
+      await _loadRaceParticipants();
     }
     return _raceParticipants!;
   }
@@ -77,7 +77,7 @@ class MasterRace with ChangeNotifier {
   /// Get all race runners (lazy loaded)
   Future<List<RaceRunner>> get raceRunners async {
     if (_raceRunners == null) {
-      _loadRaceRunners();
+      await _loadRaceRunners();
     }
     return _raceRunners!;
   }
@@ -85,7 +85,7 @@ class MasterRace with ChangeNotifier {
   /// Get all teams in the race (lazy loaded)
   Future<List<Team>> get teams async {
     if (_teams == null) {
-      _loadTeams();
+      await _loadTeams();
     }
     return _teams!;
   }
@@ -97,11 +97,20 @@ class MasterRace with ChangeNotifier {
     }
     _teamRaceRunnersMap = {};
 
-    final raceRunnersList = await raceRunners;
+    // 1) Start with all teams participating in the race so teams with
+    //    zero runners are still shown in the UI
+    final teamsList = await teams;
+    final teamIdToTeam = {for (final t in teamsList) t.teamId: t};
+    for (final team in teamsList) {
+      _teamRaceRunnersMap![team] = [];
+    }
 
+    // 2) Add runners, ensuring we use the same Team instance as in teamsList
+    final raceRunnersList = await raceRunners;
     for (final raceRunner in raceRunnersList) {
-      _teamRaceRunnersMap![raceRunner.team] ??= [];
-      _teamRaceRunnersMap![raceRunner.team]!.add(raceRunner);
+      final teamKey = teamIdToTeam[raceRunner.team.teamId] ?? raceRunner.team;
+      _teamRaceRunnersMap![teamKey] ??= [];
+      _teamRaceRunnersMap![teamKey]!.add(raceRunner);
     }
 
     return _teamRaceRunnersMap!;
@@ -184,8 +193,10 @@ class MasterRace with ChangeNotifier {
     await db.addRaceParticipant(raceParticipant);
 
     _raceParticipants = null;
+    _raceRunners = null; // clear runner projections
     _teamRaceRunnersMap = null;
     _raceParticipantToRaceRunnerMap = null;
+    _filteredSearchResults = null;
     notifyListeners();
   }
 
@@ -198,6 +209,8 @@ class MasterRace with ChangeNotifier {
 
     _teams = null;
     _teamRaceRunnersMap = null;
+    _filteredSearchResults =
+        null; // ensure UI pulls fresh mapping including empty teams
     notifyListeners();
   }
 
@@ -210,6 +223,7 @@ class MasterRace with ChangeNotifier {
         .removeTeamParticipantFromRace(teamParticipant);
     _teams = null;
     _teamRaceRunnersMap = null;
+    _filteredSearchResults = null;
     notifyListeners();
   }
 
@@ -220,8 +234,10 @@ class MasterRace with ChangeNotifier {
     }
     await DatabaseHelper.instance.removeRaceParticipant(raceParticipant);
     _raceParticipants = null;
+    _raceRunners = null; // clear runner projections
     _teamRaceRunnersMap = null;
     _raceParticipantToRaceRunnerMap = null;
+    _filteredSearchResults = null;
     notifyListeners();
   }
 
@@ -243,6 +259,7 @@ class MasterRace with ChangeNotifier {
     _raceParticipants = null;
     _teamRaceRunnersMap = null;
     _raceParticipantToRaceRunnerMap = null;
+    _filteredSearchResults = null;
     notifyListeners();
   }
 
@@ -321,7 +338,7 @@ class MasterRace with ChangeNotifier {
       );
     }
 
-    if (query.isEmpty) {
+    if (query.trim().isEmpty) {
       _filteredSearchResults = await teamtoRaceRunnersMap;
       await sortSearchResults();
       notifyListeners();
@@ -329,7 +346,7 @@ class MasterRace with ChangeNotifier {
     }
     final raceRunnersList = await raceRunners; // All runners
 
-    final lowerQuery = query.toLowerCase();
+    final lowerQuery = query.trim().toLowerCase();
 
     // Process all participants in parallel, using cache when available
     final results = await Future.wait(
@@ -368,6 +385,13 @@ class MasterRace with ChangeNotifier {
               break;
             case 'grade':
               if (runner.grade!.toString().contains(lowerQuery)) {
+                return raceRunner;
+              }
+              break;
+            case 'team':
+              if ((raceRunner.team.name ?? '')
+                  .toLowerCase()
+                  .contains(lowerQuery)) {
                 return raceRunner;
               }
               break;
@@ -427,14 +451,20 @@ class MasterRace with ChangeNotifier {
 
   Future<void> _loadRaceRunners() async {
     final participants = await raceParticipants;
-    _raceRunners = await Future.wait(participants.map((participant) async {
-      final raceRunner = await getRaceRunnerFromRaceParticipant(participant);
-      if (raceRunner == null) {
-        throw Exception(
-            'Runner not found for race participant: ${participant.runnerId}');
-      }
-      return raceRunner;
-    }));
+
+    if (participants.isEmpty) {
+      _raceRunners = [];
+    } else {
+      _raceRunners = await Future.wait(participants.map((participant) async {
+        final raceRunner = await getRaceRunnerFromRaceParticipant(participant);
+        if (raceRunner == null) {
+          throw Exception(
+              'Runner not found for race participant: ${participant.runnerId}');
+        }
+        return raceRunner;
+      }));
+    }
+
     notifyListeners();
   }
 

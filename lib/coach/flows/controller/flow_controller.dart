@@ -31,7 +31,7 @@ class MasterFlowController {
     // Check if context is still mounted after async operation
     if (!context.mounted) return;
 
-    switch (await raceController.flowState) {
+    switch (raceController.flowState) {
       case Race.FLOW_PRE_RACE:
         await _preRaceFlow(context);
         break;

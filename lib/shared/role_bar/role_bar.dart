@@ -82,4 +82,9 @@ class RoleBar extends StatelessWidget {
       BuildContext context, Role role) async {
     await InstructionsBanner.showInstructionsSheet(context, role);
   }
+
+  static Future<void> showInstructionsSheetManual(
+      BuildContext context, Role role) async {
+    await InstructionsBanner.showInstructionsSheetManual(context, role);
+  }
 }

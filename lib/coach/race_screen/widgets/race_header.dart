@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:xceleration/shared/models/database/master_race.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../../shared/models/database/race.dart';
@@ -47,10 +46,11 @@ IconData _getStatusIcon(String flowState) {
 
 class RaceHeader extends StatefulWidget {
   final RaceController controller;
-  late final MasterRace masterRace;
-  RaceHeader({super.key, required this.controller}) {
-    masterRace = controller.masterRace;
-  }
+
+  const RaceHeader({
+    super.key,
+    required this.controller,
+  });
 
   @override
   State<RaceHeader> createState() => _RaceHeaderState();
@@ -63,12 +63,12 @@ class _RaceHeaderState extends State<RaceHeader> {
   void initState() {
     super.initState();
     _titleFocusNode = FocusNode();
-    _titleFocusNode.addListener(() async {
+    _titleFocusNode.addListener(() {
       // Autosave when losing focus outside of setup flow
       if (!_titleFocusNode.hasFocus && widget.controller.isEditingName) {
-        final race = await widget.masterRace.race;
         if (!mounted) return;
-        if (!_isSetupFlow(race.flowState)) {
+        // Use controller's synchronous flowState instead of async race access
+        if (!_isSetupFlow(widget.controller.flowState)) {
           widget.controller.saveAllChanges(context);
         }
       }
@@ -87,89 +87,76 @@ class _RaceHeaderState extends State<RaceHeader> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder(
-      future: Future.wait([
-        widget.masterRace.race,
-        widget.controller.canEdit,
-      ]),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
+    final race = widget.controller.race;
+    final canEdit = widget.controller.canEdit;
 
-        final race = snapshot.data![0] as Race;
-        final canEdit = snapshot.data![1] as bool;
-
-        return Column(
-          children: [
-            // Editable race title
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: widget.controller.isEditingName
-                  ? TextField(
-                      controller: widget.controller.nameController,
-                      focusNode: _titleFocusNode,
+    return Column(
+      children: [
+        // Editable race title
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: widget.controller.isEditingName
+              ? TextField(
+                  controller: widget.controller.nameController,
+                  focusNode: _titleFocusNode,
+                  style: AppTypography.titleLarge.copyWith(
+                    color: AppColors.primaryColor,
+                  ),
+                  textAlign: TextAlign.center,
+                  cursorColor: AppColors.primaryColor,
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.zero,
+                    isDense: true,
+                  ),
+                  onChanged: (value) =>
+                      widget.controller.trackFieldChange('name'),
+                  onSubmitted: (_) =>
+                      widget.controller.stopEditingField('name'),
+                  onTapOutside: (_) {
+                    _titleFocusNode.unfocus();
+                  },
+                )
+              : GestureDetector(
+                  onTap: canEdit
+                      ? () {
+                          widget.controller.startEditingField('name');
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            _titleFocusNode.requestFocus();
+                          });
+                        }
+                      : null,
+                  child: Center(
+                    child: Text(
+                      race.raceName?.isEmpty == true
+                          ? 'Tap to set race name'
+                          : race.raceName ?? '',
                       style: AppTypography.titleLarge.copyWith(
-                        color: AppColors.primaryColor,
+                        color: (race.raceName?.isEmpty == true)
+                            ? AppColors.lightColor
+                            : AppColors.primaryColor,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.center,
-                      cursorColor: AppColors.primaryColor,
-                      decoration: const InputDecoration(
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.zero,
-                        isDense: true,
-                      ),
-                      onChanged: (value) =>
-                          widget.controller.trackFieldChange('name'),
-                      onSubmitted: (_) =>
-                          widget.controller.stopEditingField('name'),
-                      onTapOutside: (_) {
-                        _titleFocusNode.unfocus();
-                      },
-                    )
-                  : GestureDetector(
-                      onTap: canEdit
-                          ? () {
-                              widget.controller.startEditingField('name');
-                              WidgetsBinding.instance.addPostFrameCallback((_) {
-                                _titleFocusNode.requestFocus();
-                              });
-                            }
-                          : null,
-                      child: Center(
-                        child: Text(
-                          race.raceName!.isEmpty
-                              ? 'Tap to set race name'
-                              : race.raceName!,
-                          style: AppTypography.titleLarge.copyWith(
-                            color: race.raceName!.isEmpty
-                                ? AppColors.lightColor
-                                : AppColors.primaryColor,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
                     ),
-            ),
+                  ),
+                ),
+        ),
 
-            // Only show flow notification for non-finished states
-            if (race.flowState != Race.FLOW_FINISHED)
-              FlowNotification(
-                flowState: race.flowState!,
-                color: _getStatusColor(race.flowState!),
-                icon: _getStatusIcon(race.flowState!),
-                continueAction: () =>
-                    widget.controller.continueRaceFlow(context),
-              ),
+        // Only show flow notification for non-finished states
+        if (race.flowState != Race.FLOW_FINISHED)
+          FlowNotification(
+            flowState: race.flowState ?? 'setup',
+            color: _getStatusColor(race.flowState ?? 'setup'),
+            icon: _getStatusIcon(race.flowState ?? 'setup'),
+            continueAction: () => widget.controller.continueRaceFlow(context),
+          ),
 
-            // Unsaved changes bar (below flow status)
-            UnsavedChangesBar(controller: widget.controller),
-          ],
-        );
-      },
+        // Unsaved changes bar (below flow status)
+        UnsavedChangesBar(controller: widget.controller),
+      ],
     );
   }
 }

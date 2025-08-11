@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/utils/enums.dart';
 import '../controller/timing_controller.dart';
 import '../model/ui_record.dart';
 import '../widgets/record_list_item.dart';
@@ -39,23 +40,25 @@ class RecordsListWidget extends StatelessWidget {
   }
 
   Widget _buildRecordItem(UIRecord uiRecord, int index, BuildContext context) {
+    final item = UIRecordItem(uiRecord: uiRecord, index: index);
+
+    final bool canSwipe = (uiRecord.textColor == Colors.black) || // unconfirmed
+        (uiRecord.type != RecordType.runnerTime &&
+            index == controller.uiRecords.length - 1); // conflict and last
+
+    if (!canSwipe) return item;
+
     return Dismissible(
       key: ValueKey('${index}_${uiRecord.time}_${uiRecord.type}'),
       background: Container(
         color: Colors.red,
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 16.0),
-        child: const Icon(
-          Icons.delete,
-          color: Colors.white,
-        ),
+        child: const Icon(Icons.delete, color: Colors.white),
       ),
       direction: DismissDirection.endToStart,
       confirmDismiss: (direction) => _confirmRecordDeletion(uiRecord),
-      child: UIRecordItem(
-        uiRecord: uiRecord,
-        index: index,
-      ),
+      child: item,
     );
   }
 

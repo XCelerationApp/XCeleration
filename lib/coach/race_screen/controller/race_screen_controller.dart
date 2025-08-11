@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:geocoding/geocoding.dart';
+import '../../../shared/models/database/race_runner.dart';
+import '../../../shared/models/database/team.dart';
 import 'package:xceleration/coach/race_screen/screen/race_screen.dart';
 import 'package:xceleration/core/utils/sheet_utils.dart' show sheet;
 import '../../../core/components/dialog_utils.dart';
@@ -35,20 +37,59 @@ class RaceController with ChangeNotifier {
   bool isEditingDate = false;
   bool isEditingDistance = false;
 
+  // Loading states
+  bool _isInitialLoading = true; // Only true on first load
+  bool _isRefreshing = false; // True during background updates
+  String? _error;
+  BuildContext? _lastContext;
+
+  bool get isLoading =>
+      _isInitialLoading; // UI only shows spinner on initial load
+  bool get isRefreshing => _isRefreshing; // Can show subtle indicator if needed
+  bool get hasError => _error != null;
+  String get error => _error ?? '';
+
+  // Loaded data - guaranteed non-null when isLoading = false
+  Race? _race;
+  List<RaceRunner>? _raceRunners;
+  List<Team>? _teams;
+  bool? _canEdit;
+
+  // Getters for loaded data - guaranteed safe when isLoading = false
+  Race get race {
+    if (_isInitialLoading) {
+      throw StateError('Race data not loaded yet - check isLoading first');
+    }
+    return _race!;
+  }
+
+  List<RaceRunner> get raceRunners {
+    if (_isInitialLoading) {
+      throw StateError('Race runners not loaded yet - check isLoading first');
+    }
+    return _raceRunners!;
+  }
+
+  List<Team> get teams {
+    if (_isInitialLoading) {
+      throw StateError('Teams not loaded yet - check isLoading first');
+    }
+    return _teams!;
+  }
+
+  bool get canEdit {
+    if (_isInitialLoading) {
+      throw StateError('CanEdit not loaded yet - check isLoading first');
+    }
+    return _canEdit!;
+  }
+
+  int get runnersCount => _raceRunners?.length ?? 0;
+
   // Change tracking
   Map<String, dynamic> originalValues = {};
   Set<String> changedFields = {};
   bool get hasUnsavedChanges => changedFields.isNotEmpty;
-
-  // Permission system - determines if user can edit fields
-  Future<bool> get canEdit async {
-    final race = await masterRace.race;
-    final flowState = race.flowState;
-    // Allow editing during setup and setup completed states
-    return flowState == Race.FLOW_SETUP ||
-        flowState == Race.FLOW_SETUP_COMPLETED ||
-        flowState == Race.FLOW_PRE_RACE;
-  }
 
   // Field edit state management methods
   void startEditingField(String fieldName) {
@@ -88,9 +129,8 @@ class RaceController with ChangeNotifier {
   }
 
   // Check if field should be shown as editable (empty during setup or currently being edited)
-  Future<bool> shouldShowAsEditable(String fieldName) async {
-    if (!(await canEdit)) return false;
-    final race = await masterRace.race;
+  bool shouldShowAsEditable(String fieldName) {
+    if (!canEdit) return false;
 
     // Always show as editable if currently being edited
     switch (fieldName) {
@@ -269,7 +309,6 @@ class RaceController with ChangeNotifier {
   bool get showingRunnersManagement => _showingRunnersManagement;
 
   // Runtime state
-  int runnersCount = 0;
 
   // Form controllers
   final TextEditingController nameController = TextEditingController();
@@ -287,9 +326,9 @@ class RaceController with ChangeNotifier {
 
   late MasterFlowController flowController;
 
-  // Flow state
-  Future<String> get flowState async {
-    final race = await masterRace.race;
+  // Flow state - safe getter that works during loading
+  String get flowState {
+    if (_isInitialLoading) return 'setup'; // Safe default during loading
     return race.flowState ?? 'setup';
   }
 
@@ -300,12 +339,14 @@ class RaceController with ChangeNotifier {
     required this.parentController,
   }) {
     _masterRaceListener = _onMasterRaceUpdate;
-    masterRace.addListener(_masterRaceListener);
+    // Note: Temporarily disabling MasterRace listener to prevent infinite loops
+    // The controller manages its own data loading and doesn't need external updates
+    // masterRace.addListener(_masterRaceListener);
   }
 
   @override
   void dispose() {
-    masterRace.removeListener(_masterRaceListener);
+    // masterRace.removeListener(_masterRaceListener); // Disabled listener
     nameController.dispose();
     locationController.dispose();
     dateController.dispose();
@@ -316,58 +357,143 @@ class RaceController with ChangeNotifier {
   }
 
   void _onMasterRaceUpdate() {
+    // Note: Currently unused due to disabled MasterRace listener
+    if (!_isInitialLoading && !_isRefreshing && _lastContext != null) {
+      // Background refresh - don't show loading screen
+      // Only refresh if we're not already refreshing to prevent infinite loops
+      _refreshDataSilently();
+    }
     notifyListeners();
   }
 
   static Future<void> showRaceScreen(BuildContext context,
       RacesController parentController, MasterRace masterRace,
       {RaceScreenPage page = RaceScreenPage.main}) async {
-    if (!context.mounted) return;
+    if (!context.mounted) {
+      return;
+    }
 
-    await sheet(
-      context: context,
-      body: ChangeNotifierProvider(
-        create: (_) => RaceController(
-          masterRace: masterRace,
-          parentController: parentController,
+    try {
+      await sheet(
+        context: context,
+        body: ChangeNotifierProvider(
+          create: (context) {
+            final controller = RaceController(
+              masterRace: masterRace,
+              parentController: parentController,
+            );
+            // Start loading immediately with the context
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              controller.loadAllData(context);
+            });
+            return controller;
+          },
+          child: RaceScreen(
+            masterRace: masterRace,
+            parentController: parentController,
+            page: page,
+          ),
         ),
-        child: RaceScreen(
-          masterRace: masterRace,
-          parentController: parentController,
-          page: page,
-        ),
-      ),
-      takeUpScreen: false, // Allow sheet to size according to content
-      showHeader: true, // Keep the handle
-    );
+        takeUpScreen: false, // Allow sheet to size according to content
+        showHeader: true, // Keep the handle
+      );
+    } catch (e, stackTrace) {
+      Logger.e('RaceController: showRaceScreen() - Error: $e');
+      Logger.e('RaceController: showRaceScreen() - StackTrace: $stackTrace');
+      rethrow;
+    }
+
     await parentController.loadRaces();
   }
 
-  Future<void> init(BuildContext context) async {
-    await loadRace();
-    final race = await masterRace.race;
+  /// Load all required data in parallel - for initial load only
+  Future<void> loadAllData(BuildContext context) async {
+    _lastContext = context;
+    await _loadData(isInitial: true, context: context);
+  }
 
-    // Check if context is still mounted after loading race
-    if (!context.mounted) return;
-
-    _initializeControllers();
-    flowController = MasterFlowController(raceController: this);
-    await loadRunnersCount();
-
-    // Set initial flow state to setup if it's a new race
-    if (race.flowState!.isEmpty && context.mounted) {
-      await updateRaceFlowState(context, Race.FLOW_SETUP);
-
-      // Check if context is still mounted after updating race flow state
-      if (!context.mounted) return;
+  /// Silent background refresh when MasterRace changes
+  /// Note: Currently unused due to disabled MasterRace listener
+  Future<void> _refreshDataSilently() async {
+    if (_lastContext == null || !_lastContext!.mounted) {
+      return;
     }
+    await _loadData(isInitial: false, context: _lastContext!);
+  }
 
-    notifyListeners();
+  /// Core data loading method - handles both initial and background loading
+  Future<void> _loadData(
+      {required bool isInitial, required BuildContext context}) async {
+    try {
+      if (isInitial) {
+        _isInitialLoading = true;
+        _error = null;
+      } else {
+        _isRefreshing = true;
+      }
+      notifyListeners();
+
+      // Load all data in parallel
+      final results = await Future.wait([
+        masterRace.race,
+        masterRace.raceRunners,
+        masterRace.teams,
+      ]);
+
+      _race = results[0] as Race;
+      _raceRunners = results[1] as List<RaceRunner>;
+      _teams = results[2] as List<Team>;
+
+      // Calculate canEdit based on race flow state
+      final flowState = _race!.flowState;
+      _canEdit = flowState == Race.FLOW_SETUP ||
+          flowState == Race.FLOW_SETUP_COMPLETED ||
+          flowState == Race.FLOW_PRE_RACE;
+
+      if (isInitial) {
+        // Only do initialization tasks on first load
+        _initializeControllers();
+        flowController = MasterFlowController(raceController: this);
+
+        // Set initial flow state if needed
+        if ((_race!.flowState == null || _race!.flowState!.isEmpty) &&
+            context.mounted) {
+          await updateRaceFlowState(context, Race.FLOW_SETUP);
+        }
+
+        _isInitialLoading = false;
+      } else {
+        // Background refresh - just update form controllers if needed
+        _updateControllersIfNeeded();
+        _isRefreshing = false;
+      }
+
+      notifyListeners();
+    } catch (e) {
+      if (isInitial) {
+        _error = e.toString();
+        _isInitialLoading = false;
+      } else {
+        _isRefreshing = false;
+        // Don't set error for background refreshes - keep existing data
+      }
+
+      notifyListeners();
+
+      if (isInitial) {
+        rethrow; // Only rethrow on initial load
+      }
+    }
+  }
+
+  /// Backwards compatibility - calls loadAllData
+  Future<void> init(BuildContext context) async {
+    return loadAllData(context);
   }
 
   /// Initialize controllers from race data
-  Future<void> _initializeControllers() async {
-    final race = await masterRace.race;
+  void _initializeControllers() {
+    final race = _race!;
     nameController.text = race.raceName ?? '';
     locationController.text = race.location ?? '';
     dateController.text = race.raceDate != null
@@ -377,6 +503,40 @@ class RaceController with ChangeNotifier {
         ? race.distance.toString()
         : '';
     unitController.text = race.distanceUnit ?? 'mi';
+  }
+
+  /// Update controllers only if data has changed (for background refreshes)
+  void _updateControllersIfNeeded() {
+    final race = _race!;
+
+    // Only update if not currently being edited and value changed
+    if (!isEditingName && nameController.text != (race.raceName ?? '')) {
+      nameController.text = race.raceName ?? '';
+    }
+    if (!isEditingLocation &&
+        locationController.text != (race.location ?? '')) {
+      locationController.text = race.location ?? '';
+    }
+    if (!isEditingDate) {
+      final newDateText = race.raceDate != null
+          ? DateFormat('yyyy-MM-dd').format(race.raceDate!)
+          : '';
+      if (dateController.text != newDateText) {
+        dateController.text = newDateText;
+      }
+    }
+    if (!isEditingDistance) {
+      final newDistanceText = race.distance != null && race.distance! > 0
+          ? race.distance.toString()
+          : '';
+      if (distanceController.text != newDistanceText) {
+        distanceController.text = newDistanceText;
+      }
+    }
+    // Unit is less likely to be edited, always update
+    if (unitController.text != (race.distanceUnit ?? 'mi')) {
+      unitController.text = race.distanceUnit ?? 'mi';
+    }
   }
 
   Future<void> saveRaceDetails(BuildContext context) async {
@@ -600,7 +760,7 @@ class RaceController with ChangeNotifier {
   Future<void> loadRunnersManagementScreenWithConfirmation(BuildContext context,
       {bool isViewMode = false}) async {
     // Check if we need to show confirmation dialog only when user can edit
-    final canEditValue = await canEdit;
+    final canEditValue = canEdit;
     if (canEditValue &&
         !isViewMode &&
         await _shouldShowRunnersEditConfirmation() &&
@@ -639,18 +799,15 @@ class RaceController with ChangeNotifier {
 
   /// Refresh race data from database
   Future<void> refreshRaceData() async {
-    final previousTeams = await masterRace.teams;
-    final previousTeamCount = previousTeams.length;
+    if (_lastContext == null || !_lastContext!.mounted) {
+      return;
+    }
 
-    await loadRunnersCount();
+    // Invalidate the cache to force fresh data from database
+    masterRace.invalidateCache();
 
-    // Reload teams to get updated count
-    final newTeams = await masterRace.teams;
-    final newTeamCount = newTeams.length;
-
-    Logger.d(
-        'Race data refreshed: $previousTeamCount -> $newTeamCount teams, $runnersCount runners');
-    notifyListeners();
+    // Reload all data
+    await _loadData(isInitial: false, context: _lastContext!);
   }
 
   /// Check if we should show confirmation dialog before editing runners
@@ -776,13 +933,6 @@ class RaceController with ChangeNotifier {
   void updateLocationButtonVisibility() {
     isLocationButtonVisible =
         locationController.text.trim() != userlocationController.text.trim();
-    notifyListeners();
-  }
-
-  /// Load runners count for this race
-  Future<void> loadRunnersCount() async {
-    final raceRunners = await masterRace.raceRunners;
-    runnersCount = raceRunners.length;
     notifyListeners();
   }
 }

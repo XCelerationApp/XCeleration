@@ -6,14 +6,11 @@ import '../controller/races_controller.dart';
 
 class ActionButton extends StatelessWidget {
   final RacesController controller;
-  final bool isEditing;
-  final int? raceId;
 
-  const ActionButton(
-      {required this.controller,
-      this.isEditing = false,
-      this.raceId,
-      super.key});
+  const ActionButton({
+    required this.controller,
+    super.key,
+  });
 
   void _handleAction(BuildContext context) async {
     // Clear any validation errors
@@ -27,7 +24,7 @@ class ActionButton extends StatelessWidget {
     try {
       // Create a race object with only the name
       final race = Race(
-        raceId: (isEditing && raceId != null ? raceId : 0)!,
+        raceId: 0,
         raceName: controller.nameController.text,
         location: '',
         raceDate: null, // Now nullable in database schema
@@ -35,13 +32,8 @@ class ActionButton extends StatelessWidget {
         distanceUnit: 'mi',
         flowState: 'setup',
       );
-      int newRaceId = race.raceId!;
 
-      if (isEditing && raceId != null) {
-        await controller.updateRace(race);
-      } else {
-        newRaceId = await controller.createRace(race);
-      }
+      final newRaceId = await controller.createRace(race);
 
       // Store the result and only use context if it's still mounted
       if (context.mounted) {
@@ -74,17 +66,10 @@ class ActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FullWidthButton(
-      text: isEditing ? 'Save Changes' : 'Create Race',
+      text: 'Create Race',
       fontSize: 24,
       borderRadius: 16,
-      onPressed: () {
-        // Use the same _handleAction method for both paths to ensure consistency
-        if (!isEditing) {
-          _handleAction(context);
-        } else {
-          _handleAction(context);
-        }
-      },
+      onPressed: () => _handleAction(context),
     );
   }
 }

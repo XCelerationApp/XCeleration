@@ -6,6 +6,7 @@ import '../controller/runners_management_controller.dart';
 import 'runner_list_item.dart';
 import 'add_runner_button.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
+import 'team_header_tile.dart';
 
 class RunnersList extends StatelessWidget {
   final RunnersManagementController controller;
@@ -70,15 +71,13 @@ class RunnersList extends StatelessWidget {
           );
         }
 
-        return _buildRunnersList(
-            context, teamToRaceRunnersMap);
+        return _buildRunnersList(context, teamToRaceRunnersMap);
       },
     );
   }
 
   Widget _buildRunnersList(
-      BuildContext context,
-      Map<Team, List<RaceRunner>> teamToRaceRunnersMap) {
+      BuildContext context, Map<Team, List<RaceRunner>> teamToRaceRunnersMap) {
     // Show all teams, including those with no runners
     final teams = teamToRaceRunnersMap.keys.toList();
     teams.sort((a, b) => a.name!.compareTo(b.name!));
@@ -92,7 +91,6 @@ class RunnersList extends StatelessWidget {
         itemBuilder: (context, index) {
           final team = teams[index];
           final teamRaceRunners = teamToRaceRunnersMap[team] ?? [];
-          final teamColor = team.color;
 
           return AnimatedOpacity(
             opacity: 1.0,
@@ -102,52 +100,11 @@ class RunnersList extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Divider(height: 1, thickness: 1, color: Colors.grey),
-                Container(
-                  decoration: BoxDecoration(
-                    color: teamColor?.withAlpha((0.12 * 255).round()),
-                    borderRadius: const BorderRadius.only(
-                      topRight: Radius.circular(12),
-                      bottomRight: Radius.circular(12),
-                    ),
-                  ),
-                  margin: const EdgeInsets.only(right: 16.0),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16.0, vertical: 10.0),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.school,
-                        size: 18,
-                        color: teamColor,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        team.name!,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: teamColor,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: ColorUtils.withOpacity(teamColor!, 0.15),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          '${teamRaceRunners.length}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: teamColor,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                TeamHeaderTile(
+                  team: team,
+                  runnerCount: teamRaceRunners.length,
+                  controller: controller,
+                  isViewMode: controller.isViewMode,
                 ),
                 ...teamRaceRunners.map((raceRunner) {
                   final runner = raceRunner.runner;
@@ -155,9 +112,8 @@ class RunnersList extends StatelessWidget {
                     runner: runner,
                     team: team,
                     controller: controller,
-                    onAction: (action) =>
-                        controller.handleRaceRunnerAction(
-                            context, action, raceRunner),
+                    onAction: (action) => controller.handleRaceRunnerAction(
+                        context, action, raceRunner),
                     isViewMode: controller.isViewMode,
                   );
                 }),

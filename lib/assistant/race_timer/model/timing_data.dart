@@ -28,7 +28,7 @@ class TimingData with ChangeNotifier {
     if (record.conflict != null) {
       throw Exception('Runner time record cannot have a conflict');
     }
-    if (currentChunk.hasConflict) {
+    if (!currentChunk.hasConflict) {
       currentChunk.timingData.add(record);
     } else {
       cacheCurrentChunk();
@@ -113,7 +113,17 @@ class TimingData with ChangeNotifier {
   }
 
   void deleteCurrentChunk() {
-    currentChunk = _chunkCacher.restoreLastChunkFromCache()!;
+    if (_chunkCacher.isEmpty) {
+      currentChunk = TimingChunk(timingData: []);
+    } else {
+      final TimingChunk? restoredChunk =
+          _chunkCacher.restoreLastChunkFromCache();
+      if (restoredChunk == null) {
+        currentChunk = TimingChunk(timingData: []);
+      } else {
+        currentChunk = restoredChunk;
+      }
+    }
     notifyListeners();
   }
 
@@ -137,8 +147,8 @@ class TimingData with ChangeNotifier {
     if (!currentChunk.isEmpty) {
       if (!currentChunk.hasConflict && endTime != null) {
         currentChunk.conflictRecord = TimingDatum(
-          time: endTime!.toString(),
-          conflict: Conflict(type: ConflictType.confirmRunner));
+            time: endTime!.toString(),
+            conflict: Conflict(type: ConflictType.confirmRunner));
       }
       chunks.add(currentChunk);
     }
@@ -166,12 +176,18 @@ class TimingData with ChangeNotifier {
     // add cached chunks
     List<UIChunk> cachedChunks = _chunkCacher.cachedChunks;
     records.addAll(cachedChunks.expand((chunk) => chunk.records));
-    final int startingPlace =
-        cachedChunks.isNotEmpty ? cachedChunks.last.endingPlace + 1 : 1;
+
+    // Calculate starting place from last cached chunk's endingPlace if available
+    int startingPlace = 1;
+    if (cachedChunks.isNotEmpty) {
+      startingPlace = cachedChunks.last.endingPlace;
+    }
+
     // add current chunk
-    records.addAll(
+    final currentChunkRecords =
         TimingDataConverter.convertToUIChunk(currentChunk, startingPlace)
-            .records);
+            .records;
+    records.addAll(currentChunkRecords);
     return records;
   }
 

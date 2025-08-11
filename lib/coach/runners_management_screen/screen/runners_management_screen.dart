@@ -129,7 +129,7 @@ class _TeamsAndRunnersManagementWidgetState
           Expanded(
             child: SharedActionButton(
               text: 'Import Teams',
-              icon: Icons.content_copy,
+              icon: Icons.download,
               onPressed: () => _controller.showExistingTeamsBrowser(context),
             ),
           ),
@@ -142,11 +142,13 @@ class _TeamsAndRunnersManagementWidgetState
     return RunnerSearchBar(
       controller: _controller.searchController,
       searchAttribute: _controller.searchAttribute,
-      onSearchChanged: () => _controller.filterRaceRunners(_controller.searchController.text),
+      onSearchChanged: () => _controller
+          .filterRaceRunners(_controller.searchController.text.trim()),
       onAttributeChanged: (value) {
         setState(() {
           _controller.searchAttribute = value!;
-          _controller.filterRaceRunners(_controller.searchController.text);
+          _controller
+              .filterRaceRunners(_controller.searchController.text.trim());
         });
       },
       onDeleteAll: _controller.isViewMode

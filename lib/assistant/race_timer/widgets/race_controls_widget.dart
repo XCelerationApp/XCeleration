@@ -88,18 +88,34 @@ class RaceControlsWidget extends StatelessWidget {
   }
 
   Widget _buildLogButton(BuildContext context) {
+    // Determine if button should be enabled
+    final bool isEnabled = controller.raceStopped
+        ? controller
+            .hasTimingData // Clear button: enabled only if there are records
+        : controller.startTime !=
+            null; // Log button: enabled only if race has started
+
+    // Determine button text
+    final String buttonText = controller.raceStopped && controller.hasTimingData ? 'Clear' : 'Log';
+
+    // Determine button color based on enabled state
+    final Color buttonColor = isEnabled
+        ? const Color(0xFF777777) // Enabled: dark gray
+        : const Color.fromARGB(255, 201, 201, 201); // Disabled: light gray
+
+    // Determine button function
+    final VoidCallback? buttonFunction = isEnabled
+        ? (controller.raceStopped
+            ? controller.clearRaceTimes
+            : controller.handleLogButtonPress)
+        : null;
+
     return CircularButton(
-      text: (controller.hasTimingData && controller.raceStopped)
-          ? 'Clear'
-          : 'Log',
-      color: (controller.hasTimingData && controller.raceStopped)
-          ? const Color.fromARGB(255, 201, 201, 201)
-          : const Color(0xFF777777),
+      text: buttonText,
+      color: buttonColor,
       fontSize: 18,
       fontWeight: FontWeight.w600,
-      onPressed: (controller.hasTimingData && controller.raceStopped)
-          ? controller.clearRaceTimes
-          : (controller.raceStopped ? null : controller.handleLogButtonPress),
+      onPressed: buttonFunction,
     );
   }
 }

@@ -6,6 +6,7 @@ import 'role_screen.dart';
 import '../coach/races_screen/screen/races_screen.dart';
 import '../core/components/dialog_utils.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
+import '../core/components/page_route_animations.dart';
 
 class SettingsScreen extends StatefulWidget {
   final String currentRole;
@@ -39,14 +40,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (mounted) {
       if (role == 'coach') {
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const RacesScreen()),
+          SettingsPageRouteAnimation(child: const RacesScreen()),
           (route) => false,
         );
       } else if (role == 'assistant') {
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(
-              builder: (context) =>
-                  const AssistantRoleScreen(showBackArrow: false)),
+          SettingsPageRouteAnimation(
+              child: const AssistantRoleScreen(showBackArrow: false)),
           (route) => false,
         );
       }

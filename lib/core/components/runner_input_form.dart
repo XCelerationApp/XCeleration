@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:xceleration/core/utils/sheet_utils.dart';
 import '../utils/logger.dart';
 import './textfield_utils.dart' as textfield_utils;
@@ -69,6 +70,9 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
   String? teamAbbreviationError;
   String? bibError;
 
+  Timer? _bibDebounce;
+  Timer? _gradeDebounce;
+
   // Track updated team options including newly created teams
   late List<Team> _currentTeamOptions;
 
@@ -111,6 +115,8 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
 
   @override
   void dispose() {
+    _bibDebounce?.cancel();
+    _gradeDebounce?.cancel();
     // Clean up controllers when the widget is disposed
     nameController.dispose();
     gradeController.dispose();
@@ -133,26 +139,32 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
   }
 
   void validateGrade(String value) {
-    if (value.isEmpty) {
-      setState(() {
-        gradeError = 'Please enter a grade';
-      });
-    } else if (int.tryParse(value) == null) {
-      setState(() {
-        gradeError = 'Please enter a valid grade number';
-      });
-    } else {
-      final grade = int.parse(value);
-      if (grade < 9 || grade > 12) {
+    _gradeDebounce?.cancel();
+    final current = value;
+    _gradeDebounce = Timer(const Duration(milliseconds: 500), () {
+      // If input changed while waiting, skip
+      if (gradeController.text != current) return;
+      if (current.isEmpty) {
         setState(() {
-          gradeError = 'Grade must be between 9 and 12';
+          gradeError = 'Please enter a grade';
+        });
+      } else if (int.tryParse(current) == null) {
+        setState(() {
+          gradeError = 'Please enter a valid grade number';
         });
       } else {
-        setState(() {
-          gradeError = null;
-        });
+        final grade = int.parse(current);
+        if (grade < 9 || grade > 12) {
+          setState(() {
+            gradeError = 'Grade must be between 9 and 12';
+          });
+        } else {
+          setState(() {
+            gradeError = null;
+          });
+        }
       }
-    }
+    });
   }
 
   void validateTeam(Team? value) {
@@ -193,6 +205,7 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
   }
 
   void validateBib(String value) {
+    // Synchronous validation
     if (value.isEmpty) {
       setState(() {
         bibError = 'Please enter a bib number';
@@ -209,21 +222,61 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
       setState(() {
         bibError = null;
       });
+
+      // Debounced uniqueness check against DB
+      _bibDebounce?.cancel();
+      final trimmed = value.trim();
+      _bibDebounce = Timer(const Duration(milliseconds: 500), () async {
+        // If the input changed during await, don't overwrite
+        if (bibController.text.trim() != trimmed) return;
+        final isUnique = await _checkBibUnique(trimmed);
+        if (!mounted) return;
+        setState(() {
+          bibError = isUnique ? null : 'Bib number already exists';
+        });
+      });
+    }
+  }
+
+  Future<bool> _checkBibUnique(String bib) async {
+    try {
+      final existingRunner = await widget.masterRace.db.getRunnerByBib(bib);
+      if (existingRunner == null) return true;
+      // Allow the same bib if editing the same runner
+      final editingId = widget.initialRaceRunner?.runner.runnerId;
+      if (editingId != null && existingRunner.runnerId == editingId) {
+        return true;
+      }
+      return false;
+    } catch (_) {
+      // If DB check fails, don't block the user; treat as unique
+      return true;
     }
   }
 
   bool hasErrors() {
-    return teamError != null ||
+    final requiresTeamSelection = widget.requiredTeam == null;
+    return teamError != null && requiresTeamSelection ||
         bibError != null ||
         gradeError != null ||
         nameError != null ||
         nameController.text.isEmpty ||
         gradeController.text.isEmpty ||
-        teamController.text.isEmpty ||
+        (requiresTeamSelection && teamController.text.isEmpty) ||
         bibController.text.isEmpty;
   }
 
   Future<void> handleSubmit() async {
+    // Final bib uniqueness check before submit
+    if (bibController.text.trim().isNotEmpty && bibError == null) {
+      final isUnique = await _checkBibUnique(bibController.text.trim());
+      if (!isUnique) {
+        setState(() {
+          bibError = 'Bib number already exists';
+        });
+      }
+    }
+
     if (hasErrors()) {
       return;
     }
@@ -349,10 +402,9 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
                         value: null,
                         child: Row(
                           children: [
-                            Icon(Icons.add, size: 16, color: Colors.blue),
+                            Icon(Icons.add, size: 16),
                             SizedBox(width: 8),
-                            Text('Create New Team',
-                                style: TextStyle(color: Colors.blue)),
+                            Text('Create New Team'),
                           ],
                         ),
                       ),
@@ -469,10 +521,11 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
           ),
         ),
         const SizedBox(height: 16),
-        buildInputField(
-          'Team',
-          _buildTeamField(),
-        ),
+        if (widget.requiredTeam == null)
+          buildInputField(
+            'Team',
+            _buildTeamField(),
+          ),
         if (widget.showBibField) ...[
           const SizedBox(height: 16),
           buildInputField(

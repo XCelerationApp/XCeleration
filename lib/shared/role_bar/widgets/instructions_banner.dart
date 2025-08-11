@@ -14,10 +14,10 @@ class InstructionsBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       borderRadius: BorderRadius.circular(8.0),
-      onTap: () => showInstructionsSheet(context, currentRole),
+      onTap: () => showInstructionsSheetManual(context, currentRole),
       child: Container(
         width: 200,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         child: Row(
           mainAxisSize: MainAxisSize.max,
           children: [
@@ -26,7 +26,7 @@ class InstructionsBanner extends StatelessWidget {
             Flexible(
               child: Text(
                 'Instructions',
-                style: AppTypography.bodyRegular,
+                style: AppTypography.headerRegular,
               ),
             ),
           ],
@@ -54,6 +54,21 @@ class InstructionsBanner extends StatelessWidget {
 
       // Mark instructions as shown for this role
       await prefs.setBool(key, true);
+    }
+  }
+
+  /// Shows instructions dialog regardless of whether they've been shown before.
+  /// This is used when the user manually clicks the instructions button.
+  static Future<void> showInstructionsSheetManual(
+      BuildContext context, Role role) async {
+    if (context.mounted) {
+      await DialogUtils.showMessageDialog(
+        context,
+        title: 'Instructions',
+        message: _getInstructions(role),
+        doneText: 'Got it',
+        barrierTint: 0.3,
+      );
     }
   }
 

@@ -99,7 +99,7 @@ class RunnerSearchBar extends StatelessWidget {
                       child: DropdownButton<String>(
                         value: searchAttribute,
                         onChanged: onAttributeChanged,
-                        items: ['Bib Number', 'Name', 'Grade', 'Team']
+                        items: ['All', 'Bib Number', 'Name', 'Grade', 'Team']
                             .map((value) => DropdownMenuItem(
                                   value: value,
                                   child: Text(

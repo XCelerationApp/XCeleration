@@ -43,21 +43,25 @@ Widget createSheetHeader(
       const SizedBox(height: 8),
       if (title != null) ...[
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            backArrow && context != null
-                ? createBackArrow(context, onBack: onBack)
-                : const SizedBox.shrink(),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: titleSize,
-                fontWeight: FontWeight.w600,
-                color: AppColors.darkColor,
+            if (backArrow && context != null)
+              createBackArrow(context, onBack: onBack),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: titleSize,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.darkColor,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.visible,
+                softWrap: true,
               ),
-              textAlign: TextAlign.center,
             ),
-            backArrow ? const SizedBox(width: 24) : const SizedBox.shrink(),
+            if (backArrow) const SizedBox(width: 24),
           ],
         ),
       ],

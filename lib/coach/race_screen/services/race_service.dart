@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:xceleration/core/utils/logger.dart';
 import '../../../shared/models/database/race.dart';
 import '../../../shared/models/database/master_race.dart';
 import 'package:intl/intl.dart';
@@ -65,9 +64,6 @@ class RaceService {
         dateController.text.isNotEmpty &&
         distanceController.text.isNotEmpty &&
         hasTeams;
-
-    Logger.d(
-        'hasMinimumRunners: $hasMinimumRunners, fieldsComplete: $fieldsComplete, hasTeams: $hasTeams');
     return hasMinimumRunners && fieldsComplete;
   }
 

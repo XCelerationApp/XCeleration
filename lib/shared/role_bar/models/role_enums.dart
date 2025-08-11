@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../assistant/race_timer/screen/timing_screen.dart';
+import '../../../assistant/bib_number_recorder/screen/bib_number_screen.dart';
 import '../../../coach/races_screen/screen/races_screen.dart';
 
 /// Enum representing the assistant roles in the app
@@ -46,7 +47,7 @@ enum Role {
       case Role.timer:
         return const TimingScreen();
       case Role.bibRecorder:
-        return const TimingScreen(); // Combined timing and bib recording
+        return const BibNumberScreen();
       case Role.coach:
         return const RacesScreen();
     }

@@ -42,13 +42,12 @@ class InlineEditableField extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      child: FutureBuilder<bool>(
-        future: controller.shouldShowAsEditable(fieldName),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          return snapshot.data!
+      child: Builder(
+        builder: (context) {
+          // Simple synchronous check - no async needed
+          final isEditable = controller.shouldShowAsEditable(fieldName);
+
+          return isEditable
               ? _buildEditableMode(context)
               : _buildViewMode(context, displayValue, isEmpty);
         },
@@ -92,10 +91,10 @@ class InlineEditableField extends StatelessWidget {
             ],
           ),
         ),
-        FutureBuilder<bool>(
-          future: controller.canEdit,
-          builder: (context, snapshot) {
-            if (snapshot.hasData && snapshot.data!) {
+        Builder(
+          builder: (context) {
+            final canEdit = controller.canEdit;
+            if (canEdit) {
               return Row(
                 children: [
                   const SizedBox(width: 8),

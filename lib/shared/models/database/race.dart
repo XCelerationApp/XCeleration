@@ -1,6 +1,5 @@
 // ignore_for_file: constant_identifier_names, non_constant_identifier_names
 
-import 'package:xceleration/core/utils/logger.dart';
 
 class Race {
   final int? raceId;
@@ -44,8 +43,6 @@ class Race {
 
   // Create a Race from JSON
   static Race fromJson(Map<String, dynamic> race) {
-    Logger.d(race['flow_state']);
-
     return Race(
       raceId: int.parse(race['race_id'].toString()),
       raceName: race['name'],
@@ -61,7 +58,8 @@ class Race {
   }
 
   // Convert a Race into a Map
-  Map<String, dynamic> toMap({bool includeId = false, bool includeUpdatedAt = false}) {
+  Map<String, dynamic> toMap(
+      {bool includeId = false, bool includeUpdatedAt = false}) {
     final map = {
       'name': raceName,
       'race_date': raceDate?.toIso8601String(),
@@ -150,15 +148,25 @@ class Race {
   }
 
   bool get isValid {
-    return raceId != null &&
-        raceName != null &&
-        raceName!.isNotEmpty &&
-        raceDate != null &&
+    // Basic validation - always required
+    if (raceId == null ||
+        raceName == null ||
+        raceName!.isEmpty ||
+        flowState == null ||
+        flowState!.isEmpty) {
+      return false;
+    }
+
+    // For setup phase, only name and flow state are required
+    if (flowState == FLOW_SETUP) {
+      return true;
+    }
+
+    // For completed setup and beyond, require all fields
+    return raceDate != null &&
         distance != null &&
         distance! > 0 &&
         distanceUnit != null &&
-        distanceUnit!.isNotEmpty &&
-        flowState != null &&
-        flowState!.isNotEmpty;
+        distanceUnit!.isNotEmpty;
   }
 }

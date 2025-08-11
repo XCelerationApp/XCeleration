@@ -37,10 +37,10 @@ class TimingController extends TimingData {
       isAudioPlayerReady = true;
       notifyListeners();
     } catch (e) {
-      Logger.d('Error initializing audio player: $e');
+      Logger.e('Error initializing audio player: $e');
       // Don't retry if the asset is missing
       if (e.toString().contains('The asset does not exist')) {
-        Logger.d('Audio asset missing - continuing without sound');
+        Logger.e('Audio asset missing - continuing without sound');
         return;
       }
       // Only retry for other types of errors
@@ -200,10 +200,12 @@ class TimingController extends TimingData {
     final extraTimeRecord = TimingDatum(
         time: TimeFormatter.formatDuration(currentDuration),
         conflict: Conflict(type: ConflictType.extraTime, offBy: 1));
+
     if (!await _validateExtraTimeConflict(extraTimeRecord)) {
       return;
     }
     addExtraTimeRecord(extraTimeRecord);
+
     scrollToBottom(scrollController);
     notifyListeners();
   }
@@ -218,23 +220,33 @@ class TimingController extends TimingData {
       return true;
     }
 
-    int offBy = record.hasConflict ? record.conflict!.offBy : 0;
-    offBy++;
+    // Calculate the total offBy that would result after adding this record
+    int totalOffBy = record.hasConflict ? record.conflict!.offBy : 0;
+    if (currentChunk.hasConflict &&
+        currentChunk.conflictRecord!.conflict!.type == ConflictType.extraTime) {
+      totalOffBy += currentChunk.conflictRecord!.conflict!.offBy;
+    }
 
     final int numRunnerRecords = currentChunk.timingData.length;
 
-    // If off by is less than the number of records (excluding the last record, which is the current conflict), then the conflict is valid
-    if (offBy < numRunnerRecords) {
+    // If total off by is less than the number of records, then the conflict is valid
+    if (totalOffBy < numRunnerRecords) {
       return true;
-    } else if (offBy == numRunnerRecords) {
+    } else if (totalOffBy == numRunnerRecords) {
       // let the user decide if they want to remove all the unconfirmed times
-      if (await _handleTimesDeletion(offBy)) {
+      if (await _handleTimesDeletion(totalOffBy)) {
         deleteCurrentChunk();
-        return true;
+        return false; // Return false to prevent adding the record
       } else {
         return false;
       }
     } else {
+      if (_context != null) {
+        DialogUtils.showErrorDialog(
+          _context!,
+          message: "You can't remove any more unconfirmed times",
+        );
+      }
       return false;
     }
   }
@@ -304,81 +316,108 @@ class TimingController extends TimingData {
   // }
 
   Future<bool> handleRecordDeletion(UIRecord record) async {
-    final bool isUnconfirmed = record.textColor == Colors.black;
     if (_context == null) return false;
-    // Get the index of the record
+
+    final bool isUnconfirmed = record.textColor == Colors.black;
+
+    // Unconfirmed runner time: delete by index
     if (isUnconfirmed) {
       final int index =
           currentChunk.timingData.indexOf(TimingDatum(time: record.time));
       if (index == -1) {
-        Logger.e('cannot find record at index $index');
         return false;
       }
-      if (await DialogUtils.showConfirmationDialog(
+      final confirmed = await DialogUtils.showConfirmationDialog(
         _context!,
         title: 'Confirm Deletion',
-        content: 'Are you sure you want to delete this time?',
-      )) {
-        currentChunk.timingData.removeAt(index);
-        notifyListeners();
+        content: 'Are you sure you want to delete the time ${record.time}?',
+      );
+      if (!confirmed) return false;
+
+      currentChunk.timingData.removeAt(index);
+      if (currentChunk.timingData.isEmpty && !currentChunk.hasConflict) {
+        deleteCurrentChunk();
         return true;
       }
+      notifyListeners();
+      return true;
+    }
+
+    // Only allow deleting non-unconfirmed records if this is the last record
+    final uiRecords = this.uiRecords;
+    final int recordIndex = uiRecords.indexOf(record);
+    final bool isLast = recordIndex == uiRecords.length - 1;
+    if (!isLast) {
+      DialogUtils.showErrorDialog(
+        _context!,
+        message: 'Cannot delete a record when there are later records.',
+      );
       return false;
-    } else {
-      if (record.type == RecordType.runnerTime ||
-          record.conflictTime != currentChunk.conflictRecord!.time) {
-        if (record.textColor == Colors.green) {
-          DialogUtils.showErrorDialog(
+    }
+
+    // Handle conflicts/confirmed types
+    switch (record.type) {
+      case RecordType.confirmRunner:
+        {
+          final confirmed = await DialogUtils.showConfirmationDialog(
             _context!,
-            message: record.type == RecordType.runnerTime ? 'Cannot delete a confirmed time.' : 'Cannot delete an earlier confirmation.',
+            title: 'Confirm Deletion',
+            content:
+                'Are you sure you want to delete the confirmation ${record.time}?',
           );
-          return false;
-        } else {
-          DialogUtils.showErrorDialog(
-            _context!,
-            message: 'Cannot delete a time that is part of a previous conflict.',
-          );
-          return false;
-        }
-      } else if (record.type == RecordType.missingTime) {
-        if (await DialogUtils.showConfirmationDialog(
-          _context!,
-          title: 'Confirm Deletion',
-          content: 'Are you sure you want to delete this missing time?',
-        )) {
-          reduceCurrentConflictByOne();
-          return true;
-        }
-        return false;
-      } else if(record.type == RecordType.extraTime) {
-        if (await DialogUtils.showConfirmationDialog(
-          _context!,
-          title: 'Confirm Deletion',
-          content: 'Are you sure you want to delete this extra time?',
-        )) {
-          late final String? newTime;
-          if(record.time == currentChunk.conflictRecord!.time) {
-            newTime = currentChunk.timingData.last.time;
-          } else {
-            // dont change the time, since the current conflict time isnt being removed
-            newTime = null;
+          if (!confirmed) return false;
+          currentChunk.conflictRecord = null;
+          if (currentChunk.timingData.isEmpty) {
+            deleteCurrentChunk();
+            return true;
           }
-          reduceCurrentConflictByOne(newTime: newTime);
-          return true;
-        }
-        return false;
-      } else if(record.type == RecordType.confirmRunner) {
-        if (await DialogUtils.showConfirmationDialog(
-          _context!,
-          title: 'Confirm Deletion',
-          content: 'Are you sure you want to delete this conflict?',
-        )) {
-          currentChunk.conflictRecord == null;
           notifyListeners();
           return true;
         }
-      }
-      return false;
+      case RecordType.missingTime:
+        {
+          final confirmed = await DialogUtils.showConfirmationDialog(
+            _context!,
+            title: 'Confirm Deletion',
+            content:
+                'Are you sure you want to delete the missing time ${record.time}?',
+          );
+          if (!confirmed) return false;
+          reduceCurrentConflictByOne();
+          if (currentChunk.conflictRecord == null &&
+              currentChunk.timingData.isEmpty) {
+            deleteCurrentChunk();
+            return true;
+          }
+          return true;
+        }
+      case RecordType.extraTime:
+        {
+          final confirmed = await DialogUtils.showConfirmationDialog(
+            _context!,
+            title: 'Confirm Deletion',
+            content:
+                'Are you sure you want to delete the extra time ${record.time}?',
+          );
+          if (!confirmed) return false;
+
+          // Use existing method to reduce conflict by one
+          reduceCurrentConflictByOne();
+
+          if (currentChunk.conflictRecord == null &&
+              currentChunk.timingData.isEmpty) {
+            deleteCurrentChunk();
+            return true;
+          }
+          return true;
+        }
+      case RecordType.runnerTime:
+      default:
+        DialogUtils.showErrorDialog(
+          _context!,
+          message: 'Cannot delete this record.',
+        );
+        return false;
     }
   }
 

@@ -93,7 +93,8 @@ class BibNumberController extends BibNumberDataController {
                       style: AppTypography.buttonText),
                   onPressed: () {
                     RoleSelectorSheet.showRoleSelection(
-                        context, role_enums.Role.bibRecorder);
+                        context, role_enums.Role.bibRecorder,
+                        showConfirmation: false);
                   },
                 ),
                 TextButton(
@@ -558,7 +559,7 @@ class BibNumberController extends BibNumberDataController {
 
         // Debounce the validation to prevent rapid UI updates while typing
         _debounceTimer = Timer(const Duration(milliseconds: 300), () async {
-          await validateBibNumber(index, bibNumber); 
+          await validateBibNumber(index, bibNumber);
         });
       }
     } else {

@@ -14,8 +14,10 @@ import '../../../shared/models/database/master_race.dart';
 import '../../../shared/models/database/runner.dart';
 import '../../../shared/models/database/team.dart';
 import '../../../core/components/create_team_sheet.dart';
-import '../widgets/existing_teams_browser_dialog.dart';
+import '../widgets/existing_teams_browser_sheet.dart';
+import '../widgets/edit_team_sheet.dart';
 import '../../../shared/models/database/race_participant.dart';
+import '../widgets/add_runners_to_team_sheet.dart';
 
 class RunnersManagementController with ChangeNotifier {
   final VoidCallback? onBack;
@@ -34,7 +36,7 @@ class RunnersManagementController with ChangeNotifier {
 
   // UI state
   bool isLoading = true;
-  String searchAttribute = 'Bib Number';
+  String searchAttribute = 'All';
   final TextEditingController searchController = TextEditingController();
 
   // Store initial state to compare with final state
@@ -49,7 +51,9 @@ class RunnersManagementController with ChangeNotifier {
   }) {
     // Create and store the listener function
     _masterRaceListener = () {
-      _updateFilteredRaceRunners();
+      // The listener's only job is to tell the UI to rebuild.
+      // The UI's FutureBuilder will then get the new, updated `filteredSearchResults`
+      // from MasterRace. This avoids causing a new search and creating a loop.
       notifyListeners();
     };
 
@@ -62,14 +66,12 @@ class RunnersManagementController with ChangeNotifier {
   }
 
   Future<void> loadData() async {
-    Logger.d('Loading data...');
     isLoading = true;
     notifyListeners();
 
     try {
       // Load initial data through MasterRace (will be cached)
       final raceRunners = await masterRace.raceRunners;
-      final teams = await masterRace.teams;
 
       // Capture initial state on first load
       if (_initialRaceRunners.isEmpty) {
@@ -80,9 +82,6 @@ class RunnersManagementController with ChangeNotifier {
       isLoading = false;
       notifyListeners();
       onContentChanged?.call();
-
-      Logger.d(
-          'Data loaded: ${raceRunners.length} race runners, ${teams.length} teams');
     } catch (e) {
       Logger.e('Error loading data: $e');
       isLoading = false;
@@ -99,13 +98,22 @@ class RunnersManagementController with ChangeNotifier {
   // ============================================================================
 
   void filterRaceRunners(String query) async {
-    final searchAttr = switch (searchAttribute) {
-      'Bib Number' => 'bib',
-      'Name' => 'name',
-      'Grade' => 'grade',
-      'Team' => 'team',
-      _ => 'all',
-    };
+    final searchAttr = (() {
+      switch (searchAttribute) {
+        case 'All':
+          return 'all';
+        case 'Bib Number':
+          return 'bib';
+        case 'Name':
+          return 'name';
+        case 'Grade':
+          return 'grade';
+        case 'Team':
+          return 'team';
+        default:
+          return 'all';
+      }
+    })();
 
     await masterRace.searchRaceRunners(query, searchAttr);
     notifyListeners();
@@ -141,7 +149,6 @@ class RunnersManagementController with ChangeNotifier {
     try {
       await masterRace.removeRaceRunner(raceRunner);
       onContentChanged?.call();
-      Logger.d('Deleted runner: ${raceRunner.runner.runnerId}');
     } catch (e) {
       Logger.e('Error deleting runner: $e');
       throw Exception('Failed to delete runner: $e');
@@ -151,6 +158,7 @@ class RunnersManagementController with ChangeNotifier {
   Future<void> showRaceRunnerSheet({
     required BuildContext context,
     RaceRunner? raceRunner,
+    Team? team,
   }) async {
     final title = raceRunner == null ? 'Add Runner' : 'Edit Runner';
     final teamsList = await masterRace.teams;
@@ -163,6 +171,7 @@ class RunnersManagementController with ChangeNotifier {
           masterRace: masterRace,
           teamOptions: teamsList,
           initialRaceRunner: raceRunner,
+          requiredTeam: team ?? raceRunner?.team,
           onSubmit: (RaceRunner raceRunner) async {
             await handleRunnerSubmission(context, raceRunner);
           },
@@ -207,6 +216,9 @@ class RunnersManagementController with ChangeNotifier {
       if (raceRunner.runner.runnerId == null) {
         // Create new runner
         final newRunnerId = await masterRace.db.createRunner(raceRunner.runner);
+        // Ensure team roster mapping exists so team->runners queries work
+        await masterRace.db
+            .addRunnerToTeam(raceRunner.team.teamId!, newRunnerId);
         await masterRace.addRaceParticipant(RaceParticipant(
           raceId: masterRace.raceId,
           runnerId: newRunnerId,
@@ -217,6 +229,8 @@ class RunnersManagementController with ChangeNotifier {
         // For now, remove and re-add
         await masterRace.db.removeRunner(raceRunner.runner.runnerId!);
         final newRunnerId = await masterRace.db.createRunner(raceRunner.runner);
+        await masterRace.db
+            .addRunnerToTeam(raceRunner.team.teamId!, newRunnerId);
         await masterRace.addRaceParticipant(RaceParticipant(
           raceId: masterRace.raceId,
           runnerId: newRunnerId,
@@ -225,7 +239,6 @@ class RunnersManagementController with ChangeNotifier {
       }
 
       onContentChanged?.call();
-      Logger.d('Runner submission successful: ${raceRunner.runner.name}');
 
       if (context.mounted) {
         Navigator.of(context).pop();
@@ -247,19 +260,19 @@ class RunnersManagementController with ChangeNotifier {
       // Check if team already exists
       final existingTeam = await masterRace.getTeamByName(team.name!);
       if (existingTeam != null) {
-        Logger.d('Team already exists: ${team.name}');
+        // Team already exists, do nothing
         return;
       }
 
-      await db.createTeam(team);
+      // Persist team and capture newly assigned id
+      final newTeamId = await db.createTeam(team);
 
       await masterRace.addTeamParticipant(TeamParticipant(
         raceId: masterRace.raceId,
-        teamId: team.teamId!,
+        teamId: newTeamId,
         colorOverride: team.color?.toARGB32(),
       ));
       onContentChanged?.call();
-      Logger.d('Created new team: ${team.name}');
       loadData();
     } catch (e) {
       Logger.e('Error creating team: $e');
@@ -268,10 +281,7 @@ class RunnersManagementController with ChangeNotifier {
   }
 
   Future<void> showAddRunnerToTeam(BuildContext context, Team team) async {
-    await showRaceRunnerSheet(
-      context: context,
-      raceRunner: null,
-    );
+    await showRaceRunnerSheet(context: context, team: team);
   }
 
   Future<void> showImportRunnersToTeam(BuildContext context, Team team) async {
@@ -279,12 +289,75 @@ class RunnersManagementController with ChangeNotifier {
   }
 
   Future<void> showCreateTeamSheet(BuildContext context) async {
-    await sheet(
+    final createdTeam = await sheet(
       context: context,
       title: 'Create New Team',
       body: CreateTeamSheet(
         masterRace: masterRace,
         createTeam: createTeam,
+      ),
+    );
+
+    if (createdTeam is Team) {
+      // Resolve the persisted team (with teamId) before proceeding
+      Team? persisted = await masterRace.getTeamByName(createdTeam.name ?? '');
+      // Fallback: reload teams and try again if not immediately available
+      persisted ??= (await masterRace.teams).firstWhere(
+          (t) => t.name == createdTeam.name,
+          orElse: () => createdTeam);
+      if (!context.mounted) return;
+      await showAddRunnersToTeamSheet(context, persisted);
+    }
+  }
+
+  Future<void> showAddRunnersToTeamSheet(
+      BuildContext context, Team team) async {
+    await sheet(
+      context: context,
+      title: 'Add Runners to ${team.abbreviation}',
+      body: AddRunnersToTeamSheet(
+        masterRace: masterRace,
+        team: team,
+        onComplete: (selectedRunnerIds) async {
+          // Add selected existing runners
+          for (final runnerId in selectedRunnerIds) {
+            await masterRace.addRaceParticipant(RaceParticipant(
+              raceId: masterRace.raceId,
+              runnerId: runnerId,
+              teamId: team.teamId!,
+            ));
+          }
+          onContentChanged?.call();
+          await loadData();
+        },
+        onRequestManualAdd: () async {
+          await showAddRunnerToTeam(context, team);
+          await loadData();
+        },
+      ),
+    );
+  }
+
+  Future<void> showEditTeamSheet(BuildContext context, Team team) async {
+    await sheet(
+      context: context,
+      title: 'Edit Team (Global)',
+      body: EditTeamSheet(
+        team: team,
+        onSave: (updatedTeam) async {
+          try {
+            await db.updateTeam(updatedTeam);
+            // If color/name changed, ensure race team participation reflects color override when shown
+            onContentChanged?.call();
+            await loadData();
+          } catch (e) {
+            Logger.e('Failed to update team: $e');
+            if (context.mounted) {
+              DialogUtils.showErrorDialog(context,
+                  message: 'Failed to update team');
+            }
+          }
+        },
       ),
     );
   }
@@ -293,47 +366,54 @@ class RunnersManagementController with ChangeNotifier {
     try {
       final otherTeams = await masterRace.getOtherTeams();
 
+      if (!context.mounted) return;
+
       if (otherTeams.isEmpty) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('No teams available from other races.'),
-              backgroundColor: Colors.orange,
-            ),
-          );
-        }
+        await DialogUtils.showMessageDialog(
+          context,
+          title: 'Can\'t Import Teams',
+          message:
+              'You have no teams from other races to import. Create a race to add runners.',
+        );
         return;
       }
 
+      // Build Team -> Runners map for the sheet
+      final Map<Team, List<Runner>> available = {};
+      for (final team in otherTeams) {
+        final runners = await db.getTeamRunners(team.teamId!);
+        available[team] = runners;
+      }
       if (!context.mounted) return;
 
-      // Convert to the format expected by the dialog
-      final availableTeamMaps = otherTeams.map((team) => team.toMap()).toList();
-
-      final selectedTeams = await showDialog<List<Map<String, dynamic>>>(
+      final selectedTeams = await sheet(
         context: context,
-        builder: (context) => ExistingTeamsBrowserDialog(
-          availableTeams: availableTeamMaps,
+        title: 'Import Teams',
+        body: ExistingTeamsBrowserSheet(
+          availableTeams: available,
           raceId: masterRace.raceId,
         ),
-      );
+      ) as Map<Team, List<Runner>>?;
 
       if (selectedTeams != null && selectedTeams.isNotEmpty) {
-        // Add selected teams to the race
-        for (final teamData in selectedTeams) {
-          final team = teamData['team'];
+        // Add selected teams and their runners to the race
+        for (final entry in selectedTeams.entries) {
+          final team = entry.key;
+          final runners = entry.value;
+
           await masterRace.addTeamParticipant(TeamParticipant(
             raceId: masterRace.raceId,
             teamId: team.teamId!,
             colorOverride: team.color?.toARGB32(),
           ));
 
-          // Add selected runners if any
-          final selectedRunnerIds = teamData['runners'] as List<int>? ?? [];
-          for (final runnerId in selectedRunnerIds) {
+          for (final runner in runners) {
+            if (runner.runnerId == null) continue;
+            // Persist roster mapping so team->runners queries work
+            await db.addRunnerToTeam(team.teamId!, runner.runnerId!);
             await masterRace.addRaceParticipant(RaceParticipant(
               raceId: masterRace.raceId,
-              runnerId: runnerId,
+              runnerId: runner.runnerId!,
               teamId: team.teamId!,
             ));
           }
@@ -384,9 +464,35 @@ class RunnersManagementController with ChangeNotifier {
       }
 
       onContentChanged?.call();
-      Logger.d('Deleted all runners');
     } catch (e) {
       Logger.e('Error deleting all runners: $e');
+    }
+  }
+
+  Future<bool> confirmAndDeleteTeam(BuildContext context, Team team) async {
+    try {
+      final confirmed = await DialogUtils.showConfirmationDialog(
+        context,
+        title: 'Delete Team',
+        content:
+            'Remove ${team.name} from this race? This does not delete the team or its runners globally.',
+        confirmText: 'Delete',
+        cancelText: 'Cancel',
+      );
+
+      if (!confirmed) return false;
+
+      await masterRace.removeTeamFromRace(TeamParticipant(
+        raceId: masterRace.raceId,
+        teamId: team.teamId!,
+      ));
+
+      onContentChanged?.call();
+      await loadData();
+      return true;
+    } catch (e) {
+      Logger.e('Error deleting team: $e');
+      return false;
     }
   }
 

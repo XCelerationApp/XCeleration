@@ -46,14 +46,39 @@ class TimingChunk {
   }
 
   factory TimingChunk.decode(String encoded) {
-    final parts = encoded.split(' ');
-    return TimingChunk(
-        conflictRecord:
-            parts.length > 1 ? TimingDatum.fromEncodedString(parts[1]) : null,
-        timingData: parts[0]
+    // The encoding format is: "t1,t2,t3 <conflict-encoded>"
+    // where conflict-encoded itself contains spaces (e.g., "CR 1 3.60").
+    // So we must split only on the first space.
+    final int firstSpaceIndex = encoded.indexOf(' ');
+    final String timesPart;
+    final String? conflictPart;
+
+    if (firstSpaceIndex == -1) {
+      timesPart = encoded;
+      conflictPart = null;
+    } else {
+      timesPart = encoded.substring(0, firstSpaceIndex);
+      final String remainder = encoded.substring(firstSpaceIndex + 1);
+      // If the remainder is empty, treat as no conflict
+      conflictPart = remainder.trim().isEmpty ? null : remainder;
+    }
+
+    final List<TimingDatum> timingData = timesPart.isEmpty
+        ? []
+        : timesPart
             .split(',')
+            .where((s) => s.isNotEmpty)
             .map((datum) => TimingDatum.fromEncodedString(datum))
-            .toList());
+            .toList();
+
+    final TimingDatum? conflictRecord = conflictPart == null
+        ? null
+        : TimingDatum.fromEncodedString(conflictPart);
+
+    return TimingChunk(
+      conflictRecord: conflictRecord,
+      timingData: timingData,
+    );
   }
 }
 
@@ -87,4 +112,3 @@ List<TimingChunk> timingChunksFromTimingData(List<TimingDatum> timingData) {
 
   return chunks;
 }
-

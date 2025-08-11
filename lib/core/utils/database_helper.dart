@@ -258,7 +258,8 @@ class DatabaseHelper {
       'name': team.name,
       'abbreviation':
           team.abbreviation ?? Team.generateAbbreviation(team.name!),
-      'color': team.color ?? 0xFF2196F3,
+      // Store color as ARGB int; avoid passing a MaterialColor/Color object
+      'color': team.color?.toARGB32() ?? 0xFF2196F3,
     });
   }
 
@@ -308,7 +309,7 @@ class DatabaseHelper {
     final updates = <String, dynamic>{};
     if (team.name != null) updates['name'] = team.name;
     if (team.abbreviation != null) updates['abbreviation'] = team.abbreviation;
-    if (team.color != null) updates['color'] = team.color;
+    if (team.color != null) updates['color'] = team.color!.toARGB32();
 
     if (updates.isNotEmpty) {
       updates['updated_at'] = DateTime.now().toIso8601String();
@@ -376,8 +377,9 @@ class DatabaseHelper {
 
   // --- TEAM ROSTERS ---
   Future<void> addRunnerToTeam(int teamId, int runnerId) async {
+    // If already linked, do nothing
     if (await getTeamRunner(teamId, runnerId) != null) {
-      throw Exception('Runner $runnerId already in team $teamId');
+      return;
     }
     final db = await _database;
     await db.insert(
@@ -397,6 +399,73 @@ class DatabaseHelper {
       where: 'team_id = ? AND runner_id = ?',
       whereArgs: [teamId, runnerId],
     );
+  }
+
+  /// Set a runner's team globally in team_rosters.
+  /// Removes any existing roster entries for the runner, then inserts the new team mapping.
+  Future<void> setRunnerTeam(int runnerId, int newTeamId) async {
+    if (await getRunner(runnerId) == null) {
+      throw Exception('Runner with id $runnerId not found');
+    }
+    if (await getTeam(newTeamId) == null) {
+      throw Exception('Team with id $newTeamId not found');
+    }
+    final db = await _database;
+    await db.transaction((txn) async {
+      await txn.delete('team_rosters',
+          where: 'runner_id = ?', whereArgs: [runnerId]);
+      await txn.insert(
+          'team_rosters',
+          {
+            'team_id': newTeamId,
+            'runner_id': runnerId,
+          },
+          conflictAlgorithm: ConflictAlgorithm.replace);
+    });
+  }
+
+  /// Update a race participant's team mapping within a race.
+  Future<void> updateRaceParticipantTeam({
+    required int raceId,
+    required int runnerId,
+    required int newTeamId,
+  }) async {
+    if (await getRace(raceId) == null) {
+      throw Exception('Race with id $raceId not found');
+    }
+    if (await getRunner(runnerId) == null) {
+      throw Exception('Runner with id $runnerId not found');
+    }
+    if (await getTeam(newTeamId) == null) {
+      throw Exception('Team with id $newTeamId not found');
+    }
+    final db = await _database;
+    await db.update(
+      'race_participants',
+      {'team_id': newTeamId, 'updated_at': DateTime.now().toIso8601String()},
+      where: 'race_id = ? AND runner_id = ?',
+      whereArgs: [raceId, runnerId],
+    );
+  }
+
+  /// Convenience: update runner core fields and optionally move to a new team
+  /// and/or update the runner's team within a specific race.
+  Future<void> updateRunnerWithTeams({
+    required Runner runner,
+    int? newTeamId,
+    int? raceIdForTeamUpdate,
+  }) async {
+    await updateRunner(runner);
+    if (newTeamId != null) {
+      await setRunnerTeam(runner.runnerId!, newTeamId);
+      if (raceIdForTeamUpdate != null) {
+        await updateRaceParticipantTeam(
+          raceId: raceIdForTeamUpdate,
+          runnerId: runner.runnerId!,
+          newTeamId: newTeamId,
+        );
+      }
+    }
   }
 
   Future<Runner?> getTeamRunner(int teamId, int runnerId) async {

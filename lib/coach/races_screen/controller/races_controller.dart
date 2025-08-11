@@ -331,7 +331,6 @@ class RacesController extends ChangeNotifier {
 
   Future<void> loadRaces() async {
     races = await RacesService.loadRaces();
-    Logger.d('Races loaded: ${races.length}');
     notifyListeners();
   }
 

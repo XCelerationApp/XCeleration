@@ -26,7 +26,8 @@ class TimingDataConverter {
         ));
         endingPlace++;
       }
-    } else if (chunk.conflictRecord!.conflict!.type == ConflictType.confirmRunner) {
+    } else if (chunk.conflictRecord!.conflict!.type ==
+        ConflictType.confirmRunner) {
       for (int i = 0; i < chunk.timingData.length; i++) {
         TimingDatum timingDatum = chunk.timingData[i];
         uiRecords.add(UIRecord(
@@ -39,13 +40,14 @@ class TimingDataConverter {
       }
       uiRecords.add(UIRecord(
         time: chunk.conflictRecord!.time,
-        place: endingPlace,
+        place: null, // Don't assign a place to confirmation records
         textColor: Colors.green,
         type: RecordType.confirmRunner,
         conflictTime: chunk.conflictRecord!.time,
       ));
-      endingPlace++;
-    } else if (chunk.conflictRecord!.conflict!.type == ConflictType.missingTime) {
+      // Don't increment endingPlace for confirmation records
+    } else if (chunk.conflictRecord!.conflict!.type ==
+        ConflictType.missingTime) {
       for (int i = 0; i < chunk.timingData.length; i++) {
         TimingDatum timingDatum = chunk.timingData[i];
         uiRecords.add(UIRecord(
@@ -59,7 +61,7 @@ class TimingDataConverter {
       for (int i = 0; i < chunk.conflictRecord!.conflict!.offBy; i++) {
         uiRecords.add(UIRecord(
           time: 'TBD',
-          place: endingPlace + i,
+          place: endingPlace,
           textColor: AppColors.redColor,
           type: RecordType.missingTime,
           conflictTime: chunk.conflictRecord!.time,
@@ -67,7 +69,8 @@ class TimingDataConverter {
         endingPlace++;
       }
     } else if (chunk.conflictRecord!.conflict!.type == ConflictType.extraTime) {
-      final int extraTimesIndex = chunk.timingData.length - chunk.conflictRecord!.conflict!.offBy;
+      final int extraTimesIndex =
+          chunk.timingData.length - chunk.conflictRecord!.conflict!.offBy;
       for (int i = 0; i < extraTimesIndex; i++) {
         TimingDatum timingDatum = chunk.timingData[i];
         uiRecords.add(UIRecord(
@@ -94,9 +97,7 @@ class TimingDataConverter {
       throw Exception('Invalid conflict type');
     }
 
-    return UIChunk(
-          records: uiRecords,
-          endingPlace: endingPlace);
+    return UIChunk(records: uiRecords, endingPlace: endingPlace);
   }
 
   void clearCache() {

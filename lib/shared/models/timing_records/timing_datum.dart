@@ -46,13 +46,17 @@ class TimingDatum {
   }
 
   factory TimingDatum.fromEncodedString(String encodedString) {
-    if (_compressionMap.values.contains(encodedString)) {
-      final parts = encodedString.split(' ');
-      if (parts.length != 3) {
-        throw Exception('Invalid encoded timing string: $encodedString');
-      }
-      return TimingDatum(time: parts[2], conflict: Conflict(type: _decompressionMap[parts[0]]!, offBy: int.parse(parts[1])));
-    } else if (encodedString == 'TBD' || TimeFormatter.isDuration(encodedString)) {
+    // Conflict-encoded strings start with a known code (e.g., "CR 1 3.60")
+    final parts = encodedString.split(' ');
+    if (parts.length >= 3 && _decompressionMap.containsKey(parts[0])) {
+      final conflictType = _decompressionMap[parts[0]]!;
+      final offBy = int.parse(parts[1]);
+      // The remainder after the first two tokens is the time string
+      final time = parts.sublist(2).join(' ');
+      return TimingDatum(
+          time: time, conflict: Conflict(type: conflictType, offBy: offBy));
+    } else if (encodedString == 'TBD' ||
+        TimeFormatter.isDuration(encodedString)) {
       return TimingDatum(time: encodedString);
     }
     throw Exception('Invalid encoded timing string: $encodedString');

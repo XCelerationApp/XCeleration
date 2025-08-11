@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
+import 'package:xceleration/core/utils/database_helper.dart';
 import '../theme/app_colors.dart';
 import 'textfield_utils.dart';
 import '../../shared/models/database/master_race.dart';
@@ -27,19 +29,29 @@ class _CreateTeamSheetState extends State<CreateTeamSheet> {
   String? _teamNameError;
   String? _abbreviationError;
   bool _isCreating = false;
+  Timer? _nameDebounce;
+  Set<String> _existingTeamNamesLower = <String>{};
 
   @override
   void initState() {
     super.initState();
+    // Preload ALL team names from the database (not just this race)
+    DatabaseHelper.instance.getAllTeams().then((teams) {
+      if (!mounted) return;
+      setState(() {
+        _existingTeamNamesLower =
+            teams.map((t) => (t.name ?? '').trim().toLowerCase()).toSet();
+      });
+    });
   }
 
   @override
   void dispose() {
+    _nameDebounce?.cancel();
     _teamNameController.dispose();
     _abbreviationController.dispose();
     super.dispose();
   }
-
 
   /// Generate abbreviation from first letter of each word (up to 3 words)
   void _generateAbbreviation(String teamName) {
@@ -50,11 +62,19 @@ class _CreateTeamSheetState extends State<CreateTeamSheet> {
           .map((word) => word.isNotEmpty ? word[0].toUpperCase() : '')
           .join('');
 
-      _abbreviationController.text = abbreviation;
-      _validateAbbreviation(abbreviation);
+      setState(() {
+        _abbreviationController.text = abbreviation;
+        // Avoid showing abbreviation errors while typing the team name
+        _abbreviationError = null;
+      });
+      // Do not validate abbreviation while typing team name
     } else {
-      _abbreviationController.text = '';
-      _validateAbbreviation('');
+      setState(() {
+        _abbreviationController.text = '';
+        // Avoid showing abbreviation errors while typing the team name
+        _abbreviationError = null;
+      });
+      // Do not validate abbreviation while typing team name
     }
   }
 
@@ -65,22 +85,19 @@ class _CreateTeamSheetState extends State<CreateTeamSheet> {
         return AlertDialog(
           title: const Text('Pick a color'),
           content: SingleChildScrollView(
-            child: ColorPicker(
+            child: BlockPicker(
               pickerColor: _selectedColor,
               onColorChanged: (color) {
                 setState(() {
                   _selectedColor = color;
                 });
               },
-              pickerAreaHeightPercent: 0.8,
             ),
           ),
           actions: <Widget>[
             TextButton(
+              onPressed: () => Navigator.of(context).pop(),
               child: const Text('Done'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
             ),
           ],
         );
@@ -88,36 +105,82 @@ class _CreateTeamSheetState extends State<CreateTeamSheet> {
     );
   }
 
+  // No need to show color info; keeping only selected color value
+
   bool _canCreateTeam() {
-    return _teamNameError == null &&
-        _abbreviationError == null &&
-        _teamNameController.text.trim().isNotEmpty &&
-        !_isCreating;
+    // Enable when all inputs are filled (including programmatic/autofill)
+    final hasName = _teamNameController.text.trim().isNotEmpty;
+    final hasAbbreviation = _abbreviationController.text.trim().isNotEmpty;
+    return hasName && hasAbbreviation && !_isCreating;
   }
 
   void _validateTeamName(String value) {
-    if (value.trim().isEmpty) {
-      setState(() {
-        _teamNameError = 'Team name is required';
+    final trimmed = value.trim();
+    setState(() {
+      _teamNameError = trimmed.isEmpty ? 'Team name is required' : null;
+    });
+
+    // Debounced local uniqueness check using preloaded names
+    _nameDebounce?.cancel();
+    if (trimmed.isNotEmpty) {
+      _nameDebounce = Timer(const Duration(milliseconds: 500), () {
+        final exists = _existingTeamNamesLower.contains(trimmed.toLowerCase());
+        if (!mounted) return;
+        if (_teamNameController.text.trim() != trimmed) return;
+        setState(() {
+          _teamNameError = exists ? 'Team already exists' : null;
+        });
       });
-      return;
     }
   }
 
   void _validateAbbreviation(String value) {
-    if (value.trim().length > 3) {
-      setState(() {
-        _abbreviationError = 'Abbreviation must be 3 characters or less';
-      });
-    }
-    if (value.trim().isEmpty) {
-      setState(() {
+    final trimmed = value.trim();
+    setState(() {
+      if (trimmed.isEmpty) {
         _abbreviationError = 'Abbreviation is required';
-      });
+      } else if (trimmed.length > 3) {
+        _abbreviationError = 'Abbreviation must be 3 characters or less';
+      } else {
+        _abbreviationError = null;
+      }
+    });
+  }
+
+  Future<bool> _validateAll() async {
+    final name = _teamNameController.text.trim();
+    final abbr = _abbreviationController.text.trim();
+
+    String? nameError;
+    String? abbrError;
+
+    if (name.isEmpty) {
+      nameError = 'Team name is required';
     }
+    // Uniqueness check (local list)
+    if (nameError == null &&
+        _existingTeamNamesLower.contains(name.toLowerCase())) {
+      nameError = 'Team already exists';
+    }
+    if (abbr.isEmpty) {
+      abbrError = 'Abbreviation is required';
+    } else if (abbr.length > 3) {
+      abbrError = 'Abbreviation must be 3 characters or less';
+    }
+
+    setState(() {
+      _teamNameError = nameError;
+      _abbreviationError = abbrError;
+    });
+
+    return nameError == null && abbrError == null;
   }
 
   void createTeam() async {
+    // Validate on submit and surface errors
+    final isValid = await _validateAll();
+    if (!isValid) return;
+
     final team = Team(
       name: _teamNameController.text,
       abbreviation: _abbreviationController.text,
@@ -127,14 +190,19 @@ class _CreateTeamSheetState extends State<CreateTeamSheet> {
       _isCreating = true;
     });
     await widget.createTeam(team);
+    if (!mounted) return; // Parent may have popped the sheet in the callback
     setState(() {
       _isCreating = false;
     });
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop(team);
+    }
   }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -153,7 +221,7 @@ class _CreateTeamSheetState extends State<CreateTeamSheet> {
               },
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
 
           // Abbreviation field
           buildInputRow(
@@ -167,77 +235,54 @@ class _CreateTeamSheetState extends State<CreateTeamSheet> {
               onChanged: _validateAbbreviation,
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
 
-          // Color picker section
-          const Text(
-            'Team Color',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          // Color picker
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Column(
+          // Color picker section styled like an input row
+          buildInputRow(
+            label: 'Team Color',
+            inputWidget: Row(
               children: [
-                // Selected color preview and picker button
-                Row(
-                  children: [
-                    Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        color: _selectedColor,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: Colors.black,
-                          width: 2,
+                GestureDetector(
+                  onTap: _showColorPicker,
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: _selectedColor,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey.shade300),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.06),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
                         ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _showColorPicker,
+                    icon: const Icon(Icons.color_lens_outlined, size: 18),
+                    label: const Text('Change Color'),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(0, 36),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      foregroundColor: AppColors.primaryColor,
+                      side: BorderSide(color: AppColors.primaryColor),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Selected Color',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.grey.shade700,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          ElevatedButton(
-                            onPressed: _showColorPicker,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: AppColors.primaryColor,
-                              side: BorderSide(color: AppColors.primaryColor),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                            ),
-                            child: const Text('Choose Color'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
 
           // Create button
           SizedBox(
@@ -247,7 +292,7 @@ class _CreateTeamSheetState extends State<CreateTeamSheet> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryColor,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
+                padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
