@@ -445,11 +445,13 @@ class RaceController with ChangeNotifier {
       _raceRunners = results[1] as List<RaceRunner>;
       _teams = results[2] as List<Team>;
 
-      // Calculate canEdit based on race flow state
+      // Calculate canEdit based on role and flow state
       final flowState = _race!.flowState;
-      _canEdit = flowState == Race.FLOW_SETUP ||
-          flowState == Race.FLOW_SETUP_COMPLETED ||
-          flowState == Race.FLOW_PRE_RACE;
+      final roleAllowsEdit = parentController.canEdit;
+      _canEdit = roleAllowsEdit &&
+          (flowState == Race.FLOW_SETUP ||
+              flowState == Race.FLOW_SETUP_COMPLETED ||
+              flowState == Race.FLOW_PRE_RACE);
 
       if (isInitial) {
         // Only do initialization tasks on first load

@@ -156,12 +156,42 @@ class SyncService {
       return;
     }
 
+    // Determine accessible owners: self plus any linked coaches (if feature present)
+    Future<List<String>> getAccessibleOwnerIds() async {
+      final uid = AuthService.instance.currentUserId;
+      if (uid == null) return [];
+      try {
+        // Optional table `coach_links(coach_user_id, viewer_user_id)`
+        final List links = await client
+            .from('coach_links')
+            .select('coach_user_id')
+            .eq('viewer_user_id', uid);
+        final coachIds = links
+            .map((e) => (e as Map)['coach_user_id']?.toString())
+            .whereType<String>()
+            .toList();
+        return [uid, ...coachIds];
+      } catch (_) {
+        // If table doesn't exist yet, just return self
+        return [uid];
+      }
+    }
+
+    final accessibleOwnerIds = await getAccessibleOwnerIds();
+
     Future<void> pullTable(String table, String idCol) async {
       final cursorKey = 'cursor.$table';
       final cursor = await getCursor(cursorKey);
       final query = client.from(table).select();
-      final uid = AuthService.instance.currentUserId;
-      if (uid != null) query.eq('owner_user_id', uid);
+      if (accessibleOwnerIds.isNotEmpty) {
+        if (accessibleOwnerIds.length == 1) {
+          query.eq('owner_user_id', accessibleOwnerIds.first);
+        } else {
+          final orExpr =
+              accessibleOwnerIds.map((id) => 'owner_user_id.eq.$id').join(',');
+          query.or(orExpr);
+        }
+      }
       if (cursor != null && cursor.isNotEmpty) {
         query.gt('updated_at', cursor);
       }
@@ -173,6 +203,8 @@ class SyncService {
         if (uuid == null) continue;
         final locals =
             await db.query(table, where: 'uuid = ?', whereArgs: [uuid]);
+        // Remove remote-only fields not present locally
+        remote.remove('owner_user_id');
         if (locals.isEmpty) {
           final insert = Map<String, dynamic>.from(remote);
           insert['is_dirty'] = 0;

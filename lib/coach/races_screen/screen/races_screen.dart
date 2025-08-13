@@ -9,18 +9,20 @@ import '../widgets/race_tutorial_coach_mark.dart';
 import '../widgets/races_list.dart';
 
 class RacesScreen extends StatefulWidget {
-  const RacesScreen({super.key});
+  final bool canEdit;
+  const RacesScreen({super.key, this.canEdit = true});
 
   @override
   RacesScreenState createState() => RacesScreenState();
 }
 
 class RacesScreenState extends State<RacesScreen> {
-  final RacesController _controller = RacesController();
+  late final RacesController _controller;
 
   @override
   void initState() {
     super.initState();
+    _controller = RacesController(canEdit: widget.canEdit);
     _controller.setContext(context);
     _controller.initState();
   }
@@ -39,33 +41,35 @@ class RacesScreenState extends State<RacesScreen> {
         return TutorialRoot(
             tutorialManager: _controller.tutorialManager,
             child: Scaffold(
-                floatingActionButton: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Main Create Race FAB
-                    CoachMark(
-                      id: 'create_race_button_tutorial',
-                      tutorialManager: _controller.tutorialManager,
-                      config: const CoachMarkConfig(
-                        title: 'Create Race',
-                        alignmentX: AlignmentX.left,
-                        alignmentY: AlignmentY.top,
-                        description: 'Click here to create a new race',
-                        icon: Icons.add,
-                        type: CoachMarkType.targeted,
-                        backgroundColor: Color(0xFF1976D2),
-                        elevation: 12,
-                      ),
-                      child: FloatingActionButton(
-                        heroTag: 'create_race',
-                        onPressed: () =>
-                            _controller.showCreateRaceSheet(context),
-                        backgroundColor: AppColors.primaryColor,
-                        child: const Icon(Icons.add),
-                      ),
-                    ),
-                  ],
-                ),
+                floatingActionButton: widget.canEdit
+                    ? Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Main Create Race FAB
+                          CoachMark(
+                            id: 'create_race_button_tutorial',
+                            tutorialManager: _controller.tutorialManager,
+                            config: const CoachMarkConfig(
+                              title: 'Create Race',
+                              alignmentX: AlignmentX.left,
+                              alignmentY: AlignmentY.top,
+                              description: 'Click here to create a new race',
+                              icon: Icons.add,
+                              type: CoachMarkType.targeted,
+                              backgroundColor: Color(0xFF1976D2),
+                              elevation: 12,
+                            ),
+                            child: FloatingActionButton(
+                              heroTag: 'create_race',
+                              onPressed: () =>
+                                  _controller.showCreateRaceSheet(context),
+                              backgroundColor: AppColors.primaryColor,
+                              child: const Icon(Icons.add),
+                            ),
+                          ),
+                        ],
+                      )
+                    : null,
                 body: Padding(
                   padding: EdgeInsets.fromLTRB(24.0, 0, 24.0, 24.0),
                   child: SingleChildScrollView(
@@ -73,11 +77,15 @@ class RacesScreenState extends State<RacesScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           RoleBar(
-                              currentRole: Role.coach,
+                              currentRole:
+                                  widget.canEdit ? Role.coach : Role.spectator,
                               tutorialManager: _controller.tutorialManager),
                           RaceCoachMark(
                             controller: _controller,
-                            child: RacesList(controller: _controller),
+                            child: RacesList(
+                              controller: _controller,
+                              canEdit: widget.canEdit,
+                            ),
                           ),
                         ]),
                   ),

@@ -76,6 +76,7 @@ CREATE TABLE IF NOT EXISTS race_participants (
 CREATE TABLE IF NOT EXISTS races (
   race_id INTEGER PRIMARY KEY AUTOINCREMENT,
   uuid TEXT UNIQUE,
+  owner_user_id TEXT,
   name TEXT NOT NULL CHECK(length(name) > 0),
   race_date TEXT DEFAULT '',
   location TEXT DEFAULT '',

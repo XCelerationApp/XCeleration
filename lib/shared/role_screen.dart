@@ -90,6 +90,22 @@ class RoleScreen extends StatelessWidget {
                   );
                 },
               ),
+              SizedBox(height: 15),
+              buildRoleButton(
+                text: 'Spectator',
+                onPressed: () async {
+                  if (!AuthService.instance.isSignedIn) {
+                    Navigator.of(context).push(
+                      InitialPageRouteAnimation(child: const SignInScreen()),
+                    );
+                    return;
+                  }
+                  Navigator.of(context).push(
+                    InitialPageRouteAnimation(
+                        child: const RacesScreen(canEdit: false)),
+                  );
+                },
+              ),
             ],
           ),
         ),

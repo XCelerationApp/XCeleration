@@ -256,6 +256,15 @@ class RoleSelectorSheet {
 
   /// Navigate to the selected role's screen
   static void _navigateToRoleScreen(BuildContext context, Role role) {
+    if (role == Role.coach || role == Role.spectator) {
+      // Enforce sign-in for coach and spectator roles
+      if (!AuthService.instance.isSignedIn) {
+        Navigator.of(context).push(
+          RolePageRouteAnimation(child: const RoleScreen()),
+        );
+        return;
+      }
+    }
     Navigator.of(context).pushAndRemoveUntil(
       RolePageRouteAnimation(child: role.screen),
       (route) => false,

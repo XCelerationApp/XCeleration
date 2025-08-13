@@ -13,6 +13,7 @@ class RaceCard extends StatelessWidget {
   final Race race;
   final String flowState;
   final RacesController controller;
+  final bool canEdit;
   late final String flowStateText;
   late final Color flowStateColor;
 
@@ -21,6 +22,7 @@ class RaceCard extends StatelessWidget {
     required this.race,
     required this.flowState,
     required this.controller,
+    this.canEdit = true,
   }) {
     // State text based on flow state
     flowStateText = {
@@ -55,50 +57,54 @@ class RaceCard extends StatelessWidget {
         motion: const DrawerMotion(),
         dragDismissible: false,
         children: [
-          CustomSlidableAction(
-            onPressed: (_) => controller.editRace(race),
-            backgroundColor: AppColors.primaryColor,
-            foregroundColor: Colors.white,
-            padding: EdgeInsets.zero,
-            autoClose: true,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.edit_outlined,
-                  color: Colors.white,
-                  size: 24,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Edit',
-                  style: AppTypography.bodySmall.copyWith(color: Colors.white),
-                ),
-              ],
+          if (canEdit)
+            CustomSlidableAction(
+              onPressed: (_) => controller.editRace(race),
+              backgroundColor: AppColors.primaryColor,
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.zero,
+              autoClose: true,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.edit_outlined,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Edit',
+                    style:
+                        AppTypography.bodySmall.copyWith(color: Colors.white),
+                  ),
+                ],
+              ),
             ),
-          ),
-          CustomSlidableAction(
-            onPressed: (_) => controller.deleteRace(race),
-            backgroundColor: Colors.red,
-            foregroundColor: Colors.white,
-            padding: EdgeInsets.zero,
-            autoClose: true,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.delete_outline,
-                  size: 24,
-                  color: Colors.white,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Delete',
-                  style: AppTypography.bodySmall.copyWith(color: Colors.white),
-                ),
-              ],
+          if (canEdit)
+            CustomSlidableAction(
+              onPressed: (_) => controller.deleteRace(race),
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.zero,
+              autoClose: true,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.delete_outline,
+                    size: 24,
+                    color: Colors.white,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Delete',
+                    style:
+                        AppTypography.bodySmall.copyWith(color: Colors.white),
+                  ),
+                ],
+              ),
             ),
-          ),
         ],
       ),
       child: Container(
@@ -120,7 +126,10 @@ class RaceCard extends StatelessWidget {
             onTap: () async {
               final masterRace = MasterRace.getInstance(race.raceId!);
               await RaceController.showRaceScreen(
-                  context, controller, masterRace);
+                context,
+                controller,
+                masterRace,
+              );
             },
             child: Padding(
               padding: const EdgeInsets.only(

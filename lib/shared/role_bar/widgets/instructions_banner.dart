@@ -81,6 +81,8 @@ class InstructionsBanner extends StatelessWidget {
         return 'You time the race. Click start when the race begins, and log times when runners cross the finish line.\n\nWhen there is a break in the runners, check with the Bib Recorder to check that your records are the same number. Adjust if needed.';
       case Role.coach:
         return 'You create and manage the races. You will oversee your assistants and will compile and share the race results.';
+      case Role.spectator:
+        return 'You can view the race results and see the runners as they finish.';
     }
   }
 }

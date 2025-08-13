@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/services/auth_service.dart';
 import 'package:xceleration/shared/models/database/master_race.dart';
 import '../../../shared/models/database/race.dart';
 import '../../../core/utils/database_helper.dart';
@@ -11,7 +12,10 @@ class RacesService {
 
   /// Creates a new race in the database.
   static Future<int> createRace(Race race) async {
-    return await DatabaseHelper.instance.createRace(race);
+    // Stamp owner on create
+    final ownerId = AuthService.instance.currentUserId;
+    final raceWithOwner = race.copyWith(ownerUserId: ownerId);
+    return await DatabaseHelper.instance.createRace(raceWithOwner);
   }
 
   /// Updates an existing race in the database.
