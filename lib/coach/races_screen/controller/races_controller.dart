@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/services/auth_service.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:geocoding/geocoding.dart';
@@ -43,7 +44,9 @@ class RacesController extends ChangeNotifier {
 
   BuildContext? _context;
 
-  RacesController();
+  final bool canEdit;
+
+  RacesController({this.canEdit = true});
 
   void setContext(BuildContext context) {
     _context = context;
@@ -63,7 +66,8 @@ class RacesController extends ChangeNotifier {
     teamColors.add(Colors.white);
     unitController.text = 'mi';
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      RoleBar.showInstructionsSheet(context, Role.coach).then((_) {
+      final role = canEdit ? Role.coach : Role.spectator;
+      RoleBar.showInstructionsSheet(context, role).then((_) {
         if (context.mounted) setupTutorials();
       });
     });
@@ -293,6 +297,15 @@ class RacesController extends ChangeNotifier {
     if (race.raceId == null) {
       throw Exception('Race ID is null');
     }
+    // Only owner can edit
+    final currentUserId = AuthService.instance.currentUserId;
+    if (race.ownerUserId != null &&
+        currentUserId != null &&
+        race.ownerUserId != currentUserId) {
+      DialogUtils.showErrorDialog(context,
+          message: 'Only the coach who created this race can edit it.');
+      return;
+    }
     final masterRace = MasterRace.getInstance(race.raceId!);
     await RaceController.showRaceScreen(context, this, masterRace);
   }
@@ -300,6 +313,15 @@ class RacesController extends ChangeNotifier {
   Future<void> deleteRace(Race race) async {
     if (race.raceId == null) {
       throw Exception('Race ID is null');
+    }
+    // Only owner can delete
+    final currentUserId = AuthService.instance.currentUserId;
+    if (race.ownerUserId != null &&
+        currentUserId != null &&
+        race.ownerUserId != currentUserId) {
+      DialogUtils.showErrorDialog(context,
+          message: 'Only the coach who created this race can delete it.');
+      return;
     }
     final confirmed = await DialogUtils.showConfirmationDialog(
       context,

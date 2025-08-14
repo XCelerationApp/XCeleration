@@ -5,6 +5,8 @@ import '../assistant/bib_number_recorder/screen/bib_number_screen.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/typography.dart';
 import '../core/components/page_route_animations.dart';
+import '../core/services/auth_service.dart';
+import 'screens/sign_in_screen.dart';
 
 Widget buildRoleButton({
   required String text,
@@ -66,7 +68,13 @@ class RoleScreen extends StatelessWidget {
               SizedBox(height: 40),
               buildRoleButton(
                 text: 'Coach',
-                onPressed: () {
+                onPressed: () async {
+                  if (!AuthService.instance.isSignedIn) {
+                    Navigator.of(context).push(
+                      InitialPageRouteAnimation(child: const SignInScreen()),
+                    );
+                    return;
+                  }
                   Navigator.of(context).push(
                     InitialPageRouteAnimation(child: const RacesScreen()),
                   );
@@ -79,6 +87,22 @@ class RoleScreen extends StatelessWidget {
                   Navigator.of(context).push(
                     InitialPageRouteAnimation(
                         child: const AssistantRoleScreen()),
+                  );
+                },
+              ),
+              SizedBox(height: 15),
+              buildRoleButton(
+                text: 'Spectator',
+                onPressed: () async {
+                  if (!AuthService.instance.isSignedIn) {
+                    Navigator.of(context).push(
+                      InitialPageRouteAnimation(child: const SignInScreen()),
+                    );
+                    return;
+                  }
+                  Navigator.of(context).push(
+                    InitialPageRouteAnimation(
+                        child: const RacesScreen(canEdit: false)),
                   );
                 },
               ),

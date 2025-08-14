@@ -31,6 +31,8 @@ dependencies:
   googleapis: ^11.0.0
   google_sign_in: ^6.1.6
   supabase_flutter: ^2.5.7
+  gotrue: ^2.13.0
+  connectivity_plus: ^6.0.5
 
   # Utilities & Formatting
   intl: ^0.18.0

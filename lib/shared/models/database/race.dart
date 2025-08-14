@@ -3,6 +3,7 @@
 class Race {
   final int? raceId;
   final String? uuid;
+  final String? ownerUserId;
   final String? raceName;
   final DateTime? raceDate;
   final String? location;
@@ -38,6 +39,7 @@ class Race {
   Race({
     this.raceId,
     this.uuid,
+    this.ownerUserId,
     this.raceName,
     this.raceDate,
     this.location,
@@ -55,6 +57,7 @@ class Race {
     return Race(
       raceId: int.parse(race['race_id'].toString()),
       uuid: race['uuid'],
+      ownerUserId: race['owner_user_id']?.toString(),
       raceName: race['name'],
       raceDate:
           race['race_date'] != null ? DateTime.parse(race['race_date']) : null,
@@ -80,6 +83,7 @@ class Race {
   // Convert a Race into a Map
   Map<String, dynamic> toMap() {
     final map = {
+      'owner_user_id': ownerUserId,
       'name': raceName,
       'race_date': raceDate?.toIso8601String(),
       'location': location,
@@ -99,6 +103,7 @@ class Race {
   Race copyWith({
     int? raceId,
     String? uuid,
+    String? ownerUserId,
     String? raceName,
     DateTime? raceDate,
     String? location,
@@ -113,6 +118,7 @@ class Race {
     return Race(
       raceId: raceId ?? this.raceId,
       uuid: uuid ?? this.uuid,
+      ownerUserId: ownerUserId ?? this.ownerUserId,
       raceName: raceName ?? this.raceName,
       raceDate: raceDate ?? this.raceDate,
       location: location ?? this.location,

@@ -7,7 +7,8 @@ import '../../flows/widgets/flow_section_header.dart';
 
 class RacesList extends StatelessWidget {
   final RacesController controller;
-  const RacesList({super.key, required this.controller});
+  final bool canEdit;
+  const RacesList({super.key, required this.controller, this.canEdit = true});
 
   @override
   Widget build(BuildContext context) {
@@ -44,17 +45,26 @@ class RacesList extends StatelessWidget {
           if (raceInProgress.isNotEmpty) ...[
             FlowSectionHeader(title: 'In Progress'),
             ...raceInProgress.map((race) => RaceCard(
-                race: race, flowState: race.flowState!, controller: controller)),
+                race: race,
+                flowState: race.flowState!,
+                controller: controller,
+                canEdit: canEdit)),
           ],
           if (upcomingRaces.isNotEmpty) ...[
             FlowSectionHeader(title: 'Upcoming'),
             ...upcomingRaces.map((race) => RaceCard(
-                race: race, flowState: race.flowState!, controller: controller)),
+                race: race,
+                flowState: race.flowState!,
+                controller: controller,
+                canEdit: canEdit)),
           ],
           if (finishedRaces.isNotEmpty) ...[
             FlowSectionHeader(title: 'Finished'),
             ...finishedRaces.map((race) => RaceCard(
-                race: race, flowState: race.flowState!, controller: controller)),
+                race: race,
+                flowState: race.flowState!,
+                controller: controller,
+                canEdit: canEdit)),
           ],
         ],
       ),

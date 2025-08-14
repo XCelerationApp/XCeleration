@@ -21,6 +21,7 @@ end $$;
 create table if not exists public.runners (
   runner_id     bigserial primary key,
   uuid          uuid not null default gen_random_uuid() unique,
+  owner_user_id uuid not null,
   name          text not null check (char_length(name) > 0),
   grade         integer check (grade between 9 and 12),
   bib_number    text not null unique,
@@ -44,6 +45,7 @@ create index if not exists idx_runners_bib on public.runners(bib_number);
 create table if not exists public.teams (
   team_id       bigserial primary key,
   uuid          uuid not null default gen_random_uuid() unique,
+  owner_user_id uuid not null,
   name          text not null unique,
   abbreviation  text check (char_length(abbreviation) <= 3),
   color         integer not null default 0, -- ARGB 32-bit int encoded in app
@@ -79,6 +81,7 @@ create index if not exists idx_team_rosters_runner on public.team_rosters(runner
 create table if not exists public.races (
   race_id       bigserial primary key,
   uuid          uuid not null default gen_random_uuid() unique,
+  owner_user_id uuid not null,
   name          text not null,
   race_date     timestamptz,
   location      text not null default '',
@@ -148,7 +151,39 @@ create index if not exists idx_race_results_race on public.race_results(race_id)
 create index if not exists idx_race_results_place on public.race_results(race_id, place);
 
 -------------------------------------------------------------------------------
--- (Optional) Row Level Security (RLS) scaffolding for multi-user scenarios
+-- Row Level Security (RLS) - per-user ownership policies
+alter table public.runners enable row level security;
+alter table public.teams enable row level security;
+alter table public.races enable row level security;
+alter table public.race_participants enable row level security;
+alter table public.race_results enable row level security;
+
+-- Replace or adjust as needed; owner_user_id points to auth.uid()
+create policy runners_select_own on public.runners for select using (owner_user_id = auth.uid());
+create policy runners_modify_own on public.runners for insert with check (owner_user_id = auth.uid());
+create policy runners_update_own on public.runners for update using (owner_user_id = auth.uid()) with check (owner_user_id = auth.uid());
+create policy runners_delete_own on public.runners for delete using (owner_user_id = auth.uid());
+
+create policy teams_select_own on public.teams for select using (owner_user_id = auth.uid());
+create policy teams_modify_own on public.teams for insert with check (owner_user_id = auth.uid());
+create policy teams_update_own on public.teams for update using (owner_user_id = auth.uid()) with check (owner_user_id = auth.uid());
+create policy teams_delete_own on public.teams for delete using (owner_user_id = auth.uid());
+
+create policy races_select_own on public.races for select using (owner_user_id = auth.uid());
+create policy races_modify_own on public.races for insert with check (owner_user_id = auth.uid());
+create policy races_update_own on public.races for update using (owner_user_id = auth.uid()) with check (owner_user_id = auth.uid());
+create policy races_delete_own on public.races for delete using (owner_user_id = auth.uid());
+
+-- For participants and results, ownership flows from the race row they belong to
+create policy rp_select_own on public.race_participants for select using (exists(select 1 from public.races r where r.race_id = race_participants.race_id and r.owner_user_id = auth.uid()));
+create policy rp_modify_own on public.race_participants for insert with check (exists(select 1 from public.races r where r.race_id = race_participants.race_id and r.owner_user_id = auth.uid()));
+create policy rp_update_own on public.race_participants for update using (exists(select 1 from public.races r where r.race_id = race_participants.race_id and r.owner_user_id = auth.uid())) with check (exists(select 1 from public.races r where r.race_id = race_participants.race_id and r.owner_user_id = auth.uid()));
+create policy rp_delete_own on public.race_participants for delete using (exists(select 1 from public.races r where r.race_id = race_participants.race_id and r.owner_user_id = auth.uid()));
+
+create policy rr_select_own on public.race_results for select using (exists(select 1 from public.races r where r.race_id = race_results.race_id and r.owner_user_id = auth.uid()));
+create policy rr_modify_own on public.race_results for insert with check (exists(select 1 from public.races r where r.race_id = race_results.race_id and r.owner_user_id = auth.uid()));
+create policy rr_update_own on public.race_results for update using (exists(select 1 from public.races r where r.race_id = race_results.race_id and r.owner_user_id = auth.uid())) with check (exists(select 1 from public.races r where r.race_id = race_results.race_id and r.owner_user_id = auth.uid()));
+create policy rr_delete_own on public.race_results for delete using (exists(select 1 from public.races r where r.race_id = race_results.race_id and r.owner_user_id = auth.uid()));
 -------------------------------------------------------------------------------
 -- alter table public.runners enable row level security;
 -- alter table public.teams enable row level security;
