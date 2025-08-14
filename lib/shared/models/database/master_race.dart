@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/utils/logger.dart';
 import '../../../core/utils/database_helper.dart';
 import '../../services/race_results_service.dart';
 import '../../../coach/race_results/model/team_record.dart';
@@ -95,11 +96,13 @@ class MasterRace with ChangeNotifier {
     if (_teamRaceRunnersMap != null) {
       return _teamRaceRunnersMap!;
     }
+
     _teamRaceRunnersMap = {};
 
     // 1) Start with all teams participating in the race so teams with
     //    zero runners are still shown in the UI
     final teamsList = await teams;
+
     final teamIdToTeam = {for (final t in teamsList) t.teamId: t};
     for (final team in teamsList) {
       _teamRaceRunnersMap![team] = [];
@@ -107,6 +110,7 @@ class MasterRace with ChangeNotifier {
 
     // 2) Add runners, ensuring we use the same Team instance as in teamsList
     final raceRunnersList = await raceRunners;
+
     for (final raceRunner in raceRunnersList) {
       final teamKey = teamIdToTeam[raceRunner.team.teamId] ?? raceRunner.team;
       _teamRaceRunnersMap![teamKey] ??= [];
@@ -117,7 +121,10 @@ class MasterRace with ChangeNotifier {
   }
 
   Future<Map<Team, List<RaceRunner>>> get filteredSearchResults async {
-    if (_filteredSearchResults == null) return await teamtoRaceRunnersMap;
+    if (_filteredSearchResults == null) {
+      return await teamtoRaceRunnersMap;
+    }
+
     return _filteredSearchResults!;
   }
 
@@ -185,59 +192,82 @@ class MasterRace with ChangeNotifier {
   // DATA OPERATIONS
   // ============================================================================
 
-  /// Add a runner to the race
+  Future<void> updateRaceParticipant(RaceParticipant raceParticipant) async {
+    await DatabaseHelper.instance.updateRaceParticipant(raceParticipant);
+
+    _raceParticipants = null;
+    _raceRunners = null;
+    _teamRaceRunnersMap = null;
+    _raceParticipantToRaceRunnerMap = null;
+    _filteredSearchResults = null;
+
+    notifyListeners();
+  }
+
   Future<void> addRaceParticipant(RaceParticipant raceParticipant) async {
     if (raceParticipant.raceId != raceId) {
       throw Exception('Race participant race ID does not match race ID');
     }
+
     await db.addRaceParticipant(raceParticipant);
 
     _raceParticipants = null;
-    _raceRunners = null; // clear runner projections
+    _raceRunners = null;
     _teamRaceRunnersMap = null;
     _raceParticipantToRaceRunnerMap = null;
     _filteredSearchResults = null;
+
     notifyListeners();
   }
 
-  /// Add a new team to this race
-  Future<void> addTeamParticipant(TeamParticipant teamParticipant) async {
-    if (teamParticipant.raceId != raceId) {
-      throw Exception('Team participant race ID does not match race ID');
-    }
-    await DatabaseHelper.instance.addTeamParticipantToRace(teamParticipant);
-
-    _teams = null;
-    _teamRaceRunnersMap = null;
-    _filteredSearchResults =
-        null; // ensure UI pulls fresh mapping including empty teams
-    notifyListeners();
-  }
-
-  /// Remove a team from the race
-  Future<void> removeTeamFromRace(TeamParticipant teamParticipant) async {
-    if (teamParticipant.raceId != raceId) {
-      throw Exception('Team participant race ID does not match race ID');
-    }
-    await DatabaseHelper.instance
-        .removeTeamParticipantFromRace(teamParticipant);
-    _teams = null;
-    _teamRaceRunnersMap = null;
-    _filteredSearchResults = null;
-    notifyListeners();
-  }
-
-  /// Remove a runner from the race
   Future<void> removeRaceParticipant(RaceParticipant raceParticipant) async {
     if (raceParticipant.raceId != raceId) {
       throw Exception('Race participant race ID does not match race ID');
     }
+
     await DatabaseHelper.instance.removeRaceParticipant(raceParticipant);
+
     _raceParticipants = null;
-    _raceRunners = null; // clear runner projections
+    _raceRunners = null;
     _teamRaceRunnersMap = null;
     _raceParticipantToRaceRunnerMap = null;
     _filteredSearchResults = null;
+
+    notifyListeners();
+  }
+
+  Future<void> addTeamParticipant(TeamParticipant teamParticipant) async {
+    if (teamParticipant.raceId != raceId) {
+      throw Exception('Team participant race ID does not match race ID');
+    }
+
+    await DatabaseHelper.instance.addTeamParticipantToRace(teamParticipant);
+
+    _teams = null;
+    _raceParticipants = null;
+    _raceRunners = null;
+    _teamRaceRunnersMap = null;
+    _raceParticipantToRaceRunnerMap = null;
+    _filteredSearchResults = null;
+
+    notifyListeners();
+  }
+
+  Future<void> removeTeamFromRace(TeamParticipant teamParticipant) async {
+    if (teamParticipant.raceId != raceId) {
+      throw Exception('Team participant race ID does not match race ID');
+    }
+
+    await DatabaseHelper.instance
+        .removeTeamParticipantFromRace(teamParticipant);
+
+    _teams = null;
+    _raceParticipants = null;
+    _raceRunners = null;
+    _teamRaceRunnersMap = null;
+    _raceParticipantToRaceRunnerMap = null;
+    _filteredSearchResults = null;
+
     notifyListeners();
   }
 
@@ -251,15 +281,6 @@ class MasterRace with ChangeNotifier {
     );
 
     _race = null;
-    notifyListeners();
-  }
-
-  Future<void> updateRaceParticipant(RaceParticipant raceParticipant) async {
-    await DatabaseHelper.instance.updateRaceParticipant(raceParticipant);
-    _raceParticipants = null;
-    _teamRaceRunnersMap = null;
-    _raceParticipantToRaceRunnerMap = null;
-    _filteredSearchResults = null;
     notifyListeners();
   }
 
@@ -342,16 +363,19 @@ class MasterRace with ChangeNotifier {
       _filteredSearchResults = await teamtoRaceRunnersMap;
       await sortSearchResults();
       notifyListeners();
+
       return;
     }
-    final raceRunnersList = await raceRunners; // All runners
 
+    final raceRunnersList = await raceRunners; // All runners
     final lowerQuery = query.trim().toLowerCase();
 
     // Process all participants in parallel, using cache when available
     final results = await Future.wait(
       raceRunnersList.map((raceRunner) async {
         final runner = raceRunner.runner;
+        bool matches = false;
+
         if (searchAttribute == 'all') {
           final matchesName = runner.name!.toLowerCase().contains(lowerQuery);
           final matchesBib =
@@ -365,48 +389,41 @@ class MasterRace with ChangeNotifier {
                 raceRunner.team.name?.toLowerCase().contains(lowerQuery) ??
                     false;
           } catch (e) {
-            // Team not found, continue
+            Logger.e('Error getting team name: $e');
           }
 
-          if (matchesName || matchesBib || matchesGrade || matchesTeam) {
-            return raceRunner;
-          }
+          matches = matchesName || matchesBib || matchesGrade || matchesTeam;
         } else {
           switch (searchAttribute) {
             case 'name':
-              if (runner.name!.toLowerCase().contains(lowerQuery)) {
-                return raceRunner;
-              }
+              matches = runner.name!.toLowerCase().contains(lowerQuery);
               break;
             case 'bib':
-              if (runner.bibNumber!.toLowerCase().contains(lowerQuery)) {
-                return raceRunner;
-              }
+              matches = runner.bibNumber!.toLowerCase().contains(lowerQuery);
               break;
             case 'grade':
-              if (runner.grade!.toString().contains(lowerQuery)) {
-                return raceRunner;
-              }
+              matches = runner.grade!.toString().contains(lowerQuery);
               break;
             case 'team':
-              if ((raceRunner.team.name ?? '')
+              matches = (raceRunner.team.name ?? '')
                   .toLowerCase()
-                  .contains(lowerQuery)) {
-                return raceRunner;
-              }
+                  .contains(lowerQuery);
               break;
           }
         }
-        return null;
+
+        return matches ? raceRunner : null;
       }),
     );
 
     final filteredRaceRunners = results.whereType<RaceRunner>().toList();
+
     final filteredTeamRaceRunnersMap = <Team, List<RaceRunner>>{};
     for (final raceRunner in filteredRaceRunners) {
       filteredTeamRaceRunnersMap[raceRunner.team] ??= [];
       filteredTeamRaceRunnersMap[raceRunner.team]!.add(raceRunner);
     }
+
     _filteredSearchResults = filteredTeamRaceRunnersMap;
     await sortSearchResults();
     notifyListeners();
@@ -446,6 +463,7 @@ class MasterRace with ChangeNotifier {
   Future<void> _loadRaceParticipants() async {
     _raceParticipants =
         await DatabaseHelper.instance.getRaceParticipants(raceId);
+
     notifyListeners();
   }
 
@@ -470,6 +488,7 @@ class MasterRace with ChangeNotifier {
 
   Future<void> _loadTeams() async {
     _teams = await DatabaseHelper.instance.getRaceTeams(raceId);
+
     notifyListeners();
   }
 

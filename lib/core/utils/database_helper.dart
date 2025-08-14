@@ -802,4 +802,38 @@ class DatabaseHelper {
     await db.close();
     _initializedDatabase = null;
   }
+
+  Future<void> deleteRunnerEverywhere(int runnerId) async {
+    if (await getRunner(runnerId) == null) {
+      return;
+    }
+    final db = await _database;
+    await db.transaction((txn) async {
+      await txn.delete(
+        'race_participants',
+        where: 'runner_id = ?',
+        whereArgs: [runnerId],
+      );
+      await txn.delete(
+        'team_rosters',
+        where: 'runner_id = ?',
+        whereArgs: [runnerId],
+      );
+      await txn.delete(
+        'runners',
+        where: 'runner_id = ?',
+        whereArgs: [runnerId],
+      );
+    });
+  }
+
+  Future<List<Runner>> getRunnersByBibAll(String bib) async {
+    final db = await _database;
+    final results = await db.query(
+      'runners',
+      where: 'bib_number = ?',
+      whereArgs: [bib],
+    );
+    return results.map((m) => Runner.fromMap(m)).toList();
+  }
 }

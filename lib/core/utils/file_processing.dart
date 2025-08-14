@@ -8,7 +8,8 @@ import 'file_utils.dart';
 
 /// Process a spreadsheet for runner data, either from local storage or Google Drive
 /// Uses the modern GoogleDriveService with drive.file scope for Google Drive operations
-Future<List<Map<String, dynamic>>> processSpreadsheet(BuildContext context, {bool useGoogleDrive = false}) async {
+Future<List<Map<String, dynamic>>> processSpreadsheet(BuildContext context,
+    {bool useGoogleDrive = false}) async {
   File? selectedFile;
   final navigatorContext = Navigator.of(context, rootNavigator: true).context;
 
@@ -33,8 +34,8 @@ Future<List<Map<String, dynamic>>> processSpreadsheet(BuildContext context, {boo
     if (!context.mounted) context = navigatorContext;
     // Process the spreadsheet with loading dialog if context is mounted
     if (context.mounted) {
-      result = await DialogUtils.executeWithLoadingDialog<List<Map<String, dynamic>>>(
-          context, operation: () async {
+      result = await DialogUtils.executeWithLoadingDialog<
+          List<Map<String, dynamic>>>(context, operation: () async {
         final parsedData = await FileUtils.parseSpreadsheetFile(selectedFile!);
 
         // Check if we got valid data
@@ -76,7 +77,7 @@ Future<List<Map<String, dynamic>>> processSpreadsheet(BuildContext context, {boo
     // Return the result or empty list if null
     return result;
   } catch (e) {
-    Logger.d('Error processing spreadsheet: $e');
+    Logger.e('Error processing spreadsheet: $e');
     if (!context.mounted) context = navigatorContext;
     if (context.mounted) {
       DialogUtils.showErrorDialog(context,
@@ -88,42 +89,70 @@ Future<List<Map<String, dynamic>>> processSpreadsheet(BuildContext context, {boo
 }
 
 /// Process the spreadsheet data to get the runner data
-List<Map<String, dynamic>> _processSpreadsheetData(
-    List<List<dynamic>> data) {
+List<Map<String, dynamic>> _processSpreadsheetData(List<List<dynamic>> data) {
   final List<Map<String, dynamic>> runnerData = [];
 
-  // Skip header row
-  for (int i = 1; i < data.length; i++) {
-    final row = data[i];
+  // Remove empty cells (commas) and ignore empty lines entirely
+  List<String> sanitizeRow(List<dynamic> row) {
+    return row
+        .map((cell) => (cell?.toString() ?? '').replaceAll('"', '').trim())
+        .where((cell) => cell.isNotEmpty)
+        .toList();
+  }
 
-    // Ensure the row is not empty and contains the required columns
-    if (row.isNotEmpty && row.length >= 3) {
+  // Determine if the first row is a header (all text, no digits)
+  bool isHeaderRow(List<dynamic> row) {
+    final cleaned = sanitizeRow(row);
+    // Consider a cell as "text" if it contains no digits
+    bool cellIsText(dynamic cell) {
+      final str = cell?.toString() ?? '';
+      return str.isNotEmpty && !RegExp(r'\d').hasMatch(str);
+    }
+
+    // Header row if all first 3 cells are text and not empty
+    return cleaned.length >= 3 &&
+        cellIsText(cleaned[0]) &&
+        cellIsText(cleaned[1]) &&
+        cellIsText(cleaned[2]);
+  }
+
+  int startIdx = 0;
+  if (data.isNotEmpty && isHeaderRow(data[0])) {
+    startIdx = 1;
+  }
+
+  for (int i = startIdx; i < data.length; i++) {
+    final originalRow = data[i];
+    final row = sanitizeRow(originalRow);
+
+    // Skip empty lines after sanitization
+    if (row.isEmpty) {
+      continue;
+    }
+
+    // Ensure the row contains at least [name, grade, bib]
+    if (row.length >= 3) {
       // Parse the row data
-      String name = row[0]?.toString() ?? '';
+      final String name = row[0];
+
       // Handle grade which may be an int, double, or string
       int grade = 0;
-      final dynamic rawGrade = row[1];
-      if (rawGrade is num) {
-        grade = rawGrade.round();
+      final String rawGradeStr = row[1];
+      final num? rawGradeNum = num.tryParse(rawGradeStr);
+      if (rawGradeNum != null) {
+        grade = rawGradeNum.round();
       } else {
-        grade = int.tryParse(rawGrade?.toString().trim() ?? '') ??
-            (double.tryParse(rawGrade?.toString().trim() ?? '')?.round() ?? 0);
+        grade = int.tryParse(rawGradeStr) ??
+            (double.tryParse(rawGradeStr)?.round() ?? 0);
       }
 
-      // Handle bib number which may come back as a numeric type with a trailing decimal (e.g. 1.0)
-      String bibNumber;
-      final dynamic rawBib = row[2];
-      if (rawBib is num) {
-        bibNumber = rawBib.toInt().toString();
-      } else {
-        bibNumber = rawBib?.toString().trim().replaceAll('"', '') ?? '';
-        // If bibNumber still contains a decimal point like '1.0', strip it
-        if (bibNumber.contains('.') && double.tryParse(bibNumber) != null) {
-          bibNumber = double.parse(bibNumber).toInt().toString();
-        }
+      // Handle bib number which may come back with a trailing decimal (e.g. 1.0)
+      String bibNumber = row[2];
+      if (bibNumber.contains('.') && double.tryParse(bibNumber) != null) {
+        bibNumber = double.parse(bibNumber).toInt().toString();
       }
 
-      int bibNumberInt = int.tryParse(bibNumber) ?? -1;
+      final int bibNumberInt = int.tryParse(bibNumber) ?? -1;
 
       // Validate the parsed data
       if (name.isNotEmpty &&
@@ -136,10 +165,10 @@ List<Map<String, dynamic>> _processSpreadsheetData(
           'bib': bibNumber,
         });
       } else {
-        Logger.d('Invalid data in row: $row');
+        Logger.d('Invalid data in row (after sanitize): $row');
       }
-    } else if (row.isNotEmpty) {
-      Logger.d('Incomplete row: $row');
+    } else {
+      Logger.d('Incomplete row (after sanitize): $row');
     }
   }
 

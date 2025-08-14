@@ -18,6 +18,7 @@ import '../widgets/existing_teams_browser_sheet.dart';
 import '../widgets/edit_team_sheet.dart';
 import '../../../shared/models/database/race_participant.dart';
 import '../widgets/add_runners_to_team_sheet.dart';
+import '../widgets/imported_runners_selection_sheet.dart';
 
 class RunnersManagementController with ChangeNotifier {
   final VoidCallback? onBack;
@@ -29,7 +30,7 @@ class RunnersManagementController with ChangeNotifier {
   final MasterRace masterRace;
 
   // Database Helper
-  final DatabaseHelper db = DatabaseHelper.instance;
+  late final DatabaseHelper db;
 
   // Store the listener function to properly remove it later
   late final VoidCallback _masterRaceListener;
@@ -49,6 +50,7 @@ class RunnersManagementController with ChangeNotifier {
     this.onContentChanged,
     this.isViewMode = false,
   }) {
+    db = masterRace.db;
     // Create and store the listener function
     _masterRaceListener = () {
       // The listener's only job is to tell the UI to rebuild.
@@ -160,7 +162,8 @@ class RunnersManagementController with ChangeNotifier {
     RaceRunner? raceRunner,
     Team? team,
   }) async {
-    final title = raceRunner == null ? 'Add Runner' : 'Edit Runner';
+    final bool isEditing = raceRunner != null;
+    final title = isEditing ? 'Edit Runner' : 'Add Runner';
     final teamsList = await masterRace.teams;
     if (!context.mounted) return;
 
@@ -168,15 +171,14 @@ class RunnersManagementController with ChangeNotifier {
       await sheet(
         context: context,
         body: RunnerInputForm(
-          masterRace: masterRace,
+          raceId: masterRace.raceId,
           teamOptions: teamsList,
           initialRaceRunner: raceRunner,
-          requiredTeam: team ?? raceRunner?.team,
+          // For create, must pass runnerTeam; for edit, selection is allowed within options
+          runnerTeam: isEditing ? null : team,
+          getRunnerByBib: masterRace.db.getRunnerByBib,
           onSubmit: (RaceRunner raceRunner) async {
             await handleRunnerSubmission(context, raceRunner);
-          },
-          onTeamCreated: (Team team) async {
-            await createTeam(team);
           },
           submitButtonText: raceRunner == null ? 'Create' : 'Save',
           useSheetLayout: true,
@@ -192,54 +194,32 @@ class RunnersManagementController with ChangeNotifier {
   Future<void> handleRunnerSubmission(
       BuildContext context, RaceRunner raceRunner) async {
     try {
+      final int targetTeamId = raceRunner.team.teamId!;
       final existingRunner =
           await masterRace.db.getRunnerByBib(raceRunner.runner.bibNumber!);
+      if (!context.mounted) {
+        return;
+      }
 
+      // Handle bib number conflicts
       if (existingRunner != null &&
           existingRunner.runnerId != raceRunner.runner.runnerId) {
-        // Different runner exists with this bib
-        if (!context.mounted) return;
-
-        final shouldOverwrite = await DialogUtils.showConfirmationDialog(
-          context,
-          title: 'Overwrite Runner',
-          content:
-              'A runner with bib number ${raceRunner.runner.bibNumber!} already exists. Do you want to overwrite it?',
-        );
-
-        if (!shouldOverwrite) return;
-
-        // Remove existing runner first
-        await masterRace.removeRaceRunner(raceRunner);
+        await _handleBibConflict(
+            context, raceRunner, existingRunner, targetTeamId);
+        return;
       }
 
+      // Handle new runner creation
       if (raceRunner.runner.runnerId == null) {
-        // Create new runner
-        final newRunnerId = await masterRace.db.createRunner(raceRunner.runner);
-        // Ensure team roster mapping exists so team->runners queries work
-        await masterRace.db
-            .addRunnerToTeam(raceRunner.team.teamId!, newRunnerId);
-        await masterRace.addRaceParticipant(RaceParticipant(
-          raceId: masterRace.raceId,
-          runnerId: newRunnerId,
-          teamId: raceRunner.team.teamId,
-        ));
+        await _createNewRunner(raceRunner, targetTeamId);
       } else {
-        // Update existing runner - need to implement update in MasterRace
-        // For now, remove and re-add
-        await masterRace.db.removeRunner(raceRunner.runner.runnerId!);
-        final newRunnerId = await masterRace.db.createRunner(raceRunner.runner);
-        await masterRace.db
-            .addRunnerToTeam(raceRunner.team.teamId!, newRunnerId);
-        await masterRace.addRaceParticipant(RaceParticipant(
-          raceId: masterRace.raceId,
-          runnerId: newRunnerId,
-          teamId: raceRunner.team.teamId,
-        ));
+        await _updateExistingRunner(raceRunner, targetTeamId);
       }
 
-      onContentChanged?.call();
+      // Force refresh the UI to show changes immediately
+      await forceRefresh();
 
+      // Close the sheet
       if (context.mounted) {
         Navigator.of(context).pop();
       }
@@ -247,6 +227,127 @@ class RunnersManagementController with ChangeNotifier {
       Logger.e('Error handling runner submission: $e');
       throw Exception('Failed to save runner: $e');
     }
+  }
+
+  Future<void> _handleBibConflict(
+    BuildContext context,
+    RaceRunner raceRunner,
+    Runner existingRunner,
+    int targetTeamId,
+  ) async {
+    final int? oldRunnerId = raceRunner.runner.runnerId;
+
+    // Remove current runner's race mapping if it exists
+    if (oldRunnerId != null) {
+      final currentRp = await masterRace.db.getRaceParticipant(
+        RaceParticipant(
+          raceId: masterRace.raceId,
+          runnerId: oldRunnerId,
+        ),
+      );
+      if (currentRp != null) {
+        await masterRace.removeRaceParticipant(currentRp);
+      }
+    }
+
+    // Update the existing runner with new details (overwrite)
+    final updatedExisting = Runner(
+      runnerId: existingRunner.runnerId!,
+      name: raceRunner.runner.name,
+      bibNumber: raceRunner.runner.bibNumber,
+      grade: raceRunner.runner.grade,
+    );
+    await masterRace.db.updateRunner(updatedExisting);
+
+    // Update team mappings for the existing runner
+    await _updateRunnerTeamMappings(existingRunner.runnerId!, targetTeamId);
+
+    // If there was an old distinct runner, delete it globally so only one remains
+    if (oldRunnerId != null && oldRunnerId != existingRunner.runnerId) {
+      await masterRace.db.deleteRunnerEverywhere(oldRunnerId);
+    }
+
+    // Force refresh and close
+    await forceRefresh();
+    if (context.mounted) {
+      Navigator.of(context).pop();
+    }
+  }
+
+  Future<void> _createNewRunner(RaceRunner raceRunner, int targetTeamId) async {
+    // Create new runner
+    final newRunnerId = await masterRace.db.createRunner(raceRunner.runner);
+
+    // Add to team roster
+    await masterRace.db.addRunnerToTeam(targetTeamId, newRunnerId);
+
+    // Add to race
+    await masterRace.addRaceParticipant(RaceParticipant(
+      raceId: masterRace.raceId,
+      runnerId: newRunnerId,
+      teamId: targetTeamId,
+    ));
+  }
+
+  Future<void> _updateExistingRunner(
+      RaceRunner raceRunner, int targetTeamId) async {
+    // Update runner details and team mappings
+    await masterRace.db.updateRunnerWithTeams(
+      runner: raceRunner.runner,
+      newTeamId: targetTeamId,
+      raceIdForTeamUpdate: masterRace.raceId,
+    );
+
+    // Ensure no duplicates by bib remain after an update
+    final currentId = raceRunner.runner.runnerId!;
+    final bib = raceRunner.runner.bibNumber!;
+    final allWithBib = await masterRace.db.getRunnersByBibAll(bib);
+    for (final r in allWithBib) {
+      if (r.runnerId != null && r.runnerId != currentId) {
+        await masterRace.db.deleteRunnerEverywhere(r.runnerId!);
+      }
+    }
+
+    // Update race participant record
+    await masterRace.updateRaceParticipant(RaceParticipant(
+      raceId: masterRace.raceId,
+      runnerId: currentId,
+      teamId: targetTeamId,
+    ));
+  }
+
+  Future<void> _updateRunnerTeamMappings(int runnerId, int newTeamId) async {
+    // Update global team roster
+    await masterRace.db.setRunnerTeam(runnerId, newTeamId);
+
+    // Check if runner is already in this race
+    final existingRp = await masterRace.db.getRaceParticipant(
+      RaceParticipant(
+        raceId: masterRace.raceId,
+        runnerId: runnerId,
+      ),
+    );
+
+    if (existingRp == null) {
+      // Add to race
+      await masterRace.addRaceParticipant(RaceParticipant(
+        raceId: masterRace.raceId,
+        runnerId: runnerId,
+        teamId: newTeamId,
+      ));
+    } else if (existingRp.teamId != newTeamId) {
+      // Update team in race
+      await masterRace.db.updateRaceParticipantTeam(
+        raceId: masterRace.raceId,
+        runnerId: runnerId,
+        newTeamId: newTeamId,
+      );
+      await masterRace.updateRaceParticipant(RaceParticipant(
+        raceId: masterRace.raceId,
+        runnerId: runnerId,
+        teamId: newTeamId,
+      ));
+    } else {}
   }
 
   // ============================================================================
@@ -473,10 +574,9 @@ class RunnersManagementController with ChangeNotifier {
     try {
       final confirmed = await DialogUtils.showConfirmationDialog(
         context,
-        title: 'Delete Team',
-        content:
-            'Remove ${team.name} from this race? This does not delete the team or its runners globally.',
-        confirmText: 'Delete',
+        title: 'Remove Team From This Race?',
+        content: 'This does not delete the team or its runners globally.',
+        confirmText: 'Remove',
         cancelText: 'Cancel',
       );
 
@@ -506,32 +606,86 @@ class RunnersManagementController with ChangeNotifier {
         useGoogleDrive: useGoogleDrive,
       );
 
-      if (importData.isEmpty) return;
+      if (importData.isEmpty) {
+        if (context.mounted) {
+          DialogUtils.showErrorDialog(context,
+              message: 'No Valid Runners Loaded');
+        }
+        return;
+      }
 
-      final existingRunners = <Runner>[];
+      // Let the user select which imported rows to add
+      if (!context.mounted) return;
+      final selectedRows = await sheet(
+        context: context,
+        title: 'Select Runners to Add',
+        body: ImportedRunnersSelectionSheet(importedRunners: importData),
+      ) as List<Map<String, dynamic>>?;
 
-      for (final runnerData in importData) {
-        final runner = Runner(
-          name: runnerData['name'] as String,
-          bibNumber: runnerData['bibNumber'] as String,
-          grade: int.parse(runnerData['grade'] as String),
-        );
-        if (runner.bibNumber == null) {
-          Logger.e('Runner has no bib number: ${runner.name}');
+      // If user cancels or selects none, stop silently
+      if (selectedRows == null || selectedRows.isEmpty) {
+        return;
+      }
+
+      // Track conflicts where an existing runner (by bib) has different details
+      final conflicts = <Map<String, Runner>>[];
+
+      // First pass: add all non-conflicting runners immediately
+      for (final data in selectedRows) {
+        final String name = (data['name'] as String?)?.trim() ?? '';
+        final int grade = (data['grade'] as int?) ?? 0;
+        final String bib = (data['bib'] as String?)?.trim() ?? '';
+
+        if (name.isEmpty || bib.isEmpty || grade <= 0) {
+          Logger.d(
+              'Skipping invalid spreadsheet row: name="$name", grade=$grade, bib="$bib"');
           continue;
         }
-        final existingRunner = await db.getRunnerByBib(runner.bibNumber!);
+
+        final existingRunner = await db.getRunnerByBib(bib);
         if (existingRunner != null) {
-          if (existingRunner.name == runner.name &&
-              existingRunner.grade == runner.grade &&
-              existingRunner.bibNumber == runner.bibNumber) {
-            // Runner already exists with the same bib number, name, and grade, no need to create a new one
-            continue;
+          final bool sameDetails = (existingRunner.name == name) &&
+              ((existingRunner.grade ?? 0) == grade);
+
+          // Ensure global roster mapping so team->runners queries work
+          await db.addRunnerToTeam(team.teamId!, existingRunner.runnerId!);
+
+          // If already in this race, update team if needed; otherwise add to race
+          final existingRaceParticipant =
+              await db.getRaceParticipantByBib(masterRace.raceId, bib);
+          if (existingRaceParticipant == null) {
+            await masterRace.addRaceParticipant(RaceParticipant(
+              raceId: masterRace.raceId,
+              runnerId: existingRunner.runnerId!,
+              teamId: team.teamId!,
+            ));
+          } else if (existingRaceParticipant.teamId != team.teamId) {
+            await db.updateRaceParticipantTeam(
+              raceId: masterRace.raceId,
+              runnerId: existingRunner.runnerId!,
+              newTeamId: team.teamId!,
+            );
+            await masterRace.updateRaceParticipant(RaceParticipant(
+              raceId: masterRace.raceId,
+              runnerId: existingRunner.runnerId!,
+              teamId: team.teamId!,
+            ));
           }
-          existingRunners.add(existingRunner);
+
+          if (!sameDetails) {
+            // Keep the imported values we want to apply if user confirms overwrite
+            final replacement =
+                Runner(name: name, bibNumber: bib, grade: grade);
+            conflicts
+                .add({'existing': existingRunner, 'replacement': replacement});
+          }
           continue;
         }
-        final newRunnerId = await db.createRunner(runner);
+
+        // Create brand-new runner
+        final newRunner = Runner(name: name, bibNumber: bib, grade: grade);
+        final newRunnerId = await db.createRunner(newRunner);
+        await db.addRunnerToTeam(team.teamId!, newRunnerId);
         await masterRace.addRaceParticipant(RaceParticipant(
           raceId: masterRace.raceId,
           runnerId: newRunnerId,
@@ -539,25 +693,79 @@ class RunnersManagementController with ChangeNotifier {
         ));
       }
 
-      if (existingRunners.isNotEmpty) {
+      // Resolve conflicts interactively, one-by-one
+      if (conflicts.isNotEmpty) {
         if (!context.mounted) return;
+        for (final entry in conflicts) {
+          final existing = entry['existing']!;
+          final replacement = entry['replacement']!;
+          if (!context.mounted) return;
 
-        final shouldOverwrite = await DialogUtils.showConfirmationDialog(
-          context,
-          title: 'Overwrite Existing Runners',
-          content:
-              '${existingRunners.length} runner(s) already exist with the same bib numbers. Do you want to overwrite them?',
-        );
+          final overwrite = await DialogUtils.showConfirmationDialog(
+            context,
+            title: 'Resolve Conflict (Bib ${existing.bibNumber})',
+            content:
+                'Existing: ${existing.name} (Grade ${existing.grade})\nSpreadsheet: ${replacement.name} (Grade ${replacement.grade})\n\nUse spreadsheet values?',
+            confirmText: 'Overwrite',
+            cancelText: 'Keep Existing',
+          );
 
-        if (shouldOverwrite) {
-          for (final existingRunner in existingRunners) {
-            await db.removeRunner(existingRunner.runnerId!);
-            final newRunnerId = await db.createRunner(existingRunner);
-            await masterRace.addRaceParticipant(RaceParticipant(
-              raceId: masterRace.raceId,
-              runnerId: newRunnerId,
-              teamId: team.teamId!,
+          if (overwrite) {
+            // Update existing runner in place (keeps FKs intact)
+            await db.updateRunner(Runner(
+              runnerId: existing.runnerId!,
+              name: replacement.name,
+              bibNumber: replacement.bibNumber,
+              grade: replacement.grade,
             ));
+
+            // Ensure team roster and race participation are correct
+            await db.addRunnerToTeam(team.teamId!, existing.runnerId!);
+            final existingRp = await db.getRaceParticipant(
+              RaceParticipant(
+                  raceId: masterRace.raceId, runnerId: existing.runnerId!),
+            );
+            if (existingRp == null) {
+              await masterRace.addRaceParticipant(RaceParticipant(
+                raceId: masterRace.raceId,
+                runnerId: existing.runnerId!,
+                teamId: team.teamId!,
+              ));
+            } else if (existingRp.teamId != team.teamId) {
+              await db.updateRaceParticipantTeam(
+                raceId: masterRace.raceId,
+                runnerId: existing.runnerId!,
+                newTeamId: team.teamId!,
+              );
+              await masterRace.updateRaceParticipant(RaceParticipant(
+                raceId: masterRace.raceId,
+                runnerId: existing.runnerId!,
+                teamId: team.teamId!,
+              ));
+            }
+          } else {
+            // Keep existing details but ensure proper mapping/team in this race
+            await db.addRunnerToTeam(team.teamId!, existing.runnerId!);
+            final rp = await db.getRaceParticipantByBib(
+                masterRace.raceId, existing.bibNumber!);
+            if (rp == null) {
+              await masterRace.addRaceParticipant(RaceParticipant(
+                raceId: masterRace.raceId,
+                runnerId: existing.runnerId!,
+                teamId: team.teamId!,
+              ));
+            } else if (rp.teamId != team.teamId) {
+              await db.updateRaceParticipantTeam(
+                raceId: masterRace.raceId,
+                runnerId: existing.runnerId!,
+                newTeamId: team.teamId!,
+              );
+              await masterRace.updateRaceParticipant(RaceParticipant(
+                raceId: masterRace.raceId,
+                runnerId: existing.runnerId!,
+                teamId: team.teamId!,
+              ));
+            }
           }
         }
       }
@@ -579,6 +787,23 @@ class RunnersManagementController with ChangeNotifier {
   // ============================================================================
   // UTILITY METHODS AND DIALOGS
   // ============================================================================
+
+  /// Force refresh the UI by clearing MasterRace caches and notifying listeners
+  /// This is more efficient than reloading all data
+  Future<void> forceRefresh() async {
+    try {
+      // Clear MasterRace caches to force fresh data loading
+      masterRace.invalidateCache();
+
+      // Update filtered results
+      _updateFilteredRaceRunners();
+
+      // Notify UI
+      onContentChanged?.call();
+    } catch (e) {
+      Logger.e('Error: $e');
+    }
+  }
 
   Future<bool> showSpreadsheetLoadSheet(BuildContext context) async {
     final result = await sheet(

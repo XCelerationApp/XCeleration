@@ -103,12 +103,11 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
     return Expanded(
       child: SingleChildScrollView(
         child: RunnerInputForm(
+          raceId: widget.raceId,
           initialRaceRunner: _controller.raceRunner,
           teamOptions: _teams,
-          masterRace: _controller.masterRace,
           onSubmit: _handleSubmit,
-          // No team creation allowed when resolving bib conflicts
-          onTeamCreated: null,
+          getRunnerByBib: _controller.masterRace.db.getRunnerByBib,
           submitButtonText: 'Create New Runner',
           useSheetLayout: false,
           showBibField: false,

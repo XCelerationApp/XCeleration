@@ -1,19 +1,16 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'package:xceleration/core/utils/sheet_utils.dart';
 import '../utils/logger.dart';
 import './textfield_utils.dart' as textfield_utils;
 import '../components/button_components.dart';
 import '../../shared/models/database/team.dart';
 import '../../shared/models/database/race_runner.dart';
 import '../../shared/models/database/runner.dart';
-import 'create_team_sheet.dart';
-import '../../shared/models/database/master_race.dart';
 
 /// A shared widget for runner input form used across the app
 class RunnerInputForm extends StatefulWidget {
   /// Race ID associated with this runner
-  final MasterRace masterRace;
+  final int raceId;
 
   /// List of available team names
   final List<Team> teamOptions;
@@ -25,7 +22,7 @@ class RunnerInputForm extends StatefulWidget {
   final RaceRunner? initialRaceRunner;
 
   /// Required team data (for creating a new runner with a specific team)
-  final Team? requiredTeam;
+  final Team? runnerTeam;
 
   /// Button text for the submit button
   final String submitButtonText;
@@ -36,20 +33,20 @@ class RunnerInputForm extends StatefulWidget {
   /// Whether to show the bib field
   final bool showBibField;
 
-  /// Callback when a new team is created
-  final Future<void> Function(Team)? onTeamCreated;
+  /// Lookup function to find an existing runner by bib
+  final Future<Runner?> Function(String bib) getRunnerByBib;
 
   const RunnerInputForm({
     super.key,
-    required this.masterRace,
+    required this.raceId,
     required this.teamOptions,
     required this.onSubmit,
+    required this.getRunnerByBib,
     this.initialRaceRunner,
-    this.requiredTeam,
+    this.runnerTeam,
     this.submitButtonText = 'Create',
     this.useSheetLayout = true,
     this.showBibField = true,
-    this.onTeamCreated,
   });
 
   @override
@@ -57,6 +54,7 @@ class RunnerInputForm extends StatefulWidget {
 }
 
 class _RunnerInputFormState extends State<RunnerInputForm> {
+  late final bool _isEditing;
   // Internal controllers that will be managed by this widget
   late TextEditingController nameController;
   late TextEditingController gradeController;
@@ -69,6 +67,11 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
   String? teamError;
   String? teamAbbreviationError;
   String? bibError;
+  String? bibWarning;
+  String? _originalBib;
+  // Kept for backward compatibility during refactors; original snapshot is in _originalRaceRunner
+  bool _isSubmitting = false;
+  RaceRunner? _originalRaceRunner;
 
   Timer? _bibDebounce;
   Timer? _gradeDebounce;
@@ -79,12 +82,11 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
   // Track the currently selected team
   Team? _selectedTeam;
 
-  // Track the team that needs to be created when form is submitted
-  Team? _pendingTeamCreation;
-
   @override
   void initState() {
     super.initState();
+
+    _isEditing = widget.initialRaceRunner != null;
 
     // Initialize controllers
     nameController = TextEditingController();
@@ -97,19 +99,38 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
     _currentTeamOptions = List.from(widget.teamOptions);
 
     // Initialize with existing data if editing
-    if (widget.initialRaceRunner != null) {
+    if (_isEditing) {
       nameController.text = widget.initialRaceRunner!.runner.name!;
       gradeController.text = widget.initialRaceRunner!.runner.grade!.toString();
       teamController.text = widget.initialRaceRunner!.team.name!;
       bibController.text = widget.initialRaceRunner!.runner.bibNumber!;
+      _originalBib = widget.initialRaceRunner!.runner.bibNumber!;
       _selectedTeam = widget.initialRaceRunner!.team;
       teamAbbreviationController.text =
           widget.initialRaceRunner!.team.abbreviation ?? '';
-    }
-    if (widget.requiredTeam != null) {
-      teamController.text = widget.requiredTeam!.name!;
-      _selectedTeam = widget.requiredTeam!;
-      teamAbbreviationController.text = widget.requiredTeam!.abbreviation ?? '';
+
+      // Save a snapshot of the original race runner for comparison
+      _originalRaceRunner = RaceRunner.from(widget.initialRaceRunner!);
+
+      // Align the selected team with the exact instance from options (by id)
+      if (_selectedTeam != null && _selectedTeam!.teamId != null) {
+        try {
+          final match = _currentTeamOptions
+              .firstWhere((t) => t.teamId == _selectedTeam!.teamId);
+          _selectedTeam = match;
+        } catch (_) {
+          // If not found, pop the sheet
+          throw Exception('runner team not found in team options');
+        }
+      }
+    } else {
+      // Creating: require runnerTeam to be passed and set selection, otherwise error
+      if (widget.runnerTeam == null || widget.runnerTeam!.teamId == null) {
+        throw Exception('runnerTeam is required when creating a runner');
+      }
+      _selectedTeam = widget.runnerTeam;
+      teamController.text = widget.runnerTeam!.name ?? '';
+      teamAbbreviationController.text = widget.runnerTeam!.abbreviation ?? '';
     }
   }
 
@@ -209,18 +230,22 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
     if (value.isEmpty) {
       setState(() {
         bibError = 'Please enter a bib number';
+        bibWarning = null;
       });
     } else if (int.tryParse(value) == null) {
       setState(() {
         bibError = 'Please enter a valid bib number';
+        bibWarning = null;
       });
     } else if (int.parse(value) <= 0) {
       setState(() {
         bibError = 'Please enter a bib number greater than 0';
+        bibWarning = null;
       });
     } else {
       setState(() {
         bibError = null;
+        bibWarning = null;
       });
 
       // Debounced uniqueness check against DB
@@ -229,18 +254,40 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
       _bibDebounce = Timer(const Duration(milliseconds: 500), () async {
         // If the input changed during await, don't overwrite
         if (bibController.text.trim() != trimmed) return;
-        final isUnique = await _checkBibUnique(trimmed);
+        final existingRunner = await widget.getRunnerByBib(trimmed);
         if (!mounted) return;
-        setState(() {
-          bibError = isUnique ? null : 'Bib number already exists';
-        });
+        final bool changedBib =
+            _isEditing && (_originalBib != null) && (trimmed != _originalBib);
+        if (!_isEditing) {
+          final isUnique = await _checkBibUnique(trimmed);
+          setState(() {
+            bibWarning = null;
+            bibError = isUnique ? null : 'Bib number already exists';
+          });
+        } else {
+          if (changedBib &&
+              existingRunner != null &&
+              existingRunner.runnerId !=
+                  widget.initialRaceRunner!.runner.runnerId) {
+            setState(() {
+              bibError = null;
+              bibWarning =
+                  'Warning: A runner with this bib already exists, you will overwrite the existing runner if you save';
+            });
+          } else {
+            setState(() {
+              bibError = null;
+              bibWarning = null;
+            });
+          }
+        }
       });
     }
   }
 
   Future<bool> _checkBibUnique(String bib) async {
     try {
-      final existingRunner = await widget.masterRace.db.getRunnerByBib(bib);
+      final existingRunner = await widget.getRunnerByBib(bib);
       if (existingRunner == null) return true;
       // Allow the same bib if editing the same runner
       final editingId = widget.initialRaceRunner?.runner.runnerId;
@@ -255,41 +302,37 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
   }
 
   bool hasErrors() {
-    final requiresTeamSelection = widget.requiredTeam == null;
-    return teamError != null && requiresTeamSelection ||
+    final isCreating = !_isEditing;
+    return teamError != null && isCreating ||
         bibError != null ||
         gradeError != null ||
         nameError != null ||
         nameController.text.isEmpty ||
         gradeController.text.isEmpty ||
-        (requiresTeamSelection && teamController.text.isEmpty) ||
         bibController.text.isEmpty;
   }
 
   Future<void> handleSubmit() async {
-    // Final bib uniqueness check before submit
-    if (bibController.text.trim().isNotEmpty && bibError == null) {
-      final isUnique = await _checkBibUnique(bibController.text.trim());
-      if (!isUnique) {
+    if (_isSubmitting) return;
+    setState(() {
+      _isSubmitting = true;
+    });
+    // Validate all fields first, then update UI once
+    final isValid = await _validateAllForSubmit();
+    if (!isValid) {
+      if (mounted) {
         setState(() {
-          bibError = 'Bib number already exists';
+          _isSubmitting = false;
         });
       }
-    }
-
-    if (hasErrors()) {
       return;
     }
 
     try {
-      // Create any pending team before submitting the runner
-      if (_pendingTeamCreation != null && widget.onTeamCreated != null) {
-        await widget.onTeamCreated!(_pendingTeamCreation!);
-      }
-
       final runner = RaceRunner(
-        raceId: widget.masterRace.raceId,
+        raceId: widget.raceId,
         runner: Runner(
+          runnerId: widget.initialRaceRunner?.runner.runnerId,
           name: nameController.text,
           grade: int.tryParse(gradeController.text) ?? 0,
           bibNumber: bibController.text,
@@ -300,12 +343,92 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
       await widget.onSubmit(runner);
     } catch (e) {
       Logger.e('Error in runner input form: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
     }
   }
 
+  Future<bool> _validateAllForSubmit() async {
+    String? nextNameError;
+    String? nextGradeError;
+    String? nextTeamError;
+    String? nextBibError;
+    String? nextBibWarning;
+
+    // Name
+    final name = nameController.text.trim();
+    if (name.isEmpty) {
+      nextNameError = 'Please enter a name';
+    }
+
+    // Grade
+    final int? gradeNum = int.tryParse(gradeController.text.trim());
+    if (gradeNum == null) {
+      nextGradeError = 'Please enter a grade';
+    } else if (gradeNum < 9 || gradeNum > 12) {
+      nextGradeError = 'Grade must be between 9 and 12';
+    }
+
+    // Team (Creation requires runnerTeam; Editing requires a selection present)
+    if (!_isEditing) {
+      if (widget.runnerTeam == null || widget.runnerTeam!.teamId == null) {
+        nextTeamError = 'Internal error: runnerTeam is required for creation';
+      }
+    } else if (_selectedTeam == null) {
+      nextTeamError = 'Please select a team';
+    }
+
+    // Bib
+    final bib = bibController.text.trim();
+    if (bib.isEmpty) {
+      nextBibError = 'Please enter a bib number';
+    } else if (int.tryParse(bib) == null) {
+      nextBibError = 'Please enter a valid bib number';
+    } else if ((int.tryParse(bib) ?? 0) <= 0) {
+      nextBibError = 'Please enter a bib number greater than 0';
+    } else {
+      if (!_isEditing) {
+        final isUnique = await _checkBibUnique(bib);
+        if (!isUnique) {
+          nextBibError = 'Bib number already exists';
+        }
+      } else {
+        final changedBib = (_originalBib != null) && (bib != _originalBib);
+        if (changedBib) {
+          final existingRunner = await widget.getRunnerByBib(bib);
+          if (existingRunner != null &&
+              existingRunner.runnerId !=
+                  widget.initialRaceRunner!.runner.runnerId) {
+            // Show warning; allow submit (conflict resolved later)
+            nextBibWarning =
+                'Warning: A runner with this bib already exists. You will overwrite the existing runner if you save.';
+          }
+        }
+      }
+    }
+
+    // Apply all at once
+    setState(() {
+      nameError = nextNameError;
+      gradeError = nextGradeError;
+      teamError = nextTeamError;
+      bibError = nextBibError;
+      bibWarning = nextBibWarning;
+    });
+
+    return nextNameError == null &&
+        nextGradeError == null &&
+        nextTeamError == null &&
+        nextBibError == null &&
+        name.isNotEmpty &&
+        bib.isNotEmpty;
+  }
+
   void _handleTeamChange(Team? value) {
-    // Clear pending team creation when team selection changes
-    _pendingTeamCreation = null;
     _selectedTeam = value;
 
     // Update text controller with team name
@@ -317,22 +440,10 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
       teamAbbreviationController.text = '';
     }
 
-    // Check if this is a new team that was created in the dialog
-    if (value != null &&
-        value.isValid &&
-        !widget.teamOptions.contains(value) &&
-        _currentTeamOptions.contains(value)) {
-      // Mark this team as pending creation (will be created on form submit)
-      _pendingTeamCreation = value;
-    }
-
     validateTeam(value);
   }
 
   Widget _buildTeamField() {
-    if (widget.requiredTeam != null && widget.requiredTeam!.name != null) {
-      return Text(widget.requiredTeam!.name!);
-    }
     if (_currentTeamOptions.isEmpty) {
       // If no team options, show text field for manual entry
       return textfield_utils.buildTextField(
@@ -349,7 +460,7 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
         setSheetState: setState,
       );
     } else {
-      // Show dropdown with option to add new
+      // Show dropdown
       return _buildTeamDropdown();
     }
   }
@@ -379,44 +490,23 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
               child: ButtonTheme(
                 alignedDropdown: true,
                 child: DropdownButton<Team?>(
-                  value: _selectedTeam != null &&
-                          _currentTeamOptions.contains(_selectedTeam)
-                      ? _selectedTeam
-                      : null,
-                  hint: Text(
-                      widget.onTeamCreated != null
-                          ? 'Select Team or Create New'
-                          : 'Select Team',
-                      style: TextStyle(color: Colors.grey)),
-                  isExpanded: true,
-                  items: [
-                    // Existing teams
-                    ..._currentTeamOptions
-                        .map((team) => DropdownMenuItem<Team?>(
-                              value: team,
-                              child: Text(team.name ?? ''),
-                            )),
-                    // Add new team option only if team creation is allowed
-                    if (widget.onTeamCreated != null)
-                      const DropdownMenuItem<Team?>(
-                        value: null,
-                        child: Row(
-                          children: [
-                            Icon(Icons.add, size: 16),
-                            SizedBox(width: 8),
-                            Text('Create New Team'),
-                          ],
-                        ),
-                      ),
-                  ],
-                  onChanged: (value) {
-                    if (value == null && widget.onTeamCreated != null) {
-                      _showCreateNewTeamDialog();
-                    } else {
-                      _handleTeamChange(value);
-                    }
-                  },
-                ),
+                    value: _selectedTeam != null &&
+                            _currentTeamOptions.contains(_selectedTeam)
+                        ? _selectedTeam
+                        : null,
+                    hint: Text('Select Team',
+                        style: TextStyle(color: Colors.grey)),
+                    isExpanded: true,
+                    items: [
+                      // Existing teams
+                      ..._currentTeamOptions
+                          .map((team) => DropdownMenuItem<Team?>(
+                                value: team,
+                                child: Text(team.name ?? ''),
+                              )),
+                      // Add new team option only if team creation is allowed
+                    ],
+                    onChanged: _handleTeamChange),
               ),
             ),
           ),
@@ -434,35 +524,6 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
           ),
       ],
     );
-  }
-
-  void _showCreateNewTeamDialog() async {
-    // Use the CreateTeamSheet dialog instead of the inline dialog
-    final newTeam = await sheet(
-      context: context,
-      body: Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: CreateTeamSheet(
-          masterRace: widget.masterRace,
-          createTeam: (Team createdTeam) async {
-            Navigator.of(context).pop(createdTeam);
-          },
-        ),
-      ),
-    );
-
-    if (newTeam != null) {
-      setState(() {
-        _currentTeamOptions.add(newTeam);
-        _currentTeamOptions.sort((a, b) => a.name!.compareTo(b.name!));
-      });
-      _handleTeamChange(newTeam);
-      if (widget.onTeamCreated != null) {
-        await widget.onTeamCreated!(newTeam);
-      }
-    }
   }
 
   Widget buildInputField(String label, Widget inputWidget) {
@@ -521,7 +582,7 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
           ),
         ),
         const SizedBox(height: 16),
-        if (widget.requiredTeam == null)
+        if (_isEditing)
           buildInputField(
             'Team',
             _buildTeamField(),
@@ -535,6 +596,7 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
               controller: bibController,
               hint: '1234',
               error: bibError,
+              warning: bibWarning,
               onChanged: validateBib,
               setSheetState: setState,
             ),
@@ -546,10 +608,28 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
           fontSize: 16,
           fontWeight: FontWeight.w600,
           borderRadius: 8,
-          isEnabled: !hasErrors(),
-          onPressed: handleSubmit,
+          isEnabled:
+              !_isSubmitting && !hasErrors() && (!_isEditing || _hasChanges()),
+          onPressed: !_isSubmitting ? handleSubmit : null,
         ),
       ],
     );
+  }
+
+  bool _hasChanges() {
+    if (!_isEditing) return true;
+    final orig = _originalRaceRunner!;
+
+    final currentName = nameController.text.trim();
+    final currentGrade = int.tryParse(gradeController.text.trim()) ?? 0;
+    final currentBib = bibController.text.trim();
+    final currentTeamId = (widget.runnerTeam ?? _selectedTeam)?.teamId;
+
+    final nameChanged = (orig.runner.name ?? '') != currentName;
+    final gradeChanged = (orig.runner.grade ?? 0) != currentGrade;
+    final bibChanged = (orig.runner.bibNumber ?? '') != currentBib;
+    final teamChanged = (orig.team.teamId) != currentTeamId;
+
+    return nameChanged || gradeChanged || bibChanged || teamChanged;
   }
 }
