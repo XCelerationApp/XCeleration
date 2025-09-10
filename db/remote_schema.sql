@@ -158,7 +158,7 @@ alter table public.races enable row level security;
 alter table public.race_participants enable row level security;
 alter table public.race_results enable row level security;
 
--- Replace or adjust as needed; owner_user_id points to auth.uid()
+-- Allow anonymous users to access their own data; auth.uid() works for both authenticated and anonymous users
 create policy runners_select_own on public.runners for select using (owner_user_id = auth.uid());
 create policy runners_modify_own on public.runners for insert with check (owner_user_id = auth.uid());
 create policy runners_update_own on public.runners for update using (owner_user_id = auth.uid()) with check (owner_user_id = auth.uid());
