@@ -30,7 +30,8 @@ class ReviewRunnersStep extends FlowStep {
 
   Future<void> checkRunners() async {
     final hasEnoughRunners =
-        await TeamsAndRunnersManagementWidget.checkMinimumRunnersLoaded(masterRace);
+        await TeamsAndRunnersManagementWidget.checkMinimumRunnersLoaded(
+            masterRace);
     if (_canProceed != hasEnoughRunners) {
       _canProceed = hasEnoughRunners;
       notifyContentChanged();
