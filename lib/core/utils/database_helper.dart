@@ -20,13 +20,13 @@ class DatabaseHelper {
   Future<Database> get databaseConn async => await _database;
 
   Future<Database> _initDB(String fileName) async {
-    // await deleteDatabase();
+    // await deleteDatabase(); // Commented out to prevent data loss
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, fileName);
 
     return await openDatabase(
       path,
-      version: 13,
+      version: 15,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -39,7 +39,31 @@ class DatabaseHelper {
     }
   }
 
-  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {}
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    // Add missing owner_user_id column to races table if it doesn't exist
+    if (oldVersion < 15) {
+      try {
+        await db.execute('ALTER TABLE races ADD COLUMN owner_user_id TEXT');
+        Logger.d('Added owner_user_id column to races table');
+      } catch (e) {
+        // Column might already exist, ignore error
+        Logger.d('owner_user_id column might already exist: $e');
+      }
+
+      // Create missing sync_state table if it doesn't exist
+      try {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS sync_state (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL
+          )
+        ''');
+        Logger.d('Created sync_state table');
+      } catch (e) {
+        Logger.d('sync_state table might already exist: $e');
+      }
+    }
+  }
 
   // ============================================================================
   // CORE ENTITY OPERATIONS

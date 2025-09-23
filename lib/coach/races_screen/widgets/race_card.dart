@@ -51,7 +51,7 @@ class RaceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Slidable(
-      key: Key(race.raceId!.toString()),
+      key: Key(race.raceId?.toString() ?? 'unknown'),
       endActionPane: ActionPane(
         extentRatio: 0.5,
         motion: const DrawerMotion(),
@@ -124,7 +124,7 @@ class RaceCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           child: InkWell(
             onTap: () async {
-              final masterRace = MasterRace.getInstance(race.raceId!);
+              final masterRace = MasterRace.getInstance(race.raceId ?? 0);
               await RaceController.showRaceScreen(
                 context,
                 controller,
@@ -141,7 +141,7 @@ class RaceCard extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          race.raceName!,
+                          race.raceName ?? 'Unnamed Race',
                           style: AppTypography.headerSemibold,
                         ),
                       ),
@@ -180,7 +180,7 @@ class RaceCard extends StatelessWidget {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            race.location!,
+                            race.location ?? '',
                             style: AppTypography.bodyRegular
                                 .copyWith(color: Colors.black54),
                             overflow: TextOverflow.ellipsis,
@@ -203,7 +203,8 @@ class RaceCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          DateFormat('MMM d, y').format(race.raceDate!),
+                          DateFormat('MMM d, y')
+                              .format(race.raceDate ?? DateTime.now()),
                           style: AppTypography.bodyRegular
                               .copyWith(color: Colors.black54),
                         ),
@@ -223,7 +224,7 @@ class RaceCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          '${race.distance!} ${race.distanceUnit ?? ''}',
+                          '${race.distance ?? 0} ${race.distanceUnit ?? ''}',
                           style: AppTypography.headerSemibold.copyWith(
                             color: AppColors.primaryColor,
                           ),

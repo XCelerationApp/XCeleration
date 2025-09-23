@@ -88,7 +88,11 @@ class LoadResultsController with ChangeNotifier {
         resultsLoaded = true;
       }
     } catch (e) {
-      Logger.e('Error loading results: $e');
+      if (e.toString().contains('Race is not finished')) {
+        Logger.d('Race is not finished yet - results not available');
+      } else {
+        Logger.e('Error loading results: $e');
+      }
     }
 
     notifyListeners();

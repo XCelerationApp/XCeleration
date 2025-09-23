@@ -47,7 +47,7 @@ class _PushConflictResult {
 /// await SyncService.instance.setSyncMode(SyncService.syncModeOff);
 ///
 /// // Manual override for testing/debugging
-/// await SyncService.instance.forceEnableSyncForTesting();
+// await SyncService.instance.forceEnableSyncForTesting();
 /// ```
 class SyncService {
   /// Sync mode preference
@@ -246,10 +246,10 @@ class SyncService {
 
   /// Force enable sync for testing (bypasses authentication requirement)
   /// WARNING: Only use for testing/debugging!
-  Future<void> forceEnableSyncForTesting() async {
-    Logger.d('⚠️ Force enabling sync for testing (bypassing auth)');
-    await setSyncMode(syncModeAuthenticated);
-  }
+  // Future<void> forceEnableSyncForTesting() async {
+  //   Logger.d('⚠️ Force enabling sync for testing (bypassing auth)');
+  //   await setSyncMode(syncModeAuthenticated);
+  // }
 
   // Public API
   Future<void> syncAll() async {
@@ -267,17 +267,17 @@ class SyncService {
         return;
       }
 
-      // Require user to be signed in for sync (unless in testing mode)
-      final isTestingMode =
-          syncMode == 'authenticated' && !AuthService.instance.isSignedIn;
-      if (!AuthService.instance.isSignedIn && !isTestingMode) {
-        Logger.d('User not signed in; skipping sync.');
-        return;
-      }
+      // // Require user to be signed in for sync (unless in testing mode)
+      // final isTestingMode =
+      //     syncMode == 'authenticated' && !AuthService.instance.isSignedIn;
+      // if (!AuthService.instance.isSignedIn && !isTestingMode) {
+      //   Logger.d('User not signed in; skipping sync.');
+      //   return;
+      // }
 
-      if (isTestingMode) {
-        Logger.d('⚠️ Running in testing mode (authentication bypassed)');
-      }
+      // if (isTestingMode) {
+      //   Logger.d('⚠️ Running in testing mode (authentication bypassed)');
+      // }
 
       await ensureLocalUuids();
       await pushAll();
@@ -311,9 +311,9 @@ class SyncService {
         if (uid != null) {
           copy['owner_user_id'] = uid;
         } else {
-          // Testing mode: use a dummy user ID
-          copy['owner_user_id'] = 'test-user-id';
-          Logger.d('⚠️ Using test user ID for push operation');
+          // Skip push if user is not authenticated
+          Logger.d('User not authenticated; skipping push for $table');
+          return;
         }
 
         // Check for potential conflicts before pushing
@@ -359,10 +359,10 @@ class SyncService {
 
     // Determine accessible owners: self plus any linked coaches (if feature present)
     Future<List<String>> getAccessibleOwnerIds() async {
-      final uid = AuthService.instance.currentUserId ??
-          'test-user-id'; // Fallback for testing
-      if (uid == 'test-user-id') {
-        Logger.d('⚠️ Using test user ID for pull operation');
+      final uid = AuthService.instance.currentUserId;
+      if (uid == null) {
+        Logger.d('User not authenticated; cannot determine accessible owners');
+        return [];
       }
       try {
         // Optional table `coach_links(coach_user_id, viewer_user_id)`
