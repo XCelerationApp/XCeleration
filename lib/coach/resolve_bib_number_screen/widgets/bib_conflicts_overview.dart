@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:xceleration/core/utils/sheet_utils.dart';
 import 'package:xceleration/shared/models/database/master_race.dart';
 import 'package:xceleration/shared/models/database/race_runner.dart';
+import 'package:xceleration/shared/models/database/runner.dart';
+import 'package:xceleration/shared/models/database/team.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
 import '../screen/resolve_bib_number_screen.dart';
@@ -9,7 +11,7 @@ import 'package:xceleration/core/utils/color_utils.dart';
 
 class BibConflictsOverview extends StatefulWidget {
   final MasterRace masterRace;
-  final List<RaceRunner> raceRunners;
+  final List<dynamic> raceRunners;
   final Function(List<RaceRunner>) onResolved;
 
   const BibConflictsOverview({
@@ -24,7 +26,7 @@ class BibConflictsOverview extends StatefulWidget {
 }
 
 class _BibConflictsOverviewState extends State<BibConflictsOverview> {
-  late List<RaceRunner> _raceRunners;
+  late List<dynamic> _raceRunners;
   List<RaceRunner>? _unknownRaceRunners;
   List<RaceRunner>? _duplicateRaceRunners;
   List<RaceRunner>? _errorRaceRunners;
@@ -38,26 +40,52 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
   }
 
   Future<void> _getErrorRaceRunners() async {
-    final allRaceRunners = await widget.masterRace.raceRunners;
-    final allRaceRunnerBibNumbers = allRaceRunners.map((rr) => rr.runner.bibNumber!).toList();
+    try {
+      final unknownRunners = <RaceRunner>[];
+      final duplicateRunners = <RaceRunner>[];
 
-    _unknownRaceRunners = allRaceRunners.map((raceRunner) {
-      final bibNumber = raceRunner.runner.bibNumber;
-      if (!allRaceRunnerBibNumbers.contains(bibNumber)) {
-        return raceRunner;
+      // Collect runners for bib numbers that need resolution
+      for (final item in _raceRunners) {
+        if (item is int) {
+          // Create a placeholder runner for display purposes
+          final placeholderRunner = RaceRunner(
+            raceId: widget.masterRace.raceId,
+            runner: Runner(bibNumber: item.toString()),
+            team: Team(),
+          );
+          unknownRunners.add(placeholderRunner);
+        }
       }
-      return null;
-    }).whereType<RaceRunner>().toList();
 
-    final raceRunnersCopy = List.from(_raceRunners);
-    _duplicateRaceRunners = allRaceRunners.map((raceRunner) {
-      if (!raceRunnersCopy.remove(raceRunner)) {
-        return raceRunner;
+      // Find duplicate bibs within the resolved runners
+      final seenBibs = <String>{};
+      for (final item in _raceRunners) {
+        if (item is RaceRunner) {
+          final bibNumber = item.runner.bibNumber!;
+          if (seenBibs.contains(bibNumber)) {
+            duplicateRunners.add(item);
+          } else {
+            seenBibs.add(bibNumber);
+          }
+        }
       }
-      return null;
-    }).whereType<RaceRunner>().toList();
 
-    _errorRaceRunners = [..._unknownRaceRunners!, ..._duplicateRaceRunners!];
+      if (mounted) {
+        setState(() {
+          _unknownRaceRunners = unknownRunners;
+          _duplicateRaceRunners = duplicateRunners;
+          _errorRaceRunners = [...unknownRunners, ...duplicateRunners];
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _unknownRaceRunners = [];
+          _duplicateRaceRunners = [];
+          _errorRaceRunners = [];
+        });
+      }
+    }
   }
 
   @override
@@ -78,6 +106,14 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
     final errorRaceRunners = _errorRaceRunners!;
 
     if (errorRaceRunners.isEmpty) {
+      // All conflicts resolved - call onResolved callback and close the sheet
+      final resolvedRunners = _raceRunners.whereType<RaceRunner>().toList();
+
+      // Use addPostFrameCallback to ensure the widget tree is updated before calling the callback
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        widget.onResolved(resolvedRunners);
+      });
+
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -173,22 +209,36 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
             body: ResolveBibNumberScreen(
               raceRunner: raceRunner,
               raceId: widget.masterRace.raceId,
-              raceRunners: _raceRunners,
+              raceRunners: _raceRunners.whereType<RaceRunner>().toList(),
               onComplete: (record) => Navigator.pop(context, record),
             ),
           );
 
           if (updatedRaceRunner != null) {
             setState(() {
-              _raceRunners.remove(raceRunner);
-              _raceRunners.insert(index, updatedRaceRunner);
-              _unknownRaceRunners!.remove(raceRunner);
-              _duplicateRaceRunners!.remove(raceRunner);
-              _errorRaceRunners!.remove(raceRunner);
+              // Handle both unknown bib conflicts (integers) and duplicate bib conflicts (RaceRunner objects)
+              int index = -1;
+
+              if (_duplicateRaceRunners!.contains(raceRunner)) {
+                // This is a duplicate bib conflict - find the RaceRunner object in the list
+                // For duplicates, find any RaceRunner with the same bib number (since we're replacing the entire duplicate)
+                // Note: This finds the first RaceRunner with this bib number - there may be multiple duplicates
+                index = _raceRunners.indexWhere((r) =>
+                    r is RaceRunner &&
+                    r.runner.bibNumber == raceRunner.runner.bibNumber);
+              } else {
+                // This is an unknown bib conflict - find the integer in the list
+                final conflictBib =
+                    int.tryParse(raceRunner.runner.bibNumber!) ??
+                        raceRunner.runner.bibNumber;
+                index = _raceRunners.indexWhere((r) => r == conflictBib);
+              }
+
+              if (index != -1) {
+                _raceRunners[index] = updatedRaceRunner;
+                _getErrorRaceRunners();
+              } else {}
             });
-            if (_errorRaceRunners!.isEmpty) {
-              widget.onResolved(_raceRunners);
-            }
           }
         },
         borderRadius: BorderRadius.circular(12),
@@ -231,7 +281,9 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _duplicateRaceRunners!.contains(raceRunner) ? 'Duplicate Bib Number' : 'Bib number not found',
+                      _duplicateRaceRunners!.contains(raceRunner)
+                          ? 'Duplicate Bib Number'
+                          : 'Bib number not found',
                       style: AppTypography.bodyRegular.copyWith(
                         letterSpacing: 0.1,
                       ),

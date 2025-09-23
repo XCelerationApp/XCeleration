@@ -56,6 +56,7 @@ class BibDatumRecord extends BibDatum {
   }
 
   bool get hasErrors => flags.notInDatabase || flags.duplicateBibNumber;
+  @override
   bool get isValid => !hasErrors && bib.isNotEmpty;
 }
 

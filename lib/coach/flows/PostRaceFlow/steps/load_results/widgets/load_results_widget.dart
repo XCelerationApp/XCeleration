@@ -47,15 +47,35 @@ class LoadResultsWidget extends StatelessWidget {
 
               // Display conflicts or success message
               if (controller.resultsLoaded) ...[
+                // Debug logging for conflict detection
+                Builder(
+                  builder: (context) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      debugPrint(
+                          'UI - Results loaded: ${controller.resultsLoaded}');
+                      debugPrint(
+                          'UI - Bib conflicts: ${controller.hasBibConflicts}');
+                      debugPrint(
+                          'UI - Timing conflicts: ${controller.hasTimingConflicts}');
+                    });
+                    return const SizedBox.shrink();
+                  },
+                ),
                 if (controller.hasBibConflicts || controller.hasTimingConflicts)
                   ConflictButton(
                     title: 'Race Conflicts',
                     description:
                         'Your race contains conflicts. Please resolve them before proceeding.',
                     buttonText: 'Resolve',
-                    onPressed: () => controller.hasBibConflicts
-                        ? controller.showBibConflictsSheet(context)
-                        : controller.showTimingConflictsSheet(context),
+                    onPressed: () {
+                      debugPrint(
+                          'Conflict button pressed - Bib conflicts: ${controller.hasBibConflicts}, Timing conflicts: ${controller.hasTimingConflicts}');
+                      if (controller.hasBibConflicts) {
+                        controller.showBibConflictsSheet(context);
+                      } else {
+                        controller.showTimingConflictsSheet(context);
+                      }
+                    },
                   )
                 else
                   const SuccessMessage(),

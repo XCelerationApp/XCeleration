@@ -72,38 +72,31 @@ class ConflictHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  '$title at $endTime',
-                  style: AppTypography.bodySemibold.copyWith(
-                    color: AppColors.primaryColor,
-                  ),
+          Text(
+            '$title at $endTime',
+            style: AppTypography.bodySemibold.copyWith(
+              color: AppColors.primaryColor,
+            ),
+          ),
+          if (statusText != null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: ColorUtils.withOpacity(statusColor!, 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: ColorUtils.withOpacity(statusColor, 0.3),
+                  width: 1,
                 ),
               ),
-              if (statusText != null)
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: ColorUtils.withOpacity(statusColor!, 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: ColorUtils.withOpacity(statusColor, 0.3),
-                      width: 1,
-                    ),
-                  ),
-                  child: Text(
-                    statusText,
-                    style: AppTypography.smallBodySemibold.copyWith(
-                      color: statusColor,
-                      fontSize: 11,
-                    ),
-                  ),
+              child: Text(
+                statusText,
+                style: AppTypography.smallBodySemibold.copyWith(
+                  color: statusColor,
+                  fontSize: 11,
                 ),
-            ],
-          ),
+              ),
+            ),
           const SizedBox(height: 4),
           Text(
             description,

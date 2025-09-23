@@ -26,16 +26,18 @@ class RaceService {
       distance =
           (parsedDistance != null && parsedDistance > 0) ? parsedDistance : 0;
     }
-    // Update the race in database using MasterRace
-
-    await masterRace.updateRace(Race(
-      raceId: masterRace.raceId,
+    // Preserve existing race fields (like flowState, ownerUserId, etc.)
+    // and only update the edited fields
+    final currentRace = await masterRace.race;
+    final updatedRace = currentRace.copyWith(
       raceName: nameController.text.trim(),
       location: locationController.text,
       raceDate: date,
       distance: distance,
       distanceUnit: unitController.text,
-    ));
+    );
+
+    await masterRace.updateRace(updatedRace);
     // Note: Teams are now managed separately by RunnersManagementController
   }
 

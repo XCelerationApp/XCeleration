@@ -18,7 +18,8 @@ class TeamRecord {
   }) {
     nonScorers = runners;
 
-    scorers = runners.length > 5 ? runners.take(5).toList() : [];
+    // Take top 5 runners for scoring, or all runners if less than 5
+    scorers = runners.take(5).toList();
     updateStats();
   }
 
@@ -34,10 +35,15 @@ class TeamRecord {
   void updateStats() {
     if (scorers.isNotEmpty) {
       score = scorers.fold<int>(0, (sum, runner) => sum + (runner.place ?? 0));
-      split = (scorers.last.finishTime ?? Duration.zero) - (scorers.first.finishTime ?? Duration.zero);
-      avgTime = scorers.fold(
-              Duration.zero, (sum, runner) => sum + (runner.finishTime ?? Duration.zero)) ~/
-          5;
+      split = (scorers.last.finishTime ?? Duration.zero) -
+          (scorers.first.finishTime ?? Duration.zero);
+
+      // Calculate average time with proper floating point division
+      final totalDuration = scorers.fold(Duration.zero,
+          (sum, runner) => sum + (runner.finishTime ?? Duration.zero));
+      avgTime = Duration(
+          milliseconds:
+              (totalDuration.inMilliseconds / scorers.length).round());
     } else {
       score = 0;
       split = Duration.zero;

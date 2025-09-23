@@ -33,6 +33,9 @@ class RunnerInputForm extends StatefulWidget {
   /// Whether to show the bib field
   final bool showBibField;
 
+  /// Optional external bib controller (if not provided, one will be created)
+  final TextEditingController? bibController;
+
   /// Lookup function to find an existing runner by bib
   final Future<Runner?> Function(String bib) getRunnerByBib;
 
@@ -47,6 +50,7 @@ class RunnerInputForm extends StatefulWidget {
     this.submitButtonText = 'Create',
     this.useSheetLayout = true,
     this.showBibField = true,
+    this.bibController,
   });
 
   @override
@@ -61,6 +65,7 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
   late TextEditingController teamController;
   late TextEditingController teamAbbreviationController;
   late TextEditingController bibController;
+  bool _externalBibController = false;
 
   String? nameError;
   String? gradeError;
@@ -93,34 +98,50 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
     gradeController = TextEditingController();
     teamController = TextEditingController();
     teamAbbreviationController = TextEditingController();
-    bibController = TextEditingController();
+
+    // Use external bibController if provided, otherwise create our own
+    if (widget.bibController != null) {
+      bibController = widget.bibController!;
+      _externalBibController = true;
+    } else {
+      bibController = TextEditingController();
+    }
 
     // Initialize team options
     _currentTeamOptions = List.from(widget.teamOptions);
 
     // Initialize with existing data if editing
     if (_isEditing) {
-      nameController.text = widget.initialRaceRunner!.runner.name!;
-      gradeController.text = widget.initialRaceRunner!.runner.grade!.toString();
-      teamController.text = widget.initialRaceRunner!.team.name!;
-      bibController.text = widget.initialRaceRunner!.runner.bibNumber!;
-      _originalBib = widget.initialRaceRunner!.runner.bibNumber!;
+      // Handle null values that can occur with placeholder runners for unknown conflicts
+      nameController.text = widget.initialRaceRunner!.runner.name ?? '';
+      gradeController.text =
+          widget.initialRaceRunner!.runner.grade?.toString() ?? '';
+      teamController.text = widget.initialRaceRunner!.team.name ?? '';
+      bibController.text = widget.initialRaceRunner!.runner.bibNumber ?? '';
+      _originalBib = widget.initialRaceRunner!.runner.bibNumber ?? '';
       _selectedTeam = widget.initialRaceRunner!.team;
       teamAbbreviationController.text =
           widget.initialRaceRunner!.team.abbreviation ?? '';
 
       // Save a snapshot of the original race runner for comparison
-      _originalRaceRunner = RaceRunner.from(widget.initialRaceRunner!);
+      // Only create snapshot if all required fields are present (skip for placeholder runners)
+      if (widget.initialRaceRunner!.runner.name != null &&
+          widget.initialRaceRunner!.runner.grade != null &&
+          widget.initialRaceRunner!.team.name != null) {
+        _originalRaceRunner = RaceRunner.from(widget.initialRaceRunner!);
+      }
 
       // Align the selected team with the exact instance from options (by id)
+      // Only do this if the team has a valid teamId (placeholder teams for unknown conflicts don't)
       if (_selectedTeam != null && _selectedTeam!.teamId != null) {
         try {
           final match = _currentTeamOptions
               .firstWhere((t) => t.teamId == _selectedTeam!.teamId);
           _selectedTeam = match;
         } catch (_) {
-          // If not found, pop the sheet
-          throw Exception('runner team not found in team options');
+          // For placeholder teams from unknown conflicts, just keep the original team
+          Logger.d(
+              'Team not found in options, keeping original team (likely placeholder)');
         }
       }
     } else {
@@ -143,7 +164,12 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
     gradeController.dispose();
     teamController.dispose();
     teamAbbreviationController.dispose();
-    bibController.dispose();
+
+    // Only dispose bibController if it's not an external one
+    if (!_externalBibController) {
+      bibController.dispose();
+    }
+
     super.dispose();
   }
 
@@ -268,7 +294,7 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
           if (changedBib &&
               existingRunner != null &&
               existingRunner.runnerId !=
-                  widget.initialRaceRunner!.runner.runnerId) {
+                  (widget.initialRaceRunner?.runner.runnerId ?? -1)) {
             setState(() {
               bibError = null;
               bibWarning =
@@ -337,7 +363,7 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
           grade: int.tryParse(gradeController.text) ?? 0,
           bibNumber: bibController.text,
         ),
-        team: _selectedTeam!,
+        team: _selectedTeam ?? widget.runnerTeam ?? Team(),
       );
 
       await widget.onSubmit(runner);
@@ -402,7 +428,7 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
           final existingRunner = await widget.getRunnerByBib(bib);
           if (existingRunner != null &&
               existingRunner.runnerId !=
-                  widget.initialRaceRunner!.runner.runnerId) {
+                  (widget.initialRaceRunner?.runner.runnerId ?? -1)) {
             // Show warning; allow submit (conflict resolved later)
             nextBibWarning =
                 'Warning: A runner with this bib already exists. You will overwrite the existing runner if you save.';
@@ -553,71 +579,78 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const SizedBox(height: 16),
-        buildInputField(
-          'Name',
-          textfield_utils.buildTextField(
-            context: context,
-            controller: nameController,
-            hint: 'John Doe',
-            error: nameError,
-            onChanged: validateName,
-            setSheetState: setState,
-          ),
-        ),
-        const SizedBox(height: 16),
-        buildInputField(
-          'Grade',
-          textfield_utils.buildTextField(
-            context: context,
-            controller: gradeController,
-            hint: '9',
-            keyboardType: TextInputType.number,
-            error: gradeError,
-            onChanged: validateGrade,
-            setSheetState: setState,
-          ),
-        ),
-        const SizedBox(height: 16),
-        if (_isEditing)
-          buildInputField(
-            'Team',
-            _buildTeamField(),
-          ),
-        if (widget.showBibField) ...[
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
           const SizedBox(height: 16),
           buildInputField(
-            'Bib #',
+            'Name',
             textfield_utils.buildTextField(
               context: context,
-              controller: bibController,
-              hint: '1234',
-              error: bibError,
-              warning: bibWarning,
-              onChanged: validateBib,
+              controller: nameController,
+              hint: 'John Doe',
+              error: nameError,
+              onChanged: validateName,
               setSheetState: setState,
             ),
           ),
+          const SizedBox(height: 16),
+          buildInputField(
+            'Grade',
+            textfield_utils.buildTextField(
+              context: context,
+              controller: gradeController,
+              hint: '9',
+              keyboardType: TextInputType.number,
+              error: gradeError,
+              onChanged: validateGrade,
+              setSheetState: setState,
+            ),
+          ),
+          const SizedBox(height: 16),
+          if (_isEditing)
+            buildInputField(
+              'Team',
+              _buildTeamField(),
+            ),
+          if (widget.showBibField) ...[
+            const SizedBox(height: 16),
+            buildInputField(
+              'Bib #',
+              textfield_utils.buildTextField(
+                context: context,
+                controller: bibController,
+                hint: '1234',
+                error: bibError,
+                warning: bibWarning,
+                onChanged: validateBib,
+                setSheetState: setState,
+              ),
+            ),
+          ],
+          const SizedBox(height: 24),
+          FullWidthButton(
+            text: widget.submitButtonText,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            borderRadius: 8,
+            isEnabled: !_isSubmitting &&
+                !hasErrors() &&
+                (!_isEditing || _hasChanges()),
+            onPressed: !_isSubmitting ? handleSubmit : null,
+          ),
         ],
-        const SizedBox(height: 24),
-        FullWidthButton(
-          text: widget.submitButtonText,
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          borderRadius: 8,
-          isEnabled:
-              !_isSubmitting && !hasErrors() && (!_isEditing || _hasChanges()),
-          onPressed: !_isSubmitting ? handleSubmit : null,
-        ),
-      ],
+      ),
     );
   }
 
   bool _hasChanges() {
     if (!_isEditing) return true;
+
+    // For placeholder runners (unknown conflicts), always consider as having changes
+    if (_originalRaceRunner == null) return true;
+
     final orig = _originalRaceRunner!;
 
     final currentName = nameController.text.trim();

@@ -10,7 +10,6 @@ import '../../../core/components/instruction_card.dart';
 import '../widgets/chunk_list.dart';
 import 'package:provider/provider.dart';
 
-
 class MergeConflictsScreen extends StatefulWidget {
   final MasterRace masterRace;
   final List<TimingChunk> timingChunks;
@@ -48,8 +47,6 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
     }
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     final controller = Provider.of<MergeConflictsController>(context);
@@ -59,8 +56,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
       child: SafeArea(
         child: Column(
           children: [
-            if (controller.hasConflicts)
-              SaveButton(controller: controller),
+            if (controller.hasConflicts) SaveButton(controller: controller),
             Expanded(
               child: ListView(
                 padding: EdgeInsets.zero,
@@ -116,26 +112,58 @@ class InstructionsAndList extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       child: Column(
         children: [
-
           // Instructions card
           InstructionCard(
             title: 'Review Race Results',
             instructions: [
               InstructionItem(
                   number: '1',
-                  text:
-                      'Find the runners with the unknown times (orange)'),
+                  text: 'Find the runners with the unknown times (orange)'),
+              InstructionItem(number: '2', text: 'Update times as needed'),
               InstructionItem(
-                  number: '2', text: 'Update times as needed'),
-              InstructionItem(
-                  number: '3',
-                  text: 'Save when all results are confirmed'),
+                  number: '3', text: 'Save when all results are confirmed'),
             ],
           ),
           const SizedBox(height: 16),
 
           // Content based on mode
           ChunkList(controller: controller),
+          const SizedBox(height: 24),
+
+          // Resolve Conflict button
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: ElevatedButton(
+              onPressed: (controller.allConflictsResolved &&
+                      controller.hasValidTimeOrder)
+                  ? () => controller.returnMergedData()
+                  : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: (controller.allConflictsResolved &&
+                        controller.hasValidTimeOrder)
+                    ? AppColors.primaryColor
+                    : Colors.grey[400],
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: (controller.allConflictsResolved &&
+                        controller.hasValidTimeOrder)
+                    ? 2
+                    : 0,
+              ),
+              child: Text(
+                'Resolve Conflict',
+                style: AppTypography.bodySemibold.copyWith(
+                  color: Colors.white,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
         ],
       ),
     );

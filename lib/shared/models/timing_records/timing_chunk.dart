@@ -1,4 +1,5 @@
 import 'timing_datum.dart';
+import 'package:xceleration/core/utils/enums.dart';
 
 class TimingChunk {
   TimingDatum? conflictRecord;
@@ -16,7 +17,21 @@ class TimingChunk {
   // Computed properties
   bool get hasConflict => conflictRecord != null;
   bool get isEmpty => timingData.isEmpty && !hasConflict;
-  int get recordCount => timingData.length;
+  int get recordCount {
+    int count = timingData.length;
+    if (hasConflict && conflictRecord!.conflict != null) {
+      final conflictType = conflictRecord!.conflict!.type;
+      final offBy = conflictRecord!.conflict!.offBy;
+
+      if (conflictType == ConflictType.missingTime) {
+        count += offBy; // Add missing timing events
+      } else if (conflictType == ConflictType.extraTime) {
+        count -= offBy; // Subtract extra timing events
+      }
+      // For confirmRunner and other types, don't modify count
+    }
+    return count;
+  }
 
   @override
   bool operator ==(Object other) =>

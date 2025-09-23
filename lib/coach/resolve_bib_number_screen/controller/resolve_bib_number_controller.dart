@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/shared/models/database/race_participant.dart';
 import 'package:xceleration/shared/models/database/race_runner.dart';
+import 'package:xceleration/shared/models/database/runner.dart';
 import '../../../core/components/dialog_utils.dart';
 import '../../../shared/models/database/master_race.dart';
 import '../../../shared/models/database/team.dart';
@@ -13,6 +14,7 @@ class ResolveBibNumberController with ChangeNotifier {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController gradeController = TextEditingController();
   final TextEditingController teamController = TextEditingController();
+  final TextEditingController bibController = TextEditingController();
   bool showCreateNew = false;
   final List<RaceRunner> raceRunners;
   final int raceId;
@@ -66,11 +68,17 @@ class ResolveBibNumberController with ChangeNotifier {
     } else {
       // Search race runners by query
       await masterRace.searchRaceRunners(query);
-      filteredRaceRunners = (await masterRace.filteredSearchResults).values.expand((list) => list).toList();
+      filteredRaceRunners = (await masterRace.filteredSearchResults)
+          .values
+          .expand((list) => list)
+          .toList();
     }
 
     // Filter out runners that have already been recorded
-    searchResults = filteredRaceRunners.where((raceRunner) => !recordedBibs.contains(raceRunner.runner.bibNumber)).toList();
+    searchResults = filteredRaceRunners
+        .where(
+            (raceRunner) => !recordedBibs.contains(raceRunner.runner.bibNumber))
+        .toList();
 
     notifyListeners();
     Logger.d('Filtered search results');
@@ -79,28 +87,70 @@ class ResolveBibNumberController with ChangeNotifier {
   Future<void> createNewRunner() async {
     if (nameController.text.isEmpty ||
         gradeController.text.isEmpty ||
-        teamController.text.isEmpty) {
+        teamController.text.isEmpty ||
+        bibController.text.isEmpty) {
       DialogUtils.showErrorDialog(context,
-          message: 'Please enter a name, grade, and team for the runner');
+          message:
+              'Please enter a name, grade, team, and bib number for the runner');
       return;
     }
 
-    try {
-      // Create new runner using MasterRace
+    Logger.d(
+        'Creating new runner with bib: "${bibController.text}", name: "${nameController.text}"');
 
-      final runner =
-          await masterRace.db.getRunnerByBib(raceRunner.runner.bibNumber!);
-      if (runner == null) {
-        final runnerId = await masterRace.db.createRunner(raceRunner.runner);
-        masterRace.db.addRunnerToTeam(raceRunner.team.teamId!, runnerId);
+    try {
+      // Create runner with form data
+      final formRunner = Runner(
+        bibNumber: bibController.text, // Use bib from form
+        name: nameController.text,
+        grade: int.tryParse(gradeController.text),
+      );
+
+      // Find the team by name (this is a bit hacky, but necessary since teamController only has the name)
+      final teams = await masterRace.teams;
+      final selectedTeam = teams.firstWhere(
+        (team) => team.name == teamController.text,
+        orElse: () => raceRunner.team, // fallback to original team
+      );
+      Logger.d(
+          'Selected team: ${selectedTeam.name} (id: ${selectedTeam.teamId}) for new runner');
+
+      // Create new raceRunner with form data
+      final formRaceRunner = RaceRunner(
+        raceId: raceRunner.raceId,
+        runner: formRunner,
+        team: selectedTeam,
+      );
+
+      // Check if runner already exists by bib
+      final existingRunner =
+          await masterRace.db.getRunnerByBib(formRunner.bibNumber!);
+
+      int runnerId;
+      if (existingRunner == null) {
+        // Create new runner and get the ID
+        runnerId = await masterRace.db.createRunner(formRunner);
+        masterRace.db.addRunnerToTeam(selectedTeam.teamId!, runnerId);
+      } else {
+        // Runner already exists, use existing ID
+        runnerId = existingRunner.runnerId!;
       }
+
+      // Update the raceRunner with the correct runner ID
+      final updatedRaceRunner = RaceRunner(
+        raceId: formRaceRunner.raceId,
+        runner: formRunner.copyWith(runnerId: runnerId),
+        team: selectedTeam,
+      );
 
       // Add runner to the race
       await masterRace.addRaceParticipant(RaceParticipant(
-          raceId: raceId, runnerId: raceRunner.runner.runnerId!, teamId: raceRunner.team.teamId!));
+          raceId: raceId, runnerId: runnerId, teamId: selectedTeam.teamId!));
 
       // Return the updated records immediately
-      onComplete(raceRunner);
+      Logger.d(
+          'Created new RaceRunner: ${updatedRaceRunner.runner.name} (bib: ${updatedRaceRunner.runner.bibNumber}, team: ${updatedRaceRunner.team.name})');
+      onComplete(updatedRaceRunner);
     } catch (e) {
       Logger.e('Error creating new runner: $e');
       if (context.mounted) {
@@ -135,6 +185,7 @@ class ResolveBibNumberController with ChangeNotifier {
     nameController.dispose();
     gradeController.dispose();
     teamController.dispose();
+    bibController.dispose();
     masterRace.removeListener(() {
       notifyListeners();
     });

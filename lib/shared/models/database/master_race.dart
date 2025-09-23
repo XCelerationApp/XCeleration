@@ -130,7 +130,7 @@ class MasterRace with ChangeNotifier {
 
   /// Get race results (lazy loaded and sorted by place)
   Future<List<RaceResult>> get results async {
-    if ((await race).flowState != 'FINISHED') {
+    if ((await race).flowState != Race.FLOW_FINISHED) {
       throw Exception('Race is not finished');
     }
     if (_results == null) {
@@ -297,6 +297,7 @@ class MasterRace with ChangeNotifier {
     if (result.raceId == null) {
       result = result.copyWith(raceId: raceId);
     }
+
     if (result.raceId != raceId) {
       throw Exception('Race result race ID does not match race ID');
     }
@@ -339,7 +340,21 @@ class MasterRace with ChangeNotifier {
 
   Future<RaceRunner?> getRaceRunnerByBib(String bibNumber) async {
     final raceRunnersList = await raceRunners;
-    return raceRunnersList.firstWhere((r) => r.runner.bibNumber == bibNumber);
+    // Try exact match first
+    for (final r in raceRunnersList) {
+      if (r.runner.bibNumber == bibNumber) return r;
+    }
+
+    // Fallback: compare after trimming leading zeros
+    String normalize(String? bib) =>
+        (bib ?? '').replaceFirst(RegExp(r'^0+'), '');
+    final normalizedQuery = normalize(bibNumber);
+    for (final r in raceRunnersList) {
+      if (normalize(r.runner.bibNumber) == normalizedQuery) return r;
+    }
+
+    // Not found
+    return null;
   }
 
   /// Search runners by query (name, bib, team, grade)
@@ -449,10 +464,12 @@ class MasterRace with ChangeNotifier {
   void invalidateCache() {
     _race = null;
     _raceParticipants = null;
+    _raceRunners = null;
     _teams = null;
     _results = null;
     _teamRaceRunnersMap = null;
     _raceParticipantToRaceRunnerMap = null;
+    _filteredSearchResults = null;
     notifyListeners();
   }
 
@@ -494,8 +511,8 @@ class MasterRace with ChangeNotifier {
 
   Future<void> _loadResults() async {
     final resultsData = await DatabaseHelper.instance.getRaceResults(raceId);
-    _results =
-        resultsData.map((data) => RaceResult.fromMap(data.toMap())).toList();
+    // Store the results directly - they already have all the joined data
+    _results = resultsData;
     notifyListeners();
   }
 }

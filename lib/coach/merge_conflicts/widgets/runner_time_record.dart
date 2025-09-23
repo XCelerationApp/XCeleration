@@ -61,8 +61,7 @@ class RunnerTimeRecord extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     if (place != null) ...[
-                      PlaceNumber(
-                          place: place, color: conflictColor),
+                      PlaceNumber(place: place, color: conflictColor),
                       const SizedBox(width: 10),
                     ],
                     Expanded(
@@ -90,18 +89,40 @@ class RunnerTimeRecord extends StatelessWidget {
                     horizontal: 14), // Remove vertical padding
                 child: SizedBox.expand(
                   child: hasConflict
-                  ? (chunk.conflict.type == ConflictType.missingTime
-                    ? MissingTimeCell(
-                      controller: record.timeController,
-                      time: time,
-                      onSubmitted: (newValue) => chunk.onMissingTimeSubmitted(context, chunkIndex, newValue),
-                      onChanged: (newValue) => chunk.onMissingTimeChanged(context, chunkIndex, newValue),
-                    )
-                    : ExtraTimeCell(
-                      time: time,
-                      onRemoveExtraTime: () => chunk.onRemoveExtraTime(chunkIndex),
-                    ))
-                  : ConfirmedRunnerTimeCell(time: time),
+                      ? (chunk.conflict.type == ConflictType.extraTime
+                          ? ExtraTimeCell(
+                              time: time,
+                              onRemoveExtraTime: () =>
+                                  chunk.onRemoveExtraTime(chunkIndex),
+                            )
+                          : Builder(
+                              builder: (context) {
+                                final shouldAutofocus =
+                                    chunk.lastInsertedIndex == chunkIndex;
+                                if (shouldAutofocus) {
+                                  // Clear the last inserted index after it's been used
+                                  chunk.lastInsertedIndex = null;
+                                }
+                                return MissingTimeCell(
+                                  controller: record.timeController,
+                                  time: time,
+                                  onSubmitted: (newValue) =>
+                                      chunk.onMissingTimeSubmitted(
+                                          context, chunkIndex, newValue),
+                                  onChanged: (newValue) =>
+                                      chunk.onMissingTimeChanged(
+                                          context, chunkIndex, newValue),
+                                  onAddTime:
+                                      chunk.shouldShowPlusButton(chunkIndex)
+                                          ? () => chunk.insertTimeAt(chunkIndex)
+                                          : null,
+                                  validationError:
+                                      chunk.validateTimeOrder(chunkIndex),
+                                  autofocus: shouldAutofocus,
+                                );
+                              },
+                            ))
+                      : ConfirmedRunnerTimeCell(time: time),
                 ),
               ),
             ),

@@ -95,6 +95,7 @@ CREATE TABLE IF NOT EXISTS race_results (
   uuid TEXT UNIQUE,
   race_id INTEGER NOT NULL,
   runner_id INTEGER NOT NULL,
+  team_id INTEGER,  -- Added team_id column
   place INTEGER,
   finish_time INTEGER,
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
@@ -103,6 +104,7 @@ CREATE TABLE IF NOT EXISTS race_results (
   is_dirty INTEGER NOT NULL DEFAULT 0,
   FOREIGN KEY (race_id) REFERENCES races(race_id) ON DELETE CASCADE,
   FOREIGN KEY (runner_id) REFERENCES runners(runner_id) ON DELETE CASCADE,
+  FOREIGN KEY (team_id) REFERENCES teams(team_id) ON DELETE CASCADE,
   UNIQUE (race_id, runner_id),
   UNIQUE (race_id, place)
 );

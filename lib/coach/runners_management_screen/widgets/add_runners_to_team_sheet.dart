@@ -36,43 +36,45 @@ class _AddRunnersToTeamSheetState extends State<AddRunnersToTeamSheet> {
           bottom: 16 + MediaQuery.of(context).viewInsets.bottom,
           top: 8,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 4),
-            const Text(
-              'Choose how you want to add runners to this team',
-              style: TextStyle(color: Colors.black54),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: widget.onRequestManualAdd,
-                icon: const Icon(Icons.person_add_alt_1),
-                label: const Text('Add Runner'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryColor,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 4),
+              const Text(
+                'Choose how you want to add runners to this team',
+                style: TextStyle(color: Colors.black54),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: widget.onRequestManualAdd,
+                  icon: const Icon(Icons.person_add_alt_1),
+                  label: const Text('Add Runner'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryColor,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () async {
-                  final tempController = RunnersManagementController(
-                      masterRace: widget.masterRace);
-                  await tempController.loadSpreadsheet(context, widget.team);
-                },
-                icon: const Icon(Icons.upload_file),
-                label: const Text('Import From Spreadsheet'),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    final tempController = RunnersManagementController(
+                        masterRace: widget.masterRace);
+                    await tempController.loadSpreadsheet(context, widget.team);
+                  },
+                  icon: const Icon(Icons.upload_file),
+                  label: const Text('Import From Spreadsheet'),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

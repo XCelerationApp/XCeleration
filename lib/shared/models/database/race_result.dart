@@ -106,6 +106,7 @@ class RaceResult {
     final Map<String, dynamic> map = {
       'race_id': raceId,
       'runner_id': runner?.runnerId,
+      'team_id': team?.teamId, // Added missing team_id
       'place': place,
       'finish_time': finishTime?.inMilliseconds,
       'created_at': createdAt?.toIso8601String(),
@@ -214,8 +215,7 @@ class RaceResult {
   }
 
   bool get isValid {
-    return resultId != null &&
-        raceId != null &&
+    return raceId != null &&
         runner != null &&
         runner!.isValid &&
         team != null &&

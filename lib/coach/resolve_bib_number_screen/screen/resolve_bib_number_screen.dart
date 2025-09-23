@@ -44,12 +44,40 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
     );
     _controller.setContext(context);
     _loadTeams();
+
+    // Detect conflict type and set up form accordingly
+    _setupFormForConflictType();
+
     // Ensure "Choose Existing Runner" is selected by default
     _controller.showCreateNew = false;
     // Initialize search with empty query to load all available runners
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _controller.searchRunners('');
     });
+  }
+
+  void _setupFormForConflictType() {
+    // Check if this is an unknown bib conflict (bib set, other fields empty)
+    // or duplicate bib conflict (all fields populated)
+    final isUnknownConflict = widget.raceRunner.runner.name == null ||
+        widget.raceRunner.runner.name!.isEmpty ||
+        widget.raceRunner.runner.grade == null ||
+        widget.raceRunner.team.name == null ||
+        widget.raceRunner.team.name!.isEmpty;
+
+    if (isUnknownConflict) {
+      // For unknown conflicts, prefill the bib number
+      _controller.bibController.text = widget.raceRunner.runner.bibNumber ?? '';
+    } else {
+      // For duplicate conflicts, leave bib number empty so user can choose new one
+      _controller.bibController.text = '';
+    }
+
+    // Always leave name, grade, and team fields empty for manual entry
+    // Only the bib field differs between conflict types
+    _controller.nameController.text = '';
+    _controller.gradeController.text = '';
+    _controller.teamController.text = '';
   }
 
   @override
@@ -86,6 +114,7 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
     _controller.nameController.text = raceRunner.runner.name!;
     _controller.gradeController.text = raceRunner.runner.grade!.toString();
     _controller.teamController.text = raceRunner.team.name!;
+    _controller.bibController.text = raceRunner.runner.bibNumber!;
 
     // Now call the controller's method to create the runner
     await _controller.createNewRunner();
@@ -110,7 +139,8 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
           getRunnerByBib: _controller.masterRace.db.getRunnerByBib,
           submitButtonText: 'Create New Runner',
           useSheetLayout: false,
-          showBibField: false,
+          showBibField: true,
+          bibController: _controller.bibController,
         ),
       ),
     );

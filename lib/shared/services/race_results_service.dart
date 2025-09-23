@@ -2,25 +2,23 @@ import '../models/database/race_result.dart';
 import '../models/database/team.dart';
 import '../models/database/master_race.dart';
 import '../../coach/race_results/model/team_record.dart';
+import '../../coach/race_results/model/results_record.dart';
+import '../../core/utils/logger.dart';
 import 'package:collection/collection.dart';
 
 /// Service for calculating and processing race results
 class RaceResultsService {
-  /// Calculate team results from race results using the sophisticated controller logic
+  /// Calculate team results from race results
   static List<TeamRecord> calculateTeamResults(List<RaceResult> allResults) {
+    // Group results by team and create TeamRecord objects
+    // Results should already be sorted by finish time from calculateIndividualResults
     final teams = _getTeamsFromResults(allResults);
-    final teamsCopy = teams.map((r) => TeamRecord.from(r)).toList();
-    final scoringRunners = teamsCopy
-        .where((r) => r.score != 0)
-        .map((r) => r.topSeven)
-        .expand((r) => r)
-        .toList();
-    updateResultsPlaces(scoringRunners);
-    final scoredTeams = _getTeamsFromResults(allResults);
-    for (var i = 0; i < teams.length; i++) {
-      teams[i].score = scoredTeams[i].score;
-      teams[i].place = scoredTeams[i].place;
+
+    // Ensure runners within each team are sorted by their finish time
+    for (final team in teams) {
+      team.runners.sort((a, b) => a.compareTimeTo(b));
     }
+
     return teams;
   }
 
@@ -45,6 +43,24 @@ class RaceResultsService {
     updateResultsPlaces(results);
     // Create deep copies to prevent reference issues
     return results.map((r) => RaceResult.copy(r)).toList();
+  }
+
+  /// Convert RaceResult objects to ResultsRecord objects for UI display
+  static List<ResultsRecord> convertToResultsRecords(
+      List<RaceResult> raceResults) {
+    return raceResults.map((raceResult) {
+      return ResultsRecord(
+        place: raceResult.place ?? 0,
+        name: raceResult.runner?.name ?? 'Unknown',
+        team: raceResult.team?.name ?? 'Unknown',
+        teamAbbreviation: raceResult.team?.abbreviation ?? 'N/A',
+        grade: raceResult.runner?.grade ?? 0,
+        bib: raceResult.runner?.bibNumber ?? '',
+        raceId: raceResult.raceId ?? 0,
+        runnerId: raceResult.runner?.runnerId ?? 0,
+        finishTime: raceResult.finishTime ?? Duration.zero,
+      );
+    }).toList();
   }
 
   /// Calculate head-to-head matchups between teams
@@ -111,33 +127,39 @@ class RaceResultsService {
   /// Complete race results calculation - main orchestrator function
   static Future<RaceResultsData> calculateCompleteRaceResults(
       MasterRace masterRace) async {
+    Logger.d('RaceResultsService: Starting calculateCompleteRaceResults');
     // Get race name from database
     String resultsTitle = 'Race Results';
     try {
       final race = await masterRace.race;
       final raceName = race.raceName!;
       resultsTitle = '${raceName.isNotEmpty ? raceName : 'Race'} Results';
+      Logger.d('RaceResultsService: Got race name: $resultsTitle');
     } catch (e) {
+      Logger.d('RaceResultsService: Error getting race name: $e');
       resultsTitle = 'Race Results';
     }
 
+    Logger.d('RaceResultsService: Fetching race results from database');
     // Get race results from database
     final List<RaceResult> results = await masterRace.results;
+    Logger.d('RaceResultsService: Got ${results.length} race results');
 
     if (results.isEmpty) {
       return RaceResultsData(
         resultsTitle: resultsTitle,
-        individualResults: [],
+        individualResults: <ResultsRecord>[],
         overallTeamResults: [],
         headToHeadTeamResults: [],
       );
     }
 
     // Calculate individual results
-    final individualResults = calculateIndividualResults(results);
+    final raceResults = calculateIndividualResults(results);
+    final individualResults = convertToResultsRecords(raceResults);
 
     // Calculate team results
-    final teamResults = calculateTeamResults(results);
+    final teamResults = calculateTeamResults(raceResults);
     sortAndPlaceTeams(teamResults);
 
     // DEEP COPY: Create completely independent copies for team results
@@ -204,7 +226,7 @@ class RaceResultsService {
 /// Data class to hold complete race results
 class RaceResultsData {
   final String resultsTitle;
-  final List<RaceResult> individualResults;
+  final List<ResultsRecord> individualResults;
   final List<TeamRecord> overallTeamResults;
   final List<List<TeamRecord>> headToHeadTeamResults;
 

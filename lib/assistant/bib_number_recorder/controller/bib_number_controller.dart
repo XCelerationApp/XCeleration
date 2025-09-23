@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/theme/app_colors.dart';
 import 'package:xceleration/core/theme/typography.dart';
+import 'package:xceleration/core/utils/encode_utils.dart';
 import 'package:xceleration/core/utils/enums.dart' hide RunnerRecordFlags;
 import '../../../core/components/dialog_utils.dart';
 import '../../../core/services/tutorial_manager.dart';
@@ -145,10 +146,9 @@ class BibNumberController extends BibNumberDataController {
 
         Logger.d('Runners received: $loadedRunners');
 
-        final runnerInCorrectFormat = loadedRunners.every((runner) =>
-            runner.bib.isNotEmpty &&
-            runner.name.isNotEmpty &&
-            runner.teamAbbreviation.isNotEmpty);
+        // Accept entries with only bib present; optional fields may be resolved later
+        final runnerInCorrectFormat =
+            loadedRunners.every((runner) => runner.isValid);
 
         if (!runnerInCorrectFormat) {
           Logger.e(
@@ -339,20 +339,20 @@ class BibNumberController extends BibNumberDataController {
                         Expanded(
                           flex: 3,
                           child: Text(
-                            runner.name,
+                            runner.name!,
                             style: const TextStyle(fontSize: 15),
                           ),
                         ),
                         Expanded(
                           flex: 2,
                           child: Text(
-                            runner.teamAbbreviation,
+                            runner.teamAbbreviation!,
                             style: const TextStyle(fontSize: 15),
                           ),
                         ),
                         Expanded(
                           child: Text(
-                            runner.grade,
+                            runner.grade!,
                             style: const TextStyle(fontSize: 15),
                           ),
                         ),
@@ -413,7 +413,7 @@ class BibNumberController extends BibNumberDataController {
         DeviceConnectionService.createDevices(
           DeviceName.bibRecorder,
           DeviceType.advertiserDevice,
-          data: getEncodedBibData(),
+          data: await getEncodedBibData(),
         ),
       ),
     );
@@ -531,12 +531,10 @@ class BibNumberController extends BibNumberDataController {
   }
 
   void addBib() {
-    if (bibRecords.isEmpty) {
+    if (bibRecords.isEmpty || bibRecords.last.bib.isNotEmpty) {
       handleBibNumber('');
-    } else if (bibRecords.last.bib.isEmpty) {
-      focusNodes.last.requestFocus();
     } else {
-      handleBibNumber('');
+      focusNodes.last.requestFocus();
     }
   }
 
@@ -558,7 +556,7 @@ class BibNumberController extends BibNumberDataController {
         updateBibRecord(index, updatedRecord);
 
         // Debounce the validation to prevent rapid UI updates while typing
-        _debounceTimer = Timer(const Duration(milliseconds: 300), () async {
+        _debounceTimer = Timer(const Duration(milliseconds: 500), () async {
           await validateBibNumber(index, bibNumber);
         });
       }
@@ -581,7 +579,7 @@ class BibNumberController extends BibNumberDataController {
       });
 
       // After adding a new record, we don't need to immediately validate
-      _debounceTimer = Timer(const Duration(milliseconds: 300), () async {
+      _debounceTimer = Timer(const Duration(milliseconds: 500), () async {
         final newIndex = _bibRecords.length - 1;
         if (newIndex >= 0) {
           await validateBibNumber(newIndex, bibNumber);
@@ -593,7 +591,7 @@ class BibNumberController extends BibNumberDataController {
     // Only do this on explicit user actions like adding/removing items
     if (index == null) {
       // Validate all bib numbers to update duplicate states after a delay
-      _debounceTimer = Timer(const Duration(milliseconds: 400), () async {
+      _debounceTimer = Timer(const Duration(milliseconds: 600), () async {
         for (var i = 0; i < _bibRecords.length; i++) {
           if (i != index) {
             // Skip the one we're currently editing
@@ -798,9 +796,8 @@ class BibNumberDataController extends ChangeNotifier {
   }
 
   /// Gets the encoded bib data for sharing
-  String getEncodedBibData() {
-    final bibNumbers = _bibRecords.map((e) => e.bib).toList();
-    return bibNumbers.join(',');
+  Future<String> getEncodedBibData() async {
+    return await BibEncodeUtils.getEncodedBibData(_bibRecords);
   }
 
   /// Returns all unique bib numbers and the corresponding runner records

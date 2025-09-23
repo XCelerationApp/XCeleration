@@ -10,7 +10,7 @@ class BibDecodeUtils {
   /// Decodes encoded runner data
   static Future<List<BibDatum>?> decodeEncodedRunners(
       String encodedBibData, BuildContext context) async {
-    try {  
+    try {
       // Parallelize the decoding operations
       final futures = encodedBibData.split(' ').map((encodedBibDatum) async {
         encodedBibDatum = encodedBibDatum.trim();
@@ -26,7 +26,10 @@ class BibDecodeUtils {
       });
 
       final results = await Future.wait(futures);
-      return results.where((result) => result != null).cast<BibDatum>().toList();
+      return results
+          .where((result) => result != null)
+          .cast<BibDatum>()
+          .toList();
     } catch (e) {
       Logger.e('Error processing data: $e');
       if (context.mounted) {
@@ -56,7 +59,8 @@ class TimingDecodeUtils {
     }
 
     // Parallelize the decoding operations
-    final futures = encodedTimingData.split(',').map((encodedTimingDatum) async {
+    final futures =
+        encodedTimingData.split(',').map((encodedTimingDatum) async {
       encodedTimingDatum = encodedTimingDatum.trim();
       if (encodedTimingDatum.isEmpty) {
         return null;
@@ -70,6 +74,9 @@ class TimingDecodeUtils {
     });
 
     final results = await Future.wait(futures);
-    return results.where((result) => result != null).cast<TimingDatum>().toList();
+    return results
+        .where((result) => result != null)
+        .cast<TimingDatum>()
+        .toList();
   }
 }

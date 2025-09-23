@@ -80,7 +80,10 @@ Future<dynamic> sheet(
     bool takeUpScreen = false,
     bool useRootNavigator = false,
     bool useBottomPadding = true}) async {
-  return await showModalBottomSheet(
+
+  // Ensure no underlying input keeps focus when presenting the sheet
+  FocusManager.instance.primaryFocus?.unfocus();
+  final result = await showModalBottomSheet(
     backgroundColor: Colors.transparent,
     context: context,
     isScrollControlled: true,
@@ -118,4 +121,8 @@ Future<dynamic> sheet(
       ),
     ),
   );
+
+  // Dismiss any lingering focus (and keyboard) after the sheet closes
+  FocusManager.instance.primaryFocus?.unfocus();
+  return result;
 }

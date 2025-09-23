@@ -100,6 +100,7 @@ class _SignInScreenState extends State<SignInScreen>
       if (e is gotrue.AuthApiException && e.code == 'user_already_exists') {
         if (mounted) setState(() => _isLogin = true);
       }
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message)),
       );
@@ -297,7 +298,7 @@ class _SignInScreenState extends State<SignInScreen>
                                       await AuthService.instance
                                           .sendPasswordResetEmail(
                                               _emailController.text.trim());
-                                      if (mounted) {
+                                      if (context.mounted) {
                                         ScaffoldMessenger.of(context)
                                             .showSnackBar(
                                           const SnackBar(
@@ -370,7 +371,7 @@ class _SignInScreenState extends State<SignInScreen>
           width: size,
           height: size,
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.08),
+            color: Colors.white.withValues(alpha: 0.08),
             shape: BoxShape.circle,
           ),
         ),

@@ -92,7 +92,7 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
   Future<void> _refreshRaceData() async {
     final controller = Provider.of<RaceController>(context, listen: false);
     // Controller handles its own refresh state
-    await controller.loadRace();
+    await controller.refreshRaceData(context);
   }
 
   @override

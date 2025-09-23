@@ -20,12 +20,13 @@ class DatabaseHelper {
   Future<Database> get databaseConn async => await _database;
 
   Future<Database> _initDB(String fileName) async {
+    // await deleteDatabase();
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, fileName);
 
     return await openDatabase(
       path,
-      version: 12,
+      version: 13,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -633,9 +634,19 @@ class DatabaseHelper {
   }
 
   Future<void> addRaceResult(RaceResult result) async {
-    if (await getRaceResult(result) != null) {
-      throw Exception('RaceResult already exists');
+    // Check if result already exists using a simpler query that doesn't require full validation
+    if (result.raceId != null && result.runner?.runnerId != null) {
+      final db = await _database;
+      final existingResults = await db.query(
+        'race_results',
+        where: 'race_id = ? AND runner_id = ?',
+        whereArgs: [result.raceId, result.runner!.runnerId],
+      );
+      if (existingResults.isNotEmpty) {
+        throw Exception('RaceResult already exists');
+      }
     }
+
     final db = await _database;
     final rr = result.toMap();
     rr['is_dirty'] = 1;
@@ -644,9 +655,12 @@ class DatabaseHelper {
   }
 
   Future<RaceResult?> getRaceResult(RaceResult raceResult) async {
-    if (!raceResult.isValid) {
-      throw Exception('RaceResult is not valid');
+    // For existence checks, we only need raceId and runnerId to be set
+    if (raceResult.raceId == null || raceResult.runner?.runnerId == null) {
+      throw Exception(
+          'RaceResult must have raceId and runnerId to check existence');
     }
+
     final db = await _database;
     final results = await db.query(
       'race_results',
@@ -658,23 +672,27 @@ class DatabaseHelper {
 
   Future<List<RaceResult>> getRaceResults(int raceId) async {
     final db = await _database;
+
     final results = await db.rawQuery('''
-      SELECT 
+      SELECT
         rr.runner_id,
         r.bib_number,
         r.name,
+        rr.team_id,
         t.name as team_name,
+        t.abbreviation as team_abbreviation,
+        t.color as team_color,
         r.grade,
         rr.place,
         rr.finish_time,
         rr.race_id
       FROM race_results rr
       JOIN runners r ON rr.runner_id = r.runner_id
-      JOIN race_participants rp ON r.runner_id = rp.runner_id AND rr.race_id = rp.race_id
-      JOIN teams t ON rp.team_id = t.team_id
+      LEFT JOIN teams t ON rr.team_id = t.team_id
       WHERE rr.race_id = ?
       ORDER BY rr.place
     ''', [raceId]);
+
     return results.map((map) => RaceResult.fromMap(map)).toList();
   }
 

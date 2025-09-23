@@ -31,7 +31,7 @@ class Team {
       uuid: map['uuid'],
       name: map['name'],
       abbreviation: map['abbreviation'],
-      color: Color(map['color']),
+      color: Color(map['color'] ?? 0xFF2196F3), // Default blue if null
       createdAt:
           map['created_at'] != null ? DateTime.parse(map['created_at']) : null,
       updatedAt:

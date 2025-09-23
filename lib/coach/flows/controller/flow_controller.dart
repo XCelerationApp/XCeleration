@@ -20,14 +20,14 @@ class MasterFlowController {
   late PostRaceController postRaceController;
 
   MasterFlowController({required this.raceController}) {
-    preRaceController = PreRaceController(masterRace: raceController.masterRace);
-    postRaceController = PostRaceController(masterRace: raceController.masterRace);
+    preRaceController =
+        PreRaceController(masterRace: raceController.masterRace);
+    postRaceController =
+        PostRaceController(masterRace: raceController.masterRace);
   }
 
   /// Continue the race flow based on the current state
   Future<void> continueRaceFlow(BuildContext context) async {
-
-
     // Check if context is still mounted after async operation
     if (!context.mounted) return;
 
@@ -42,8 +42,8 @@ class MasterFlowController {
   }
 
   /// Update the race flow state
-  Future<void> updateRaceFlowState(BuildContext context, String newState) async {
-    
+  Future<void> updateRaceFlowState(
+      BuildContext context, String newState) async {
     await raceController.updateRaceFlowState(context, newState);
 
     Logger.d(

@@ -182,7 +182,7 @@ class _CollapsibleResultsWidgetState extends State<CollapsibleResultsWidget> {
         ),
         Expanded(
             flex: 2,
-            child: Text(team.team.abbreviation!,
+            child: Text(team.team.abbreviation ?? 'N/A',
                 style: AppTypography.bodyRegular,
                 overflow: TextOverflow.ellipsis)),
         Expanded(

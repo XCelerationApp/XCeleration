@@ -45,7 +45,7 @@ class BibInputWidget extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  if (record.name.isNotEmpty && !record.hasErrors)
+                  if (record.name!.isNotEmpty && !record.hasErrors)
                     _buildRunnerInfo()
                   else if (record.hasErrors)
                     _buildErrorText(),

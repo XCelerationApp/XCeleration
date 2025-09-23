@@ -801,8 +801,9 @@ class RaceController with ChangeNotifier {
   }
 
   /// Refresh race data from database
-  Future<void> refreshRaceData() async {
-    if (_lastContext == null || !_lastContext!.mounted) {
+  Future<void> refreshRaceData([BuildContext? context]) async {
+    final contextToUse = context ?? _lastContext;
+    if (contextToUse == null || !contextToUse.mounted) {
       return;
     }
 
@@ -810,7 +811,7 @@ class RaceController with ChangeNotifier {
     masterRace.invalidateCache();
 
     // Reload all data
-    await _loadData(isInitial: false, context: _lastContext!);
+    await _loadData(isInitial: false, context: contextToUse);
   }
 
   /// Check if we should show confirmation dialog before editing runners

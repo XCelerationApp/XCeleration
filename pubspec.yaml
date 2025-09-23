@@ -110,6 +110,7 @@ flutter:
     - assets/sounds/click.mp3
     - assets/sounds/completed_ding.mp3
     - assets/sample_sheets/
+    - assets/fonts/
     - .env
 
   fonts:
