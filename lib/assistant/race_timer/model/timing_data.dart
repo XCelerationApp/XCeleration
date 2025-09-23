@@ -99,10 +99,16 @@ class TimingData with ChangeNotifier {
   }
 
   void reduceCurrentConflictByOne({String? newTime}) {
-    currentChunk.conflictRecord!.time =
-        newTime ?? currentChunk.conflictRecord!.time;
-    currentChunk.conflictRecord!.conflict!.offBy--;
-    if (currentChunk.conflictRecord!.conflict!.offBy == 0) {
+    if (currentChunk.conflictRecord == null ||
+        currentChunk.conflictRecord!.conflict == null) {
+      return;
+    }
+    if (newTime != null) {
+      currentChunk.conflictRecord!.time = newTime;
+    }
+    final Conflict conflict = currentChunk.conflictRecord!.conflict!;
+    conflict.offBy = conflict.offBy - 1;
+    if (conflict.offBy <= 0) {
       currentChunk.conflictRecord = null;
     }
     notifyListeners();
@@ -145,12 +151,17 @@ class TimingData with ChangeNotifier {
   Future<String> encodedRecords() async {
     final List<TimingChunk> chunks = [];
     if (!currentChunk.isEmpty) {
-      if (!currentChunk.hasConflict && endTime != null) {
-        currentChunk.conflictRecord = TimingDatum(
-            time: endTime!.toString(),
-            conflict: Conflict(type: ConflictType.confirmRunner));
-      }
-      chunks.add(currentChunk);
+      final bool shouldAddConfirm =
+          !currentChunk.hasConflict && endTime != null;
+      final TimingChunk chunkToAdd = shouldAddConfirm
+          ? TimingChunk(
+              timingData: List<TimingDatum>.from(currentChunk.timingData),
+              conflictRecord: TimingDatum(
+                  time: endTime!.toString(),
+                  conflict: Conflict(type: ConflictType.confirmRunner)),
+            )
+          : currentChunk;
+      chunks.add(chunkToAdd);
     }
     while (true) {
       final TimingChunk? chunk = _chunkCacher.restoreLastChunkFromCache();

@@ -157,41 +157,49 @@ class _SignInScreenState extends State<SignInScreen>
 
     return Scaffold(
       backgroundColor: AppColors.primaryColor,
+      appBar: AppBar(
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: AppColors.backgroundColor),
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+        ),
+      ),
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         child: Stack(
           children: [
             // Floating decorative elements
-            Positioned.fill(
-              child: IgnorePointer(
-                ignoring: true,
-                child: AnimatedBuilder(
-                  animation: _floatController,
-                  builder: (context, _) {
-                    final t = _floatController.value * 2 * math.pi;
-                    return Stack(
-                      children: [
-                        _floatingCircle(
-                          alignment: Alignment(-0.8, -0.6),
-                          size: 70,
-                          verticalShift: math.sin(t) * 12,
-                        ),
-                        _floatingCircle(
-                          alignment: const Alignment(0.8, 0.3),
-                          size: 90,
-                          verticalShift: math.sin(t + 1.8) * 16,
-                        ),
-                        _floatingCircle(
-                          alignment: const Alignment(-0.3, 0.8),
-                          size: 50,
-                          verticalShift: math.sin(t + 3.2) * 10,
-                        ),
-                      ],
-                    );
-                  },
-                ),
-              ),
-            ),
+            // Positioned.fill(
+            //   child: IgnorePointer(
+            //     ignoring: true,
+            //     child: AnimatedBuilder(
+            //       animation: _floatController,
+            //       builder: (context, _) {
+            //         final t = _floatController.value * 2 * math.pi;
+            //         return Stack(
+            //           children: [
+            //             _floatingCircle(
+            //               alignment: Alignment(-0.8, -0.6),
+            //               size: 70,
+            //               verticalShift: math.sin(t) * 12,
+            //             ),
+            //             _floatingCircle(
+            //               alignment: const Alignment(0.8, 0.3),
+            //               size: 90,
+            //               verticalShift: math.sin(t + 1.8) * 16,
+            //             ),
+            //             _floatingCircle(
+            //               alignment: const Alignment(-0.3, 0.8),
+            //               size: 50,
+            //               verticalShift: math.sin(t + 3.2) * 10,
+            //             ),
+            //           ],
+            //         );
+            //       },
+            //     ),
+            //   ),
+            // ),
 
             // Content
             SafeArea(

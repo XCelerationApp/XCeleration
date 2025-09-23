@@ -13,11 +13,12 @@ import 'package:xceleration/shared/models/timing_records/timing_datum.dart';
 
 class TimingController extends TimingData {
   final ScrollController scrollController = ScrollController();
-  late final AudioPlayer audioPlayer;
+  AudioPlayer? audioPlayer;
   bool isAudioPlayerReady = false;
   BuildContext? _context;
+  final bool enableAudio;
 
-  TimingController() : super() {
+  TimingController({this.enableAudio = true}) : super() {
     _initializeControllers();
   }
 
@@ -26,14 +27,17 @@ class TimingController extends TimingData {
   }
 
   void _initializeControllers() {
-    audioPlayer = AudioPlayer();
-    _initAudioPlayer();
+    if (enableAudio) {
+      audioPlayer = AudioPlayer();
+      _initAudioPlayer();
+    }
   }
 
   Future<void> _initAudioPlayer() async {
+    if (audioPlayer == null) return;
     try {
-      await audioPlayer.setReleaseMode(ReleaseMode.stop);
-      await audioPlayer.setSource(AssetSource('sounds/click.mp3'));
+      await audioPlayer!.setReleaseMode(ReleaseMode.stop);
+      await audioPlayer!.setSource(AssetSource('sounds/click.mp3'));
       isAudioPlayerReady = true;
       notifyListeners();
     } catch (e) {
@@ -126,10 +130,10 @@ class TimingController extends TimingData {
     HapticFeedback.vibrate();
     HapticFeedback.lightImpact();
 
-    if (isAudioPlayerReady) {
+    if (isAudioPlayerReady && audioPlayer != null) {
       // Play audio without awaiting
-      audioPlayer.stop().then((_) {
-        audioPlayer.play(AssetSource('sounds/click.mp3'));
+      audioPlayer!.stop().then((_) {
+        audioPlayer!.play(AssetSource('sounds/click.mp3'));
       });
     }
   }
@@ -424,7 +428,7 @@ class TimingController extends TimingData {
   @override
   void dispose() {
     scrollController.dispose();
-    audioPlayer.dispose();
+    audioPlayer?.dispose();
     super.dispose();
   }
 }
