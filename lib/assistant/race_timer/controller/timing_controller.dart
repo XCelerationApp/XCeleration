@@ -268,18 +268,33 @@ class TimingController extends TimingData {
     return false;
   }
 
-  // void undoLastConflict() {
-  //   if (!currentChunk.hasConflict) {
-  //     Logger.d('No conflict found');
-  //     return;
-  //   }
-  //   currentChunk.conflictRecord == null;
-  //   if (currentChunk.isEmpty) {
-  //     deleteCurrentChunk();
-  //   }
-  //   scrollToBottom(scrollController);
-  //   notifyListeners();
-  // }
+  Future<void> undoLastConflict() async {
+    if (_context == null) return;
+
+    if (!currentChunk.hasConflict) {
+      DialogUtils.showErrorDialog(_context!, message: 'No conflict to undo');
+      return;
+    }
+
+    final confirmed = await DialogUtils.showConfirmationDialog(
+      _context!,
+      title: 'Undo Conflict',
+      content: 'Are you sure you want to undo the last conflict?',
+    );
+
+    if (confirmed != true) return;
+
+    // Clear the conflict record
+    currentChunk.conflictRecord = null;
+
+    // If chunk becomes empty, delete it
+    if (currentChunk.isEmpty) {
+      deleteCurrentChunk();
+    }
+
+    scrollToBottom(scrollController);
+    notifyListeners();
+  }
 
   void clearRaceTimes() {
     if (_context == null) return;
@@ -315,9 +330,13 @@ class TimingController extends TimingData {
     return DateTime.now().difference(startTime);
   }
 
-  // bool hasUndoableConflict() {
-  //   return currentChunk.hasConflict;
-  // }
+  bool get isLastRecordConflict {
+    // Show undo button when there's an active conflict in the current chunk
+    final hasConflict = currentChunk.hasConflict;
+    Logger.d(
+        'isLastRecordConflict: $hasConflict, conflictRecord: ${currentChunk.conflictRecord}');
+    return hasConflict;
+  }
 
   Future<bool> handleRecordDeletion(UIRecord record) async {
     if (_context == null) return false;
