@@ -77,7 +77,6 @@ class BibNumberController extends BibNumberDataController {
   }
 
   Future<void> _checkForRunners(BuildContext context) async {
-    return;
     if (runners.isEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         showDialog(
