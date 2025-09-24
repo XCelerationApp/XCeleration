@@ -271,15 +271,17 @@ class TimingController extends TimingData {
   Future<void> undoLastConflict() async {
     if (_context == null) return;
 
-    if (!currentChunk.hasConflict) {
-      DialogUtils.showErrorDialog(_context!, message: 'No conflict to undo');
-      return;
-    }
+    final isConflict = currentChunk.conflictRecord?.conflict?.type !=
+        ConflictType.confirmRunner;
+    final dialogTitle = isConflict ? 'Undo Conflict' : 'Undo Confirmation';
+    final dialogContent = isConflict
+        ? 'Are you sure you want to undo the last conflict?'
+        : 'Are you sure you want to undo the last confirmation?';
 
     final confirmed = await DialogUtils.showConfirmationDialog(
       _context!,
-      title: 'Undo Conflict',
-      content: 'Are you sure you want to undo the last conflict?',
+      title: dialogTitle,
+      content: dialogContent,
     );
 
     if (confirmed != true) return;
@@ -330,12 +332,14 @@ class TimingController extends TimingData {
     return DateTime.now().difference(startTime);
   }
 
-  bool get isLastRecordConflict {
-    // Show undo button when there's an active conflict in the current chunk
-    final hasConflict = currentChunk.hasConflict;
+  bool get isLastRecordUndoable {
+    // Show undo button for confirmations or conflicts
+    final isUndoable = currentChunk.conflictRecord != null ||
+        currentChunk.timingData.any(
+            (record) => record.conflict?.type == ConflictType.confirmRunner);
     Logger.d(
-        'isLastRecordConflict: $hasConflict, conflictRecord: ${currentChunk.conflictRecord}');
-    return hasConflict;
+        'isLastRecordUndoable: $isUndoable, conflictRecord: ${currentChunk.conflictRecord}');
+    return isUndoable;
   }
 
   Future<bool> handleRecordDeletion(UIRecord record) async {

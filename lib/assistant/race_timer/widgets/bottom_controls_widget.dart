@@ -44,7 +44,7 @@ class BottomControlsWidget extends StatelessWidget {
 
   Widget _buildMainControlButton() {
     // Show undo button if last record is a conflict, otherwise show confirm button
-    if (controller.isLastRecordConflict) {
+    if (controller.isLastRecordUndoable) {
       return _buildControlButton(
         icon: Icons.undo,
         color: Colors.grey[700]!,
