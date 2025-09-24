@@ -90,7 +90,14 @@ class RaceControlsWidget extends StatelessWidget {
             controller.clearBibRecords();
           }
         } else if (controller.isRecording && controller.canAddBib) {
-          controller.addBib();
+          await controller.addBib();
+        } else if (!controller.isRecording && controller.bibRecords.isEmpty) {
+          // Show message when Add button is clicked but race is not running
+          await DialogUtils.showMessageDialog(
+            context,
+            title: 'Race Not Started',
+            message: 'Please start the race before adding bib numbers',
+          );
         }
       },
     );

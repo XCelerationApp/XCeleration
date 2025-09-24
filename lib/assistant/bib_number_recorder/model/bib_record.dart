@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:xceleration/shared/models/timing_records/bib_datum.dart';
 
 class BibDatumRecord extends BibDatum {
@@ -8,6 +9,7 @@ class BibDatumRecord extends BibDatum {
     required super.name,
     required super.teamAbbreviation,
     required super.grade,
+    super.teamColor,
     this.flags = const BibDatumRecordFlags(
       notInDatabase: false,
       duplicateBibNumber: false,
@@ -35,6 +37,7 @@ class BibDatumRecord extends BibDatum {
       name: datum.name,
       teamAbbreviation: datum.teamAbbreviation,
       grade: datum.grade,
+      teamColor: datum.teamColor,
       flags: flags,
     );
   }
@@ -44,6 +47,7 @@ class BibDatumRecord extends BibDatum {
     String? name,
     String? teamAbbreviation,
     String? grade,
+    Color? teamColor,
     BibDatumRecordFlags? flags,
   }) {
     return BibDatumRecord(
@@ -51,6 +55,7 @@ class BibDatumRecord extends BibDatum {
       name: name ?? this.name,
       teamAbbreviation: teamAbbreviation ?? this.teamAbbreviation,
       grade: grade ?? this.grade,
+      teamColor: teamColor ?? this.teamColor,
       flags: flags ?? this.flags,
     );
   }

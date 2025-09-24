@@ -45,7 +45,9 @@ class BibInputWidget extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  if (record.name!.isNotEmpty && !record.hasErrors)
+                  if (record.name != null &&
+                      record.name!.isNotEmpty &&
+                      !record.hasErrors)
                     _buildRunnerInfo()
                   else if (record.hasErrors)
                     _buildErrorText(),
@@ -105,13 +107,13 @@ class BibInputWidget extends StatelessWidget {
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Show a visual indicator of successful match
+          // Show team color indicator if available, otherwise green success indicator
           Container(
             width: 8,
             height: 8,
             margin: const EdgeInsets.only(right: 8),
-            decoration: const BoxDecoration(
-              color: Colors.green,
+            decoration: BoxDecoration(
+              color: record.teamColor ?? Colors.green,
               shape: BoxShape.circle,
             ),
           ),

@@ -77,6 +77,7 @@ class BibNumberController extends BibNumberDataController {
   }
 
   Future<void> _checkForRunners(BuildContext context) async {
+    return;
     if (runners.isEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         showDialog(
@@ -508,6 +509,7 @@ class BibNumberController extends BibNumberDataController {
         name: matchedRunner.name,
         teamAbbreviation: matchedRunner.teamAbbreviation,
         grade: matchedRunner.grade,
+        teamColor: matchedRunner.teamColor,
         flags: BibDatumRecordFlags(
           notInDatabase: false,
           duplicateBibNumber: isDuplicate,
@@ -530,9 +532,10 @@ class BibNumberController extends BibNumberDataController {
     }
   }
 
-  void addBib() {
+  Future<void> addBib() async {
     if (bibRecords.isEmpty || bibRecords.last.bib.isNotEmpty) {
-      handleBibNumber('');
+      await handleBibNumber('');
+      focusNodes.last.requestFocus();
     } else {
       focusNodes.last.requestFocus();
     }
@@ -672,6 +675,8 @@ class BibNumberDataController extends ChangeNotifier {
   bool get canAddBib {
     if (_bibRecords.isEmpty) return true;
     final BibDatumRecord lastBib = _bibRecords.last;
+    // Only prevent adding if the last bib is completely empty AND has focus
+    // If the last bib has content (even if runner not found), allow adding
     if (lastBib.bib.isEmpty && focusNodes.last.hasPrimaryFocus) return false;
     return true;
   }

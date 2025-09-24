@@ -304,6 +304,7 @@ class RaceStatusHeaderWidget extends StatelessWidget {
               fontWeight: FontWeight.w600,
             ),
           ),
+          const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -337,10 +338,14 @@ class RaceStatusHeaderWidget extends StatelessWidget {
                   ),
                 )
               else if (runnerCount != null)
-                Text(
-                  'Runners: $runnerCount',
-                  style: AppTypography.bodySemibold.copyWith(
-                    color: Colors.black87,
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 0, vertical: 6),
+                  child: Text(
+                    'Runners: $runnerCount',
+                    style: AppTypography.bodySemibold.copyWith(
+                      color: Colors.black87,
+                    ),
                   ),
                 ),
               if (recordCount != null) ...[
