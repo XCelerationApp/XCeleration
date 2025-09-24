@@ -14,13 +14,13 @@ class RaceInfoHeaderWidget extends StatelessWidget {
     Color statusColor;
 
     if (controller.isRecording) {
-      status = 'Race in progress';
+      status = 'In progress';
       statusColor = AppColors.primaryColor;
     } else if (controller.bibRecords.isNotEmpty) {
-      status = 'Race finished';
+      status = 'Finished';
       statusColor = Colors.green[700]!;
     } else {
-      status = 'Ready to start';
+      status = 'Ready';
       statusColor = Colors.black54;
     }
 

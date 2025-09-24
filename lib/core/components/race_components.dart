@@ -294,8 +294,8 @@ class RaceStatusHeaderWidget extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: ColorUtils.withOpacity(Colors.grey, 0.2)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
             status,
@@ -304,61 +304,47 @@ class RaceStatusHeaderWidget extends StatelessWidget {
               fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              if (runnerCount != null && onRunnersTap != null && showDropdown)
-                Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: onRunnersTap,
-                    borderRadius: BorderRadius.circular(18),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 0, vertical: 6),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'Runners: $runnerCount',
-                            style: AppTypography.bodySemibold.copyWith(
-                              color: Colors.black87,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          const Icon(
-                            Icons.arrow_drop_down,
-                            size: 20,
-                            color: Colors.black54,
-                          ),
-                        ],
+          if (runnerCount != null && onRunnersTap != null && showDropdown)
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: onRunnersTap,
+                borderRadius: BorderRadius.circular(18),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Runners: $runnerCount',
+                      style: AppTypography.bodySemibold.copyWith(
+                        color: Colors.black87,
                       ),
                     ),
-                  ),
-                )
-              else if (runnerCount != null)
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 0, vertical: 6),
-                  child: Text(
-                    'Runners: $runnerCount',
-                    style: AppTypography.bodySemibold.copyWith(
-                      color: Colors.black87,
+                    const SizedBox(width: 4),
+                    const Icon(
+                      Icons.arrow_drop_down,
+                      size: 20,
+                      color: Colors.black54,
                     ),
-                  ),
+                  ],
                 ),
-              if (recordCount != null) ...[
-                const SizedBox(width: 16),
-                Text(
-                  '${recordLabel ?? 'Records'}: $recordCount',
-                  style: AppTypography.bodySemibold.copyWith(
-                    color: Colors.black87,
-                  ),
-                ),
-              ],
-            ],
-          ),
+              ),
+            )
+          else if (runnerCount != null)
+            Text(
+              'Runners: $runnerCount',
+              style: AppTypography.bodySemibold.copyWith(
+                color: Colors.black87,
+              ),
+            ),
+          if (recordCount != null) ...[
+            const SizedBox(width: 16),
+            Text(
+              '${recordLabel ?? 'Records'}: $recordCount',
+              style: AppTypography.bodySemibold.copyWith(
+                color: Colors.black87,
+              ),
+            ),
+          ],
         ],
       ),
     );
