@@ -7,8 +7,8 @@ import 'package:xceleration/shared/models/timing_records/timing_chunk.dart';
 import 'package:xceleration/shared/models/timing_records/timing_datum.dart';
 
 import '../../../core/utils/enums.dart';
-import 'package:flutter/material.dart';
 import '../../../core/components/dialog_utils.dart';
+import 'package:flutter/material.dart';
 
 class MergeConflictsController with ChangeNotifier {
   late final MasterRace masterRace;
@@ -40,7 +40,7 @@ class MergeConflictsController with ChangeNotifier {
     consolidateConfirmedTimes();
   }
 
-  void removeExtraTime(int chunkIndex, int timeIndex) {
+  Future<void> removeExtraTime(int chunkIndex, int timeIndex) async {
     if (chunkIndex < 0 || chunkIndex >= timingChunks.length) {
       return;
     }
@@ -53,8 +53,17 @@ class MergeConflictsController with ChangeNotifier {
       return;
     }
 
-    // Remove the timing datum at the specified index
+    // Show confirmation dialog before removing
     if (timeIndex >= 0 && timeIndex < chunk.timingData.length) {
+      final timeToRemove = chunk.timingData[timeIndex].time;
+      final confirmed = await DialogUtils.showConfirmationDialog(
+        context,
+        title: 'Confirm Deletion',
+        content: 'Are you sure you want to delete the time $timeToRemove?',
+      );
+
+      if (!confirmed) return;
+
       chunk.timingData.removeAt(timeIndex);
 
       // Update the conflict's offBy count

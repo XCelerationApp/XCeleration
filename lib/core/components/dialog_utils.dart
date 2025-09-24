@@ -90,7 +90,6 @@ class DialogUtils {
     String cancelText = 'No',
     Color barrierColor = Colors.black54,
   }) async {
-    return true;
     return await showDialog<bool>(
           context: context,
           barrierColor: barrierColor,

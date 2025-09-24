@@ -149,7 +149,7 @@ class UIChunk {
       times.removeAt(timeIndex);
     } else {
       // Use controller to update underlying data
-      controller!.removeExtraTime(chunkIndex, timeIndex);
+      await controller!.removeExtraTime(chunkIndex, timeIndex);
     }
   }
 
@@ -164,16 +164,10 @@ class UIChunk {
       // Invalid time format - show inline error
       // Temporarily update to show validation error, then revert
       times[chunkIndex] = 'INVALID_FORMAT';
-      if (controller != null) {
-        controller!.notifyListeners();
-      }
       // Revert after a brief moment to show the error
       Future.delayed(const Duration(milliseconds: 100), () {
         times[chunkIndex] = record.initialTime;
         record.timeController.text = record.initialTime;
-        if (controller != null) {
-          controller!.notifyListeners();
-        }
       });
       return;
     }
@@ -186,16 +180,10 @@ class UIChunk {
       // Invalid time ordering - show inline error
       // Temporarily update to show validation error, then revert
       times[chunkIndex] = 'INVALID_ORDER';
-      if (controller != null) {
-        controller!.notifyListeners();
-      }
       // Revert after a brief moment to show the error
       Future.delayed(const Duration(milliseconds: 100), () {
         times[chunkIndex] = record.initialTime;
         record.timeController.text = record.initialTime;
-        if (controller != null) {
-          controller!.notifyListeners();
-        }
       });
       return;
     }
@@ -208,8 +196,6 @@ class UIChunk {
     // Update controller if available
     if (controller != null) {
       controller!.submitMissingTime(chunkIndex, chunkIndex, newValue);
-      // Trigger UI update to refresh validation
-      controller!.notifyListeners();
     }
   }
 
