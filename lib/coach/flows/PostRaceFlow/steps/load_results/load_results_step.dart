@@ -37,8 +37,9 @@ class LoadResultsStep extends FlowStep {
   Widget get content => LoadResultsWidget(controller: controller);
 
   @override
-  bool Function()? get canProceed => () =>
-      controller.resultsLoaded &&
-      !controller.hasBibConflicts &&
-      !controller.hasTimingConflicts;
+  bool Function()? get canProceed => () {
+        return controller.resultsLoaded &&
+            !controller.hasBibConflicts &&
+            !controller.hasTimingConflicts;
+      };
 }

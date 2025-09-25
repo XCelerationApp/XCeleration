@@ -46,8 +46,7 @@ class MasterFlowController {
       BuildContext context, String newState) async {
     await raceController.updateRaceFlowState(context, newState);
 
-    Logger.d(
-        'MasterFlowController: Flow state changed to $newState for race: ${raceController.masterRace.raceId}');
+    // Master flow state change
 
     // Fire event (for components that use the event bus)
     EventBus.instance.fire(EventTypes.raceFlowStateChanged, {
