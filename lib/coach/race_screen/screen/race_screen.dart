@@ -14,7 +14,7 @@ import '../../runners_management_screen/screen/runners_management_screen.dart';
 import '../../../core/components/sliding_page_view.dart';
 import 'package:provider/provider.dart';
 import '../../../core/utils/logger.dart';
-import '../../../core/utils/color_utils.dart';
+import '../widgets/unsaved_changes_bar.dart';
 
 class RaceScreen extends StatefulWidget {
   final RacesController parentController;
@@ -225,27 +225,12 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
               ],
             ),
 
-            // Optional: subtle refresh indicator in top-right corner
-            if (controller.isRefreshing)
-              Positioned(
-                top: 16,
-                right: 16,
-                child: Container(
-                  padding: EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: ColorUtils.withOpacity(Colors.black, 0.7),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  ),
-                ),
-              ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: UnsavedChangesBar(controller: controller),
+            ),
           ],
         );
       },
