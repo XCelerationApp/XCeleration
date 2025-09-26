@@ -31,7 +31,8 @@ class PreRaceController {
     _reviewRunnersStep = ReviewRunnersStep(
       masterRace: masterRace,
       onNext: () async {
-        final encoded = await BibEncodeUtils.getEncodedRunnersBibData(masterRace);
+        final encoded =
+            await BibEncodeUtils.getEncodedRunnersBibData(masterRace);
         Logger.d(
             'PRE-RACE DEBUG: Encoded runners data length: ${encoded.length}');
         if (encoded == '') {
@@ -41,14 +42,18 @@ class PreRaceController {
         devices.bibRecorder!.data = encoded;
       },
     );
+    // Seed initial canProceed so the first render uses a correct value
+    _reviewRunnersStep.seedInitialProceed();
     _shareRunnersStep = ShareRunnersStep(devices: devices);
     _preRaceFlowCompleteStep = PreRaceFlowCompleteStep();
   }
 
   Future<bool> showPreRaceFlow(
-      BuildContext context, bool showProgressIndicator) {
+      BuildContext context, bool showProgressIndicator) async {
     final int startIndex = _lastStepIndex ?? 0;
-    return showFlow(
+    // Ensure initial proceed state is computed before rendering the sheet
+    await _reviewRunnersStep.seedInitialProceed();
+    return await showFlow(
       context: context,
       showProgressIndicator: showProgressIndicator,
       steps: _getSteps(context),

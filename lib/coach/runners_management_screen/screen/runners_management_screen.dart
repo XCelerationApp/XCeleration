@@ -20,11 +20,22 @@ class TeamsAndRunnersManagementWidget extends StatefulWidget {
   // Add a static method that can be called from outside
   static Future<bool> checkMinimumRunnersLoaded(MasterRace masterRace) async {
     final teamToRaceRunnersMap = await masterRace.teamtoRaceRunnersMap;
-    for (final runners in teamToRaceRunnersMap.values) {
-      if (runners.isEmpty) {
+
+    // If there are no teams yet, we cannot proceed
+    if (teamToRaceRunnersMap.isEmpty) {
+      // No teams -> cannot proceed
+      return false;
+    }
+
+    for (final entry in teamToRaceRunnersMap.entries) {
+      
+      if (entry.value.isEmpty) {
+        // Team with zero runners -> cannot proceed
         return false;
       }
     }
+
+    // All teams have at least one runner
     return true;
   }
 

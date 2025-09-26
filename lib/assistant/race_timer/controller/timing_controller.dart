@@ -268,18 +268,35 @@ class TimingController extends TimingData {
     return false;
   }
 
-  // void undoLastConflict() {
-  //   if (!currentChunk.hasConflict) {
-  //     Logger.d('No conflict found');
-  //     return;
-  //   }
-  //   currentChunk.conflictRecord == null;
-  //   if (currentChunk.isEmpty) {
-  //     deleteCurrentChunk();
-  //   }
-  //   scrollToBottom(scrollController);
-  //   notifyListeners();
-  // }
+  Future<void> undoLastConflict() async {
+    if (_context == null) return;
+
+    final isConflict = currentChunk.conflictRecord?.conflict?.type !=
+        ConflictType.confirmRunner;
+    final dialogTitle = isConflict ? 'Undo Conflict' : 'Undo Confirmation';
+    final dialogContent = isConflict
+        ? 'Are you sure you want to undo the last conflict?'
+        : 'Are you sure you want to undo the last confirmation?';
+
+    final confirmed = await DialogUtils.showConfirmationDialog(
+      _context!,
+      title: dialogTitle,
+      content: dialogContent,
+    );
+
+    if (confirmed != true) return;
+
+    // Clear the conflict record
+    currentChunk.conflictRecord = null;
+
+    // If chunk becomes empty, delete it
+    if (currentChunk.isEmpty) {
+      deleteCurrentChunk();
+    }
+
+    scrollToBottom(scrollController);
+    notifyListeners();
+  }
 
   void clearRaceTimes() {
     if (_context == null) return;
@@ -315,9 +332,15 @@ class TimingController extends TimingData {
     return DateTime.now().difference(startTime);
   }
 
-  // bool hasUndoableConflict() {
-  //   return currentChunk.hasConflict;
-  // }
+  bool get isLastRecordUndoable {
+    // Show undo button for confirmations or conflicts
+    final isUndoable = currentChunk.conflictRecord != null ||
+        currentChunk.timingData.any(
+            (record) => record.conflict?.type == ConflictType.confirmRunner);
+    Logger.d(
+        'isLastRecordUndoable: $isUndoable, conflictRecord: ${currentChunk.conflictRecord}');
+    return isUndoable;
+  }
 
   Future<bool> handleRecordDeletion(UIRecord record) async {
     if (_context == null) return false;

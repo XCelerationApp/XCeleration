@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/utils/enums.dart';
 import 'package:xceleration/core/utils/time_formatter.dart';
-import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/shared/models/database/race_runner.dart';
 import 'package:xceleration/shared/models/timing_records/conflict.dart';
 import 'package:xceleration/shared/models/timing_records/timing_chunk.dart';
@@ -395,8 +394,6 @@ class UIChunk {
       case ConflictType.confirmRunner:
         // ConfirmRunner conflicts are already resolved
         return true;
-      default:
-        return false;
     }
   }
 

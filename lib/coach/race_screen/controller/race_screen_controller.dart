@@ -725,6 +725,9 @@ class RaceController with ChangeNotifier {
 
       // Check if context is still mounted after async operation
       if (!context.mounted) return;
+
+      // Actually advance to the next state
+      await updateRaceFlowState(context, Race.FLOW_SETUP_COMPLETED);
       return;
     }
 

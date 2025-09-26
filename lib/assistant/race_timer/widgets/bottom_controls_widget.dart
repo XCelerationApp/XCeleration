@@ -30,11 +30,7 @@ class BottomControlsWidget extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _buildControlButton(
-            icon: Icons.check,
-            color: Colors.green,
-            onTap: controller.confirmTimes,
-          ),
+          _buildMainControlButton(),
           Container(
             height: 30,
             width: 1,
@@ -44,6 +40,23 @@ class BottomControlsWidget extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _buildMainControlButton() {
+    // Show undo button if last record is a conflict, otherwise show confirm button
+    if (controller.isLastRecordUndoable) {
+      return _buildControlButton(
+        icon: Icons.undo,
+        color: Colors.grey[700]!,
+        onTap: controller.undoLastConflict,
+      );
+    } else {
+      return _buildControlButton(
+        icon: Icons.check,
+        color: Colors.green,
+        onTap: controller.confirmTimes,
+      );
+    }
   }
 
   Widget _buildControlButton({

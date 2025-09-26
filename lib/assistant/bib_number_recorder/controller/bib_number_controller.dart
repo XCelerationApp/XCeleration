@@ -102,18 +102,7 @@ class BibNumberController extends BibNumberDataController {
                   child: const Text('Load Runners',
                       style: AppTypography.buttonText),
                   onPressed: () async {
-                    sheet(
-                      context: context,
-                      title: 'Load Runners',
-                      body: deviceConnectionWidget(
-                        context,
-                        devices,
-                        callback: () {
-                          Navigator.pop(context);
-                          loadRunners(context);
-                        },
-                      ),
-                    );
+                    _openLoadRunnersSheet(context);
                   },
                 ),
               ],
@@ -122,6 +111,22 @@ class BibNumberController extends BibNumberDataController {
         );
       });
     }
+  }
+
+  /// Opens the device connection sheet directly for loading runners
+  Future<void> _openLoadRunnersSheet(BuildContext context) async {
+    sheet(
+      context: context,
+      title: 'Load Runners',
+      body: deviceConnectionWidget(
+        context,
+        devices,
+        callback: () {
+          Navigator.pop(context);
+          loadRunners(context);
+        },
+      ),
+    );
   }
 
   Future<void> loadRunners(BuildContext context) async {
@@ -220,9 +225,11 @@ class BibNumberController extends BibNumberDataController {
                     Navigator.of(context).pop();
                     // Clear the runners
                     runners.clear();
+                    // Reset device connection state to clear previous transfer status
+                    devices.reset();
                     notifyListeners();
-                    // Reopen the check for runners popup
-                    _checkForRunners(context);
+                    // Directly open the device connection sheet instead of showing popup
+                    _openLoadRunnersSheet(context);
                   },
                   borderRadius: BorderRadius.circular(18),
                   child: Container(
@@ -508,6 +515,7 @@ class BibNumberController extends BibNumberDataController {
         name: matchedRunner.name,
         teamAbbreviation: matchedRunner.teamAbbreviation,
         grade: matchedRunner.grade,
+        teamColor: matchedRunner.teamColor,
         flags: BibDatumRecordFlags(
           notInDatabase: false,
           duplicateBibNumber: isDuplicate,
@@ -530,9 +538,10 @@ class BibNumberController extends BibNumberDataController {
     }
   }
 
-  void addBib() {
+  Future<void> addBib() async {
     if (bibRecords.isEmpty || bibRecords.last.bib.isNotEmpty) {
-      handleBibNumber('');
+      await handleBibNumber('');
+      focusNodes.last.requestFocus();
     } else {
       focusNodes.last.requestFocus();
     }
@@ -672,6 +681,8 @@ class BibNumberDataController extends ChangeNotifier {
   bool get canAddBib {
     if (_bibRecords.isEmpty) return true;
     final BibDatumRecord lastBib = _bibRecords.last;
+    // Only prevent adding if the last bib is completely empty AND has focus
+    // If the last bib has content (even if runner not found), allow adding
     if (lastBib.bib.isEmpty && focusNodes.last.hasPrimaryFocus) return false;
     return true;
   }

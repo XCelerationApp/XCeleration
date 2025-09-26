@@ -21,11 +21,18 @@ class ReviewRunnersStep extends FlowStep {
             isViewMode: false,
           ),
           canScroll: false,
-          canProceed: () => true,
           onNext: onNext,
         ) {
     // Initialize with the current state
     checkRunners();
+  }
+
+  /// Precompute initial canProceed value before the sheet renders
+  Future<void> seedInitialProceed() async {
+    final hasEnoughRunners =
+        await TeamsAndRunnersManagementWidget.checkMinimumRunnersLoaded(
+            masterRace);
+    _canProceed = hasEnoughRunners;
   }
 
   Future<void> checkRunners() async {

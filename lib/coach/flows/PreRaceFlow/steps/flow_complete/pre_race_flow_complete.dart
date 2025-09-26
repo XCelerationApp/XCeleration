@@ -6,7 +6,7 @@ class PreRaceFlowCompleteStep extends FlowStep {
       : super(
           title: 'Pre Race Setup Complete',
           description:
-              'Great job! You\'re ready to start timing your race. Click Next once the race is finished.',
+              'Great job! You\'re timing your race. Click Next once the race is finished.',
           content: const SizedBox(),
           canProceed: () => true,
         );
