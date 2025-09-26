@@ -19,7 +19,7 @@ export '../../coach/merge_conflicts/widgets/runner_time_record.dart';
 export '../../coach/merge_conflicts/widgets/runner_info_widgets.dart'
     hide InfoChip;
 export '../../coach/merge_conflicts/widgets/runner_time_cells.dart';
-export '../../coach/merge_conflicts/widgets/save_button.dart';
+export '../../coach/merge_conflicts/widgets/resolve_conflict_button.dart';
 
 // Widgets - Bib Resolution
 export '../../coach/resolve_bib_number_screen/widgets/bib_conflicts_overview.dart';

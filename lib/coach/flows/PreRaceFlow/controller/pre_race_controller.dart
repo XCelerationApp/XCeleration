@@ -53,6 +53,9 @@ class PreRaceController {
     final int startIndex = _lastStepIndex ?? 0;
     // Ensure initial proceed state is computed before rendering the sheet
     await _reviewRunnersStep.seedInitialProceed();
+    if (!context.mounted) {
+      return false;
+    }
     return await showFlow(
       context: context,
       showProgressIndicator: showProgressIndicator,

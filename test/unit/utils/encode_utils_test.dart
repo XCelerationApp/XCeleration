@@ -188,3 +188,5 @@
 //     // We'll leave this for a more comprehensive test suite
 //   });
 // }
+
+void main() {}

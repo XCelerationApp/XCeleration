@@ -101,6 +101,12 @@ class MergeConflictsController with ChangeNotifier {
     }
   }
 
+  void notifyRegisteredListeners() {
+    if (context.mounted) {
+      super.notifyListeners();
+    }
+  }
+
   /// Manually resolve an extra time conflict for a specific chunk
   Future<void> resolveExtraTimeConflict(int chunkIndex) async {
     if (chunkIndex < 0 || chunkIndex >= timingChunks.length) {

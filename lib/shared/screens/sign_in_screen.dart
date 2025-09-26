@@ -364,27 +364,27 @@ class _SignInScreenState extends State<SignInScreen>
     );
   }
 
-  // Floating background circle
-  Widget _floatingCircle({
-    required Alignment alignment,
-    required double size,
-    required double verticalShift,
-  }) {
-    return Align(
-      alignment: alignment,
-      child: Transform.translate(
-        offset: Offset(0, verticalShift),
-        child: Container(
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.08),
-            shape: BoxShape.circle,
-          ),
-        ),
-      ),
-    );
-  }
+  // // Floating background circle
+  // Widget _floatingCircle({
+  //   required Alignment alignment,
+  //   required double size,
+  //   required double verticalShift,
+  // }) {
+  //   return Align(
+  //     alignment: alignment,
+  //     child: Transform.translate(
+  //       offset: Offset(0, verticalShift),
+  //       child: Container(
+  //         width: size,
+  //         height: size,
+  //         decoration: BoxDecoration(
+  //           color: Colors.white.withValues(alpha: 0.08),
+  //           shape: BoxShape.circle,
+  //         ),
+  //       ),
+  //     ),
+  //   );
+  // }
 
   // Labeled field wrapper with subtle scale on focus and optional hint below
   Widget _buildLabeledField({

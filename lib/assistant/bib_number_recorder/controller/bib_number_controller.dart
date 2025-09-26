@@ -412,6 +412,8 @@ class BibNumberController extends BibNumberDataController {
     }
 
     if (!context.mounted) return;
+    final encodedData = await getEncodedBibData();
+    if (!context.mounted) return;
     sheet(
       context: context,
       title: 'Share Bib Numbers',
@@ -420,7 +422,7 @@ class BibNumberController extends BibNumberDataController {
         DeviceConnectionService.createDevices(
           DeviceName.bibRecorder,
           DeviceType.advertiserDevice,
-          data: await getEncodedBibData(),
+          data: encodedData,
         ),
       ),
     );

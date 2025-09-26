@@ -403,6 +403,7 @@ class LoadResultsController with ChangeNotifier {
     } catch (e, stackTrace) {
       Logger.e('Error showing bib conflicts sheet: $e');
       Logger.e('Stack trace: $stackTrace');
+      if (!context.mounted) return;
       DialogUtils.showErrorDialog(
         context,
         message: 'Failed to open bib conflict resolution sheet: $e',
@@ -498,6 +499,7 @@ class LoadResultsController with ChangeNotifier {
     } catch (e, stackTrace) {
       Logger.d('Error showing timing conflicts sheet: $e');
       Logger.d('Stack trace: $stackTrace');
+      if (!context.mounted) return;
       DialogUtils.showErrorDialog(
         context,
         message: 'Failed to open conflict resolution sheet: $e',

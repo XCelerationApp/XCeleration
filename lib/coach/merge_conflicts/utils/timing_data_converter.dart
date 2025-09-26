@@ -253,7 +253,7 @@ class UIChunk {
       }
     } else {
       if (controller != null) {
-        controller!.notifyListeners();
+        controller!.notifyRegisteredListeners();
       }
     }
   }
@@ -290,7 +290,7 @@ class UIChunk {
 
     // Notify UI to update resolve button state
     if (controller != null) {
-      controller!.notifyListeners();
+      controller!.notifyRegisteredListeners();
     }
   }
 
@@ -312,7 +312,7 @@ class UIChunk {
 
       // Notify UI to rebuild after records list changed
       if (controller != null) {
-        controller!.notifyListeners();
+        controller!.notifyRegisteredListeners();
       }
       return;
     }
@@ -337,7 +337,7 @@ class UIChunk {
 
     // Notify UI to rebuild after records list changed
     if (controller != null) {
-      controller!.notifyListeners();
+      controller!.notifyRegisteredListeners();
     }
   }
 

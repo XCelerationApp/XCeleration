@@ -300,6 +300,7 @@ Future<bool> showFlow({
                             }
                             // Complete the flow
                             completed = true;
+                            if (!context.mounted) return;
                             Navigator.of(context, rootNavigator: true).pop();
                           }
                         }
