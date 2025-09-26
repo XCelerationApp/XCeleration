@@ -9,7 +9,11 @@ export '../../assistant/bib_number_recorder/controller/bib_number_controller.dar
 // Models
 export '../../assistant/race_timer/model/timing_data.dart' hide TimingData;
 export '../../assistant/race_timer/model/timing_utils.dart';
+export '../../assistant/race_timer/model/ui_record.dart';
 export '../../assistant/bib_number_recorder/model/bib_record.dart';
+
+// Utils
+export '../../assistant/race_timer/utils/timing_data_converter.dart';
 
 // Screens
 export '../../assistant/race_timer/screen/timing_screen.dart';

@@ -5,6 +5,7 @@ import '../../core/components/coach_mark.dart';
 import 'widgets/instructions_banner.dart';
 import 'widgets/role_button.dart';
 import 'models/role_enums.dart';
+import '../settings_screen.dart';
 
 /// A unified role bar that provides role selection and app settings access
 /// This component replaces the previous buildRoleBar function
@@ -65,6 +66,22 @@ class RoleBar extends StatelessWidget {
                   tutorialManager: tutorialManager,
                 ),
               ),
+              const SizedBox(width: 12),
+              // Settings button
+              IconButton(
+                icon: const Icon(Icons.settings,
+                    size: 28, color: AppColors.darkColor),
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => SettingsScreen(
+                        currentRole: currentRole.toValueString(),
+                      ),
+                    ),
+                  );
+                },
+                tooltip: 'Settings',
+              ),
             ],
           ),
         ],
@@ -81,5 +98,10 @@ class RoleBar extends StatelessWidget {
   static Future<void> showInstructionsSheet(
       BuildContext context, Role role) async {
     await InstructionsBanner.showInstructionsSheet(context, role);
+  }
+
+  static Future<void> showInstructionsSheetManual(
+      BuildContext context, Role role) async {
+    await InstructionsBanner.showInstructionsSheetManual(context, role);
   }
 }

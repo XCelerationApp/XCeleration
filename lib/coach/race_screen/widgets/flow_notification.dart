@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../shared/models/race.dart'; // Import Race model for constants
+import '../../../shared/models/database/race.dart'; // Import Race model for constants
 import '../../../core/theme/typography.dart';
 
 class FlowNotification extends StatelessWidget {

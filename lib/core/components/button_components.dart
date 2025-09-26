@@ -56,11 +56,21 @@ class ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveBackgroundColor =
-        backgroundColor ?? (isPrimary ? AppColors.primaryColor : Colors.white);
+    final bool effectiveEnabled = isEnabled;
 
-    final effectiveTextColor =
+    // Base colors as if enabled
+    Color effectiveBackgroundColor =
+        backgroundColor ?? (isPrimary ? AppColors.primaryColor : Colors.white);
+    Color effectiveTextColor =
         textColor ?? (isPrimary ? Colors.white : AppColors.primaryColor);
+    Color? effectiveBorderColor = borderColor;
+
+    // Override colors when disabled for consistent grey appearance
+    if (!effectiveEnabled) {
+      effectiveBackgroundColor = Colors.grey.shade400;
+      effectiveTextColor = Colors.white54;
+      effectiveBorderColor = Colors.grey.shade400;
+    }
 
     final effectiveBorderRadius = borderRadius ?? 12.0;
 
@@ -87,7 +97,7 @@ class ActionButton extends StatelessWidget {
       width: size == ButtonSize.fullWidth ? double.infinity : buttonSize.width,
       child: Container(
         decoration: BoxDecoration(
-          color: borderColor ?? backgroundColor,
+          color: effectiveBorderColor ?? effectiveBackgroundColor,
           borderRadius: BorderRadius.circular(effectiveBorderRadius),
           boxShadow: elevation > 0
               ? [
@@ -102,14 +112,12 @@ class ActionButton extends StatelessWidget {
               : null,
         ),
         child: ElevatedButton(
-          onPressed: isEnabled ? onPressed : null,
+          onPressed: effectiveEnabled ? onPressed : null,
           style: ElevatedButton.styleFrom(
             backgroundColor: effectiveBackgroundColor,
             foregroundColor: effectiveTextColor,
-            disabledBackgroundColor:
-                ColorUtils.withOpacity(effectiveBackgroundColor, 0.5),
-            disabledForegroundColor:
-                ColorUtils.withOpacity(effectiveTextColor, 0.5),
+            disabledBackgroundColor: Colors.grey.shade400,
+            disabledForegroundColor: Colors.white54,
             elevation: 0,
             padding: buttonPadding,
             minimumSize: Size(0, height ?? buttonSize.height),
@@ -118,7 +126,7 @@ class ActionButton extends StatelessWidget {
               side: isPrimary
                   ? BorderSide.none
                   : BorderSide(
-                      color: borderColor ??
+                      color: effectiveBorderColor ??
                           ColorUtils.withOpacity(AppColors.primaryColor, 0.3),
                       width: 1,
                     ),
@@ -535,6 +543,8 @@ class SharedActionButton extends StatelessWidget {
   final IconData? icon;
   final bool isSelected;
   final bool isPrimary;
+  // Optional explicit enable flag. If null, falls back to (onPressed != null)
+  final bool? isEnabled;
   final double? fontSize;
   final FontWeight? fontWeight;
   final double? borderRadius;
@@ -553,6 +563,7 @@ class SharedActionButton extends StatelessWidget {
     this.icon,
     this.isSelected = false,
     this.isPrimary = true,
+    this.isEnabled,
     this.fontSize,
     this.fontWeight,
     this.borderRadius,
@@ -567,6 +578,7 @@ class SharedActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool computedEnabled = isEnabled ?? (onPressed != null);
     if (isSelected || (!isPrimary && icon != null)) {
       // Use ToggleButton for selected states or secondary buttons with icons
       return ToggleButton(
@@ -574,6 +586,7 @@ class SharedActionButton extends StatelessWidget {
         icon: icon,
         isSelected: isSelected,
         onPressed: onPressed,
+        isEnabled: computedEnabled,
         borderRadius: borderRadius ?? 12,
         elevation: elevation ?? (isSelected ? 3 : 1),
         fontSize: fontSize ?? 12,
@@ -591,18 +604,25 @@ class SharedActionButton extends StatelessWidget {
         icon: icon,
         iconSize: 18,
         fontSize: fontSize ?? 16,
-        textColor:
-            textColor ?? (isPrimary ? Colors.white : AppColors.mediumColor),
+        textColor: textColor ??
+            (isPrimary && computedEnabled
+                ? Colors.white
+                : AppColors.mediumColor),
         backgroundColor: backgroundColor ??
-            (isPrimary ? AppColors.primaryColor : AppColors.backgroundColor),
+            (isPrimary && computedEnabled
+                ? AppColors.primaryColor
+                : AppColors.backgroundColor),
         borderColor: borderColor ??
-            (isPrimary ? AppColors.primaryColor : AppColors.mediumColor),
+            (isPrimary && computedEnabled
+                ? AppColors.primaryColor
+                : AppColors.mediumColor),
         fontWeight: fontWeight ?? FontWeight.w500,
         padding:
             padding ?? const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
         borderRadius: borderRadius ?? 12,
         isPrimary: isPrimary,
         onPressed: onPressed,
+        isEnabled: computedEnabled,
       );
     } else {
       // Use PrimaryButton for simple primary actions
@@ -615,6 +635,7 @@ class SharedActionButton extends StatelessWidget {
         elevation: elevation ?? 4,
         fontSize: fontSize ?? 16,
         fontWeight: fontWeight ?? FontWeight.w600,
+        isEnabled: computedEnabled,
       );
     }
   }

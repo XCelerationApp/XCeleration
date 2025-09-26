@@ -13,7 +13,7 @@ class SearchResults extends StatelessWidget {
     return ListView.builder(
       itemCount: controller.searchResults.length,
       itemBuilder: (context, index) {
-        final runner = controller.searchResults[index];
+        final raceRunner = controller.searchResults[index];
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: Card(
@@ -28,7 +28,7 @@ class SearchResults extends StatelessWidget {
             child: ListTile(
               contentPadding: const EdgeInsets.all(16),
               title: Text(
-                runner.name,
+                raceRunner.runner.name!,
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
@@ -41,28 +41,27 @@ class SearchResults extends StatelessWidget {
                   Row(
                     children: [
                       InfoChip(
-                        label: 'Bib ${runner.bib}',
+                        label: 'Bib ${raceRunner.runner.bibNumber!}',
                         color: AppColors.primaryColor,
                       ),
                       const SizedBox(width: 8),
-                      if (runner.grade > 0)
-                        InfoChip(
-                          label: 'Grade ${runner.grade}',
+                      InfoChip(
+                        label: 'Grade ${raceRunner.runner.grade}',
+                        color: AppColors.mediumColor,
+                      ),
+                      const SizedBox(width: 8),
+                      // Team information will be loaded asynchronously
+                      Expanded(
+                        child: InfoChip(
+                          label: raceRunner.team.name!,
                           color: AppColors.mediumColor,
                         ),
-                      const SizedBox(width: 8),
-                      if (runner.school != '')
-                        Expanded(
-                          child: InfoChip(
-                            label: runner.school,
-                            color: AppColors.mediumColor,
-                          ),
-                        ),
+                      )
                     ],
                   ),
                 ],
               ),
-              onTap: () => controller.assignExistingRunner(runner),
+              onTap: () => controller.assignExistingRaceRunner(raceRunner),
             ),
           ),
         );

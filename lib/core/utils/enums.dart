@@ -49,6 +49,12 @@ enum RecordType {
   manualTime,
 }
 
+enum ConflictType {
+  confirmRunner,
+  missingTime,
+  extraTime,
+}
+
 enum RaceScreenPage {
   main,
   results,

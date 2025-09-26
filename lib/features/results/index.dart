@@ -3,7 +3,6 @@
 library;
 
 // Controllers
-export '../../coach/race_results/controller/race_results_controller.dart';
 export '../../coach/share_race/controller/share_race_controller.dart';
 
 // Models

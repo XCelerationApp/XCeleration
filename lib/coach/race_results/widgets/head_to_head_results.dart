@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/typography.dart';
 import 'head_to_head_results_widget.dart';
-import '../controller/race_results_controller.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
+import 'package:xceleration/shared/services/race_results_service.dart';
 
 class HeadToHeadResults extends StatelessWidget {
-  final RaceResultsController controller;
+  final RaceResultsData raceResultsData;
   const HeadToHeadResults({
     super.key,
-    required this.controller,
+    required this.raceResultsData,
   });
 
   @override
@@ -36,8 +36,7 @@ class HeadToHeadResults extends StatelessWidget {
               style: AppTypography.titleSemibold,
             ),
             const SizedBox(height: 16),
-            if (controller.headToHeadTeamResults == null ||
-                controller.headToHeadTeamResults!.isEmpty)
+            if (raceResultsData.headToHeadTeamResults.isEmpty)
               const Center(
                 child: Padding(
                   padding: EdgeInsets.all(16.0),
@@ -48,7 +47,7 @@ class HeadToHeadResults extends StatelessWidget {
                 ),
               )
             else
-              ...controller.headToHeadTeamResults!
+              ...raceResultsData.headToHeadTeamResults
                   .map((matchup) => HeadToHeadResultsWidget(matchup: matchup)),
           ],
         ),

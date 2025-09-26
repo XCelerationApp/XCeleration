@@ -53,9 +53,15 @@ class LoadResultsWidget extends StatelessWidget {
                     description:
                         'Your race contains conflicts. Please resolve them before proceeding.',
                     buttonText: 'Resolve',
-                    onPressed: () => controller.hasBibConflicts
-                        ? controller.showBibConflictsSheet(context)
-                        : controller.showTimingConflictsSheet(context),
+                    onPressed: () {
+                      debugPrint(
+                          'Conflict button pressed - Bib conflicts: ${controller.hasBibConflicts}, Timing conflicts: ${controller.hasTimingConflicts}');
+                      if (controller.hasBibConflicts) {
+                        controller.showBibConflictsSheet(context);
+                      } else {
+                        controller.showTimingConflictsSheet(context);
+                      }
+                    },
                   )
                 else
                   const SuccessMessage(),

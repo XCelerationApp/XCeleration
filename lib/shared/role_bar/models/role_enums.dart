@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import '../../../assistant/race_timer/screen/timing_screen.dart';
+import '../../../assistant/bib_number_recorder/screen/bib_number_screen.dart';
 import '../../../coach/races_screen/screen/races_screen.dart';
+import '../../../spectator/races_screen/screen/spectator_races_screen.dart';
 
 /// Enum representing the assistant roles in the app
 enum Role {
   timer,
   bibRecorder,
-  coach;
+  coach,
+  spectator;
 
   String get displayName {
     switch (this) {
@@ -16,6 +19,8 @@ enum Role {
         return 'Bib Recorder';
       case Role.coach:
         return 'Coach';
+      case Role.spectator:
+        return 'Spectator';
     }
   }
 
@@ -27,6 +32,8 @@ enum Role {
         return 'Record bib numbers';
       case Role.coach:
         return 'Manage races';
+      case Role.spectator:
+        return 'View coach races (read-only)';
     }
   }
 
@@ -38,6 +45,8 @@ enum Role {
         return Icons.numbers;
       case Role.coach:
         return Icons.person;
+      case Role.spectator:
+        return Icons.visibility;
     }
   }
 
@@ -46,9 +55,11 @@ enum Role {
       case Role.timer:
         return const TimingScreen();
       case Role.bibRecorder:
-        return const TimingScreen(); // Combined timing and bib recording
+        return const BibNumberScreen();
       case Role.coach:
         return const RacesScreen();
+      case Role.spectator:
+        return const SpectatorRacesScreen();
     }
   }
 
@@ -61,6 +72,8 @@ enum Role {
         return Role.bibRecorder;
       case 'coach':
         return Role.coach;
+      case 'spectator':
+        return Role.spectator;
       default:
         return null;
     }
@@ -75,6 +88,8 @@ enum Role {
         return 'bib recorder';
       case Role.coach:
         return 'coach';
+      case Role.spectator:
+        return 'spectator';
     }
   }
 }

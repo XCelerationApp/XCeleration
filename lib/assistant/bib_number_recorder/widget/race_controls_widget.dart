@@ -3,7 +3,6 @@ import 'package:xceleration/core/theme/app_colors.dart';
 import '../../../core/components/button_components.dart';
 import '../../../core/components/dialog_utils.dart';
 import '../controller/bib_number_controller.dart';
-import '../../../core/utils/logger.dart';
 
 class RaceControlsWidget extends StatelessWidget {
   final BibNumberController controller;
@@ -91,9 +90,14 @@ class RaceControlsWidget extends StatelessWidget {
             controller.clearBibRecords();
           }
         } else if (controller.isRecording && controller.canAddBib) {
-          controller.addBib();
-        } else {
-          Logger.e('No action taken', context: context);
+          await controller.addBib();
+        } else if (!controller.isRecording && controller.bibRecords.isEmpty) {
+          // Show message when Add button is clicked but race is not running
+          await DialogUtils.showMessageDialog(
+            context,
+            title: 'Race Not Started',
+            message: 'Please start the race before adding bib numbers',
+          );
         }
       },
     );

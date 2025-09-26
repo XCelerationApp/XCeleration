@@ -1,71 +1,43 @@
-# XCeleration - Race Timing and Management App
+# XCeleration — Race Timing and Management
 
-<img src="assets/icon/XCeleration_icon.png" alt="XCeleration Logo" width="120"/>
+<img src="assets/icon/XCeleration_icon.png" alt="XCeleration Logo" width="120" />
 
-XCeleration is a comprehensive race timing and management application built with Flutter, designed for cross-country, track, and other running events. The app provides tools for both coaches and race assistants to streamline the entire race management process.
+Multi-role Flutter app for timing cross-country and track races. Roles: Coach, Bib Recorder, Race Timer. Supports iOS, Android, Web, and Desktop.
 
-## Features
+## Quick start
 
-- **Race Timing** - Accurate timing of participants with intuitive controls
-- **Bib Number Recognition** - Record bib numbers manually or through camera recognition
-- **Results Management** - View, analyze, and share race results easily
-- **Multi-device Synchronization** - Connect multiple devices for coordinated race timing
-- **Coach & Assistant Modes** - Specialized interfaces for different race staff roles
-- **Race Data Import/Export** - Support for CSV and Excel files
-- **Results Sharing** - Share results via multiple channels
-
-## Development Notes
-
-### Prerequisites
-
-- Flutter SDK ^3.5.4
-- Dart SDK (latest stable)
-- Android Studio / Xcode for mobile deployment
-- Python (for ML-based bib number recognition)
-
-### Setup
-
-1. Install dependencies:
-   ```bash
-   flutter pub get
-   ```
-
-2. Run the app:
-   ```bash
-   flutter run
-   ```
-
-## Project Structure
-
-```
-lib/
-├── assistant/           # Assistant-specific features
-│   ├── bib_number_recorder/
-│   └── race_timer/
-├── coach/               # Coach-specific features
-│   ├── flows/           # Different coach workflows
-│   ├── race_screen/     # Race management screens
-│   └── results_screen/  # Results viewing and analysis
-├── core/                # Shared core functionality
-│   ├── components/      # Reusable UI components
-│   ├── models/          # Data models
-│   ├── services/        # Backend services
-│   └── theme/           # App styling
-└── server/              # Flask server for ML functionality
+```bash
+flutter pub get
+flutter run
 ```
 
-## Technologies Used
+For full setup (supported versions, `.env`, iOS pods, multi-device test), see [docs/01-getting-started.md](docs/01-getting-started.md).
 
-- **Flutter** - UI framework
-- **Provider** - State management
-- **SQLite** - Local database storage
-- **Flask** - Python server for ML integration
-- **TensorFlow/ML** - For bib number recognition
+## Highlights
+
+- Flutter multi-platform (iOS/Android/Web/Desktop)
+- Offline-first: SQLite locally, optional Supabase remote sync
+- Nearby Connections data transfer with custom DATA/ACK/FIN protocol
+- EventBus and lightweight DI (Service Locator)
+
+## Documentation
+
+- Start here: [docs/README.md](docs/README.md)
+- Architecture: [docs/02-architecture/overview.md](docs/02-architecture/overview.md)
+- Data & Sync: [docs/03-data/overview.md](docs/03-data/overview.md)
+- Connectivity: [docs/04-connectivity/protocol.md](docs/04-connectivity/protocol.md)
+- Features: [docs/05-features/](docs/05-features/)
+- Testing, Build & Release, Ops: [docs/07-dev/](docs/07-dev/), [docs/08-dev/](docs/08-dev/), [docs/09-ops/](docs/09-ops/)
+- Reference: [docs/10-reference/](docs/10-reference/)
+
+## Contributing
+
+See [docs/contributing.md](docs/contributing.md) for workflow, commit conventions, and PR checklist.
 
 ## License
 
-This project is proprietary and confidential. Unauthorized copying, distribution, or deployment of this software is strictly prohibited.
+Proprietary. Unauthorized copying, distribution, or deployment is prohibited.
 
 ## Contact
 
-For support or inquiries, please contact [xceleration.app@gmail.com](mailto:xceleration.app@gmail.com).
+Email `xceleration.app@gmail.com` for support or inquiries.

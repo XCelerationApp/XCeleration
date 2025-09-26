@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:xceleration/shared/models/database/master_race.dart';
 import '../controller/races_controller.dart';
 import '../../race_screen/controller/race_screen_controller.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../shared/models/race.dart';
+import '../../../shared/models/database/race.dart';
 import '../../../core/theme/typography.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
 import 'package:intl/intl.dart';
@@ -12,6 +13,7 @@ class RaceCard extends StatelessWidget {
   final Race race;
   final String flowState;
   final RacesController controller;
+  final bool canEdit;
   late final String flowStateText;
   late final Color flowStateColor;
 
@@ -20,6 +22,7 @@ class RaceCard extends StatelessWidget {
     required this.race,
     required this.flowState,
     required this.controller,
+    this.canEdit = true,
   }) {
     // State text based on flow state
     flowStateText = {
@@ -48,56 +51,60 @@ class RaceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Slidable(
-      key: Key(race.race_id.toString()),
+      key: Key(race.raceId?.toString() ?? 'unknown'),
       endActionPane: ActionPane(
         extentRatio: 0.5,
         motion: const DrawerMotion(),
         dragDismissible: false,
         children: [
-          CustomSlidableAction(
-            onPressed: (_) => controller.editRace(race),
-            backgroundColor: AppColors.primaryColor,
-            foregroundColor: Colors.white,
-            padding: EdgeInsets.zero,
-            autoClose: true,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.edit_outlined,
-                  color: Colors.white,
-                  size: 24,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Edit',
-                  style: AppTypography.bodySmall.copyWith(color: Colors.white),
-                ),
-              ],
+          if (canEdit)
+            CustomSlidableAction(
+              onPressed: (_) => controller.editRace(race),
+              backgroundColor: AppColors.primaryColor,
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.zero,
+              autoClose: true,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.edit_outlined,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Edit',
+                    style:
+                        AppTypography.bodySmall.copyWith(color: Colors.white),
+                  ),
+                ],
+              ),
             ),
-          ),
-          CustomSlidableAction(
-            onPressed: (_) => controller.deleteRace(race),
-            backgroundColor: Colors.red,
-            foregroundColor: Colors.white,
-            padding: EdgeInsets.zero,
-            autoClose: true,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.delete_outline,
-                  size: 24,
-                  color: Colors.white,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Delete',
-                  style: AppTypography.bodySmall.copyWith(color: Colors.white),
-                ),
-              ],
+          if (canEdit)
+            CustomSlidableAction(
+              onPressed: (_) => controller.deleteRace(race),
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.zero,
+              autoClose: true,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.delete_outline,
+                    size: 24,
+                    color: Colors.white,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Delete',
+                    style:
+                        AppTypography.bodySmall.copyWith(color: Colors.white),
+                  ),
+                ],
+              ),
             ),
-          ),
         ],
       ),
       child: Container(
@@ -116,8 +123,14 @@ class RaceCard extends StatelessWidget {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(16),
           child: InkWell(
-            onTap: () => RaceController.showRaceScreen(
-                context, controller, race.race_id),
+            onTap: () async {
+              final masterRace = MasterRace.getInstance(race.raceId ?? 0);
+              await RaceController.showRaceScreen(
+                context,
+                controller,
+                masterRace,
+              );
+            },
             child: Padding(
               padding: const EdgeInsets.only(
                   left: 24.0, right: 24.0, top: 16.0, bottom: 16.0),
@@ -128,7 +141,7 @@ class RaceCard extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          race.raceName,
+                          race.raceName ?? 'Unnamed Race',
                           style: AppTypography.headerSemibold,
                         ),
                       ),
@@ -155,7 +168,7 @@ class RaceCard extends StatelessWidget {
                   ),
 
                   // Only show location if not empty
-                  if (race.location.isNotEmpty) ...[
+                  if (race.location != null && race.location!.isNotEmpty) ...[
                     const SizedBox(height: 8),
                     Row(
                       children: [
@@ -167,7 +180,7 @@ class RaceCard extends StatelessWidget {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            race.location,
+                            race.location ?? '',
                             style: AppTypography.bodyRegular
                                 .copyWith(color: Colors.black54),
                             overflow: TextOverflow.ellipsis,
@@ -179,7 +192,7 @@ class RaceCard extends StatelessWidget {
                   ],
 
                   // Only show date if not null
-                  if (race.race_date != null) ...[
+                  if (race.raceDate != null) ...[
                     const SizedBox(height: 8),
                     Row(
                       children: [
@@ -190,7 +203,8 @@ class RaceCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          DateFormat('MMM d, y').format(race.race_date!),
+                          DateFormat('MMM d, y')
+                              .format(race.raceDate ?? DateTime.now()),
                           style: AppTypography.bodyRegular
                               .copyWith(color: Colors.black54),
                         ),
@@ -199,7 +213,7 @@ class RaceCard extends StatelessWidget {
                   ],
 
                   // Only show distance if greater than 0
-                  if (race.distance > 0) ...[
+                  if (race.distance != null && race.distance! > 0) ...[
                     const SizedBox(height: 8),
                     Row(
                       children: [
@@ -210,7 +224,7 @@ class RaceCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          '${race.distance} ${race.distanceUnit}',
+                          '${race.distance ?? 0} ${race.distanceUnit ?? ''}',
                           style: AppTypography.headerSemibold.copyWith(
                             color: AppColors.primaryColor,
                           ),

@@ -84,7 +84,7 @@ Choose from 5 preset scenarios:
 ### Mock Data Quality
 
 - **Realistic Names**: Uses common first/last name combinations
-- **School Variety**: 5 different schools represented
+- **Team Variety**: 5 different teams represented
 - **Proper Bib Numbers**: 3-digit format (001, 002, etc.)
 - **Valid Times**: Realistic race times with proper formatting
 - **Conflict Accuracy**: Conflicts match real-world scenarios
@@ -135,7 +135,7 @@ MockRaceData {
 ### For Testing
 
 - **Comprehensive Coverage**: All conflict types represented
-- **Realistic Data**: Names, schools, times match real races
+- **Realistic Data**: Names, teams, times match real races
 - **Scalable**: Easy to modify runner counts
 - **Repeatable**: Same results for consistent testing
 
