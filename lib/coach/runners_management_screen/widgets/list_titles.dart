@@ -17,7 +17,7 @@ class ListTitles extends StatelessWidget {
         Expanded(
           flex: 2,
           child: Center(
-            child: Text('School',
+            child: Text('Team',
                 style:
                     TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize)),
           ),

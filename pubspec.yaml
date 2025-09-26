@@ -30,11 +30,15 @@ dependencies:
   http: ^1.2.0
   googleapis: ^11.0.0
   google_sign_in: ^6.1.6
+  supabase_flutter: ^2.5.7
+  gotrue: ^2.13.0
+  connectivity_plus: ^6.0.5
 
   # Utilities & Formatting
   intl: ^0.18.0
   crypto: ^3.0.3
   collection: ^1.17.0
+  uuid: ^4.4.2
 
   # Device Features
   flutter_nearby_connections: ^1.1.2
@@ -106,6 +110,7 @@ flutter:
     - assets/sounds/click.mp3
     - assets/sounds/completed_ding.mp3
     - assets/sample_sheets/
+    - assets/fonts/
     - .env
 
   fonts:

@@ -1,0 +1,190 @@
+-- =============================================================================
+-- RACE TIMER APP - GLOBAL TEAMS DATABASE SCHEMA v8
+-- =============================================================================
+-- This schema implements global teams with permanent bib numbers
+-- Key features:
+-- 1. Global teams that can participate in multiple races
+-- 2. Permanent bib numbers per runner
+-- 3. Automatic team roster management
+-- 4. Flexible race participation (partial team entries)
+-- 5. Team color overrides per race
+-- =============================================================================
+
+-- Global runners table (with permanent bib numbers)
+CREATE TABLE runners (
+  runner_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL CHECK(length(name) > 0),
+  grade INTEGER CHECK(grade >= 9 AND grade <= 12),
+  bib_number TEXT UNIQUE NOT NULL CHECK(length(bib_number) > 0),
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Global teams table (not tied to specific races)
+CREATE TABLE teams (
+  team_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL CHECK(length(name) > 0),
+  abbreviation TEXT CHECK(length(abbreviation) <= 3),
+  color INTEGER DEFAULT 0xFF2196F3,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (name)
+);
+
+-- Team rosters (which runners belong to which teams)
+CREATE TABLE team_rosters (
+  team_id INTEGER NOT NULL,
+  runner_id INTEGER NOT NULL,
+  joined_date TEXT DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (team_id, runner_id),
+  FOREIGN KEY (team_id) REFERENCES teams(team_id) ON DELETE CASCADE,
+  FOREIGN KEY (runner_id) REFERENCES runners(runner_id) ON DELETE CASCADE
+);
+
+-- Teams participating in specific races
+CREATE TABLE race_team_participation (
+  race_id INTEGER NOT NULL,
+  team_id INTEGER NOT NULL,
+  team_color_override INTEGER,
+  PRIMARY KEY (race_id, team_id),
+  FOREIGN KEY (race_id) REFERENCES races(race_id) ON DELETE CASCADE,
+  FOREIGN KEY (team_id) REFERENCES teams(team_id) ON DELETE CASCADE
+);
+
+-- Individual runner participation in races
+CREATE TABLE race_participants (
+  race_id INTEGER NOT NULL,
+  runner_id INTEGER NOT NULL,
+  team_id INTEGER NOT NULL,
+  PRIMARY KEY (race_id, runner_id),
+  FOREIGN KEY (race_id) REFERENCES races(race_id) ON DELETE CASCADE,
+  FOREIGN KEY (runner_id) REFERENCES runners(runner_id) ON DELETE CASCADE,
+  FOREIGN KEY (team_id) REFERENCES teams(team_id) ON DELETE CASCADE
+);
+
+-- Races table (simplified, no JSON teams)
+CREATE TABLE races (
+  race_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL CHECK(length(name) > 0),
+  race_date TEXT NOT NULL,
+  location TEXT,
+  distance REAL,
+  flow_state TEXT DEFAULT 'pre_race',
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Race results (pure results data, no duplicated runner info)
+CREATE TABLE race_results (
+  result_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  race_id INTEGER NOT NULL,
+  runner_id INTEGER NOT NULL,
+  place INTEGER,
+  finish_time INTEGER, -- milliseconds
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (race_id) REFERENCES races(race_id) ON DELETE CASCADE,
+  FOREIGN KEY (runner_id) REFERENCES runners(runner_id) ON DELETE CASCADE,
+  UNIQUE (race_id, runner_id),
+  UNIQUE (race_id, place)
+);
+
+-- =============================================================================
+-- PERFORMANCE INDEXES
+-- =============================================================================
+CREATE INDEX idx_runners_name_grade ON runners(name, grade);
+CREATE INDEX idx_runners_name ON runners(name);
+CREATE INDEX idx_runners_bib ON runners(bib_number);
+CREATE INDEX idx_teams_name ON teams(name);
+CREATE INDEX idx_teams_abbreviation ON teams(abbreviation);
+CREATE INDEX idx_team_rosters_team ON team_rosters(team_id);
+CREATE INDEX idx_team_rosters_runner ON team_rosters(runner_id);
+CREATE INDEX idx_race_team_participation_race ON race_team_participation(race_id);
+CREATE INDEX idx_race_participants_race ON race_participants(race_id);
+CREATE INDEX idx_race_participants_team ON race_participants(team_id);
+CREATE INDEX idx_race_results_race ON race_results(race_id);
+CREATE INDEX idx_race_results_place ON race_results(race_id, place);
+CREATE INDEX idx_races_date ON races(race_date);
+
+-- =============================================================================
+-- OPTIMIZED QUERIES (for reference)
+-- =============================================================================
+
+-- Get all runners on a team
+-- SELECT 
+--   r.runner_id,
+--   r.name,
+--   r.grade,
+--   r.bib_number,
+--   tr.joined_date
+-- FROM team_rosters tr
+-- JOIN runners r ON tr.runner_id = r.runner_id
+-- WHERE tr.team_id = ?
+-- ORDER BY r.name;
+
+-- Get teams participating in a race
+-- SELECT 
+--   t.team_id,
+--   t.name,
+--   COALESCE(rtp.team_color_override, t.color) as team_color,
+--   COUNT(rp.runner_id) as runner_count
+-- FROM race_team_participation rtp
+-- JOIN teams t ON rtp.team_id = t.team_id
+-- LEFT JOIN race_participants rp ON rtp.race_id = rp.race_id AND rtp.team_id = rp.team_id
+-- WHERE rtp.race_id = ?
+-- GROUP BY t.team_id, t.name, team_color
+-- ORDER BY t.name;
+
+-- Get race participants with their team info
+-- SELECT 
+--   r.runner_id,
+--   r.name,
+--   r.grade,
+--   r.bib_number,
+--   t.name as team_name,
+--   COALESCE(rtp.team_color_override, t.color) as team_color
+-- FROM race_participants rp
+-- JOIN runners r ON rp.runner_id = r.runner_id
+-- JOIN teams t ON rp.team_id = t.team_id
+-- JOIN race_team_participation rtp ON rp.race_id = rtp.race_id AND rp.team_id = rtp.team_id
+-- WHERE rp.race_id = ?
+-- ORDER BY t.name, r.name;
+
+-- Get race results with runner and team info
+-- SELECT 
+--   rr.place,
+--   rr.finish_time,
+--   r.name,
+--   r.grade,
+--   r.bib_number,
+--   t.name as team_name,
+--   COALESCE(rtp.team_color_override, t.color) as team_color
+-- FROM race_results rr
+-- JOIN runners r ON rr.runner_id = r.runner_id
+-- JOIN race_participants rp ON rr.race_id = rp.race_id AND rr.runner_id = rp.runner_id
+-- JOIN teams t ON rp.team_id = t.team_id
+-- JOIN race_team_participation rtp ON rr.race_id = rtp.race_id AND rp.team_id = rtp.team_id
+-- WHERE rr.race_id = ?
+-- ORDER BY rr.place;
+
+-- =============================================================================
+-- SCHEMA BENEFITS
+-- =============================================================================
+
+-- ✅ Global Teams: Teams can participate in multiple races
+-- ✅ Permanent Bib Numbers: Each runner has a consistent bib number
+-- ✅ Flexible Participation: Teams can send partial rosters to races
+-- ✅ Auto-Roster Management: New runners automatically added to team rosters
+-- ✅ Color Overrides: Teams can use different colors for different races
+-- ✅ Proper Normalization: All data properly normalized, no redundancy
+-- ✅ Data Integrity: Foreign key constraints prevent orphaned records
+-- ✅ Performance: Indexes on all commonly queried fields
+-- ✅ Extensible: Easy to add features like team stats, runner history, etc.
+-- ✅ Team-Based Organization: No more school references, purely team-based
+
+-- WORKFLOW:
+-- 1. Create global teams (e.g., "Lincoln Lions")
+-- 2. Add runners to team rosters (automatically when they participate)
+-- 3. For each race, add teams to race_team_participation
+-- 4. Select specific runners from each team for race_participants
+-- 5. Runners compete using their permanent bib numbers
+-- 6. Results are recorded in race_results table

@@ -1,11 +1,31 @@
 import 'package:flutter/material.dart';
-import '../../../shared/models/race.dart';
+import 'package:xceleration/core/services/auth_service.dart';
+import 'package:xceleration/shared/models/database/master_race.dart';
+import '../../../shared/models/database/race.dart';
 import '../../../core/utils/database_helper.dart';
 
 class RacesService {
   /// Loads all races from the database.
   static Future<List<Race>> loadRaces() async {
     return await DatabaseHelper.instance.getAllRaces();
+  }
+
+  /// Creates a new race in the database.
+  static Future<int> createRace(Race race) async {
+    // Stamp owner on create
+    final ownerId = AuthService.instance.currentUserId;
+    final raceWithOwner = race.copyWith(ownerUserId: ownerId);
+    return await DatabaseHelper.instance.createRace(raceWithOwner);
+  }
+
+  /// Updates an existing race in the database.
+  static Future<void> updateRace(Race race) async {
+    await MasterRace.getInstance(race.raceId!).updateRace(race);
+  }
+
+  /// Deletes a race from the database.
+  static Future<void> deleteRace(int raceId) async {
+    await DatabaseHelper.instance.deleteRace(raceId);
   }
 
   /// Validates race creation form fields.

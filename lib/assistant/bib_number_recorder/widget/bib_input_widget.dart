@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/typography.dart';
-import '../../../coach/race_screen/widgets/runner_record.dart';
+import '../model/bib_record.dart';
 import '../controller/bib_number_controller.dart';
 
 class BibInputWidget extends StatelessWidget {
   final int index;
   final BibNumberController controller;
-  late final RunnerRecord record;
+  late final BibDatumRecord record;
 
   BibInputWidget({
     super.key,
@@ -45,7 +45,9 @@ class BibInputWidget extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  if (record.name.isNotEmpty && !record.hasErrors)
+                  if (record.name != null &&
+                      record.name!.isNotEmpty &&
+                      !record.hasErrors)
                     _buildRunnerInfo()
                   else if (record.hasErrors)
                     _buildErrorText(),
@@ -105,19 +107,19 @@ class BibInputWidget extends StatelessWidget {
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Show a visual indicator of successful match
+          // Show team color indicator if available, otherwise green success indicator
           Container(
             width: 8,
             height: 8,
             margin: const EdgeInsets.only(right: 8),
-            decoration: const BoxDecoration(
-              color: Colors.green,
+            decoration: BoxDecoration(
+              color: record.teamColor ?? Colors.green,
               shape: BoxShape.circle,
             ),
           ),
           Flexible(
             child: Text(
-              '${record.name}, ${record.school}',
+              '${record.name}, ${record.teamAbbreviation}',
               textAlign: TextAlign.center,
               style: AppTypography.bodyRegular,
               overflow: TextOverflow.ellipsis,
@@ -133,7 +135,6 @@ class BibInputWidget extends StatelessWidget {
     final errors = <String>[];
     if (record.flags.duplicateBibNumber) errors.add('Duplicate Bib Number');
     if (record.flags.notInDatabase) errors.add('Runner not found');
-    if (record.flags.lowConfidenceScore) errors.add('Low Confidence Score');
 
     return Row(
       mainAxisSize: MainAxisSize.min,

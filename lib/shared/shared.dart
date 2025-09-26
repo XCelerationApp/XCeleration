@@ -6,8 +6,10 @@ library;
 export 'constants/app_constants.dart';
 
 // Models
-export 'models/race.dart';
-export 'models/time_record.dart';
+export 'models/database/race.dart';
+export 'models/timing_records/bib_datum.dart';
+export 'models/timing_records/conflict.dart';
+export 'models/timing_records/timing_datum.dart';
 
 // Role bar
 export 'role_bar/role_bar.dart';

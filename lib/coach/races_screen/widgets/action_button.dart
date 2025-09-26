@@ -1,19 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import '../../../core/components/button_components.dart';
-import '../../../shared/models/race.dart';
+import '../../../shared/models/database/race.dart';
 import '../controller/races_controller.dart';
 
 class ActionButton extends StatelessWidget {
   final RacesController controller;
-  final bool isEditing;
-  final int? raceId;
 
-  const ActionButton(
-      {required this.controller,
-      this.isEditing = false,
-      this.raceId,
-      super.key});
+  const ActionButton({
+    required this.controller,
+    super.key,
+  });
 
   void _handleAction(BuildContext context) async {
     // Clear any validation errors
@@ -27,32 +24,16 @@ class ActionButton extends StatelessWidget {
     try {
       // Create a race object with only the name
       final race = Race(
-        raceId: (isEditing && raceId != null ? raceId : 0)!,
+        raceId: 0,
         raceName: controller.nameController.text,
         location: '',
-        raceDate: null,
+        raceDate: null, // Now nullable in database schema
         distance: 0,
         distanceUnit: 'mi',
-        teams: [],
-        teamColors: [],
-        // location: controller.locationController.text,
-        // raceDate: DateTime.parse(controller.dateController.text),
-        // distance: double.parse(controller.distanceController.text),
-        // distanceUnit: controller.unitController.text,
-        // teams: controller.teamControllers
-        //     .map((controller) => controller.text.trim())
-        //     .where((text) => text.isNotEmpty)
-        //     .toList(),
-        // teamColors: controller.teamColors,
         flowState: 'setup',
       );
-      int newRaceId = race.raceId;
 
-      if (isEditing && raceId != null) {
-        await controller.updateRace(race);
-      } else {
-        newRaceId = await controller.createRace(race);
-      }
+      final newRaceId = await controller.createRace(race);
 
       // Store the result and only use context if it's still mounted
       if (context.mounted) {
@@ -85,17 +66,10 @@ class ActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FullWidthButton(
-      text: isEditing ? 'Save Changes' : 'Create Race',
+      text: 'Create Race',
       fontSize: 24,
       borderRadius: 16,
-      onPressed: () {
-        // Use the same _handleAction method for both paths to ensure consistency
-        if (!isEditing) {
-          _handleAction(context);
-        } else {
-          _handleAction(context);
-        }
-      },
+      onPressed: () => _handleAction(context),
     );
   }
 }

@@ -109,7 +109,7 @@ class _CollapsibleResultsWidgetState extends State<CollapsibleResultsWidget> {
               width: 50,
               child: Text('Place', style: AppTypography.bodySemibold)),
           Expanded(child: Text('Name', style: AppTypography.bodySemibold)),
-          Expanded(child: Text('School', style: AppTypography.bodySemibold)),
+          Expanded(child: Text('Team', style: AppTypography.bodySemibold)),
           SizedBox(
               width: 70,
               child: Text('Time', style: AppTypography.bodySemibold)),
@@ -127,8 +127,7 @@ class _CollapsibleResultsWidgetState extends State<CollapsibleResultsWidget> {
               width: 50,
               child: Text('Place', style: AppTypography.bodySemibold)),
           Expanded(
-              flex: 2,
-              child: Text('School', style: AppTypography.bodySemibold)),
+              flex: 2, child: Text('Team', style: AppTypography.bodySemibold)),
           Expanded(
               flex: 3,
               child: Text('Scorers', style: AppTypography.bodySemibold)),
@@ -152,7 +151,7 @@ class _CollapsibleResultsWidgetState extends State<CollapsibleResultsWidget> {
                 style: AppTypography.bodyRegular,
                 overflow: TextOverflow.ellipsis)),
         Expanded(
-            child: Text(result.school,
+            child: Text(result.teamAbbreviation,
                 style: AppTypography.bodyRegular,
                 overflow: TextOverflow.ellipsis)),
         SizedBox(
@@ -183,7 +182,7 @@ class _CollapsibleResultsWidgetState extends State<CollapsibleResultsWidget> {
         ),
         Expanded(
             flex: 2,
-            child: Text(team.school,
+            child: Text(team.team.abbreviation ?? 'N/A',
                 style: AppTypography.bodyRegular,
                 overflow: TextOverflow.ellipsis)),
         Expanded(

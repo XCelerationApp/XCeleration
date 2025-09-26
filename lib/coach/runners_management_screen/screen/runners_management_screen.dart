@@ -4,70 +4,67 @@ import '../controller/runners_management_controller.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/components/button_components.dart';
 import '../../../core/utils/sheet_utils.dart';
-import '../../../core/utils/database_helper.dart';
+import '../../../shared/models/database/master_race.dart';
 import '../widgets/list_titles.dart';
 import '../widgets/runner_search_bar.dart';
 import '../widgets/runners_list.dart';
 
 // Main Screen
-class RunnersManagementScreen extends StatefulWidget {
-  final int raceId;
+class TeamsAndRunnersManagementWidget extends StatefulWidget {
+  final MasterRace masterRace;
   final VoidCallback? onBack;
   final VoidCallback? onContentChanged;
   final bool? showHeader;
+  final bool isViewMode;
 
   // Add a static method that can be called from outside
-  static Future<bool> checkMinimumRunnersLoaded(int raceId) async {
-    final race = await DatabaseHelper.instance.getRaceById(raceId);
-    final runners = await DatabaseHelper.instance.getRaceRunners(raceId);
-    // Check if we have any runners at all
-    if (runners.isEmpty) {
+  static Future<bool> checkMinimumRunnersLoaded(MasterRace masterRace) async {
+    final teamToRaceRunnersMap = await masterRace.teamtoRaceRunnersMap;
+
+    // If there are no teams yet, we cannot proceed
+    if (teamToRaceRunnersMap.isEmpty) {
+      // No teams -> cannot proceed
       return false;
     }
 
-    // Check if each team has at least 5 runners (minimum for a race)
-    final teamRunnerCounts = <String, int>{};
-    for (final runner in runners) {
-      final team = runner.school;
-      teamRunnerCounts[team] = (teamRunnerCounts[team] ?? 0) + 1;
-    }
-
-    // Verify each team in the race has enough runners
-    for (final teamName in race!.teams) {
-      final runnerCount = teamRunnerCounts[teamName] ?? 0;
-      if (runnerCount < 1) {
-        // only checking 1 for testing purposes
+    for (final entry in teamToRaceRunnersMap.entries) {
+      if (entry.value.isEmpty) {
+        // Team with zero runners -> cannot proceed
         return false;
       }
     }
 
+    // All teams have at least one runner
     return true;
   }
 
-  const RunnersManagementScreen({
+  const TeamsAndRunnersManagementWidget({
     super.key,
-    required this.raceId,
+    required this.masterRace,
     this.showHeader,
     this.onBack,
     this.onContentChanged,
+    this.isViewMode = false,
   });
 
   @override
-  State<RunnersManagementScreen> createState() =>
-      _RunnersManagementScreenState();
+  State<TeamsAndRunnersManagementWidget> createState() =>
+      _TeamsAndRunnersManagementWidgetState();
 }
 
-class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
+class _TeamsAndRunnersManagementWidgetState
+    extends State<TeamsAndRunnersManagementWidget> {
   late RunnersManagementController _controller;
 
   @override
   void initState() {
     super.initState();
     _controller = RunnersManagementController(
-      raceId: widget.raceId,
+      masterRace: widget.masterRace,
       showHeader: widget.showHeader ?? true,
       onBack: widget.onBack,
       onContentChanged: widget.onContentChanged,
+      isViewMode: widget.isViewMode,
     );
     _controller.init();
   }
@@ -94,21 +91,24 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
                   children: [
                     if (controller.showHeader) ...[
                       createSheetHeader(
-                        'Race Runners',
+                        'Teams and Runners',
                         backArrow: true,
                         context: context,
                         onBack: widget.onBack,
                       ),
                     ],
-                    _buildActionButtons(),
-                    const SizedBox(height: 12),
-                    if (controller.runners.isNotEmpty) ...[
+
+                    if (!controller.isViewMode) ...[
+                      _buildActionButtons(),
+                      const SizedBox(height: 12),
+                    ],
+                    if (!controller.isLoading) ...[
                       _buildSearchSection(),
                       const SizedBox(height: 8),
                       const ListTitles(),
                       const SizedBox(height: 4),
                     ],
-                    // Use Expanded instead of Flexible to force the content to take up all available space
+                    // Use Expanded to fill remaining space with top-aligned content
                     Expanded(
                       child: RunnersList(controller: controller),
                     ),
@@ -127,18 +127,21 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8.0),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          SharedActionButton(
-            text: 'Add Runner',
-            icon: Icons.person_add_alt_1,
-            onPressed: () =>
-                _controller.showRunnerSheet(context: context, runner: null),
+          Expanded(
+            child: SharedActionButton(
+              text: 'Create Team',
+              icon: Icons.group_add,
+              onPressed: () => _controller.showCreateTeamSheet(context),
+            ),
           ),
-          SharedActionButton(
-            text: 'Load Runners',
-            icon: Icons.table_chart,
-            onPressed: () => _controller.handleSpreadsheetLoad(context),
+          const SizedBox(width: 16),
+          Expanded(
+            child: SharedActionButton(
+              text: 'Import Teams',
+              icon: Icons.download,
+              onPressed: () => _controller.showExistingTeamsBrowser(context),
+            ),
           ),
         ],
       ),
@@ -149,14 +152,19 @@ class _RunnersManagementScreenState extends State<RunnersManagementScreen> {
     return RunnerSearchBar(
       controller: _controller.searchController,
       searchAttribute: _controller.searchAttribute,
-      onSearchChanged: _controller.filterRunners,
+      onSearchChanged: () => _controller
+          .filterRaceRunners(_controller.searchController.text.trim()),
       onAttributeChanged: (value) {
         setState(() {
           _controller.searchAttribute = value!;
-          _controller.filterRunners(_controller.searchController.text);
+          _controller
+              .filterRaceRunners(_controller.searchController.text.trim());
         });
       },
-      onDeleteAll: () => _controller.confirmDeleteAllRunners(context),
+      onDeleteAll: _controller.isViewMode
+          ? null
+          : () => _controller.confirmDeleteAllRunners(context),
+      isViewMode: _controller.isViewMode,
     );
   }
 }
