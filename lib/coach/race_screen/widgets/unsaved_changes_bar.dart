@@ -30,73 +30,74 @@ class UnsavedChangesBar extends StatelessWidget {
           return const SizedBox.shrink();
         }
 
-        return Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-          decoration: BoxDecoration(
-            color: Colors.orange.shade50,
-            border: Border(
-              top: BorderSide(color: Colors.orange.shade200, width: 0.5),
-              bottom: BorderSide(color: Colors.orange.shade200, width: 0.5),
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16.0),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.orange.shade50,
+              border: Border(
+                top: BorderSide(color: Colors.orange.shade300, width: 0.5),
+                bottom: BorderSide(color: Colors.orange.shade300, width: 0.5),
+              ),
+              borderRadius: BorderRadius.circular(8),
             ),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                Icons.info_outline,
-                color: Colors.orange.shade600,
-                size: 16,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'You have made changes',
-                  style: AppTypography.bodyRegular.copyWith(
-                    color: Colors.orange.shade700,
-                    fontSize: 13,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'You have made changes',
+                    style: AppTypography.bodyRegular.copyWith(
+                      color: Colors.orange.shade700,
+                      fontSize: 13,
+                    ),
                   ),
                 ),
-              ),
-              TextButton(
-                onPressed: () => controller.revertAllChanges(),
-                style: TextButton.styleFrom(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  minimumSize: const Size(0, 0),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                child: Text(
-                  'Revert',
-                  style: TextStyle(
-                    color: Colors.orange.shade700,
-                    fontWeight: FontWeight.w500,
-                    fontSize: 12,
+                TextButton(
+                  onPressed: () => controller.revertAllChanges(),
+                  style: TextButton.styleFrom(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    minimumSize: const Size(0, 0),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: Text(
+                    'Revert',
+                    style: TextStyle(
+                      color: AppColors.primaryColor,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 4),
-              ElevatedButton(
-                onPressed: () => controller.saveAllChanges(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryColor,
-                  foregroundColor: Colors.white,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  minimumSize: const Size(0, 0),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(4),
+                const SizedBox(width: 8),
+                ElevatedButton(
+                  onPressed: () => controller.saveAllChanges(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryColor,
+                    foregroundColor: Colors.white,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    minimumSize: const Size(0, 0),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text(
+                    'Save',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14,
+                    ),
                   ),
                 ),
-                child: const Text(
-                  'Save',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w500,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },
