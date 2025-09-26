@@ -394,8 +394,9 @@ class DeviceConnectionService implements DeviceConnectionServiceInterface {
       // Skip devices that are finished
       if (device.isFinished) continue;
 
-      // If device is in any active state (not searching), don't rescan
-      if (device.status != ConnectionStatus.searching) {
+      // If device is in any active state (not searching and not found), don't rescan
+      if (device.status != ConnectionStatus.searching &&
+          device.status != ConnectionStatus.found) {
         Logger.d(
             'Skipping rescan: device ${device.name} in state ${device.status}');
         return false;
