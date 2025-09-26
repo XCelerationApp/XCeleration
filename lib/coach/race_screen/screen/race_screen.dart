@@ -224,7 +224,6 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
                 ],
               ],
             ),
-
             Positioned(
               left: 0,
               right: 0,
