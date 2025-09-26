@@ -42,12 +42,6 @@ class UnsavedChangesBar extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Icon(
-                Icons.info_outline,
-                color: Colors.orange.shade600,
-                size: 16,
-              ),
-              const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   'You have made changes',
