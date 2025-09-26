@@ -30,8 +30,7 @@ class UIRecord {
 
   @override
   int get hashCode {
-    return Object.hash(
-        time, place, textColor, type, conflictTime);
+    return Object.hash(time, place, textColor, type, conflictTime);
   }
 
   @override

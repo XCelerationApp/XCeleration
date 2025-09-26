@@ -31,7 +31,6 @@ class ConflictHeader extends StatelessWidget {
         ? 'There are more times than runners. Please select the extra time that should be removed from the results by clicking the X button next to it.'
         : 'There are more runners than times. Please enter a missing time to the correct runner by clicking the + button next to it.';
 
-
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(

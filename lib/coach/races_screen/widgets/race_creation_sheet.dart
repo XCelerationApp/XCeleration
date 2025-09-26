@@ -24,8 +24,7 @@ class RaceCreationSheet extends StatelessWidget {
       children: [
         RaceNameField(controller: controller, setSheetState: setSheetState),
         const SizedBox(height: 12),
-        ActionButton(
-            controller: controller),
+        ActionButton(controller: controller),
       ],
     );
   }

@@ -9,13 +9,11 @@ class BibEncodeUtils {
     final raceParticipants = await masterRace.raceParticipants;
     Logger.d('Runners count: ${raceParticipants.length}');
 
-
     final bibData = await Future.wait(raceParticipants.map((runner) async {
       final raceRunner =
           await masterRace.getRaceRunnerFromRaceParticipant(runner);
       if (raceRunner == null) return '';
       return BibDatum.fromRaceRunner(raceRunner);
-
     }));
 
     return getEncodedBibData(bibData.cast<BibDatum>());
@@ -36,6 +34,8 @@ class TimingEncodeUtils {
         return '';
       }
     });
-    return encodedTimingData.where((encodedTimingDatum) => encodedTimingDatum.isNotEmpty).join(',');
+    return encodedTimingData
+        .where((encodedTimingDatum) => encodedTimingDatum.isNotEmpty)
+        .join(',');
   }
 }

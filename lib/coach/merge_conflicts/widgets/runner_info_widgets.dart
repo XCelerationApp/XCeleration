@@ -71,9 +71,13 @@ class RunnerInfo extends StatelessWidget {
           runSpacing: 4,
           children: [
             if (raceRunner!.runner.bibNumber != null)
-              InfoChip(label: 'Bib ${raceRunner!.runner.bibNumber!}', color: accentColor),
-            if (raceRunner!.team.abbreviation != null && raceRunner!.team.abbreviation!.isNotEmpty)
-              InfoChip(label: raceRunner!.team.abbreviation!, color: accentColor),
+              InfoChip(
+                  label: 'Bib ${raceRunner!.runner.bibNumber!}',
+                  color: accentColor),
+            if (raceRunner!.team.abbreviation != null &&
+                raceRunner!.team.abbreviation!.isNotEmpty)
+              InfoChip(
+                  label: raceRunner!.team.abbreviation!, color: accentColor),
           ],
         ),
       ],

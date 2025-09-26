@@ -28,7 +28,6 @@ class TeamsAndRunnersManagementWidget extends StatefulWidget {
     }
 
     for (final entry in teamToRaceRunnersMap.entries) {
-      
       if (entry.value.isEmpty) {
         // Team with zero runners -> cannot proceed
         return false;

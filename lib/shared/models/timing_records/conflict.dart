@@ -20,6 +20,8 @@ class Conflict {
 
   factory Conflict.decode(String encoded) {
     final parts = encoded.split(',');
-    return Conflict(type: ConflictType.values[int.parse(parts[0])], offBy: int.parse(parts[1]));
+    return Conflict(
+        type: ConflictType.values[int.parse(parts[0])],
+        offBy: int.parse(parts[1]));
   }
 }

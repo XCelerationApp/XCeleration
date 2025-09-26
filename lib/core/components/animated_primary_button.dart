@@ -35,8 +35,9 @@ class _AnimatedPrimaryButtonState extends State<AnimatedPrimaryButton> {
         child: ElevatedButton(
           onPressed: widget.onPressed,
           style: ElevatedButton.styleFrom(
-            backgroundColor:
-                widget.isLoading ? widget.color.withValues(alpha: 0.6) : widget.color,
+            backgroundColor: widget.isLoading
+                ? widget.color.withValues(alpha: 0.6)
+                : widget.color,
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(vertical: 18),
             shape: RoundedRectangleBorder(

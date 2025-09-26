@@ -80,7 +80,6 @@ Future<dynamic> sheet(
     bool takeUpScreen = false,
     bool useRootNavigator = false,
     bool useBottomPadding = true}) async {
-
   // Ensure no underlying input keeps focus when presenting the sheet
   FocusManager.instance.primaryFocus?.unfocus();
   final result = await showModalBottomSheet(

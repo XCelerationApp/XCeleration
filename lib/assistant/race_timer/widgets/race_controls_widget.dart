@@ -96,7 +96,8 @@ class RaceControlsWidget extends StatelessWidget {
             null; // Log button: enabled only if race has started
 
     // Determine button text
-    final String buttonText = controller.raceStopped && controller.hasTimingData ? 'Clear' : 'Log';
+    final String buttonText =
+        controller.raceStopped && controller.hasTimingData ? 'Clear' : 'Log';
 
     // Determine button color based on enabled state
     final Color buttonColor = isEnabled
