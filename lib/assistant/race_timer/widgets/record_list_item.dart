@@ -1,19 +1,16 @@
 import 'package:flutter/material.dart';
-import '../../../shared/models/time_record.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/utils/enums.dart';
+import '../model/ui_record.dart';
 
-class RunnerTimeRecordItem extends StatelessWidget {
-  final TimeRecord record;
+class UIRecordItem extends StatelessWidget {
+  final UIRecord uiRecord;
   final int index;
-  final BuildContext context;
 
-  const RunnerTimeRecordItem({
+  const UIRecordItem({
     super.key,
-    required this.record,
+    required this.uiRecord,
     required this.index,
-    required this.context,
   });
 
   @override
@@ -30,115 +27,41 @@ class RunnerTimeRecordItem extends StatelessWidget {
         color: isEven ? const Color(0xFFF5F5F5) : Colors.white,
       ),
       padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            '${record.place ?? ''}',
-            style: AppTypography.headerSemibold.copyWith(
-              color: record.textColor != null
-                  ? AppColors.confirmRunnerColor
-                  : null,
-            ),
-          ),
-          Text(
-            record.elapsedTime,
-            style: AppTypography.headerSemibold.copyWith(
-              color: record.conflict == null
-                  ? (record.isConfirmed == true
-                      ? AppColors.confirmRunnerColor
-                      : null)
-                  : (record.conflict!.type != RecordType.confirmRunner
-                      ? AppColors.redColor
-                      : AppColors.confirmRunnerColor),
-            ),
-          ),
-        ],
-      ),
+      child: _buildRecordContent(context),
     );
   }
-}
 
-class ConfirmationRecordItem extends StatelessWidget {
-  final TimeRecord record;
-  final int index;
-  final BuildContext context;
+  Widget _buildRecordContent(BuildContext context) {
+    final hasPlace = uiRecord.place != null;
+    final displayText = _getDisplayText();
 
-  const ConfirmationRecordItem({
-    super.key,
-    required this.record,
-    required this.index,
-    required this.context,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isEven = index % 2 == 0;
-    return Container(
-      margin: EdgeInsets.fromLTRB(
-        MediaQuery.of(context).size.width * 0.02,
-        0,
-        MediaQuery.of(context).size.width * 0.02,
-        0,
-      ),
-      decoration: BoxDecoration(
-        color: isEven ? const Color(0xFFF5F5F5) : Colors.white,
-      ),
-      padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
+    return Row(
+      mainAxisAlignment:
+          hasPlace ? MainAxisAlignment.spaceBetween : MainAxisAlignment.end,
+      children: [
+        if (hasPlace)
           Text(
-            'Confirmed: ${record.elapsedTime}',
+            uiRecord.place.toString(),
             style: AppTypography.headerSemibold.copyWith(
-              color: Colors.green[700],
+              color: uiRecord.textColor,
             ),
           ),
-        ],
-      ),
+        Text(
+          displayText,
+          style: AppTypography.headerSemibold.copyWith(
+            color: uiRecord.textColor,
+          ),
+        ),
+      ],
     );
   }
-}
 
-class ConflictRecordItem extends StatelessWidget {
-  final TimeRecord record;
-  final int index;
-  final BuildContext context;
-
-  const ConflictRecordItem({
-    super.key,
-    required this.record,
-    required this.index,
-    required this.context,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isEven = index % 2 == 0;
-    return Container(
-      margin: EdgeInsets.fromLTRB(
-        MediaQuery.of(context).size.width * 0.02,
-        0,
-        MediaQuery.of(context).size.width * 0.02,
-        0,
-      ),
-      decoration: BoxDecoration(
-        color: isEven ? const Color(0xFFF5F5F5) : Colors.white,
-      ),
-      padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          Text(
-            record.type == RecordType.missingTime
-                ? 'Missing Time at ${record.elapsedTime}'
-                : 'Extra Time at ${record.elapsedTime}',
-            style: AppTypography.headerSemibold.copyWith(
-              color: AppColors.redColor,
-            ),
-          ),
-        ],
-      ),
-    );
+  String _getDisplayText() {
+    switch (uiRecord.type) {
+      case RecordType.confirmRunner:
+        return 'Confirmed: ${uiRecord.time}';
+      default:
+        return uiRecord.time;
+    }
   }
 }

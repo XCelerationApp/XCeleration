@@ -22,7 +22,7 @@ void main() {
       
       // todo: Verify UI elements
       // expect(find.text(resultsRecord.name), findsOneWidget);
-      // expect(find.text(resultsRecord.school), findsOneWidget);
+      // expect(find.text(resultsRecord.team), findsOneWidget);
     }); */
 
     // This test verifies the widget correctly displays team results
@@ -41,7 +41,7 @@ void main() {
       // ));
       
       // todo: Verify UI elements
-      // expect(find.text(teamRecord.school), findsOneWidget);
+      // expect(find.text(teamRecord.team), findsOneWidget);
     }); */
 
     // This test verifies the collapsible behavior

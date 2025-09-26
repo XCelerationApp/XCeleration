@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
-import 'dart:convert';
-import '../../../core/utils/enums.dart';
-import '../../../shared/models/time_record.dart';
+import 'package:xceleration/assistant/race_timer/model/ui_record.dart';
+import 'package:xceleration/core/utils/encode_utils.dart';
+import 'package:xceleration/core/utils/enums.dart';
+import 'package:xceleration/shared/models/timing_records/conflict.dart';
+import 'package:xceleration/shared/models/timing_records/timing_chunk.dart';
+import 'package:xceleration/shared/models/timing_records/timing_datum.dart';
+import '../utils/timing_data_converter.dart';
+import 'chunk_cacher.dart';
 
 class TimingData with ChangeNotifier {
-  List<TimeRecord> _records = [];
+  TimingChunk currentChunk = TimingChunk(id: 'current', timingData: []);
+  final ChunkCacher _chunkCacher = ChunkCacher();
+  final TimingDataConverter _timingDataConverter = TimingDataConverter();
   DateTime? _startTime;
   Duration? _endTime;
   bool _raceStopped = true;
-
-  List<TimeRecord> get records => _records;
-  set records(List<TimeRecord> value) {
-    _records = value;
-    notifyListeners();
-  }
 
   DateTime? get startTime => _startTime;
   Duration? get endTime => _endTime;
@@ -23,50 +24,115 @@ class TimingData with ChangeNotifier {
     notifyListeners();
   }
 
-  void addRecord(String elapsedTime,
-      {String? runnerNumber,
-      bool isConfirmed = false,
-      ConflictDetails? conflict,
-      RecordType type = RecordType.runnerTime,
-      int place = 0,
-      Color? textColor}) {
-    _records.add(TimeRecord(
-      elapsedTime: elapsedTime,
-      runnerNumber: runnerNumber,
-      isConfirmed: isConfirmed,
-      conflict: conflict,
-      type: type,
-      place: place,
-      textColor: textColor,
-    ));
+  void addRunnerTimeRecord(TimingDatum record) {
+    if (record.conflict != null) {
+      throw Exception('Runner time record cannot have a conflict');
+    }
+    if (!currentChunk.hasConflict) {
+      currentChunk.timingData.add(record);
+    } else {
+      cacheCurrentChunk();
+      currentChunk = TimingChunk(id: 'current', timingData: [record]);
+    }
     notifyListeners();
   }
 
-  void updateRecord(int runnerId,
-      {String? runnerNumber,
-      bool? isConfirmed,
-      ConflictDetails? conflict,
-      RecordType? type,
-      int? place,
-      int? previousPlace,
-      Color? textColor}) {
-    final index = _records.indexWhere((record) => record.runnerId == runnerId);
-    if (index >= 0) {
-      _records[index] = _records[index].copyWith(
-        runnerNumber: runnerNumber,
-        isConfirmed: isConfirmed,
-        conflict: conflict,
-        type: type,
-        place: place,
-        previousPlace: previousPlace,
-        textColor: textColor,
-      );
-      notifyListeners();
+  void addConfirmRecord(TimingDatum record) {
+    if (record.conflict?.type != ConflictType.confirmRunner) {
+      throw Exception(
+          'Confirm record must have a conflict of type confirmRunner');
     }
+    if (!currentChunk.hasConflict) {
+      currentChunk.conflictRecord = record;
+    } else if (currentChunk.conflictRecord!.conflict?.type ==
+        ConflictType.confirmRunner) {
+      currentChunk.conflictRecord!.time = record.time;
+    } else {
+      cacheCurrentChunk();
+      currentChunk =
+          TimingChunk(id: 'current', timingData: [], conflictRecord: record);
+    }
+    notifyListeners();
   }
 
-  void removeRecord(int runnerId) {
-    _records.removeWhere((record) => record.runnerId == runnerId);
+  void addMissingTimeRecord(TimingDatum record) {
+    if (record.conflict?.type != ConflictType.missingTime) {
+      throw Exception(
+          'Missing time record must have a conflict of type missingTime');
+    }
+    if (!currentChunk.hasConflict) {
+      currentChunk.conflictRecord = record;
+    } else if (currentChunk.conflictRecord!.conflict?.type ==
+        ConflictType.missingTime) {
+      currentChunk.conflictRecord!.time = record.time;
+      currentChunk.conflictRecord!.conflict!.offBy++;
+    } else if (currentChunk.conflictRecord!.conflict?.type ==
+        ConflictType.extraTime) {
+      reduceCurrentConflictByOne(newTime: record.time);
+    } else {
+      cacheCurrentChunk();
+      currentChunk =
+          TimingChunk(id: 'current', timingData: [], conflictRecord: record);
+    }
+    notifyListeners();
+  }
+
+  void addExtraTimeRecord(TimingDatum record) {
+    if (record.conflict?.type != ConflictType.extraTime) {
+      throw Exception(
+          'Extra time record must have a conflict of type extraTime');
+    }
+    if (!currentChunk.hasConflict) {
+      currentChunk.conflictRecord = record;
+    } else {
+      final Conflict conflict = currentChunk.conflictRecord!.conflict!;
+      if (conflict.type == ConflictType.extraTime) {
+        currentChunk.conflictRecord!.time = record.time;
+        currentChunk.conflictRecord!.conflict!.offBy++;
+      } else if (currentChunk.conflictRecord!.conflict?.type ==
+          ConflictType.missingTime) {
+        reduceCurrentConflictByOne(newTime: record.time);
+      } else {
+        cacheCurrentChunk();
+        currentChunk =
+            TimingChunk(id: 'current', timingData: [], conflictRecord: record);
+      }
+    }
+    notifyListeners();
+  }
+
+  void reduceCurrentConflictByOne({String? newTime}) {
+    if (currentChunk.conflictRecord == null ||
+        currentChunk.conflictRecord!.conflict == null) {
+      return;
+    }
+    if (newTime != null) {
+      currentChunk.conflictRecord!.time = newTime;
+    }
+    final Conflict conflict = currentChunk.conflictRecord!.conflict!;
+    conflict.offBy = conflict.offBy - 1;
+    if (conflict.offBy <= 0) {
+      currentChunk.conflictRecord = null;
+    }
+    notifyListeners();
+  }
+
+  void cacheCurrentChunk() {
+    _chunkCacher.cacheChunk(currentChunk);
+  }
+
+  void deleteCurrentChunk() {
+    if (_chunkCacher.isEmpty) {
+      currentChunk = TimingChunk(id: 'current', timingData: []);
+    } else {
+      final TimingChunk? restoredChunk =
+          _chunkCacher.restoreLastChunkFromCache();
+      if (restoredChunk == null) {
+        currentChunk = TimingChunk(id: 'current', timingData: []);
+      } else {
+        currentChunk = restoredChunk;
+      }
+    }
     notifyListeners();
   }
 
@@ -80,44 +146,71 @@ class TimingData with ChangeNotifier {
     notifyListeners();
   }
 
-  String encode() {
-    List<String> recordMaps = _records
-        .map((record) => (record.type == RecordType.runnerTime)
-            ? record.elapsedTime
-            : (record.type == RecordType.confirmRunner)
-                ? '${record.type.toString()} ${record.place} ${record.elapsedTime}'
-                : '${record.type.toString()} ${record.conflict?.data?["offBy"]} ${record.elapsedTime}')
-        .toList();
-    return recordMaps.join(',');
-  }
+  bool get hasTimingData =>
+      currentChunk.timingData.isNotEmpty ||
+      currentChunk.conflictRecord != null ||
+      !_chunkCacher.isEmpty;
 
-  void decode(String jsonString) {
-    final Map<String, dynamic> data = jsonDecode(jsonString);
-
-    if (data.containsKey('records') && data['records'] is List) {
-      _records = (data['records'] as List)
-          .map((recordMap) => TimeRecord.fromMap(recordMap))
-          .toList();
+  Future<String> encodedRecords() async {
+    final List<TimingChunk> chunks = [];
+    if (!currentChunk.isEmpty) {
+      final bool shouldAddConfirm =
+          !currentChunk.hasConflict && endTime != null;
+      final TimingChunk chunkToAdd = shouldAddConfirm
+          ? TimingChunk(
+              id: 'confirm-${DateTime.now().millisecondsSinceEpoch}',
+              timingData: List<TimingDatum>.from(currentChunk.timingData),
+              conflictRecord: TimingDatum(
+                  time: endTime!.toString(),
+                  conflict: Conflict(type: ConflictType.confirmRunner)),
+            )
+          : currentChunk;
+      chunks.add(chunkToAdd);
+    }
+    while (true) {
+      final TimingChunk? chunk = _chunkCacher.restoreLastChunkFromCache();
+      if (chunk == null) {
+        break;
+      }
+      chunks.add(chunk);
     }
 
-    if (data.containsKey('end_time') && data['end_time'] != null) {
-      _endTime = Duration(milliseconds: data['end_time']);
+    final List<TimingDatum> records = [];
+    for (TimingChunk chunk in chunks.reversed) {
+      records.addAll(chunk.timingData);
+      if (chunk.hasConflict) {
+        records.add(chunk.conflictRecord!);
+      }
     }
 
-    notifyListeners();
+    return await TimingEncodeUtils.encodeTimeRecords(records);
   }
 
-  // Helper methods
-  int getNumberOfConfirmedTimes() {
-    return _records.where((record) => record.isConfirmed).length;
-  }
+  List<UIRecord> get uiRecords {
+    List<UIRecord> records = [];
+    // add cached chunks
+    List<UIChunk> cachedChunks = _chunkCacher.cachedChunks;
+    records.addAll(cachedChunks.expand((chunk) => chunk.records));
 
-  int getNumberOfTimes() {
-    return _records.length;
+    // Calculate starting place from last cached chunk's endingPlace if available
+    int startingPlace = 1;
+    if (cachedChunks.isNotEmpty) {
+      startingPlace = cachedChunks.last.endingPlace;
+    }
+
+    // add current chunk
+    final currentChunkRecords =
+        TimingDataConverter.convertToUIChunk(currentChunk, startingPlace)
+            .records;
+    records.addAll(currentChunkRecords);
+    return records;
   }
 
   void clearRecords() {
-    _records.clear();
+    currentChunk.timingData.clear();
+    currentChunk.conflictRecord = null;
+    _chunkCacher.clear();
+    _timingDataConverter.clearCache();
     _startTime = null;
     _endTime = null;
     notifyListeners();

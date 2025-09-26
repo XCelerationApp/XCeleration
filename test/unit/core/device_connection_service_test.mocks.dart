@@ -4,6 +4,7 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i3;
+
 import 'package:flutter_nearby_connections/flutter_nearby_connections.dart'
     as _i6;
 import 'package:mockito/mockito.dart' as _i1;

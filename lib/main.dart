@@ -13,6 +13,8 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'coach/race_screen/controller/race_screen_controller.dart';
 import 'coach/races_screen/controller/races_controller.dart';
+import 'shared/models/database/master_race.dart';
+import 'core/services/sync_service.dart';
 
 /// EventBus provider wrapper for global event management
 class EventBusProvider extends ChangeNotifier {
@@ -64,14 +66,22 @@ void _runApp() async {
       providers: [
         ChangeNotifierProvider(create: (context) => EventBusProvider()),
         ChangeNotifierProvider(
-          create: (context) =>
-              RaceController(raceId: 0, parentController: RacesController()),
+          create: (context) => RaceController(
+              masterRace: MasterRace.getInstance(0),
+              parentController: RacesController()),
         ),
         ChangeNotifierProvider(create: (context) => RacesController()),
       ],
       child: const MyApp(),
     ),
   );
+
+  // Kick off a background sync shortly after startup
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+    try {
+      await SyncService.instance.syncAll();
+    } catch (_) {}
+  });
 }
 
 class MyApp extends StatelessWidget {

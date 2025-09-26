@@ -7,7 +7,6 @@ export '../../coach/runners_management_screen/controller/runners_management_cont
 
 // Models
 export '../../coach/race_screen/widgets/runner_record.dart';
-export '../../coach/runners_management_screen/model/team.dart';
 
 // Screens
 export '../../coach/runners_management_screen/screen/runners_management_screen.dart';

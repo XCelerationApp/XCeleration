@@ -45,7 +45,7 @@ class _BibListWidgetState extends State<BibListWidget>
               itemCount: widget.controller.bibRecords.length,
               itemBuilder: (context, index) {
                 return Dismissible(
-                  key: ValueKey(widget.controller.bibRecords[index]),
+                  key: ValueKey(widget.controller.controllers[index]),
                   background: Container(
                     color: Colors.red,
                     alignment: Alignment.centerRight,

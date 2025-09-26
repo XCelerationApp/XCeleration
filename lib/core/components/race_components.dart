@@ -310,26 +310,22 @@ class RaceStatusHeaderWidget extends StatelessWidget {
               child: InkWell(
                 onTap: onRunnersTap,
                 borderRadius: BorderRadius.circular(18),
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Runners: $runnerCount',
-                        style: AppTypography.bodySemibold.copyWith(
-                          color: Colors.black87,
-                        ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Runners: $runnerCount',
+                      style: AppTypography.bodySemibold.copyWith(
+                        color: Colors.black87,
                       ),
-                      const SizedBox(width: 4),
-                      const Icon(
-                        Icons.arrow_drop_down,
-                        size: 20,
-                        color: Colors.black54,
-                      ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(
+                      Icons.arrow_drop_down,
+                      size: 20,
+                      color: Colors.black54,
+                    ),
+                  ],
                 ),
               ),
             )
@@ -340,13 +336,15 @@ class RaceStatusHeaderWidget extends StatelessWidget {
                 color: Colors.black87,
               ),
             ),
-          if (recordCount != null)
+          if (recordCount != null) ...[
+            const SizedBox(width: 16),
             Text(
               '${recordLabel ?? 'Records'}: $recordCount',
               style: AppTypography.bodySemibold.copyWith(
                 color: Colors.black87,
               ),
             ),
+          ],
         ],
       ),
     );

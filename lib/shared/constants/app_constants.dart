@@ -47,9 +47,9 @@ class AppConstants {
   // Validation
   static const int maxBibNumber = 99999;
   static const int minBibNumber = 1;
-  static const int maxRunnerNameLength = 50;
-  static const int maxSchoolNameLength = 100;
-  static const int maxRaceNameLength = 100;
+  static const int maxRunnerNameLength = 30;
+  static const int maxTeamNameLength = 50;
+  static const int maxRaceNameLength = 50;
 
   // Error Messages
   static const String genericError =
