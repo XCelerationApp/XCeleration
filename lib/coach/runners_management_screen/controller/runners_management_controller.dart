@@ -630,6 +630,9 @@ class RunnersManagementController with ChangeNotifier {
       // Track conflicts where an existing runner (by bib) has different details
       final conflicts = <Map<String, Runner>>[];
 
+      // Clear filtered search results cache to prevent stale data
+      masterRace.invalidateCache();
+
       // First pass: add all non-conflicting runners immediately
       for (final data in selectedRows) {
         final String name = (data['name'] as String?)?.trim() ?? '';
