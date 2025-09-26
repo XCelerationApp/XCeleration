@@ -65,14 +65,8 @@ class _ChunkItemState extends State<ChunkItem> {
                 startTime: previousChunkEndTime,
                 endTime: widget.chunk.endTime,
                 offBy: widget.chunk.conflict.offBy,
-                removedCount: chunkType == ConflictType.extraTime
-                    ? widget.chunk.originalTimingDataLength -
-                        widget.chunk.times.length
-                    : 0,
-                enteredCount: chunkType == ConflictType.missingTime
-                    ? widget.chunk.originalTimingDataLength -
-                        widget.chunk.times.length
-                    : 0,
+                removedCount: widget.chunk.removedCount,
+                enteredCount: widget.chunk.enteredCount,
               ),
             if (chunkType == ConflictType.confirmRunner)
               ConfirmHeader(confirmTime: widget.chunk.endTime),
@@ -85,19 +79,19 @@ class _ChunkItemState extends State<ChunkItem> {
                 chunkIndex: entry.key,
               );
             }),
-            // Add resolve button for all conflict types
+            // Add resolve button for unresolved conflict types
             if (chunkType == ConflictType.extraTime ||
                 chunkType == ConflictType.missingTime)
               Padding(
                 padding: const EdgeInsets.only(top: 16),
                 child: ResolveConflictButton(
-                  conflictType: chunkType,
-                  offBy: widget.chunk.conflict.offBy,
-                  onResolve: () {
+                  isResolved: widget.chunk.isResolvedLocally,
+                  onResolve: () async {
                     if (chunkType == ConflictType.extraTime) {
-                      widget.controller.resolveExtraTimeConflict(widget.index);
+                      await widget.controller
+                          .resolveExtraTimeConflict(widget.index);
                     } else if (chunkType == ConflictType.missingTime) {
-                      widget.controller
+                      await widget.controller
                           .resolveMissingTimeConflict(widget.index);
                     }
                   },

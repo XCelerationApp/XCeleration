@@ -9,7 +9,7 @@ import '../utils/timing_data_converter.dart';
 import 'chunk_cacher.dart';
 
 class TimingData with ChangeNotifier {
-  TimingChunk currentChunk = TimingChunk(timingData: []);
+  TimingChunk currentChunk = TimingChunk(id: 'current', timingData: []);
   final ChunkCacher _chunkCacher = ChunkCacher();
   final TimingDataConverter _timingDataConverter = TimingDataConverter();
   DateTime? _startTime;
@@ -32,7 +32,7 @@ class TimingData with ChangeNotifier {
       currentChunk.timingData.add(record);
     } else {
       cacheCurrentChunk();
-      currentChunk = TimingChunk(timingData: [record]);
+      currentChunk = TimingChunk(id: 'current', timingData: [record]);
     }
     notifyListeners();
   }
@@ -49,7 +49,8 @@ class TimingData with ChangeNotifier {
       currentChunk.conflictRecord!.time = record.time;
     } else {
       cacheCurrentChunk();
-      currentChunk = TimingChunk(timingData: [], conflictRecord: record);
+      currentChunk =
+          TimingChunk(id: 'current', timingData: [], conflictRecord: record);
     }
     notifyListeners();
   }
@@ -70,7 +71,8 @@ class TimingData with ChangeNotifier {
       reduceCurrentConflictByOne(newTime: record.time);
     } else {
       cacheCurrentChunk();
-      currentChunk = TimingChunk(timingData: [], conflictRecord: record);
+      currentChunk =
+          TimingChunk(id: 'current', timingData: [], conflictRecord: record);
     }
     notifyListeners();
   }
@@ -92,7 +94,8 @@ class TimingData with ChangeNotifier {
         reduceCurrentConflictByOne(newTime: record.time);
       } else {
         cacheCurrentChunk();
-        currentChunk = TimingChunk(timingData: [], conflictRecord: record);
+        currentChunk =
+            TimingChunk(id: 'current', timingData: [], conflictRecord: record);
       }
     }
     notifyListeners();
@@ -120,12 +123,12 @@ class TimingData with ChangeNotifier {
 
   void deleteCurrentChunk() {
     if (_chunkCacher.isEmpty) {
-      currentChunk = TimingChunk(timingData: []);
+      currentChunk = TimingChunk(id: 'current', timingData: []);
     } else {
       final TimingChunk? restoredChunk =
           _chunkCacher.restoreLastChunkFromCache();
       if (restoredChunk == null) {
-        currentChunk = TimingChunk(timingData: []);
+        currentChunk = TimingChunk(id: 'current', timingData: []);
       } else {
         currentChunk = restoredChunk;
       }
@@ -155,6 +158,7 @@ class TimingData with ChangeNotifier {
           !currentChunk.hasConflict && endTime != null;
       final TimingChunk chunkToAdd = shouldAddConfirm
           ? TimingChunk(
+              id: 'confirm-${DateTime.now().millisecondsSinceEpoch}',
               timingData: List<TimingDatum>.from(currentChunk.timingData),
               conflictRecord: TimingDatum(
                   time: endTime!.toString(),

@@ -130,6 +130,7 @@ class MasterFlowController {
     await Future.delayed(const Duration(milliseconds: 500));
 
     // Return to race results tab
+    Logger.d('MasterFlowController: Navigating to results tab');
     raceController.tabController.animateTo(1);
     return true;
   }
@@ -163,7 +164,9 @@ class FlowController extends ChangeNotifier {
   FlowStep get currentStep => steps[_currentIndex];
 
   Future<void> goToNext() async {
-    currentStep.onNext?.call();
+    if (currentStep.onNext != null) {
+      await currentStep.onNext!();
+    }
     _currentIndex++;
     _subscribeToCurrentStep();
     notifyListeners();
@@ -287,15 +290,21 @@ Future<bool> showFlow({
                       ? AppColors.primaryColor
                       : Colors.grey,
                   fontWeight: FontWeight.w600,
-                  onPressed: () async {
-                    if (controller.canGoForward) {
-                      await controller.goToNext();
-                    } else if (controller.isLastStep) {
-                      // Use a context that's guaranteed to be available
-                      Navigator.of(context, rootNavigator: true).pop();
-                      completed = true;
-                    }
-                  },
+                  onPressed: controller.canProceed
+                      ? () async {
+                          if (controller.canGoForward) {
+                            await controller.goToNext();
+                          } else if (controller.isLastStep) {
+                            // Call onNext for the final step before completing
+                            if (controller.currentStep.onNext != null) {
+                              await controller.currentStep.onNext!();
+                            }
+                            // Complete the flow
+                            completed = true;
+                            Navigator.of(context, rootNavigator: true).pop();
+                          }
+                        }
+                      : null,
                 ),
               ),
             ],

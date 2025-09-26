@@ -325,7 +325,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Switch(
             value: isEnabled,
             onChanged: _toggleSync,
-            activeColor: AppColors.primaryColor,
+            activeThumbColor: AppColors.primaryColor,
             inactiveThumbColor: Colors.white,
             inactiveTrackColor: Colors.grey,
             activeTrackColor: Colors.black, // Added dark border effect

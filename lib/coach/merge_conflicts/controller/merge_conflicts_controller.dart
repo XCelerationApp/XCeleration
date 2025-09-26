@@ -17,6 +17,15 @@ class MergeConflictsController with ChangeNotifier {
   Map<int, dynamic> selectedTimes = {};
   BuildContext? _context;
 
+  // Cache UI chunks to preserve controller state across rebuilds
+  List<UIChunk>? _cachedUIChunks;
+  bool _needsUIRebuild = true;
+
+  /// Force UI rebuild (used by UIChunk when records change)
+  void invalidateUICache() {
+    _needsUIRebuild = true;
+  }
+
   MergeConflictsController({
     required this.masterRace,
     required this.timingChunks,
@@ -27,8 +36,17 @@ class MergeConflictsController with ChangeNotifier {
     _context = context;
   }
 
-  List<UIChunk> get uiChunks =>
-      TimingDataConverter.convertToUIChunks(timingChunks, raceRunners, this);
+  List<UIChunk> get uiChunks {
+    // Cache the UI chunks to preserve controller state across rebuilds
+    if (_cachedUIChunks == null ||
+        _cachedUIChunks!.length != timingChunks.length ||
+        _needsUIRebuild) {
+      _cachedUIChunks = TimingDataConverter.convertToUIChunks(
+          timingChunks, raceRunners, this);
+      _needsUIRebuild = false;
+    }
+    return _cachedUIChunks!;
+  }
 
   BuildContext get context {
     assert(_context != null,
@@ -40,11 +58,11 @@ class MergeConflictsController with ChangeNotifier {
     consolidateConfirmedTimes();
   }
 
-  void removeExtraTime(int chunkIndex, int timeIndex) {
-    if (chunkIndex < 0 || chunkIndex >= timingChunks.length) {
+  void removeExtraTime(String chunkId, int recordIndex) {
+    final chunkIndex = timingChunks.indexWhere((c) => c.id == chunkId);
+    if (chunkIndex == -1) {
       return;
     }
-
     final chunk = timingChunks[chunkIndex];
     if (!chunk.hasConflict ||
         chunk.conflictRecord == null ||
@@ -54,24 +72,28 @@ class MergeConflictsController with ChangeNotifier {
     }
 
     // Remove the timing datum at the specified index
-    if (timeIndex >= 0 && timeIndex < chunk.timingData.length) {
-      chunk.timingData.removeAt(timeIndex);
+    if (recordIndex >= 0 && recordIndex < chunk.timingData.length) {
+      chunk.timingData.removeAt(recordIndex);
 
       // Update the conflict's offBy count
       final conflict = chunk.conflictRecord!.conflict!;
       if (conflict.offBy > 0) {
         conflict.offBy--;
+
+        // Note: Don't auto-convert to confirmRunner when offBy reaches 0
+        // User should explicitly click "Resolve Conflict" to resolve extra time conflicts
       }
 
       // Only notify listeners if context is still mounted
       if (context.mounted) {
+        _needsUIRebuild = true;
         notifyListeners();
       }
     }
   }
 
   /// Manually resolve an extra time conflict for a specific chunk
-  void resolveExtraTimeConflict(int chunkIndex) {
+  Future<void> resolveExtraTimeConflict(int chunkIndex) async {
     if (chunkIndex < 0 || chunkIndex >= timingChunks.length) {
       return;
     }
@@ -84,12 +106,7 @@ class MergeConflictsController with ChangeNotifier {
       return;
     }
 
-    final conflict = chunk.conflictRecord!.conflict!;
-
-    // Only allow resolution if extra times have been removed (offBy is 0)
-    if (conflict.offBy > 0) {
-      return;
-    }
+    // Resolution is now checked in UI based on local state
 
     // Convert to confirmRunner conflict
     chunk.conflictRecord = TimingDatum(
@@ -97,17 +114,15 @@ class MergeConflictsController with ChangeNotifier {
       conflict: Conflict(type: ConflictType.confirmRunner, offBy: 0),
     );
 
-    // Consolidate adjacent confirmRunner chunks after resolving the conflict
-    consolidateConfirmedTimes();
+    // Invalidate UI cache since conflict type changed
+    _needsUIRebuild = true;
 
-    // Only notify listeners if context is still mounted
-    if (context.mounted) {
-      notifyListeners();
-    }
+    // Consolidate adjacent confirmRunner chunks after resolving the conflict
+    await consolidateConfirmedTimes();
   }
 
   /// Manually resolve a missing time conflict for a specific chunk
-  void resolveMissingTimeConflict(int chunkIndex) {
+  Future<void> resolveMissingTimeConflict(int chunkIndex) async {
     if (chunkIndex < 0 || chunkIndex >= timingChunks.length) {
       return;
     }
@@ -120,12 +135,7 @@ class MergeConflictsController with ChangeNotifier {
       return;
     }
 
-    final conflict = chunk.conflictRecord!.conflict!;
-
-    // Only allow resolution if missing times have been filled (offBy is 0)
-    if (conflict.offBy > 0) {
-      return;
-    }
+    // Resolution is now checked in UI based on local state
 
     // Convert to confirmRunner conflict
     chunk.conflictRecord = TimingDatum(
@@ -133,10 +143,46 @@ class MergeConflictsController with ChangeNotifier {
       conflict: Conflict(type: ConflictType.confirmRunner, offBy: 0),
     );
 
-    // Consolidate adjacent confirmRunner chunks after resolving the conflict
-    consolidateConfirmedTimes();
+    // Invalidate UI cache since conflict type changed
+    _needsUIRebuild = true;
 
-    // Only notify listeners if context is still mounted
+    // Consolidate adjacent confirmRunner chunks after resolving the conflict
+    await consolidateConfirmedTimes();
+  }
+
+  /// Sync UIChunk records to backend and check for chunk resolution
+  Future<void> syncChunkToBackendAndCheckResolution(UIChunk uiChunk) async {
+    final chunkIndex = timingChunks.indexWhere((c) => c.id == uiChunk.chunkId);
+    if (chunkIndex == -1) {
+      return;
+    }
+    final chunk = timingChunks[chunkIndex];
+
+    // Sync UI record times to backend - replace all timing data
+    chunk.timingData.clear();
+    chunk.timingData.addAll(
+        uiChunk.records.map((record) => TimingDatum(time: record.time)));
+
+    // Update conflict count for missing time conflicts
+    if (chunk.hasConflict &&
+        chunk.conflictRecord?.conflict?.type == ConflictType.missingTime) {
+      final conflict = chunk.conflictRecord!.conflict!;
+      // Recalculate offBy based on current TBD count
+      final tbdCount = uiChunk.records.where((r) => r.time == 'TBD').length;
+      conflict.offBy = tbdCount;
+
+      // Check if this chunk is now fully resolved
+      if (conflict.offBy == 0) {
+        Logger.d(
+            'MergeConflictsController: Chunk ${uiChunk.chunkId} synced and is now fully resolved, consolidating confirmed times');
+
+        // Consolidate confirmed times (merge adjacent confirmRunner chunks)
+        await consolidateConfirmedTimes();
+        _needsUIRebuild = true;
+      }
+    }
+
+    // Notify listeners for UI update
     if (context.mounted) {
       notifyListeners();
     }
@@ -173,6 +219,20 @@ class MergeConflictsController with ChangeNotifier {
         }
       }
 
+      // Check if this chunk is now fully resolved
+      if (chunk.hasConflict &&
+          chunk.conflictRecord?.conflict?.type == ConflictType.missingTime &&
+          chunk.conflictRecord!.conflict!.offBy == 0) {
+        // Consolidate confirmed times (merge adjacent confirmRunner chunks)
+        consolidateConfirmedTimes();
+
+        // Check if we now have one consolidated confirmed chunk and auto-close if so
+        if (!hasConflicts) {
+          returnMergedData();
+          return; // Don't notify listeners since we're closing
+        }
+      }
+
       // Only notify listeners if context is still mounted
       if (context.mounted) {
         notifyListeners();
@@ -180,8 +240,13 @@ class MergeConflictsController with ChangeNotifier {
     }
   }
 
-  bool get hasConflicts =>
-      (timingChunks.length != 1 || timingChunks.first.hasConflict);
+  bool get hasConflicts {
+    if (timingChunks.length != 1) return true;
+    final chunk = timingChunks.first;
+    if (!chunk.hasConflict) return false;
+    // ConfirmRunner conflicts are resolved and mergeable
+    return chunk.conflictRecord!.conflict!.type != ConflictType.confirmRunner;
+  }
 
   bool get allConflictsResolved {
     // Check if any timing chunks still have TBD values
@@ -200,7 +265,7 @@ class MergeConflictsController with ChangeNotifier {
           message: 'All conflicts must be resolved before proceeding.');
       return;
     }
-    Navigator.of(context).pop(timingChunks[0].timingData);
+    Navigator.of(context).pop(null);
   }
 
   /// Consolidates adjacent confirmRunner chunks into a single chunk,
@@ -208,6 +273,10 @@ class MergeConflictsController with ChangeNotifier {
   Future<void> consolidateConfirmedTimes() async {
     // Process chunks to consolidate adjacent confirmRunner chunks
     _consolidateConfirmedChunks();
+
+    // Check for auto-close after consolidation
+    _checkForAutoClose();
+
     notifyListeners();
   }
 
@@ -238,8 +307,6 @@ class MergeConflictsController with ChangeNotifier {
           // Merge multiple consecutive chunks
           final mergedChunk = _mergeConsecutiveTimingChunks(consecutiveChunks);
           consolidatedChunks.add(mergedChunk);
-          Logger.d(
-              'Consolidated ${consecutiveChunks.length} consecutive confirmRunner chunks');
         } else {
           // Single chunk, keep as is
           consolidatedChunks.add(currentChunk);
@@ -264,6 +331,18 @@ class MergeConflictsController with ChangeNotifier {
     return chunk.conflictRecord?.conflict?.type == ConflictType.confirmRunner;
   }
 
+  /// Check if we should auto-close the conflict resolution screen
+  void _checkForAutoClose() {
+    if (allConflictsResolved && hasValidTimeOrder && timingChunks.length == 1) {
+      // Schedule auto-close for next frame to avoid dispose issues
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) {
+          returnMergedData();
+        }
+      });
+    } else {}
+  }
+
   /// Merge consecutive confirmRunner chunks efficiently
   TimingChunk _mergeConsecutiveTimingChunks(
       List<TimingChunk> consecutiveChunks) {
@@ -275,8 +354,17 @@ class MergeConflictsController with ChangeNotifier {
       return consecutiveChunks.first;
     }
 
+    // For merged chunks, keep a confirmRunner conflict record so they remain visible
+    // Only remove conflict record if there are no conflicts at all
+    final hasAnyConflicts = consecutiveChunks.any((chunk) => chunk.hasConflict);
+
     return TimingChunk(
-      conflictRecord: consecutiveChunks.last.conflictRecord,
+      id: 'merged-${consecutiveChunks.map((c) => c.id).join('-')}',
+      conflictRecord: hasAnyConflicts
+          ? TimingDatum(
+              time: consecutiveChunks.last.conflictRecord!.time,
+              conflict: Conflict(type: ConflictType.confirmRunner))
+          : null,
       timingData: consecutiveChunks.expand((data) => data.timingData).toList(),
     );
   }
@@ -287,6 +375,7 @@ class MergeConflictsController with ChangeNotifier {
       return null;
     }
     return TimingChunk(
+        id: 'resolved-${DateTime.now().millisecondsSinceEpoch}',
         timingData: times.map((time) => TimingDatum(time: time)).toList(),
         conflictRecord: TimingDatum(
             time: times.last,

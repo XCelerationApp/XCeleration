@@ -24,111 +24,126 @@ class RunnerTimeRecord extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final raceRunner = record.runner;
-    final time = record.time;
-    final place = record.place;
-    final hasConflict = chunk.conflict.type != ConflictType.confirmRunner;
+    return ValueListenableBuilder<TextEditingValue>(
+      valueListenable: record.timeController,
+      builder: (context, value, child) {
+        return AnimatedBuilder(
+          animation: record,
+          builder: (context, child) {
+            final raceRunner = record.runner;
+            final time = record.time;
+            final place = record.place;
+            final hasConflict = chunk.hasConflict;
+            final isResolved = !hasConflict ||
+                chunk.conflict.type == ConflictType.confirmRunner;
 
-    final Color conflictColor =
-        hasConflict ? AppColors.primaryColor : Colors.green;
-    final Color bgColor = ColorUtils.withOpacity(conflictColor, 0.05);
-    final Color borderColor = ColorUtils.withOpacity(conflictColor, 0.5);
+            final Color conflictColor =
+                isResolved ? Colors.green : AppColors.primaryColor;
+            final Color bgColor = ColorUtils.withOpacity(conflictColor, 0.05);
+            final Color borderColor =
+                ColorUtils.withOpacity(conflictColor, 0.5);
 
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 4),
-      elevation: 0.3,
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-        side: BorderSide(color: borderColor, width: 0.5),
-      ),
-      child: IntrinsicHeight(
-        child: Row(
-          children: [
-            Expanded(
-              flex: 4,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: bgColor,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(10),
-                    bottomLeft: Radius.circular(10),
-                  ),
-                ),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+            return Card(
+              margin: const EdgeInsets.symmetric(vertical: 4),
+              elevation: 0.3,
+              clipBehavior: Clip.antiAlias,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+                side: BorderSide(color: borderColor, width: 0.5),
+              ),
+              child: IntrinsicHeight(
                 child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    if (place != null) ...[
-                      PlaceNumber(place: place, color: conflictColor),
-                      const SizedBox(width: 10),
-                    ],
                     Expanded(
-                      child: RunnerInfo(
-                        raceRunner: raceRunner,
-                        accentColor: conflictColor,
+                      flex: 4,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: bgColor,
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(10),
+                            bottomLeft: Radius.circular(10),
+                          ),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 16),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            if (place != null) ...[
+                              PlaceNumber(place: place, color: conflictColor),
+                              const SizedBox(width: 10),
+                            ],
+                            Expanded(
+                              child: RunnerInfo(
+                                raceRunner: raceRunner,
+                                accentColor: conflictColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Container(width: 0.5, color: borderColor),
+                    Expanded(
+                      flex: 3,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: bgColor,
+                          borderRadius: const BorderRadius.only(
+                            topRight: Radius.circular(10),
+                            bottomRight: Radius.circular(10),
+                          ),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14), // Remove vertical padding
+                        child: SizedBox.expand(
+                          child: (chunk.conflict.type == ConflictType.extraTime
+                              ? ExtraTimeCell(
+                                  time: time,
+                                  onRemoveExtraTime: () =>
+                                      chunk.onRemoveExtraTime(chunkIndex),
+                                )
+                              : Builder(
+                                  builder: (context) {
+                                    final shouldAutofocus =
+                                        chunk.lastInsertedIndex == chunkIndex;
+                                    if (shouldAutofocus) {
+                                      // Clear the last inserted index after it's been used
+                                      chunk.lastInsertedIndex = null;
+                                    }
+                                    return MissingTimeCell(
+                                      controller: record.timeController,
+                                      time: time,
+                                      onSubmitted: (newValue) =>
+                                          chunk.onMissingTimeSubmitted(
+                                              context, chunkIndex, newValue),
+                                      onChanged: (newValue) =>
+                                          chunk.onMissingTimeChanged(
+                                              context, chunkIndex, newValue),
+                                      onAddTime: (chunk.conflict.type ==
+                                                  ConflictType.missingTime &&
+                                              chunk.shouldShowPlusButton(
+                                                  chunkIndex))
+                                          ? () => chunk.insertTimeAt(chunkIndex)
+                                          : null,
+                                      validationError:
+                                          chunk.validateTimeOrder(chunkIndex),
+                                      autofocus: shouldAutofocus,
+                                      isOriginallyTBD: record.isOriginallyTBD,
+                                      record: record,
+                                    );
+                                  },
+                                )),
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
-            ),
-            Container(width: 0.5, color: borderColor),
-            Expanded(
-              flex: 3,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: bgColor,
-                  borderRadius: const BorderRadius.only(
-                    topRight: Radius.circular(10),
-                    bottomRight: Radius.circular(10),
-                  ),
-                ),
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 14), // Remove vertical padding
-                child: SizedBox.expand(
-                  child: hasConflict
-                      ? (chunk.conflict.type == ConflictType.extraTime
-                          ? ExtraTimeCell(
-                              time: time,
-                              onRemoveExtraTime: () =>
-                                  chunk.onRemoveExtraTime(chunkIndex),
-                            )
-                          : Builder(
-                              builder: (context) {
-                                final shouldAutofocus =
-                                    chunk.lastInsertedIndex == chunkIndex;
-                                if (shouldAutofocus) {
-                                  // Clear the last inserted index after it's been used
-                                  chunk.lastInsertedIndex = null;
-                                }
-                                return MissingTimeCell(
-                                  controller: record.timeController,
-                                  time: time,
-                                  onSubmitted: (newValue) =>
-                                      chunk.onMissingTimeSubmitted(
-                                          context, chunkIndex, newValue),
-                                  onChanged: (newValue) =>
-                                      chunk.onMissingTimeChanged(
-                                          context, chunkIndex, newValue),
-                                  onAddTime:
-                                      chunk.shouldShowPlusButton(chunkIndex)
-                                          ? () => chunk.insertTimeAt(chunkIndex)
-                                          : null,
-                                  validationError:
-                                      chunk.validateTimeOrder(chunkIndex),
-                                  autofocus: shouldAutofocus,
-                                );
-                              },
-                            ))
-                      : ConfirmedRunnerTimeCell(time: time),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+            );
+          },
+        );
+      },
     );
   }
 }

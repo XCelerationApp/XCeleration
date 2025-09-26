@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/coach/merge_conflicts/controller/merge_conflicts_controller.dart';
-import 'package:xceleration/coach/merge_conflicts/widgets/save_button.dart';
 import 'package:xceleration/shared/models/database/master_race.dart';
 import 'package:xceleration/shared/models/database/race_runner.dart';
 import 'package:xceleration/shared/models/timing_records/timing_chunk.dart';
@@ -27,18 +26,19 @@ class MergeConflictsScreen extends StatefulWidget {
 }
 
 class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
+  late MergeConflictsController _controller;
+
   @override
   void initState() {
     super.initState();
+    _controller = Provider.of<MergeConflictsController>(context, listen: false);
     WidgetsBinding.instance.addPostFrameCallback((_) => _initializeState());
   }
 
   void _initializeState() {
-    final controller =
-        Provider.of<MergeConflictsController>(context, listen: false);
-    controller.setContext(context);
-    controller.initState();
-    controller.addListener(_rebuildUi);
+    _controller.setContext(context);
+    _controller.initState();
+    _controller.addListener(_rebuildUi);
   }
 
   void _rebuildUi() {
@@ -49,20 +49,18 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Provider.of<MergeConflictsController>(context);
-    controller.setContext(context);
+    _controller.setContext(context);
     return Container(
       color: AppColors.backgroundColor,
       child: SafeArea(
         child: Column(
           children: [
-            if (controller.hasConflicts) SaveButton(controller: controller),
             Expanded(
               child: ListView(
                 padding: EdgeInsets.zero,
                 children: [
                   InstructionsAndList(
-                    controller: controller,
+                    controller: _controller,
                   )
                 ],
               ),
@@ -75,10 +73,8 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
 
   @override
   void dispose() {
-    final controller =
-        Provider.of<MergeConflictsController>(context, listen: false);
-    controller.removeListener(_rebuildUi);
-    controller.dispose();
+    _controller.removeListener(_rebuildUi);
+    // Don't dispose controller - Provider handles it
     super.dispose();
   }
 }
@@ -129,41 +125,6 @@ class InstructionsAndList extends StatelessWidget {
           // Content based on mode
           ChunkList(controller: controller),
           const SizedBox(height: 24),
-
-          // Resolve Conflict button
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: ElevatedButton(
-              onPressed: (controller.allConflictsResolved &&
-                      controller.hasValidTimeOrder)
-                  ? () => controller.returnMergedData()
-                  : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: (controller.allConflictsResolved &&
-                        controller.hasValidTimeOrder)
-                    ? AppColors.primaryColor
-                    : Colors.grey[400],
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: (controller.allConflictsResolved &&
-                        controller.hasValidTimeOrder)
-                    ? 2
-                    : 0,
-              ),
-              child: Text(
-                'Resolve Conflict',
-                style: AppTypography.bodySemibold.copyWith(
-                  color: Colors.white,
-                  fontSize: 16,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
         ],
       ),
     );

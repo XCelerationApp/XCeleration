@@ -1,24 +1,19 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
-import '../../../core/utils/enums.dart';
 
 class ResolveConflictButton extends StatelessWidget {
-  final ConflictType conflictType;
-  final int offBy;
-  final VoidCallback onResolve;
+  final bool isResolved;
+  final Future<void> Function() onResolve;
 
   const ResolveConflictButton({
     super.key,
-    required this.conflictType,
-    required this.offBy,
+    required this.isResolved,
     required this.onResolve,
   });
 
   @override
   Widget build(BuildContext context) {
-    final bool isResolved = offBy == 0;
-
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(

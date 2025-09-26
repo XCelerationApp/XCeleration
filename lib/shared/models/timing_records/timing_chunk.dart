@@ -2,10 +2,12 @@ import 'timing_datum.dart';
 import 'package:xceleration/core/utils/enums.dart';
 
 class TimingChunk {
+  final String id;
   TimingDatum? conflictRecord;
   final List<TimingDatum> timingData;
 
   TimingChunk({
+    required this.id,
     this.conflictRecord,
     required this.timingData,
   }) {
@@ -38,11 +40,13 @@ class TimingChunk {
       identical(this, other) ||
       other is TimingChunk &&
           runtimeType == other.runtimeType &&
+          id == other.id &&
           conflictRecord == other.conflictRecord &&
           _listEquals(timingData, other.timingData);
 
   @override
   int get hashCode => Object.hash(
+        id,
         conflictRecord,
         Object.hashAll(timingData),
       );
@@ -91,6 +95,7 @@ class TimingChunk {
         : TimingDatum.fromEncodedString(conflictPart);
 
     return TimingChunk(
+      id: 'encoded-${DateTime.now().millisecondsSinceEpoch}',
       conflictRecord: conflictRecord,
       timingData: timingData,
     );
@@ -108,6 +113,7 @@ List<TimingChunk> timingChunksFromTimingData(List<TimingDatum> timingData) {
     if (timingDatum.conflict != null) {
       // When a conflict is found, create a chunk with the current timing data and this conflict
       chunks.add(TimingChunk(
+        id: 'split-${DateTime.now().millisecondsSinceEpoch}-${chunks.length}',
         timingData: List<TimingDatum>.from(currentTimingData),
         conflictRecord: timingDatum,
       ));
@@ -120,6 +126,7 @@ List<TimingChunk> timingChunksFromTimingData(List<TimingDatum> timingData) {
   // If there is any remaining timing data without a conflict, add it as a chunk
   if (currentTimingData.isNotEmpty) {
     chunks.add(TimingChunk(
+      id: 'split-${DateTime.now().millisecondsSinceEpoch}-${chunks.length}',
       timingData: List<TimingDatum>.from(currentTimingData),
       conflictRecord: null,
     ));

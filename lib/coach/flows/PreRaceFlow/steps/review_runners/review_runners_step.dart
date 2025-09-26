@@ -9,7 +9,7 @@ class ReviewRunnersStep extends FlowStep {
 
   ReviewRunnersStep({
     required this.masterRace,
-    required VoidCallback onNext,
+    required Future<void> Function() onNext,
   }) : super(
           title: 'Review Runners',
           description:
@@ -30,7 +30,8 @@ class ReviewRunnersStep extends FlowStep {
 
   Future<void> checkRunners() async {
     final hasEnoughRunners =
-        await TeamsAndRunnersManagementWidget.checkMinimumRunnersLoaded(masterRace);
+        await TeamsAndRunnersManagementWidget.checkMinimumRunnersLoaded(
+            masterRace);
     if (_canProceed != hasEnoughRunners) {
       _canProceed = hasEnoughRunners;
       notifyContentChanged();

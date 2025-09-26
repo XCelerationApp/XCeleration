@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
+import '../utils/timing_data_converter.dart';
 
 /// Helper widget for displaying a time string in cell style.
 class TimeDisplay extends StatelessWidget {
@@ -97,7 +98,7 @@ class ExtraTimeCell extends StatelessWidget {
   }
 }
 
-class MissingTimeCell extends StatelessWidget {
+class MissingTimeCell extends StatefulWidget {
   final TextEditingController controller;
   final String time;
   final ValueChanged<String> onSubmitted;
@@ -105,6 +106,8 @@ class MissingTimeCell extends StatelessWidget {
   final VoidCallback? onAddTime;
   final String? validationError;
   final bool autofocus;
+  final bool isOriginallyTBD;
+  final UIRecord record;
 
   const MissingTimeCell({
     super.key,
@@ -115,80 +118,146 @@ class MissingTimeCell extends StatelessWidget {
     this.onAddTime,
     this.validationError,
     this.autofocus = false,
+    this.isOriginallyTBD = false,
+    required this.record,
   });
 
   @override
-  Widget build(BuildContext context) {
-    final hasError = validationError != null && validationError!.isNotEmpty;
+  State<MissingTimeCell> createState() => _MissingTimeCellState();
+}
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (time == 'TBD') ...[
-          // TBD entries are always editable textboxes
-          TextField(
-            controller: controller,
-            autofocus: autofocus,
-            decoration: InputDecoration(
-              hintText: 'Enter missing time',
-              border: InputBorder.none,
-              enabledBorder: InputBorder.none,
-              focusedBorder: const OutlineInputBorder(),
-              errorBorder: const OutlineInputBorder(
-                borderSide: BorderSide(color: Colors.red, width: 1),
-              ),
-              focusedErrorBorder: const OutlineInputBorder(
-                borderSide: BorderSide(color: Colors.red, width: 2),
-              ),
-              errorText: hasError ? '' : null, // Reserve space for error
-            ),
-            style: AppTypography.smallBodySemibold.copyWith(
-              color: hasError ? Colors.red : AppColors.darkColor,
-            ),
-            onChanged: onChanged,
-            onSubmitted: onSubmitted,
-            onTap: () {
-              // Clear TBD when tapped
-              if (controller.text == 'TBD') {
-                controller.clear();
-              }
-            },
-          ),
-        ] else ...[
-          Row(
-            children: [
-              Expanded(
-                child: TimeDisplay(
-                  time: time,
-                  color: hasError ? Colors.red : AppColors.darkColor,
-                ),
-              ),
-              if (onAddTime != null)
-                Expanded(
-                  child: Center(
-                    child: CellActionIcon(
-                      icon: Icons.add_circle_outline,
-                      tooltip: 'Insert new time slot',
-                      onPressed: onAddTime,
+class _MissingTimeCellState extends State<MissingTimeCell> {
+  late final FocusNode _focusNode;
+  bool _shouldAutofocus = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode = FocusNode();
+    _shouldAutofocus = widget.autofocus;
+  }
+
+  @override
+  void didUpdateWidget(MissingTimeCell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Only set autofocus once, don't keep refocusing
+    if (widget.autofocus && !oldWidget.autofocus) {
+      _shouldAutofocus = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<TextEditingValue>(
+      valueListenable: widget.controller,
+      builder: (context, value, child) {
+        return AnimatedBuilder(
+          animation: widget.record,
+          builder: (context, child) {
+            final hasError = widget.record.validationError != null &&
+                widget.record.validationError!.isNotEmpty;
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (widget.isOriginallyTBD) ...[
+                  // TBD entries are always editable textboxes
+                  TextField(
+                    controller: widget.controller,
+                    focusNode: _focusNode,
+                    autofocus: _shouldAutofocus,
+                    textAlign: TextAlign.center,
+                    decoration: InputDecoration(
+                      hintText: 'Enter missing time',
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: const OutlineInputBorder(),
+                      errorBorder: const OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.red, width: 1),
+                      ),
+                      focusedErrorBorder: const OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.red, width: 2),
+                      ),
+                      errorText:
+                          hasError ? widget.record.validationError : null,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 8, // Reduced horizontal padding
+                        vertical: 0, // Increased vertical padding
+                      ),
                     ),
+                    style: AppTypography.smallBodySemibold.copyWith(
+                      color: AppColors.darkColor,
+                    ),
+                    onChanged: widget.onChanged,
+                    onSubmitted: (value) {
+                      _shouldAutofocus =
+                          false; // Don't autofocus after submission
+                      widget.onSubmitted(value);
+                    },
+                    onEditingComplete: () {
+                      _shouldAutofocus =
+                          false; // Don't autofocus after editing complete
+                      // Also trigger validation on editing complete (focus loss)
+                      final currentValue = widget.controller.text;
+                      if (currentValue.isNotEmpty && currentValue != 'TBD') {
+                        widget.onSubmitted(currentValue);
+                      }
+                      // Allow focus to be lost
+                      _focusNode.unfocus();
+                    },
+                    onTap: () {
+                      // Clear TBD when tapped
+                      if (widget.controller.text == 'TBD') {
+                        widget.controller.clear();
+                      }
+                    },
                   ),
-                ),
-            ],
-          ),
-        ],
-        if (hasError) ...[
-          Padding(
-            padding: const EdgeInsets.only(top: 4, left: 12),
-            child: Text(
-              validationError!,
-              style: AppTypography.smallBodyRegular.copyWith(
-                color: Colors.red,
-                fontSize: 11,
-              ),
-            ),
-          ),
-        ],
-      ],
+                ] else ...[
+                  if (widget.onAddTime != null) ...[
+                    Center(
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Center(
+                              child: TimeDisplay(
+                                time: widget.controller.text,
+                                color:
+                                    hasError ? Colors.red : AppColors.darkColor,
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: Center(
+                              child: CellActionIcon(
+                                icon: Icons.add_circle_outline,
+                                tooltip: 'Insert new time slot',
+                                onPressed: widget.onAddTime,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ] else ...[
+                    Center(
+                      child: TimeDisplay(
+                        time: widget.controller.text,
+                        color: hasError ? Colors.red : AppColors.darkColor,
+                      ),
+                    ),
+                  ],
+                ],
+              ],
+            );
+          },
+        );
+      },
     );
   }
 }

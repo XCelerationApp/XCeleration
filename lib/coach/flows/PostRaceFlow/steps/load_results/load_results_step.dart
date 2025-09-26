@@ -17,6 +17,14 @@ class LoadResultsStep extends FlowStep {
               'Load the results of the race from the assistant devices.',
           // Initialize with a placeholder
           content: SizedBox.shrink(),
+          onNext: () async {
+            // Save results when user clicks next
+            if (controller.resultsLoaded &&
+                !controller.hasBibConflicts &&
+                !controller.hasTimingConflicts) {
+              await controller.saveCurrentResults();
+            }
+          },
         ) {
     // Listen to controller changes and notify the flow system
     controller.addListener(_onControllerUpdate);

@@ -110,19 +110,12 @@ class LoadResultsController with ChangeNotifier {
 
   /// Saves the current race results when user explicitly requests it (e.g., clicks Next)
   Future<void> saveCurrentResults() async {
-    Logger.d('User requested to save current results');
     if (!hasBibConflicts &&
         !hasTimingConflicts &&
         timingChunks != null &&
         raceRunners != null) {
       await _mergeBibDataWithTimingChunksAndSaveResults();
       notifyListeners();
-      Logger.d('Results saved successfully');
-    } else {
-      Logger.d(
-          'Cannot save results - conflicts still exist or data incomplete');
-      Logger.d(
-          'Bib conflicts: $hasBibConflicts, Timing conflicts: $hasTimingConflicts');
     }
   }
 
@@ -274,6 +267,7 @@ class LoadResultsController with ChangeNotifier {
         } else {
           // Create a new conflict chunk
           timingChunks!.add(TimingChunk(
+            id: 'missing-${DateTime.now().millisecondsSinceEpoch}',
             timingData: [],
             conflictRecord: TimingDatum(
               time: 'MISSING_TIMES',
@@ -340,40 +334,21 @@ class LoadResultsController with ChangeNotifier {
       final runner = raceRunner.runner;
       final team = raceRunner.team;
 
-      Logger.d(
-          'LoadResultsController: About to save result for runner: ${runner.name}, place: ${i + 1}, team: ${team.name}');
-      print(
-          '🔥 LoadResultsController: Team details - name: ${team.name}, teamId: ${team.teamId}, abbreviation: ${team.abbreviation}, isValid: ${team.isValid}');
-      print(
-          '🔥 LoadResultsController: Runner details - name: ${runner.name}, runnerId: ${runner.runnerId}, bib: ${runner.bibNumber}, isValid: ${runner.isValid}');
-
       try {
         final raceResult = RaceResult(
-          raceId: masterRace.raceId, // Add missing raceId
+          raceId: masterRace.raceId,
           runner: runner,
           team: team,
           place: i + 1, // 1-based place
           finishTime: finishDuration,
         );
-        print(
-            '🔥 LoadResultsController: Created RaceResult - isValid: ${raceResult.isValid}, raceId: ${raceResult.raceId}, resultId: ${raceResult.resultId}');
 
         await masterRace.addResult(raceResult);
-        print(
-            '🔥 LoadResultsController: Successfully saved result for runner: ${runner.name}');
       } catch (e) {
-        print(
-            '🔥 LoadResultsController: Failed to save result for runner: ${runner.name}, error: $e');
+        Logger.d(
+            'LoadResultsController: Failed to save result for runner: ${runner.name}, error: $e');
       }
     }
-
-    Logger.d(
-        'LoadResultsController: Finished saving results, now fetching them back');
-    results = await masterRace.results;
-    Logger.d(
-        'LoadResultsController: Data merged, created ${results.length} result records for raceId: ${masterRace.raceId}');
-    Logger.d(
-        'LoadResultsController: MasterRace instance: ${masterRace.hashCode}');
 
     return results;
   }
@@ -402,7 +377,6 @@ class LoadResultsController with ChangeNotifier {
       return;
     }
 
-    Logger.d('About to call sheet function for bib conflicts');
     List<RaceRunner?>? updatedRaceRunners;
     try {
       // Check if context is still mounted
@@ -495,10 +469,8 @@ class LoadResultsController with ChangeNotifier {
       return;
     }
 
-    Logger.d('About to call sheet function');
-    List<TimingChunk>? updatedTimingChunks;
     try {
-      updatedTimingChunks = await sheet(
+      await sheet(
         context: context,
         title: 'Resolve Timing Conflicts',
         body: ChangeNotifierProvider(
@@ -517,6 +489,12 @@ class LoadResultsController with ChangeNotifier {
         useRootNavigator: true,
       );
       Logger.d('Sheet function completed successfully');
+
+      // Update the original timing chunks with the resolved chunks
+      // Remove original conflict chunks and add the resolved ones
+      timingChunks!.removeWhere((chunk) => chunk.hasConflict);
+      timingChunks!.addAll(conflictChunks);
+      // Don't auto-save results - wait for user to click save/next
     } catch (e, stackTrace) {
       Logger.d('Error showing timing conflicts sheet: $e');
       Logger.d('Stack trace: $stackTrace');
@@ -526,23 +504,7 @@ class LoadResultsController with ChangeNotifier {
       );
       return;
     }
-
-    // Update timing chunks if a result was returned
-    if (updatedTimingChunks != null) {
-      // Find and replace the conflict chunks with the updated ones
-      for (var i = 0; i < timingChunks!.length; i++) {
-        if (timingChunks![i].hasConflict) {
-          // Find the corresponding updated chunk
-          final updatedChunk = updatedTimingChunks.firstWhere(
-            (chunk) => chunk == timingChunks![i],
-            orElse: () => timingChunks![i],
-          );
-          timingChunks![i] = updatedChunk;
-        }
-      }
-
-      await _checkForConflicts();
-    }
+    await _checkForConflicts();
   }
 
   /// Checks if there are any bib conflicts in the provided records
