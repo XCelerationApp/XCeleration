@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/typography.dart';
 import '../../../shared/models/database/race.dart';
 import '../controller/race_screen_controller.dart';
+import '../../../core/components/button_components.dart';
 
 class UnsavedChangesBar extends StatelessWidget {
   final RaceController controller;
@@ -22,8 +21,8 @@ class UnsavedChangesBar extends StatelessWidget {
         }
 
         final race = snapshot.data!;
-        // Only show the save bar during setup flow
-        bool isSetupFlow = race.flowState == Race.FLOW_SETUP ||
+        // Only show during setup flow
+        final bool isSetupFlow = race.flowState == Race.FLOW_SETUP ||
             race.flowState == Race.FLOW_SETUP_COMPLETED;
 
         if (!controller.hasUnsavedChanges || !isSetupFlow) {
@@ -31,73 +30,41 @@ class UnsavedChangesBar extends StatelessWidget {
         }
 
         return Padding(
-          padding: const EdgeInsets.only(bottom: 16.0),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.orange.shade50,
-              border: Border(
-                top: BorderSide(color: Colors.orange.shade300, width: 0.5),
-                bottom: BorderSide(color: Colors.orange.shade300, width: 0.5),
+          padding: const EdgeInsets.only(bottom: 8.0),
+          child: Row(
+            children: [
+              Expanded(
+                child: SecondaryButton(
+                  text: 'Revert Changes',
+                  onPressed: controller.revertAllChanges,
+                  size: ButtonSize.fullWidth,
+                  borderRadius: 10,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 8,
+                    horizontal: 8,
+                  ),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'You have made changes',
-                    style: AppTypography.bodyRegular.copyWith(
-                      color: Colors.orange.shade700,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-                TextButton(
-                  onPressed: () => controller.revertAllChanges(),
-                  style: TextButton.styleFrom(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    minimumSize: const Size(0, 0),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: Text(
-                    'Revert',
-                    style: TextStyle(
-                      color: AppColors.primaryColor,
-                      fontWeight: FontWeight.w500,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton(
+              const SizedBox(width: 12),
+              Expanded(
+                child: PrimaryButton(
+                  text: 'Save Changes',
                   onPressed: () => controller.saveAllChanges(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryColor,
-                    foregroundColor: Colors.white,
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    minimumSize: const Size(0, 0),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                  size: ButtonSize.fullWidth,
+                  borderRadius: 10,
+                  elevation: 2,
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 8,
+                    horizontal: 8,
                   ),
-                  child: const Text(
-                    'Save',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 14,
-                    ),
-                  ),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         );
       },
