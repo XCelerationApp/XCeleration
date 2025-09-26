@@ -83,4 +83,8 @@ class TimeFormatter {
       return null;
     }
   }
+
+  static bool isDuration(String input) {
+    return loadDurationFromString(input) != null;
+  }
 }

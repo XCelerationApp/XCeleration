@@ -21,7 +21,7 @@ class RaceControlsWidget extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         _buildRaceControlButton(context),
-        if (controller.raceStopped == true && controller.records.isNotEmpty)
+        if (controller.raceStopped == true && controller.hasTimingData)
           _buildShareButton(context),
         _buildLogButton(context),
       ],
@@ -63,18 +63,23 @@ class RaceControlsWidget extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
               borderRadius: 30,
               isPrimary: false,
-              onPressed: () => sheet(
-                context: context,
-                title: 'Share Times',
-                body: deviceConnectionWidget(
-                  context,
-                  DeviceConnectionService.createDevices(
-                    DeviceName.raceTimer,
-                    DeviceType.advertiserDevice,
-                    data: controller.encode(),
+              onPressed: () async {
+                final encodedData = await controller.encodedRecords();
+                if (!context.mounted) return;
+
+                sheet(
+                  context: context,
+                  title: 'Share Times',
+                  body: deviceConnectionWidget(
+                    context,
+                    DeviceConnectionService.createDevices(
+                      DeviceName.raceTimer,
+                      DeviceType.advertiserDevice,
+                      data: encodedData,
+                    ),
                   ),
-                ),
-              ),
+                );
+              },
             );
           },
         ),
@@ -83,18 +88,35 @@ class RaceControlsWidget extends StatelessWidget {
   }
 
   Widget _buildLogButton(BuildContext context) {
+    // Determine if button should be enabled
+    final bool isEnabled = controller.raceStopped
+        ? controller
+            .hasTimingData // Clear button: enabled only if there are records
+        : controller.startTime !=
+            null; // Log button: enabled only if race has started
+
+    // Determine button text
+    final String buttonText =
+        controller.raceStopped && controller.hasTimingData ? 'Clear' : 'Log';
+
+    // Determine button color based on enabled state
+    final Color buttonColor = isEnabled
+        ? const Color(0xFF777777) // Enabled: dark gray
+        : const Color.fromARGB(255, 201, 201, 201); // Disabled: light gray
+
+    // Determine button function
+    final VoidCallback? buttonFunction = isEnabled
+        ? (controller.raceStopped
+            ? controller.clearRaceTimes
+            : controller.handleLogButtonPress)
+        : null;
+
     return CircularButton(
-      text: (controller.records.isNotEmpty && controller.raceStopped)
-          ? 'Clear'
-          : 'Log',
-      color: (controller.records.isEmpty && controller.raceStopped)
-          ? const Color.fromARGB(255, 201, 201, 201)
-          : const Color(0xFF777777),
+      text: buttonText,
+      color: buttonColor,
       fontSize: 18,
       fontWeight: FontWeight.w600,
-      onPressed: (controller.records.isNotEmpty && controller.raceStopped)
-          ? controller.clearRaceTimes
-          : (controller.raceStopped ? null : controller.handleLogButtonPress),
+      onPressed: buttonFunction,
     );
   }
 }

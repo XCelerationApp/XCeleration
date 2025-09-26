@@ -1,23 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/shared/models/timing_records/timing_datum.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/utils/enums.dart';
-import '../../../shared/models/time_record.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
 
 class ConflictHeader extends StatelessWidget {
   const ConflictHeader({
     super.key,
     required this.type,
-    required this.conflictRecord,
     required this.startTime,
     required this.endTime,
     this.offBy,
     this.removedCount = 0,
     this.enteredCount = 0,
   });
-  final RecordType type;
-  final TimeRecord conflictRecord;
+  final ConflictType type;
   final String startTime;
   final String endTime;
   final int? offBy;
@@ -26,40 +24,12 @@ class ConflictHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String title = type == RecordType.extraTime
-        ? 'Extra Time Detected'
-        : 'Missing Time Detected';
-    final String description = type == RecordType.extraTime
+    final String title = type == ConflictType.extraTime
+        ? 'Extra Time${(offBy != null && offBy! > 1) ? 's' : ''} Detected'
+        : 'Missing Time${(offBy != null && offBy! > 1) ? 's' : ''} Detected';
+    final String description = type == ConflictType.extraTime
         ? 'There are more times than runners. Please select the extra time that should be removed from the results by clicking the X button next to it.'
         : 'There are more runners than times. Please enter a missing time to the correct runner by clicking the + button next to it.';
-
-    // Create status text based on conflict type
-    String? statusText;
-    Color? statusColor;
-
-    if (offBy != null) {
-      if (type == RecordType.extraTime) {
-        final remaining = offBy! - removedCount;
-        if (remaining > 0) {
-          statusText =
-              'Remove $remaining more time${remaining > 1 ? 's' : ''} ($removedCount/$offBy removed)';
-          statusColor = Colors.orange;
-        } else {
-          statusText = 'Ready to resolve! ($removedCount/$offBy removed)';
-          statusColor = Colors.green;
-        }
-      } else if (type == RecordType.missingTime) {
-        final remaining = offBy! - enteredCount;
-        if (remaining > 0) {
-          statusText =
-              'Enter $remaining more time${remaining > 1 ? 's' : ''} ($enteredCount/$offBy entered)';
-          statusColor = Colors.orange;
-        } else {
-          statusText = 'Ready to resolve! ($enteredCount/$offBy entered)';
-          statusColor = Colors.green;
-        }
-      }
-    }
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -74,37 +44,11 @@ class ConflictHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  '$title at ${conflictRecord.elapsedTime}',
-                  style: AppTypography.bodySemibold.copyWith(
-                    color: AppColors.primaryColor,
-                  ),
-                ),
-              ),
-              if (statusText != null)
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: ColorUtils.withOpacity(statusColor!, 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: ColorUtils.withOpacity(statusColor, 0.3),
-                      width: 1,
-                    ),
-                  ),
-                  child: Text(
-                    statusText,
-                    style: AppTypography.smallBodySemibold.copyWith(
-                      color: statusColor,
-                      fontSize: 11,
-                    ),
-                  ),
-                ),
-            ],
+          Text(
+            '$title at $endTime',
+            style: AppTypography.bodySemibold.copyWith(
+              color: AppColors.primaryColor,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
@@ -122,9 +66,9 @@ class ConflictHeader extends StatelessWidget {
 class ConfirmHeader extends StatelessWidget {
   const ConfirmHeader({
     super.key,
-    required this.confirmRecord,
+    required this.confirmTime,
   });
-  final TimeRecord confirmRecord;
+  final String confirmTime;
 
   @override
   Widget build(BuildContext context) {
@@ -159,7 +103,7 @@ class ConfirmHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Confirmed Results at ${confirmRecord.elapsedTime}',
+                  'Confirmed Results at $confirmTime',
                   style: AppTypography.bodySemibold.copyWith(
                     color: Colors.green,
                   ),
@@ -185,7 +129,7 @@ class ConfirmationRecord extends StatelessWidget {
       {super.key});
   final BuildContext context;
   final int index;
-  final TimeRecord timeRecord;
+  final TimingDatum timeRecord;
 
   @override
   Widget build(BuildContext context) {
@@ -242,7 +186,7 @@ class ConfirmationRecord extends StatelessWidget {
               ],
             ),
             child: Text(
-              timeRecord.elapsedTime,
+              timeRecord.time,
               style: AppTypography.bodySemibold.copyWith(
                 color: AppColors.darkColor,
               ),

@@ -4,25 +4,9 @@ import '../assistant/race_timer/screen/timing_screen.dart';
 import '../assistant/bib_number_recorder/screen/bib_number_screen.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/typography.dart';
-
-class CustomPageRoute extends PageRouteBuilder {
-  final Widget child;
-
-  CustomPageRoute({required this.child})
-      : super(
-          transitionDuration: const Duration(milliseconds: 600),
-          pageBuilder: (context, animation, secondaryAnimation) => child,
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            const curve = Curves.easeInOut;
-            var fadeAnimation = animation.drive(CurveTween(curve: curve));
-
-            return FadeTransition(
-              opacity: fadeAnimation,
-              child: child,
-            );
-          },
-        );
-}
+import '../core/components/page_route_animations.dart';
+import '../core/services/auth_service.dart';
+import 'screens/sign_in_screen.dart';
 
 Widget buildRoleButton({
   required String text,
@@ -84,9 +68,15 @@ class RoleScreen extends StatelessWidget {
               SizedBox(height: 40),
               buildRoleButton(
                 text: 'Coach',
-                onPressed: () {
+                onPressed: () async {
+                  if (!AuthService.instance.isSignedIn) {
+                    Navigator.of(context).push(
+                      InitialPageRouteAnimation(child: const SignInScreen()),
+                    );
+                    return;
+                  }
                   Navigator.of(context).push(
-                    CustomPageRoute(child: const RacesScreen()),
+                    InitialPageRouteAnimation(child: const RacesScreen()),
                   );
                 },
               ),
@@ -95,7 +85,24 @@ class RoleScreen extends StatelessWidget {
                 text: 'Assistant',
                 onPressed: () {
                   Navigator.of(context).push(
-                    CustomPageRoute(child: const AssistantRoleScreen()),
+                    InitialPageRouteAnimation(
+                        child: const AssistantRoleScreen()),
+                  );
+                },
+              ),
+              SizedBox(height: 15),
+              buildRoleButton(
+                text: 'Spectator',
+                onPressed: () async {
+                  if (!AuthService.instance.isSignedIn) {
+                    Navigator.of(context).push(
+                      InitialPageRouteAnimation(child: const SignInScreen()),
+                    );
+                    return;
+                  }
+                  Navigator.of(context).push(
+                    InitialPageRouteAnimation(
+                        child: const RacesScreen(canEdit: false)),
                   );
                 },
               ),
@@ -146,7 +153,7 @@ class AssistantRoleScreen extends StatelessWidget {
                     text: 'Timer',
                     onPressed: () {
                       Navigator.of(context).push(
-                        CustomPageRoute(child: const TimingScreen()),
+                        InitialPageRouteAnimation(child: const TimingScreen()),
                       );
                     },
                   ),
@@ -155,7 +162,8 @@ class AssistantRoleScreen extends StatelessWidget {
                     text: 'Recorder',
                     onPressed: () {
                       Navigator.of(context).push(
-                        CustomPageRoute(child: const BibNumberScreen()),
+                        InitialPageRouteAnimation(
+                            child: const BibNumberScreen()),
                       );
                     },
                   ),

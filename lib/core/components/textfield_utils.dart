@@ -74,6 +74,7 @@ Widget buildTextField({
   required TextEditingController controller,
   required String hint,
   String? error,
+  String? warning,
   TextInputType? keyboardType,
   required Function(String) onChanged,
   required StateSetter setSheetState,
@@ -120,7 +121,9 @@ Widget buildTextField({
         filled: true,
         fillColor: error != null
             ? Colors.red.withAlpha((0.05 * 255).round())
-            : Colors.grey.withAlpha((0.05 * 255).round()),
+            : (warning != null
+                ? Colors.orange.withAlpha((0.08 * 255).round())
+                : Colors.grey.withAlpha((0.05 * 255).round())),
         prefixIcon: prefixIcon,
         suffixIcon: suffixIcon,
         border: OutlineInputBorder(
@@ -128,7 +131,9 @@ Widget buildTextField({
           borderSide: BorderSide(
             color: error != null
                 ? Colors.red.withAlpha((0.5 * 255).round())
-                : Colors.grey.withAlpha((0.5 * 255).round()),
+                : (warning != null
+                    ? Colors.orange.withAlpha((0.6 * 255).round())
+                    : Colors.grey.withAlpha((0.5 * 255).round())),
           ),
         ),
         enabledBorder: OutlineInputBorder(
@@ -136,13 +141,17 @@ Widget buildTextField({
           borderSide: BorderSide(
             color: error != null
                 ? Colors.red.withAlpha((0.5 * 255).round())
-                : Colors.grey.withAlpha((0.5 * 255).round()),
+                : (warning != null
+                    ? Colors.orange.withAlpha((0.6 * 255).round())
+                    : Colors.grey.withAlpha((0.5 * 255).round())),
           ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(borderRadius),
           borderSide: BorderSide(
-            color: error != null ? Colors.red : AppColors.primaryColor,
+            color: error != null
+                ? Colors.red
+                : (warning != null ? Colors.orange : AppColors.primaryColor),
             width: 2,
           ),
         ),
@@ -152,6 +161,14 @@ Widget buildTextField({
           fontSize: 12,
           height: 1,
         ),
+        errorMaxLines: 3,
+        helperText: (error == null) ? warning : null,
+        helperStyle: const TextStyle(
+          color: Colors.orange,
+          fontSize: 12,
+          height: 1,
+        ),
+        helperMaxLines: 3,
         counterText: '', // Hide the built-in counter
       ),
       onTapOutside: (_) {

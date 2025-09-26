@@ -4,6 +4,7 @@ import '../theme/app_loading.dart';
 import '../../shared/role_screen.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
+import '../components/page_route_animations.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -59,8 +60,8 @@ class SplashScreenState extends State<SplashScreen>
 
   void _navigateToNextScreen() {
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (context) => const RoleScreen(),
+      InitialPageRouteAnimation(
+        child: const RoleScreen(),
       ),
     );
   }

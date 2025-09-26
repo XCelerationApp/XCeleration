@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/components/button_components.dart';
 
-/// A custom animated action button widget
+/// A custom animated action button widget for share race functionality
 class ShareActionButton extends StatefulWidget {
   final IconData icon;
   final String label;
@@ -92,17 +92,4 @@ class _ShareActionButtonState extends State<ShareActionButton>
       ),
     );
   }
-}
-
-// Renamed to avoid conflicts with other ActionButton components
-// This is a backwards-compatibility class
-class ActionButton extends ShareActionButton {
-  const ActionButton({
-    super.key,
-    required super.icon,
-    required super.label,
-    required super.onPressed,
-    super.isPrimary = false,
-    super.tooltip,
-  });
 }

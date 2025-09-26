@@ -1,17 +1,17 @@
 import 'package:xceleration/core/utils/logger.dart';
-import '../../../../core/utils/database_helper.dart';
+import 'package:xceleration/shared/models/database/master_race.dart';
 import '../../controller/flow_controller.dart';
 import '../../model/flow_model.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/utils/enums.dart';
 import '../../../../core/services/device_connection_service.dart';
-import '../../../../core/utils/encode_utils.dart' as encode_utils;
+import '../../../../core/utils/encode_utils.dart';
 import '../steps/review_runners/review_runners_step.dart';
 import '../steps/share_runners/share_runners_step.dart';
 import '../steps/flow_complete/pre_race_flow_complete.dart';
 
 class PreRaceController {
-  final int raceId;
+  final MasterRace masterRace;
   late ReviewRunnersStep _reviewRunnersStep;
   late ShareRunnersStep _shareRunnersStep;
   late PreRaceFlowCompleteStep _preRaceFlowCompleteStep;
@@ -23,23 +23,16 @@ class PreRaceController {
     data: '',
   );
 
-  PreRaceController({required this.raceId}) {
+  PreRaceController({required this.masterRace}) {
     _initializeSteps();
   }
 
   void _initializeSteps() {
     _reviewRunnersStep = ReviewRunnersStep(
-      raceId: raceId,
+      masterRace: masterRace,
       onNext: () async {
-        // DEBUG: Log runners loaded for this race
-        final runners = await DatabaseHelper.instance.getRaceRunners(raceId);
-        Logger.d(
-            'PRE-RACE DEBUG: Runners for raceId=raceId: count=${runners.length}');
-        for (var r in runners) {
-          Logger.d(
-              'PRE-RACE DEBUG: Runner: bib=${r.bib}, name=${r.name}, school=${r.school}, grade=${r.grade}');
-        }
-        final encoded = await encode_utils.getEncodedRunnersData(raceId);
+        final encoded =
+            await BibEncodeUtils.getEncodedRunnersBibData(masterRace);
         Logger.d(
             'PRE-RACE DEBUG: Encoded runners data length: ${encoded.length}');
         if (encoded == '') {
@@ -49,14 +42,21 @@ class PreRaceController {
         devices.bibRecorder!.data = encoded;
       },
     );
+    // Seed initial canProceed so the first render uses a correct value
+    _reviewRunnersStep.seedInitialProceed();
     _shareRunnersStep = ShareRunnersStep(devices: devices);
     _preRaceFlowCompleteStep = PreRaceFlowCompleteStep();
   }
 
   Future<bool> showPreRaceFlow(
-      BuildContext context, bool showProgressIndicator) {
+      BuildContext context, bool showProgressIndicator) async {
     final int startIndex = _lastStepIndex ?? 0;
-    return showFlow(
+    // Ensure initial proceed state is computed before rendering the sheet
+    await _reviewRunnersStep.seedInitialProceed();
+    if (!context.mounted) {
+      return false;
+    }
+    return await showFlow(
       context: context,
       showProgressIndicator: showProgressIndicator,
       steps: _getSteps(context),

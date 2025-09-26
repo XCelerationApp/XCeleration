@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/coach/flows/model/flow_model.dart';
 import 'package:xceleration/coach/flows/PostRaceFlow/steps/load_results/load_results_step.dart';
-import 'package:xceleration/coach/flows/PostRaceFlow/steps/review_results/review_results_step.dart';
+
+import 'package:xceleration/shared/models/database/master_race.dart';
 import '../../controller/flow_controller.dart';
 import '../steps/load_results/controller/load_results_controller.dart';
 import '../steps/reconnect/reconnect_step.dart';
 
 /// Controller for managing the post-race flow
 class PostRaceController {
-  final int raceId;
+  final MasterRace masterRace;
 
   // Controllers
   late final LoadResultsController _loadResultsController;
@@ -17,35 +17,25 @@ class PostRaceController {
   // Flow steps
   late final ReconnectStep _reconnectStep;
   late final LoadResultsStep _loadResultsStep;
-  late final ReviewResultsStep _reviewResultsStep;
 
   // Track flow position
   int? _lastStepIndex;
 
   /// Constructor
-  PostRaceController({required this.raceId}) {
+  PostRaceController({required this.masterRace}) {
     _initializeSteps();
   }
 
   /// Initialize the flow steps
   void _initializeSteps() {
     // Create controllers first so they can be shared between steps
-    _loadResultsController =
-        LoadResultsController(raceId: raceId, callback: _updateReviewStep);
+    _loadResultsController = LoadResultsController(masterRace: masterRace);
 
     // Create steps with the controllers
     _reconnectStep = ReconnectStep();
     _loadResultsStep = LoadResultsStep(
       controller: _loadResultsController,
     );
-
-    _reviewResultsStep = ReviewResultsStep();
-  }
-
-  /// Update ReviewResultsStep with latest results from LoadResultsController
-  void _updateReviewStep() {
-    Logger.d('Updating ReviewResultsStep with latest results');
-    _reviewResultsStep.results = _loadResultsController.results;
   }
 
   /// Show the post-race flow
@@ -71,7 +61,6 @@ class PostRaceController {
     return [
       _reconnectStep,
       _loadResultsStep,
-      _reviewResultsStep,
     ];
   }
 }

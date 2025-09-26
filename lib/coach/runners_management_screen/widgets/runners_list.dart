@@ -1,10 +1,12 @@
-import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
+import 'package:xceleration/shared/models/database/race_runner.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../race_screen/widgets/runner_record.dart';
+import '../../../shared/models/database/team.dart';
 import '../controller/runners_management_controller.dart';
 import 'runner_list_item.dart';
+import 'add_runner_button.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
+import 'team_header_tile.dart';
 
 class RunnersList extends StatelessWidget {
   final RunnersManagementController controller;
@@ -20,67 +22,75 @@ class RunnersList extends StatelessWidget {
       );
     }
 
-    if (controller.filteredRunners.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.max,
-          children: [
-            Icon(
-              Icons.person_off_outlined,
-              size: 48,
-              color: ColorUtils.withOpacity(AppColors.mediumColor, 0.6),
+    return FutureBuilder<Map<Team, List<RaceRunner>>>(
+      future: controller.masterRace.filteredSearchResults,
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return Center(
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryColor),
             ),
-            const SizedBox(height: 16),
-            Text(
-              controller.searchController.text.isEmpty
-                  ? 'No Runners Added'
-                  : 'No runners found',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w500,
-                color: AppColors.mediumColor,
-              ),
-            ),
-            if (controller.searchController.text.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(
-                'Try adjusting your search',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: ColorUtils.withOpacity(AppColors.mediumColor, 0.7),
+          );
+        }
+
+        final teamToRaceRunnersMap = snapshot.data!;
+
+        if (teamToRaceRunnersMap.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                Icon(
+                  Icons.person_off_outlined,
+                  size: 48,
+                  color: ColorUtils.withOpacity(AppColors.mediumColor, 0.6),
                 ),
-              ),
-            ],
-          ],
-        ),
-      );
-    }
+                const SizedBox(height: 16),
+                Text(
+                  controller.searchController.text.isEmpty
+                      ? 'No Teams or Runners Added'
+                      : 'No teams or runners found',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.mediumColor,
+                  ),
+                ),
+                if (controller.searchController.text.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Try adjusting your search',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: ColorUtils.withOpacity(AppColors.mediumColor, 0.7),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          );
+        }
 
-    // Group runners by school
-    final groupedRunners = <String, List<RunnerRecord>>{};
-    for (var runner in controller.filteredRunners) {
-      if (!groupedRunners.containsKey(runner.school)) {
-        groupedRunners[runner.school] = [];
-      }
-      groupedRunners[runner.school]!.add(runner);
-    }
+        return _buildRunnersList(context, teamToRaceRunnersMap);
+      },
+    );
+  }
 
-    // Sort schools alphabetically
-    final sortedSchools = groupedRunners.keys.toList()..sort();
+  Widget _buildRunnersList(
+      BuildContext context, Map<Team, List<RaceRunner>> teamToRaceRunnersMap) {
+    // Show all teams, including those with no runners
+    final teams = teamToRaceRunnersMap.keys.toList();
+    teams.sort((a, b) => a.name!.compareTo(b.name!));
 
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 300),
       child: ListView.builder(
-        shrinkWrap: true,
         physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.only(bottom: 8),
-        itemCount: sortedSchools.length,
+        padding: const EdgeInsets.only(top: 0, bottom: 8),
+        itemCount: teams.length,
         itemBuilder: (context, index) {
-          final school = sortedSchools[index];
-          final schoolRunners = groupedRunners[school]!;
-          final team =
-              controller.teams.firstWhereOrNull((team) => team.name == school);
-          final schoolColor = team != null ? team.color : Colors.blueGrey[400];
+          final team = teams[index];
+          final teamRaceRunners = teamToRaceRunnersMap[team] ?? [];
 
           return AnimatedOpacity(
             opacity: 1.0,
@@ -90,62 +100,27 @@ class RunnersList extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Divider(height: 1, thickness: 1, color: Colors.grey),
-                Container(
-                  decoration: BoxDecoration(
-                    color: schoolColor?.withAlpha((0.12 * 255).round()) ??
-                        Colors.grey.withAlpha((0.12 * 255).round()),
-                    borderRadius: const BorderRadius.only(
-                      topRight: Radius.circular(12),
-                      bottomRight: Radius.circular(12),
-                    ),
-                  ),
-                  margin: const EdgeInsets.only(right: 16.0),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16.0, vertical: 10.0),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.school,
-                        size: 18,
-                        color: schoolColor,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        school,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: schoolColor,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: schoolColor != null
-                              ? ColorUtils.withOpacity(schoolColor, 0.15)
-                              : null,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          '${schoolRunners.length}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: schoolColor,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                TeamHeaderTile(
+                  team: team,
+                  runnerCount: teamRaceRunners.length,
+                  controller: controller,
+                  isViewMode: controller.isViewMode,
                 ),
-                ...schoolRunners.map((runner) => RunnerListItem(
-                      runner: runner,
-                      controller: controller,
-                      onAction: (action) => controller.handleRunnerAction(
-                          context, action, runner),
-                    )),
+                ...teamRaceRunners.map((raceRunner) {
+                  final runner = raceRunner.runner;
+                  return RunnerListItem(
+                    runner: runner,
+                    team: team,
+                    controller: controller,
+                    onAction: (action) => controller.handleRaceRunnerAction(
+                        context, action, raceRunner),
+                    isViewMode: controller.isViewMode,
+                  );
+                }),
+                AddRunnerButton(
+                  team: team,
+                  controller: controller,
+                ),
               ],
             ),
           );

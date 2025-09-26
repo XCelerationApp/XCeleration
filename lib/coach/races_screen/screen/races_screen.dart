@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:xceleration/shared/role_bar/role_bar.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/role_bar/models/role_enums.dart';
@@ -8,21 +7,22 @@ import '../../../core/components/coach_mark.dart';
 import '../controller/races_controller.dart';
 import '../widgets/race_tutorial_coach_mark.dart';
 import '../widgets/races_list.dart';
-import '../../merge_conflicts/screen/mock_data_test_screen.dart';
 
 class RacesScreen extends StatefulWidget {
-  const RacesScreen({super.key});
+  final bool canEdit;
+  const RacesScreen({super.key, this.canEdit = true});
 
   @override
   RacesScreenState createState() => RacesScreenState();
 }
 
 class RacesScreenState extends State<RacesScreen> {
-  final RacesController _controller = RacesController();
+  late final RacesController _controller;
 
   @override
   void initState() {
     super.initState();
+    _controller = RacesController(canEdit: widget.canEdit);
     _controller.setContext(context);
     _controller.initState();
   }
@@ -41,49 +41,35 @@ class RacesScreenState extends State<RacesScreen> {
         return TutorialRoot(
             tutorialManager: _controller.tutorialManager,
             child: Scaffold(
-                floatingActionButton: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Debug-only Mock Data FAB
-                    if (kDebugMode) ...[
-                      FloatingActionButton(
-                        heroTag: 'mock_data_debug',
-                        onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const MockDataTestScreen(),
+                floatingActionButton: widget.canEdit
+                    ? Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Main Create Race FAB
+                          CoachMark(
+                            id: 'create_race_button_tutorial',
+                            tutorialManager: _controller.tutorialManager,
+                            config: const CoachMarkConfig(
+                              title: 'Create Race',
+                              alignmentX: AlignmentX.left,
+                              alignmentY: AlignmentY.top,
+                              description: 'Click here to create a new race',
+                              icon: Icons.add,
+                              type: CoachMarkType.targeted,
+                              backgroundColor: Color(0xFF1976D2),
+                              elevation: 12,
+                            ),
+                            child: FloatingActionButton(
+                              heroTag: 'create_race',
+                              onPressed: () =>
+                                  _controller.showCreateRaceSheet(context),
+                              backgroundColor: AppColors.primaryColor,
+                              child: const Icon(Icons.add),
+                            ),
                           ),
-                        ),
-                        backgroundColor: Colors.green,
-                        mini: true,
-                        child: const Icon(Icons.science),
-                      ),
-                      const SizedBox(height: 8),
-                    ],
-                    // Main Create Race FAB
-                    CoachMark(
-                      id: 'create_race_button_tutorial',
-                      tutorialManager: _controller.tutorialManager,
-                      config: const CoachMarkConfig(
-                        title: 'Create Race',
-                        alignmentX: AlignmentX.left,
-                        alignmentY: AlignmentY.top,
-                        description: 'Click here to create a new race',
-                        icon: Icons.add,
-                        type: CoachMarkType.targeted,
-                        backgroundColor: Color(0xFF1976D2),
-                        elevation: 12,
-                      ),
-                      child: FloatingActionButton(
-                        heroTag: 'create_race',
-                        onPressed: () =>
-                            _controller.showCreateRaceSheet(context),
-                        backgroundColor: AppColors.primaryColor,
-                        child: const Icon(Icons.add),
-                      ),
-                    ),
-                  ],
-                ),
+                        ],
+                      )
+                    : null,
                 body: Padding(
                   padding: EdgeInsets.fromLTRB(24.0, 0, 24.0, 24.0),
                   child: SingleChildScrollView(
@@ -91,11 +77,15 @@ class RacesScreenState extends State<RacesScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           RoleBar(
-                              currentRole: Role.coach,
+                              currentRole:
+                                  widget.canEdit ? Role.coach : Role.spectator,
                               tutorialManager: _controller.tutorialManager),
                           RaceCoachMark(
                             controller: _controller,
-                            child: RacesList(controller: _controller),
+                            child: RacesList(
+                              controller: _controller,
+                              canEdit: widget.canEdit,
+                            ),
                           ),
                         ]),
                   ),

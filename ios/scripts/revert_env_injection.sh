@@ -9,6 +9,12 @@ if [[ "${FASTLANE_BUILD:-}" == "true" ]]; then
   exit 0
 fi
 
+# Skip during Analyze/Clean actions
+if [[ "${ACTION:-}" == "analyze" || "${ACTION:-}" == "clean" ]]; then
+  echo "[revert_env] Skipping during action: ${ACTION:-unknown}"
+  exit 0
+fi
+
 #--------------------------------------
 # Paths and Placeholder
 #--------------------------------------
@@ -18,6 +24,7 @@ PROJECT_FILE="$SRCROOT/Runner.xcodeproj/project.pbxproj"
 PLACEHOLDER="TO_BE_REPLACED_BY_SCRIPT"
 BUNDLE_ID_PLACEHOLDER="BUNDLE_ID_PLACEHOLDER"
 TEAM_ID_PLACEHOLDER="TEAM_ID_PLACEHOLDER"
+FLAG_FILE="${DERIVED_FILE_DIR:-$SRCROOT}/env_injection_applied.flag"
 
 #--------------------------------------
 # Helper to call PlistBuddy
@@ -53,6 +60,12 @@ revert_project_injections() {
   fi
 }
 
+# If we never injected in this build dir, do nothing
+if [[ ! -f "$FLAG_FILE" ]]; then
+  echo "[revert_env] No injection flag found – nothing to revert."
+  exit 0
+fi
+
 #--------------------------------------
 # Revert project.pbxproj
 #--------------------------------------
@@ -82,3 +95,6 @@ if [[ -f "$GOOGLE_PLIST" ]]; then
 fi
 
 echo "[revert_env] Successfully reverted plist and project files." 
+
+# Remove flag file to indicate revert done
+rm -f "$FLAG_FILE" || true

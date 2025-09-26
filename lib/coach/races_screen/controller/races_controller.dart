@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/services/auth_service.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:xceleration/coach/races_screen/widgets/race_creation_sheet.dart';
-import 'package:xceleration/coach/runners_management_screen/screen/runners_management_screen.dart';
 import 'package:xceleration/core/components/dialog_utils.dart';
-import 'package:xceleration/core/utils/database_helper.dart'
-    show DatabaseHelper;
 import 'package:xceleration/core/utils/sheet_utils.dart' show sheet;
-import '../../../shared/models/race.dart';
+import '../../../shared/models/database/race.dart';
+import '../../../shared/models/database/master_race.dart';
 import '../../../core/services/tutorial_manager.dart';
 import '../../../core/services/event_bus.dart';
 import 'dart:async';
@@ -45,7 +44,9 @@ class RacesController extends ChangeNotifier {
 
   BuildContext? _context;
 
-  RacesController();
+  final bool canEdit;
+
+  RacesController({this.canEdit = true});
 
   void setContext(BuildContext context) {
     _context = context;
@@ -65,7 +66,8 @@ class RacesController extends ChangeNotifier {
     teamColors.add(Colors.white);
     unitController.text = 'mi';
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      RoleBar.showInstructionsSheet(context, Role.coach).then((_) {
+      final role = canEdit ? Role.coach : Role.spectator;
+      RoleBar.showInstructionsSheet(context, role).then((_) {
         if (context.mounted) setupTutorials();
       });
     });
@@ -121,9 +123,10 @@ class RacesController extends ChangeNotifier {
     if (newRaceId != null && context.mounted) {
       // Add a small delay to let the UI settle after sheet dismissal
       await Future.delayed(const Duration(milliseconds: 300));
+      final masterRace = MasterRace.getInstance(newRaceId);
 
       if (context.mounted) {
-        await RaceController.showRaceScreen(context, this, newRaceId);
+        await RaceController.showRaceScreen(context, this, masterRace);
       }
     }
   }
@@ -189,20 +192,6 @@ class RacesController extends ChangeNotifier {
   // For simplified creation, we only validate the race name
   bool validateRaceCreation() {
     return validateRaceName();
-  }
-
-  // Checks if all required fields are filled for a complete setup
-  Future<bool> isSetupComplete(Race race) async {
-    final moreThanFiveRunnersPerTeam =
-        await RunnersManagementScreen.checkMinimumRunnersLoaded(race.raceId);
-    return race.raceName.isNotEmpty &&
-        race.location.isNotEmpty &&
-        race.raceDate != null &&
-        race.distance > 0 &&
-        race.distanceUnit.isNotEmpty &&
-        race.teams.isNotEmpty &&
-        race.teamColors.isNotEmpty &&
-        moreThanFiveRunnersPerTeam;
   }
 
   Future<void> getCurrentLocation() async {
@@ -305,10 +294,35 @@ class RacesController extends ChangeNotifier {
   }
 
   Future<void> editRace(Race race) async {
-    await RaceController.showRaceScreen(context, this, race.raceId);
+    if (race.raceId == null) {
+      throw Exception('Race ID is null');
+    }
+    // Only owner can edit
+    final currentUserId = AuthService.instance.currentUserId;
+    if (race.ownerUserId != null &&
+        currentUserId != null &&
+        race.ownerUserId != currentUserId) {
+      DialogUtils.showErrorDialog(context,
+          message: 'Only the coach who created this race can edit it.');
+      return;
+    }
+    final masterRace = MasterRace.getInstance(race.raceId!);
+    await RaceController.showRaceScreen(context, this, masterRace);
   }
 
   Future<void> deleteRace(Race race) async {
+    if (race.raceId == null) {
+      throw Exception('Race ID is null');
+    }
+    // Only owner can delete
+    final currentUserId = AuthService.instance.currentUserId;
+    if (race.ownerUserId != null &&
+        currentUserId != null &&
+        race.ownerUserId != currentUserId) {
+      DialogUtils.showErrorDialog(context,
+          message: 'Only the coach who created this race can delete it.');
+      return;
+    }
     final confirmed = await DialogUtils.showConfirmationDialog(
       context,
       title: 'Delete Race',
@@ -319,27 +333,26 @@ class RacesController extends ChangeNotifier {
     );
 
     if (confirmed == true) {
-      await DatabaseHelper.instance.deleteRace(race.raceId);
+      await RacesService.deleteRace(race.raceId!);
       await loadRaces();
     }
   }
 
   // Create a new race with minimal information
   Future<int> createRace(Race race) async {
-    final newRaceId = await DatabaseHelper.instance.insertRace(race);
+    final newRaceId = await RacesService.createRace(race);
     await loadRaces(); // Refresh the races list
     return newRaceId;
   }
 
   // Update an existing race
   Future<void> updateRace(Race race) async {
-    await DatabaseHelper.instance.updateRace(race);
+    await RacesService.updateRace(race);
     await loadRaces(); // Refresh the races list
   }
 
   Future<void> loadRaces() async {
     races = await RacesService.loadRaces();
-    Logger.d('Races loaded: ${races.length}');
     notifyListeners();
   }
 

@@ -1,48 +1,45 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'
+    show rootBundle, Clipboard, ClipboardData;
 import 'package:xceleration/core/utils/logger.dart';
-import 'package:flutter/services.dart';
 import 'package:xceleration/core/utils/time_formatter.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:url_launcher/url_launcher_string.dart';
+import 'package:xceleration/shared/services/race_results_service.dart';
 import '../../../core/utils/enums.dart';
 import '../../race_results/model/team_record.dart';
-import '../../race_results/model/results_record.dart';
 import '../../../core/utils/sheet_utils.dart';
 import '../../../core/utils/google_sheets_service.dart';
 import '../../../../../core/components/dialog_utils.dart';
 import '../screen/share_race_screen.dart';
-import '../../race_results/controller/race_results_controller.dart';
 import '../widgets/google_sheet_dialog_widgets.dart';
+import '../utils/url_launcher_helper.dart';
 
 /// Controller class responsible for all sharing logic in the app
 class ShareRaceController extends ChangeNotifier {
-  late FormattedResultsController _formattedResultsController;
+  final RaceResultsData raceResultsData;
   late ShareResultsController _shareResultsController;
 
   ShareRaceController({
-    required RaceResultsController controller,
+    required this.raceResultsData,
   }) {
-    _formattedResultsController =
-        FormattedResultsController(controller: controller);
     _shareResultsController = ShareResultsController(
-      formattedResultsController: _formattedResultsController,
+      raceResultsData: raceResultsData,
     );
   }
 
   /// Show the share race bottom sheet
   static Future<dynamic> showShareRaceSheet({
     required BuildContext context,
-    required RaceResultsController controller,
+    required RaceResultsData raceResultsData,
   }) {
     return sheet(
       context: context,
       title: 'Share Race',
       body: ShareSheetScreen(
         controller: ShareRaceController(
-          controller: controller,
+          raceResultsData: raceResultsData,
         ),
       ),
     );
@@ -69,14 +66,14 @@ class ShareRaceController extends ChangeNotifier {
 
 class ShareResultsController {
   late FormattedResultsController _formattedResultsController;
-  late String title;
   final GoogleSheetsService _googleSheetsService = GoogleSheetsService.instance;
+  final RaceResultsData raceResultsData;
 
   ShareResultsController({
-    required FormattedResultsController formattedResultsController,
+    required this.raceResultsData,
   }) {
-    _formattedResultsController = formattedResultsController;
-    title = '${formattedResultsController.raceName} Results';
+    _formattedResultsController =
+        FormattedResultsController(raceResultsData: raceResultsData);
   }
 
   /// Handle plain text format - copy to clipboard
@@ -125,10 +122,8 @@ class ShareResultsController {
     }
   }
 
-  /// Handle Google Sheet - create sheet and show options using robust dialog
+  /// Handle Google Sheet creation and sharing
   Future<void> _handleGoogleSheet(BuildContext context) async {
-    // Grab a reference to the Navigator **not** the BuildContext so we don't
-    // keep a `BuildContext` alive across the async gap.
     if (!context.mounted) return;
     final navigator = Navigator.of(context, rootNavigator: true);
 
@@ -166,7 +161,8 @@ class ShareResultsController {
       try {
         spreadsheetId = await DialogUtils.executeWithLoadingDialog<String?>(
           context,
-          operation: () => _googleSheetsService.createSheet(title: title),
+          operation: () => _googleSheetsService.createSheet(
+              title: raceResultsData.resultsTitle),
           loadingMessage: 'Creating Google Sheet...',
         );
         if (spreadsheetId == null) {
@@ -258,7 +254,7 @@ class ShareResultsController {
         }
       }
     } catch (e) {
-      Logger.d('Error in Google Sheet creation: $e');
+      Logger.e('Error in Google Sheet creation: $e');
 
       // Use the stored global context for showing error dialog
       if (context.mounted && e is! OperationCanceledException) {
@@ -272,45 +268,13 @@ class ShareResultsController {
   Future<void> _showGoogleSheetOptions(
       BuildContext context, Uri sheetUri) async {
     final result = await showGoogleSheetOptionsDialog(context,
-        title: title, sheetUri: sheetUri);
+        title: raceResultsData.resultsTitle, sheetUri: sheetUri);
     if (!context.mounted) return;
     // Handle the selected action if user selected an option
     if (result != null) {
       switch (result) {
         case GoogleSheetAction.openSheet:
-          // Try to launch the URL in Google Sheets app first, fallback to browser
-          final url = sheetUri.toString();
-
-          try {
-            // Check if we can launch with Google Sheets app scheme
-            final sheetsAppUri =
-                Uri.parse('googlesheetsapp://spreadsheets.google.com/d/$url');
-            final canLaunchSheetsApp = await canLaunchUrl(sheetsAppUri);
-
-            if (canLaunchSheetsApp) {
-              Logger.d('Opening in Google Sheets app');
-              // Open in Google Sheets app
-              await launchUrl(sheetsAppUri);
-            } else {
-              Logger.d('Opening in browser');
-              // Fallback to browser
-              await launchUrl(
-                sheetUri,
-                mode: LaunchMode.externalApplication,
-              );
-            }
-          } catch (e) {
-            Logger.d('Error launching URL: $e');
-            // Final fallback - try simple string launch
-            try {
-              await launchUrlString(url);
-            } catch (e) {
-              if (context.mounted) {
-                DialogUtils.showErrorDialog(context,
-                    message: 'Unable to open Google Sheet');
-              }
-            }
-          }
+          await UrlLauncherHelper.launchSheetUrl(context, sheetUri);
           break;
 
         case GoogleSheetAction.share:
@@ -318,8 +282,8 @@ class ShareResultsController {
               context,
               ShareParams(
                 text: sheetUri.toString(),
-                subject: title,
-                title: title,
+                subject: raceResultsData.resultsTitle,
+                title: raceResultsData.resultsTitle,
               ));
           break;
 
@@ -348,7 +312,7 @@ class ShareResultsController {
           final bytes = await pdfData.save();
 
           // Create PDF file for sharing
-          final String pdfFileName = '$title.pdf';
+          final String pdfFileName = '${raceResultsData.resultsTitle}.pdf';
           return XFile.fromData(
             bytes,
             name: pdfFileName,
@@ -364,9 +328,9 @@ class ShareResultsController {
               context,
               ShareParams(
                 files: [xFile],
-                subject: title,
-                fileNameOverrides: [title],
-                title: title,
+                subject: raceResultsData.resultsTitle,
+                fileNameOverrides: ['${raceResultsData.resultsTitle}.pdf'],
+                title: raceResultsData.resultsTitle,
               ));
         } else {
           Logger.d('Context not mounted, PDF not shared');
@@ -398,35 +362,8 @@ class ShareResultsController {
   }
 }
 
-// Parameter classes for isolate computation
-class _SheetsDataParams {
-  final List<TeamRecord> overallTeamResults;
-  final List<List<TeamRecord>>? headToHeadTeamResults;
-  final List<ResultsRecord> individualResults;
-
-  _SheetsDataParams({
-    required this.overallTeamResults,
-    required this.headToHeadTeamResults,
-    required this.individualResults,
-  });
-}
-
-class _PdfParams {
-  final List<TeamRecord> overallTeamResults;
-  final List<List<TeamRecord>>? headToHeadTeamResults;
-  final List<ResultsRecord> individualResults;
-  final String raceName;
-
-  _PdfParams({
-    required this.overallTeamResults,
-    required this.headToHeadTeamResults,
-    required this.individualResults,
-    required this.raceName,
-  });
-}
-
 class FormattedResultsController {
-  final RaceResultsController controller;
+  final RaceResultsData raceResultsData;
   String? _formattedResultsText;
   List<List<dynamic>>? _formattedSheetsData;
   pw.Document? _formattedPdf;
@@ -444,21 +381,8 @@ class FormattedResultsController {
   bool _pdfGenerationStarted = false;
 
   FormattedResultsController({
-    required this.controller,
-  }) {
-    // Only initialize the race name in constructor
-    _initRaceName();
-  }
-
-  void _initRaceName() {
-    // Default fallback name in case we can't get the actual race name
-    raceName = 'Race Results';
-
-    // Try to get the actual race name from controller
-    if (controller.raceName.isNotEmpty) {
-      raceName = controller.raceName;
-    }
-  }
+    required this.raceResultsData,
+  });
 
   // Async getters that lazily initialize and cache results
   Future<String> get formattedResultsText async {
@@ -474,7 +398,7 @@ class FormattedResultsController {
     try {
       // Generate text asynchronously in a microtask to avoid blocking the UI
       _formattedResultsText =
-          await Future.microtask(() => _getFormattedText(controller));
+          await Future.microtask(() => _getFormattedText(raceResultsData));
       if (!_textCompleter.isCompleted) {
         _textCompleter.complete(_formattedResultsText);
       }
@@ -488,25 +412,26 @@ class FormattedResultsController {
   }
 
   // Text Formatting Methods - Made static for compute() function
-  static String _getFormattedText(RaceResultsController controller) {
+  static String _getFormattedText(RaceResultsData raceResultsData) {
     final StringBuffer buffer = StringBuffer();
 
     // Team Results Section
     buffer.writeln('Team Results');
-    buffer.writeln('Place\tSchool\tScore\tSplit Time\tAverage Time');
-    for (final team in controller.overallTeamResults) {
+    buffer.writeln('PlaceTeam\tScore\tSplit Time\tAverage Time');
+    for (final team in raceResultsData.overallTeamResults) {
       buffer.writeln(
-          '${team.place}\t${team.school}\t${team.score != 0 ? team.score : 'N/A'}\t'
-          '${team.split != Duration.zero ? TimeFormatter.formatDuration(team.split) : 'N/A'}\t'
-          '${team.avgTime != Duration.zero ? TimeFormatter.formatDuration(team.avgTime) : 'N/A'}');
+          '${team.place}\t${team.team.abbreviation ?? 'N/A'}\t${team.score > 0 ? team.score : 'N/A'}\t'
+          '${(team.split != Duration.zero && team.split.inMilliseconds > 0) ? TimeFormatter.formatDuration(team.split) : 'N/A'}\t'
+          '${(team.avgTime != Duration.zero && team.avgTime.inMilliseconds > 0) ? TimeFormatter.formatDuration(team.avgTime) : 'N/A'}');
     }
 
     // Individual Results Section
     buffer.writeln('\nIndividual Results');
-    buffer.writeln('Place\tName\tSchool\tTime');
-    for (final runner in controller.individualResults) {
-      buffer.writeln('${runner.place}\t${runner.name}\t${runner.school}\t'
-          '${TimeFormatter.formatDuration(runner.finishTime)}');
+    buffer.writeln('Place\tNameTeam\tTime');
+    for (final runner in raceResultsData.individualResults) {
+      buffer.writeln(
+          '${runner.place}\t${runner.name}\t${runner.teamAbbreviation}\t'
+          '${runner.formattedFinishTime}');
     }
 
     return buffer.toString();
@@ -526,11 +451,7 @@ class FormattedResultsController {
     try {
       // Process asynchronously in a microtask to avoid blocking the UI
       _formattedSheetsData =
-          await Future.microtask(() => _getSheetsData(_SheetsDataParams(
-                overallTeamResults: controller.overallTeamResults,
-                headToHeadTeamResults: controller.headToHeadTeamResults,
-                individualResults: controller.individualResults,
-              )));
+          await Future.microtask(() => _getSheetsData(raceResultsData));
       if (!_sheetsDataCompleter.isCompleted) {
         _sheetsDataCompleter.complete(_formattedSheetsData);
       }
@@ -544,14 +465,14 @@ class FormattedResultsController {
   }
 
   // Data Formatting Methods - Made static for compute() function
-  static List<List<dynamic>> _getSheetsData(_SheetsDataParams params) {
+  static List<List<dynamic>> _getSheetsData(RaceResultsData raceResultsData) {
     final List<List<dynamic>> sheetsData = [
       // Team Results Section
       ['Team Results'],
-      ['Place', 'School', 'Score', 'Scorers', 'Split Time', 'Average Time'],
-      ...params.overallTeamResults.map((team) => [
+      ['Place', 'Team', 'Score', 'Scorers', 'Split Time', 'Average Time'],
+      ...raceResultsData.overallTeamResults.map((team) => [
             team.place,
-            team.school,
+            team.team.abbreviation ?? 'N/A',
             team.score != 0 ? team.score : 'N/A',
             team.scorers.isNotEmpty
                 ? [
@@ -560,10 +481,10 @@ class FormattedResultsController {
                       '(${team.topSeven.sublist(5, team.topSeven.length).map((runner) => runner.place.toString()).join(', ')})'
                   ].join(', ')
                 : 'N/A',
-            team.split != Duration.zero
+            (team.split != Duration.zero && team.split.inMilliseconds > 0)
                 ? TimeFormatter.formatDuration(team.split)
                 : 'N/A',
-            team.avgTime != Duration.zero
+            (team.avgTime != Duration.zero && team.avgTime.inMilliseconds > 0)
                 ? TimeFormatter.formatDuration(team.avgTime)
                 : 'N/A',
           ]),
@@ -572,8 +493,8 @@ class FormattedResultsController {
       [],
 
       // Head-to-Head Team Results Sections
-      if (params.headToHeadTeamResults != null) ...[
-        ...params.headToHeadTeamResults!.expand((matchup) {
+      if (raceResultsData.headToHeadTeamResults.isNotEmpty) ...[
+        ...raceResultsData.headToHeadTeamResults.expand((matchup) {
           final team1 = matchup[0];
           final team2 = matchup[1];
 
@@ -583,38 +504,48 @@ class FormattedResultsController {
               : team2.topSeven.length;
 
           // Create a header for this matchup
-          final matchupHeader = ['${team1.school} vs ${team2.school}', '', ''];
+          final matchupHeader = [
+            '${team1.team.name ?? 'Team 1'} vs ${team2.team.name ?? 'Team 2'}',
+            '',
+            ''
+          ];
 
           // Create column headers
-          final columnHeaders = ['', team1.school, team2.school];
+          final columnHeaders = [
+            '',
+            team1.team.name ?? 'Team 1',
+            team2.team.name ?? 'Team 2'
+          ];
 
           // Create data rows for each runner
           List<List<dynamic>> runnerRows = [];
           for (int i = 0; i < maxRunners; i++) {
             // Runner from first team (if exists)
             String team1Place =
-                i < team1.topSeven.length ? '#${team1.topSeven[i].place}' : '';
-            String team1Name =
-                i < team1.topSeven.length ? team1.topSeven[i].name : '';
+                i < team1.topSeven.length ? '${team1.topSeven[i].place}' : '';
+            String team1Name = i < team1.topSeven.length
+                ? team1.topSeven[i].runner!.name!
+                : '';
 
             // Runner from second team (if exists)
             String team2Place =
-                i < team2.topSeven.length ? '#${team2.topSeven[i].place}' : '';
-            String team2Name =
-                i < team2.topSeven.length ? team2.topSeven[i].name : '';
+                i < team2.topSeven.length ? '${team2.topSeven[i].place}' : '';
+            String team2Name = i < team2.topSeven.length
+                ? team2.topSeven[i].runner!.name!
+                : '';
 
             runnerRows.add([
               '${i + 1}',
-              team1Place.isNotEmpty ? '$team1Place $team1Name' : '',
-              team2Place.isNotEmpty ? '$team2Place $team2Name' : ''
+              team1Place.isNotEmpty ? '$team1Name ($team1Place)' : '',
+              team2Place.isNotEmpty ? '$team2Name ($team2Place)' : ''
             ]);
           }
 
           // Summary row
           final summaryRow = [
             'Score',
-            '${team1.score != 0 ? team1.score : 'N/A'}',
-            '${team2.score != 0 ? team2.score : 'N/A'}'
+            '${team1.score > 0 ? team1.score : 'N/A'}',
+            '${team2.score > 0 ? team2.score : 'N/A'}'
           ];
 
           return [
@@ -629,12 +560,12 @@ class FormattedResultsController {
 
       // Individual Results Section
       ['Individual Results'],
-      ['Place', 'Name', 'School', 'Time'],
-      ...params.individualResults.map((runner) => [
+      ['Place', 'Name', 'Team', 'Time'],
+      ...raceResultsData.individualResults.map((runner) => [
             runner.place,
             runner.name,
-            runner.school,
-            runner.finishTime,
+            runner.teamAbbreviation,
+            runner.formattedFinishTime,
           ]),
     ];
 
@@ -654,12 +585,7 @@ class FormattedResultsController {
     _pdfGenerationStarted = true;
     try {
       // Process asynchronously in a microtask to avoid blocking the UI
-      _formattedPdf = await Future.microtask(() => _getPdfDocument(_PdfParams(
-            overallTeamResults: controller.overallTeamResults,
-            headToHeadTeamResults: controller.headToHeadTeamResults,
-            individualResults: controller.individualResults,
-            raceName: raceName,
-          )));
+      _formattedPdf = await _getPdfDocument(raceResultsData);
       if (!_pdfCompleter.isCompleted) {
         _pdfCompleter.complete(_formattedPdf);
       }
@@ -673,34 +599,47 @@ class FormattedResultsController {
   }
 
   // Static method for PDF generation - made static for compute() function
-  static pw.Document _getPdfDocument(_PdfParams params) {
+  static Future<pw.Document> _getPdfDocument(
+      RaceResultsData raceResultsData) async {
     final pdf = pw.Document();
+
+    // Add font to handle Unicode characters properly - using Inter fonts from assets
+    final regularFont =
+        pw.Font.ttf(await rootBundle.load('assets/fonts/Inter-Regular.ttf'));
+    final boldFont =
+        pw.Font.ttf(await rootBundle.load('assets/fonts/Inter-Bold.ttf'));
+
+    final theme = pw.ThemeData.withFont(
+      base: regularFont,
+      bold: boldFont,
+    );
 
     pdf.addPage(
       pw.MultiPage(
+        theme: theme,
         build: (context) => [
           // Title
           pw.Header(
             level: 0,
-            child: pw.Text(params.raceName, style: pw.TextStyle(fontSize: 24)),
+            text: raceResultsData.resultsTitle,
           ),
 
           // Team Results Section
-          pw.Header(level: 1, child: pw.Text('Team Results')),
+          pw.Header(level: 1, text: 'Team Results'),
           pw.TableHelper.fromTextArray(
             headers: [
               'Place',
-              'School',
+              'Team',
               'Score',
               'Scorers',
               'Split Time',
               'Average Time'
             ],
-            data: params.overallTeamResults
+            data: raceResultsData.overallTeamResults
                 .map((team) => [
                       team.place.toString(),
-                      team.school.toString(),
-                      team.score != 0 ? team.score.toString() : 'N/A',
+                      team.team.abbreviation ?? 'N/A',
+                      team.score > 0 ? team.score.toString() : 'N/A',
                       team.scorers.isNotEmpty
                           ? [
                               ...team.scorers
@@ -709,10 +648,12 @@ class FormattedResultsController {
                                 '(${team.topSeven.sublist(5, team.topSeven.length).map((runner) => runner.place.toString()).join(', ')})'
                             ].join(', ')
                           : 'N/A',
-                      team.split != Duration.zero
+                      (team.split != Duration.zero &&
+                              team.split.inMilliseconds > 0)
                           ? TimeFormatter.formatDuration(team.split)
                           : 'N/A',
-                      team.avgTime != Duration.zero
+                      (team.avgTime != Duration.zero &&
+                              team.avgTime.inMilliseconds > 0)
                           ? TimeFormatter.formatDuration(team.avgTime)
                           : 'N/A',
                     ])
@@ -722,20 +663,24 @@ class FormattedResultsController {
           pw.SizedBox(height: 20),
 
           // Head-to-Head Team Results Sections
-          if (params.headToHeadTeamResults != null) ...[
-            pw.Header(level: 1, child: pw.Text('Head-to-Head Team Results')),
+          if (raceResultsData.headToHeadTeamResults.isNotEmpty) ...[
+            pw.Header(level: 1, text: 'Head-to-Head Team Results'),
             pw.SizedBox(height: 10),
 
             // Generate each head-to-head matchup section
-            for (final matchup in params.headToHeadTeamResults!) ...[
+            for (final matchup in raceResultsData.headToHeadTeamResults) ...[
               pw.Header(
                   level: 2,
-                  child:
-                      pw.Text('${matchup[0].school} vs ${matchup[1].school}')),
+                  text:
+                      '${matchup[0].team.name ?? 'Team 1'} vs ${matchup[1].team.name ?? 'Team 2'}'),
 
               // Table with the results
               pw.TableHelper.fromTextArray(
-                headers: ['', matchup[0].school, matchup[1].school],
+                headers: [
+                  '',
+                  matchup[0].team.name ?? 'Team 1',
+                  matchup[1].team.name ?? 'Team 2'
+                ],
                 data: _generateHeadToHeadRows(matchup[0], matchup[1]),
               ),
 
@@ -746,15 +691,15 @@ class FormattedResultsController {
           pw.SizedBox(height: 20),
 
           // Individual Results Section
-          pw.Header(level: 1, child: pw.Text('Individual Results')),
+          pw.Header(level: 1, text: 'Individual Results'),
           pw.TableHelper.fromTextArray(
-            headers: ['Place', 'Name', 'School', 'Time'],
-            data: params.individualResults
+            headers: ['Place', 'Name', 'Team', 'Time'],
+            data: raceResultsData.individualResults
                 .map((runner) => [
                       runner.place.toString(),
-                      runner.name.toString(),
-                      runner.school.toString(),
-                      TimeFormatter.formatDuration(runner.finishTime),
+                      runner.name,
+                      runner.teamAbbreviation,
+                      runner.formattedFinishTime,
                     ])
                 .toList(),
           ),
@@ -775,28 +720,28 @@ class FormattedResultsController {
     for (int i = 0; i < maxRunners; i++) {
       // Runner from first team (if exists)
       String team1Place =
-          i < team1.topSeven.length ? '#${team1.topSeven[i].place}' : '';
+          i < team1.topSeven.length ? '${team1.topSeven[i].place}' : '';
       String team1Name =
-          i < team1.topSeven.length ? team1.topSeven[i].name : '';
+          i < team1.topSeven.length ? team1.topSeven[i].runner!.name! : '';
 
       // Runner from second team (if exists)
       String team2Place =
-          i < team2.topSeven.length ? '#${team2.topSeven[i].place}' : '';
+          i < team2.topSeven.length ? '${team2.topSeven[i].place}' : '';
       String team2Name =
-          i < team2.topSeven.length ? team2.topSeven[i].name : '';
+          i < team2.topSeven.length ? team2.topSeven[i].runner!.name! : '';
 
       rows.add([
         '${i + 1}',
-        team1Place.isNotEmpty ? '$team1Place $team1Name' : '',
-        team2Place.isNotEmpty ? '$team2Place $team2Name' : ''
+        team1Place.isNotEmpty ? '$team1Name ($team1Place)' : '',
+        team2Place.isNotEmpty ? '$team2Name ($team2Place)' : ''
       ]);
     }
 
     // Add summary row
     rows.add([
       'Score',
-      '${team1.score != 0 ? team1.score : 'N/A'}',
-      '${team2.score != 0 ? team2.score : 'N/A'}'
+      '${team1.score > 0 ? team1.score : 'N/A'}',
+      '${team2.score > 0 ? team2.score : 'N/A'}'
     ]);
 
     return rows;

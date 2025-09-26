@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
 import '../controller/timing_controller.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
@@ -31,26 +30,33 @@ class BottomControlsWidget extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _buildControlButton(
-            icon: Icons.check,
-            color: Colors.green,
-            onTap: controller.confirmTimes,
-          ),
+          _buildMainControlButton(),
           Container(
             height: 30,
             width: 1,
             color: ColorUtils.withOpacity(Colors.grey, 0.3),
           ),
           _buildAdjustTimesButton(context),
-          if (controller.hasUndoableConflict())
-            _buildControlButton(
-              icon: Icons.undo,
-              color: AppColors.mediumColor,
-              onTap: controller.undoLastConflict,
-            ),
         ],
       ),
     );
+  }
+
+  Widget _buildMainControlButton() {
+    // Show undo button if last record is a conflict, otherwise show confirm button
+    if (controller.isLastRecordUndoable) {
+      return _buildControlButton(
+        icon: Icons.undo,
+        color: Colors.grey[700]!,
+        onTap: controller.undoLastConflict,
+      );
+    } else {
+      return _buildControlButton(
+        icon: Icons.check,
+        color: Colors.green,
+        onTap: controller.confirmTimes,
+      );
+    }
   }
 
   Widget _buildControlButton({

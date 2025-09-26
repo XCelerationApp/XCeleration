@@ -9,7 +9,7 @@ class FlowStep {
   final Widget content;
   final bool canScroll;
   final bool Function()? canProceed;
-  final VoidCallback? onNext;
+  final Future<void> Function()? onNext;
   final VoidCallback? onBack;
   final StreamController<void> _contentChangeController;
 
