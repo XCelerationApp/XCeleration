@@ -325,8 +325,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Switch(
             value: isEnabled,
             onChanged: _toggleSync,
-            activeThumbColor: AppColors.primaryColor,
-            inactiveThumbColor: Colors.white,
+            thumbColor: WidgetStateProperty.resolveWith<Color>(
+              (Set<WidgetState> states) {
+                if (states.contains(WidgetState.selected)) {
+                  return AppColors.primaryColor;
+                }
+                return Colors.white;
+              },
+            ),
             inactiveTrackColor: Colors.grey,
             activeTrackColor: Colors.black, // Added dark border effect
           ),

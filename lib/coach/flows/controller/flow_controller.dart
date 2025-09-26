@@ -96,7 +96,7 @@ class MasterFlowController {
     // If not completed, just return
     if (!completed) return false;
 
-    if (!context.mounted) return false;
+    if (!contextToUse.mounted) return false;
 
     // Mark as pre-race-completed instead of moving directly to post-race
     await updateRaceFlowState(context, Race.FLOW_PRE_RACE_COMPLETED);
@@ -120,7 +120,7 @@ class MasterFlowController {
     // If not completed, just return
     if (!completed) return false;
 
-    if (!context.mounted) return false;
+    if (!contextToUse.mounted) return false;
 
     // Set the race state directly to finished after post-race flow completes
     await updateRaceFlowState(context, Race.FLOW_FINISHED);
@@ -300,7 +300,7 @@ Future<bool> showFlow({
                             }
                             // Complete the flow
                             completed = true;
-                            if (!context.mounted) return;
+                            if (!contextToUse.mounted) return;
                             Navigator.of(context, rootNavigator: true).pop();
                           }
                         }

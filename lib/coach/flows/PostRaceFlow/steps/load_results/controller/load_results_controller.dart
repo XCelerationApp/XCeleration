@@ -191,6 +191,7 @@ class LoadResultsController with ChangeNotifier {
     } else {
       Logger.e(
           'Missing data source: bibRecordsData or finishTimesData is null');
+      if (!context.mounted) return;
       DialogUtils.showErrorDialog(
         context,
         message: 'No data received from assistant devices.',
@@ -421,6 +422,7 @@ class LoadResultsController with ChangeNotifier {
           !hasBibConflicts &&
           timingChunks != null &&
           context.mounted) {
+        if (!context.mounted) return;
         await showTimingConflictsSheet(context);
       }
     }
