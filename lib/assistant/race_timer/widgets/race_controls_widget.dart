@@ -31,7 +31,7 @@ class RaceControlsWidget extends StatelessWidget {
   Widget _buildRaceControlButton(BuildContext context) {
     final buttonText = controller.raceStopped == false
         ? 'Stop'
-        : (controller.startTime != null ? 'Resume' : 'Start');
+        : (controller.startTime != null ? 'Cont.' : 'Start');
     final buttonColor = controller.raceStopped ? Colors.green : Colors.red;
 
     return CircularButton(
