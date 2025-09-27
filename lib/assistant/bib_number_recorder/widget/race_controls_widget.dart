@@ -29,7 +29,7 @@ class RaceControlsWidget extends StatelessWidget {
     final buttonText = controller.isRecording
         ? 'Stop'
         : controller.bibRecords.isNotEmpty
-            ? 'Resume'
+            ? 'Cont.'
             : 'Start';
     final buttonColor = controller.isRecording ? Colors.red : Colors.green;
 

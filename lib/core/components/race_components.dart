@@ -190,7 +190,7 @@ class RaceControlsWidget extends StatelessWidget {
                   _buildControlButton(
                     context,
                     icon: Icons.play_arrow,
-                    label: 'Resume',
+                    label: 'Cont.',
                     onPressed: onResume,
                     isPrimary: true,
                   ),
