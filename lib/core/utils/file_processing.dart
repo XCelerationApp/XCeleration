@@ -92,83 +92,136 @@ Future<List<Map<String, dynamic>>> processSpreadsheet(BuildContext context,
 List<Map<String, dynamic>> _processSpreadsheetData(List<List<dynamic>> data) {
   final List<Map<String, dynamic>> runnerData = [];
 
-  // Remove empty cells (commas) and ignore empty lines entirely
+  String cellToString(dynamic cell) {
+    return (cell?.toString() ?? '').replaceAll('"', '').trim();
+  }
+
+  // Only used for heuristic fallback and quick checks
   List<String> sanitizeRow(List<dynamic> row) {
     return row
-        .map((cell) => (cell?.toString() ?? '').replaceAll('"', '').trim())
+        .map((cell) => cellToString(cell))
         .where((cell) => cell.isNotEmpty)
         .toList();
   }
 
-  // Determine if the first row is a header (all text, no digits)
-  bool isHeaderRow(List<dynamic> row) {
-    final cleaned = sanitizeRow(row);
-    // Consider a cell as "text" if it contains no digits
-    bool cellIsText(dynamic cell) {
-      final str = cell?.toString() ?? '';
-      return str.isNotEmpty && !RegExp(r'\d').hasMatch(str);
-    }
+  // Detect header indices for known schema
+  int idxBib = -1;
+  int idxFirst = -1;
+  int idxLast = -1;
+  int idxYear = -1;
+  int idxGender = -1;
 
-    // Header row if all first 3 cells are text and not empty
-    return cleaned.length >= 3 &&
-        cellIsText(cleaned[0]) &&
-        cellIsText(cleaned[1]) &&
-        cellIsText(cleaned[2]);
+  bool hasHeader = false;
+  if (data.isNotEmpty) {
+    final header = data.first.map(cellToString).toList();
+    final lower = header.map((h) => h.toLowerCase()).toList();
+
+    idxBib = lower.indexWhere((h) => h.contains('athlete') && h.contains('#'));
+    if (idxBib == -1) {
+      idxBib =
+          lower.indexWhere((h) => h == '#' || h == 'bib' || h == 'bib number');
+    }
+    idxFirst = lower.indexWhere((h) => h == 'first' || h == 'first name');
+    idxLast = lower.indexWhere((h) => h == 'last' || h == 'last name');
+    idxYear = lower.indexWhere((h) => h == 'year' || h.contains('grade'));
+    idxGender =
+        lower.indexWhere((h) => h == 'm/f' || h == 'gender' || h == 'sex');
+
+    hasHeader =
+        idxBib != -1 && idxYear != -1 && (idxFirst != -1 || idxLast != -1);
   }
 
-  int startIdx = 0;
-  if (data.isNotEmpty && isHeaderRow(data[0])) {
-    startIdx = 1;
+  int startIdx = hasHeader ? 1 : 0;
+
+  int parseYearToGrade(String raw) {
+    if (raw.isEmpty) return 0;
+    final s = raw.toLowerCase().trim();
+    // handle numeric like 9, 9th, 10th, 11, 12, etc
+    final match = RegExp(r'\d+').firstMatch(s);
+    if (match != null) {
+      final g = int.tryParse(match.group(0)!) ?? 0;
+      if (g >= 9 && g <= 12) return g;
+    }
+    if (s.contains('fresh')) return 9;
+    if (s.contains('soph')) return 10; // sophmore/sophomore
+    if (s.contains('junior')) return 11;
+    if (s.contains('senior')) return 12;
+    return 0;
+  }
+
+  String normalizeBib(String raw) {
+    var b = raw.trim();
+    if (b.isEmpty) return '';
+    b = b.replaceAll(RegExp(r'[^0-9\.]'), '');
+    if (b.contains('.') && double.tryParse(b) != null) {
+      b = double.parse(b).toInt().toString();
+    }
+    // Convert to int and back to strip leading zeros
+    final asInt = int.tryParse(b);
+    return asInt?.toString() ?? '';
   }
 
   for (int i = startIdx; i < data.length; i++) {
-    final originalRow = data[i];
-    final row = sanitizeRow(originalRow);
+    final rowRaw = data[i];
 
-    // Skip empty lines after sanitization
-    if (row.isEmpty) {
+    if (rowRaw.isEmpty || rowRaw.every((c) => cellToString(c).isEmpty)) {
       continue;
     }
 
-    // Ensure the row contains at least [name, grade, bib]
-    if (row.length >= 3) {
-      // Parse the row data
-      final String name = row[0];
+    String name = '';
+    int grade = 0;
+    String bibNumber = '';
+    String? gender; // 'M' or 'F'
 
-      // Handle grade which may be an int, double, or string
-      int grade = 0;
-      final String rawGradeStr = row[1];
-      final num? rawGradeNum = num.tryParse(rawGradeStr);
-      if (rawGradeNum != null) {
-        grade = rawGradeNum.round();
-      } else {
-        grade = int.tryParse(rawGradeStr) ??
-            (double.tryParse(rawGradeStr)?.round() ?? 0);
-      }
+    if (hasHeader) {
+      final first = (idxFirst >= 0 && idxFirst < rowRaw.length)
+          ? cellToString(rowRaw[idxFirst])
+          : '';
+      final last = (idxLast >= 0 && idxLast < rowRaw.length)
+          ? cellToString(rowRaw[idxLast])
+          : '';
+      final yearStr = (idxYear >= 0 && idxYear < rowRaw.length)
+          ? cellToString(rowRaw[idxYear])
+          : '';
+      final bibStr = (idxBib >= 0 && idxBib < rowRaw.length)
+          ? cellToString(rowRaw[idxBib])
+          : '';
+      final genderStr = (idxGender >= 0 && idxGender < rowRaw.length)
+          ? cellToString(rowRaw[idxGender])
+          : '';
 
-      // Handle bib number which may come back with a trailing decimal (e.g. 1.0)
-      String bibNumber = row[2];
-      if (bibNumber.contains('.') && double.tryParse(bibNumber) != null) {
-        bibNumber = double.parse(bibNumber).toInt().toString();
-      }
+      name = [first, last].where((p) => p.isNotEmpty).join(' ').trim();
+      grade = parseYearToGrade(yearStr);
+      bibNumber = normalizeBib(bibStr);
 
-      final int bibNumberInt = int.tryParse(bibNumber) ?? -1;
-
-      // Validate the parsed data
-      if (name.isNotEmpty &&
-          grade > 0 &&
-          bibNumber.isNotEmpty &&
-          bibNumberInt >= 0) {
-        runnerData.add({
-          'name': name,
-          'grade': grade,
-          'bib': bibNumber,
-        });
-      } else {
-        Logger.d('Invalid data in row (after sanitize): $row');
+      if (genderStr.isNotEmpty) {
+        final g = genderStr.toUpperCase();
+        if (g.startsWith('M')) gender = 'M';
+        if (g.startsWith('F')) gender = 'F';
       }
     } else {
-      Logger.d('Incomplete row (after sanitize): $row');
+      // Fallback heuristic: [name, grade/year, bib]
+      final row = sanitizeRow(rowRaw);
+      if (row.length < 3) {
+        Logger.d('Incomplete row (after sanitize): $row');
+        continue;
+      }
+      name = row[0];
+      grade = parseYearToGrade(row[1]);
+      bibNumber = normalizeBib(row[2]);
+    }
+
+    final bibInt = int.tryParse(bibNumber) ?? -1;
+    if (name.isNotEmpty && grade >= 9 && grade <= 12 && bibInt >= 0) {
+      runnerData.add({
+        'name': name,
+        'grade': grade,
+        'bib': bibNumber,
+        if (gender != null) 'gender': gender,
+      });
+    } else {
+      Logger.d(
+          'Invalid data in row: i=$i name="$name" grade=$grade bib="$bibNumber"');
     }
   }
 
