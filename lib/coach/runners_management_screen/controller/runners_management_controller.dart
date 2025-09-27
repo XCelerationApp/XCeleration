@@ -848,7 +848,7 @@ class RunnersManagementController with ChangeNotifier {
                 ),
                 const SizedBox(height: 12),
                 const Text(
-                  'Import your runners from a CSV or Excel spreadsheet. The file should have Name, Grade, and Bib Number columns in that order.',
+                  'Import your runners from a CSV or Excel spreadsheet. Recommended header: "Athlete #, First, Last, Year, M/F".',
                   style: AppTypography.bodyMedium,
                   textAlign: TextAlign.center,
                 ),
