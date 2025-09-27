@@ -82,7 +82,7 @@ class InstructionsBanner extends StatelessWidget {
       case Role.coach:
         return 'You create and manage the races. You will oversee your assistants and will compile and share the race results.';
       case Role.spectator:
-        return 'You can view the race results and see the runners as they finish.';
+        return 'You can load racs from a nearby coach and view the race results of those races.';
     }
   }
 }

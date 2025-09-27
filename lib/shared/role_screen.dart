@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../coach/races_screen/screen/races_screen.dart';
+import '../spectator/races_screen/screen/spectator_races_screen.dart';
 import '../assistant/race_timer/screen/timing_screen.dart';
 import '../assistant/bib_number_recorder/screen/bib_number_screen.dart';
 import '../core/theme/app_colors.dart';
@@ -94,15 +95,10 @@ class RoleScreen extends StatelessWidget {
               buildRoleButton(
                 text: 'Spectator',
                 onPressed: () async {
-                  if (!AuthService.instance.isSignedIn) {
-                    Navigator.of(context).push(
-                      InitialPageRouteAnimation(child: const SignInScreen()),
-                    );
-                    return;
-                  }
+                  // Spectators do not require sign-in; go straight to spectator UI
                   Navigator.of(context).push(
                     InitialPageRouteAnimation(
-                        child: const RacesScreen(canEdit: false)),
+                        child: const SpectatorRacesScreen()),
                   );
                 },
               ),

@@ -90,6 +90,9 @@ class DevicesManager {
       } else if (_currentDeviceName == DeviceName.bibRecorder) {
         _bibRecorder = ConnectedDevice(DeviceName.bibRecorder);
         _coach = ConnectedDevice(DeviceName.coach, data: _data);
+      } else if (_currentDeviceName == DeviceName.spectator) {
+        // Spectator does not advertise in our current flows; default to coach target
+        _coach = ConnectedDevice(DeviceName.coach, data: _data);
       } else {
         _raceTimer = ConnectedDevice(DeviceName.raceTimer);
         _coach = ConnectedDevice(DeviceName.coach, data: _data);
@@ -99,6 +102,9 @@ class DevicesManager {
         _coach = ConnectedDevice(DeviceName.coach);
         _bibRecorder = ConnectedDevice(DeviceName.bibRecorder);
         _raceTimer = ConnectedDevice(DeviceName.raceTimer);
+      } else if (_currentDeviceName == DeviceName.spectator) {
+        // Spectator only cares about finding a Coach to receive from
+        _coach = ConnectedDevice(DeviceName.coach);
       } else {
         _bibRecorder = ConnectedDevice(DeviceName.bibRecorder);
         _coach = ConnectedDevice(DeviceName.coach);
