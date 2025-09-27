@@ -40,11 +40,6 @@ class _ShareSheetScreenState extends State<ShareSheetScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // const SizedBox(height: 8),
-        // ShareMethodSelectionWidget(
-        //   controller: widget.controller,
-        // ),
-        // const SizedBox(height: 32),
         ShareFormatSelectionWidget(
           controller: widget.controller,
         ),

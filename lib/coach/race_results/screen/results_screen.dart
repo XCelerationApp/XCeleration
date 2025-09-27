@@ -122,6 +122,7 @@ class ResultsScreenState extends State<ResultsScreen> {
                 ShareRaceController.showShareRaceSheet(
                   context: context,
                   raceResultsData: _raceResultsData!,
+                  masterRace: widget.masterRace,
                 );
               }),
             ),

@@ -15,14 +15,20 @@ import '../../../../../core/components/dialog_utils.dart';
 import '../screen/share_race_screen.dart';
 import '../widgets/google_sheet_dialog_widgets.dart';
 import '../utils/url_launcher_helper.dart';
+import 'package:xceleration/shared/models/database/master_race.dart';
+import 'package:xceleration/core/services/device_connection_service.dart';
+import '../services/race_share_service.dart';
+import '../widgets/spectator_broadcast_sheet.dart';
 
 /// Controller class responsible for all sharing logic in the app
 class ShareRaceController extends ChangeNotifier {
   final RaceResultsData raceResultsData;
+  final MasterRace masterRace;
   late ShareResultsController _shareResultsController;
 
   ShareRaceController({
     required this.raceResultsData,
+    required this.masterRace,
   }) {
     _shareResultsController = ShareResultsController(
       raceResultsData: raceResultsData,
@@ -33,6 +39,7 @@ class ShareRaceController extends ChangeNotifier {
   static Future<dynamic> showShareRaceSheet({
     required BuildContext context,
     required RaceResultsData raceResultsData,
+    required MasterRace masterRace,
   }) {
     return sheet(
       context: context,
@@ -40,6 +47,7 @@ class ShareRaceController extends ChangeNotifier {
       body: ShareSheetScreen(
         controller: ShareRaceController(
           raceResultsData: raceResultsData,
+          masterRace: masterRace,
         ),
       ),
     );
@@ -61,6 +69,36 @@ class ShareRaceController extends ChangeNotifier {
     }
 
     notifyListeners();
+  }
+
+  /// Share wirelessly to spectators via Nearby Connections (P2P_STAR)
+  /// Broadcasts to any receivers; no passcode/approval; single-race payload.
+  Future<void> shareWirelessly(BuildContext context) async {
+    try {
+      // Build encoded payload for spectators
+      final encoded =
+          await RaceShareService.prepareSpectatorPayload(masterRace);
+
+      // Create an advertiser device manager modeled after coach→assistant flows
+      final devices = DeviceConnectionService.createDevices(
+        DeviceName.spectator,
+        DeviceType.advertiserDevice,
+        data: encoded,
+      );
+
+      // Show broadcast sheet with counter/stop/timeout
+      if (!context.mounted) return;
+      await sheet(
+          context: context,
+          title: 'Share Wirelessly',
+          body: SpectatorBroadcastSheet(devices: devices));
+    } catch (e) {
+      Logger.e('Error starting wireless share: $e');
+      if (context.mounted) {
+        DialogUtils.showErrorDialog(context,
+            message: 'Failed to start wireless share');
+      }
+    }
   }
 }
 
