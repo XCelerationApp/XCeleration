@@ -17,7 +17,7 @@ class RaceShareImporter {
 
     // Race
     final raceMap = map['race'] as Map<String, dynamic>;
-    final raceName = (raceMap['name']?.toString() ?? 'Race') + ' (shared)';
+    final raceName = '${raceMap['name']?.toString() ?? 'Race'} (shared)';
     final race = Race(
       raceName: raceName,
       raceDate: raceMap['race_date'] != null
