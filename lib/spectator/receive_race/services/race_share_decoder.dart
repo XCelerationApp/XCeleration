@@ -1,5 +1,6 @@
 import 'dart:convert';
-import 'package:flutter/material.dart';
+import 'dart:typed_data';
+import 'dart:io';
 import 'package:xceleration/shared/models/database/race_result.dart';
 import 'package:xceleration/shared/models/database/team.dart';
 import 'package:xceleration/shared/models/database/runner.dart';
@@ -14,8 +15,13 @@ class RaceShareDecodedData {
 
 class RaceShareDecoder {
   static RaceShareDecodedData decodeToResultsData(String jsonStr) {
-    final map = jsonDecode(jsonStr) as Map<String, dynamic>;
-    if (map['type'] != 'RACE_SHARE_V1') {
+    // Decode base64+gzip (V2 only)
+    final Uint8List b = base64Decode(jsonStr);
+    final String decoded = utf8.decode(gzip.decode(b));
+    final Map<String, dynamic> map =
+        jsonDecode(decoded) as Map<String, dynamic>;
+
+    if (map['type'] != 'RACE_SHARE_V2') {
       throw Exception('Unsupported payload');
     }
 
@@ -27,25 +33,27 @@ class RaceShareDecoder {
 
     // Build RaceResult list from payload
     final List<RaceResult> results = [];
-    for (final r in (map['individual_results'] as List?) ?? const []) {
-      final rm = r as Map<String, dynamic>;
-      final finishMs = rm['finish_time_ms'] as int?;
-      final teamName = rm['team_name']?.toString();
-      final teamAbbrev = rm['team_abbreviation']?.toString();
-      final teamColor =
-          rm['team_color'] is int ? Color(rm['team_color'] as int) : null;
-      results.add(RaceResult(
-        place: rm['place'] as int?,
-        runner: Runner(
-          name: rm['name']?.toString(),
-          bibNumber: rm['bib_number']?.toString(),
-          grade: rm['grade'] as int?,
-        ),
-        team: (teamName != null || teamAbbrev != null)
-            ? Team(name: teamName, abbreviation: teamAbbrev, color: teamColor)
-            : null,
-        finishTime: finishMs != null ? Duration(milliseconds: finishMs) : null,
-      ));
+    final List teams = (map['teams'] as List?) ?? const [];
+    final List rows = (map['r'] as List?) ?? const [];
+    for (final row in rows) {
+      if (row is List && row.length >= 4) {
+        final int place = (row[0] as num?)?.toInt() ?? 0;
+        final String name = row[1]?.toString() ?? '';
+        final int? teamIndex = row[2] as int?;
+        final int finishMs = (row[3] as num?)?.toInt() ?? 0;
+        final String? teamLabel =
+            (teamIndex != null && teamIndex >= 0 && teamIndex < teams.length)
+                ? teams[teamIndex]?.toString()
+                : null;
+        results.add(RaceResult(
+          place: place,
+          runner: Runner(name: name, bibNumber: null, grade: null),
+          team: teamLabel != null
+              ? Team(name: teamLabel, abbreviation: teamLabel)
+              : null,
+          finishTime: finishMs > 0 ? Duration(milliseconds: finishMs) : null,
+        ));
+      }
     }
 
     // Compute team/individual aggregates using existing service helpers
