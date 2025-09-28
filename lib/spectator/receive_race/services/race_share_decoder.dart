@@ -26,10 +26,9 @@ class RaceShareDecoder {
     }
 
     final raceMap = map['race'] as Map<String, dynamic>;
-    final title = ((raceMap['name']?.toString() ?? 'Race').isNotEmpty
+    final title = '${(raceMap['name']?.toString() ?? 'Race').isNotEmpty
             ? raceMap['name'].toString()
-            : 'Race') +
-        ' Results';
+            : 'Race'} Results';
 
     // Build RaceResult list from payload
     final List<RaceResult> results = [];
