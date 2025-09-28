@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/components/dialog_utils.dart';
 import 'package:xceleration/core/services/auth_service.dart';
 import 'package:xceleration/core/services/sync_service.dart';
 import 'package:xceleration/core/services/profile_service.dart';
@@ -100,8 +101,10 @@ class _SignInScreenState extends State<SignInScreen>
         if (mounted) setState(() => _isLogin = true);
       }
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
+      DialogUtils.showMessageDialog(
+        context,
+        title: 'Error',
+        message: message,
       );
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -293,26 +296,20 @@ class _SignInScreenState extends State<SignInScreen>
                                   child: TextButton(
                                     onPressed: () async {
                                       if (_emailController.text.isEmpty) {
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                                'Enter email to reset password'),
-                                          ),
-                                        );
+                                        DialogUtils.showMessageDialog(context,
+                                            title: 'Info',
+                                            message:
+                                                'Enter email to reset password');
                                         return;
                                       }
                                       await AuthService.instance
                                           .sendPasswordResetEmail(
                                               _emailController.text.trim());
                                       if (context.mounted) {
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                                'Password reset email sent'),
-                                          ),
-                                        );
+                                        DialogUtils.showMessageDialog(context,
+                                            title: 'Info',
+                                            message:
+                                                'Password reset email sent');
                                       }
                                     },
                                     child: const Text('Forgot password?'),

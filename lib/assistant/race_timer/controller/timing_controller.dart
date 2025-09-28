@@ -337,8 +337,6 @@ class TimingController extends TimingData {
     final isUndoable = currentChunk.conflictRecord != null ||
         currentChunk.timingData.any(
             (record) => record.conflict?.type == ConflictType.confirmRunner);
-    Logger.d(
-        'isLastRecordUndoable: $isUndoable, conflictRecord: ${currentChunk.conflictRecord}');
     return isUndoable;
   }
 

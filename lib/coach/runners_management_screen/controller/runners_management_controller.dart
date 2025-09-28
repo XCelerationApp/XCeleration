@@ -521,11 +521,10 @@ class RunnersManagementController with ChangeNotifier {
         }
 
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Added ${selectedTeams.length} team(s) to race'),
-              backgroundColor: Colors.green,
-            ),
+          DialogUtils.showMessageDialog(
+            context,
+            title: 'Teams Added',
+            message: 'Added ${selectedTeams.length} team(s) to race',
           );
         }
       }
@@ -777,11 +776,10 @@ class RunnersManagementController with ChangeNotifier {
     } catch (e) {
       Logger.e('Error handling spreadsheet load: $e');
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error importing runners: $e'),
-            backgroundColor: Colors.red,
-          ),
+        DialogUtils.showMessageDialog(
+          context,
+          title: 'Error',
+          message: 'Error importing runners: ${e}',
         );
       }
     }
