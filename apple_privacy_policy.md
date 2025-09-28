@@ -18,7 +18,6 @@ We are committed to protecting your privacy and ensuring you have a positive exp
 - **Location Information**: For race mapping and location tracking features, we collect location data with your permission.
 - **Google Account Information**: When you choose to use Google Sheets features, we request access to your Google account through Google's authentication system. We only access the specific Google services needed to create and manage sheets with your race data.
 
-
 ## Data Storage and Protection
 
 - **Local Storage**: All data is stored locally on your device using SQLite.
@@ -38,6 +37,7 @@ We are committed to protecting your privacy and ensuring you have a positive exp
 ## Your Privacy Choices and Rights
 
 You can:
+
 - Access and update your personal information within the App.
 - Delete your data by clearing the App's data or uninstalling the App.
 - Control app permissions (camera, etc.) through your device settings.
@@ -51,10 +51,10 @@ We implement appropriate technical and physical security measures, including enc
 Our app integrates with Google services (specifically Google Sheets and Google Drive) to provide enhanced functionality:
 
 - **Google Authentication**: When you use Google Sheets features, you will be prompted to sign in to your Google account and grant specific permissions.
-- **Terms of Service**: Your use of Google services through our app is subject to Google's Terms of Service (https://policies.google.com/terms) and Privacy Policy (https://policies.google.com/privacy).
+- **Terms of Service**: Your use of Google services through our app is subject to Google's Terms of Service (<https://policies.google.com/terms>) and Privacy Policy (<https://policies.google.com/privacy>).
 - **Access Scope**: We request only the minimum permissions needed to provide the Google Sheets functionality (specifically, access to create and modify Google Sheets and related Drive files).
 - **Data Handling**: Any data transferred to Google services is subject to Google's data handling practices and policies.
-- **Revoking Access**: You can revoke our app's access to your Google account at any time through your Google Account settings (https://myaccount.google.com/permissions).
+- **Revoking Access**: You can revoke our app's access to your Google account at any time through your Google Account settings (<https://myaccount.google.com/permissions>).
 
 ## Changes to This Privacy Policy
 
@@ -72,6 +72,6 @@ Your information may be transferred to and processed in countries other than you
 
 If you have any questions or concerns about this Privacy Policy or our data practices, please contact us at:
 
-Email: xceleration.app@gmail.com
+Email: <xceleration.app@gmail.com>
 
-This Privacy Policy was last updated on June 4, 2025.
+This Privacy Policy was last updated on June 4, 2025
