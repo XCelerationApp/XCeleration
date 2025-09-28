@@ -148,18 +148,16 @@ class _PermissionsDialogState extends State<PermissionsDialog> {
 
       if (mounted) {
         if (granted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Permission granted'),
-              backgroundColor: Colors.green,
-            ),
+          DialogUtils.showMessageDialog(
+            context,
+            title: 'Success',
+            message: 'Permission granted',
           );
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Permission denied'),
-              backgroundColor: Colors.red,
-            ),
+          DialogUtils.showMessageDialog(
+            context,
+            title: 'Error',
+            message: 'Permission denied',
           );
         }
 
