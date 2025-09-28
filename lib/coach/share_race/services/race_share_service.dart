@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:xceleration/shared/models/database/master_race.dart';
 import 'package:xceleration/shared/models/database/race.dart';
 import 'package:xceleration/shared/models/database/race_result.dart';
@@ -16,46 +17,63 @@ class RaceShareService {
     }
 
     try {
-      // Minimal payload v1: race headers + raw result rows
       final List<RaceResult> results = await masterRace.results;
-
-      final payload = {
-        'type': 'RACE_SHARE_V1',
-        'race': {
-          'uuid': race.uuid,
-          'name': race.raceName,
-          'race_date': race.raceDate?.toIso8601String(),
-          'location': race.location,
-          'distance': race.distance,
-          'distance_unit': race.distanceUnit,
-          'flow_state': race.flowState,
-        },
-        'individual_results': results
-            .map((r) => {
-                  'place': r.place,
-                  'name': r.runner?.name,
-                  'team_abbreviation': r.team?.abbreviation,
-                  'team_name': r.team?.name,
-                  'team_color': r.team?.color?.toARGB32(),
-                  'finish_time_ms': r.finishTime?.inMilliseconds,
-                  'bib_number': r.runner?.bibNumber,
-                  'grade': r.runner?.grade,
-                })
-            .toList(),
-        'teams': _collectTeams(results)
-            .map((t) => {
-                  'name': t.name,
-                  'abbreviation': t.abbreviation,
-                  'color': t.color?.toARGB32(),
-                })
-            .toList(),
-      };
-
-      return jsonEncode(payload);
+      return preparePayloadFromData(race: race, results: results);
     } catch (e) {
       Logger.e('Error building spectator payload: $e');
       rethrow;
     }
+  }
+
+  /// Helper used by tests and by [prepareSpectatorPayload] to build payloads
+  static String preparePayloadFromData({
+    required Race race,
+    required List<RaceResult> results,
+  }) {
+    // Build compact teams list (use abbreviation, fallback to name)
+    final teams = _collectTeams(results);
+    final teamList = teams
+        .map((t) => (t.abbreviation ?? t.name ?? '').toString())
+        .where((s) => s.isNotEmpty)
+        .toList();
+    final Map<String, int> teamIndex = {
+      for (int i = 0; i < teamList.length; i++) teamList[i]: i
+    };
+
+    // Results rows compact format: [place, name, teamId, finish_ms]
+    final rows = <List<dynamic>>[];
+    for (final r in results) {
+      final abbr = (r.team?.abbreviation ?? r.team?.name ?? '').toString();
+      final tId = teamIndex[abbr] ?? -1;
+      rows.add([
+        r.place ?? 0,
+        r.runner?.name ?? '',
+        tId < 0 ? null : tId,
+        r.finishTime?.inMilliseconds ?? 0,
+      ]);
+    }
+
+    final payload = {
+      'type': 'RACE_SHARE_V2',
+      'race': {
+        'uuid': race.uuid,
+        'name': race.raceName,
+        'race_date': race.raceDate?.toIso8601String(),
+        'location': race.location,
+        'distance': race.distance,
+        'distance_unit': race.distanceUnit,
+        'flow_state': race.flowState,
+      },
+      // Teams encoded by abbreviation; rows reference by index
+      'teams': teamList,
+      // Compact rows array
+      'r': rows,
+    };
+
+    final json = jsonEncode(payload);
+    // gzip + base64 for transport
+    final bytes = gzip.encode(utf8.encode(json));
+    return base64Encode(bytes);
   }
 
   static List<Team> _collectTeams(List<RaceResult> results) {
