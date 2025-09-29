@@ -6,6 +6,9 @@ import '../core/components/dialog_utils.dart';
 import 'package:xceleration/core/services/sync_service.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
 import 'package:xceleration/core/utils/database_helper.dart';
+import 'package:xceleration/core/services/auth_service.dart';
+import '../core/components/page_route_animations.dart';
+import 'role_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   final String currentRole;
@@ -82,13 +85,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               // Development Tools Section (only in debug mode)
               if (kDebugMode) ...[
-                const SizedBox(height: 24),
-                _buildSectionHeader('Development Tools'),
-                _buildDevelopmentTools(context),
+                // const SizedBox(height: 24),
+                // _buildSectionHeader('Development Tools'),
+                // _buildDevelopmentTools(context),
                 const SizedBox(height: 24),
                 _buildSectionHeader('Account Settings'),
                 _buildChangePasswordButton(context),
               ],
+              const SizedBox(height: 24),
+              _buildSectionHeader('Account'),
+              _buildDeleteAccountButton(context),
+              _buildSignOutButton(context),
             ],
           ),
         ],
@@ -354,6 +361,65 @@ class _SettingsScreenState extends State<SettingsScreen> {
           context,
           title: 'Information',
           message: 'Change password feature coming soon!',
+        );
+      },
+    );
+  }
+
+  Widget _buildDeleteAccountButton(BuildContext context) {
+    return _buildRoleItem(
+      context,
+      'Delete Account',
+      'Permanently delete your account',
+      Icons.person_remove_alt_1,
+      isSelected: false,
+      onTap: () async {
+        final confirmed = await DialogUtils.showConfirmationDialog(
+          context,
+          title: 'Delete Account',
+          content:
+              'This will permanently delete your account and associated cloud data. Continue?',
+          confirmText: 'Delete',
+          cancelText: 'Cancel',
+        );
+        if (!confirmed) return;
+        try {
+          await DialogUtils.executeWithLoadingDialog(context,
+              loadingMessage: 'Deleting account...', operation: () async {
+            await AuthService.instance.deleteCurrentUserAccount();
+          });
+          if (!context.mounted) return;
+          // Ensure the local session is cleared after account deletion
+          await AuthService.instance.signOut();
+          DialogUtils.showSuccessDialog(context, message: 'Account deleted');
+          Navigator.of(context).pushAndRemoveUntil(
+            RolePageRouteAnimation(child: const RoleScreen()),
+            (route) => false,
+          );
+        } catch (e) {
+          if (!context.mounted) return;
+          DialogUtils.showErrorDialog(
+            context,
+            message: 'Failed to delete account: $e',
+          );
+        }
+      },
+    );
+  }
+
+  Widget _buildSignOutButton(BuildContext context) {
+    return _buildRoleItem(
+      context,
+      'Sign Out',
+      'Sign out of your account on this device',
+      Icons.logout,
+      isSelected: false,
+      onTap: () async {
+        await AuthService.instance.signOut();
+        if (!context.mounted) return;
+        Navigator.of(context).pushAndRemoveUntil(
+          RolePageRouteAnimation(child: const RoleScreen()),
+          (route) => false,
         );
       },
     );
