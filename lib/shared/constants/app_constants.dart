@@ -65,6 +65,12 @@ class AppConstants {
   static const String dataSaved = 'Data saved successfully';
   static const String raceCreated = 'Race created successfully';
   static const String deviceConnected = 'Device connected successfully';
+
+  // URLs
+  static const String accountDeletionUrl =
+      'https://xceleration.app/delete-account';
+  static const String deleteUserFunctionUrl =
+      'https://rpxgjvafciqxjrcpwgxl.supabase.co/functions/v1/delete-user';
 }
 
 /// Event type constants for the EventBus
