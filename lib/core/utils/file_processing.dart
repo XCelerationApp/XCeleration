@@ -108,6 +108,7 @@ List<Map<String, dynamic>> _processSpreadsheetData(List<List<dynamic>> data) {
   int idxBib = -1;
   int idxFirst = -1;
   int idxLast = -1;
+  int idxFullName = -1; // e.g., "First Last" or "Name"
   int idxYear = -1;
   int idxGender = -1;
 
@@ -123,12 +124,77 @@ List<Map<String, dynamic>> _processSpreadsheetData(List<List<dynamic>> data) {
     }
     idxFirst = lower.indexWhere((h) => h == 'first' || h == 'first name');
     idxLast = lower.indexWhere((h) => h == 'last' || h == 'last name');
+    // Combined name column (support headers like "First Last", "Name", "Full Name", etc.)
+    idxFullName = lower.indexWhere(
+        (h) => (h.contains('first') && h.contains('last')) || h == 'name');
+    if (idxFullName == -1) {
+      idxFullName = lower.indexWhere((h) =>
+          h.contains('full name') ||
+          h.contains('athlete name') ||
+          h.contains('runner name'));
+    }
     idxYear = lower.indexWhere((h) => h == 'year' || h.contains('grade'));
     idxGender =
         lower.indexWhere((h) => h == 'm/f' || h == 'gender' || h == 'sex');
 
-    hasHeader =
-        idxBib != -1 && idxYear != -1 && (idxFirst != -1 || idxLast != -1);
+    // Heuristic: if there are multiple 'first' columns, try to infer which is full name
+    // by sampling the first few data rows and counting presence of spaces.
+    if (idxFullName == -1) {
+      final List<int> firstCandidates = [];
+      for (int i = 0; i < lower.length; i++) {
+        if (lower[i].contains('first')) firstCandidates.add(i);
+      }
+      if (firstCandidates.length > 1) {
+        int bestIdx = -1;
+        int bestSpaceCount = -1;
+        int bestSingleCount = -1;
+        int altIdx = -1;
+        final int sampleStart = 1;
+        final int sampleEnd =
+            data.length < 11 ? data.length : 11; // up to 10 rows
+        for (final idx in firstCandidates) {
+          int spaceCount = 0;
+          int singleCount = 0;
+          for (int r = sampleStart; r < sampleEnd; r++) {
+            final cell =
+                (idx < data[r].length) ? cellToString(data[r][idx]) : '';
+            if (cell.isEmpty) continue;
+            if (cell.contains(' ')) {
+              spaceCount++;
+            } else {
+              singleCount++;
+            }
+          }
+          if (spaceCount > bestSpaceCount) {
+            bestSpaceCount = spaceCount;
+            bestSingleCount = singleCount;
+            bestIdx = idx;
+          } else if (spaceCount == bestSpaceCount &&
+              singleCount > bestSingleCount) {
+            // tie-breaker
+            bestSingleCount = singleCount;
+            bestIdx = idx;
+          }
+        }
+        if (bestIdx != -1 && bestSpaceCount > 0) {
+          idxFullName = bestIdx;
+          // Choose a different candidate as first name if possible
+          for (final idx in firstCandidates) {
+            if (idx != bestIdx) {
+              altIdx = idx;
+              break;
+            }
+          }
+          if (altIdx != -1 && idxFirst == -1) {
+            idxFirst = altIdx;
+          }
+        }
+      }
+    }
+
+    hasHeader = idxBib != -1 &&
+        idxYear != -1 &&
+        (idxFullName != -1 || idxFirst != -1 || idxLast != -1);
   }
 
   int startIdx = hasHeader ? 1 : 0;
@@ -142,10 +208,11 @@ List<Map<String, dynamic>> _processSpreadsheetData(List<List<dynamic>> data) {
       final g = int.tryParse(match.group(0)!) ?? 0;
       if (g >= 9 && g <= 12) return g;
     }
-    if (s.contains('fresh')) return 9;
-    if (s.contains('soph')) return 10; // sophmore/sophomore
-    if (s.contains('junior')) return 11;
-    if (s.contains('senior')) return 12;
+    // Common words and abbreviations
+    if (s == 'fr' || s.contains('fresh') || s.contains('frosh')) return 9;
+    if (s == 'so' || s.contains('soph')) return 10; // sophomore
+    if (s == 'jr' || s.contains('junior')) return 11;
+    if (s == 'sr' || s.contains('senior')) return 12;
     return 0;
   }
 
@@ -174,6 +241,9 @@ List<Map<String, dynamic>> _processSpreadsheetData(List<List<dynamic>> data) {
     String? gender; // 'M' or 'F'
 
     if (hasHeader) {
+      final fullName = (idxFullName >= 0 && idxFullName < rowRaw.length)
+          ? cellToString(rowRaw[idxFullName])
+          : '';
       final first = (idxFirst >= 0 && idxFirst < rowRaw.length)
           ? cellToString(rowRaw[idxFirst])
           : '';
@@ -190,7 +260,16 @@ List<Map<String, dynamic>> _processSpreadsheetData(List<List<dynamic>> data) {
           ? cellToString(rowRaw[idxGender])
           : '';
 
-      name = [first, last].where((p) => p.isNotEmpty).join(' ').trim();
+      // Prefer a combined name if it clearly includes both parts; otherwise, build from separate columns
+      if (fullName.isNotEmpty && fullName.contains(' ')) {
+        name = fullName.trim();
+      } else {
+        name = [first, last].where((p) => p.isNotEmpty).join(' ').trim();
+        if (name.isEmpty && fullName.isNotEmpty) {
+          // Fallback: some sheets mislabel columns; use whatever is there
+          name = fullName.trim();
+        }
+      }
       grade = parseYearToGrade(yearStr);
       bibNumber = normalizeBib(bibStr);
 
