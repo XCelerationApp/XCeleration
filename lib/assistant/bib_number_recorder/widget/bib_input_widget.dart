@@ -37,6 +37,15 @@ class BibInputWidget extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            Text(
+              '${index + 1}.',
+              style: AppTypography.caption.copyWith(
+                color: Colors.grey.shade700,
+                fontWeight: FontWeight.w500,
+                fontSize: 20,
+              ),
+            ),
+            const SizedBox(width: 24),
             SizedBox(
               width: 80,
               child: _buildBibTextField(context),
