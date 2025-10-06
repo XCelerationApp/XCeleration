@@ -779,7 +779,7 @@ class RunnersManagementController with ChangeNotifier {
         DialogUtils.showMessageDialog(
           context,
           title: 'Error',
-          message: 'Error importing runners: ${e}',
+          message: 'Error importing runners: $e',
         );
       }
     }

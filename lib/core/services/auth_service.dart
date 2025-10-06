@@ -42,14 +42,14 @@ class AuthService {
       final resp = await http.post(
         uri,
         headers: {
-          'Authorization': 'Bearer ' + jwt,
+          'Authorization': 'Bearer $jwt',
           'Content-Type': 'application/json',
         },
         body: '{}',
       );
       if (resp.statusCode < 200 || resp.statusCode >= 300) {
         throw Exception(
-            'HTTP ' + resp.statusCode.toString() + ': ' + resp.body);
+            'HTTP ${resp.statusCode}: ${resp.body}');
       }
       Logger.d('delete-user function succeeded');
     } catch (e) {
