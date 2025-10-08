@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'
     show rootBundle, Clipboard, ClipboardData;
@@ -6,6 +7,8 @@ import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/core/utils/time_formatter.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
 import 'package:xceleration/shared/services/race_results_service.dart';
 import '../../../core/utils/enums.dart';
 import '../../race_results/model/team_record.dart';
@@ -81,9 +84,10 @@ class ShareRaceController extends ChangeNotifier {
 
       // Create an advertiser device manager modeled after coach→assistant flows
       final devices = DeviceConnectionService.createDevices(
-        DeviceName.spectator,
+        DeviceName.coach,
         DeviceType.advertiserDevice,
         data: encoded,
+        toSpectator: true,
       );
 
       // Show broadcast sheet with counter/stop/timeout
@@ -349,11 +353,18 @@ class ShareResultsController {
           // Save PDF to bytes
           final bytes = await pdfData.save();
 
-          // Create PDF file for sharing
-          final String pdfFileName = '${raceResultsData.resultsTitle}.pdf';
-          return XFile.fromData(
-            bytes,
-            name: pdfFileName,
+          // Persist PDF to a temporary file for reliable iOS sharing
+          final directory = await getTemporaryDirectory();
+          final safeBaseName = raceResultsData.resultsTitle
+              .replaceAll(RegExp(r'[\\/:*?"<>|]'), '_')
+              .trim();
+          final filePath = p.join(directory.path, '$safeBaseName.pdf');
+          final file = File(filePath);
+          await file.writeAsBytes(bytes, flush: true);
+
+          // Return XFile from path
+          return XFile(
+            filePath,
             mimeType: 'application/pdf',
           );
         },
@@ -362,14 +373,33 @@ class ShareResultsController {
       // Share PDF if creation was successful
       if (xFile != null) {
         if (context.mounted) {
-          await _share(
-              context,
-              ShareParams(
-                files: [xFile],
-                subject: raceResultsData.resultsTitle,
-                fileNameOverrides: ['${raceResultsData.resultsTitle}.pdf'],
-                title: raceResultsData.resultsTitle,
-              ));
+          try {
+            final renderBox = context.findRenderObject() as RenderBox?;
+            final origin = renderBox != null
+                ? (renderBox.localToGlobal(Offset.zero) & renderBox.size)
+                : null;
+            if (origin != null) {
+              await _share(
+                context,
+                ShareParams(
+                  files: [xFile],
+                  subject: raceResultsData.resultsTitle,
+                  sharePositionOrigin: origin,
+                ),
+              );
+            } else {
+              await _share(
+                context,
+                ShareParams(
+                  files: [xFile],
+                  subject: raceResultsData.resultsTitle,
+                ),
+              );
+            }
+          } catch (e) {
+            Logger.d('Error sharing PDF: $e');
+            DialogUtils.showErrorDialog(context, message: 'Failed to share');
+          }
         } else {
           Logger.d('Context not mounted, PDF not shared');
         }
@@ -465,11 +495,11 @@ class FormattedResultsController {
 
     // Individual Results Section
     buffer.writeln('\nIndividual Results');
-    buffer.writeln('Place\tNameTeam\tTime');
+    buffer.writeln('Place\tNameTeam\tTime\tPace/mi');
     for (final runner in raceResultsData.individualResults) {
       buffer.writeln(
           '${runner.place}\t${runner.name}\t${runner.teamAbbreviation}\t'
-          '${runner.formattedFinishTime}');
+          '${runner.formattedFinishTime}\t${runner.formattedPacePerMile}');
     }
 
     return buffer.toString();
@@ -598,12 +628,13 @@ class FormattedResultsController {
 
       // Individual Results Section
       ['Individual Results'],
-      ['Place', 'Name', 'Team', 'Time'],
+      ['Place', 'Name', 'Team', 'Time', 'Pace/mi'],
       ...raceResultsData.individualResults.map((runner) => [
             runner.place,
             runner.name,
             runner.teamAbbreviation,
             runner.formattedFinishTime,
+            runner.formattedPacePerMile,
           ]),
     ];
 
@@ -731,13 +762,20 @@ class FormattedResultsController {
           // Individual Results Section
           pw.Header(level: 1, text: 'Individual Results'),
           pw.TableHelper.fromTextArray(
-            headers: ['Place', 'Name', 'Team', 'Time'],
+            headers: [
+              'Place',
+              'Name',
+              'Team',
+              'Time',
+              'Pace/mi',
+            ],
             data: raceResultsData.individualResults
                 .map((runner) => [
                       runner.place.toString(),
                       runner.name,
                       runner.teamAbbreviation,
                       runner.formattedFinishTime,
+                      runner.formattedPacePerMile,
                     ])
                 .toList(),
           ),

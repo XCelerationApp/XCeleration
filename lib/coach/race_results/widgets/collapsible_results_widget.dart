@@ -113,6 +113,9 @@ class _CollapsibleResultsWidgetState extends State<CollapsibleResultsWidget> {
           SizedBox(
               width: 70,
               child: Text('Time', style: AppTypography.bodySemibold)),
+          SizedBox(
+              width: 70,
+              child: Text('Pace/mi', style: AppTypography.bodySemibold)),
         ],
       ),
     );
@@ -140,24 +143,37 @@ class _CollapsibleResultsWidgetState extends State<CollapsibleResultsWidget> {
   }
 
   Widget _buildIndividualResultRow(ResultsRecord result) {
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(
-          width: 50,
-          child: Text('${result.place}', style: AppTypography.bodyRegular),
-        ),
-        Expanded(
-            child: Text(result.name,
-                style: AppTypography.bodyRegular,
-                overflow: TextOverflow.ellipsis)),
-        Expanded(
-            child: Text(result.teamAbbreviation,
-                style: AppTypography.bodyRegular,
-                overflow: TextOverflow.ellipsis)),
-        SizedBox(
-          width: 70,
-          child: Text(result.formattedFinishTime,
-              style: AppTypography.bodyRegular),
+        Row(
+          children: [
+            SizedBox(
+              width: 50,
+              child: Text('${result.place}', style: AppTypography.bodyRegular),
+            ),
+            Expanded(
+                child: Text(result.name,
+                    style: AppTypography.bodyRegular,
+                    overflow: TextOverflow.ellipsis)),
+            Expanded(
+                child: Text(result.teamAbbreviation,
+                    style: AppTypography.bodyRegular,
+                    overflow: TextOverflow.ellipsis)),
+            SizedBox(
+              width: 70,
+              child: Text(result.formattedFinishTime,
+                  style: AppTypography.bodyRegular),
+            ),
+            SizedBox(
+              width: 70,
+              child: Text(
+                  result.formattedPacePerMile.isEmpty
+                      ? '-'
+                      : result.formattedPacePerMile,
+                  style: AppTypography.bodyRegular),
+            ),
+          ],
         ),
       ],
     );

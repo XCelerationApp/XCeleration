@@ -21,6 +21,7 @@ class HeadToHeadResultsWidget extends StatelessWidget {
     raceResults.sort((a, b) => a.comparePlaceTo(b));
 
     // Convert RaceResult objects to ResultsRecord objects for display
+    // No dedicated race distance context here; pace/splits not critical for H2H
     allResults = RaceResultsService.convertToResultsRecords(raceResults);
   }
 

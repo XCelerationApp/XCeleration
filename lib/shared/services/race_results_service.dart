@@ -47,8 +47,27 @@ class RaceResultsService {
 
   /// Convert RaceResult objects to ResultsRecord objects for UI display
   static List<ResultsRecord> convertToResultsRecords(
-      List<RaceResult> raceResults) {
+      List<RaceResult> raceResults,
+      {double? raceDistance,
+      String? distanceUnit}) {
+    // Convert race distance to miles and compute pace/mi only
+    double miles = 0.0;
+    if (raceDistance != null && raceDistance > 0) {
+      if (distanceUnit != null && distanceUnit.toLowerCase() == 'km') {
+        miles = raceDistance * 0.621371;
+      } else {
+        miles = raceDistance;
+      }
+    }
+
     return raceResults.map((raceResult) {
+      final finish = raceResult.finishTime ?? Duration.zero;
+      Duration? pacePerMile;
+      if (miles > 0 && finish.inMilliseconds > 0) {
+        final paceMs = (finish.inMilliseconds / miles).round();
+        pacePerMile = Duration(milliseconds: paceMs);
+      }
+
       return ResultsRecord(
         place: raceResult.place ?? 0,
         name: raceResult.runner?.name ?? 'Unknown',
@@ -58,7 +77,8 @@ class RaceResultsService {
         bib: raceResult.runner?.bibNumber ?? '',
         raceId: raceResult.raceId ?? 0,
         runnerId: raceResult.runner?.runnerId ?? 0,
-        finishTime: raceResult.finishTime ?? Duration.zero,
+        finishTime: finish,
+        pacePerMile: pacePerMile,
       );
     }).toList();
   }
@@ -130,11 +150,15 @@ class RaceResultsService {
     Logger.d('RaceResultsService: Starting calculateCompleteRaceResults');
     // Get race name from database
     String resultsTitle = 'Race Results';
+    double? raceDistance;
+    String? distanceUnit;
     try {
       final race = await masterRace.race;
       final raceName = race.raceName!;
       resultsTitle = '${raceName.isNotEmpty ? raceName : 'Race'} Results';
       Logger.d('RaceResultsService: Got race name: $resultsTitle');
+      raceDistance = race.distance;
+      distanceUnit = race.distanceUnit;
     } catch (e) {
       Logger.d('RaceResultsService: Error getting race name: $e');
       resultsTitle = 'Race Results';
@@ -156,7 +180,8 @@ class RaceResultsService {
 
     // Calculate individual results
     final raceResults = calculateIndividualResults(results);
-    final individualResults = convertToResultsRecords(raceResults);
+    final individualResults = convertToResultsRecords(raceResults,
+        raceDistance: raceDistance, distanceUnit: distanceUnit);
 
     // Calculate team results
     final teamResults = calculateTeamResults(raceResults);

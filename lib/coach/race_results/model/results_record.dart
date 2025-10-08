@@ -11,6 +11,9 @@ class ResultsRecord {
   final int runnerId;
   late Duration _finishTime;
   String _formattedFinishTime = '';
+  // Optional pace per mile
+  Duration? _pacePerMile;
+  String _formattedPacePerMile = '';
 
   ResultsRecord({
     required this.place,
@@ -22,9 +25,13 @@ class ResultsRecord {
     required this.raceId,
     required this.runnerId,
     required finishTime,
+    Duration? pacePerMile,
   }) {
     _finishTime = finishTime;
     _formattedFinishTime = TimeFormatter.formatDuration(finishTime);
+    _pacePerMile = pacePerMile;
+    _formattedPacePerMile =
+        pacePerMile == null ? '' : TimeFormatter.formatDuration(pacePerMile);
   }
 
   // Copy constructor to create independent copies
@@ -39,14 +46,24 @@ class ResultsRecord {
         runnerId = other.runnerId {
     _finishTime = other._finishTime;
     _formattedFinishTime = other._formattedFinishTime;
+    _pacePerMile = other._pacePerMile;
+    _formattedPacePerMile = other._formattedPacePerMile;
   }
 
   String get formattedFinishTime => _formattedFinishTime;
   Duration get finishTime => _finishTime;
+  Duration? get pacePerMile => _pacePerMile;
+  String get formattedPacePerMile => _formattedPacePerMile;
 
   set finishTime(Duration value) {
     _formattedFinishTime = TimeFormatter.formatDuration(value);
     _finishTime = value;
+  }
+
+  set pacePerMile(Duration? value) {
+    _pacePerMile = value;
+    _formattedPacePerMile =
+        value == null ? '' : TimeFormatter.formatDuration(value);
   }
 
   Map<String, dynamic> toMap() {
