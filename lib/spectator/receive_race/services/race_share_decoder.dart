@@ -26,9 +26,10 @@ class RaceShareDecoder {
     }
 
     final raceMap = map['race'] as Map<String, dynamic>;
-    final title = '${(raceMap['name']?.toString() ?? 'Race').isNotEmpty
-            ? raceMap['name'].toString()
-            : 'Race'} Results';
+    final title =
+        '${(raceMap['name']?.toString() ?? 'Race').isNotEmpty ? raceMap['name'].toString() : 'Race'} Results';
+    final double? distance = (raceMap['distance'] as num?)?.toDouble();
+    final String? distanceUnit = raceMap['distance_unit']?.toString();
 
     // Build RaceResult list from payload
     final List<RaceResult> results = [];
@@ -57,7 +58,9 @@ class RaceShareDecoder {
 
     // Compute team/individual aggregates using existing service helpers
     final individual = RaceResultsService.convertToResultsRecords(
-        RaceResultsService.calculateIndividualResults(results));
+        RaceResultsService.calculateIndividualResults(results),
+        raceDistance: distance,
+        distanceUnit: distanceUnit);
     final teamResults = RaceResultsService.calculateTeamResults(results);
     RaceResultsService.sortAndPlaceTeams(teamResults);
     final h2h = teamResults.length >= 2 && teamResults.length <= 4
