@@ -220,6 +220,27 @@ class MasterRace with ChangeNotifier {
     notifyListeners();
   }
 
+  /// Add multiple race participants in one operation to avoid notifying
+  /// listeners repeatedly and causing UI flicker during bulk imports.
+  Future<void> addRaceParticipantsBulk(
+      List<RaceParticipant> raceParticipants) async {
+    if (raceParticipants.any((rp) => rp.raceId != raceId)) {
+      throw Exception('One or more race participants have mismatched race IDs');
+    }
+
+    for (final rp in raceParticipants) {
+      await db.addRaceParticipant(rp);
+    }
+
+    _raceParticipants = null;
+    _raceRunners = null;
+    _teamRaceRunnersMap = null;
+    _raceParticipantToRaceRunnerMap = null;
+    _filteredSearchResults = null;
+
+    notifyListeners();
+  }
+
   Future<void> removeRaceParticipant(RaceParticipant raceParticipant) async {
     if (raceParticipant.raceId != raceId) {
       throw Exception('Race participant race ID does not match race ID');

@@ -420,13 +420,16 @@ class RunnersManagementController with ChangeNotifier {
         masterRace: masterRace,
         team: team,
         onComplete: (selectedRunnerIds) async {
-          // Add selected existing runners
-          for (final runnerId in selectedRunnerIds) {
-            await masterRace.addRaceParticipant(RaceParticipant(
-              raceId: masterRace.raceId,
-              runnerId: runnerId,
-              teamId: team.teamId!,
-            ));
+          // Add selected existing runners in bulk to avoid repeated rebuilds
+          final participants = selectedRunnerIds
+              .map((runnerId) => RaceParticipant(
+                    raceId: masterRace.raceId,
+                    runnerId: runnerId,
+                    teamId: team.teamId!,
+                  ))
+              .toList();
+          if (participants.isNotEmpty) {
+            await masterRace.addRaceParticipantsBulk(participants);
           }
           onContentChanged?.call();
           await loadData();
@@ -497,7 +500,7 @@ class RunnersManagementController with ChangeNotifier {
       ) as Map<Team, List<Runner>>?;
 
       if (selectedTeams != null && selectedTeams.isNotEmpty) {
-        // Add selected teams and their runners to the race
+        // Add selected teams and their runners to the race with minimal UI rebuilds
         for (final entry in selectedTeams.entries) {
           final team = entry.key;
           final runners = entry.value;
@@ -508,15 +511,24 @@ class RunnersManagementController with ChangeNotifier {
             colorOverride: team.color?.toARGB32(),
           ));
 
+          // Persist global roster mappings first
           for (final runner in runners) {
             if (runner.runnerId == null) continue;
-            // Persist roster mapping so team->runners queries work
             await db.addRunnerToTeam(team.teamId!, runner.runnerId!);
-            await masterRace.addRaceParticipant(RaceParticipant(
-              raceId: masterRace.raceId,
-              runnerId: runner.runnerId!,
-              teamId: team.teamId!,
-            ));
+          }
+
+          // Then add all race participants in a single bulk update
+          final participants = runners
+              .where((r) => r.runnerId != null)
+              .map((r) => RaceParticipant(
+                    raceId: masterRace.raceId,
+                    runnerId: r.runnerId!,
+                    teamId: team.teamId!,
+                  ))
+              .toList();
+
+          if (participants.isNotEmpty) {
+            await masterRace.addRaceParticipantsBulk(participants);
           }
         }
 
