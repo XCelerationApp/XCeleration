@@ -27,14 +27,17 @@ import '../widgets/spectator_broadcast_sheet.dart';
 class ShareRaceController extends ChangeNotifier {
   final RaceResultsData raceResultsData;
   final MasterRace masterRace;
+  final BuildContext rootContext;
   late ShareResultsController _shareResultsController;
 
   ShareRaceController({
     required this.raceResultsData,
     required this.masterRace,
+    required this.rootContext,
   }) {
     _shareResultsController = ShareResultsController(
       raceResultsData: raceResultsData,
+      rootContext: rootContext,
     );
   }
 
@@ -51,6 +54,7 @@ class ShareRaceController extends ChangeNotifier {
         controller: ShareRaceController(
           raceResultsData: raceResultsData,
           masterRace: masterRace,
+          rootContext: context,
         ),
       ),
     );
@@ -110,9 +114,11 @@ class ShareResultsController {
   late FormattedResultsController _formattedResultsController;
   final GoogleSheetsService _googleSheetsService = GoogleSheetsService.instance;
   final RaceResultsData raceResultsData;
+  final BuildContext rootContext;
 
   ShareResultsController({
     required this.raceResultsData,
+    required this.rootContext,
   }) {
     _formattedResultsController =
         FormattedResultsController(raceResultsData: raceResultsData);
@@ -372,36 +378,43 @@ class ShareResultsController {
 
       // Share PDF if creation was successful
       if (xFile != null) {
-        if (context.mounted) {
-          try {
-            final renderBox = context.findRenderObject() as RenderBox?;
-            final origin = renderBox != null
-                ? (renderBox.localToGlobal(Offset.zero) & renderBox.size)
-                : null;
-            if (origin != null) {
-              await _share(
-                context,
-                ShareParams(
-                  files: [xFile],
-                  subject: raceResultsData.resultsTitle,
-                  sharePositionOrigin: origin,
-                ),
-              );
-            } else {
-              await _share(
-                context,
-                ShareParams(
-                  files: [xFile],
-                  subject: raceResultsData.resultsTitle,
-                ),
-              );
+        // Determine an active context: prefer the passed context, then rootContext, then navigator context.
+        BuildContext activeContext = context;
+        if (!activeContext.mounted) {
+          activeContext = rootContext.mounted
+              ? rootContext
+              : Navigator.of(rootContext, rootNavigator: true).context;
+        }
+
+        try {
+          Rect? origin;
+          final renderBox = activeContext.findRenderObject() as RenderBox?;
+          if (renderBox != null) {
+            origin = renderBox.localToGlobal(Offset.zero) & renderBox.size;
+          } else {
+            final overlay = Overlay.of(activeContext, rootOverlay: true)
+                .context
+                .findRenderObject() as RenderBox?;
+            if (overlay != null) {
+              final center = overlay.size.center(Offset.zero);
+              origin = Rect.fromCenter(center: center, width: 1, height: 1);
             }
-          } catch (e) {
-            Logger.d('Error sharing PDF: $e');
-            DialogUtils.showErrorDialog(context, message: 'Failed to share');
           }
-        } else {
-          Logger.d('Context not mounted, PDF not shared');
+
+          await _share(
+            activeContext,
+            ShareParams(
+              files: [xFile],
+              subject: raceResultsData.resultsTitle,
+              sharePositionOrigin: origin,
+            ),
+          );
+        } catch (e) {
+          Logger.d('Error sharing PDF: $e');
+          if (activeContext.mounted) {
+            DialogUtils.showErrorDialog(activeContext,
+                message: 'Failed to share');
+          }
         }
       }
     } catch (e) {
