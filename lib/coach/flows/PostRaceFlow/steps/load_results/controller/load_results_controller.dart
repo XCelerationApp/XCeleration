@@ -154,6 +154,25 @@ class LoadResultsController with ChangeNotifier {
               }),
             );
 
+      // Check for duplicate bibs and convert duplicates to integers
+      if (raceRunners != null && raceRunners!.isNotEmpty) {
+        final Set<String> seenBibs = <String>{};
+        for (int i = 0; i < raceRunners!.length; i++) {
+          final entry = raceRunners![i];
+          if (entry is RaceRunner) {
+            final bibNumber = entry.runner.bibNumber!;
+            if (seenBibs.contains(bibNumber)) {
+              // This is a duplicate bib, convert to integer
+              final bibInt = int.tryParse(bibNumber) ?? 0;
+              raceRunners![i] = bibInt;
+              Logger.d('LoadResultsController: Converted duplicate bib $bibNumber to integer conflict');
+            } else {
+              seenBibs.add(bibNumber);
+            }
+          }
+        }
+      }
+
       Logger.d(
           'LoadResultsController: Processed raceRunners: ${raceRunners?.length ?? 0} entries');
 
@@ -413,20 +432,18 @@ class LoadResultsController with ChangeNotifier {
     }
 
     // Update runner records if a result was returned
-    if (updatedRaceRunners != null) {
-      raceRunners = updatedRaceRunners;
-      await _checkForConflicts();
+    raceRunners = updatedRaceRunners;
+    await _checkForConflicts();
 
-      // If there are still timing conflicts, open the timing conflicts sheet
-      if (hasTimingConflicts &&
-          !hasBibConflicts &&
-          timingChunks != null &&
-          context.mounted) {
-        if (!context.mounted) return;
-        await showTimingConflictsSheet(context);
-      }
+    // If there are still timing conflicts, open the timing conflicts sheet
+    if (hasTimingConflicts &&
+        !hasBibConflicts &&
+        timingChunks != null &&
+        context.mounted) {
+      if (!context.mounted) return;
+      await showTimingConflictsSheet(context);
     }
-  }
+    }
 
   /// Shows sheet for resolving timing conflicts
   Future<void> showTimingConflictsSheet(BuildContext context) async {
