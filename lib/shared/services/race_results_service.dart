@@ -100,16 +100,6 @@ class RaceResultsService {
         final teamA = TeamRecord.from(scoringTeams[i]);
         final teamB = TeamRecord.from(scoringTeams[j]);
 
-        // Combine and sort runners for this specific matchup
-        // These are already deep copies from TeamRecord.from
-        final filteredRunners = [...teamA.topSeven, ...teamB.topSeven];
-        _sortRunners(filteredRunners);
-        updateResultsPlaces(filteredRunners);
-
-        // Update stats based on the new places
-        teamA.updateStats();
-        teamB.updateStats();
-
         final matchup = [teamA, teamB];
         sortAndPlaceTeams(matchup);
         headToHeadResults.add(matchup);
@@ -133,6 +123,22 @@ class RaceResultsService {
 
   /// Sort teams by score and assign places
   static void sortAndPlaceTeams(List<TeamRecord> teams) {
+    // Recompute places across all teams' top seven (like head-to-head)
+    final List<RaceResult> filteredRunners = [
+      for (final team in teams) ...team.topSeven,
+    ];
+
+    _sortRunners(filteredRunners);
+    updateResultsPlaces(filteredRunners);
+
+    // Update stats per team and handle incomplete teams
+    for (final team in teams) {
+      team.updateStats();
+      if (team.topSeven.length < 5) {
+        team.score = 0;
+      }
+    }
+
     teams.sort((a, b) {
       if (a.score == 0 && b.score == 0) return 0;
       if (a.score == 0) return 1;

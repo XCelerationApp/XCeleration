@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'
     show rootBundle, Clipboard, ClipboardData;
 import 'package:xceleration/core/utils/logger.dart';
-import 'package:xceleration/core/utils/time_formatter.dart';
+// import 'package:xceleration/core/utils/time_formatter.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
@@ -496,14 +496,41 @@ class FormattedResultsController {
   static String _getFormattedText(RaceResultsData raceResultsData) {
     final StringBuffer buffer = StringBuffer();
 
-    // Team Results Section
-    buffer.writeln('Team Results');
-    buffer.writeln('PlaceTeam\tScore\tSplit Time\tAverage Time');
-    for (final team in raceResultsData.overallTeamResults) {
-      buffer.writeln(
-          '${team.place}\t${team.team.abbreviation ?? 'N/A'}\t${team.score > 0 ? team.score : 'N/A'}\t'
-          '${(team.split != Duration.zero && team.split.inMilliseconds > 0) ? TimeFormatter.formatDuration(team.split) : 'N/A'}\t'
-          '${(team.avgTime != Duration.zero && team.avgTime.inMilliseconds > 0) ? TimeFormatter.formatDuration(team.avgTime) : 'N/A'}');
+    // // Team Results Section
+    // buffer.writeln('Team Results');
+    // buffer.writeln('PlaceTeam\tScore\tSplit Time\tAverage Time');
+    // for (final team in raceResultsData.overallTeamResults) {
+    //   buffer.writeln(
+    //       '${team.place}\t${team.team.abbreviation ?? 'N/A'}\t${team.score > 0 ? team.score : 'N/A'}\t'
+    //       '${(team.split != Duration.zero && team.split.inMilliseconds > 0) ? TimeFormatter.formatDuration(team.split) : 'N/A'}\t'
+    //       '${(team.avgTime != Duration.zero && team.avgTime.inMilliseconds > 0) ? TimeFormatter.formatDuration(team.avgTime) : 'N/A'}');
+    // }
+
+    // Head-to-Head Results Sections
+    if (raceResultsData.headToHeadTeamResults.isNotEmpty) {
+      buffer.writeln('\nHead-to-Head Team Results');
+      for (final matchup in raceResultsData.headToHeadTeamResults) {
+        buffer.writeln('\n${matchup[0].team.name ?? 'Team 1'} vs ${matchup[1].team.name ?? 'Team 2'}');
+        buffer.writeln('Place\tName\tTeam\tTime\tName\tTeam\tTime');
+        
+        final maxRunners = matchup[0].topSeven.length > matchup[1].topSeven.length 
+            ? matchup[0].topSeven.length 
+            : matchup[1].topSeven.length;
+            
+        for (int i = 0; i < maxRunners; i++) {
+          final team1Runner = i < matchup[0].topSeven.length ? matchup[0].topSeven[i] : null;
+          final team2Runner = i < matchup[1].topSeven.length ? matchup[1].topSeven[i] : null;
+          
+          buffer.writeln('${i + 1}\t'
+              '${team1Runner?.runner?.name ?? ''}\t'
+              '${team1Runner?.team?.abbreviation ?? ''}\t'
+              '${team1Runner?.formattedFinishTime ?? ''}\t'
+              '${team2Runner?.runner?.name ?? ''}\t'
+              '${team2Runner?.team?.abbreviation ?? ''}\t'
+              '${team2Runner?.formattedFinishTime ?? ''}');
+        }
+        buffer.writeln('Score:\t${matchup[0].score > 0 ? matchup[0].score : 'N/A'}\t\t\t${matchup[1].score > 0 ? matchup[1].score : 'N/A'}');
+      }
     }
 
     // Individual Results Section
@@ -548,30 +575,30 @@ class FormattedResultsController {
   // Data Formatting Methods - Made static for compute() function
   static List<List<dynamic>> _getSheetsData(RaceResultsData raceResultsData) {
     final List<List<dynamic>> sheetsData = [
-      // Team Results Section
-      ['Team Results'],
-      ['Place', 'Team', 'Score', 'Scorers', 'Split Time', 'Average Time'],
-      ...raceResultsData.overallTeamResults.map((team) => [
-            team.place,
-            team.team.abbreviation ?? 'N/A',
-            team.score != 0 ? team.score : 'N/A',
-            team.scorers.isNotEmpty
-                ? [
-                    ...team.scorers.map((scorer) => scorer.place.toString()),
-                    if (team.topSeven.length > 5)
-                      '(${team.topSeven.sublist(5, team.topSeven.length).map((runner) => runner.place.toString()).join(', ')})'
-                  ].join(', ')
-                : 'N/A',
-            (team.split != Duration.zero && team.split.inMilliseconds > 0)
-                ? TimeFormatter.formatDuration(team.split)
-                : 'N/A',
-            (team.avgTime != Duration.zero && team.avgTime.inMilliseconds > 0)
-                ? TimeFormatter.formatDuration(team.avgTime)
-                : 'N/A',
-          ]),
+      // // Team Results Section
+      // ['Team Results'],
+      // ['Place', 'Team', 'Score', 'Scorers', 'Split Time', 'Average Time'],
+      // ...raceResultsData.overallTeamResults.map((team) => [
+      //       team.place,
+      //       team.team.abbreviation ?? 'N/A',
+      //       team.score != 0 ? team.score : 'N/A',
+      //       team.scorers.isNotEmpty
+      //           ? [
+      //               ...team.scorers.map((scorer) => scorer.place.toString()),
+      //               if (team.topSeven.length > 5)
+      //                 '(${team.topSeven.sublist(5, team.topSeven.length).map((runner) => runner.place.toString()).join(', ')})'
+      //             ].join(', ')
+      //           : 'N/A',
+      //       (team.split != Duration.zero && team.split.inMilliseconds > 0)
+      //           ? TimeFormatter.formatDuration(team.split)
+      //           : 'N/A',
+      //       (team.avgTime != Duration.zero && team.avgTime.inMilliseconds > 0)
+      //           ? TimeFormatter.formatDuration(team.avgTime)
+      //           : 'N/A',
+      //     ]),
 
-      // Spacing
-      [],
+      // // Spacing
+      // [],
 
       // Head-to-Head Team Results Sections
       if (raceResultsData.headToHeadTeamResults.isNotEmpty) ...[
@@ -706,43 +733,43 @@ class FormattedResultsController {
             text: raceResultsData.resultsTitle,
           ),
 
-          // Team Results Section
-          pw.Header(level: 1, text: 'Team Results'),
-          pw.TableHelper.fromTextArray(
-            headers: [
-              'Place',
-              'Team',
-              'Score',
-              'Scorers',
-              'Split Time',
-              'Average Time'
-            ],
-            data: raceResultsData.overallTeamResults
-                .map((team) => [
-                      team.place.toString(),
-                      team.team.abbreviation ?? 'N/A',
-                      team.score > 0 ? team.score.toString() : 'N/A',
-                      team.scorers.isNotEmpty
-                          ? [
-                              ...team.scorers
-                                  .map((scorer) => scorer.place.toString()),
-                              if (team.topSeven.length > 5)
-                                '(${team.topSeven.sublist(5, team.topSeven.length).map((runner) => runner.place.toString()).join(', ')})'
-                            ].join(', ')
-                          : 'N/A',
-                      (team.split != Duration.zero &&
-                              team.split.inMilliseconds > 0)
-                          ? TimeFormatter.formatDuration(team.split)
-                          : 'N/A',
-                      (team.avgTime != Duration.zero &&
-                              team.avgTime.inMilliseconds > 0)
-                          ? TimeFormatter.formatDuration(team.avgTime)
-                          : 'N/A',
-                    ])
-                .toList(),
-          ),
+          // // Team Results Section
+          // pw.Header(level: 1, text: 'Team Results'),
+          // pw.TableHelper.fromTextArray(
+          //   headers: [
+          //     'Place',
+          //     'Team',
+          //     'Score',
+          //     'Scorers',
+          //     'Split Time',
+          //     'Average Time'
+          //   ],
+          //   data: raceResultsData.overallTeamResults
+          //       .map((team) => [
+          //             team.place.toString(),
+          //             team.team.abbreviation ?? 'N/A',
+          //             team.score > 0 ? team.score.toString() : 'N/A',
+          //             team.scorers.isNotEmpty
+          //                 ? [
+          //                     ...team.scorers
+          //                         .map((scorer) => scorer.place.toString()),
+          //                     if (team.topSeven.length > 5)
+          //                       '(${team.topSeven.sublist(5, team.topSeven.length).map((runner) => runner.place.toString()).join(', ')})'
+          //                   ].join(', ')
+          //                 : 'N/A',
+          //             (team.split != Duration.zero &&
+          //                     team.split.inMilliseconds > 0)
+          //                 ? TimeFormatter.formatDuration(team.split)
+          //                 : 'N/A',
+          //             (team.avgTime != Duration.zero &&
+          //                     team.avgTime.inMilliseconds > 0)
+          //                 ? TimeFormatter.formatDuration(team.avgTime)
+          //                 : 'N/A',
+          //           ])
+          //       .toList(),
+          // ),
 
-          pw.SizedBox(height: 20),
+          // pw.SizedBox(height: 20),
 
           // Head-to-Head Team Results Sections
           if (raceResultsData.headToHeadTeamResults.isNotEmpty) ...[
