@@ -63,17 +63,20 @@ class DevicesManager {
   final DeviceName _currentDeviceName;
   final DeviceType _currentDeviceType;
   final String? _data;
+  final bool _toSpectator;
 
   ConnectedDevice? _coach;
   ConnectedDevice? _bibRecorder;
   ConnectedDevice? _raceTimer;
+  ConnectedDevice? _spectator;
 
   /// Creates a device manager for the current device name and type
   ///
   /// If the device is an advertiser, data must be provided
   DevicesManager(this._currentDeviceName, this._currentDeviceType,
-      {String? data})
-      : _data = data {
+      {String? data, bool toSpectator = false})
+      : _data = data,
+        _toSpectator = toSpectator {
     _initializeDevices();
   }
 
@@ -84,9 +87,12 @@ class DevicesManager {
             'Data to transfer must be provided for advertiser devices');
       }
 
-      if (_currentDeviceName == DeviceName.coach) {
+      if (_currentDeviceName == DeviceName.coach && !_toSpectator) {
         _coach = ConnectedDevice(DeviceName.coach);
         _bibRecorder = ConnectedDevice(DeviceName.bibRecorder, data: _data);
+      } else if (_currentDeviceName == DeviceName.coach && _toSpectator) {
+        _coach = ConnectedDevice(DeviceName.coach);
+        _spectator = ConnectedDevice(DeviceName.spectator, data: _data);
       } else if (_currentDeviceName == DeviceName.bibRecorder) {
         _bibRecorder = ConnectedDevice(DeviceName.bibRecorder);
         _coach = ConnectedDevice(DeviceName.coach, data: _data);
@@ -132,11 +138,18 @@ class DevicesManager {
   /// Get the race timer device if available
   ConnectedDevice? get raceTimer => _raceTimer;
 
+  /// Get the spectator device if available
+  ConnectedDevice? get spectator => _spectator;
+
+  /// Whether coach is targeting spectator broadcast mode
+  bool get toSpectator => _toSpectator;
+
   /// Get all connected devices (non-null only)
   List<ConnectedDevice> get devices => [
         if (_coach != null) _coach!,
         if (_bibRecorder != null) _bibRecorder!,
         if (_raceTimer != null) _raceTimer!,
+        if (_spectator != null) _spectator!,
       ];
 
   List<ConnectedDevice> get otherDevices =>
@@ -160,7 +173,8 @@ class DevicesManager {
       otherDevices.every((device) => device.isFinished);
 
   DevicesManager copy() {
-    return DevicesManager(_currentDeviceName, _currentDeviceType, data: _data);
+    return DevicesManager(_currentDeviceName, _currentDeviceType,
+        data: _data, toSpectator: _toSpectator);
   }
 }
 
@@ -854,7 +868,8 @@ class DeviceConnectionService implements DeviceConnectionServiceInterface {
   /// Renamed to avoid conflict with the interface method
   static DevicesManager createDevices(
       DeviceName deviceName, DeviceType deviceType,
-      {String? data}) {
-    return DevicesManager(deviceName, deviceType, data: data);
+      {String? data, bool toSpectator = false}) {
+    return DevicesManager(deviceName, deviceType,
+        data: data, toSpectator: toSpectator);
   }
 }
