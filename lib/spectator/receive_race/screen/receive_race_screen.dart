@@ -7,7 +7,8 @@ import 'package:xceleration/spectator/receive_race/services/race_share_decoder.d
 import 'receive_race_preview_screen.dart';
 
 class ReceiveRaceScreen extends StatefulWidget {
-  const ReceiveRaceScreen({super.key});
+  final bool fromSpectator;
+  const ReceiveRaceScreen({super.key, required this.fromSpectator});
 
   @override
   State<ReceiveRaceScreen> createState() => _ReceiveRaceScreenState();
@@ -22,23 +23,27 @@ class _ReceiveRaceScreenState extends State<ReceiveRaceScreen> {
     devices = DeviceConnectionService.createDevices(
       DeviceName.spectator,
       DeviceType.browserDevice,
+      toSpectator: widget.fromSpectator,
     );
   }
 
   Future<void> _onComplete() async {
-    // On browser, data will be placed on the coach ConnectedDevice in DevicesManager
-    final data = devices.coach?.data;
+    // On browser, data will be placed on the targeted ConnectedDevice
+    final data = devices.coach?.data ?? devices.spectator?.data;
     if (data == null || data.isEmpty) {
       if (!mounted) return;
       DialogUtils.showErrorDialog(context, message: 'No data received');
       return;
     }
     try {
-      final decoded = RaceShareDecoder.decodeToResultsData(data);
+      final decoded = RaceShareDecoder.decodeWithRaw(data);
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (_) => ReceiveRacePreviewScreen(data: decoded.results),
+          builder: (_) => ReceiveRacePreviewScreen(
+            data: decoded.results,
+            encodedPayload: decoded.rawEncoded,
+          ),
         ),
       );
     } catch (e) {
@@ -58,14 +63,16 @@ class _ReceiveRaceScreenState extends State<ReceiveRaceScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const SizedBox(height: 8),
-            const Text(
-              'Searching for nearby coaches...\nThis will automatically connect and receive a race.',
+            Text(
+              widget.fromSpectator
+                  ? 'Searching for nearby spectators...\nThis will automatically connect and receive a race.'
+                  : 'Searching for nearby coaches...\nThis will automatically connect and receive a race.',
             ),
             const SizedBox(height: 16),
             WirelessConnectionWidget(
               devices: devices,
               callback: _onComplete,
-            )
+            ),
           ],
         ),
       ),
