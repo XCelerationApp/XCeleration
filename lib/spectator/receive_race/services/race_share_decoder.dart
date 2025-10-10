@@ -14,6 +14,13 @@ class RaceShareDecodedData {
 }
 
 class RaceShareDecoder {
+  /// Decode payload and return both results and keep raw encoded for re-broadcast
+  static ({String rawEncoded, RaceResultsData results}) decodeWithRaw(
+      String encoded) {
+    final decoded = decodeToResultsData(encoded);
+    return (rawEncoded: encoded, results: decoded.results);
+  }
+
   static RaceShareDecodedData decodeToResultsData(String jsonStr) {
     // Decode base64+gzip (V2 only)
     final Uint8List b = base64Decode(jsonStr);

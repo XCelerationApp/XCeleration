@@ -96,9 +96,11 @@ class DevicesManager {
       } else if (_currentDeviceName == DeviceName.bibRecorder) {
         _bibRecorder = ConnectedDevice(DeviceName.bibRecorder);
         _coach = ConnectedDevice(DeviceName.coach, data: _data);
-      } else if (_currentDeviceName == DeviceName.spectator) {
+      } else if (_currentDeviceName == DeviceName.spectator && !_toSpectator) {
         // Spectator does not advertise in our current flows; default to coach target
         _coach = ConnectedDevice(DeviceName.coach, data: _data);
+      } else if (_currentDeviceName == DeviceName.spectator && _toSpectator) {
+        _spectator = ConnectedDevice(DeviceName.spectator, data: _data);
       } else {
         _raceTimer = ConnectedDevice(DeviceName.raceTimer);
         _coach = ConnectedDevice(DeviceName.coach, data: _data);
@@ -109,8 +111,12 @@ class DevicesManager {
         _bibRecorder = ConnectedDevice(DeviceName.bibRecorder);
         _raceTimer = ConnectedDevice(DeviceName.raceTimer);
       } else if (_currentDeviceName == DeviceName.spectator) {
-        // Spectator only cares about finding a Coach to receive from
-        _coach = ConnectedDevice(DeviceName.coach);
+        // Spectator receiving: choose either Coach or Spectator based on flag
+        if (_toSpectator) {
+          _spectator = ConnectedDevice(DeviceName.spectator);
+        } else {
+          _coach = ConnectedDevice(DeviceName.coach);
+        }
       } else {
         _bibRecorder = ConnectedDevice(DeviceName.bibRecorder);
         _coach = ConnectedDevice(DeviceName.coach);
@@ -152,8 +158,22 @@ class DevicesManager {
         if (_spectator != null) _spectator!,
       ];
 
-  List<ConnectedDevice> get otherDevices =>
-      devices.where((device) => device.name != _currentDeviceName).toList();
+  List<ConnectedDevice> get otherDevices {
+    // Spectator flows can target another spectator. In those cases, include
+    // same-role devices instead of filtering them out.
+    final isSpectator = _currentDeviceName == DeviceName.spectator;
+    final isBrowser = _currentDeviceType == DeviceType.browserDevice;
+    final isAdvertiserToSpectator =
+        _currentDeviceType == DeviceType.advertiserDevice && _toSpectator;
+
+    if (isSpectator && (isBrowser || isAdvertiserToSpectator)) {
+      return devices;
+    }
+
+    return devices
+        .where((device) => device.name != _currentDeviceName)
+        .toList();
+  }
 
   /// Check if a specific device exists
   bool hasDevice(DeviceName name) =>

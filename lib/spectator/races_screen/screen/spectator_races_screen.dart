@@ -73,12 +73,48 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
           FloatingActionButton.extended(
             heroTag: 'receive_race',
             onPressed: () async {
-              await sheet(
+              // Ask user who they are receiving from, then show the appropriate loading sheet
+              final bool? fromSpectator = await showModalBottomSheet<bool>(
                 context: context,
-                title: 'Receive Race',
-                body: const ReceiveRaceScreen(),
-                takeUpScreen: false,
+                shape: const RoundedRectangleBorder(
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(16))),
+                builder: (ctx) {
+                  return SafeArea(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+                          child: Text('Who are you receiving from?',
+                              style: TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.w600)),
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.person),
+                          title: const Text('Coach'),
+                          onTap: () => Navigator.of(ctx).pop(false),
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.visibility),
+                          title: const Text('Spectator'),
+                          onTap: () => Navigator.of(ctx).pop(true),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                    ),
+                  );
+                },
               );
+
+              if (fromSpectator == null) return;
+
+              await sheet(
+                  context: context,
+                  title: 'Receive Race',
+                  body: ReceiveRaceScreen(fromSpectator: fromSpectator),
+                  takeUpScreen: false);
             },
             icon: const Icon(Icons.wifi),
             label: const Text('Receive Race'),
