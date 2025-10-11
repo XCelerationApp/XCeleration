@@ -62,8 +62,8 @@ class BibInputWidget extends StatelessWidget {
 
   Widget _buildBibTextField(BuildContext context) {
     return TextField(
-      readOnly: !controller.isRecording,
-      canRequestFocus: controller.isRecording,
+      readOnly: controller.raceStopped,
+      canRequestFocus: !controller.raceStopped,
       key: ValueKey('bibTextField_$index'),
       controller: controller.controllers[index],
       focusNode: controller.focusNodes[index],
@@ -74,11 +74,6 @@ class BibInputWidget extends StatelessWidget {
       ),
       onChanged: (value) {
         controller.handleBibNumber(value, index: index);
-      },
-      onSubmitted: (value) {
-        if (controller.canAddBib) {
-          controller.handleBibNumber('');
-        }
       },
       decoration: InputDecoration(
         // labelText: 'Bib #',

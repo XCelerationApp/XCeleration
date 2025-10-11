@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import '../../../core/services/tutorial_manager.dart';
+import '../../../core/utils/enums.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../shared/role_bar/models/role_enums.dart';
 import '../../../shared/role_bar/role_bar.dart';
 import '../controller/bib_number_controller.dart';
 import '../widget/bib_list_widget.dart';
-import '../widget/race_info_header_widget.dart';
 import '../widget/race_controls_widget.dart';
 import '../widget/keyboard_accessory_bar.dart';
+import '../../shared/widgets/race_header_widget.dart';
+import '../../../core/components/race_components.dart' as core;
 
 class BibNumberScreen extends StatefulWidget {
   const BibNumberScreen({super.key});
@@ -57,7 +60,17 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                           tutorialManager: _controller.tutorialManager,
                         ),
                         const SizedBox(height: 16.0),
-                        RaceInfoHeaderWidget(controller: _controller),
+                        RaceHeaderWidget(
+                          currentRace: _controller.currentRace,
+                          role: DeviceName.bibRecorder,
+                          onLoadRace: () =>
+                              _controller.showLoadRaceSheet(context),
+                          onShowOtherRaces: () =>
+                              _controller.showOtherRaces(context),
+                          onDeleteRace: () => _controller.deleteCurrentRace(),
+                        ),
+                        const SizedBox(height: 8),
+                        _buildRaceStatusWidget(),
                         const SizedBox(height: 16),
                         RaceControlsWidget(controller: _controller),
                         const SizedBox(height: 8),
@@ -84,6 +97,34 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildRaceStatusWidget() {
+    String status;
+    Color statusColor;
+
+    if (_controller.currentRace == null) {
+      status = 'No Race Loaded';
+      statusColor = Colors.grey;
+    } else if (_controller.raceStopped) {
+      if (_controller.bibRecords.isNotEmpty) {
+      status = 'Completed';
+      statusColor = Colors.green[700]!;
+      } else {
+        status = 'Ready';
+        statusColor = Colors.black54;
+      }
+    } else {
+      status = 'In Progress';
+      statusColor = AppColors.primaryColor;
+    }
+
+    return core.RaceStatusHeaderWidget(
+      status: status,
+      statusColor: statusColor,
+      recordCount: _controller.bibRecords.length,
+      recordLabel: 'Bibs',
     );
   }
 }

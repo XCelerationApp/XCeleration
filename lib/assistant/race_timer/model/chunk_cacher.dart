@@ -33,7 +33,7 @@ class ChunkCacher {
     startingPlace = uiChunk.endingPlace;
   }
 
-  TimingChunk? restoreLastChunkFromCache() {
+  TimingChunk? restoreLastChunkFromCache(int currentId) {
     // Guard against empty cache to avoid RangeError on removeLast
     if (_hashedChunks.isEmpty) {
       return null;
@@ -54,7 +54,7 @@ class ChunkCacher {
       }
 
       // return decoded chunk
-      final TimingChunk decoded = TimingChunk.decode(encodedChunk);
+      final TimingChunk decoded = TimingChunk.decode(encodedChunk, currentId - 1);
       return decoded;
     } catch (e) {
       return null;

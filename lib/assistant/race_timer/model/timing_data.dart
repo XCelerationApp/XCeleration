@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/assistant/race_timer/model/ui_record.dart';
+import 'package:xceleration/assistant/shared/models/race_record.dart';
 import 'package:xceleration/core/utils/encode_utils.dart';
 import 'package:xceleration/core/utils/enums.dart';
 import 'package:xceleration/shared/models/timing_records/conflict.dart';
@@ -7,20 +8,68 @@ import 'package:xceleration/shared/models/timing_records/timing_chunk.dart';
 import 'package:xceleration/shared/models/timing_records/timing_datum.dart';
 import '../utils/timing_data_converter.dart';
 import 'chunk_cacher.dart';
+import '../../shared/services/assistant_storage_service.dart';
+import 'package:xceleration/core/utils/logger.dart';
 
 class TimingData with ChangeNotifier {
-  TimingChunk currentChunk = TimingChunk(id: 'current', timingData: []);
+  TimingChunk currentChunk = TimingChunk(id: 0, timingData: []);
   final ChunkCacher _chunkCacher = ChunkCacher();
   final TimingDataConverter _timingDataConverter = TimingDataConverter();
+  final AssistantStorageService _storage = AssistantStorageService.instance;
   DateTime? _startTime;
-  Duration? _endTime;
+  Duration? _raceDuration;
   bool _raceStopped = true;
+  RaceRecord? _currentRace;
 
   DateTime? get startTime => _startTime;
-  Duration? get endTime => _endTime;
+  Duration? get raceDuration => _raceDuration;
   bool get raceStopped => _raceStopped;
+  RaceRecord? get currentRace => _currentRace;
+
   set raceStopped(bool value) {
+    if (_raceStopped == value) {
+      return;
+    }
+    if (_currentRace == null) {
+      throw Exception('Race isn\'t loaded');
+    }
+    _storage.updateRaceStatus(_currentRace!.raceId, _currentRace!.type, value);
     _raceStopped = value;
+
+    notifyListeners();
+  }
+
+  set startTime(DateTime? time) {
+    if (_startTime == time) {
+      return;
+    }
+    if (_currentRace == null) {
+      throw Exception('Race isn\'t loaded');
+    }
+    _startTime = time;
+    AssistantStorageService.instance
+        .updateRaceStartTime(_currentRace!.raceId, _currentRace!.type, time);
+    notifyListeners();
+  }
+
+  set raceDuration(Duration? duration) {
+    if (_raceDuration == duration) {
+      return;
+    }
+    if (_currentRace == null) {
+      throw Exception('Race isn\'t loaded');
+    }
+    _raceDuration = duration;
+    AssistantStorageService.instance
+        .updateRaceDuration(_currentRace!.raceId, _currentRace!.type, duration);
+    notifyListeners();
+  }
+
+  set currentRace(RaceRecord? race) {
+    if (_currentRace == race) {
+      return;
+    }
+    _currentRace = race;
     notifyListeners();
   }
 
@@ -30,9 +79,12 @@ class TimingData with ChangeNotifier {
     }
     if (!currentChunk.hasConflict) {
       currentChunk.timingData.add(record);
+      _storage.addLoggedTimingDatum(_currentRace!.raceId, currentChunk.id, record);
     } else {
+      final int chunkId = currentChunk.id;
       cacheCurrentChunk();
-      currentChunk = TimingChunk(id: 'current', timingData: [record]);
+      currentChunk = TimingChunk(id: chunkId + 1, timingData: [record]);
+      _saveCurrentChunkInDatabase();
     }
     notifyListeners();
   }
@@ -44,13 +96,19 @@ class TimingData with ChangeNotifier {
     }
     if (!currentChunk.hasConflict) {
       currentChunk.conflictRecord = record;
+      _storage.saveChunkConflict(_currentRace!.raceId, currentChunk.id, record);
     } else if (currentChunk.conflictRecord!.conflict?.type ==
         ConflictType.confirmRunner) {
       currentChunk.conflictRecord!.time = record.time;
+      _storage.saveChunkConflict(
+          _currentRace!.raceId, currentChunk.id, currentChunk.conflictRecord!);
     } else {
+      final int chunkId = currentChunk.id;
       cacheCurrentChunk();
       currentChunk =
-          TimingChunk(id: 'current', timingData: [], conflictRecord: record);
+          TimingChunk(id: chunkId + 1, timingData: [], conflictRecord: record);
+
+      _saveCurrentChunkInDatabase();
     }
     notifyListeners();
   }
@@ -62,17 +120,24 @@ class TimingData with ChangeNotifier {
     }
     if (!currentChunk.hasConflict) {
       currentChunk.conflictRecord = record;
+      _storage.saveChunkConflict(_currentRace!.raceId, currentChunk.id, record);
     } else if (currentChunk.conflictRecord!.conflict?.type ==
         ConflictType.missingTime) {
       currentChunk.conflictRecord!.time = record.time;
       currentChunk.conflictRecord!.conflict!.offBy++;
+      _storage.saveChunkConflict(
+          _currentRace!.raceId, currentChunk.id, currentChunk.conflictRecord!);
     } else if (currentChunk.conflictRecord!.conflict?.type ==
         ConflictType.extraTime) {
       reduceCurrentConflictByOne(newTime: record.time);
+      _storage.saveChunkConflict(
+          _currentRace!.raceId, currentChunk.id, currentChunk.conflictRecord!);
     } else {
+      final int chunkId = currentChunk.id;
       cacheCurrentChunk();
       currentChunk =
-          TimingChunk(id: 'current', timingData: [], conflictRecord: record);
+          TimingChunk(id: chunkId + 1, timingData: [], conflictRecord: record);
+      _saveCurrentChunkInDatabase();
     }
     notifyListeners();
   }
@@ -84,18 +149,25 @@ class TimingData with ChangeNotifier {
     }
     if (!currentChunk.hasConflict) {
       currentChunk.conflictRecord = record;
+      _storage.saveChunkConflict(_currentRace!.raceId, currentChunk.id, record);
     } else {
       final Conflict conflict = currentChunk.conflictRecord!.conflict!;
       if (conflict.type == ConflictType.extraTime) {
         currentChunk.conflictRecord!.time = record.time;
         currentChunk.conflictRecord!.conflict!.offBy++;
+        _storage.saveChunkConflict(
+            _currentRace!.raceId, currentChunk.id, currentChunk.conflictRecord!);
       } else if (currentChunk.conflictRecord!.conflict?.type ==
           ConflictType.missingTime) {
         reduceCurrentConflictByOne(newTime: record.time);
+        _storage.saveChunkConflict(
+            _currentRace!.raceId, currentChunk.id, currentChunk.conflictRecord!);
       } else {
+        final int chunkId = currentChunk.id;
         cacheCurrentChunk();
-        currentChunk =
-            TimingChunk(id: 'current', timingData: [], conflictRecord: record);
+        currentChunk = TimingChunk(
+            id: chunkId + 1, timingData: [], conflictRecord: record);
+        _saveCurrentChunkInDatabase();
       }
     }
     notifyListeners();
@@ -121,28 +193,31 @@ class TimingData with ChangeNotifier {
     _chunkCacher.cacheChunk(currentChunk);
   }
 
+  /// Caches a chunk in memory only, without saving to database
+  void cacheChunkInMemoryOnly(TimingChunk chunk) {
+    _chunkCacher.cacheChunk(chunk);
+  }
+
+  void _saveCurrentChunkInDatabase() {
+    if (_currentRace != null) {
+      _storage.saveChunk(_currentRace!.raceId, currentChunk);
+    } else {
+      Logger.e('Skipping save - no race loaded');
+    }
+  }
+
   void deleteCurrentChunk() {
     if (_chunkCacher.isEmpty) {
-      currentChunk = TimingChunk(id: 'current', timingData: []);
+      currentChunk = TimingChunk(id: 0, timingData: []);
     } else {
       final TimingChunk? restoredChunk =
-          _chunkCacher.restoreLastChunkFromCache();
+          _chunkCacher.restoreLastChunkFromCache(currentChunk.id);
       if (restoredChunk == null) {
-        currentChunk = TimingChunk(id: 'current', timingData: []);
+        currentChunk = TimingChunk(id: currentChunk.id - 1, timingData: []);
       } else {
         currentChunk = restoredChunk;
       }
     }
-    notifyListeners();
-  }
-
-  void changeStartTime(DateTime? time) {
-    _startTime = time;
-    notifyListeners();
-  }
-
-  void changeEndTime(Duration? time) {
-    _endTime = time;
     notifyListeners();
   }
 
@@ -155,20 +230,17 @@ class TimingData with ChangeNotifier {
     final List<TimingChunk> chunks = [];
     if (!currentChunk.isEmpty) {
       final bool shouldAddConfirm =
-          !currentChunk.hasConflict && endTime != null;
-      final TimingChunk chunkToAdd = shouldAddConfirm
-          ? TimingChunk(
-              id: 'confirm-${DateTime.now().millisecondsSinceEpoch}',
-              timingData: List<TimingDatum>.from(currentChunk.timingData),
-              conflictRecord: TimingDatum(
-                  time: endTime!.toString(),
-                  conflict: Conflict(type: ConflictType.confirmRunner)),
-            )
-          : currentChunk;
-      chunks.add(chunkToAdd);
+          !currentChunk.hasConflict && raceDuration != null;
+      if (shouldAddConfirm) {
+        currentChunk.conflictRecord = TimingDatum(
+            time: raceDuration!.toString(),
+            conflict: Conflict(type: ConflictType.confirmRunner));
+      }
+      chunks.add(currentChunk);
     }
     while (true) {
-      final TimingChunk? chunk = _chunkCacher.restoreLastChunkFromCache();
+      final TimingChunk? chunk =
+          _chunkCacher.restoreLastChunkFromCache(currentChunk.id);
       if (chunk == null) {
         break;
       }
@@ -212,7 +284,7 @@ class TimingData with ChangeNotifier {
     _chunkCacher.clear();
     _timingDataConverter.clearCache();
     _startTime = null;
-    _endTime = null;
+    _raceDuration = null;
     notifyListeners();
   }
 }
