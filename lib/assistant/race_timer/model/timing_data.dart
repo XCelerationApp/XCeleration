@@ -79,7 +79,8 @@ class TimingData with ChangeNotifier {
     }
     if (!currentChunk.hasConflict) {
       currentChunk.timingData.add(record);
-      _storage.addLoggedTimingDatum(_currentRace!.raceId, currentChunk.id, record);
+      _storage.addLoggedTimingDatum(
+          _currentRace!.raceId, currentChunk.id, record);
     } else {
       final int chunkId = currentChunk.id;
       cacheCurrentChunk();
@@ -155,13 +156,13 @@ class TimingData with ChangeNotifier {
       if (conflict.type == ConflictType.extraTime) {
         currentChunk.conflictRecord!.time = record.time;
         currentChunk.conflictRecord!.conflict!.offBy++;
-        _storage.saveChunkConflict(
-            _currentRace!.raceId, currentChunk.id, currentChunk.conflictRecord!);
+        _storage.saveChunkConflict(_currentRace!.raceId, currentChunk.id,
+            currentChunk.conflictRecord!);
       } else if (currentChunk.conflictRecord!.conflict?.type ==
           ConflictType.missingTime) {
         reduceCurrentConflictByOne(newTime: record.time);
-        _storage.saveChunkConflict(
-            _currentRace!.raceId, currentChunk.id, currentChunk.conflictRecord!);
+        _storage.saveChunkConflict(_currentRace!.raceId, currentChunk.id,
+            currentChunk.conflictRecord!);
       } else {
         final int chunkId = currentChunk.id;
         cacheCurrentChunk();

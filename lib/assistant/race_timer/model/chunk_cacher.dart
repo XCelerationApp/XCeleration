@@ -54,7 +54,8 @@ class ChunkCacher {
       }
 
       // return decoded chunk
-      final TimingChunk decoded = TimingChunk.decode(encodedChunk, currentId - 1);
+      final TimingChunk decoded =
+          TimingChunk.decode(encodedChunk, currentId - 1);
       return decoded;
     } catch (e) {
       return null;

@@ -555,7 +555,8 @@ class TimingController extends TimingData {
       await AssistantStorageService.instance.deleteChunks(currentRace!.raceId);
 
       // Delete the race from the database
-      await AssistantStorageService.instance.deleteRace(currentRace!.raceId, currentRace!.type);
+      await AssistantStorageService.instance
+          .deleteRace(currentRace!.raceId, currentRace!.type);
 
       // Reset race state
       raceStopped = false;

@@ -31,15 +31,20 @@ class RaceControlsWidget extends StatelessWidget {
         : controller.bibRecords.isNotEmpty
             ? 'Resume'
             : 'Start';
-    final buttonColor = controller.currentRace == null ? const Color(0xFF777777).withAlpha((0.5 * 255).round()) : !controller.raceStopped ? Colors.red : Colors.green;
+    final buttonColor = controller.currentRace == null
+        ? const Color(0xFF777777).withAlpha((0.5 * 255).round())
+        : !controller.raceStopped
+            ? Colors.red
+            : Colors.green;
 
     return CircularButton(
-      text: buttonText,
-      color: buttonColor,
-      fontSize: !controller.raceStopped ? 18 : 16,
-      fontWeight: FontWeight.w600,
-      onPressed: () => controller.currentRace == null ? null : controller.raceStopped = !controller.raceStopped
-    );
+        text: buttonText,
+        color: buttonColor,
+        fontSize: !controller.raceStopped ? 18 : 16,
+        fontWeight: FontWeight.w600,
+        onPressed: () => controller.currentRace == null
+            ? null
+            : controller.raceStopped = !controller.raceStopped);
   }
 
   Widget _buildShareButton(BuildContext context) {
