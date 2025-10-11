@@ -67,6 +67,7 @@ class DevicesManager {
   ConnectedDevice? _coach;
   ConnectedDevice? _bibRecorder;
   ConnectedDevice? _raceTimer;
+  ConnectedDevice? _spectator;
 
   /// Creates a device manager for the current device name and type
   ///
@@ -86,12 +87,27 @@ class DevicesManager {
 
       if (_currentDeviceName == DeviceName.coach) {
         _coach = ConnectedDevice(DeviceName.coach);
-        _bibRecorder = ConnectedDevice(DeviceName.bibRecorder, data: _data);
+
+        final List<String> parts = _data!.split('  ');
+        late String bibData;
+        late String timerData;
+        if (parts.length != 2) {
+          bibData = '';
+          timerData = '';
+        } else {
+          bibData = parts[0];
+          timerData = parts[1];
+        }
+        _bibRecorder = ConnectedDevice(DeviceName.bibRecorder, data: bibData);
+        _raceTimer = ConnectedDevice(DeviceName.raceTimer, data: timerData);
       } else if (_currentDeviceName == DeviceName.bibRecorder) {
         _bibRecorder = ConnectedDevice(DeviceName.bibRecorder);
         _coach = ConnectedDevice(DeviceName.coach, data: _data);
-      } else {
+      } else if (_currentDeviceName == DeviceName.raceTimer) {
         _raceTimer = ConnectedDevice(DeviceName.raceTimer);
+        _coach = ConnectedDevice(DeviceName.coach, data: _data);
+      } else if (_currentDeviceName == DeviceName.spectator) {
+        _spectator = ConnectedDevice(DeviceName.spectator);
         _coach = ConnectedDevice(DeviceName.coach, data: _data);
       }
     } else {
@@ -99,8 +115,11 @@ class DevicesManager {
         _coach = ConnectedDevice(DeviceName.coach);
         _bibRecorder = ConnectedDevice(DeviceName.bibRecorder);
         _raceTimer = ConnectedDevice(DeviceName.raceTimer);
-      } else {
+      } else if (_currentDeviceName == DeviceName.bibRecorder) {
         _bibRecorder = ConnectedDevice(DeviceName.bibRecorder);
+        _coach = ConnectedDevice(DeviceName.coach);
+      } else if (_currentDeviceName == DeviceName.raceTimer) {
+        _raceTimer = ConnectedDevice(DeviceName.raceTimer);
         _coach = ConnectedDevice(DeviceName.coach);
       }
     }
@@ -126,11 +145,15 @@ class DevicesManager {
   /// Get the race timer device if available
   ConnectedDevice? get raceTimer => _raceTimer;
 
+  /// Get the spectator device if available
+  ConnectedDevice? get spectator => _spectator;
+
   /// Get all connected devices (non-null only)
   List<ConnectedDevice> get devices => [
         if (_coach != null) _coach!,
         if (_bibRecorder != null) _bibRecorder!,
         if (_raceTimer != null) _raceTimer!,
+        if (_spectator != null) _spectator!,
       ];
 
   List<ConnectedDevice> get otherDevices =>

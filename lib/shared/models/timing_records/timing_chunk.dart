@@ -2,9 +2,9 @@ import 'timing_datum.dart';
 import 'package:xceleration/core/utils/enums.dart';
 
 class TimingChunk {
-  final String id;
-  TimingDatum? conflictRecord;
+  final int id;
   final List<TimingDatum> timingData;
+  TimingDatum? conflictRecord;
 
   TimingChunk({
     required this.id,
@@ -64,7 +64,7 @@ class TimingChunk {
     return '${timingData.map((e) => e.time).join(',')} ${hasConflict ? conflictRecord!.encode() : ''}';
   }
 
-  factory TimingChunk.decode(String encoded) {
+  factory TimingChunk.decode(String encoded, int id) {
     // The encoding format is: "t1,t2,t3 <conflict-encoded>"
     // where conflict-encoded itself contains spaces (e.g., "CR 1 3.60").
     // So we must split only on the first space.
@@ -95,7 +95,7 @@ class TimingChunk {
         : TimingDatum.fromEncodedString(conflictPart);
 
     return TimingChunk(
-      id: 'encoded-${DateTime.now().millisecondsSinceEpoch}',
+      id: id,
       conflictRecord: conflictRecord,
       timingData: timingData,
     );
@@ -109,15 +109,18 @@ List<TimingChunk> timingChunksFromTimingData(List<TimingDatum> timingData) {
   List<TimingChunk> chunks = [];
   List<TimingDatum> currentTimingData = [];
 
+  int currentId = 0;
+
   for (final timingDatum in timingData) {
     if (timingDatum.conflict != null) {
       // When a conflict is found, create a chunk with the current timing data and this conflict
       chunks.add(TimingChunk(
-        id: 'split-${DateTime.now().millisecondsSinceEpoch}-${chunks.length}',
+        id: currentId,
         timingData: List<TimingDatum>.from(currentTimingData),
         conflictRecord: timingDatum,
       ));
       currentTimingData.clear();
+      currentId++;
     } else {
       currentTimingData.add(timingDatum);
     }
@@ -126,7 +129,7 @@ List<TimingChunk> timingChunksFromTimingData(List<TimingDatum> timingData) {
   // If there is any remaining timing data without a conflict, add it as a chunk
   if (currentTimingData.isNotEmpty) {
     chunks.add(TimingChunk(
-      id: 'split-${DateTime.now().millisecondsSinceEpoch}-${chunks.length}',
+      id: currentId,
       timingData: List<TimingDatum>.from(currentTimingData),
       conflictRecord: null,
     ));

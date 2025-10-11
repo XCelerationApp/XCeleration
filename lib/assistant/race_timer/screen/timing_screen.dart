@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import '../../../shared/role_bar/role_bar.dart';
 import '../../../core/services/tutorial_manager.dart';
+import '../../../core/utils/enums.dart';
 import '../widgets/timer_display_widget.dart';
 import '../widgets/race_controls_widget.dart';
-import '../widgets/race_info_header_widget.dart';
+import '../widgets/race_status_widget.dart';
 import '../widgets/bottom_controls_widget.dart';
 import '../controller/timing_controller.dart';
 import '../widgets/records_list_widget.dart';
 import '../../../shared/role_bar/models/role_enums.dart';
+import '../../shared/widgets/race_header_widget.dart';
 
 class TimingScreen extends StatefulWidget {
   const TimingScreen({super.key});
@@ -67,7 +69,17 @@ class _TimingScreenState extends State<TimingScreen>
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      RaceInfoHeaderWidget(controller: _controller),
+                      RaceHeaderWidget(
+                        currentRace: _controller.currentRace,
+                        role: DeviceName.raceTimer,
+                        onLoadRace: () =>
+                            _controller.showLoadRaceSheet(context),
+                        onShowOtherRaces: () =>
+                            _controller.showOtherRaces(context),
+                        onDeleteRace: () => _controller.deleteCurrentRace(),
+                      ),
+                      const SizedBox(height: 8),
+                      RaceStatusWidget(controller: _controller),
                       const SizedBox(height: 8),
                       TimerDisplayWidget(
                         controller: _controller,

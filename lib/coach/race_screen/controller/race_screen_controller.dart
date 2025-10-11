@@ -643,7 +643,7 @@ class RaceController with ChangeNotifier {
           DialogUtils.showMessageDialog(context,
               title: 'Setup Complete',
               message:
-                  'You completed setting up your race!\n\nBefore race day, make sure you have two assistants with this app installed on their phones to help time the race.\nBegin the Sharing Runners step once you are at the race with your assistants.',
+                  'You completed setting up your race!\n\nBefore race day, make sure you have two assistants with this app installed on their phones to help time the race.\nBegin the Sharing Race step once you are at the race with your assistants.',
               doneText: 'Got it');
         } else {
           Logger.d('Context not mounted');

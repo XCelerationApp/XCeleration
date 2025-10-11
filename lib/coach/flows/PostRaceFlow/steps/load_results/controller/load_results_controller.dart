@@ -268,7 +268,7 @@ class LoadResultsController with ChangeNotifier {
         } else {
           // Create a new conflict chunk
           timingChunks!.add(TimingChunk(
-            id: 'missing-${DateTime.now().millisecondsSinceEpoch}',
+            id: -1,
             timingData: [],
             conflictRecord: TimingDatum(
               time: 'MISSING_TIMES',
