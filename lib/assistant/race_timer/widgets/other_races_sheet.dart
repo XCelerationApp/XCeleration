@@ -19,7 +19,8 @@ class OtherRacesSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     // Filter out the current race
     final otherRaces = races
-        .where((race) => currentRace == null || race.raceId != currentRace!.raceId)
+        .where(
+            (race) => currentRace == null || race.raceId != currentRace!.raceId)
         .toList();
 
     if (otherRaces.isEmpty) {
@@ -89,7 +90,11 @@ class OtherRacesSheet extends StatelessWidget {
     final statusColor =
         isCompleted ? AppColors.primaryColor : AppColors.mediumColor;
     final isStarted = race.startedAt != null;
-    final statusText = isCompleted ? 'Completed' : isStarted ? 'In Progress' : 'Not Started';
+    final statusText = isCompleted
+        ? 'Completed'
+        : isStarted
+            ? 'In Progress'
+            : 'Not Started';
 
     return Container(
       decoration: BoxDecoration(

@@ -32,7 +32,7 @@ class AssistantStorageService {
   Future<Database> _initDatabase() async {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, 'assistant_data.db');
-    
+
     return await openDatabase(
       path,
       version: 1,

@@ -109,8 +109,8 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
       statusColor = Colors.grey;
     } else if (_controller.raceStopped) {
       if (_controller.bibRecords.isNotEmpty) {
-      status = 'Completed';
-      statusColor = Colors.green[700]!;
+        status = 'Completed';
+        statusColor = Colors.green[700]!;
       } else {
         status = 'Ready';
         statusColor = Colors.black54;
