@@ -1,13 +1,15 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:xceleration/core/utils/decode_utils.dart';
+import 'package:xceleration/core/utils/encode_utils.dart';
 import 'package:xceleration/core/utils/enums.dart';
 
 void main() {
   group('TimingDecodeUtils', () {
     group('decodeEncodedTimingData', () {
       test('should decode simple timing data correctly', () async {
-        // Arrange - encoded timing data
-        final encodedData = '10.5,11.2,12.0';
+        // Arrange - create raw timing data and encode it
+        final rawData = '10.5,11.2,12.0';
+        final encodedData = compressAndEncode(rawData);
 
         // Act
         final result =
@@ -26,8 +28,9 @@ void main() {
       });
 
       test('should decode timing data with conflicts correctly', () async {
-        // Arrange - encoded timing data with conflicts
-        final encodedData = '10.5,MT 1 11.2,12.0';
+        // Arrange - create raw timing data with conflicts and encode it
+        final rawData = '10.5,MT 1 11.2,12.0';
+        final encodedData = compressAndEncode(rawData);
 
         // Act
         final result =
@@ -60,8 +63,9 @@ void main() {
       });
 
       test('should handle malformed data gracefully', () async {
-        // Arrange - some malformed data mixed with valid
-        final encodedData = '10.5,invalid_data,12.0';
+        // Arrange - some malformed data mixed with valid, then encode it
+        final rawData = '10.5,invalid_data,12.0';
+        final encodedData = compressAndEncode(rawData);
 
         // Act
         final result =
