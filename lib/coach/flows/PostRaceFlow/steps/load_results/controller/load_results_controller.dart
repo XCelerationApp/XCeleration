@@ -165,7 +165,8 @@ class LoadResultsController with ChangeNotifier {
               // This is a duplicate bib, convert to integer
               final bibInt = int.tryParse(bibNumber) ?? 0;
               raceRunners![i] = bibInt;
-              Logger.d('LoadResultsController: Converted duplicate bib $bibNumber to integer conflict');
+              Logger.d(
+                  'LoadResultsController: Converted duplicate bib $bibNumber to integer conflict');
             } else {
               seenBibs.add(bibNumber);
             }
@@ -443,7 +444,7 @@ class LoadResultsController with ChangeNotifier {
       if (!context.mounted) return;
       await showTimingConflictsSheet(context);
     }
-    }
+  }
 
   /// Shows sheet for resolving timing conflicts
   Future<void> showTimingConflictsSheet(BuildContext context) async {
