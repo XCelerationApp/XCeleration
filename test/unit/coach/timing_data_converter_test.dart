@@ -43,7 +43,7 @@ void main() {
       );
 
       final timingChunk = TimingChunk(
-        id: 'test-chunk',
+        id: 0,
         timingData: timingData,
         conflictRecord: conflictRecord,
       );
@@ -56,7 +56,7 @@ void main() {
         originalTimingData: timingData,
         startingPlace: 1,
         controller: null,
-        chunkId: 'test-chunk',
+        chunkId: 0,
       );
 
       // Click on the "2.0" entry (index 1)
@@ -77,7 +77,7 @@ void main() {
       );
 
       final timingChunk = TimingChunk(
-        id: 'test-chunk',
+        id: 0,
         timingData: timingData,
         conflictRecord: conflictRecord,
       );
@@ -90,7 +90,7 @@ void main() {
         originalTimingData: timingData,
         startingPlace: 1,
         controller: null,
-        chunkId: 'test-chunk',
+        chunkId: 0,
       );
 
       // Click on the "3.0" entry (index 1)
@@ -114,7 +114,7 @@ void main() {
       );
 
       final timingChunk = TimingChunk(
-        id: 'test-chunk',
+        id: 0,
         timingData: timingData,
         conflictRecord: conflictRecord,
       );
@@ -127,7 +127,7 @@ void main() {
         originalTimingData: timingData,
         startingPlace: 1,
         controller: null,
-        chunkId: 'test-chunk',
+        chunkId: 0,
       );
 
       // Click on the first entry "1.0" (index 0)
@@ -149,7 +149,7 @@ void main() {
       );
 
       final timingChunk = TimingChunk(
-        id: 'test-chunk',
+        id: 0,
         timingData: timingData,
         conflictRecord: conflictRecord,
       );
@@ -162,7 +162,7 @@ void main() {
         originalTimingData: timingData,
         startingPlace: 1,
         controller: null,
-        chunkId: 'test-chunk',
+        chunkId: 0,
       );
 
       // Click on the "2.0" entry (index 1)
@@ -187,7 +187,7 @@ void main() {
       );
 
       final timingChunk = TimingChunk(
-        id: 'test-chunk',
+        id: 0,
         timingData: timingData,
         conflictRecord: conflictRecord,
       );
@@ -200,7 +200,7 @@ void main() {
         originalTimingData: timingData,
         startingPlace: 1,
         controller: null,
-        chunkId: 'test-chunk',
+        chunkId: 0,
       );
 
       // Click on the "2.0" entry (index 1)

@@ -1,14 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:xceleration/core/theme/app_colors.dart';
-import 'package:xceleration/core/theme/typography.dart';
 import 'package:xceleration/core/utils/encode_utils.dart';
 import 'package:xceleration/core/utils/enums.dart' hide RunnerRecordFlags;
 import '../../../core/components/dialog_utils.dart';
 import '../../../core/services/tutorial_manager.dart';
 import '../../../shared/role_bar/models/role_enums.dart' as role_enums;
 import '../../../shared/role_bar/role_bar.dart';
-import '../../../shared/role_bar/widgets/role_selector_sheet.dart';
 import '../../../core/utils/logger.dart';
 import '../../../core/utils/sheet_utils.dart';
 import '../../../core/components/device_connection_widget.dart';
@@ -16,13 +13,16 @@ import '../../../core/services/device_connection_service.dart';
 import '../../../core/utils/decode_utils.dart';
 import 'package:xceleration/shared/models/timing_records/bib_datum.dart';
 import '../model/bib_record.dart';
+import '../../shared/models/race_record.dart';
+import '../../shared/services/assistant_storage_service.dart';
+import '../../shared/models/bib_record.dart' as db_models;
+import '../../shared/models/runner.dart' as db_models;
+import '../../shared/widgets/other_races_sheet.dart';
 
 class BibNumberController extends BibNumberDataController {
   final BuildContext context;
-  late final List<BibDatum> runners;
   late final ScrollController scrollController;
-
-  late final DevicesManager devices;
+  late final List<BibDatum> runners;
 
   // Debounce timer for validations
   Timer? _debounceTimer;
@@ -32,22 +32,21 @@ class BibNumberController extends BibNumberDataController {
   }) {
     runners = [];
     scrollController = ScrollController();
-    devices = DeviceConnectionService.createDevices(
-      DeviceName.bibRecorder,
-      DeviceType.browserDevice,
-    );
     init(context);
   }
 
   final tutorialManager = TutorialManager();
 
-  bool _isRecording = false;
+  set raceStopped(bool value) {
+    if (raceStopped == value) {
+      return;
+    }
+    if (currentRace == null) {
+      throw Exception('Race isn\'t loaded');
+    }
+    storage.updateRaceStatus(currentRace!.raceId, currentRace!.type, value);
+    setRaceStopped(value);
 
-  bool get isRecording => _isRecording;
-
-  /// Toggles between recording and not recording states
-  void toggleRecording() {
-    _isRecording = !_isRecording;
     for (var node in focusNodes) {
       node.unfocus();
     }
@@ -57,6 +56,14 @@ class BibNumberController extends BibNumberDataController {
       }
     }
     notifyListeners();
+  }
+
+  /// Sets the race stopped state without updating the database (used when loading races)
+  void _setRaceStoppedState(bool value) {
+    if (raceStopped == value) {
+      return;
+    }
+    setRaceStopped(value);
   }
 
   void setupTutorials() {
@@ -71,137 +78,333 @@ class BibNumberController extends BibNumberDataController {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       RoleBar.showInstructionsSheet(context, role_enums.Role.bibRecorder)
           .then((_) {
-        if (context.mounted) _checkForRunners(context);
+        if (context.mounted) {
+          _loadLastRace();
+        }
       });
     });
   }
 
-  Future<void> _checkForRunners(BuildContext context) async {
-    if (runners.isEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          barrierColor: Colors.black54,
-          builder: (BuildContext context) {
-            return BasicAlertDialog(
-              title: 'No Runners Loaded',
-              content:
-                  'There are no runners loaded on this phone. Please load runners to continue.',
-              actions: [
-                TextButton(
-                  child: const Text('Switch to a Different Role',
-                      style: AppTypography.buttonText),
-                  onPressed: () {
-                    RoleSelectorSheet.showRoleSelection(
-                        context, role_enums.Role.bibRecorder,
-                        showConfirmation: false);
-                  },
-                ),
-                TextButton(
-                  child: const Text('Load Runners',
-                      style: AppTypography.buttonText),
-                  onPressed: () async {
-                    _openLoadRunnersSheet(context);
-                  },
-                ),
-              ],
-            );
-          },
-        );
-      });
+  Future<void> _loadLastRace() async {
+    final races = await storage.getRaces(DeviceName.bibRecorder.toString());
+    if (races.isNotEmpty) {
+      await _loadRace(races.last);
     }
   }
 
-  /// Opens the device connection sheet directly for loading runners
-  Future<void> _openLoadRunnersSheet(BuildContext context) async {
+  /// Loads runners from database for the current race
+  Future<void> _loadRunners() async {
+    if (currentRace == null) {
+      return;
+    }
+
+    try {
+      final dbRunners = await storage.getRunners(currentRace!.raceId);
+
+      // Clear existing runners and populate with loaded data
+      runners.clear();
+      for (final runner in dbRunners) {
+        // Convert database Runner to BibDatum
+        runners.add(BibDatum(
+          bib: runner.bibNumber,
+          name: runner.name,
+          teamAbbreviation: runner.teamAbbreviation,
+          grade: runner.grade,
+          teamColor: runner.teamColor,
+        ));
+      }
+    } catch (e) {
+      Logger.e('Failed to load runners from database: $e');
+    }
+  }
+
+  /// Loads bib records from database for the current race
+  Future<void> _loadBibRecords() async {
+    if (currentRace == null) {
+      Logger.e('Cannot load bib records - no current race loaded');
+      return;
+    }
+
+    try {
+      final dbBibRecords = await storage.getBibRecords(currentRace!.raceId);
+
+      // Clear existing records
+      clearBibRecords();
+
+      // Convert database records to UI records
+      for (final dbRecord in dbBibRecords) {
+        // Create initial bib record
+        final bibRecord = BibDatumRecord(
+          bib: dbRecord.bibNumber,
+          name: '',
+          teamAbbreviation: '',
+          grade: '',
+          teamColor: null,
+          flags: const BibDatumRecordFlags(
+            notInDatabase: false,
+            duplicateBibNumber: false,
+          ),
+        );
+
+        // Add the bib record
+        final index = await addBibRecord(bibRecord);
+
+        // Validate it to populate runner info and set flags
+        await validateBibNumber(index, dbRecord.bibNumber);
+      }
+    } catch (e) {
+      Logger.e('Failed to load bib records from database: $e');
+    }
+  }
+
+  /// Saves all current bib records to database
+  Future<void> saveBibRecords() async {
+    if (currentRace == null) return;
+    await saveBibRecordsToDatabase(currentRace!.raceId);
+  }
+
+  /// Removes a single bib record from database
+  Future<void> removeBibRecordFromDatabase(int index) async {
+    if (currentRace == null) return;
+
+    try {
+      await storage.removeBibRecord(currentRace!.raceId, index);
+    } catch (e) {
+      Logger.e('Failed to remove bib record from database: $e');
+    }
+  }
+
+  /// Shows other races sheet
+  Future<void> showOtherRaces(BuildContext context) async {
+    final races = await storage.getRaces(DeviceName.bibRecorder.toString());
+    if (!context.mounted) return;
+
     sheet(
       context: context,
-      title: 'Load Runners',
+      title: 'Other Races',
+      body: OtherRacesSheet(
+        races: races,
+        currentRace: currentRace,
+        onRaceSelected: loadOtherRace,
+        role: DeviceName.bibRecorder,
+      ),
+    );
+  }
+
+  Future<void> _loadRace(RaceRecord raceRecord) async {
+    // Set the current race
+    setCurrentRace(raceRecord);
+
+    // Set race state without updating database (we're loading from database)
+    _setRaceStoppedState(raceRecord.stopped);
+
+    // Load runners for this race first
+    await _loadRunners();
+
+    // Load bib records after runners are loaded
+    await _loadBibRecords();
+
+    // Final notification to update UI
+    notifyListeners();
+  }
+
+  /// Loads a race with runners data (used when loading from coach)
+  Future<void> _loadRaceWithRunners(
+      RaceRecord raceRecord, List<BibDatum> runnersData) async {
+    // Completely reset everything before loading new race
+    _resetControllerState();
+
+    // Set the current race
+    setCurrentRace(raceRecord);
+
+    // Set race state without updating database (we're loading from database)
+    _setRaceStoppedState(raceRecord.stopped);
+
+    // Set runners from provided data
+    runners.addAll(runnersData);
+
+    // Load bib records after runners are set
+    await _loadBibRecords();
+
+    // Final notification to update UI
+    notifyListeners();
+
+    // Show runners loaded sheet if there are runners
+    if (runners.isNotEmpty && context.mounted) {
+      showRunnersLoadedSheet(context);
+    }
+  }
+
+  /// Completely resets the controller state before loading a new race
+  void _resetControllerState() {
+    // Clear current race
+    setCurrentRace(null);
+
+    // Reset race state
+    _raceStopped = true;
+
+    // Clear runners list
+    runners.clear();
+
+    // Clear all bib records and dispose resources
+    clearBibRecords();
+
+    // Notify listeners of the reset
+    notifyListeners();
+  }
+
+  /// Loads a previous race and its bib records
+  Future<void> loadOtherRace(RaceRecord race) async {
+    // Completely reset everything before loading new race
+    _resetControllerState();
+
+    // Load the new race
+    await _loadRace(race);
+  }
+
+  Future<void> showLoadRaceSheet(BuildContext context) async {
+    final devices = DeviceConnectionService.createDevices(
+      DeviceName.bibRecorder,
+      DeviceType.browserDevice,
+    );
+    sheet(
+      context: context,
+      title: 'Load Race',
       body: deviceConnectionWidget(
         context,
         devices,
-        callback: () {
-          Navigator.pop(context);
-          loadRunners(context);
+        callback: () async {
+          final data = devices.coach?.data;
+          if (data == null) {
+            DialogUtils.showErrorDialog(context,
+                message: 'Race data not received');
+            return;
+          }
+          late RaceRecord raceRecord;
+          List<BibDatum> runners = [];
+          try {
+            // Split the data - coach sends: raceData---runnerData
+            final parts = data.split('---');
+            if (parts.length == 2) {
+              // Decode race data
+              raceRecord = RaceRecord.fromEncodedString(parts[0],
+                  type: DeviceName.bibRecorder.toString());
+
+              // Decode runner data
+              final runnersData =
+                  await BibDecodeUtils.decodeEncodedRunners(parts[1], context);
+              runners = runnersData ?? [];
+            } else {
+              // Fallback: try to decode as race data only
+              raceRecord = RaceRecord.fromEncodedString(data,
+                  type: DeviceName.bibRecorder.toString());
+            }
+          } catch (e) {
+            Logger.e('Error parsing race data: $e');
+            if (context.mounted) {
+              DialogUtils.showErrorDialog(context,
+                  message: 'Failed to parse race data: $e');
+            }
+            return;
+          }
+          try {
+            await storage.saveNewRace(raceRecord);
+
+            // Save runners to database
+            if (runners.isNotEmpty) {
+              final dbRunners = runners
+                  .map((runner) => db_models.Runner(
+                        raceId: raceRecord.raceId,
+                        bibNumber: runner.bib,
+                        name: runner.name,
+                        teamAbbreviation: runner.teamAbbreviation,
+                        grade: runner.grade,
+                        teamColor: runner.teamColor,
+                        createdAt: DateTime.now(),
+                      ))
+                  .toList();
+              await storage.saveRunners(raceRecord.raceId, dbRunners);
+            }
+
+            clearBibRecords();
+            _loadRaceWithRunners(raceRecord, runners);
+          } catch (e) {
+            Logger.e('Error saving race: $e');
+            if (context.mounted) {
+              DialogUtils.showErrorDialog(context,
+                  message: 'Failed to load race: $e');
+            }
+          }
         },
       ),
     );
   }
 
-  Future<void> loadRunners(BuildContext context) async {
-    final data = devices.coach?.data;
+  /// Deletes the current race
+  Future<void> deleteCurrentRace() async {
+    if (currentRace == null) return;
 
-    if (data != null) {
-      try {
-        Logger.d('Data received: $data');
-        // Process data outside of setState
-        final loadedRunners =
-            await BibDecodeUtils.decodeEncodedRunners(data, context);
-
-        // Check if the widget is still mounted before using context
-        if (!context.mounted) return;
-
-        if (loadedRunners == null || loadedRunners.isEmpty) {
-          Logger.e(
-              'Invalid data received from bib recorder: $data. Please try again.',
-              context: context);
-          return;
-        }
-
-        Logger.d('Runners received: $loadedRunners');
-
-        // Accept entries with only bib present; optional fields may be resolved later
-        final runnerInCorrectFormat =
-            loadedRunners.every((runner) => runner.isValid);
-
-        if (!runnerInCorrectFormat) {
-          Logger.e(
-              'Invalid data format received from bib recorder. Please try again.',
-              context: context);
-          return;
-        }
-
-        if (runners.isNotEmpty) {
-          runners.clear();
-        }
-        runners.addAll(loadedRunners);
-        notifyListeners();
-
-        Logger.d('Runners loaded: $runners');
-
-        // Check if the widget is still mounted before using context
-        if (!context.mounted) return;
-
-        // Close dialog and handle UI updates after state is set
-        if (runners.isNotEmpty) {
-          // Close the "No Runners Loaded" dialog
-          Navigator.of(context).pop();
-
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (context.mounted) showRunnersLoadedSheet(context);
-          });
-
-          // Setup tutorials after UI has settled
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (context.mounted) setupTutorials();
-          });
-        }
-      } catch (e) {
-        // Check if the widget is still mounted before showing error dialog
-        if (context.mounted) {
-          Logger.e('Error processing runner data: $e', context: context);
-        }
-      }
-    } else {
-      Logger.e('No data received from bib recorder. Please try again.',
-          context: context);
+    try {
+      await storage.deleteRace(currentRace!.raceId, currentRace!.type);
+      setCurrentRace(null);
+      clearBibRecords();
+      notifyListeners();
+    } catch (e) {
+      Logger.e('Failed to delete race: $e');
+      throw Exception('Failed to delete race: $e');
     }
+  }
+
+  Future<void> showShareBibNumbersPopup(BuildContext context) async {
+    for (var node in focusNodes) {
+      node.unfocus();
+      // Disable focus restoration for this node
+      node.canRequestFocus = false;
+    }
+
+    bool confirmed = await cleanEmptyRecords();
+    if (!confirmed) {
+      restoreFocusability();
+      return;
+    }
+    if (!context.mounted) return;
+
+    confirmed = await checkDuplicateRecords(context);
+    if (!confirmed) {
+      restoreFocusability();
+      return;
+    }
+    if (!context.mounted) return;
+
+    confirmed = await checkUnknownRecords(context);
+    if (!confirmed) {
+      restoreFocusability();
+      return;
+    }
+
+    if (!context.mounted) return;
+    final encodedData = await getEncodedBibData();
+    if (!context.mounted) return;
+    sheet(
+      context: context,
+      title: 'Share Bib Numbers',
+      body: deviceConnectionWidget(
+        context,
+        DeviceConnectionService.createDevices(
+          DeviceName.bibRecorder,
+          DeviceType.advertiserDevice,
+          data: encodedData,
+        ),
+      ),
+    );
+
+    restoreFocusability();
   }
 
   void showRunnersLoadedSheet(BuildContext context) {
     sheet(
       context: context,
+      title: 'Loaded Runners',
       body: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -214,55 +417,6 @@ class BibNumberController extends BibNumberDataController {
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                ),
-              ),
-              Material(
-                color: Colors.transparent,
-                borderRadius: BorderRadius.circular(18),
-                child: InkWell(
-                  onTap: () {
-                    // Close the sheet
-                    Navigator.of(context).pop();
-                    // Clear the runners
-                    runners.clear();
-                    // Reset device connection state to clear previous transfer status
-                    devices.reset();
-                    notifyListeners();
-                    // Directly open the device connection sheet instead of showing popup
-                    _openLoadRunnersSheet(context);
-                  },
-                  borderRadius: BorderRadius.circular(18),
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[200],
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(
-                        color: Colors.grey[300]!,
-                        width: 1,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.refresh,
-                          size: 16,
-                          color: AppColors.primaryColor,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Reload',
-                          style: TextStyle(
-                            color: Colors.grey[800],
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
                 ),
               ),
             ],
@@ -320,7 +474,6 @@ class BibNumberController extends BibNumberDataController {
               ],
             ),
           ),
-
           // Table Rows
           ConstrainedBox(
             constraints: BoxConstraints(
@@ -384,68 +537,7 @@ class BibNumberController extends BibNumberDataController {
     );
   }
 
-  Future<void> showShareBibNumbersPopup(BuildContext context) async {
-    for (var node in focusNodes) {
-      node.unfocus();
-      // Disable focus restoration for this node
-      node.canRequestFocus = false;
-    }
-
-    bool confirmed = await cleanEmptyRecords();
-    if (!confirmed) {
-      restoreFocusability();
-      return;
-    }
-    if (!context.mounted) return;
-
-    confirmed = await checkDuplicateRecords(context);
-    if (!confirmed) {
-      restoreFocusability();
-      return;
-    }
-    if (!context.mounted) return;
-
-    confirmed = await checkUnknownRecords(context);
-    if (!confirmed) {
-      restoreFocusability();
-      return;
-    }
-
-    if (!context.mounted) return;
-    final encodedData = await getEncodedBibData();
-    if (!context.mounted) return;
-    sheet(
-      context: context,
-      title: 'Share Bib Numbers',
-      body: deviceConnectionWidget(
-        context,
-        DeviceConnectionService.createDevices(
-          DeviceName.bibRecorder,
-          DeviceType.advertiserDevice,
-          data: encodedData,
-        ),
-      ),
-    );
-
-    restoreFocusability();
-  }
-
-  void resetLoadedRunners(BuildContext context) async {
-    bool confirmed = await DialogUtils.showConfirmationDialog(
-      context,
-      title: 'Reset Loaded Runners',
-      content: 'Are you sure you want to reset all loaded runners?',
-    );
-    if (confirmed && context.mounted) {
-      runners.clear();
-      notifyListeners();
-      // Reset related bib data
-      clearBibRecords();
-      _checkForRunners(context);
-    }
-  }
-
-  /// Gets a runner by bib number if it exists in the list of runners
+  /// Gets a runner by bib number from the local runners list
   BibDatum? getRunnerByBib(String bib) {
     for (final runner in runners) {
       if (runner.bib == bib) {
@@ -612,7 +704,7 @@ class BibNumberController extends BibNumberDataController {
       });
     }
 
-    if (runners.isNotEmpty && index == null) {
+    if (index == null) {
       // Safely determine focus index for new additions
       final focusIndex = _bibRecords.length - 1;
 
@@ -671,12 +763,21 @@ class BibNumberDataController extends ChangeNotifier {
 
   bool _isKeyboardVisible = false;
 
+  // Race context and storage - single source of truth
+  final AssistantStorageService storage = AssistantStorageService.instance;
+  RaceRecord? _currentRace;
+  bool _raceStopped = true;
+
   bool get isKeyboardVisible => _isKeyboardVisible;
 
   set isKeyboardVisible(bool visible) {
     _isKeyboardVisible = visible;
     notifyListeners();
   }
+
+  // Race context getters
+  RaceRecord? get currentRace => _currentRace;
+  bool get raceStopped => _raceStopped;
 
   List<BibDatumRecord> get bibRecords => _bibRecords;
 
@@ -722,7 +823,7 @@ class BibNumberDataController extends ChangeNotifier {
 
   /// Adds a new bib record with the specified runner record.
   /// Returns the index of the added record.
-  int addBibRecord(BibDatumRecord record) {
+  Future<int> addBibRecord(BibDatumRecord record) async {
     _bibRecords.add(record);
 
     final newIndex = _bibRecords.length - 1;
@@ -731,16 +832,59 @@ class BibNumberDataController extends ChangeNotifier {
 
     final focusNode = FocusNode();
     focusNode.addListener(() {
+      // Handle keyboard visibility
       if (focusNode.hasFocus != _isKeyboardVisible) {
         _isKeyboardVisible = focusNode.hasFocus;
         notifyListeners();
+      }
+
+      // Save to database when focus is lost
+      if (!focusNode.hasFocus) {
+        _saveBibRecordOnFocusLoss(newIndex);
       }
     });
     focusNodes.add(focusNode);
 
     notifyListeners();
-
     return newIndex;
+  }
+
+  /// Saves a bib record to the database when focus is lost
+  void _saveBibRecordOnFocusLoss(int index) async {
+    if (index < 0 || index >= _bibRecords.length) return;
+
+    final record = _bibRecords[index];
+    final bibValue = record.bib;
+
+    if (_currentRace != null && bibValue.isNotEmpty) {
+      try {
+        // Check if this bib record already exists in the database
+        final existingRecord = await storage.getBibRecord(
+          _currentRace!.raceId,
+          index,
+        );
+
+        if (existingRecord == null) {
+          // This is a new bib record, add it to database
+          await storage.addBibRecord(
+            _currentRace!.raceId,
+            index,
+            bibValue,
+          );
+        } else {
+          // This is an existing bib record, update it in database
+          await storage.updateBibRecordValue(
+            _currentRace!.raceId,
+            index,
+            bibValue,
+          );
+        }
+      } catch (e) {
+        Logger.e('Error saving bib to database: $e');
+      }
+    } else {
+      return;
+    }
   }
 
   /// Updates an existing bib record at the specified index.
@@ -764,7 +908,7 @@ class BibNumberDataController extends ChangeNotifier {
   }
 
   /// Removes a bib record at the specified index.
-  void removeBibRecord(int index) {
+  Future<void> removeBibRecord(int index) async {
     if (index < 0 || index >= _bibRecords.length) return;
 
     // Ensure collections are in sync before removing
@@ -780,6 +924,17 @@ class BibNumberDataController extends ChangeNotifier {
 
     focusNodes[index].dispose();
     focusNodes.removeAt(index);
+
+    // Remove from database if there's a current race
+    if (_currentRace != null) {
+      try {
+        await storage.removeBibRecord(_currentRace!.raceId, index);
+      } catch (e) {
+        Logger.e('Failed to remove bib record from database: $e');
+      }
+    } else {
+      return;
+    }
 
     notifyListeners();
   }
@@ -799,6 +954,65 @@ class BibNumberDataController extends ChangeNotifier {
     focusNodes.clear();
 
     notifyListeners();
+  }
+
+  /// Sets the current race
+  void setCurrentRace(RaceRecord? race) {
+    _currentRace = race;
+    notifyListeners();
+  }
+
+  /// Sets the race stopped state
+  void setRaceStopped(bool stopped) {
+    _raceStopped = stopped;
+
+    notifyListeners();
+  }
+
+  /// Saves all current bib records to database
+  Future<void> saveBibRecordsToDatabase(int raceId) async {
+    try {
+      final dbBibRecords = <db_models.BibRecord>[];
+      final dbRunners = <db_models.Runner>[];
+      int bibId = 0;
+
+      for (final record in _bibRecords) {
+        if (record.bib.isNotEmpty) {
+          // Save bib record
+          dbBibRecords.add(db_models.BibRecord(
+            raceId: raceId,
+            bibId: bibId++,
+            bibNumber: record.bib,
+            createdAt: DateTime.now(),
+          ));
+
+          // Save runner data if we have it
+          if ((record.name?.isNotEmpty ?? false) ||
+              (record.teamAbbreviation?.isNotEmpty ?? false) ||
+              (record.grade?.isNotEmpty ?? false)) {
+            dbRunners.add(db_models.Runner(
+              raceId: raceId,
+              bibNumber: record.bib,
+              name: (record.name?.isNotEmpty ?? false) ? record.name : null,
+              teamAbbreviation: (record.teamAbbreviation?.isNotEmpty ?? false)
+                  ? record.teamAbbreviation
+                  : null,
+              grade: (record.grade?.isNotEmpty ?? false) ? record.grade : null,
+              teamColor: record.teamColor,
+              createdAt: DateTime.now(),
+            ));
+          }
+        }
+      }
+
+      final storage = AssistantStorageService.instance;
+      await storage.saveBibRecords(raceId, dbBibRecords);
+      if (dbRunners.isNotEmpty) {
+        await storage.saveRunners(raceId, dbRunners);
+      }
+    } catch (e) {
+      Logger.e('Failed to save bib records: $e');
+    }
   }
 
   /// Restores the focus abilities for all focus nodes
@@ -926,7 +1140,7 @@ class BibNumberDataController extends ChangeNotifier {
         node.dispose();
       } catch (e) {
         // Node may already be disposed, ignore the error
-        Logger.d('Warning: Error disposing focus node: $e');
+        Logger.e('Warning: Error disposing focus node: $e');
       }
     }
 
@@ -936,7 +1150,7 @@ class BibNumberDataController extends ChangeNotifier {
         controller.dispose();
       } catch (e) {
         // Controller may already be disposed, ignore the error
-        Logger.d('Warning: Error disposing text controller: $e');
+        Logger.e('Warning: Error disposing text controller: $e');
       }
     }
 

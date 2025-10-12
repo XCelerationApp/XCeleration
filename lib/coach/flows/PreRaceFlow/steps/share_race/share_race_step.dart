@@ -1,16 +1,16 @@
 import 'package:xceleration/coach/flows/model/flow_model.dart';
 import '../../../../../core/services/device_connection_service.dart';
-import 'widgets/share_results_widget.dart';
+import 'widgets/share_race_widget.dart';
 
 /// A FlowStep implementation for the share runners step in the pre-race flow
-class ShareRunnersStep extends FlowStep {
+class ShareRaceStep extends FlowStep {
   final DevicesManager devices;
-  ShareRunnersStep({required this.devices})
+  ShareRaceStep({required this.devices})
       : super(
-          title: 'Share Runners',
+          title: 'Share Race',
           description:
-              'Share the runners with the bib recorders phone before starting the race.',
-          content: ShareResultsWidget(devices: devices),
+              'Share the race results with your assistants before starting the race.',
+          content: ShareRaceWidget(devices: devices),
           canProceed: () => true,
         );
 }

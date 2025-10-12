@@ -58,7 +58,7 @@ class MergeConflictsController with ChangeNotifier {
     consolidateConfirmedTimes();
   }
 
-  Future<void> removeExtraTime(String chunkId, int recordIndex) async {
+  Future<void> removeExtraTime(int chunkId, int recordIndex) async {
     final chunkIndex = timingChunks.indexWhere((c) => c.id == chunkId);
     if (chunkIndex == -1) {
       return;
@@ -374,7 +374,7 @@ class MergeConflictsController with ChangeNotifier {
     final hasAnyConflicts = consecutiveChunks.any((chunk) => chunk.hasConflict);
 
     return TimingChunk(
-      id: 'merged-${consecutiveChunks.map((c) => c.id).join('-')}',
+      id: -1,
       conflictRecord: hasAnyConflicts
           ? TimingDatum(
               time: consecutiveChunks.last.conflictRecord!.time,
@@ -390,7 +390,7 @@ class MergeConflictsController with ChangeNotifier {
       return null;
     }
     return TimingChunk(
-        id: 'resolved-${DateTime.now().millisecondsSinceEpoch}',
+        id: -1,
         timingData: times.map((time) => TimingDatum(time: time)).toList(),
         conflictRecord: TimingDatum(
             time: times.last,

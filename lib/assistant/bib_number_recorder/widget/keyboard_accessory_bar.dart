@@ -16,7 +16,7 @@ class KeyboardAccessoryBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!controller.isRecording ||
+    if (controller.raceStopped ||
         !(Platform.isIOS || Platform.isAndroid) ||
         !controller.isKeyboardVisible ||
         controller.bibRecords.isEmpty) {

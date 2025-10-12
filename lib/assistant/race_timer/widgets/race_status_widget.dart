@@ -3,9 +3,9 @@ import '../../../core/theme/app_colors.dart';
 import '../controller/timing_controller.dart';
 import '../../../core/components/race_components.dart';
 
-class RaceInfoHeaderWidget extends StatelessWidget {
+class RaceStatusWidget extends StatelessWidget {
   final TimingController controller;
-  const RaceInfoHeaderWidget({
+  const RaceStatusWidget({
     super.key,
     required this.controller,
   });

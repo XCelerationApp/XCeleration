@@ -32,15 +32,22 @@ class RaceControlsWidget extends StatelessWidget {
     final buttonText = controller.raceStopped == false
         ? 'Stop'
         : (controller.startTime != null ? 'Cont.' : 'Start');
-    final buttonColor = controller.raceStopped ? Colors.green : Colors.red;
+    final buttonColor = controller.currentRace == null
+        ? const Color.fromARGB(255, 201, 201, 201)
+        : controller.raceStopped
+            ? Colors.green
+            : Colors.red;
 
     return CircularButton(
       text: buttonText,
       color: buttonColor,
       fontSize: controller.raceStopped ? 16 : 18,
       fontWeight: FontWeight.w600,
-      onPressed:
-          controller.raceStopped ? controller.startRace : controller.stopRace,
+      onPressed: controller.currentRace == null
+          ? null
+          : (controller.raceStopped
+              ? controller.startRace
+              : controller.stopRace),
     );
   }
 

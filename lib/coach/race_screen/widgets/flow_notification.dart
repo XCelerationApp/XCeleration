@@ -18,7 +18,7 @@ class FlowNotification extends StatelessWidget {
   // Get appropriate button text based on the flow state
   String _getButtonText() {
     if (flowState == Race.FLOW_SETUP_COMPLETED) {
-      return 'Share Runner Data';
+      return 'Share Race';
     } else if (flowState == Race.FLOW_PRE_RACE_COMPLETED) {
       return 'Process Results';
     } else {
@@ -35,7 +35,7 @@ class FlowNotification extends StatelessWidget {
       case Race.FLOW_SETUP_COMPLETED:
         return 'Ready to Share';
       case Race.FLOW_PRE_RACE:
-        return 'Sharing Runners';
+        return 'Sharing Race';
       case Race.FLOW_PRE_RACE_COMPLETED:
         return 'Ready for Results';
       case Race.FLOW_POST_RACE:
