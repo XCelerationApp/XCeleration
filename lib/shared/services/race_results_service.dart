@@ -262,7 +262,8 @@ class RaceResultsData {
     final race = await masterRace.race;
     final raceName = race.raceName;
     final raceDate = race.raceDate;
-    final shortDate = raceDate != null ? '${raceDate.month}/${raceDate.day}' : '';
+    final shortDate =
+        raceDate != null ? '${raceDate.month}/${raceDate.day}' : '';
     if (raceName == null) return '$shortDate Race Results';
     return '$raceName $shortDate Results';
   }
