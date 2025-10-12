@@ -11,6 +11,7 @@ class RaceHeaderWidget extends StatelessWidget {
   final VoidCallback? onLoadRace;
   final VoidCallback? onShowOtherRaces;
   final VoidCallback? onDeleteRace;
+  final VoidCallback? onShowRunners;
 
   const RaceHeaderWidget({
     super.key,
@@ -19,6 +20,7 @@ class RaceHeaderWidget extends StatelessWidget {
     this.onLoadRace,
     this.onShowOtherRaces,
     this.onDeleteRace,
+    this.onShowRunners,
   });
 
   @override
@@ -159,6 +161,22 @@ class RaceHeaderWidget extends StatelessWidget {
                     );
                   }
 
+                  // Show "See Runners" for bib recorder role
+                  if (role == DeviceName.bibRecorder && onShowRunners != null) {
+                    items.add(
+                      const PopupMenuItem<String>(
+                        value: 'see_runners',
+                        child: Row(
+                          children: [
+                            Icon(Icons.people_outline, size: 18),
+                            SizedBox(width: 8),
+                            Text('See Runners'),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+
                   // Always show "Load New Race"
                   if (onLoadRace != null) {
                     items.add(
@@ -207,6 +225,9 @@ class RaceHeaderWidget extends StatelessWidget {
     switch (value) {
       case 'load_other':
         onShowOtherRaces?.call();
+        break;
+      case 'see_runners':
+        onShowRunners?.call();
         break;
       case 'load_new':
         onLoadRace?.call();
