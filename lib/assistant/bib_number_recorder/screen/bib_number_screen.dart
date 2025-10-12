@@ -68,6 +68,10 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                           onShowOtherRaces: () =>
                               _controller.showOtherRaces(context),
                           onDeleteRace: () => _controller.deleteCurrentRace(),
+                          onShowRunners: _controller.currentRace != null
+                              ? () =>
+                                  _controller.showRunnersLoadedSheet(context)
+                              : null,
                         ),
                         const SizedBox(height: 8),
                         _buildRaceStatusWidget(),
