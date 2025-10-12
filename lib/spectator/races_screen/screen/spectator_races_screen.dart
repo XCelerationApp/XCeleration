@@ -149,8 +149,7 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
         await SpectatorStorageService.instance.deleteRace(raceId);
         if (mounted) {
           DialogUtils.showMessageDialog(context,
-              title: 'Race deleted', message: 'Race deleted'
-            );
+              title: 'Race deleted', message: 'Race deleted');
           _loadSavedRaces();
         }
       } catch (e) {

@@ -48,8 +48,7 @@ class AuthService {
         body: '{}',
       );
       if (resp.statusCode < 200 || resp.statusCode >= 300) {
-        throw Exception(
-            'HTTP ${resp.statusCode}: ${resp.body}');
+        throw Exception('HTTP ${resp.statusCode}: ${resp.body}');
       }
       Logger.d('delete-user function succeeded');
     } catch (e) {
