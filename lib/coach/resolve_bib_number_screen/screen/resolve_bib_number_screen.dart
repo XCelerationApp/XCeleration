@@ -15,6 +15,7 @@ class ResolveBibNumberScreen extends StatefulWidget {
   final int raceId;
   final RaceRunner raceRunner;
   final Function(RaceRunner) onComplete;
+  final Future<void> Function(RaceRunner) onAssignOriginalRaceRunner;
 
   const ResolveBibNumberScreen({
     super.key,
@@ -22,6 +23,7 @@ class ResolveBibNumberScreen extends StatefulWidget {
     required this.raceId,
     required this.raceRunner,
     required this.onComplete,
+    required this.onAssignOriginalRaceRunner,
   });
 
   @override
@@ -32,6 +34,7 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
   late ResolveBibNumberController _controller;
   List<Team> _teams = [];
   bool _isLoadingTeams = true;
+  bool _isUnknownConflict = true;
 
   @override
   void initState() {
@@ -59,13 +62,13 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
   void _setupFormForConflictType() {
     // Check if this is an unknown bib conflict (bib set, other fields empty)
     // or duplicate bib conflict (all fields populated)
-    final isUnknownConflict = widget.raceRunner.runner.name == null ||
+    _isUnknownConflict = widget.raceRunner.runner.name == null ||
         widget.raceRunner.runner.name!.isEmpty ||
         widget.raceRunner.runner.grade == null ||
         widget.raceRunner.team.name == null ||
         widget.raceRunner.team.name!.isEmpty;
 
-    if (isUnknownConflict) {
+    if (_isUnknownConflict) {
       // For unknown conflicts, prefill the bib number
       _controller.bibController.text = widget.raceRunner.runner.bibNumber ?? '';
     } else {
@@ -189,8 +192,10 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                'Unrecognized Bib Number',
+                              Text(
+                                _isUnknownConflict
+                                    ? 'Unrecognized Bib Number'
+                                    : 'Duplicate Bib Number',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
@@ -198,7 +203,9 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'We could not identify this runner with bib number ${_controller.raceRunner.runner.bibNumber}.\nPlease choose an existing runner or create a new one.',
+                                _isUnknownConflict
+                                    ? 'We could not identify this runner with bib number ${_controller.raceRunner.runner.bibNumber}.\nPlease choose an existing runner or create a new one.'
+                                    : 'This bib number is already assigned to another runner.\nPlease choose an existing runner or create a new one.',
                                 style: const TextStyle(fontSize: 14),
                               ),
                             ],
@@ -208,7 +215,18 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 18),
+                ActionButton(
+                  onPressed: () async {
+                    await widget.onAssignOriginalRaceRunner(widget.raceRunner);
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                    }
+                  },
+                  text: 'This is the original runner',
+                  isPrimary: false,
+                ),
+                const SizedBox(height: 18),
                 Row(
                   children: [
                     Flexible(
@@ -216,7 +234,8 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
                       child: SharedActionButton(
                         text: 'Choose Existing Runner',
                         icon: Icons.person_search,
-                        isSelected: !_controller.showCreateNew,
+                        // isSelected: !_controller.showCreateNew,
+                        isPrimary: !_controller.showCreateNew,
                         onPressed: () {
                           setState(() {
                             _controller.showCreateNew = false;
@@ -232,7 +251,8 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
                       child: SharedActionButton(
                         text: 'Create New Runner',
                         icon: Icons.person_add,
-                        isSelected: _controller.showCreateNew,
+                        // isSelected: _controller.showCreateNew,
+                        isPrimary: _controller.showCreateNew,
                         onPressed: () {
                           setState(() {
                             _controller.showCreateNew = true;

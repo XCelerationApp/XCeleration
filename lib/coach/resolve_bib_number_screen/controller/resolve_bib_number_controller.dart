@@ -175,6 +175,8 @@ class ResolveBibNumberController with ChangeNotifier {
 
     // Check if context is still mounted after the async operation
     if (!context.mounted || !confirmed) return;
+    Logger.d(
+        'Assigning existing race runner: $raceRunner to raceRunner: ${raceRunner.toString()}');
 
     onComplete(raceRunner);
   }
