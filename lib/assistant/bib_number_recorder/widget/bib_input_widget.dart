@@ -107,6 +107,7 @@ class BibInputWidget extends StatelessWidget {
   }
 
   Widget _buildRunnerInfo() {
+    final runnerName = record.name != null && record.name!.length > 12 ? '${record.name?.substring(0, 12)}..' : record.name;
     if (record.flags.notInDatabase == false && record.bib.isNotEmpty) {
       return Row(
         mainAxisSize: MainAxisSize.min,
@@ -123,7 +124,7 @@ class BibInputWidget extends StatelessWidget {
           ),
           Flexible(
             child: Text(
-              '${record.name}, ${record.teamAbbreviation}',
+              '$runnerName, ${record.teamAbbreviation}',
               textAlign: TextAlign.center,
               style: AppTypography.smallBodyRegular,
               overflow: TextOverflow.ellipsis,
