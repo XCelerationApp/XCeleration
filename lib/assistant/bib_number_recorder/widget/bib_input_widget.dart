@@ -107,7 +107,9 @@ class BibInputWidget extends StatelessWidget {
   }
 
   Widget _buildRunnerInfo() {
-    final runnerName = record.name != null && record.name!.length > 12 ? '${record.name?.substring(0, 12)}..' : record.name;
+    final runnerName = record.name != null && record.name!.length > 12
+        ? '${record.name?.substring(0, 12)}..'
+        : record.name;
     if (record.flags.notInDatabase == false && record.bib.isNotEmpty) {
       return Row(
         mainAxisSize: MainAxisSize.min,
