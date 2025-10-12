@@ -30,6 +30,7 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
   late List<dynamic> _raceRunners;
   List<RaceRunner>? _unknownRaceRunners;
   List<RaceRunner>? _duplicateRaceRunners;
+  List<int>? _duplicateBibNumberPlaces;
   List<RaceRunner>? _errorRaceRunners;
 
   @override
@@ -46,14 +47,17 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
     try {
       final unknownRunners = <RaceRunner>[];
       final duplicateRunners = <RaceRunner>[];
+      final duplicateBibNumberPlaces = <int>[];
 
       // Find duplicate bibs within the resolved runners
       final seenBibs = <String>{};
-      for (final item in _raceRunners) {
+      for (int i = 0; i < _raceRunners.length; i++) {
+        final item = _raceRunners[i];
         if (item is RaceRunner) {
           final bibNumber = item.runner.bibNumber!;
           if (seenBibs.contains(bibNumber)) {
             duplicateRunners.add(item);
+            duplicateBibNumberPlaces.add(i);
           } else {
             seenBibs.add(bibNumber);
           }
@@ -61,12 +65,14 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
       }
 
       // Collect runners for bib numbers that need resolution
-      for (final bibNumber in _raceRunners) {
+      for (int i = 0; i < _raceRunners.length; i++) {
+        final bibNumber = _raceRunners[i];
         if (bibNumber is int) {
           if (seenBibs.contains(bibNumber.toString())) {
             final raceRunner = await widget.masterRace
                 .getRaceRunnerByBib(bibNumber.toString());
             duplicateRunners.add(raceRunner!);
+            duplicateBibNumberPlaces.add(i);
           } else {
             // Create a placeholder runner for display purposes
             final placeholderRunner = RaceRunner(
@@ -83,6 +89,7 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
         setState(() {
           _unknownRaceRunners = unknownRunners;
           _duplicateRaceRunners = duplicateRunners;
+          _duplicateBibNumberPlaces = duplicateBibNumberPlaces;
           _errorRaceRunners = [...unknownRunners, ...duplicateRunners];
         });
       }
@@ -91,6 +98,7 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
         setState(() {
           _unknownRaceRunners = [];
           _duplicateRaceRunners = [];
+          _duplicateBibNumberPlaces = [];
           _errorRaceRunners = [];
         });
       }
@@ -231,21 +239,16 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
                     position++;
                   }
                 }
-                Logger.d('Position: $position');
                 setState(() {
                   for (int i = 0; i < _raceRunners.length; i++) {
                     final item = _raceRunners[i];
                     if (item is RaceRunner &&
                         item.runner.bibNumber == record.runner.bibNumber) {
                       // Convert other RaceRunners with same bib to unresolved integers
-                      Logger.d(
-                          'Item: $item at index $i is being converted to integer');
                       _raceRunners[i] = int.parse(item.runner.bibNumber!);
                     } else if (item is int &&
                         item.toString() == record.runner.bibNumber) {
                       if (position == 0) {
-                        Logger.d(
-                            'Item: $item at index $i is being replaced with record');
                         _raceRunners[i] = record;
                       } else {
                         position--;
@@ -259,7 +262,6 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
           );
 
           if (updatedRaceRunner != null) {
-            Logger.d('Updated Race Runner: $updatedRaceRunner');
             setState(() {
               // Handle both unknown bib conflicts (integers) and duplicate bib conflicts (RaceRunner objects)
               int index = -1;
@@ -290,6 +292,12 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
           padding: const EdgeInsets.all(16.0),
           child: Row(
             children: [
+              if (_duplicateRaceRunners!.contains(raceRunner)) ...[
+                Text('${_duplicateBibNumberPlaces![index]}.', style: AppTypography.bodyRegular.copyWith(
+                  color: AppColors.mediumColor,
+                ),),
+                const SizedBox(width: 8),
+              ],
               Text(
                 '#${raceRunner.runner.bibNumber}',
                 style: TextStyle(
@@ -303,6 +311,12 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (_duplicateRaceRunners!.contains(raceRunner)) ...[
+                      Text('${raceRunner.runner.name!}.', style: AppTypography.bodyRegular.copyWith(
+                        color: AppColors.mediumColor,
+                      ),),
+                      const SizedBox(height: 8),
+                    ],
                     Text(
                       _duplicateRaceRunners!.contains(raceRunner)
                           ? 'Duplicate Bib Number'
