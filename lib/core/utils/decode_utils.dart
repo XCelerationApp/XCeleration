@@ -78,7 +78,8 @@ class ConflictInfo {
 class TimingDecodeUtils {
   /// Decodes a string of race times into TimingData
   static Future<List<TimingDatum>> decodeEncodedTimingData(
-      String encodedTimingData, {bool isFromDatabase = false}) async {
+      String encodedTimingData,
+      {bool isFromDatabase = false}) async {
     if (encodedTimingData.isEmpty) {
       return [];
     }

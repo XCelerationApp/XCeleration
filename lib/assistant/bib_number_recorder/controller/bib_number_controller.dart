@@ -231,7 +231,9 @@ class BibNumberController extends BibNumberDataController {
 
     // Show runners loaded sheet if there are runners
     if (runners.isNotEmpty && context.mounted) {
-      showRunnersLoadedSheet(context);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        showRunnersLoadedSheet(context);
+      });
     }
   }
 
