@@ -33,8 +33,11 @@ class RaceShareDecoder {
     }
 
     final raceMap = map['race'] as Map<String, dynamic>;
+    final name = raceMap['name']?.toString() ?? 'Race';
+    final raceDate = raceMap['race_date'] != null ? DateTime.parse(raceMap['race_date']) : null;
+    final shortDate = raceDate != null ? '${raceDate.month}/${raceDate.day}' : '';
     final title =
-        '${(raceMap['name']?.toString() ?? 'Race').isNotEmpty ? raceMap['name'].toString() : 'Race'} Results';
+        '${name.isNotEmpty ? name : 'Race'}${shortDate.isNotEmpty ? ' $shortDate' : ''} Results';
     final double? distance = (raceMap['distance'] as num?)?.toDouble();
     final String? distanceUnit = raceMap['distance_unit']?.toString();
 

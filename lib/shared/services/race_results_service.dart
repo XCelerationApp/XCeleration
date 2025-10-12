@@ -154,23 +154,13 @@ class RaceResultsService {
   static Future<RaceResultsData> calculateCompleteRaceResults(
       MasterRace masterRace) async {
     Logger.d('RaceResultsService: Starting calculateCompleteRaceResults');
-    // Get race name from database
-    String resultsTitle = 'Race Results';
-    double? raceDistance;
-    String? distanceUnit;
-    try {
-      final race = await masterRace.race;
-      final raceName = race.raceName!;
-      resultsTitle = '${raceName.isNotEmpty ? raceName : 'Race'} Results';
-      Logger.d('RaceResultsService: Got race name: $resultsTitle');
-      raceDistance = race.distance;
-      distanceUnit = race.distanceUnit;
-    } catch (e) {
-      Logger.d('RaceResultsService: Error getting race name: $e');
-      resultsTitle = 'Race Results';
-    }
 
-    Logger.d('RaceResultsService: Fetching race results from database');
+    final resultsTitle = await RaceResultsData.getResultsTitle(masterRace);
+
+    final race = await masterRace.race;
+    final double? raceDistance = race.distance;
+    final String? distanceUnit = race.distanceUnit;
+
     // Get race results from database
     final List<RaceResult> results = await masterRace.results;
     Logger.d('RaceResultsService: Got ${results.length} race results');
@@ -267,4 +257,13 @@ class RaceResultsData {
     required this.overallTeamResults,
     required this.headToHeadTeamResults,
   });
+
+  static Future<String> getResultsTitle(MasterRace masterRace) async {
+    final race = await masterRace.race;
+    final raceName = race.raceName;
+    final raceDate = race.raceDate;
+    final shortDate = raceDate != null ? '${raceDate.month}/${raceDate.day}' : '';
+    if (raceName == null) return '$shortDate Race Results';
+    return '$raceName $shortDate Results';
+  }
 }
