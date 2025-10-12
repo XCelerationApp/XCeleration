@@ -123,9 +123,14 @@ class RaceResultsService {
 
   /// Sort teams by score and assign places
   static void sortAndPlaceTeams(List<TeamRecord> teams) {
-    // Recompute places across all teams' top seven (like head-to-head)
+    // Recompute places using ONLY teams with at least 5 runners
+    final List<TeamRecord> eligibleTeams = [
+      for (final team in teams)
+        if (team.runners.length >= 5) team,
+    ];
+
     final List<RaceResult> filteredRunners = [
-      for (final team in teams) ...team.topSeven,
+      for (final team in eligibleTeams) ...team.topSeven,
     ];
 
     _sortRunners(filteredRunners);
@@ -134,20 +139,37 @@ class RaceResultsService {
     // Update stats per team and handle incomplete teams
     for (final team in teams) {
       team.updateStats();
-      if (team.topSeven.length < 5) {
+      if (team.runners.length < 5) {
         team.score = 0;
       }
     }
 
-    teams.sort((a, b) {
-      if (a.score == 0 && b.score == 0) return 0;
-      if (a.score == 0) return 1;
-      if (b.score == 0) return -1;
-      return a.score - b.score;
-    });
-    for (int i = 0; i < teams.length; i++) {
-      teams[i].place = i + 1;
+    // Place only eligible teams by score; incomplete teams go to the end with N/A
+    final List<TeamRecord> incompleteTeams = [
+      for (final team in teams)
+        if (team.runners.length < 5) team,
+    ];
+    final List<TeamRecord> completeTeams = [
+      for (final team in teams)
+        if (team.runners.length >= 5) team,
+    ];
+
+    completeTeams.sort((a, b) => a.score.compareTo(b.score));
+
+    // Assign places to complete teams first
+    for (int i = 0; i < completeTeams.length; i++) {
+      completeTeams[i].place = i + 1;
     }
+
+    // Incomplete teams are placed after complete teams; score already set to 0 to show N/A in UI
+    for (final team in incompleteTeams) {
+      team.place = (completeTeams.length) + incompleteTeams.indexOf(team) + 1;
+    }
+
+    // Rebuild original list ordering to reflect new placements
+    teams
+      ..clear()
+      ..addAll([...completeTeams, ...incompleteTeams]);
   }
 
   /// Complete race results calculation - main orchestrator function
