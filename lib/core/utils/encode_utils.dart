@@ -6,6 +6,13 @@ import '../../shared/models/database/master_race.dart';
 import 'dart:convert';
 import 'dart:io';
 
+/// Compresses and encodes a string using gzip+base64
+String compressAndEncode(String input) {
+  final bytes = utf8.encode(input);
+  final compressed = gzip.encode(bytes);
+  return base64Encode(compressed);
+}
+
 class RaceEncodeUtils {
   /// Encodes a race into a string format
   static Future<String> getEncodedRaceData(MasterRace masterRace) async {
@@ -40,7 +47,7 @@ class BibEncodeUtils {
   }
 
   static Future<String> getEncodedBibData(List<BibDatum> bibData) async {
-    // Build compact JSON similar to spectator pattern: teams list + rows
+    // Build compact JSON: teams list + rows
     final Set<String> teamsSet = {};
     for (final b in bibData) {
       if (b.teamAbbreviation != null && b.teamAbbreviation!.isNotEmpty) {
@@ -69,16 +76,12 @@ class BibEncodeUtils {
     }
 
     final payload = <String, dynamic>{
-      'type': 'BIB_SHARE_V2',
       'teams': teams,
       'r': rows,
     };
 
     final json = jsonEncode(payload);
-    // Wrap with gzip + base64 for transport, mirroring spectator approach
-    final bytes = utf8.encode(json);
-    final gz = gzip.encode(bytes);
-    return base64Encode(gz);
+    return compressAndEncode(json);
   }
 }
 
@@ -95,9 +98,6 @@ class TimingEncodeUtils {
     final raw = encodedTimingData
         .where((encodedTimingDatum) => encodedTimingDatum.isNotEmpty)
         .join(',');
-    // Wrap with gzip + base64 for transport to align with spectator encoding
-    final bytes = utf8.encode(raw);
-    final gz = gzip.encode(bytes);
-    return base64Encode(gz);
+    return compressAndEncode(raw);
   }
 }

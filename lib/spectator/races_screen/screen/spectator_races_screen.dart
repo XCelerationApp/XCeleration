@@ -7,7 +7,7 @@ import 'package:xceleration/core/services/tutorial_manager.dart';
 import 'package:xceleration/spectator/receive_race/screen/receive_race_screen.dart';
 import 'package:xceleration/core/utils/sheet_utils.dart';
 import 'package:xceleration/spectator/services/spectator_storage_service.dart';
-import 'package:xceleration/spectator/receive_race/services/race_share_decoder.dart';
+import 'package:xceleration/core/utils/race_share_decoder.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/core/components/dialog_utils.dart';
 import 'package:xceleration/spectator/races_screen/widgets/spectator_race_card.dart';
@@ -189,7 +189,7 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
                                     size: 48, color: Colors.black54),
                                 SizedBox(height: 12),
                                 Text(
-                                  'No races saved yet',
+                                  'No races received yet',
                                   style: TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.w600),
@@ -210,25 +210,27 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
                           onRefresh: _loadSavedRaces,
                           child: SingleChildScrollView(
                             physics: const AlwaysScrollableScrollPhysics(),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                FlowSectionHeader(title: 'Received Races'),
-                                ..._savedRaces.map((race) {
-                                  final raceName =
-                                      race['race_name'] as String? ??
-                                          'Unnamed Race';
-                                  final raceId = race['id'] as int;
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 16.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  ..._savedRaces.map((race) {
+                                    final raceName =
+                                        race['race_name'] as String? ??
+                                            'Unnamed Race';
+                                    final raceId = race['id'] as int;
 
-                                  return SpectatorRaceCard(
-                                    race: race,
-                                    onTap: () => _viewRace(race),
-                                    onShare: () => _shareRace(race),
-                                    onDelete: () =>
-                                        _deleteRace(raceId, raceName),
-                                  );
-                                }),
-                              ],
+                                    return SpectatorRaceCard(
+                                      race: race,
+                                      onTap: () => _viewRace(race),
+                                      onShare: () => _shareRace(race),
+                                      onDelete: () =>
+                                          _deleteRace(raceId, raceName),
+                                    );
+                                  }),
+                                ],
+                              ),
                             ),
                           ),
                         ),
