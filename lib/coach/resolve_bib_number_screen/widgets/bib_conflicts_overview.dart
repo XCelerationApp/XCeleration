@@ -269,8 +269,7 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
                 // For duplicates, find any RaceRunner with the same bib number (since we're replacing the entire duplicate)
                 // Note: This finds the first RaceRunner with this bib number - there may be multiple duplicates
                 index = _raceRunners.indexWhere((r) =>
-                    r is int &&
-                    r.toString() == raceRunner.runner.bibNumber);
+                    r is int && r.toString() == raceRunner.runner.bibNumber);
               } else {
                 // This is an unknown bib conflict - find the integer in the list
                 final conflictBib =
