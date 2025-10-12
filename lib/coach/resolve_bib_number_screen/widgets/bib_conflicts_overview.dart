@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/core/utils/sheet_utils.dart';
 import 'package:xceleration/shared/models/database/master_race.dart';
 import 'package:xceleration/shared/models/database/race_runner.dart';
@@ -35,27 +36,16 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
   void initState() {
     super.initState();
     _raceRunners = widget.raceRunners;
+    Logger.d('Loading race runners');
 
     _getErrorRaceRunners();
   }
 
   Future<void> _getErrorRaceRunners() async {
+    Logger.d('Race Runners: $_raceRunners');
     try {
       final unknownRunners = <RaceRunner>[];
       final duplicateRunners = <RaceRunner>[];
-
-      // Collect runners for bib numbers that need resolution
-      for (final item in _raceRunners) {
-        if (item is int) {
-          // Create a placeholder runner for display purposes
-          final placeholderRunner = RaceRunner(
-            raceId: widget.masterRace.raceId,
-            runner: Runner(bibNumber: item.toString()),
-            team: Team(),
-          );
-          unknownRunners.add(placeholderRunner);
-        }
-      }
 
       // Find duplicate bibs within the resolved runners
       final seenBibs = <String>{};
@@ -66,6 +56,25 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
             duplicateRunners.add(item);
           } else {
             seenBibs.add(bibNumber);
+          }
+        }
+      }
+
+      // Collect runners for bib numbers that need resolution
+      for (final bibNumber in _raceRunners) {
+        if (bibNumber is int) {
+          if (seenBibs.contains(bibNumber.toString())) {
+            final raceRunner = await widget.masterRace
+                .getRaceRunnerByBib(bibNumber.toString());
+            duplicateRunners.add(raceRunner!);
+          } else {
+            // Create a placeholder runner for display purposes
+            final placeholderRunner = RaceRunner(
+              raceId: widget.masterRace.raceId,
+              runner: Runner(bibNumber: bibNumber.toString()),
+              team: Team(),
+            );
+            unknownRunners.add(placeholderRunner);
           }
         }
       }
@@ -95,6 +104,7 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
       setState(() {
         _raceRunners = widget.raceRunners;
       });
+      _getErrorRaceRunners();
     }
   }
 
@@ -211,10 +221,45 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
               raceId: widget.masterRace.raceId,
               raceRunners: _raceRunners.whereType<RaceRunner>().toList(),
               onComplete: (record) => Navigator.pop(context, record),
+              onAssignOriginalRaceRunner: (record) async {
+                int position = 0;
+                for (final item in _duplicateRaceRunners!) {
+                  if (item == record) {
+                    break;
+                  }
+                  if (item.runner.bibNumber == record.runner.bibNumber) {
+                    position++;
+                  }
+                }
+                Logger.d('Position: $position');
+                setState(() {
+                  for (int i = 0; i < _raceRunners.length; i++) {
+                    final item = _raceRunners[i];
+                    if (item is RaceRunner &&
+                        item.runner.bibNumber == record.runner.bibNumber) {
+                      // Convert other RaceRunners with same bib to unresolved integers
+                      Logger.d(
+                          'Item: $item at index $i is being converted to integer');
+                      _raceRunners[i] = int.parse(item.runner.bibNumber!);
+                    } else if (item is int &&
+                        item.toString() == record.runner.bibNumber) {
+                      if (position == 0) {
+                        Logger.d(
+                            'Item: $item at index $i is being replaced with record');
+                        _raceRunners[i] = record;
+                      } else {
+                        position--;
+                      }
+                    }
+                  }
+                });
+                await _getErrorRaceRunners();
+              },
             ),
           );
 
           if (updatedRaceRunner != null) {
+            Logger.d('Updated Race Runner: $updatedRaceRunner');
             setState(() {
               // Handle both unknown bib conflicts (integers) and duplicate bib conflicts (RaceRunner objects)
               int index = -1;
@@ -224,8 +269,8 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
                 // For duplicates, find any RaceRunner with the same bib number (since we're replacing the entire duplicate)
                 // Note: This finds the first RaceRunner with this bib number - there may be multiple duplicates
                 index = _raceRunners.indexWhere((r) =>
-                    r is RaceRunner &&
-                    r.runner.bibNumber == raceRunner.runner.bibNumber);
+                    r is int &&
+                    r.toString() == raceRunner.runner.bibNumber);
               } else {
                 // This is an unknown bib conflict - find the integer in the list
                 final conflictBib =
@@ -246,33 +291,12 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
           padding: const EdgeInsets.all(16.0),
           child: Row(
             children: [
-              Hero(
-                tag: 'bib-${raceRunner.runner.bibNumber}',
-                child: Container(
-                  width: 46,
-                  height: 46,
-                  decoration: BoxDecoration(
-                    color: ColorUtils.withOpacity(AppColors.primaryColor, 0.12),
-                    borderRadius: BorderRadius.circular(23),
-                    boxShadow: [
-                      BoxShadow(
-                        color:
-                            ColorUtils.withOpacity(AppColors.primaryColor, 0.1),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Center(
-                    child: Text(
-                      '#${raceRunner.runner.bibNumber}',
-                      style: TextStyle(
-                        color: AppColors.primaryColor,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
+              Text(
+                '#${raceRunner.runner.bibNumber}',
+                style: TextStyle(
+                  color: AppColors.primaryColor,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
                 ),
               ),
               const SizedBox(width: 16),

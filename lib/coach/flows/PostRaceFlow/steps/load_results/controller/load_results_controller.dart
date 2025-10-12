@@ -432,9 +432,11 @@ class LoadResultsController with ChangeNotifier {
       return;
     }
 
-    // Update runner records if a result was returned
-    raceRunners = updatedRaceRunners;
-    await _checkForConflicts();
+    // Update runner records only if a result was returned (conflicts were actually resolved)
+    if (updatedRaceRunners != null) {
+      raceRunners = updatedRaceRunners;
+      await _checkForConflicts();
+    }
 
     // If there are still timing conflicts, open the timing conflicts sheet
     if (hasTimingConflicts &&
