@@ -4,7 +4,6 @@ import '../../../core/theme/typography.dart';
 import '../../../shared/models/database/race.dart';
 import '../controller/race_screen_controller.dart';
 import '../widgets/flow_notification.dart';
-import 'unsaved_changes_bar.dart';
 
 // Simplified color function
 Color _getStatusColor(String flowState) {
@@ -154,8 +153,7 @@ class _RaceHeaderState extends State<RaceHeader> {
             continueAction: () => widget.controller.continueRaceFlow(context),
           ),
 
-        // Unsaved changes bar (below flow status)
-        UnsavedChangesBar(controller: widget.controller),
+        const SizedBox.shrink(),
       ],
     );
   }

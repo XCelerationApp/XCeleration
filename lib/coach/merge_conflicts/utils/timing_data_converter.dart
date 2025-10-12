@@ -84,7 +84,7 @@ class TimingDataConverter {
 class UIChunk {
   final int timingChunkHash;
   final int startingPlace;
-  final String chunkId;
+  final int chunkId;
   final String startTime;
   final String endTime;
   final Conflict conflict;
@@ -107,7 +107,7 @@ class UIChunk {
     required List<TimingDatum> originalTimingData,
     required int startingPlace,
     MergeConflictsController? controller,
-    required String chunkId,
+    required int chunkId,
   }) {
     if (times.isEmpty) {
       throw Exception('Times list cannot be empty');

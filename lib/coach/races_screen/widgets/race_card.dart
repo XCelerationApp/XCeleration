@@ -28,7 +28,7 @@ class RaceCard extends StatelessWidget {
     flowStateText = {
           Race.FLOW_SETUP: 'Setting up',
           Race.FLOW_SETUP_COMPLETED: 'Ready to Share',
-          Race.FLOW_PRE_RACE: 'Sharing Runners',
+          Race.FLOW_PRE_RACE: 'Sharing Race',
           Race.FLOW_PRE_RACE_COMPLETED: 'Ready for Results',
           Race.FLOW_POST_RACE: 'Processing Results',
           Race.FLOW_FINISHED: 'Race Complete',

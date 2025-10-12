@@ -25,7 +25,7 @@ export '../../assistant/race_timer/widgets/race_controls_widget.dart';
 export '../../assistant/race_timer/widgets/bottom_controls_widget.dart';
 export '../../assistant/race_timer/widgets/records_list_widget.dart';
 export '../../assistant/race_timer/widgets/record_list_item.dart';
-export '../../assistant/race_timer/widgets/race_info_header_widget.dart';
+export '../../assistant/race_timer/widgets/race_status_widget.dart';
 
 export '../../assistant/bib_number_recorder/widget/bib_input_widget.dart';
 export '../../assistant/bib_number_recorder/widget/bib_list_widget.dart';

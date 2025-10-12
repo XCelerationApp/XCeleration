@@ -38,8 +38,6 @@ enum DeviceName {
 enum DeviceType {
   advertiserDevice,
   browserDevice,
-  assistantDevice,
-  coachDevice,
 }
 
 enum RecordType {
@@ -76,12 +74,6 @@ enum RunnerRecordFlags {
   duplicateBibNumber,
   notInDatabase,
   lowConfidenceScore,
-}
-
-/// Represents the different roles in the application
-enum Role {
-  coach,
-  assistant,
 }
 
 /// Event types for the event bus system

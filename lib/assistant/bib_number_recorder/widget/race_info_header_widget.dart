@@ -13,7 +13,7 @@ class RaceInfoHeaderWidget extends StatelessWidget {
     String status;
     Color statusColor;
 
-    if (controller.isRecording) {
+    if (!controller.raceStopped) {
       status = 'In progress';
       statusColor = AppColors.primaryColor;
     } else if (controller.bibRecords.isNotEmpty) {
@@ -30,10 +30,10 @@ class RaceInfoHeaderWidget extends StatelessWidget {
       runnerCount: controller.runners.length,
       recordCount: controller.countNonEmptyBibNumbers(),
       recordLabel: 'Bibs',
-      onRunnersTap: !controller.isRecording
+      onRunnersTap: controller.raceStopped
           ? () => controller.showRunnersLoadedSheet(context)
           : null,
-      showDropdown: !controller.isRecording,
+      showDropdown: controller.raceStopped,
     );
   }
 }

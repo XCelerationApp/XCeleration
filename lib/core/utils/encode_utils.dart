@@ -1,9 +1,27 @@
+import 'package:xceleration/assistant/shared/models/race_record.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/shared/models/timing_records/bib_datum.dart';
 import 'package:xceleration/shared/models/timing_records/timing_datum.dart';
 import '../../shared/models/database/master_race.dart';
 import 'dart:convert';
 import 'dart:io';
+
+class RaceEncodeUtils {
+  /// Encodes a race into a string format
+  static Future<String> getEncodedRaceData(MasterRace masterRace) async {
+    final race = await masterRace.race;
+    final raceId = race.raceId!;
+    final name = race.raceName!;
+    final date = race.raceDate!;
+    final raceRecord = RaceRecord(
+      raceId: raceId,
+      date: date,
+      name: name,
+      type: 'race', // Default type for race records
+    );
+    return raceRecord.encode();
+  }
+}
 
 class BibEncodeUtils {
   /// Encodes a list of bib data into a string format

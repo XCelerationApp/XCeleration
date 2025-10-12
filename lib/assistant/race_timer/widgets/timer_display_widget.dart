@@ -17,7 +17,7 @@ class TimerDisplayWidget extends StatelessWidget {
       stream: Stream.periodic(const Duration(milliseconds: 10)),
       builder: (context, _) {
         final elapsed = _calculateElapsedTime(
-            controller.startTime, controller.endTime, controller);
+            controller.startTime, controller.raceDuration, controller);
         return Container(
           alignment: Alignment.centerLeft,
           padding: const EdgeInsets.symmetric(vertical: 8),
@@ -39,9 +39,9 @@ class TimerDisplayWidget extends StatelessWidget {
   }
 
   Duration _calculateElapsedTime(
-      DateTime? startTime, Duration? endTime, TimingData timingData) {
+      DateTime? startTime, Duration? raceDuration, TimingData timingData) {
     if (timingData.raceStopped || startTime == null) {
-      return endTime ?? Duration.zero;
+      return raceDuration ?? Duration.zero;
     }
     return DateTime.now().difference(startTime);
   }

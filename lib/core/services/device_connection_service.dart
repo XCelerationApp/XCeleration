@@ -89,20 +89,30 @@ class DevicesManager {
 
       if (_currentDeviceName == DeviceName.coach && !_toSpectator) {
         _coach = ConnectedDevice(DeviceName.coach);
-        _bibRecorder = ConnectedDevice(DeviceName.bibRecorder, data: _data);
+
+        final List<String> parts = _data!.split('  ');
+        late String bibData;
+        late String timerData;
+        if (parts.length != 2) {
+          bibData = '';
+          timerData = '';
+        } else {
+          bibData = parts[0];
+          timerData = parts[1];
+        }
+        _bibRecorder = ConnectedDevice(DeviceName.bibRecorder, data: bibData);
+        _raceTimer = ConnectedDevice(DeviceName.raceTimer, data: timerData);
       } else if (_currentDeviceName == DeviceName.coach && _toSpectator) {
         _coach = ConnectedDevice(DeviceName.coach);
         _spectator = ConnectedDevice(DeviceName.spectator, data: _data);
       } else if (_currentDeviceName == DeviceName.bibRecorder) {
         _bibRecorder = ConnectedDevice(DeviceName.bibRecorder);
         _coach = ConnectedDevice(DeviceName.coach, data: _data);
-      } else if (_currentDeviceName == DeviceName.spectator && !_toSpectator) {
-        // Spectator does not advertise in our current flows; default to coach target
-        _coach = ConnectedDevice(DeviceName.coach, data: _data);
-      } else if (_currentDeviceName == DeviceName.spectator && _toSpectator) {
-        _spectator = ConnectedDevice(DeviceName.spectator, data: _data);
-      } else {
+      } else if (_currentDeviceName == DeviceName.raceTimer) {
         _raceTimer = ConnectedDevice(DeviceName.raceTimer);
+        _coach = ConnectedDevice(DeviceName.coach, data: _data);
+      } else if (_currentDeviceName == DeviceName.spectator) {
+        _spectator = ConnectedDevice(DeviceName.spectator);
         _coach = ConnectedDevice(DeviceName.coach, data: _data);
       }
     } else {
@@ -117,8 +127,11 @@ class DevicesManager {
         } else {
           _coach = ConnectedDevice(DeviceName.coach);
         }
-      } else {
+      } else if (_currentDeviceName == DeviceName.bibRecorder) {
         _bibRecorder = ConnectedDevice(DeviceName.bibRecorder);
+        _coach = ConnectedDevice(DeviceName.coach);
+      } else if (_currentDeviceName == DeviceName.raceTimer) {
+        _raceTimer = ConnectedDevice(DeviceName.raceTimer);
         _coach = ConnectedDevice(DeviceName.coach);
       }
     }

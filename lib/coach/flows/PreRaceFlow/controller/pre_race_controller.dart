@@ -7,13 +7,13 @@ import '../../../../core/utils/enums.dart';
 import '../../../../core/services/device_connection_service.dart';
 import '../../../../core/utils/encode_utils.dart';
 import '../steps/review_runners/review_runners_step.dart';
-import '../steps/share_runners/share_runners_step.dart';
+import '../steps/share_race/share_race_step.dart';
 import '../steps/flow_complete/pre_race_flow_complete.dart';
 
 class PreRaceController {
   final MasterRace masterRace;
   late ReviewRunnersStep _reviewRunnersStep;
-  late ShareRunnersStep _shareRunnersStep;
+  late ShareRaceStep _shareRaceStep;
   late PreRaceFlowCompleteStep _preRaceFlowCompleteStep;
   int? _lastStepIndex;
 
@@ -31,20 +31,25 @@ class PreRaceController {
     _reviewRunnersStep = ReviewRunnersStep(
       masterRace: masterRace,
       onNext: () async {
-        final encoded =
+        final encodedRaceData =
+            await RaceEncodeUtils.getEncodedRaceData(masterRace);
+        if (encodedRaceData == '') {
+          Logger.e('Failed to encode race data');
+          return;
+        }
+        devices.raceTimer!.data = encodedRaceData;
+        final encodedBibData =
             await BibEncodeUtils.getEncodedRunnersBibData(masterRace);
-        Logger.d(
-            'PRE-RACE DEBUG: Encoded runners data length: ${encoded.length}');
-        if (encoded == '') {
+        if (encodedBibData == '') {
           Logger.e('Failed to encode runners data');
           return;
         }
-        devices.bibRecorder!.data = encoded;
+        devices.bibRecorder!.data = '$encodedRaceData---$encodedBibData';
       },
     );
     // Seed initial canProceed so the first render uses a correct value
     _reviewRunnersStep.seedInitialProceed();
-    _shareRunnersStep = ShareRunnersStep(devices: devices);
+    _shareRaceStep = ShareRaceStep(devices: devices);
     _preRaceFlowCompleteStep = PreRaceFlowCompleteStep();
   }
 
@@ -70,7 +75,7 @@ class PreRaceController {
   List<FlowStep> _getSteps(BuildContext context) {
     return [
       _reviewRunnersStep,
-      _shareRunnersStep,
+      _shareRaceStep,
       _preRaceFlowCompleteStep,
     ];
   }
