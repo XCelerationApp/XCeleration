@@ -382,7 +382,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           confirmText: 'Delete',
           cancelText: 'Cancel',
         );
-        if (!confirmed) return;
+        if (!confirmed || !context.mounted) return;
         try {
           await DialogUtils.executeWithLoadingDialog(context,
               loadingMessage: 'Deleting account...', operation: () async {
@@ -391,6 +391,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           if (!context.mounted) return;
           // Ensure the local session is cleared after account deletion
           await AuthService.instance.signOut();
+          if (!context.mounted) return;
           DialogUtils.showSuccessDialog(context, message: 'Account deleted');
           Navigator.of(context).pushAndRemoveUntil(
             RolePageRouteAnimation(child: const RoleScreen()),

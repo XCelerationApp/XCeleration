@@ -45,7 +45,6 @@ class ActionButton extends StatelessWidget {
 
       // Only show error dialog if context is still mounted
       if (context.mounted) {
-        // Use Dialog instead of SnackBar to avoid ScaffoldMessenger issues
         showDialog(
           context: context,
           builder: (context) => AlertDialog(

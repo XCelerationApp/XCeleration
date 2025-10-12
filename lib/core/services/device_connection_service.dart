@@ -111,9 +111,12 @@ class DevicesManager {
       } else if (_currentDeviceName == DeviceName.raceTimer) {
         _raceTimer = ConnectedDevice(DeviceName.raceTimer);
         _coach = ConnectedDevice(DeviceName.coach, data: _data);
-      } else if (_currentDeviceName == DeviceName.spectator) {
+      } else if (_currentDeviceName == DeviceName.spectator && !_toSpectator) {
         _spectator = ConnectedDevice(DeviceName.spectator);
         _coach = ConnectedDevice(DeviceName.coach, data: _data);
+      }
+      else if (_currentDeviceName == DeviceName.spectator && _toSpectator) {
+        _spectator = ConnectedDevice(DeviceName.spectator, data: _data);
       }
     } else {
       if (_currentDeviceName == DeviceName.coach) {
