@@ -210,7 +210,8 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
                           child: SingleChildScrollView(
                             physics: const AlwaysScrollableScrollPhysics(),
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 16.0),
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 16.0),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -248,18 +249,59 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                ListTile(
-                  leading: const Icon(Icons.person),
-                  title: const Text('Coach'),
-                  subtitle: const Text('Receive race from a coach'),
-                  onTap: () => Navigator.of(context).pop(false),
-                ),
-                const SizedBox(height: 8),
-                ListTile(
-                  leading: const Icon(Icons.visibility),
-                  title: const Text('Another Spectator'),
-                  subtitle: const Text('Receive race from another spectator'),
-                  onTap: () => Navigator.of(context).pop(true),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ListTile(
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(Icons.person,
+                              color: AppColors.primaryColor),
+                        ),
+                        title: const Text(
+                          'Coach',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                          ),
+                        ),
+                        subtitle: const Text('Receive race from a coach'),
+                        onTap: () => Navigator.of(context).pop(false),
+                      ),
+                      Divider(height: 1, color: Colors.grey.shade200),
+                      ListTile(
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(Icons.visibility,
+                              color: AppColors.primaryColor),
+                        ),
+                        title: const Text(
+                          'Another Spectator',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                          ),
+                        ),
+                        subtitle:
+                            const Text('Receive race from another spectator'),
+                        onTap: () => Navigator.of(context).pop(true),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
