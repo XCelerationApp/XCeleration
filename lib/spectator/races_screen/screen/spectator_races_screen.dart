@@ -14,7 +14,6 @@ import 'package:xceleration/spectator/races_screen/widgets/spectator_race_card.d
 import 'package:xceleration/core/services/device_connection_service.dart';
 import 'package:xceleration/core/utils/enums.dart';
 import 'package:xceleration/core/components/connection_components.dart';
-import 'package:xceleration/coach/flows/widgets/flow_section_header.dart';
 import 'package:xceleration/shared/services/race_results_service.dart';
 import 'package:xceleration/coach/race_results/widgets/team_results_widget.dart';
 import 'package:xceleration/coach/race_results/widgets/individual_results_widget.dart';
@@ -329,10 +328,9 @@ class _RaceResultsSheet extends StatelessWidget {
           right: 16,
           bottom: 16,
           child: FloatingActionButton(
-            heroTag: 'share_saved_race',
             onPressed: onShare,
             backgroundColor: AppColors.primaryColor,
-            child: const Icon(Icons.share, color: Colors.white),
+            child: const Icon(Icons.ios_share, color: Colors.white),
           ),
         ),
       ],

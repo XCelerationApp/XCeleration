@@ -21,6 +21,7 @@ class CollapsibleResultsWidget extends StatefulWidget {
 class _CollapsibleResultsWidgetState extends State<CollapsibleResultsWidget> {
   bool isExpanded = false;
   late List<dynamic> displayResults;
+  static const int nameCharacterLimit = 18;
 
   @override
   void initState() {
@@ -41,6 +42,14 @@ class _CollapsibleResultsWidgetState extends State<CollapsibleResultsWidget> {
     });
   }
 
+  /// Truncates a string to the specified character limit
+  String _truncateName(String name, {int limit = nameCharacterLimit}) {
+    if (name.length <= limit) {
+      return name;
+    }
+    return '${name.substring(0, limit)}...';
+  }
+
   @override
   Widget build(BuildContext context) {
     // Check if results list is empty
@@ -54,29 +63,38 @@ class _CollapsibleResultsWidgetState extends State<CollapsibleResultsWidget> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Display the appropriate header
-        isTeamResults
-            ? _buildTeamResultsHeader()
-            : _buildIndividualResultsHeader(),
+        // Wrap the entire table (header + rows) in a single horizontal scroll
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Display the appropriate header
+              isTeamResults
+                  ? _buildTeamResultsHeader()
+                  : _buildIndividualResultsHeader(),
 
-        const SizedBox(height: 8),
+              const SizedBox(height: 8),
 
-        // Display results rows
-        ...displayResults.map((item) {
-          final index = displayResults.indexOf(item);
-          // Use subtle alternate row colors for better readability
-          final backgroundColor = index % 2 == 0
-              ? Colors.transparent
-              : ColorUtils.withOpacity(Colors.grey, 0.05);
+              // Display results rows
+              ...displayResults.map((item) {
+                final index = displayResults.indexOf(item);
+                // Use subtle alternate row colors for better readability
+                final backgroundColor = index % 2 == 0
+                    ? Colors.transparent
+                    : ColorUtils.withOpacity(Colors.grey, 0.05);
 
-          return Container(
-            color: backgroundColor,
-            padding: const EdgeInsets.symmetric(vertical: 6.0),
-            child: isTeamResults
-                ? _buildTeamResultRow(item as TeamRecord)
-                : _buildIndividualResultRow(item as ResultsRecord),
-          );
-        }),
+                return Container(
+                  color: backgroundColor,
+                  padding: const EdgeInsets.symmetric(vertical: 6.0),
+                  child: isTeamResults
+                      ? _buildTeamResultRow(item as TeamRecord)
+                      : _buildIndividualResultRow(item as ResultsRecord),
+                );
+              }),
+            ],
+          ),
+        ),
 
         // "See more"/"See less" button if needed
         if (widget.results.length > widget.initialVisibleCount)
@@ -106,12 +124,16 @@ class _CollapsibleResultsWidgetState extends State<CollapsibleResultsWidget> {
       child: Row(
         children: [
           SizedBox(
-              width: 50,
+              width: 60,
               child: Text('Place', style: AppTypography.bodySemibold)),
-          Expanded(child: Text('Name', style: AppTypography.bodySemibold)),
-          Expanded(child: Text('Team', style: AppTypography.bodySemibold)),
+          SizedBox(
+              width: 150,
+              child: Text('Name', style: AppTypography.bodySemibold)),
           SizedBox(
               width: 70,
+              child: Text('Team', style: AppTypography.bodySemibold)),
+          SizedBox(
+              width: 80,
               child: Text('Time', style: AppTypography.bodySemibold)),
           SizedBox(
               width: 70,
@@ -127,15 +149,16 @@ class _CollapsibleResultsWidgetState extends State<CollapsibleResultsWidget> {
       child: Row(
         children: [
           SizedBox(
-              width: 50,
+              width: 60,
               child: Text('Place', style: AppTypography.bodySemibold)),
-          Expanded(
-              flex: 2, child: Text('Team', style: AppTypography.bodySemibold)),
-          Expanded(
-              flex: 3,
-              child: Text('Scorers', style: AppTypography.bodySemibold)),
           SizedBox(
               width: 70,
+              child: Text('Team', style: AppTypography.bodySemibold)),
+          SizedBox(
+              width: 150,
+              child: Text('Scorers', style: AppTypography.bodySemibold)),
+          SizedBox(
+              width: 50,
               child: Text('Score', style: AppTypography.bodySemibold)),
         ],
       ),
@@ -149,19 +172,21 @@ class _CollapsibleResultsWidgetState extends State<CollapsibleResultsWidget> {
         Row(
           children: [
             SizedBox(
-              width: 50,
+              width: 60,
               child: Text('${result.place}', style: AppTypography.bodyRegular),
             ),
-            Expanded(
-                child: Text(result.name,
-                    style: AppTypography.bodyRegular,
-                    overflow: TextOverflow.ellipsis)),
-            Expanded(
-                child: Text(result.teamAbbreviation,
-                    style: AppTypography.bodyRegular,
-                    overflow: TextOverflow.ellipsis)),
+            SizedBox(
+              width: 150,
+              child: Text(_truncateName(result.name),
+                  style: AppTypography.bodyRegular),
+            ),
             SizedBox(
               width: 70,
+              child: Text(_truncateName(result.teamAbbreviation, limit: 20),
+                  style: AppTypography.bodyRegular),
+            ),
+            SizedBox(
+              width: 80,
               child: Text(result.formattedFinishTime,
                   style: AppTypography.bodyRegular),
             ),
@@ -192,22 +217,21 @@ class _CollapsibleResultsWidgetState extends State<CollapsibleResultsWidget> {
     return Row(
       children: [
         SizedBox(
-          width: 50,
+          width: 60,
           child: Text(team.place != null ? '${team.place}' : '-',
               style: AppTypography.bodyRegular),
         ),
-        Expanded(
-            flex: 2,
-            child: Text(team.team.abbreviation ?? 'N/A',
-                style: AppTypography.bodyRegular,
-                overflow: TextOverflow.ellipsis)),
-        Expanded(
-            flex: 3,
-            child: Text(scorerPlaces,
-                style: AppTypography.bodyRegular,
-                overflow: TextOverflow.ellipsis)),
         SizedBox(
           width: 70,
+          child: Text(_truncateName(team.team.abbreviation ?? 'N/A', limit: 15),
+              style: AppTypography.bodyRegular),
+        ),
+        SizedBox(
+          width: 150,
+          child: Text(scorerPlaces, style: AppTypography.bodyRegular),
+        ),
+        SizedBox(
+          width: 50,
           child: Text('${team.score != 0 ? team.score : 'N/A'}',
               style: AppTypography.bodyRegular),
         ),

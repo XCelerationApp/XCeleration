@@ -148,6 +148,11 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 if (flowState != Race.FLOW_FINISHED) ...[
+                  // Sticky header
+                  RaceHeader(
+                    controller: controller,
+                  ),
+                  // Scrollable content
                   Expanded(
                     child: SlidingPageView(
                       showSecondPage: controller.showingRunnersManagement,
@@ -160,19 +165,10 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
                               'Error navigating to race details: $error');
                         });
                       },
-                      firstPage: Column(
-                        children: [
-                          RaceHeader(
-                            controller: controller,
-                          ),
-                          Expanded(
-                            child: SingleChildScrollView(
-                              child: RaceDetailsTab(
-                                controller: controller,
-                              ),
-                            ),
-                          ),
-                        ],
+                      firstPage: SingleChildScrollView(
+                        child: RaceDetailsTab(
+                          controller: controller,
+                        ),
                       ),
                       secondPage: Builder(
                         builder: (context) {
@@ -217,6 +213,10 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
                     ),
                   )
                 ] else ...[
+                  // Sticky header for finished races
+                  RaceHeader(
+                    controller: controller,
+                  ),
                   // Tab Bar for finished races
                   TabBarWidget(controller: controller),
                   // Tab Bar View
