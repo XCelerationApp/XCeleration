@@ -146,11 +146,7 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
     if (confirmed == true) {
       try {
         await SpectatorStorageService.instance.deleteRace(raceId);
-        if (mounted) {
-          DialogUtils.showMessageDialog(context,
-              title: 'Race deleted', message: 'Race deleted');
-          _loadSavedRaces();
-        }
+        _loadSavedRaces();
       } catch (e) {
         Logger.e('Failed to delete race: $e');
         if (mounted) {
@@ -184,9 +180,6 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
                               mainAxisAlignment: MainAxisAlignment.center,
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: const [
-                                Icon(Icons.wifi_tethering,
-                                    size: 48, color: Colors.black54),
-                                SizedBox(height: 12),
                                 Text(
                                   'No races received yet',
                                   style: TextStyle(
