@@ -70,25 +70,32 @@ class RacesScreenState extends State<RacesScreen> {
                         ],
                       )
                     : null,
-                body: Padding(
-                  padding: EdgeInsets.fromLTRB(24.0, 0, 24.0, 24.0),
-                  child: SingleChildScrollView(
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          RoleBar(
-                              currentRole:
-                                  widget.canEdit ? Role.coach : Role.spectator,
-                              tutorialManager: _controller.tutorialManager),
-                          RaceCoachMark(
+                body: Column(
+                  children: [
+                    // Sticky header
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(24.0, 0, 24.0, 0),
+                      child: RoleBar(
+                          currentRole:
+                              widget.canEdit ? Role.coach : Role.spectator,
+                          tutorialManager: _controller.tutorialManager),
+                    ),
+                    // Scrollable content
+                    Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(24.0, 0, 24.0, 24.0),
+                        child: SingleChildScrollView(
+                          child: RaceCoachMark(
                             controller: _controller,
                             child: RacesList(
                               controller: _controller,
                               canEdit: widget.canEdit,
                             ),
                           ),
-                        ]),
-                  ),
+                        ),
+                      ),
+                    ),
+                  ],
                 )));
       },
     );

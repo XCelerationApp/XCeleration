@@ -7,6 +7,7 @@ import 'package:xceleration/core/components/textfield_utils.dart';
 import '../controller/race_screen_controller.dart';
 import 'inline_editable_field.dart';
 import 'dart:io';
+import '../../../shared/models/database/race.dart';
 
 class RaceDetailsTab extends StatelessWidget {
   final RaceController controller;
@@ -179,12 +180,16 @@ class RaceDetailsTab extends StatelessWidget {
                   width: double.infinity,
                   child: Builder(
                     builder: (context) {
-                      final isViewMode = !canEdit;
+                      final isViewMode = !canEdit ||
+                          race.flowState == Race.FLOW_FINISHED ||
+                          race.flowState == Race.FLOW_POST_RACE;
                       return TextButton(
-                        onPressed: () => controller
-                            .loadRunnersManagementScreenWithConfirmation(
-                                context,
-                                isViewMode: isViewMode),
+                        onPressed: () {
+                          controller
+                              .loadRunnersManagementScreenWithConfirmation(
+                                  context,
+                                  isViewMode: isViewMode);
+                        },
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 16, vertical: 12),
@@ -206,11 +211,15 @@ class RaceDetailsTab extends StatelessWidget {
                 )
               : Builder(
                   builder: (context) {
-                    final isViewMode = !canEdit;
+                    final isViewMode = !canEdit ||
+                        race.flowState == Race.FLOW_FINISHED ||
+                        race.flowState == Race.FLOW_POST_RACE;
                     return InkWell(
-                      onTap: () => controller
-                          .loadRunnersManagementScreenWithConfirmation(context,
-                              isViewMode: isViewMode),
+                      onTap: () {
+                        controller.loadRunnersManagementScreenWithConfirmation(
+                            context,
+                            isViewMode: isViewMode);
+                      },
                       child: Container(
                         margin: const EdgeInsets.only(bottom: 16),
                         child: Row(

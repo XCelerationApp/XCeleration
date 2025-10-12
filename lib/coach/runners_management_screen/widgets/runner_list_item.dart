@@ -36,8 +36,11 @@ class RunnerListItem extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 8.0),
               child: Row(
                 children: [
-                  Expanded(
-                    flex: 5,
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      minWidth: 60,
+                      maxWidth: 200,
+                    ),
                     child: Padding(
                       padding: const EdgeInsets.only(right: 16.0),
                       child: Text(
