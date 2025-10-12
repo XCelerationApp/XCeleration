@@ -42,10 +42,10 @@ class BibInputWidget extends StatelessWidget {
               style: AppTypography.caption.copyWith(
                 color: Colors.grey.shade700,
                 fontWeight: FontWeight.w500,
-                fontSize: 20,
+                fontSize: 16,
               ),
             ),
-            const SizedBox(width: 24),
+            const SizedBox(width: 18),
             SizedBox(
               width: 80,
               child: _buildBibTextField(context),
@@ -125,7 +125,7 @@ class BibInputWidget extends StatelessWidget {
             child: Text(
               '${record.name}, ${record.teamAbbreviation}',
               textAlign: TextAlign.center,
-              style: AppTypography.bodyRegular,
+              style: AppTypography.smallBodyRegular,
               overflow: TextOverflow.ellipsis,
             ),
           ),
