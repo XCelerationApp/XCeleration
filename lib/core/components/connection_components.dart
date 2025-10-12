@@ -778,29 +778,8 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
           connectedDevice.status = ConnectionStatus.finished;
         });
 
-        // If spectator received data, present it in a sheet and keep it accessible
-        if (isBrowserDevice &&
-            widget.devices.currentDeviceName == DeviceName.spectator) {
-          if (mounted && connectedDevice.data != null) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (!mounted) return;
-              sheet(
-                context: context,
-                title: 'Results Received',
-                body: SingleChildScrollView(
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: Text(
-                      connectedDevice.data!,
-                      style:
-                          const TextStyle(fontSize: 14, color: Colors.black87),
-                    ),
-                  ),
-                ),
-              );
-            });
-          }
-        }
+        // Spectator data will be handled by the callback function in ReceiveRaceScreen
+        // No need to show raw encoded data in a sheet here
 
         // In spectator broadcast mode (advertiser), briefly show Done then return to Searching
         if (!isBrowserDevice && widget.devices.toSpectator && mounted) {
@@ -818,12 +797,12 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
         // Call the callback if all devices are finished
         if (allDevicesFinished && mounted) {
           // Complete the connection to stop monitoring
-            if (!_connectionCompleter.isCompleted) {
-              _connectionCompleter.complete();
-              _deviceConnectionService.dispose();
-              _protocol.dispose();
-            }
-            widget.callback();
+          if (!_connectionCompleter.isCompleted) {
+            _connectionCompleter.complete();
+            _deviceConnectionService.dispose();
+            _protocol.dispose();
+          }
+          widget.callback();
         }
 
         // For advertiser devices, disconnect after sending

@@ -147,7 +147,7 @@ class ShareResultsController {
         },
       );
 
-      if (!context.mounted) context = navigator.context;
+      if (!context.mounted && navigator.mounted) context = navigator.context;
 
       // Show success message if copying was successful
       if (success == true) {
@@ -179,7 +179,7 @@ class ShareResultsController {
       // Get formatted data first
       final data = await _formattedResultsController.formattedSheetsData;
 
-      if (!context.mounted) context = navigator.context;
+      if (!context.mounted && navigator.mounted) context = navigator.context;
       if (!context.mounted) throw Exception('Context not mounted');
 
       // Step 1: Sign in to Google with loading dialog
@@ -200,7 +200,7 @@ class ShareResultsController {
         return;
       }
 
-      if (!context.mounted) context = navigator.context;
+      if (!context.mounted && navigator.mounted) context = navigator.context;
       if (!context.mounted) throw Exception('Context not mounted');
 
       // Step 2: Create the sheet with loading dialog
@@ -226,7 +226,7 @@ class ShareResultsController {
         return;
       }
 
-      if (!context.mounted) context = navigator.context;
+      if (!context.mounted && navigator.mounted) context = navigator.context;
       if (!context.mounted) throw Exception('Context not mounted');
 
       // Step 3: Update the sheet with data
@@ -259,7 +259,7 @@ class ShareResultsController {
         return;
       }
 
-      if (!context.mounted) context = navigator.context;
+      if (!context.mounted && navigator.mounted) context = navigator.context;
       if (!context.mounted) throw Exception('Context not mounted');
       // Step 4: Get the sheet URI
       // We need to declare the variable here so it can be used outside the try/catch block
@@ -287,7 +287,7 @@ class ShareResultsController {
 
       Logger.d('Sheet URI: $sheetUri');
 
-      if (!context.mounted) context = navigator.context;
+      if (!context.mounted && navigator.mounted) context = navigator.context;
 
       // Show options dialog using the stored navigator
       if (context.mounted) {
@@ -378,35 +378,27 @@ class ShareResultsController {
 
       // Share PDF if creation was successful
       if (xFile != null) {
-        // Determine an active context: prefer the passed context, then rootContext, then navigator context.
+        // Determine an active context: prefer the passed context, then rootContext.
         BuildContext activeContext = context;
         if (!activeContext.mounted) {
-          activeContext = rootContext.mounted
-              ? rootContext
-              : Navigator.of(rootContext, rootNavigator: true).context;
-        }
-
-        try {
-          Rect? origin;
-          final renderBox = activeContext.findRenderObject() as RenderBox?;
-          if (renderBox != null) {
-            origin = renderBox.localToGlobal(Offset.zero) & renderBox.size;
-          } else {
-            final overlay = Overlay.of(activeContext, rootOverlay: true)
-                .context
-                .findRenderObject() as RenderBox?;
-            if (overlay != null) {
-              final center = overlay.size.center(Offset.zero);
-              origin = Rect.fromCenter(center: center, width: 1, height: 1);
+          if (rootContext.mounted) {
+            activeContext = rootContext;
+          } else if (rootContext.mounted) {
+            final navigator = Navigator.of(rootContext, rootNavigator: true);
+            if (navigator.mounted) {
+              activeContext = navigator.context;
             }
           }
+        }
 
+        if (!activeContext.mounted) return;
+
+        try {
           await _share(
             activeContext,
             ShareParams(
               files: [xFile],
               subject: raceResultsData.resultsTitle,
-              sharePositionOrigin: origin,
             ),
           );
         } catch (e) {
@@ -510,17 +502,21 @@ class FormattedResultsController {
     if (raceResultsData.headToHeadTeamResults.isNotEmpty) {
       buffer.writeln('\nHead-to-Head Team Results');
       for (final matchup in raceResultsData.headToHeadTeamResults) {
-        buffer.writeln('\n${matchup[0].team.name ?? 'Team 1'} vs ${matchup[1].team.name ?? 'Team 2'}');
+        buffer.writeln(
+            '\n${matchup[0].team.name ?? 'Team 1'} vs ${matchup[1].team.name ?? 'Team 2'}');
         buffer.writeln('Place\tName\tTeam\tTime\tName\tTeam\tTime');
-        
-        final maxRunners = matchup[0].topSeven.length > matchup[1].topSeven.length 
-            ? matchup[0].topSeven.length 
-            : matchup[1].topSeven.length;
-            
+
+        final maxRunners =
+            matchup[0].topSeven.length > matchup[1].topSeven.length
+                ? matchup[0].topSeven.length
+                : matchup[1].topSeven.length;
+
         for (int i = 0; i < maxRunners; i++) {
-          final team1Runner = i < matchup[0].topSeven.length ? matchup[0].topSeven[i] : null;
-          final team2Runner = i < matchup[1].topSeven.length ? matchup[1].topSeven[i] : null;
-          
+          final team1Runner =
+              i < matchup[0].topSeven.length ? matchup[0].topSeven[i] : null;
+          final team2Runner =
+              i < matchup[1].topSeven.length ? matchup[1].topSeven[i] : null;
+
           buffer.writeln('${i + 1}\t'
               '${team1Runner?.runner?.name ?? ''}\t'
               '${team1Runner?.team?.abbreviation ?? ''}\t'
@@ -529,7 +525,8 @@ class FormattedResultsController {
               '${team2Runner?.team?.abbreviation ?? ''}\t'
               '${team2Runner?.formattedFinishTime ?? ''}');
         }
-        buffer.writeln('Score:\t${matchup[0].score > 0 ? matchup[0].score : 'N/A'}\t\t\t${matchup[1].score > 0 ? matchup[1].score : 'N/A'}');
+        buffer.writeln(
+            'Score:\t${matchup[0].score > 0 ? matchup[0].score : 'N/A'}\t\t\t${matchup[1].score > 0 ? matchup[1].score : 'N/A'}');
       }
     }
 

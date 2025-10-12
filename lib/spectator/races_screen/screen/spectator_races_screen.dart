@@ -6,8 +6,21 @@ import 'package:xceleration/shared/role_bar/models/role_enums.dart'
 import 'package:xceleration/core/services/tutorial_manager.dart';
 import 'package:xceleration/spectator/receive_race/screen/receive_race_screen.dart';
 import 'package:xceleration/core/utils/sheet_utils.dart';
+import 'package:xceleration/spectator/services/spectator_storage_service.dart';
+import 'package:xceleration/spectator/receive_race/services/race_share_decoder.dart';
+import 'package:xceleration/core/utils/logger.dart';
+import 'package:xceleration/core/components/dialog_utils.dart';
+import 'package:xceleration/spectator/races_screen/widgets/spectator_race_card.dart';
+import 'package:xceleration/core/services/device_connection_service.dart';
+import 'package:xceleration/core/utils/enums.dart';
+import 'package:xceleration/core/components/connection_components.dart';
+import 'package:xceleration/coach/flows/widgets/flow_section_header.dart';
+import 'package:xceleration/shared/services/race_results_service.dart';
+import 'package:xceleration/coach/race_results/widgets/team_results_widget.dart';
+import 'package:xceleration/coach/race_results/widgets/individual_results_widget.dart';
+import 'package:xceleration/core/theme/app_colors.dart';
 
-/// A thin wrapper that renders the coach races screen in read-only mode
+/// Spectator races screen showing saved races and allowing receiving new ones
 class SpectatorRacesScreen extends StatefulWidget {
   const SpectatorRacesScreen({super.key});
 
@@ -16,10 +29,14 @@ class SpectatorRacesScreen extends StatefulWidget {
 }
 
 class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
+  List<Map<String, dynamic>> _savedRaces = [];
+  bool _isLoading = true;
+
   @override
   void initState() {
     super.initState();
     ConnectivitySyncService.instance.start();
+    _loadSavedRaces();
   }
 
   @override
@@ -28,119 +45,296 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
     super.dispose();
   }
 
+  Future<void> _loadSavedRaces() async {
+    try {
+      final races = await SpectatorStorageService.instance.getAllRaces();
+      if (mounted) {
+        setState(() {
+          _savedRaces = races;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      Logger.e('Failed to load saved races: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _viewRace(Map<String, dynamic> race) async {
+    try {
+      final encodedPayload = race['encoded_payload'] as String;
+      final decoded = RaceShareDecoder.decodeWithRaw(encodedPayload);
+      final raceName = race['race_name'] as String? ?? 'Race Results';
+
+      if (!mounted) return;
+
+      // Show in a sheet instead of navigating
+      await sheet(
+        context: context,
+        title: raceName,
+        body: _RaceResultsSheet(
+          data: decoded.results,
+          encodedPayload: decoded.rawEncoded,
+          onShare: () => _shareRace(race),
+        ),
+      );
+    } catch (e) {
+      Logger.e('Failed to view race: $e');
+      if (mounted) {
+        DialogUtils.showErrorDialog(context, message: 'Failed to load race');
+      }
+    }
+  }
+
+  Future<void> _shareRace(Map<String, dynamic> race) async {
+    try {
+      final encodedPayload = race['encoded_payload'] as String;
+      final raceName = race['race_name'] as String? ?? 'Race';
+
+      if (!mounted) return;
+
+      final devices = DeviceConnectionService.createDevices(
+        DeviceName.spectator,
+        DeviceType.advertiserDevice,
+        data: encodedPayload,
+        toSpectator: true, // Share to another spectator
+      );
+
+      await sheet(
+        context: context,
+        title: 'Share "$raceName"',
+        body: WirelessConnectionWidget(
+          devices: devices,
+          callback: () {
+            // Share complete callback
+            if (context.mounted) {
+              Navigator.of(context).pop();
+            }
+          },
+        ),
+      );
+    } catch (e) {
+      Logger.e('Failed to share race: $e');
+      if (mounted) {
+        DialogUtils.showErrorDialog(context, message: 'Failed to share race');
+      }
+    }
+  }
+
+  Future<void> _deleteRace(int raceId, String raceName) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Race'),
+        content: Text('Are you sure you want to delete "$raceName"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await SpectatorStorageService.instance.deleteRace(raceId);
+        if (mounted) {
+          DialogUtils.showMessageDialog(context,
+              title: 'Race deleted', message: 'Race deleted'
+            );
+          _loadSavedRaces();
+        }
+      } catch (e) {
+        Logger.e('Failed to delete race: $e');
+        if (mounted) {
+          DialogUtils.showErrorDialog(context,
+              message: 'Failed to delete race');
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Start with an empty spectator home; races are not saved locally
-      body: Column(
-        children: [
-          RoleBar(
-            currentRole: role_enums.Role.spectator,
-            tutorialManager: TutorialManager(),
-          ),
-          Expanded(
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+      body: Padding(
+        padding: const EdgeInsets.fromLTRB(24.0, 0, 24.0, 24.0),
+        child: Column(
+          children: [
+            RoleBar(
+              currentRole: role_enums.Role.spectator,
+              tutorialManager: TutorialManager(),
+            ),
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _savedRaces.isEmpty
+                      ? Center(
+                          child: Padding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 24.0),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: const [
+                                Icon(Icons.wifi_tethering,
+                                    size: 48, color: Colors.black54),
+                                SizedBox(height: 12),
+                                Text(
+                                  'No races saved yet',
+                                  style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600),
+                                  textAlign: TextAlign.center,
+                                ),
+                                SizedBox(height: 8),
+                                Text(
+                                  'Tap Receive Race to get a race from a nearby coach or spectator.',
+                                  style: TextStyle(
+                                      fontSize: 14, color: Colors.black54),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                      : RefreshIndicator(
+                          onRefresh: _loadSavedRaces,
+                          child: SingleChildScrollView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                FlowSectionHeader(title: 'Received Races'),
+                                ..._savedRaces.map((race) {
+                                  final raceName =
+                                      race['race_name'] as String? ??
+                                          'Unnamed Race';
+                                  final raceId = race['id'] as int;
+
+                                  return SpectatorRaceCard(
+                                    race: race,
+                                    onTap: () => _viewRace(race),
+                                    onShare: () => _shareRace(race),
+                                    onDelete: () =>
+                                        _deleteRace(raceId, raceName),
+                                  );
+                                }),
+                              ],
+                            ),
+                          ),
+                        ),
+            ),
+          ],
+        ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'receive_race',
+        onPressed: () async {
+          // Ask user who they are receiving from
+          final result = await sheet(
+            context: context,
+            title: 'Receive Race From',
+            body: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.person),
+                  title: const Text('Coach'),
+                  subtitle: const Text('Receive race from a coach'),
+                  onTap: () => Navigator.of(context).pop(false),
+                ),
+                const SizedBox(height: 8),
+                ListTile(
+                  leading: const Icon(Icons.visibility),
+                  title: const Text('Another Spectator'),
+                  subtitle: const Text('Receive race from another spectator'),
+                  onTap: () => Navigator.of(context).pop(true),
+                ),
+              ],
+            ),
+          );
+
+          final bool? fromSpectator = result as bool?;
+          if (fromSpectator == null) return;
+          if (!context.mounted) return;
+
+          await sheet(
+              context: context,
+              title: 'Receive Race',
+              body: ReceiveRaceScreen(fromSpectator: fromSpectator),
+              takeUpScreen: false);
+
+          // Refresh the list after receiving a race
+          _loadSavedRaces();
+        },
+        icon: const Icon(Icons.wifi),
+        label: const Text('Receive Race'),
+      ),
+    );
+  }
+}
+
+/// Sheet widget to show race results
+class _RaceResultsSheet extends StatelessWidget {
+  final RaceResultsData data;
+  final String encodedPayload;
+  final VoidCallback onShare;
+
+  const _RaceResultsSheet({
+    required this.data,
+    required this.encodedPayload,
+    required this.onShare,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Results content
+            Flexible(
+              child: SingleChildScrollView(
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: const [
-                    Icon(Icons.wifi_tethering, size: 48, color: Colors.black54),
-                    SizedBox(height: 12),
-                    Text(
-                      'No races loaded yet',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                      textAlign: TextAlign.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TeamResultsWidget(raceResultsData: data),
+                    IndividualResultsWidget(
+                      raceResultsData: data,
+                      initialVisibleCount: 10,
                     ),
-                    SizedBox(height: 8),
-                    Text(
-                      'Tap Receive Race to get a race from a nearby coach.',
-                      style: TextStyle(fontSize: 14, color: Colors.black54),
-                      textAlign: TextAlign.center,
-                    ),
+                    const SizedBox(height: 80), // Extra padding for FAB
                   ],
                 ),
               ),
             ),
+          ],
+        ),
+        // Floating action button for sharing
+        Positioned(
+          right: 16,
+          bottom: 16,
+          child: FloatingActionButton(
+            heroTag: 'share_saved_race',
+            onPressed: onShare,
+            backgroundColor: AppColors.primaryColor,
+            child: const Icon(Icons.share, color: Colors.white),
           ),
-        ],
-      ),
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          FloatingActionButton.extended(
-            heroTag: 'receive_race',
-            onPressed: () async {
-              // Ask user who they are receiving from, then show the appropriate loading sheet
-              final bool? fromSpectator = await showModalBottomSheet<bool>(
-                context: context,
-                shape: const RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius.vertical(top: Radius.circular(16))),
-                builder: (ctx) {
-                  return SafeArea(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const Padding(
-                          padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-                          child: Text('Who are you receiving from?',
-                              style: TextStyle(
-                                  fontSize: 18, fontWeight: FontWeight.w600)),
-                        ),
-                        ListTile(
-                          leading: const Icon(Icons.person),
-                          title: const Text('Coach'),
-                          onTap: () => Navigator.of(ctx).pop(false),
-                        ),
-                        ListTile(
-                          leading: const Icon(Icons.visibility),
-                          title: const Text('Spectator'),
-                          onTap: () => Navigator.of(ctx).pop(true),
-                        ),
-                        const SizedBox(height: 8),
-                      ],
-                    ),
-                  );
-                },
-              );
-
-              if (fromSpectator == null) return;
-
-              await sheet(
-                  context: context,
-                  title: 'Receive Race',
-                  body: ReceiveRaceScreen(fromSpectator: fromSpectator),
-                  takeUpScreen: false);
-            },
-            icon: const Icon(Icons.wifi),
-            label: const Text('Receive Race'),
-          ),
-          const SizedBox(height: 12),
-          // FloatingActionButton.extended(
-          //   heroTag: 'add_coach',
-          //   onPressed: () async {
-          //     await Navigator.of(context).push(
-          //         MaterialPageRoute(builder: (_) => const AddCoachScreen()));
-          //   },
-          //   icon: const Icon(Icons.person_add_alt_1),
-          //   label: const Text('Add Coach'),
-          // ),
-          // const SizedBox(height: 12),
-          // FloatingActionButton.extended(
-          //   heroTag: 'linked_coaches',
-          //   onPressed: () async {
-          //     await Navigator.of(context).push(MaterialPageRoute(
-          //         builder: (_) => const LinkedCoachesScreen()));
-          //   },
-          //   icon: const Icon(Icons.people_outline),
-          //   label: const Text('Linked Coaches'),
-          // ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
