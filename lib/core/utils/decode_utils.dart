@@ -78,13 +78,13 @@ class ConflictInfo {
 class TimingDecodeUtils {
   /// Decodes a string of race times into TimingData
   static Future<List<TimingDatum>> decodeEncodedTimingData(
-      String encodedTimingData) async {
+      String encodedTimingData, {bool isFromDatabase = false}) async {
     if (encodedTimingData.isEmpty) {
       return [];
     }
-
-    // Decompress the gzip+base64 encoded data
-    final decompressed = decodeAndDecompress(encodedTimingData);
+    final String decompressed = isFromDatabase
+        ? encodedTimingData
+        : decodeAndDecompress(encodedTimingData);
 
     // Parallelize the decoding operations
     final futures = decompressed.split(',').map((encodedTimingDatum) async {

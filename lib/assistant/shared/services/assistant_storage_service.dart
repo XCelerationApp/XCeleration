@@ -316,7 +316,8 @@ class AssistantStorageService {
       final chunkId = chunk['chunk_id'] as int;
       final timingData = chunk['timing_data'] != null
           ? await TimingDecodeUtils.decodeEncodedTimingData(
-              chunk['timing_data'] as String)
+              chunk['timing_data'] as String,
+              isFromDatabase: true)
           : [] as List<TimingDatum>;
       final conflictRecord = chunk['conflict_record'] != null
           ? TimingDatum.fromEncodedString(chunk['conflict_record'] as String)
