@@ -97,7 +97,7 @@ class SpectatorRaceCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           border: Border(
             left: BorderSide(
-              color: Colors.blue, // Blue for finished races
+              color: AppColors.primaryColor, // Blue for finished races
               width: 5,
             ),
           ),
@@ -118,24 +118,6 @@ class SpectatorRaceCard extends StatelessWidget {
                         child: Text(
                           raceName,
                           style: AppTypography.headerSemibold,
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.withAlpha((0.1 * 255).round()),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: Colors.blue.withAlpha((0.5 * 255).round()),
-                            width: 1,
-                          ),
-                        ),
-                        child: Text(
-                          'Finished',
-                          style: AppTypography.smallBodySemibold.copyWith(
-                            color: Colors.blue,
-                          ),
                         ),
                       ),
                     ],

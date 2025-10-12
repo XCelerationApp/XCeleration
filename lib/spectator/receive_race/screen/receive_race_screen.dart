@@ -3,7 +3,7 @@ import 'package:xceleration/core/services/device_connection_service.dart';
 import 'package:xceleration/core/components/connection_components.dart';
 import 'package:xceleration/core/utils/enums.dart';
 import 'package:xceleration/core/components/dialog_utils.dart';
-import 'package:xceleration/spectator/receive_race/services/race_share_decoder.dart';
+import 'package:xceleration/core/utils/race_share_decoder.dart';
 import 'package:xceleration/spectator/services/spectator_storage_service.dart';
 import 'package:xceleration/shared/services/race_results_service.dart';
 import 'package:xceleration/core/utils/logger.dart';

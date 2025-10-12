@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:xceleration/coach/share_race/services/race_share_service.dart';
-import 'package:xceleration/spectator/receive_race/services/race_share_decoder.dart';
+import 'package:xceleration/core/utils/race_share_decoder.dart';
 import 'package:xceleration/shared/models/database/race.dart';
 import 'package:xceleration/shared/models/database/race_result.dart';
 import 'package:xceleration/shared/models/database/runner.dart';
