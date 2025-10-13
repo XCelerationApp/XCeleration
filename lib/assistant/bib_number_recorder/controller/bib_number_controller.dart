@@ -18,6 +18,7 @@ import '../../shared/services/assistant_storage_service.dart';
 import '../../shared/models/bib_record.dart' as db_models;
 import '../../shared/models/runner.dart' as db_models;
 import '../../shared/widgets/other_races_sheet.dart';
+import '../../shared/services/demo_race_generator.dart';
 
 class BibNumberController extends BibNumberDataController {
   final BuildContext context;
@@ -86,6 +87,10 @@ class BibNumberController extends BibNumberDataController {
   }
 
   Future<void> _loadLastRace() async {
+    // Ensure demo race exists if no races are present
+    await DemoRaceGenerator.ensureDemoRaceExists(
+        DeviceName.bibRecorder.toString());
+
     final races = await storage.getRaces(DeviceName.bibRecorder.toString());
     if (races.isNotEmpty) {
       await _loadRace(races.last);
@@ -358,6 +363,17 @@ class BibNumberController extends BibNumberDataController {
   }
 
   Future<void> showShareBibNumbersPopup(BuildContext context) async {
+    // Prevent sharing demo race
+    if (currentRace != null && DemoRaceGenerator.isDemoRace(currentRace!)) {
+      DialogUtils.showMessageDialog(
+        context,
+        title: 'Demo Race',
+        message:
+            'The demo race is for practice only and cannot be shared. Please load a real race from your coach to share results.',
+      );
+      return;
+    }
+
     for (var node in focusNodes) {
       node.unfocus();
       // Disable focus restoration for this node

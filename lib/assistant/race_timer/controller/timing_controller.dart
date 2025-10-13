@@ -17,6 +17,7 @@ import '../../../core/components/device_connection_widget.dart';
 import '../../../core/services/device_connection_service.dart';
 import '../../shared/widgets/other_races_sheet.dart';
 import '../../shared/services/assistant_storage_service.dart';
+import '../../shared/services/demo_race_generator.dart';
 
 class TimingController extends TimingData {
   final ScrollController scrollController = ScrollController();
@@ -59,6 +60,10 @@ class TimingController extends TimingData {
   }
 
   Future<void> _loadLastRace() async {
+    // Ensure demo race exists if no races are present
+    await DemoRaceGenerator.ensureDemoRaceExists(
+        DeviceName.raceTimer.toString());
+
     final races = await AssistantStorageService.instance
         .getRaces(DeviceName.raceTimer.toString());
     if (races.isNotEmpty) {
