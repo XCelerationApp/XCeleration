@@ -10,6 +10,7 @@ import '../widget/race_controls_widget.dart';
 import '../widget/keyboard_accessory_bar.dart';
 import '../../shared/widgets/race_header_widget.dart';
 import '../../../core/components/race_components.dart' as core;
+import '../../../core/components/coach_mark.dart';
 
 class BibNumberScreen extends StatefulWidget {
   const BibNumberScreen({super.key});
@@ -60,18 +61,31 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                           tutorialManager: _controller.tutorialManager,
                         ),
                         const SizedBox(height: 16.0),
-                        RaceHeaderWidget(
-                          currentRace: _controller.currentRace,
-                          role: DeviceName.bibRecorder,
-                          onLoadRace: () =>
-                              _controller.showLoadRaceSheet(context),
-                          onShowOtherRaces: () =>
-                              _controller.showOtherRaces(context),
-                          onDeleteRace: () => _controller.deleteCurrentRace(),
-                          onShowRunners: _controller.currentRace != null
-                              ? () =>
-                                  _controller.showRunnersLoadedSheet(context)
-                              : null,
+                        CoachMark(
+                          id: 'race_header_tutorial',
+                          tutorialManager: _controller.tutorialManager,
+                          config: const CoachMarkConfig(
+                            title: 'Race Information',
+                            description:
+                                'This shows your current race. A demo race has been loaded so you can test the features. Tap the menu to load a race from your coach.',
+                            icon: Icons.info_outline,
+                            alignmentY: AlignmentY.bottom,
+                            type: CoachMarkType.targeted,
+                            backgroundColor: Color(0xFF1976D2),
+                          ),
+                          child: RaceHeaderWidget(
+                            currentRace: _controller.currentRace,
+                            role: DeviceName.bibRecorder,
+                            onLoadRace: () =>
+                                _controller.showLoadRaceSheet(context),
+                            onShowOtherRaces: () =>
+                                _controller.showOtherRaces(context),
+                            onDeleteRace: () => _controller.deleteCurrentRace(),
+                            onShowRunners: _controller.currentRace != null
+                                ? () =>
+                                    _controller.showRunnersLoadedSheet(context)
+                                : null,
+                          ),
                         ),
                         const SizedBox(height: 8),
                         _buildRaceStatusWidget(),
