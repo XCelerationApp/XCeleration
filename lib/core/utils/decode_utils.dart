@@ -21,8 +21,16 @@ class BibDecodeUtils {
   static Future<List<BibDatum>?> decodeEncodedRunners(
       String encodedBibData, BuildContext context) async {
     try {
-      // Decompress the gzip+base64 encoded data
-      final decompressed = decodeAndDecompress(encodedBibData);
+      // Try to detect if data is already decompressed (raw JSON)
+      String decompressed;
+      try {
+        // First, try to parse as JSON directly (raw format)
+        jsonDecode(encodedBibData);
+        decompressed = encodedBibData;
+      } catch (_) {
+        // If that fails, assume it's compressed and decode it
+        decompressed = decodeAndDecompress(encodedBibData);
+      }
 
       // Parse compact JSON format
       final dynamic parsed = jsonDecode(decompressed);
@@ -83,9 +91,30 @@ class TimingDecodeUtils {
     if (encodedTimingData.isEmpty) {
       return [];
     }
-    final String decompressed = isFromDatabase
-        ? encodedTimingData
-        : decodeAndDecompress(encodedTimingData);
+
+    String decompressed;
+    if (isFromDatabase) {
+      decompressed = encodedTimingData;
+    } else {
+      // Try to detect if data is already decompressed (raw format)
+      // Raw timing data typically contains commas and colons (time format)
+      // Base64 data doesn't contain colons
+      if (encodedTimingData.contains(':') ||
+          (encodedTimingData.contains(',') &&
+              !encodedTimingData.contains('+'))) {
+        // Likely raw format
+        decompressed = encodedTimingData;
+      } else {
+        // Likely compressed format
+        try {
+          decompressed = decodeAndDecompress(encodedTimingData);
+        } catch (e) {
+          // If decompression fails, assume it's already raw
+          Logger.d('Failed to decompress, assuming raw format: $e');
+          decompressed = encodedTimingData;
+        }
+      }
+    }
 
     // Parallelize the decoding operations
     final futures = decompressed.split(',').map((encodedTimingDatum) async {
