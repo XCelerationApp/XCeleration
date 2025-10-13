@@ -88,10 +88,10 @@ dev_dependencies:
 
 flutter_native_splash:
   color: "#E2572B"
-  image: "assets/icon/XCeleration_text.png"
+  image: "assets/icon/XCeleration_splash_screen_text.png"
 
   android_12:
-    image: assets/icon/XCeleration_text.png
+    image: assets/icon/XCeleration_splash_screen_text.png
     icon_background_color: "#E2572B"
 
   android_gravity: center
