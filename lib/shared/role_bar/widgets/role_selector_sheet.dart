@@ -39,7 +39,7 @@ class RoleSelectorSheet {
       final skipConfirmation =
           prefs.getBool('skip_role_change_confirmation') ?? false;
 
-      if (skipConfirmation) {
+      if (skipConfirmation || currentRole != Role.coach) {
         _navigateToRoleScreen(context, newRole);
       } else {
         final result = await _showRoleChangeConfirmation(context);
@@ -81,7 +81,11 @@ class RoleSelectorSheet {
                 role: roles[index],
               );
             }
-            return _buildSignOutTile(context);
+            if (currentValue == Role.coach) {
+              return _buildSignOutTile(context);
+            } else {
+              return const SizedBox.shrink();
+            }
           },
         ),
       ),
