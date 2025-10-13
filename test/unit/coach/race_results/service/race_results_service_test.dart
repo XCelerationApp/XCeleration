@@ -210,5 +210,43 @@ void main() {
       expect(teams[0].score, 25); // 1+3+5+7+9
       expect(teams[1].score, 30); // 2+4+6+8+10
     });
+
+    test('Cloning TeamRecord preserves incomplete score of 0', () {
+      final teamX = const Team(name: 'X', abbreviation: 'X');
+      final resultsX = <db.RaceResult>[
+        _result(
+            team: teamX,
+            name: 'X1',
+            bib: 'X1',
+            finish: const Duration(minutes: 18, seconds: 0)),
+        _result(
+            team: teamX,
+            name: 'X2',
+            bib: 'X2',
+            finish: const Duration(minutes: 18, seconds: 20)),
+        _result(
+            team: teamX,
+            name: 'X3',
+            bib: 'X3',
+            finish: const Duration(minutes: 18, seconds: 40)),
+        _result(
+            team: teamX,
+            name: 'X4',
+            bib: 'X4',
+            finish: const Duration(minutes: 19, seconds: 0)),
+      ];
+
+      final individual =
+          RaceResultsService.calculateIndividualResults(resultsX);
+      final teams = RaceResultsService.calculateTeamResults(individual);
+      RaceResultsService.sortAndPlaceTeams(teams);
+
+      // Team incomplete 01 score should be 0
+      expect(teams.single.score, 0);
+
+      // Deep copy should preserve score 0
+      final cloned = teams.map((t) => t).toList();
+      expect(cloned.single.score, 0);
+    });
   });
 }
