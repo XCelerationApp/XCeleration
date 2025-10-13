@@ -34,7 +34,7 @@ class TeamRecord {
 
   void updateStats() {
     if (scorers.isNotEmpty) {
-      score = scorers.fold<int>(0, (sum, runner) => sum + (runner.place ?? 0));
+      score = scorers.length >= 5 ? scorers.fold<int>(0, (sum, runner) => sum + (runner.place ?? 0)) : 0;
       split = (scorers.last.finishTime ?? Duration.zero) -
           (scorers.first.finishTime ?? Duration.zero);
 
