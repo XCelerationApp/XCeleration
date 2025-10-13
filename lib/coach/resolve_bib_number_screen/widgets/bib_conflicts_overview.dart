@@ -293,9 +293,12 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
           child: Row(
             children: [
               if (_duplicateRaceRunners!.contains(raceRunner)) ...[
-                Text('${_duplicateBibNumberPlaces![index]}.', style: AppTypography.bodyRegular.copyWith(
-                  color: AppColors.mediumColor,
-                ),),
+                Text(
+                  '${_duplicateBibNumberPlaces![index]}.',
+                  style: AppTypography.bodyRegular.copyWith(
+                    color: AppColors.mediumColor,
+                  ),
+                ),
                 const SizedBox(width: 8),
               ],
               Text(
@@ -312,9 +315,12 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (_duplicateRaceRunners!.contains(raceRunner)) ...[
-                      Text('${raceRunner.runner.name!}.', style: AppTypography.bodyRegular.copyWith(
-                        color: AppColors.mediumColor,
-                      ),),
+                      Text(
+                        '${raceRunner.runner.name!}.',
+                        style: AppTypography.bodyRegular.copyWith(
+                          color: AppColors.mediumColor,
+                        ),
+                      ),
                       const SizedBox(height: 8),
                     ],
                     Text(
