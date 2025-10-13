@@ -6,6 +6,8 @@ import '../../../core/services/device_connection_service.dart';
 import '../../../core/utils/enums.dart';
 import '../../../core/components/button_components.dart';
 import '../controller/timing_controller.dart';
+import '../../shared/services/demo_race_generator.dart';
+import '../../../core/components/dialog_utils.dart';
 
 class RaceControlsWidget extends StatelessWidget {
   final TimingController controller;
@@ -71,6 +73,18 @@ class RaceControlsWidget extends StatelessWidget {
               borderRadius: 30,
               isPrimary: false,
               onPressed: () async {
+                // Prevent sharing demo race
+                if (controller.currentRace != null &&
+                    DemoRaceGenerator.isDemoRace(controller.currentRace!)) {
+                  DialogUtils.showMessageDialog(
+                    context,
+                    title: 'Demo Race',
+                    message:
+                        'The demo race is for practice only and cannot be shared. Please load a real race from your coach to share results.',
+                  );
+                  return;
+                }
+
                 final encodedData = await controller.encodedRecords();
                 if (!context.mounted) return;
 
