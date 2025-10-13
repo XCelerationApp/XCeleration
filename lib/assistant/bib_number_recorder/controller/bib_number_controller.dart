@@ -33,6 +33,7 @@ class BibNumberController extends BibNumberDataController {
   }) {
     runners = [];
     scrollController = ScrollController();
+    _loadLastRace(); // Load race immediately like timing controller
     init(context);
   }
 
@@ -68,11 +69,8 @@ class BibNumberController extends BibNumberDataController {
   }
 
   void setupTutorials() {
-    tutorialManager.startTutorial([
-      // 'swipe_tutorial',
-      'role_bar_tutorial',
-      'add_button_tutorial'
-    ]);
+    tutorialManager
+        .startTutorial(['race_header_tutorial', 'role_bar_tutorial']);
   }
 
   void init(BuildContext context) async {
@@ -80,7 +78,7 @@ class BibNumberController extends BibNumberDataController {
       RoleBar.showInstructionsSheet(context, role_enums.Role.bibRecorder)
           .then((_) {
         if (context.mounted) {
-          _loadLastRace();
+          setupTutorials();
         }
       });
     });

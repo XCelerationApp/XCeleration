@@ -10,6 +10,7 @@ import '../controller/timing_controller.dart';
 import '../widgets/records_list_widget.dart';
 import '../../../shared/role_bar/models/role_enums.dart';
 import '../../shared/widgets/race_header_widget.dart';
+import '../../../core/components/coach_mark.dart';
 
 class TimingScreen extends StatefulWidget {
   const TimingScreen({super.key});
@@ -39,7 +40,7 @@ class _TimingScreenState extends State<TimingScreen>
 
   void _setupTutorials() {
     tutorialManager.startTutorial([
-      // 'swipe_tutorial',
+      'race_header_tutorial',
       'role_bar_tutorial',
     ]);
   }
@@ -69,14 +70,27 @@ class _TimingScreenState extends State<TimingScreen>
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      RaceHeaderWidget(
-                        currentRace: _controller.currentRace,
-                        role: DeviceName.raceTimer,
-                        onLoadRace: () =>
-                            _controller.showLoadRaceSheet(context),
-                        onShowOtherRaces: () =>
-                            _controller.showOtherRaces(context),
-                        onDeleteRace: () => _controller.deleteCurrentRace(),
+                      CoachMark(
+                        id: 'race_header_tutorial',
+                        tutorialManager: tutorialManager,
+                        config: const CoachMarkConfig(
+                          title: 'Race Information',
+                          description:
+                              'This shows your current race. A demo race has been loaded so you can test the features. Tap the menu to load a race from your coach.',
+                          icon: Icons.info_outline,
+                          alignmentY: AlignmentY.bottom,
+                          type: CoachMarkType.targeted,
+                          backgroundColor: Color(0xFF1976D2),
+                        ),
+                        child: RaceHeaderWidget(
+                          currentRace: _controller.currentRace,
+                          role: DeviceName.raceTimer,
+                          onLoadRace: () =>
+                              _controller.showLoadRaceSheet(context),
+                          onShowOtherRaces: () =>
+                              _controller.showOtherRaces(context),
+                          onDeleteRace: () => _controller.deleteCurrentRace(),
+                        ),
                       ),
                       const SizedBox(height: 8),
                       RaceStatusWidget(controller: _controller),
