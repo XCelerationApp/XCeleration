@@ -4,9 +4,11 @@
 
 Flutter, Dart, ChangeNotifier + Provider, SQLite, Supabase.
 
-## Before Refactoring Any File
+## Skill Files — Read Before Acting
 
-Read `docs/FLUTTER_REFACTORING_SKILL.md` and follow it.
+- **Refactoring any existing file:** Read `docs/REFACTORING_SKILL.md`
+- **Adding or modifying a service, controller, or screen:** Read `docs/ERROR_HANDLING_SKILL.md`
+- **Writing or modifying tests:** Read `docs/TESTING_SKILL.md`
 
 ## Always
 
