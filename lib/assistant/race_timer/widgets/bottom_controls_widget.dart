@@ -30,7 +30,7 @@ class BottomControlsWidget extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _buildMainControlButton(),
+          _buildMainControlButton(context),
           Container(
             height: 30,
             width: 1,
@@ -42,19 +42,19 @@ class BottomControlsWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildMainControlButton() {
+  Widget _buildMainControlButton(BuildContext context) {
     // Show undo button if last record is a conflict, otherwise show confirm button
     if (controller.isLastRecordUndoable) {
       return _buildControlButton(
         icon: Icons.undo,
         color: Colors.grey[700]!,
-        onTap: controller.undoLastConflict,
+        onTap: () => controller.undoLastConflict(context),
       );
     } else {
       return _buildControlButton(
         icon: Icons.check,
         color: Colors.green,
-        onTap: controller.confirmTimes,
+        onTap: () => controller.confirmTimes(context),
       );
     }
   }
@@ -88,14 +88,14 @@ class BottomControlsWidget extends StatelessWidget {
       child: PopupMenuButton<void>(
         itemBuilder: (BuildContext context) => <PopupMenuEntry<void>>[
           PopupMenuItem<void>(
-            onTap: controller.addMissingTime,
+            onTap: () => controller.addMissingTime(context),
             child: Text(
               '+ (Add finish time)',
               style: AppTypography.bodySemibold,
             ),
           ),
           PopupMenuItem<void>(
-            onTap: controller.removeExtraTime,
+            onTap: () => controller.removeExtraTime(context),
             child: Text(
               '- (Remove finish time)',
               style: AppTypography.bodySemibold,

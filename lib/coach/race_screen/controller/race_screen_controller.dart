@@ -42,7 +42,6 @@ class RaceController with ChangeNotifier {
   bool _isInitialLoading = true; // Only true on first load
   bool _isRefreshing = false; // True during background updates
   String? _error;
-  BuildContext? _lastContext;
 
   bool get isLoading =>
       _isInitialLoading; // UI only shows spinner on initial load
@@ -359,11 +358,6 @@ class RaceController with ChangeNotifier {
 
   void _onMasterRaceUpdate() {
     // Note: Currently unused due to disabled MasterRace listener
-    if (!_isInitialLoading && !_isRefreshing && _lastContext != null) {
-      // Background refresh - don't show loading screen
-      // Only refresh if we're not already refreshing to prevent infinite loops
-      _refreshDataSilently();
-    }
     notifyListeners();
   }
 
@@ -409,17 +403,7 @@ class RaceController with ChangeNotifier {
 
   /// Load all required data in parallel - for initial load only
   Future<void> loadAllData(BuildContext context) async {
-    _lastContext = context;
     await _loadData(isInitial: true, context: context);
-  }
-
-  /// Silent background refresh when MasterRace changes
-  /// Note: Currently unused due to disabled MasterRace listener
-  Future<void> _refreshDataSilently() async {
-    if (_lastContext == null || !_lastContext!.mounted) {
-      return;
-    }
-    await _loadData(isInitial: false, context: _lastContext!);
   }
 
   /// Core data loading method - handles both initial and background loading
@@ -794,19 +778,18 @@ class RaceController with ChangeNotifier {
   }
 
   /// Navigate back to race details
-  Future<void> navigateToRaceDetails() async {
+  Future<void> navigateToRaceDetails(BuildContext context) async {
     _showingRunnersManagement = false;
 
     // Refresh race data to get updated team information
-    await refreshRaceData();
+    await refreshRaceData(context);
 
     notifyListeners();
   }
 
   /// Refresh race data from database
-  Future<void> refreshRaceData([BuildContext? context]) async {
-    final contextToUse = context ?? _lastContext;
-    if (contextToUse == null || !contextToUse.mounted) {
+  Future<void> refreshRaceData(BuildContext context) async {
+    if (!context.mounted) {
       return;
     }
 
@@ -814,7 +797,7 @@ class RaceController with ChangeNotifier {
     masterRace.invalidateCache();
 
     // Reload all data
-    await _loadData(isInitial: false, context: contextToUse);
+    await _loadData(isInitial: false, context: context);
   }
 
   /// Check if we should show confirmation dialog before editing runners

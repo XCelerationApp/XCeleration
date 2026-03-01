@@ -57,12 +57,12 @@ class RecordsListWidget extends StatelessWidget {
         child: const Icon(Icons.delete, color: Colors.white),
       ),
       direction: DismissDirection.endToStart,
-      confirmDismiss: (direction) => _confirmRecordDeletion(uiRecord),
+      confirmDismiss: (direction) => _confirmRecordDeletion(uiRecord, context),
       child: item,
     );
   }
 
-  Future<bool> _confirmRecordDeletion(UIRecord uiRecord) async {
-    return await controller.handleRecordDeletion(uiRecord);
+  Future<bool> _confirmRecordDeletion(UIRecord uiRecord, BuildContext context) async {
+    return await controller.handleRecordDeletion(uiRecord, context);
   }
 }

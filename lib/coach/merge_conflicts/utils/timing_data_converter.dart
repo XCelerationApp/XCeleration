@@ -217,7 +217,7 @@ class UIChunk {
     lastInsertedIndex = null;
   }
 
-  void onRemoveExtraTime(int recordIndex) async {
+  void onRemoveExtraTime(BuildContext context, int recordIndex) async {
     if (conflict.type != ConflictType.extraTime) {
       throw Exception('Cannot remove time for non-extra time conflict');
     }
@@ -227,7 +227,7 @@ class UIChunk {
 
     // Update the backend data
     if (controller != null) {
-      controller!.removeExtraTime(chunkId, recordIndex);
+      controller!.removeExtraTime(chunkId, recordIndex, context);
     }
 
     // UI cache invalidation and notifications are handled by the controller
@@ -249,7 +249,7 @@ class UIChunk {
     // Check if chunk is now fully resolved (no TBDs left and no validation errors)
     if (isResolvedLocally) {
       if (controller != null) {
-        controller!.syncChunkToBackendAndCheckResolution(this);
+        controller!.syncChunkToBackendAndCheckResolution(this, context);
       }
     } else {
       if (controller != null) {

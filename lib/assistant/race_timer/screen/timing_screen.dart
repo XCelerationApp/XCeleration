@@ -47,9 +47,6 @@ class _TimingScreenState extends State<TimingScreen>
 
   @override
   Widget build(BuildContext context) {
-    // Set the context in the controller for dialog management
-    _controller.setContext(context);
-
     return TutorialRoot(
       tutorialManager: tutorialManager,
       child: Scaffold(
@@ -89,7 +86,7 @@ class _TimingScreenState extends State<TimingScreen>
                               _controller.showLoadRaceSheet(context),
                           onShowOtherRaces: () =>
                               _controller.showOtherRaces(context),
-                          onDeleteRace: () => _controller.deleteCurrentRace(),
+                          onDeleteRace: () => _controller.deleteCurrentRace(context),
                         ),
                       ),
                       const SizedBox(height: 8),

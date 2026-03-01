@@ -21,20 +21,16 @@ import '../../shared/widgets/other_races_sheet.dart';
 import '../../shared/services/demo_race_generator.dart';
 
 class BibNumberController extends BibNumberDataController {
-  final BuildContext context;
   late final ScrollController scrollController;
   late final List<BibDatum> runners;
 
   // Debounce timer for validations
   Timer? _debounceTimer;
 
-  BibNumberController({
-    required this.context,
-  }) {
+  BibNumberController() {
     runners = [];
     scrollController = ScrollController();
     _loadLastRace(); // Load race immediately like timing controller
-    init(context);
   }
 
   final tutorialManager = TutorialManager();
@@ -213,7 +209,7 @@ class BibNumberController extends BibNumberDataController {
 
   /// Loads a race with runners data (used when loading from coach)
   Future<void> _loadRaceWithRunners(
-      RaceRecord raceRecord, List<BibDatum> runnersData) async {
+      RaceRecord raceRecord, List<BibDatum> runnersData, BuildContext context) async {
     // Completely reset everything before loading new race
     _resetControllerState();
 
@@ -332,7 +328,9 @@ class BibNumberController extends BibNumberDataController {
             }
 
             clearBibRecords();
-            _loadRaceWithRunners(raceRecord, runners);
+            if (context.mounted) {
+              _loadRaceWithRunners(raceRecord, runners, context);
+            }
           } catch (e) {
             Logger.e('Error saving race: $e');
             if (context.mounted) {

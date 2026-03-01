@@ -89,10 +89,10 @@ class _ChunkItemState extends State<ChunkItem> {
                   onResolve: () async {
                     if (chunkType == ConflictType.extraTime) {
                       await widget.controller
-                          .resolveExtraTimeConflict(widget.index);
+                          .resolveExtraTimeConflict(widget.index, context);
                     } else if (chunkType == ConflictType.missingTime) {
                       await widget.controller
-                          .resolveMissingTimeConflict(widget.index);
+                          .resolveMissingTimeConflict(widget.index, context);
                     }
                   },
                 ),
