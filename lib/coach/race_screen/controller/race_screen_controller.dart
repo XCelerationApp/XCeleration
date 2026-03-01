@@ -25,10 +25,6 @@ class RaceController with ChangeNotifier {
   late TabController tabController;
   final MasterRace masterRace;
 
-  // Store the listener function to properly remove it later
-  // ignore: unused_field
-  late final VoidCallback _masterRaceListener;
-
   // UI state properties
   bool isLocationButtonVisible = true; // Control visibility of location button
 
@@ -42,7 +38,6 @@ class RaceController with ChangeNotifier {
   bool _isInitialLoading = true; // Only true on first load
   bool _isRefreshing = false; // True during background updates
   String? _error;
-  BuildContext? _lastContext;
 
   bool get isLoading =>
       _isInitialLoading; // UI only shows spinner on initial load
@@ -338,16 +333,10 @@ class RaceController with ChangeNotifier {
   RaceController({
     required this.masterRace,
     required this.parentController,
-  }) {
-    _masterRaceListener = _onMasterRaceUpdate;
-    // Note: Temporarily disabling MasterRace listener to prevent infinite loops
-    // The controller manages its own data loading and doesn't need external updates
-    // masterRace.addListener(_masterRaceListener);
-  }
+  });
 
   @override
   void dispose() {
-    // masterRace.removeListener(_masterRaceListener); // Disabled listener
     nameController.dispose();
     locationController.dispose();
     dateController.dispose();
@@ -355,16 +344,6 @@ class RaceController with ChangeNotifier {
     unitController.dispose();
     userlocationController.dispose();
     super.dispose();
-  }
-
-  void _onMasterRaceUpdate() {
-    // Note: Currently unused due to disabled MasterRace listener
-    if (!_isInitialLoading && !_isRefreshing && _lastContext != null) {
-      // Background refresh - don't show loading screen
-      // Only refresh if we're not already refreshing to prevent infinite loops
-      _refreshDataSilently();
-    }
-    notifyListeners();
   }
 
   static Future<void> showRaceScreen(BuildContext context,
@@ -409,17 +388,7 @@ class RaceController with ChangeNotifier {
 
   /// Load all required data in parallel - for initial load only
   Future<void> loadAllData(BuildContext context) async {
-    _lastContext = context;
     await _loadData(isInitial: true, context: context);
-  }
-
-  /// Silent background refresh when MasterRace changes
-  /// Note: Currently unused due to disabled MasterRace listener
-  Future<void> _refreshDataSilently() async {
-    if (_lastContext == null || !_lastContext!.mounted) {
-      return;
-    }
-    await _loadData(isInitial: false, context: _lastContext!);
   }
 
   /// Core data loading method - handles both initial and background loading
@@ -621,32 +590,23 @@ class RaceController with ChangeNotifier {
   /// Update the race flow state
   Future<void> updateRaceFlowState(
       BuildContext context, String newState) async {
-    if (!context.mounted) {
-      Logger.d('Context not mounted - attempting to use navigator context');
-    }
-    final navigatorContext = Navigator.of(context);
     final race = await masterRace.race;
     String previousState = race.flowState ?? '';
 
-    final currentRace = race;
-    final updatedRace = currentRace.copyWith(flowState: newState);
+    final updatedRace = race.copyWith(flowState: newState);
     await masterRace.updateRace(updatedRace);
     notifyListeners();
 
     // Show setup completion dialog if transitioning from setup to setup-completed
     if (previousState == Race.FLOW_SETUP &&
         newState == Race.FLOW_SETUP_COMPLETED) {
-      // Need to use a delay to ensure context is ready after state updates
       Future.delayed(Duration.zero, () {
-        if (!context.mounted) context = navigatorContext.context;
         if (context.mounted) {
           DialogUtils.showMessageDialog(context,
               title: 'Setup Complete',
               message:
                   'You completed setting up your race!\n\nBefore race day, make sure you have two assistants with this app installed on their phones to help time the race.\nBegin the Sharing Race step once you are at the race with your assistants.',
               doneText: 'Got it');
-        } else {
-          Logger.d('Context not mounted');
         }
       });
     }
@@ -794,27 +754,24 @@ class RaceController with ChangeNotifier {
   }
 
   /// Navigate back to race details
-  Future<void> navigateToRaceDetails() async {
+  Future<void> navigateToRaceDetails(BuildContext context) async {
     _showingRunnersManagement = false;
 
     // Refresh race data to get updated team information
-    await refreshRaceData();
+    await refreshRaceData(context);
 
     notifyListeners();
   }
 
   /// Refresh race data from database
-  Future<void> refreshRaceData([BuildContext? context]) async {
-    final contextToUse = context ?? _lastContext;
-    if (contextToUse == null || !contextToUse.mounted) {
-      return;
-    }
+  Future<void> refreshRaceData(BuildContext context) async {
+    if (!context.mounted) return;
 
     // Invalidate the cache to force fresh data from database
     masterRace.invalidateCache();
 
     // Reload all data
-    await _loadData(isInitial: false, context: contextToUse);
+    await _loadData(isInitial: false, context: context);
   }
 
   /// Check if we should show confirmation dialog before editing runners
@@ -944,5 +901,3 @@ class RaceController with ChangeNotifier {
   }
 }
 
-// Global key for navigator context in dialogs
-final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
