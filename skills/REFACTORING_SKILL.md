@@ -38,7 +38,7 @@ For every file or feature you refactor, follow this sequence:
 
 ### Phase 2 — Structural Refactor
 
-> When modifying a service or controller, follow `docs/ERROR_HANDLING_SKILL.md` for error handling conventions.
+> When modifying a service or controller, follow `skills/ERROR_HANDLING_SKILL.md` for error handling conventions.
 
 - Refactor one concern at a time
 - One logical change per commit (commit message describes the single concern changed)
@@ -265,7 +265,7 @@ Repeated switches on the same field indicate a modeling issue. Refactor toward p
 
 ## Testing Standards
 
-Follow `docs/TESTING_SKILL.md` for all testing conventions, mock setup, and examples.
+Follow `skills/TESTING_SKILL.md` for all testing conventions, mock setup, and examples.
 
 Key rules that apply during refactoring:
 
