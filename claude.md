@@ -9,6 +9,7 @@ Flutter, Dart, ChangeNotifier + Provider, SQLite, Supabase.
 - **Refactoring any existing file:** Read `docs/REFACTORING_SKILL.md`
 - **Adding or modifying a service, controller, or screen:** Read `docs/ERROR_HANDLING_SKILL.md`
 - **Writing or modifying tests:** Read `docs/TESTING_SKILL.md`
+- **Building or modifying any UI file (widgets, screens, components):** Read `docs/UI_STANDARD_SKILL.md`
 
 ## Always
 
