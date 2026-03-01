@@ -93,7 +93,7 @@ class RaceController with ChangeNotifier {
   bool _showingRunnersManagement = false;
   bool get showingRunnersManagement => _showingRunnersManagement;
 
-  late MasterFlowController flowController;
+  late final MasterFlowController flowController;
 
   // Flow state - safe getter that works during loading
   String get flowState {
@@ -108,7 +108,10 @@ class RaceController with ChangeNotifier {
     required this.masterRace,
     required this.parentController,
     IGeoLocationService? geoLocationService,
+    MasterFlowController? flowController,
   }) : _geoLocationService = geoLocationService ?? GeoLocationService() {
+    this.flowController =
+        flowController ?? MasterFlowController(raceController: this);
     form.addListener(notifyListeners);
   }
 
@@ -198,7 +201,6 @@ class RaceController with ChangeNotifier {
       if (isInitial) {
         // Only do initialization tasks on first load
         form.initializeFrom(_race!);
-        flowController = MasterFlowController(raceController: this);
 
         // Set initial flow state if needed
         if ((_race!.flowState == null || _race!.flowState!.isEmpty) &&
