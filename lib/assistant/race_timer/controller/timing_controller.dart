@@ -23,15 +23,10 @@ class TimingController extends TimingData {
   final ScrollController scrollController = ScrollController();
   AudioPlayer? audioPlayer;
   bool isAudioPlayerReady = false;
-  BuildContext? _context;
   final bool enableAudio;
 
   TimingController({this.enableAudio = true}) : super() {
     _initializeControllers();
-  }
-
-  void setContext(BuildContext context) {
-    _context = context;
   }
 
   void _initializeControllers() {
@@ -202,10 +197,8 @@ class TimingController extends TimingData {
     notifyListeners();
   }
 
-  Future<void> stopRace() async {
-    if (_context == null) return;
-
-    final confirmed = await DialogUtils.showConfirmationDialog(_context!,
+  Future<void> stopRace(BuildContext context) async {
+    final confirmed = await DialogUtils.showConfirmationDialog(context,
         content: 'Are you sure you want to stop the race?',
         title: 'Stop the Race');
     if (confirmed != true) return;
@@ -217,9 +210,9 @@ class TimingController extends TimingData {
     }
   }
 
-  Future<void> handleLogButtonPress() async {
+  Future<void> handleLogButtonPress(BuildContext context) async {
     // Log the time first
-    logTime();
+    logTime(context);
 
     // Execute haptic feedback and audio playback without blocking the UI
     HapticFeedback.vibrate();
@@ -233,12 +226,10 @@ class TimingController extends TimingData {
     }
   }
 
-  void logTime() {
+  void logTime(BuildContext context) {
     if (startTime == null || raceStopped) {
-      if (_context != null) {
-        DialogUtils.showErrorDialog(_context!,
-            message: 'Start time cannot be null or race stopped.');
-      }
+      DialogUtils.showErrorDialog(context,
+          message: 'Start time cannot be null or race stopped.');
       return;
     }
 
@@ -249,12 +240,10 @@ class TimingController extends TimingData {
     notifyListeners();
   }
 
-  void confirmTimes() {
+  void confirmTimes(BuildContext context) {
     if (startTime == null || raceStopped) {
-      if (_context != null) {
-        DialogUtils.showErrorDialog(_context!,
-            message: 'Race must be started to confirm a time.');
-      }
+      DialogUtils.showErrorDialog(context,
+          message: 'Race must be started to confirm a time.');
       return;
     }
     final time = TimeFormatter.formatDuration(
@@ -267,12 +256,10 @@ class TimingController extends TimingData {
     notifyListeners();
   }
 
-  Future<void> addMissingTime() async {
+  Future<void> addMissingTime(BuildContext context) async {
     if (startTime == null) {
-      if (_context != null) {
-        DialogUtils.showErrorDialog(_context!,
-            message: 'Race must be started to mark a missing time.');
-      }
+      DialogUtils.showErrorDialog(context,
+          message: 'Race must be started to mark a missing time.');
       return;
     }
 
@@ -286,12 +273,10 @@ class TimingController extends TimingData {
     notifyListeners();
   }
 
-  Future<void> removeExtraTime() async {
+  Future<void> removeExtraTime(BuildContext context) async {
     if (startTime == null || raceStopped) {
-      if (_context != null) {
-        DialogUtils.showErrorDialog(_context!,
-            message: 'Race must be started to mark an extra time.');
-      }
+      DialogUtils.showErrorDialog(context,
+          message: 'Race must be started to mark an extra time.');
       return;
     }
     final currentDuration = getCurrentDuration(startTime, raceDuration);
@@ -300,7 +285,7 @@ class TimingController extends TimingData {
         time: TimeFormatter.formatDuration(currentDuration),
         conflict: Conflict(type: ConflictType.extraTime, offBy: 1));
 
-    if (!await _validateExtraTimeConflict(extraTimeRecord)) {
+    if (!await _validateExtraTimeConflict(context, extraTimeRecord)) {
       return;
     }
     addExtraTimeRecord(extraTimeRecord);
@@ -309,9 +294,10 @@ class TimingController extends TimingData {
     notifyListeners();
   }
 
-  Future<bool> _validateExtraTimeConflict(TimingDatum record) async {
+  Future<bool> _validateExtraTimeConflict(
+      BuildContext context, TimingDatum record) async {
     if (record.conflict?.type == ConflictType.confirmRunner) {
-      DialogUtils.showErrorDialog(_context!,
+      DialogUtils.showErrorDialog(context,
           message: 'You cannot remove a confirmed time.');
       return false;
     }
@@ -333,27 +319,23 @@ class TimingController extends TimingData {
       return true;
     } else if (totalOffBy == numRunnerRecords) {
       // let the user decide if they want to remove all the unconfirmed times
-      if (await _handleTimesDeletion(totalOffBy)) {
+      if (await _handleTimesDeletion(context, totalOffBy)) {
         deleteCurrentChunk();
         return false; // Return false to prevent adding the record
       } else {
         return false;
       }
     } else {
-      if (_context != null) {
-        DialogUtils.showErrorDialog(
-          _context!,
-          message: "You can't remove any more unconfirmed times",
-        );
-      }
+      DialogUtils.showErrorDialog(
+        context,
+        message: "You can't remove any more unconfirmed times",
+      );
       return false;
     }
   }
 
-  Future<bool> _handleTimesDeletion(int offBy) async {
-    if (_context == null) return false;
-
-    final confirmed = await DialogUtils.showConfirmationDialog(_context!,
+  Future<bool> _handleTimesDeletion(BuildContext context, int offBy) async {
+    final confirmed = await DialogUtils.showConfirmationDialog(context,
         content:
             'This will delete the last $offBy finish times, are you sure you want to continue?',
         title: 'Confirm Deletion');
@@ -363,9 +345,7 @@ class TimingController extends TimingData {
     return false;
   }
 
-  Future<void> undoLastConflict() async {
-    if (_context == null) return;
-
+  Future<void> undoLastConflict(BuildContext context) async {
     final isConflict = currentChunk.conflictRecord?.conflict?.type !=
         ConflictType.confirmRunner;
     final dialogTitle = isConflict ? 'Undo Conflict' : 'Undo Confirmation';
@@ -374,7 +354,7 @@ class TimingController extends TimingData {
         : 'Are you sure you want to undo the last confirmation?';
 
     final confirmed = await DialogUtils.showConfirmationDialog(
-      _context!,
+      context,
       title: dialogTitle,
       content: dialogContent,
     );
@@ -393,11 +373,9 @@ class TimingController extends TimingData {
     notifyListeners();
   }
 
-  void clearRaceTimes() {
-    if (_context == null) return;
-
+  void clearRaceTimes(BuildContext context) {
     showDialog<bool>(
-      context: _context!,
+      context: context,
       builder: (context) => AlertDialog(
         title: const Text('Clear Race Times'),
         content: const Text('Are you sure you want to clear all race times?'),
@@ -436,9 +414,7 @@ class TimingController extends TimingData {
     return isUndoable;
   }
 
-  Future<bool> handleRecordDeletion(UIRecord record) async {
-    if (_context == null) return false;
-
+  Future<bool> handleRecordDeletion(UIRecord record, BuildContext context) async {
     final bool isUnconfirmed = record.textColor == Colors.black;
 
     // Unconfirmed runner time: delete by index
@@ -449,7 +425,7 @@ class TimingController extends TimingData {
         return false;
       }
       final confirmed = await DialogUtils.showConfirmationDialog(
-        _context!,
+        context,
         title: 'Confirm Deletion',
         content: 'Are you sure you want to delete the time ${record.time}?',
       );
@@ -474,7 +450,7 @@ class TimingController extends TimingData {
     final bool isLast = recordIndex == uiRecords.length - 1;
     if (!isLast) {
       DialogUtils.showErrorDialog(
-        _context!,
+        context,
         message: 'Cannot delete a record when there are later records.',
       );
       return false;
@@ -485,7 +461,7 @@ class TimingController extends TimingData {
       case RecordType.confirmRunner:
         {
           final confirmed = await DialogUtils.showConfirmationDialog(
-            _context!,
+            context,
             title: 'Confirm Deletion',
             content:
                 'Are you sure you want to delete the confirmation ${record.time}?',
@@ -502,7 +478,7 @@ class TimingController extends TimingData {
       case RecordType.missingTime:
         {
           final confirmed = await DialogUtils.showConfirmationDialog(
-            _context!,
+            context,
             title: 'Confirm Deletion',
             content:
                 'Are you sure you want to delete the missing time ${record.time}?',
@@ -519,7 +495,7 @@ class TimingController extends TimingData {
       case RecordType.extraTime:
         {
           final confirmed = await DialogUtils.showConfirmationDialog(
-            _context!,
+            context,
             title: 'Confirm Deletion',
             content:
                 'Are you sure you want to delete the extra time ${record.time}?',
@@ -539,7 +515,7 @@ class TimingController extends TimingData {
       case RecordType.runnerTime:
       default:
         DialogUtils.showErrorDialog(
-          _context!,
+          context,
           message: 'Cannot delete this record.',
         );
         return false;
@@ -547,7 +523,7 @@ class TimingController extends TimingData {
   }
 
   /// Deletes the current race and all its associated data
-  Future<void> deleteCurrentRace() async {
+  Future<void> deleteCurrentRace(BuildContext context) async {
     if (currentRace == null) return;
 
     try {
@@ -572,8 +548,8 @@ class TimingController extends TimingData {
       notifyListeners();
     } catch (e) {
       Logger.e('Error deleting race: $e');
-      if (_context != null) {
-        DialogUtils.showErrorDialog(_context!,
+      if (context.mounted) {
+        DialogUtils.showErrorDialog(context,
             message: 'Failed to delete race: $e');
       }
     }

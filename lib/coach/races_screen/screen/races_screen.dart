@@ -23,8 +23,9 @@ class RacesScreenState extends State<RacesScreen> {
   void initState() {
     super.initState();
     _controller = RacesController(canEdit: widget.canEdit);
-    _controller.setContext(context);
-    _controller.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _controller.initState(context);
+    });
   }
 
   @override

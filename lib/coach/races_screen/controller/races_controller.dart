@@ -42,23 +42,11 @@ class RacesController extends ChangeNotifier {
   String? distanceError;
   String? teamsError;
 
-  BuildContext? _context;
-
   final bool canEdit;
 
   RacesController({this.canEdit = true});
 
-  void setContext(BuildContext context) {
-    _context = context;
-  }
-
-  BuildContext get context {
-    assert(_context != null,
-        'Context not set in RacesController. Call setContext() first.');
-    return _context!;
-  }
-
-  void initState() {
+  void initState(BuildContext context) {
     loadRaces();
     teamControllers.add(TextEditingController());
     teamControllers.add(TextEditingController());
@@ -194,18 +182,16 @@ class RacesController extends ChangeNotifier {
     return validateRaceName();
   }
 
-  Future<void> getCurrentLocation() async {
+  Future<void> getCurrentLocation(BuildContext context) async {
     try {
       LocationPermission permission = await Geolocator.checkPermission();
 
-      // Check if context is still mounted after async operation
       if (!context.mounted) return;
 
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
       }
 
-      // Check if context is still mounted after async operation
       if (!context.mounted) return;
 
       if (permission == LocationPermission.deniedForever) {
@@ -221,7 +207,7 @@ class RacesController extends ChangeNotifier {
       }
 
       bool locationEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!context.mounted) return; // Check if context is still valid
+      if (!context.mounted) return;
 
       if (!locationEnabled) {
         DialogUtils.showErrorDialog(context,
@@ -230,10 +216,10 @@ class RacesController extends ChangeNotifier {
       }
 
       final position = await Geolocator.getCurrentPosition();
-      if (!context.mounted) return; // Check if context is still valid
+      if (!context.mounted) return;
       final placemarks =
           await placemarkFromCoordinates(position.latitude, position.longitude);
-      if (!context.mounted) return; // Check if context is still valid
+      if (!context.mounted) return;
 
       final placemark = placemarks.first;
       locationController.text =
@@ -244,7 +230,9 @@ class RacesController extends ChangeNotifier {
       updateLocationButtonVisibility();
     } catch (e) {
       Logger.d('Error getting location: $e');
-      DialogUtils.showErrorDialog(context, message: 'Could not get location');
+      if (context.mounted) {
+        DialogUtils.showErrorDialog(context, message: 'Could not get location');
+      }
     }
   }
 
@@ -262,7 +250,7 @@ class RacesController extends ChangeNotifier {
     }
   }
 
-  void showColorPicker(
+  void showColorPicker(BuildContext context,
       StateSetter setSheetState, TextEditingController controller) {
     showDialog(
       context: context,
@@ -293,7 +281,7 @@ class RacesController extends ChangeNotifier {
     );
   }
 
-  Future<void> editRace(Race race) async {
+  Future<void> editRace(Race race, BuildContext context) async {
     if (race.raceId == null) {
       throw Exception('Race ID is null');
     }
@@ -310,7 +298,7 @@ class RacesController extends ChangeNotifier {
     await RaceController.showRaceScreen(context, this, masterRace);
   }
 
-  Future<void> deleteRace(Race race) async {
+  Future<void> deleteRace(Race race, BuildContext context) async {
     if (race.raceId == null) {
       throw Exception('Race ID is null');
     }
@@ -369,7 +357,6 @@ class RacesController extends ChangeNotifier {
     }
     teamColors.clear();
     tutorialManager.dispose();
-    _context = null;
     _eventSubscription?.cancel();
     super.dispose();
   }

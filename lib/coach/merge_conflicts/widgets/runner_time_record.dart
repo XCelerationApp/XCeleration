@@ -101,7 +101,7 @@ class RunnerTimeRecord extends StatelessWidget {
                               ? ExtraTimeCell(
                                   time: time,
                                   onRemoveExtraTime: () =>
-                                      chunk.onRemoveExtraTime(chunkIndex),
+                                      chunk.onRemoveExtraTime(context, chunkIndex),
                                 )
                               : Builder(
                                   builder: (context) {

@@ -36,7 +36,6 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
   }
 
   void _initializeState() {
-    _controller.setContext(context);
     _controller.initState();
     _controller.addListener(_rebuildUi);
   }
@@ -49,7 +48,6 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    _controller.setContext(context);
     return Container(
       color: AppColors.backgroundColor,
       child: SafeArea(

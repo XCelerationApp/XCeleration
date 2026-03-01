@@ -49,7 +49,7 @@ class RaceControlsWidget extends StatelessWidget {
           ? null
           : (controller.raceStopped
               ? controller.startRace
-              : controller.stopRace),
+              : () => controller.stopRace(context)),
     );
   }
 
@@ -128,8 +128,8 @@ class RaceControlsWidget extends StatelessWidget {
     // Determine button function
     final VoidCallback? buttonFunction = isEnabled
         ? (controller.raceStopped
-            ? controller.clearRaceTimes
-            : controller.handleLogButtonPress)
+            ? () => controller.clearRaceTimes(context)
+            : () => controller.handleLogButtonPress(context))
         : null;
 
     return CircularButton(

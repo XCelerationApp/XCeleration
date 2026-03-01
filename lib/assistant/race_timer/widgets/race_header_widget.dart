@@ -224,8 +224,8 @@ class RaceHeaderWidget extends StatelessWidget {
         ],
       ),
     ).then((confirmed) {
-      if (confirmed == true) {
-        controller.deleteCurrentRace();
+      if (confirmed == true && context.mounted) {
+        controller.deleteCurrentRace(context);
       }
     });
   }

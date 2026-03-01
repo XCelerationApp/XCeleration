@@ -25,9 +25,10 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
   @override
   void initState() {
     super.initState();
-    _controller = BibNumberController(
-      context: context,
-    );
+    _controller = BibNumberController();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _controller.init(context);
+    });
   }
 
   @override
