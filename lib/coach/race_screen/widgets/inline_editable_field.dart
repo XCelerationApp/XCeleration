@@ -46,7 +46,8 @@ class InlineEditableField extends StatelessWidget {
       child: Builder(
         builder: (context) {
           // Simple synchronous check - no async needed
-          final isEditable = controller.shouldShowAsEditable(field);
+          final isEditable =
+              controller.form.shouldShowAsEditable(field, controller.race, controller.canEdit);
 
           return isEditable
               ? _buildEditableMode(context)
@@ -100,7 +101,7 @@ class InlineEditableField extends StatelessWidget {
                 children: [
                   const SizedBox(width: 8),
                   InkWell(
-                    onTap: () => controller.startEditingField(field),
+                    onTap: () => controller.form.startEditing(field),
                     borderRadius: BorderRadius.circular(8),
                     child: Container(
                       padding: const EdgeInsets.all(8),

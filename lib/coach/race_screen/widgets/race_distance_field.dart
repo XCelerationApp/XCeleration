@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/components/textfield_utils.dart';
 import '../controller/race_screen_controller.dart';
+import '../controller/race_form_state.dart';
 
 class RaceDistanceField extends StatelessWidget {
   final RaceController controller;
@@ -24,15 +25,16 @@ class RaceDistanceField extends StatelessWidget {
             flex: 2,
             child: buildTextField(
               context: context,
-              controller: controller.distanceController,
+              controller: controller.form.distanceController,
               hint: '0.0',
-              error: controller.distanceError,
+              error: controller.form.errorFor(RaceField.distance),
               setSheetState: setSheetState,
               onChanged: (value) {
                 controller.validateDistance(
-                    controller.distanceController.text, setSheetState);
+                    controller.form.distanceController.text, setSheetState);
                 // Only trigger autosave when we have valid input
-                if (value.isNotEmpty && controller.distanceError == null) {
+                if (value.isNotEmpty &&
+                    controller.form.errorFor(RaceField.distance) == null) {
                   if (onChanged != null) onChanged!(value);
                 }
               },
@@ -43,13 +45,13 @@ class RaceDistanceField extends StatelessWidget {
           Expanded(
             flex: 1,
             child: buildDropdown(
-              controller: controller.unitController,
+              controller: controller.form.unitController,
               hint: 'mi',
               error: null,
               setSheetState: setSheetState,
               items: ['mi', 'km'],
               onChanged: (value) {
-                controller.unitController.text = value;
+                controller.form.unitController.text = value;
                 if (onChanged != null) onChanged!(value);
               },
             ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:xceleration/core/components/textfield_utils.dart';
 import '../../../core/theme/app_colors.dart';
 import '../controller/race_screen_controller.dart';
+import '../controller/race_form_state.dart';
 
 class RaceDateField extends StatelessWidget {
   final RaceController controller;
@@ -21,9 +22,9 @@ class RaceDateField extends StatelessWidget {
       label: 'Date',
       inputWidget: buildTextField(
         context: context,
-        controller: controller.dateController,
+        controller: controller.form.dateController,
         hint: 'YYYY-MM-DD',
-        error: controller.dateError,
+        error: controller.form.errorFor(RaceField.date),
         suffixIcon: IconButton(
           icon: const Icon(Icons.calendar_today, color: AppColors.primaryColor),
           onPressed: () => controller.selectDate(context),
@@ -31,7 +32,7 @@ class RaceDateField extends StatelessWidget {
         setSheetState: setSheetState,
         onChanged: (value) {
           controller.validateDate(
-              controller.dateController.text, setSheetState);
+              controller.form.dateController.text, setSheetState);
           if (onChanged != null) onChanged!(value);
         },
       ),

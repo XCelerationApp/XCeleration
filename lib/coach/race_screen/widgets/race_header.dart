@@ -66,7 +66,7 @@ class _RaceHeaderState extends State<RaceHeader> {
     _titleFocusNode.addListener(() {
       // Autosave when losing focus outside of setup flow
       if (!_titleFocusNode.hasFocus &&
-          widget.controller.isEditing(RaceField.name)) {
+          widget.controller.form.isEditing(RaceField.name)) {
         if (!mounted) return;
         // Use controller's synchronous flowState instead of async race access
         if (!_isSetupFlow(widget.controller.flowState)) {
@@ -97,9 +97,9 @@ class _RaceHeaderState extends State<RaceHeader> {
         Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: widget.controller.isEditing(RaceField.name)
+          child: widget.controller.form.isEditing(RaceField.name)
               ? TextField(
-                  controller: widget.controller.nameController,
+                  controller: widget.controller.form.nameController,
                   focusNode: _titleFocusNode,
                   style: AppTypography.titleLarge.copyWith(
                     color: AppColors.primaryColor,
@@ -114,7 +114,7 @@ class _RaceHeaderState extends State<RaceHeader> {
                   onChanged: (value) =>
                       widget.controller.trackFieldChange(RaceField.name),
                   onSubmitted: (_) =>
-                      widget.controller.stopEditingField(RaceField.name),
+                      widget.controller.form.stopEditing(RaceField.name),
                   onTapOutside: (_) {
                     _titleFocusNode.unfocus();
                   },
@@ -122,7 +122,7 @@ class _RaceHeaderState extends State<RaceHeader> {
               : GestureDetector(
                   onTap: canEdit
                       ? () {
-                          widget.controller.startEditingField(RaceField.name);
+                          widget.controller.form.startEditing(RaceField.name);
                           WidgetsBinding.instance.addPostFrameCallback((_) {
                             _titleFocusNode.requestFocus();
                           });
