@@ -3,6 +3,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../../shared/models/database/race.dart';
 import '../controller/race_screen_controller.dart';
+import '../controller/race_form_state.dart';
 import '../widgets/flow_notification.dart';
 
 // Simplified color function
@@ -64,7 +65,8 @@ class _RaceHeaderState extends State<RaceHeader> {
     _titleFocusNode = FocusNode();
     _titleFocusNode.addListener(() {
       // Autosave when losing focus outside of setup flow
-      if (!_titleFocusNode.hasFocus && widget.controller.isEditingName) {
+      if (!_titleFocusNode.hasFocus &&
+          widget.controller.isEditing(RaceField.name)) {
         if (!mounted) return;
         // Use controller's synchronous flowState instead of async race access
         if (!_isSetupFlow(widget.controller.flowState)) {
@@ -95,7 +97,7 @@ class _RaceHeaderState extends State<RaceHeader> {
         Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: widget.controller.isEditingName
+          child: widget.controller.isEditing(RaceField.name)
               ? TextField(
                   controller: widget.controller.nameController,
                   focusNode: _titleFocusNode,
@@ -110,9 +112,9 @@ class _RaceHeaderState extends State<RaceHeader> {
                     isDense: true,
                   ),
                   onChanged: (value) =>
-                      widget.controller.trackFieldChange('name'),
+                      widget.controller.trackFieldChange(RaceField.name),
                   onSubmitted: (_) =>
-                      widget.controller.stopEditingField('name'),
+                      widget.controller.stopEditingField(RaceField.name),
                   onTapOutside: (_) {
                     _titleFocusNode.unfocus();
                   },
@@ -120,7 +122,7 @@ class _RaceHeaderState extends State<RaceHeader> {
               : GestureDetector(
                   onTap: canEdit
                       ? () {
-                          widget.controller.startEditingField('name');
+                          widget.controller.startEditingField(RaceField.name);
                           WidgetsBinding.instance.addPostFrameCallback((_) {
                             _titleFocusNode.requestFocus();
                           });

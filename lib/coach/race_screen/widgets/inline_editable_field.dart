@@ -4,10 +4,11 @@ import '../../../core/theme/typography.dart';
 import '../../../core/theme/app_colors.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
 import '../controller/race_screen_controller.dart';
+import '../controller/race_form_state.dart';
 
 class InlineEditableField extends StatelessWidget {
   final RaceController controller;
-  final String fieldName;
+  final RaceField field;
   final String label;
   final IconData icon;
   final TextEditingController textController;
@@ -21,7 +22,7 @@ class InlineEditableField extends StatelessWidget {
   const InlineEditableField({
     super.key,
     required this.controller,
-    required this.fieldName,
+    required this.field,
     required this.label,
     required this.icon,
     required this.textController,
@@ -45,7 +46,7 @@ class InlineEditableField extends StatelessWidget {
       child: Builder(
         builder: (context) {
           // Simple synchronous check - no async needed
-          final isEditable = controller.shouldShowAsEditable(fieldName);
+          final isEditable = controller.shouldShowAsEditable(field);
 
           return isEditable
               ? _buildEditableMode(context)
@@ -99,7 +100,7 @@ class InlineEditableField extends StatelessWidget {
                 children: [
                   const SizedBox(width: 8),
                   InkWell(
-                    onTap: () => controller.startEditingField(fieldName),
+                    onTap: () => controller.startEditingField(field),
                     borderRadius: BorderRadius.circular(8),
                     child: Container(
                       padding: const EdgeInsets.all(8),
@@ -151,7 +152,7 @@ class InlineEditableField extends StatelessWidget {
               onFocusChange: (hasFocus) {
                 if (!hasFocus) {
                   // Handle focus loss with potential autosave
-                  controller.handleFieldFocusLoss(context, fieldName);
+                  controller.handleFieldFocusLoss(context, field);
                 }
               },
               child: buildTextField(
@@ -163,7 +164,7 @@ class InlineEditableField extends StatelessWidget {
                 suffixIcon: suffixIcon as IconButton?,
                 setSheetState: (fn) =>
                     fn(), // No-op since we don't use sheet state
-                onChanged: (value) => controller.trackFieldChange(fieldName),
+                onChanged: (value) => controller.trackFieldChange(field),
               ),
             ),
       ],

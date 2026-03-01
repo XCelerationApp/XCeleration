@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/utils/logger.dart';
+import 'race_form_state.dart';
 import '../../../shared/models/database/race_runner.dart';
 import '../../../shared/models/database/team.dart';
 import 'package:xceleration/coach/race_screen/screen/race_screen.dart';
@@ -28,11 +29,9 @@ class RaceController with ChangeNotifier {
   // UI state properties
   bool isLocationButtonVisible = true; // Control visibility of location button
 
-  // Individual field edit states
-  bool isEditingName = false;
-  bool isEditingLocation = false;
-  bool isEditingDate = false;
-  bool isEditingDistance = false;
+  // Field editing state
+  final Set<RaceField> _editingFields = {};
+  bool isEditing(RaceField field) => _editingFields.contains(field);
 
   // Loading states
   bool _isInitialLoading = true; // Only true on first load
@@ -83,119 +82,74 @@ class RaceController with ChangeNotifier {
   int get runnersCount => _raceRunners?.length ?? 0;
 
   // Change tracking
-  Map<String, dynamic> originalValues = {};
-  Set<String> changedFields = {};
+  Map<RaceField, dynamic> originalValues = {};
+  Set<RaceField> changedFields = {};
   bool get hasUnsavedChanges => changedFields.isNotEmpty;
 
+  Map<RaceField, TextEditingController> get _fieldControllers => {
+        RaceField.name: nameController,
+        RaceField.location: locationController,
+        RaceField.date: dateController,
+        RaceField.distance: distanceController,
+        RaceField.unit: unitController,
+      };
+
   // Field edit state management methods
-  void startEditingField(String fieldName) {
-    switch (fieldName) {
-      case 'name':
-        isEditingName = true;
-        break;
-      case 'location':
-        isEditingLocation = true;
-        break;
-      case 'date':
-        isEditingDate = true;
-        break;
-      case 'distance':
-        isEditingDistance = true;
-        break;
-    }
+  void startEditingField(RaceField field) {
+    _editingFields.add(field);
     notifyListeners();
   }
 
-  void stopEditingField(String fieldName) {
-    switch (fieldName) {
-      case 'name':
-        isEditingName = false;
-        break;
-      case 'location':
-        isEditingLocation = false;
-        break;
-      case 'date':
-        isEditingDate = false;
-        break;
-      case 'distance':
-        isEditingDistance = false;
-        break;
-    }
+  void stopEditingField(RaceField field) {
+    _editingFields.remove(field);
     notifyListeners();
   }
 
   // Check if field should be shown as editable (empty during setup or currently being edited)
-  bool shouldShowAsEditable(String fieldName) {
+  bool shouldShowAsEditable(RaceField field) {
     if (!canEdit) return false;
-
-    // Always show as editable if currently being edited
-    switch (fieldName) {
-      case 'name':
-        return isEditingName || (race.raceName?.isEmpty ?? true);
-      case 'location':
-        return isEditingLocation || (race.location?.isEmpty ?? true);
-      case 'date':
-        return isEditingDate || (race.raceDate == null);
-      case 'distance':
-        return isEditingDistance || (race.distance == 0);
-      default:
-        return false;
-    }
+    if (isEditing(field)) return true;
+    return switch (field) {
+      RaceField.name => race.raceName?.isEmpty ?? true,
+      RaceField.location => race.location?.isEmpty ?? true,
+      RaceField.date => race.raceDate == null,
+      RaceField.distance => race.distance == 0,
+      RaceField.unit => false,
+    };
   }
 
   // Change tracking methods
-  Future<void> _storeOriginalValue(String fieldName) async {
+  Future<void> _storeOriginalValue(RaceField field) async {
     final race = await masterRace.race;
-    if (!originalValues.containsKey(fieldName)) {
-      switch (fieldName) {
-        case 'name':
-          originalValues[fieldName] = race.raceName ?? '';
-          break;
-        case 'location':
-          originalValues[fieldName] = race.location ?? '';
-          break;
-        case 'date':
-          originalValues[fieldName] = race.raceDate;
-          break;
-        case 'distance':
-          originalValues[fieldName] = race.distance ?? 0;
-          break;
-        case 'unit':
-          originalValues[fieldName] = race.distanceUnit ?? 'mi';
-          break;
-      }
+    if (!originalValues.containsKey(field)) {
+      originalValues[field] = switch (field) {
+        RaceField.name => race.raceName ?? '',
+        RaceField.location => race.location ?? '',
+        RaceField.date => race.raceDate,
+        RaceField.distance => race.distance ?? 0,
+        RaceField.unit => race.distanceUnit ?? 'mi',
+      };
     }
   }
 
-  void trackFieldChange(String fieldName) {
-    _storeOriginalValue(fieldName);
+  void trackFieldChange(RaceField field) {
+    _storeOriginalValue(field);
 
-    dynamic currentValue;
-    switch (fieldName) {
-      case 'name':
-        currentValue = nameController.text;
-        break;
-      case 'location':
-        currentValue = locationController.text;
-        break;
-      case 'date':
-        currentValue = dateController.text.isNotEmpty
-            ? DateTime.tryParse(dateController.text)
-            : null;
-        break;
-      case 'distance':
-        currentValue = double.tryParse(distanceController.text) ?? 0;
-        break;
-      case 'unit':
-        currentValue = unitController.text;
-        break;
-    }
+    final ctrl = _fieldControllers[field]!;
+    final dynamic currentValue = switch (field) {
+      RaceField.name => ctrl.text,
+      RaceField.location => ctrl.text,
+      RaceField.date =>
+        ctrl.text.isNotEmpty ? DateTime.tryParse(ctrl.text) : null,
+      RaceField.distance => double.tryParse(ctrl.text) ?? 0,
+      RaceField.unit => ctrl.text,
+    };
 
     // Check if the current value differs from original
-    if (currentValue != originalValues[fieldName]) {
-      changedFields.add(fieldName);
+    if (currentValue != originalValues[field]) {
+      changedFields.add(field);
     } else {
-      changedFields.remove(fieldName);
+      changedFields.remove(field);
     }
 
     notifyListeners();
@@ -203,8 +157,8 @@ class RaceController with ChangeNotifier {
 
   // Handle field focus loss with potential autosave
   Future<void> handleFieldFocusLoss(
-      BuildContext context, String fieldName) async {
-    trackFieldChange(fieldName);
+      BuildContext context, RaceField field) async {
+    trackFieldChange(field);
 
     // Autosave if not in setup flow
     if (!(await _isSetupFlow()) && hasUnsavedChanges && context.mounted) {
@@ -221,34 +175,30 @@ class RaceController with ChangeNotifier {
   }
 
   void revertAllChanges() {
-    for (String fieldName in Set<String>.from(changedFields)) {
-      _revertField(fieldName);
+    for (final field in Set<RaceField>.from(changedFields)) {
+      _revertField(field);
     }
     changedFields.clear();
     originalValues.clear();
     notifyListeners();
   }
 
-  void _revertField(String fieldName) {
-    if (originalValues.containsKey(fieldName)) {
-      switch (fieldName) {
-        case 'name':
-          nameController.text = originalValues[fieldName] ?? '';
-          break;
-        case 'location':
-          locationController.text = originalValues[fieldName] ?? '';
-          break;
-        case 'date':
-          final date = originalValues[fieldName] as DateTime?;
+  void _revertField(RaceField field) {
+    if (originalValues.containsKey(field)) {
+      final value = originalValues[field];
+      switch (field) {
+        case RaceField.name:
+          nameController.text = value ?? '';
+        case RaceField.location:
+          locationController.text = value ?? '';
+        case RaceField.date:
+          final date = value as DateTime?;
           dateController.text =
               date != null ? DateFormat('yyyy-MM-dd').format(date) : '';
-          break;
-        case 'distance':
-          distanceController.text = (originalValues[fieldName] ?? 0).toString();
-          break;
-        case 'unit':
-          unitController.text = originalValues[fieldName] ?? 'mi';
-          break;
+        case RaceField.distance:
+          distanceController.text = (value ?? 0).toString();
+        case RaceField.unit:
+          unitController.text = value ?? 'mi';
       }
     }
   }
@@ -258,24 +208,22 @@ class RaceController with ChangeNotifier {
 
     // Validate all changed fields
     bool allValid = true;
-    for (String fieldName in changedFields) {
-      switch (fieldName) {
-        case 'name':
+    for (final field in changedFields) {
+      switch (field) {
+        case RaceField.name:
           nameError = RaceService.validateName(nameController.text);
           if (nameError != null) allValid = false;
-          break;
-        case 'location':
+        case RaceField.location:
           locationError = RaceService.validateLocation(locationController.text);
           if (locationError != null) allValid = false;
-          break;
-        case 'date':
+        case RaceField.date:
           dateError = RaceService.validateDate(dateController.text);
           if (dateError != null) allValid = false;
-          break;
-        case 'distance':
+        case RaceField.distance:
           distanceError = RaceService.validateDistance(distanceController.text);
           if (distanceError != null) allValid = false;
-          break;
+        case RaceField.unit:
+          break; // no validation needed
       }
     }
 
@@ -287,15 +235,10 @@ class RaceController with ChangeNotifier {
     // Save the changes
     await saveRaceDetails(context);
 
-    // Clear change tracking
+    // Clear change tracking and editing state
     changedFields.clear();
     originalValues.clear();
-
-    // Stop editing all fields
-    isEditingName = false;
-    isEditingLocation = false;
-    isEditingDate = false;
-    isEditingDistance = false;
+    _editingFields.clear();
 
     notifyListeners();
   }
@@ -484,14 +427,15 @@ class RaceController with ChangeNotifier {
     final race = _race!;
 
     // Only update if not currently being edited and value changed
-    if (!isEditingName && nameController.text != (race.raceName ?? '')) {
+    if (!isEditing(RaceField.name) &&
+        nameController.text != (race.raceName ?? '')) {
       nameController.text = race.raceName ?? '';
     }
-    if (!isEditingLocation &&
+    if (!isEditing(RaceField.location) &&
         locationController.text != (race.location ?? '')) {
       locationController.text = race.location ?? '';
     }
-    if (!isEditingDate) {
+    if (!isEditing(RaceField.date)) {
       final newDateText = race.raceDate != null
           ? DateFormat('yyyy-MM-dd').format(race.raceDate!)
           : '';
@@ -499,7 +443,7 @@ class RaceController with ChangeNotifier {
         dateController.text = newDateText;
       }
     }
-    if (!isEditingDistance) {
+    if (!isEditing(RaceField.distance)) {
       final newDistanceText = race.distance != null && race.distance! > 0
           ? race.distance.toString()
           : '';
@@ -538,26 +482,24 @@ class RaceController with ChangeNotifier {
   }
 
   // Individual field save methods with validation
-  Future<bool> saveFieldIfValid(BuildContext context, String fieldName) async {
+  Future<bool> saveFieldIfValid(BuildContext context, RaceField field) async {
     // Validate the specific field first
     bool isValid = true;
-    switch (fieldName) {
-      case 'name':
+    switch (field) {
+      case RaceField.name:
         nameError = RaceService.validateName(nameController.text);
         isValid = nameError == null;
-        break;
-      case 'location':
+      case RaceField.location:
         locationError = RaceService.validateLocation(locationController.text);
         isValid = locationError == null;
-        break;
-      case 'date':
+      case RaceField.date:
         dateError = RaceService.validateDate(dateController.text);
         isValid = dateError == null;
-        break;
-      case 'distance':
+      case RaceField.distance:
         distanceError = RaceService.validateDistance(distanceController.text);
         isValid = distanceError == null;
-        break;
+      case RaceField.unit:
+        isValid = true;
     }
 
     if (!isValid) {
@@ -569,7 +511,7 @@ class RaceController with ChangeNotifier {
     await saveRaceDetails(context);
 
     // Stop editing this field
-    stopEditingField(fieldName);
+    stopEditingField(field);
 
     return true;
   }
