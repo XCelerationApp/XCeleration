@@ -5,7 +5,6 @@ import 'package:xceleration/shared/models/database/race_runner.dart';
 import 'package:xceleration/shared/models/timing_records/conflict.dart';
 import 'package:xceleration/shared/models/timing_records/timing_chunk.dart';
 import 'package:xceleration/shared/models/timing_records/timing_datum.dart';
-import '../controller/merge_conflicts_controller.dart';
 
 /// Represents the UI state for a single time entry in a conflict resolution UI
 class ConflictTime {
@@ -45,8 +44,8 @@ class ConflictTime {
 }
 
 class TimingDataConverter {
-  static List<UIChunk> convertToUIChunks(List<TimingChunk> timingChunks,
-      List<RaceRunner> runners, MergeConflictsController? controller) {
+  static List<UIChunk> convertToUIChunks(
+      List<TimingChunk> timingChunks, List<RaceRunner> runners) {
     final runnersCopy = List<RaceRunner>.from(runners);
     final uiChunks = <UIChunk>[];
     int startingPlace = 1;
@@ -71,7 +70,6 @@ class TimingDataConverter {
         conflictRecord: chunk.conflictRecord!,
         originalTimingData: chunk.timingData,
         startingPlace: startingPlace,
-        controller: controller,
         chunkId: chunk.id,
       );
       uiChunks.add(uiChunk);
@@ -92,9 +90,6 @@ class UIChunk {
   // UI records as the single source of truth for this chunk
   final List<UIRecord> records;
 
-  // Reference to controller for updating underlying data
-  final MergeConflictsController? controller;
-
   bool get hasConflict => true; // UIChunk always has a conflict record
 
   int? lastInsertedIndex;
@@ -106,7 +101,6 @@ class UIChunk {
     required TimingDatum conflictRecord,
     required List<TimingDatum> originalTimingData,
     required int startingPlace,
-    MergeConflictsController? controller,
     required int chunkId,
   }) {
     if (times.isEmpty) {
@@ -195,7 +189,6 @@ class UIChunk {
       records: records,
       startingPlace: startingPlace,
       chunkId: chunkId,
-      controller: controller,
       startTime: startTime,
       endTime: endTime,
       conflict: conflict,
@@ -210,135 +203,10 @@ class UIChunk {
     required this.startTime,
     required this.endTime,
     required this.conflict,
-    this.controller,
   });
 
   void reset() {
     lastInsertedIndex = null;
-  }
-
-  void onRemoveExtraTime(int recordIndex) async {
-    if (conflict.type != ConflictType.extraTime) {
-      throw Exception('Cannot remove time for non-extra time conflict');
-    }
-
-    // Remove the record directly from the UIChunk
-    records.removeAt(recordIndex);
-
-    // Update the backend data
-    if (controller != null) {
-      controller!.removeExtraTime(chunkId, recordIndex);
-    }
-
-    // UI cache invalidation and notifications are handled by the controller
-  }
-
-  Future<void> onMissingTimeSubmitted(
-      BuildContext context, int chunkIndex, String newValue) async {
-    UIRecord record = records[chunkIndex];
-
-    // Validation already happened in real-time during typing
-    // Just ensure the record is up to date and check for resolution
-    record.updateConflictTime(ConflictTime(
-      time: newValue,
-      isOriginallyTBD: record.isOriginallyTBD,
-      validationError:
-          record.validationError, // Preserve current validation state
-    ));
-
-    // Check if chunk is now fully resolved (no TBDs left and no validation errors)
-    if (isResolvedLocally) {
-      if (controller != null) {
-        controller!.syncChunkToBackendAndCheckResolution(this);
-      }
-    } else {
-      if (controller != null) {
-        controller!.notifyRegisteredListeners();
-      }
-    }
-  }
-
-  void onMissingTimeChanged(
-      BuildContext context, int chunkIndex, String newValue) {
-    UIRecord record = records[chunkIndex];
-
-    // Update the controller text
-    record.timeController.text = newValue;
-
-    // Run validation in real-time as user types
-    String? validationError;
-
-    // Validate the input format
-    if (newValue.isNotEmpty &&
-        newValue != 'TBD' &&
-        TimeFormatter.loadDurationFromString(newValue) == null) {
-      validationError = 'Invalid Time';
-    } else {
-      // Validate time ordering if format is valid
-      final allCurrentTimes =
-          records.map((r) => r.timeController.text).toList();
-      allCurrentTimes[chunkIndex] = newValue;
-      validationError = _validateTimesInContext(allCurrentTimes, chunkIndex);
-    }
-
-    // Update the record with the validation result
-    record.updateConflictTime(ConflictTime(
-      time: newValue,
-      isOriginallyTBD: record.isOriginallyTBD,
-      validationError: validationError,
-    ));
-
-    // Notify UI to update resolve button state
-    if (controller != null) {
-      controller!.notifyRegisteredListeners();
-    }
-  }
-
-  /// Insert a TBD time at the specified position by moving the first available TBD
-  void insertTimeAt(int recordIndex) {
-    // For confirmRunner conflicts, always allow inserting new TBDs
-    if (conflict.type == ConflictType.confirmRunner) {
-      // Create a new TBD record
-      final newRecord = UIRecord(
-        place: null,
-        runner: null,
-        initialTime: 'TBD',
-        isOriginallyTBD: true,
-        validationError: null,
-      );
-
-      // Insert it at the specified position
-      records.insert(recordIndex, newRecord);
-
-      // Notify UI to rebuild after records list changed
-      if (controller != null) {
-        controller!.notifyRegisteredListeners();
-      }
-      return;
-    }
-
-    // For missing time conflicts, move existing TBDs
-    // Find the first record where controller.text == 'TBD' (unused TBD)
-    int? tbdRecordIndex;
-    for (int i = 0; i < records.length; i++) {
-      if (records[i].timeController.text == 'TBD') {
-        tbdRecordIndex = i;
-        break;
-      }
-    }
-
-    if (tbdRecordIndex == null) {
-      return; // No TBD to move
-    }
-
-    // Remove the TBD record and insert it at the new position
-    final tbdRecord = records.removeAt(tbdRecordIndex);
-    records.insert(recordIndex, tbdRecord);
-
-    // Notify UI to rebuild after records list changed
-    if (controller != null) {
-      controller!.notifyRegisteredListeners();
-    }
   }
 
   /// Check if there are TBDs available after the given index for insertion
@@ -407,10 +275,6 @@ class UIChunk {
     return null; // No persistent validation error
   }
 
-  Duration? _parseTimeToDuration(String time) {
-    return TimeFormatter.loadDurationFromString(time);
-  }
-
   /// Check if all times in this chunk are in valid order (no validation errors)
   bool get hasValidTimeOrder {
     for (final record in records) {
@@ -419,72 +283,6 @@ class UIChunk {
       }
     }
     return true;
-  }
-
-  /// Validate times in context using controller values
-  String? _validateTimesInContext(List<String> contextTimes, int recordIndex) {
-    final currentTime = contextTimes[recordIndex];
-    if (currentTime == 'TBD') return null; // TBD is always valid
-
-    final currentDuration = _parseTimeToDuration(currentTime);
-    if (currentDuration == null) {
-      return null; // Invalid format will be caught elsewhere
-    }
-
-    // Check for exact duplicates first (skip TBDs)
-    for (int i = 0; i < contextTimes.length; i++) {
-      if (i != recordIndex && contextTimes[i] != 'TBD') {
-        final otherDuration = _parseTimeToDuration(contextTimes[i]);
-        if (otherDuration != null && currentDuration == otherDuration) {
-          return 'Invalid Time';
-        }
-      }
-    }
-
-    // Check against previous valid time (must be strictly greater than)
-    final previousIndex = _getPreviousValidTimeIndex(contextTimes, recordIndex);
-    if (previousIndex != null) {
-      final previousDuration =
-          _parseTimeToDuration(contextTimes[previousIndex]);
-      if (previousDuration != null && currentDuration <= previousDuration) {
-        return 'Invalid Time';
-      }
-    }
-
-    // Check against next valid time (must be strictly less)
-    final nextIndex = _getNextValidTimeIndex(contextTimes, recordIndex);
-    if (nextIndex != null) {
-      final nextDuration = _parseTimeToDuration(contextTimes[nextIndex]);
-      if (nextDuration != null && currentDuration >= nextDuration) {
-        return 'Invalid Time';
-      }
-    }
-
-    // Check against chunk's end time (times should not exceed the chunk's expected end time)
-    final endDuration = _parseTimeToDuration(endTime);
-    if (endDuration != null && currentDuration > endDuration) {
-      return 'Invalid Time';
-    }
-
-    return null; // Valid
-  }
-
-  int? _getPreviousValidTimeIndex(List<String> contextTimes, int recordIndex) {
-    for (int i = recordIndex - 1; i >= 0; i--) {
-      if (contextTimes[i] != 'TBD') {
-        return i;
-      }
-    }
-    return null;
-  }
-
-  int? _getNextValidTimeIndex(List<String> contextTimes, int recordIndex) {
-    for (int i = recordIndex + 1; i < contextTimes.length; i++) {
-      if (contextTimes[i] != 'TBD') {
-        return i;
-      }
-    }
-    return null;
   }
 }
 

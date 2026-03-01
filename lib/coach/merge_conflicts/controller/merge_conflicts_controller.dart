@@ -40,7 +40,7 @@ class MergeConflictsController with ChangeNotifier {
         _cachedUIChunks!.length != timingChunks.length ||
         _needsUIRebuild) {
       _cachedUIChunks = TimingDataConverter.convertToUIChunks(
-          timingChunks, raceRunners, this);
+          timingChunks, raceRunners);
       _needsUIRebuild = false;
     }
     return _cachedUIChunks!;
@@ -84,6 +84,150 @@ class MergeConflictsController with ChangeNotifier {
 
   void notifyRegisteredListeners() {
     super.notifyListeners();
+  }
+
+  /// Called by widget when user removes an extra time record from a UIChunk.
+  void removeExtraTimeRecord(int chunkId, int recordIndex) {
+    final uiChunk = _getUIChunk(chunkId);
+    if (uiChunk == null) return;
+    if (uiChunk.conflict.type != ConflictType.extraTime) return;
+    uiChunk.records.removeAt(recordIndex);
+    removeExtraTime(chunkId, recordIndex);
+  }
+
+  /// Called by widget when user submits a missing time.
+  Future<void> submitMissingTimeRecord(
+      int chunkId, int recordIndex, String newValue) async {
+    final uiChunk = _getUIChunk(chunkId);
+    if (uiChunk == null) return;
+    final record = uiChunk.records[recordIndex];
+    record.updateConflictTime(ConflictTime(
+      time: newValue,
+      isOriginallyTBD: record.isOriginallyTBD,
+      validationError: record.validationError,
+    ));
+    if (uiChunk.isResolvedLocally) {
+      await syncChunkToBackendAndCheckResolution(uiChunk);
+    } else {
+      notifyListeners();
+    }
+  }
+
+  /// Called by widget on text change in a missing time field.
+  void updateMissingTimeRecord(
+      int chunkId, int recordIndex, String newValue) {
+    final uiChunk = _getUIChunk(chunkId);
+    if (uiChunk == null) return;
+    final record = uiChunk.records[recordIndex];
+    record.timeController.text = newValue;
+    final validationError = _validateTimeInChunk(uiChunk, recordIndex, newValue);
+    record.updateConflictTime(ConflictTime(
+      time: newValue,
+      isOriginallyTBD: record.isOriginallyTBD,
+      validationError: validationError,
+    ));
+    notifyListeners();
+  }
+
+  /// Called by widget when user taps the insert TBD button.
+  void insertTbdAt(int chunkId, int recordIndex) {
+    final uiChunk = _getUIChunk(chunkId);
+    if (uiChunk == null) return;
+    if (uiChunk.conflict.type == ConflictType.confirmRunner) {
+      uiChunk.records.insert(
+        recordIndex,
+        UIRecord(
+          place: null,
+          runner: null,
+          initialTime: 'TBD',
+          isOriginallyTBD: true,
+          validationError: null,
+        ),
+      );
+      notifyListeners();
+      return;
+    }
+    // For missing time conflicts, move the first existing TBD to the target position
+    int? tbdIndex;
+    for (int i = 0; i < uiChunk.records.length; i++) {
+      if (uiChunk.records[i].timeController.text == 'TBD') {
+        tbdIndex = i;
+        break;
+      }
+    }
+    if (tbdIndex == null) return;
+    final tbdRecord = uiChunk.records.removeAt(tbdIndex);
+    uiChunk.records.insert(recordIndex, tbdRecord);
+    notifyListeners();
+  }
+
+  UIChunk? _getUIChunk(int chunkId) {
+    try {
+      return uiChunks.firstWhere((c) => c.chunkId == chunkId);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  String? _validateTimeInChunk(
+      UIChunk uiChunk, int recordIndex, String newValue) {
+    if (newValue.isNotEmpty &&
+        newValue != 'TBD' &&
+        TimeFormatter.loadDurationFromString(newValue) == null) {
+      return 'Invalid Time';
+    }
+    final contextTimes =
+        uiChunk.records.map((r) => r.timeController.text).toList();
+    contextTimes[recordIndex] = newValue;
+    return _validateTimesInContext(contextTimes, recordIndex, uiChunk.endTime);
+  }
+
+  String? _validateTimesInContext(
+      List<String> contextTimes, int recordIndex, String endTime) {
+    final currentTime = contextTimes[recordIndex];
+    if (currentTime == 'TBD') return null;
+    final currentDuration = TimeFormatter.loadDurationFromString(currentTime);
+    if (currentDuration == null) return null;
+
+    for (int i = 0; i < contextTimes.length; i++) {
+      if (i != recordIndex && contextTimes[i] != 'TBD') {
+        final other = TimeFormatter.loadDurationFromString(contextTimes[i]);
+        if (other != null && currentDuration == other) return 'Invalid Time';
+      }
+    }
+
+    int? prevIndex;
+    for (int i = recordIndex - 1; i >= 0; i--) {
+      if (contextTimes[i] != 'TBD') {
+        prevIndex = i;
+        break;
+      }
+    }
+    if (prevIndex != null) {
+      final prev =
+          TimeFormatter.loadDurationFromString(contextTimes[prevIndex]);
+      if (prev != null && currentDuration <= prev) return 'Invalid Time';
+    }
+
+    int? nextIndex;
+    for (int i = recordIndex + 1; i < contextTimes.length; i++) {
+      if (contextTimes[i] != 'TBD') {
+        nextIndex = i;
+        break;
+      }
+    }
+    if (nextIndex != null) {
+      final next =
+          TimeFormatter.loadDurationFromString(contextTimes[nextIndex]);
+      if (next != null && currentDuration >= next) return 'Invalid Time';
+    }
+
+    final endDuration = TimeFormatter.loadDurationFromString(endTime);
+    if (endDuration != null && currentDuration > endDuration) {
+      return 'Invalid Time';
+    }
+
+    return null;
   }
 
   /// Manually resolve an extra time conflict for a specific chunk

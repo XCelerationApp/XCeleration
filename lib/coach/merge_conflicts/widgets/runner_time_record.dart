@@ -110,7 +110,8 @@ class RunnerTimeRecord extends StatelessWidget {
                                           'Are you sure you want to delete the time $time?',
                                     );
                                     if (confirmed) {
-                                      chunk.onRemoveExtraTime(chunkIndex);
+                                      controller.removeExtraTimeRecord(
+                                          chunk.chunkId, chunkIndex);
                                     }
                                   },
                                 )
@@ -126,16 +127,21 @@ class RunnerTimeRecord extends StatelessWidget {
                                       controller: record.timeController,
                                       time: time,
                                       onSubmitted: (newValue) =>
-                                          chunk.onMissingTimeSubmitted(
-                                              context, chunkIndex, newValue),
+                                          controller.submitMissingTimeRecord(
+                                              chunk.chunkId,
+                                              chunkIndex,
+                                              newValue),
                                       onChanged: (newValue) =>
-                                          chunk.onMissingTimeChanged(
-                                              context, chunkIndex, newValue),
+                                          controller.updateMissingTimeRecord(
+                                              chunk.chunkId,
+                                              chunkIndex,
+                                              newValue),
                                       onAddTime: (chunk.conflict.type ==
                                                   ConflictType.missingTime &&
                                               chunk.shouldShowPlusButton(
                                                   chunkIndex))
-                                          ? () => chunk.insertTimeAt(chunkIndex)
+                                          ? () => controller.insertTbdAt(
+                                              chunk.chunkId, chunkIndex)
                                           : null,
                                       validationError:
                                           chunk.validateTimeOrder(chunkIndex),
