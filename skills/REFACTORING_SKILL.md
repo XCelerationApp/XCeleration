@@ -38,6 +38,8 @@ For every file or feature you refactor, follow this sequence:
 
 ### Phase 2 — Structural Refactor
 
+> When modifying a service or controller, follow `skills/ERROR_HANDLING_SKILL.md` for error handling conventions.
+
 - Refactor one concern at a time
 - One logical change per commit (commit message describes the single concern changed)
 - Do not mix structural changes with behavior changes
@@ -263,24 +265,13 @@ Repeated switches on the same field indicate a modeling issue. Refactor toward p
 
 ## Testing Standards
 
-### Unit Tests (Controllers, Services, Models)
+Follow `skills/TESTING_SKILL.md` for all testing conventions, mock setup, and examples.
 
-- Use `mocktail`
-- Every public method must have:
-  - Happy path
-  - Error path
-  - Edge case
-- No test may touch:
-  - Real DB
-  - Network
-  - Platform APIs
-- Tests should run fast (<100ms ideally)
+Key rules that apply during refactoring:
 
-### Widget Tests
-
-- Verify UI renders based on controller state
-- Verify user actions call correct controller methods
-- Use injected mock controllers
+- Every public method on a refactored class must have a unit test
+- No test may touch a real database, network, or platform API
+- Use injected mock dependencies — if you can't mock it, the dependency is hardcoded
 
 ---
 
