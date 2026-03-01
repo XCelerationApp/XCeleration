@@ -122,6 +122,8 @@ class RaceController with ChangeNotifier {
     super.dispose();
   }
 
+  // TODO(refactor): static factory couples callers to RaceController directly.
+  // Fix: move to a router, presenter, or factory class. Controller should not know how to show itself.
   static Future<void> showRaceScreen(BuildContext context,
       RacesController parentController, MasterRace masterRace,
       {RaceScreenPage page = RaceScreenPage.main}) async {
@@ -234,6 +236,7 @@ class RaceController with ChangeNotifier {
   }
 
   /// Backwards compatibility - calls loadAllData
+  // TODO(refactor): backwards-compat shim — remove once all callers use loadAllData() directly.
   Future<void> init(BuildContext context) async {
     return loadAllData(context);
   }
@@ -560,12 +563,18 @@ class RaceController with ChangeNotifier {
   }
 
   // Validation methods for form fields (used by races_screen widgets via StateSetter)
+  // TODO(refactor): StateSetter coupling — controllers must not call widget state setters.
+  // Fix: remove StateSetter parameter. Callers should call form.setError(RaceField.name, msg)
+  // then call setState themselves. Requires updating all widget call sites.
   void validateName(String name, StateSetter setSheetState) {
     setSheetState(() {
       form.setError(RaceField.name, RaceService.validateName(name));
     });
   }
 
+  // TODO(refactor): StateSetter coupling — controllers must not call widget state setters.
+  // Fix: remove StateSetter parameter. Callers should call form.setError(RaceField.location, msg)
+  // then call setState themselves. Requires updating all widget call sites.
   void validateLocation(String location, StateSetter setSheetState) {
     setSheetState(() {
       form.setError(
@@ -573,12 +582,18 @@ class RaceController with ChangeNotifier {
     });
   }
 
+  // TODO(refactor): StateSetter coupling — controllers must not call widget state setters.
+  // Fix: remove StateSetter parameter. Callers should call form.setError(RaceField.date, msg)
+  // then call setState themselves. Requires updating all widget call sites.
   void validateDate(String dateString, StateSetter setSheetState) {
     setSheetState(() {
       form.setError(RaceField.date, RaceService.validateDate(dateString));
     });
   }
 
+  // TODO(refactor): StateSetter coupling — controllers must not call widget state setters.
+  // Fix: remove StateSetter parameter. Callers should call form.setError(RaceField.distance, msg)
+  // then call setState themselves. Requires updating all widget call sites.
   void validateDistance(String distanceString, StateSetter setSheetState) {
     setSheetState(() {
       form.setError(
