@@ -26,6 +26,7 @@ import 'package:xceleration/core/utils/enums.dart' as _i4;
 // ignore_for_file: unnecessary_parenthesis
 // ignore_for_file: camel_case_types
 // ignore_for_file: subtype_of_sealed_class
+// ignore_for_file: invalid_use_of_internal_member
 
 class _FakeDevicesManager_0 extends _i1.SmartFake
     implements _i2.DevicesManager {
@@ -68,6 +69,12 @@ class MockDevicesManager extends _i1.Mock implements _i2.DevicesManager {
         Invocation.getter(#currentDeviceType),
         returnValue: _i4.DeviceType.advertiserDevice,
       ) as _i4.DeviceType);
+
+  @override
+  bool get toSpectator => (super.noSuchMethod(
+        Invocation.getter(#toSpectator),
+        returnValue: false,
+      ) as bool);
 
   @override
   List<_i2.ConnectedDevice> get devices => (super.noSuchMethod(

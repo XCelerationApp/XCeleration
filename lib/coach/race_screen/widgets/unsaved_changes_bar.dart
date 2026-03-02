@@ -25,7 +25,7 @@ class UnsavedChangesBar extends StatelessWidget {
         final bool isSetupFlow = race.flowState == Race.FLOW_SETUP ||
             race.flowState == Race.FLOW_SETUP_COMPLETED;
 
-        if (!controller.hasUnsavedChanges || !isSetupFlow) {
+        if (!controller.form.hasUnsavedChanges || !isSetupFlow) {
           return const SizedBox.shrink();
         }
 
@@ -36,7 +36,7 @@ class UnsavedChangesBar extends StatelessWidget {
               Expanded(
                 child: SecondaryButton(
                   text: 'Revert Changes',
-                  onPressed: controller.revertAllChanges,
+                  onPressed: controller.form.revertAll,
                   size: ButtonSize.fullWidth,
                   borderRadius: 10,
                   elevation: 0,

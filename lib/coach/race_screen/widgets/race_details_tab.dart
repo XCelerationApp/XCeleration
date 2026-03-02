@@ -5,6 +5,7 @@ import '../../../core/theme/typography.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
 import 'package:xceleration/core/components/textfield_utils.dart';
 import '../controller/race_screen_controller.dart';
+import '../controller/race_form_state.dart';
 import 'inline_editable_field.dart';
 import 'dart:io';
 import '../../../shared/models/database/race.dart';
@@ -25,18 +26,18 @@ class RaceDetailsTab extends StatelessWidget {
           child: Focus(
             onFocusChange: (hasFocus) {
               if (!hasFocus) {
-                controller.handleFieldFocusLoss(context, 'location');
+                controller.handleFieldFocusLoss(context, RaceField.location);
               }
             },
             child: buildTextField(
               context: context,
-              controller: controller.locationController,
+              controller: controller.form.locationController,
               hint: (Platform.isIOS || Platform.isAndroid)
                   ? 'Other location'
                   : 'Enter race location',
-              error: controller.locationError,
+              error: controller.form.errorFor(RaceField.location),
               setSheetState: (fn) => fn(),
-              onChanged: (_) => controller.trackFieldChange('location'),
+              onChanged: (_) => controller.trackFieldChange(RaceField.location),
               keyboardType: TextInputType.text,
             ),
           ),
@@ -65,16 +66,16 @@ class RaceDetailsTab extends StatelessWidget {
           child: Focus(
             onFocusChange: (hasFocus) {
               if (!hasFocus) {
-                controller.handleFieldFocusLoss(context, 'distance');
+                controller.handleFieldFocusLoss(context, RaceField.distance);
               }
             },
             child: buildTextField(
               context: context,
-              controller: controller.distanceController,
+              controller: controller.form.distanceController,
               hint: '0.0',
-              error: controller.distanceError,
+              error: controller.form.errorFor(RaceField.distance),
               setSheetState: (fn) => fn(),
-              onChanged: (_) => controller.trackFieldChange('distance'),
+              onChanged: (_) => controller.trackFieldChange(RaceField.distance),
               keyboardType: TextInputType.numberWithOptions(decimal: true),
             ),
           ),
@@ -85,18 +86,18 @@ class RaceDetailsTab extends StatelessWidget {
           child: Focus(
             onFocusChange: (hasFocus) {
               if (!hasFocus) {
-                controller.handleFieldFocusLoss(context, 'unit');
+                controller.handleFieldFocusLoss(context, RaceField.unit);
               }
             },
             child: buildDropdown(
-              controller: controller.unitController,
+              controller: controller.form.unitController,
               hint: 'mi',
               error: null,
               setSheetState: (fn) => fn(),
               items: ['mi', 'km'],
               onChanged: (value) {
-                controller.unitController.text = value;
-                controller.trackFieldChange('unit');
+                controller.form.unitController.text = value;
+                controller.trackFieldChange(RaceField.unit);
               },
             ),
           ),
@@ -128,24 +129,24 @@ class RaceDetailsTab extends StatelessWidget {
           // Inline editable fields
           InlineEditableField(
             controller: controller,
-            fieldName: 'location',
+            field: RaceField.location,
             label: 'Location',
             icon: Icons.location_on,
-            textController: controller.locationController,
+            textController: controller.form.locationController,
             hint: (Platform.isIOS || Platform.isAndroid)
                 ? 'Other location'
                 : 'Enter race location',
-            error: controller.locationError,
+            error: controller.form.errorFor(RaceField.location),
             customEditWidget: _buildLocationEditWidget(context),
           ),
           InlineEditableField(
             controller: controller,
-            fieldName: 'date',
+            field: RaceField.date,
             label: 'Race Date',
             icon: Icons.calendar_today,
-            textController: controller.dateController,
+            textController: controller.form.dateController,
             hint: 'YYYY-MM-DD',
-            error: controller.dateError,
+            error: controller.form.errorFor(RaceField.date),
             suffixIcon: IconButton(
               icon: const Icon(Icons.calendar_today,
                   color: AppColors.primaryColor),
@@ -160,12 +161,12 @@ class RaceDetailsTab extends StatelessWidget {
           ),
           InlineEditableField(
             controller: controller,
-            fieldName: 'distance',
+            field: RaceField.distance,
             label: 'Distance',
             icon: Icons.straighten,
-            textController: controller.distanceController,
+            textController: controller.form.distanceController,
             hint: '0.0',
-            error: controller.distanceError,
+            error: controller.form.errorFor(RaceField.distance),
             keyboardType: TextInputType.numberWithOptions(decimal: true),
             customEditWidget: _buildDistanceEditWidget(context),
             getDisplayValue: () {
