@@ -85,10 +85,12 @@ unclear whether an issue already exists, ask before creating.
 - [ ] ...
 
 **Developer Comments:**
-[Leave blank by default. For human developer use only. Human devs can add notes here for the AI or other developers.]
+- [Leave this section as an empty bullet point by default. For human developer use only. Human devs can add notes here for the AI or other developers]
+- ...
 
 **Agent Comments:**
-[Leave blank by default. For AI use only. Reserved for the agent to leave comments. Use only when it adds real value — a blocker, a key decision, or a notable deviation from the original plan. Don't narrate normal progress. Keep this concise.]
+- [Leave this section as an empty bullet point by default. For AI use only. Reserved for the agent to leave comments. Use only when it adds real value — a blocker, a key decision, or a notable deviation from the original plan. Don't narrate normal progress. Keep this concise.]
+- ...
 ```
 
 ### Required Fields

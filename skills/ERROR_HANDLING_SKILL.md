@@ -15,7 +15,7 @@ Read this when adding or modifying a service, controller, or screen that handles
 
 ## The Flow
 
-```
+```markdown
 Service / Repository  →  returns Result<T>
         ↓
 Controller  →  unwraps Result<T>, sets state, logs with Logger
