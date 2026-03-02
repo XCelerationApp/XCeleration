@@ -74,6 +74,8 @@ EOF
 3. Push: `git push -u origin <branch-name>`
 4. A PR is **automatically created** — do not run `gh pr create`
 5. Update the PR description using: `gh pr edit <number> --body "..."`
+6. **Verify** the description was applied: `gh pr view <number> --json body -q .body`
+   - If the body still shows the auto-generated text, re-run step 5
 
 ### Finding the PR number
 
