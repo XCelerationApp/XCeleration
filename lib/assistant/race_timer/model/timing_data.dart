@@ -13,10 +13,18 @@ import 'package:xceleration/core/utils/logger.dart';
 
 class TimingData with ChangeNotifier {
   TimingChunk currentChunk = TimingChunk(id: 0, timingData: []);
-  final ChunkCacher _chunkCacher = ChunkCacher();
-  final TimingDataConverter _timingDataConverter = TimingDataConverter();
-  final AssistantStorageService _storage = AssistantStorageService.instance;
+  final AssistantStorageService _storage;
+  final ChunkCacher _chunkCacher;
+  final TimingDataConverter _timingDataConverter;
   DateTime? _startTime;
+
+  TimingData({
+    required AssistantStorageService storage,
+    ChunkCacher? chunkCacher,
+    TimingDataConverter? timingDataConverter,
+  })  : _storage = storage,
+        _chunkCacher = chunkCacher ?? ChunkCacher(),
+        _timingDataConverter = timingDataConverter ?? TimingDataConverter();
   Duration? _raceDuration;
   bool _raceStopped = true;
   RaceRecord? _currentRace;
@@ -47,8 +55,8 @@ class TimingData with ChangeNotifier {
       throw Exception('Race isn\'t loaded');
     }
     _startTime = time;
-    AssistantStorageService.instance
-        .updateRaceStartTime(_currentRace!.raceId, _currentRace!.type, time);
+    _storage.updateRaceStartTime(
+        _currentRace!.raceId, _currentRace!.type, time);
     notifyListeners();
   }
 
@@ -60,8 +68,8 @@ class TimingData with ChangeNotifier {
       throw Exception('Race isn\'t loaded');
     }
     _raceDuration = duration;
-    AssistantStorageService.instance
-        .updateRaceDuration(_currentRace!.raceId, _currentRace!.type, duration);
+    _storage.updateRaceDuration(
+        _currentRace!.raceId, _currentRace!.type, duration);
     notifyListeners();
   }
 
