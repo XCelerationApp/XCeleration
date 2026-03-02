@@ -1,3 +1,6 @@
+import 'package:xceleration/coach/merge_conflicts/models/conflict_time.dart';
+import 'package:xceleration/coach/merge_conflicts/models/ui_chunk.dart';
+import 'package:xceleration/coach/merge_conflicts/models/ui_record.dart';
 import 'package:xceleration/coach/merge_conflicts/utils/merge_conflicts_utils.dart';
 import 'package:xceleration/coach/merge_conflicts/utils/timing_data_converter.dart';
 import 'package:xceleration/core/app_error.dart';
