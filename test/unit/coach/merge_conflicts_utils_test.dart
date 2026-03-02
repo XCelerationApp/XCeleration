@@ -119,17 +119,19 @@ void main() {
 
     test('returns error when time exceeds endTime', () {
       final times = ['1:00.0', '2:30.0'];
-      expect(
-          validateTimeInContext(times, 1, endTime), equals('Invalid Time'));
+      expect(validateTimeInContext(times, 1, endTime), equals('Invalid Time'));
     });
 
-    test('returns null when time equals endTime (boundary: <= is invalid, > triggers error)', () {
+    test(
+        'returns null when time equals endTime (boundary: <= is invalid, > triggers error)',
+        () {
       // currentDuration > endDuration triggers error; equal does not
       final times = ['1:00.0', '2:00.0'];
       expect(validateTimeInContext(times, 1, endTime), isNull);
     });
 
-    test('returns null when all other times are TBD (no ordering constraints)', () {
+    test('returns null when all other times are TBD (no ordering constraints)',
+        () {
       final times = ['TBD', '1:15.0', 'TBD'];
       expect(validateTimeInContext(times, 1, endTime), isNull);
     });
