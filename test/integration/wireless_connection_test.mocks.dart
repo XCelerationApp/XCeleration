@@ -27,6 +27,7 @@ import 'package:xceleration/core/utils/enums.dart' as _i7;
 // ignore_for_file: unnecessary_parenthesis
 // ignore_for_file: camel_case_types
 // ignore_for_file: subtype_of_sealed_class
+// ignore_for_file: invalid_use_of_internal_member
 
 class _FakeDuration_0 extends _i1.SmartFake implements Duration {
   _FakeDuration_0(
@@ -97,42 +98,39 @@ class MockDeviceConnectionService extends _i1.Mock
       ) as bool);
 
   @override
-  set rescanBackoff(Duration? _rescanBackoff) => super.noSuchMethod(
+  set rescanBackoff(Duration? value) => super.noSuchMethod(
         Invocation.setter(
           #rescanBackoff,
-          _rescanBackoff,
+          value,
         ),
         returnValueForMissingStub: null,
       );
 
   @override
-  set nearbyConnectionsInitialized(bool? _nearbyConnectionsInitialized) =>
-      super.noSuchMethod(
+  set nearbyConnectionsInitialized(bool? value) => super.noSuchMethod(
         Invocation.setter(
           #nearbyConnectionsInitialized,
-          _nearbyConnectionsInitialized,
+          value,
         ),
         returnValueForMissingStub: null,
       );
 
   @override
-  set receivedDataSubscription(
-          _i3.StreamSubscription<dynamic>? _receivedDataSubscription) =>
+  set receivedDataSubscription(_i3.StreamSubscription<dynamic>? value) =>
       super.noSuchMethod(
         Invocation.setter(
           #receivedDataSubscription,
-          _receivedDataSubscription,
+          value,
         ),
         returnValueForMissingStub: null,
       );
 
   @override
-  set deviceMonitorSubscription(
-          _i3.StreamSubscription<dynamic>? _deviceMonitorSubscription) =>
+  set deviceMonitorSubscription(_i3.StreamSubscription<dynamic>? value) =>
       super.noSuchMethod(
         Invocation.setter(
           #deviceMonitorSubscription,
-          _deviceMonitorSubscription,
+          value,
         ),
         returnValueForMissingStub: null,
       );
@@ -431,6 +429,12 @@ class MockDevicesManager extends _i1.Mock implements _i2.DevicesManager {
         Invocation.getter(#currentDeviceType),
         returnValue: _i7.DeviceType.advertiserDevice,
       ) as _i7.DeviceType);
+
+  @override
+  bool get toSpectator => (super.noSuchMethod(
+        Invocation.getter(#toSpectator),
+        returnValue: false,
+      ) as bool);
 
   @override
   List<_i2.ConnectedDevice> get devices => (super.noSuchMethod(

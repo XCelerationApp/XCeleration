@@ -16,6 +16,16 @@ Flutter, Dart, ChangeNotifier + Provider, SQLite, Supabase.
 - Run `flutter analyze` and `flutter test` after every meaningful change
 - One concern per commit
 
+## Running Flutter Commands
+
+Flutter is at `/Users/finiandonnelley/Programming_project/flutter/bin/flutter`.
+Always source `~/.zshrc` first, or use the full path:
+
+```sh
+source ~/.zshrc && flutter analyze
+source ~/.zshrc && flutter test
+```
+
 ## When Unsure — Ask First
 
 If a request is unclear, ambiguous, or could be interpreted multiple ways, always ask for clarification before starting. Do not make assumptions and proceed. A short question upfront is better than work that needs to be redone.
