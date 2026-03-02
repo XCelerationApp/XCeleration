@@ -14,7 +14,7 @@ Flutter, Dart, ChangeNotifier + Provider, SQLite, Supabase.
 
 ## Always
 
-- Run `flutter analyze` and `flutter test` after every meaningful change
+- Run `dart format .`, `flutter analyze`, and `flutter test` after every meaningful change
 - One concern per commit
 
 ## Working Style
@@ -29,8 +29,9 @@ Flutter is at `/Users/finiandonnelley/Programming_project/flutter/bin/flutter`.
 Always source `~/.zshrc` first, or use the full path:
 
 ```sh
-source ~/.zshrc && flutter analyze
-source ~/.zshrc && flutter test
+dart format .
+/Users/finiandonnelley/Programming_project/flutter/bin/flutter analyze
+/Users/finiandonnelley/Programming_project/flutter/bin/flutter test
 ```
 
 ## When Unsure — Ask First
