@@ -1,3 +1,4 @@
+import 'package:xceleration/coach/merge_conflicts/utils/merge_conflicts_utils.dart';
 import 'package:xceleration/coach/merge_conflicts/utils/timing_data_converter.dart';
 import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/utils/index.dart';
@@ -179,55 +180,7 @@ class MergeConflictsController with ChangeNotifier {
     final contextTimes =
         uiChunk.records.map((r) => r.timeController.text).toList();
     contextTimes[recordIndex] = newValue;
-    return _validateTimesInContext(contextTimes, recordIndex, uiChunk.endTime);
-  }
-
-  String? _validateTimesInContext(
-      List<String> contextTimes, int recordIndex, String endTime) {
-    final currentTime = contextTimes[recordIndex];
-    if (currentTime == 'TBD') return null;
-    final currentDuration = TimeFormatter.loadDurationFromString(currentTime);
-    if (currentDuration == null) return null;
-
-    for (int i = 0; i < contextTimes.length; i++) {
-      if (i != recordIndex && contextTimes[i] != 'TBD') {
-        final other = TimeFormatter.loadDurationFromString(contextTimes[i]);
-        if (other != null && currentDuration == other) return 'Invalid Time';
-      }
-    }
-
-    int? prevIndex;
-    for (int i = recordIndex - 1; i >= 0; i--) {
-      if (contextTimes[i] != 'TBD') {
-        prevIndex = i;
-        break;
-      }
-    }
-    if (prevIndex != null) {
-      final prev =
-          TimeFormatter.loadDurationFromString(contextTimes[prevIndex]);
-      if (prev != null && currentDuration <= prev) return 'Invalid Time';
-    }
-
-    int? nextIndex;
-    for (int i = recordIndex + 1; i < contextTimes.length; i++) {
-      if (contextTimes[i] != 'TBD') {
-        nextIndex = i;
-        break;
-      }
-    }
-    if (nextIndex != null) {
-      final next =
-          TimeFormatter.loadDurationFromString(contextTimes[nextIndex]);
-      if (next != null && currentDuration >= next) return 'Invalid Time';
-    }
-
-    final endDuration = TimeFormatter.loadDurationFromString(endTime);
-    if (endDuration != null && currentDuration > endDuration) {
-      return 'Invalid Time';
-    }
-
-    return null;
+    return validateTimeInContext(contextTimes, recordIndex, uiChunk.endTime);
   }
 
   /// Manually resolve an extra time conflict for a specific chunk
