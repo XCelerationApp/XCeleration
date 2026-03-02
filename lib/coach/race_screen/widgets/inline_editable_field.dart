@@ -46,8 +46,8 @@ class InlineEditableField extends StatelessWidget {
       child: Builder(
         builder: (context) {
           // Simple synchronous check - no async needed
-          final isEditable =
-              controller.form.shouldShowAsEditable(field, controller.race, controller.canEdit);
+          final isEditable = controller.form
+              .shouldShowAsEditable(field, controller.race, controller.canEdit);
 
           return isEditable
               ? _buildEditableMode(context)

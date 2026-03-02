@@ -43,8 +43,8 @@ class MergeConflictsController with ChangeNotifier {
     if (_cachedUIChunks == null ||
         _cachedUIChunks!.length != timingChunks.length ||
         _needsUIRebuild) {
-      _cachedUIChunks = TimingDataConverter.convertToUIChunks(
-          timingChunks, raceRunners);
+      _cachedUIChunks =
+          TimingDataConverter.convertToUIChunks(timingChunks, raceRunners);
       _needsUIRebuild = false;
     }
     return _cachedUIChunks!;
@@ -118,13 +118,13 @@ class MergeConflictsController with ChangeNotifier {
   }
 
   /// Called by widget on text change in a missing time field.
-  void updateMissingTimeRecord(
-      int chunkId, int recordIndex, String newValue) {
+  void updateMissingTimeRecord(int chunkId, int recordIndex, String newValue) {
     final uiChunk = _getUIChunk(chunkId);
     if (uiChunk == null) return;
     final record = uiChunk.records[recordIndex];
     record.timeController.text = newValue;
-    final validationError = _validateTimeInChunk(uiChunk, recordIndex, newValue);
+    final validationError =
+        _validateTimeInChunk(uiChunk, recordIndex, newValue);
     record.updateConflictTime(ConflictTime(
       time: newValue,
       isOriginallyTBD: record.isOriginallyTBD,
@@ -509,8 +509,7 @@ class MergeConflictsController with ChangeNotifier {
       Logger.d('All data cleared successfully');
       notifyListeners();
     } catch (e, stackTrace) {
-      Logger.e('Error clearing data: $e',
-          error: e, stackTrace: stackTrace);
+      Logger.e('Error clearing data: $e', error: e, stackTrace: stackTrace);
       rethrow;
     }
   }

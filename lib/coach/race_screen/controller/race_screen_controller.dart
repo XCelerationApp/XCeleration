@@ -292,16 +292,16 @@ class RaceController with ChangeNotifier {
     for (final field in form.changedFields) {
       switch (field) {
         case RaceField.name:
-          form.setError(
-              RaceField.name, RaceService.validateName(form.nameController.text));
+          form.setError(RaceField.name,
+              RaceService.validateName(form.nameController.text));
           if (form.errorFor(RaceField.name) != null) allValid = false;
         case RaceField.location:
           form.setError(RaceField.location,
               RaceService.validateLocation(form.locationController.text));
           if (form.errorFor(RaceField.location) != null) allValid = false;
         case RaceField.date:
-          form.setError(
-              RaceField.date, RaceService.validateDate(form.dateController.text));
+          form.setError(RaceField.date,
+              RaceService.validateDate(form.dateController.text));
           if (form.errorFor(RaceField.date) != null) allValid = false;
         case RaceField.distance:
           form.setError(RaceField.distance,
@@ -577,8 +577,7 @@ class RaceController with ChangeNotifier {
   // then call setState themselves. Requires updating all widget call sites.
   void validateLocation(String location, StateSetter setSheetState) {
     setSheetState(() {
-      form.setError(
-          RaceField.location, RaceService.validateLocation(location));
+      form.setError(RaceField.location, RaceService.validateLocation(location));
     });
   }
 

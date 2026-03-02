@@ -21,15 +21,13 @@ String? validateTimeInContext(
 
   final prevIndex = getPreviousValidTimeIndex(contextTimes, recordIndex);
   if (prevIndex != null) {
-    final prev =
-        TimeFormatter.loadDurationFromString(contextTimes[prevIndex]);
+    final prev = TimeFormatter.loadDurationFromString(contextTimes[prevIndex]);
     if (prev != null && currentDuration <= prev) return 'Invalid Time';
   }
 
   final nextIndex = getNextValidTimeIndex(contextTimes, recordIndex);
   if (nextIndex != null) {
-    final next =
-        TimeFormatter.loadDurationFromString(contextTimes[nextIndex]);
+    final next = TimeFormatter.loadDurationFromString(contextTimes[nextIndex]);
     if (next != null && currentDuration >= next) return 'Invalid Time';
   }
 

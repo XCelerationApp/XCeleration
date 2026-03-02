@@ -67,7 +67,8 @@ void main() {
 
       controller.insertTbdAt(0, 1);
 
-      expect(controller.uiChunks.first.times, equals(['1.0', 'TBD', '2.0', '4.0']));
+      expect(controller.uiChunks.first.times,
+          equals(['1.0', 'TBD', '2.0', '4.0']));
     });
 
     test('handles multiple TBD entries correctly', () {
