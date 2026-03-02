@@ -4,7 +4,7 @@ import '../controller/merge_conflicts_controller.dart';
 import 'runner_time_record.dart';
 import 'header_widgets.dart';
 import 'resolve_conflict_button.dart';
-import 'package:xceleration/coach/merge_conflicts/utils/timing_data_converter.dart';
+import 'package:xceleration/coach/merge_conflicts/models/ui_chunk.dart';
 
 class ChunkList extends StatelessWidget {
   final MergeConflictsController controller;

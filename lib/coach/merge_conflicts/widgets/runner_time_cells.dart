@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
-import '../utils/timing_data_converter.dart';
+import '../models/ui_record.dart';
 
 /// Helper widget for displaying a time string in cell style.
 class TimeDisplay extends StatelessWidget {
