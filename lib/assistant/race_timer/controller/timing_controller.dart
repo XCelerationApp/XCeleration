@@ -18,6 +18,7 @@ import '../../../core/services/device_connection_service.dart';
 import '../../shared/widgets/other_races_sheet.dart';
 import '../../shared/services/assistant_storage_service.dart';
 import '../../shared/services/demo_race_generator.dart';
+import 'package:xceleration/core/result.dart';
 
 class TimingController extends TimingData {
   final ScrollController scrollController = ScrollController();
@@ -43,9 +44,13 @@ class TimingController extends TimingData {
   }
 
   Future<void> showOtherRaces(BuildContext context) async {
-    final races = await AssistantStorageService.instance
+    final result = await AssistantStorageService.instance
         .getRaces(DeviceName.raceTimer.toString());
     if (!context.mounted) return;
+    final races = switch (result) {
+      Success(:final value) => value,
+      Failure() => <RaceRecord>[],
+    };
 
     sheet(
       context: context,
@@ -64,10 +69,10 @@ class TimingController extends TimingData {
     await DemoRaceGenerator.ensureDemoRaceExists(
         DeviceName.raceTimer.toString());
 
-    final races = await AssistantStorageService.instance
+    final result = await AssistantStorageService.instance
         .getRaces(DeviceName.raceTimer.toString());
-    if (races.isNotEmpty) {
-      _loadRace(races.last);
+    if (result case Success(:final value) when value.isNotEmpty) {
+      _loadRace(value.last);
     }
   }
 
@@ -104,23 +109,24 @@ class TimingController extends TimingData {
                   message: 'Failed to parse race data: $e');
             }
           }
-          try {
-            await AssistantStorageService.instance.saveNewRace(raceRecord);
-            clearRecords();
-            // Also save an initial empty timing chunk for this race, so that the UI is ready for entry.
-            // (If a chunk with id 0 already exists, this will update it.)
-            await AssistantStorageService.instance.saveChunk(
-              raceRecord.raceId,
-              TimingChunk(id: 0, timingData: []),
-            );
-            _loadRace(raceRecord);
-          } catch (e) {
-            Logger.e('Error saving race: $e');
+          final saveResult =
+              await AssistantStorageService.instance.saveNewRace(raceRecord);
+          if (saveResult case Failure(:final error)) {
+            Logger.e(
+                '[TimingController.showLoadRaceSheet] ${error.originalException}');
             if (context.mounted) {
-              DialogUtils.showErrorDialog(context,
-                  message: 'Failed to load race: $e');
+              DialogUtils.showErrorDialog(context, message: error.userMessage);
             }
+            return;
           }
+          clearRecords();
+          // Also save an initial empty timing chunk for this race, so that the UI is ready for entry.
+          // (If a chunk with id 0 already exists, this will update it.)
+          await AssistantStorageService.instance.saveChunk(
+            raceRecord.raceId,
+            TimingChunk(id: 0, timingData: []),
+          );
+          _loadRace(raceRecord);
         },
       ),
     );
@@ -132,8 +138,15 @@ class TimingController extends TimingData {
     raceDuration = raceRecord.duration;
     raceStopped = raceRecord.stopped;
     // Load timing chunks
-    final chunks =
-        await AssistantStorageService.instance.getChunks(raceRecord.raceId);
+    final List<TimingChunk> chunks;
+    switch (
+        await AssistantStorageService.instance.getChunks(raceRecord.raceId)) {
+      case Success(:final value):
+        chunks = value;
+      case Failure(:final error):
+        Logger.e('[TimingController._loadRace] ${error.originalException}');
+        chunks = [];
+    }
 
     if (chunks.isNotEmpty) {
       // Set the last chunk as current

@@ -17,6 +17,7 @@ import '../../shared/models/race_record.dart';
 import '../../shared/services/assistant_storage_service.dart';
 import '../../shared/models/bib_record.dart' as db_models;
 import '../../shared/models/runner.dart' as db_models;
+import 'package:xceleration/core/result.dart';
 import '../../shared/widgets/other_races_sheet.dart';
 import '../../shared/services/demo_race_generator.dart';
 
@@ -89,9 +90,9 @@ class BibNumberController extends BibNumberDataController {
     await DemoRaceGenerator.ensureDemoRaceExists(
         DeviceName.bibRecorder.toString());
 
-    final races = await storage.getRaces(DeviceName.bibRecorder.toString());
-    if (races.isNotEmpty) {
-      await _loadRace(races.last);
+    final result = await storage.getRaces(DeviceName.bibRecorder.toString());
+    if (result case Success(:final value) when value.isNotEmpty) {
+      await _loadRace(value.last);
     }
   }
 
@@ -102,7 +103,15 @@ class BibNumberController extends BibNumberDataController {
     }
 
     try {
-      final dbRunners = await storage.getRunners(currentRace!.raceId);
+      final List<db_models.Runner> dbRunners;
+      switch (await storage.getRunners(currentRace!.raceId)) {
+        case Success(:final value):
+          dbRunners = value;
+        case Failure(:final error):
+          Logger.e(
+              '[BibNumberController._loadRunners] ${error.originalException}');
+          dbRunners = [];
+      }
 
       // Clear existing runners and populate with loaded data
       runners.clear();
@@ -129,7 +138,15 @@ class BibNumberController extends BibNumberDataController {
     }
 
     try {
-      final dbBibRecords = await storage.getBibRecords(currentRace!.raceId);
+      final List<db_models.BibRecord> dbBibRecords;
+      switch (await storage.getBibRecords(currentRace!.raceId)) {
+        case Success(:final value):
+          dbBibRecords = value;
+        case Failure(:final error):
+          Logger.e(
+              '[BibNumberController._loadBibRecords] ${error.originalException}');
+          return;
+      }
 
       // Clear existing records
       clearBibRecords();
@@ -179,8 +196,12 @@ class BibNumberController extends BibNumberDataController {
 
   /// Shows other races sheet
   Future<void> showOtherRaces(BuildContext context) async {
-    final races = await storage.getRaces(DeviceName.bibRecorder.toString());
+    final result = await storage.getRaces(DeviceName.bibRecorder.toString());
     if (!context.mounted) return;
+    final races = switch (result) {
+      Success(:final value) => value,
+      Failure() => <RaceRecord>[],
+    };
 
     sheet(
       context: context,
@@ -312,34 +333,34 @@ class BibNumberController extends BibNumberDataController {
             }
             return;
           }
-          try {
-            await storage.saveNewRace(raceRecord);
-
-            // Save runners to database
-            if (runners.isNotEmpty) {
-              final dbRunners = runners
-                  .map((runner) => db_models.Runner(
-                        raceId: raceRecord.raceId,
-                        bibNumber: runner.bib,
-                        name: runner.name,
-                        teamAbbreviation: runner.teamAbbreviation,
-                        grade: runner.grade,
-                        teamColor: runner.teamColor,
-                        createdAt: DateTime.now(),
-                      ))
-                  .toList();
-              await storage.saveRunners(raceRecord.raceId, dbRunners);
-            }
-
-            clearBibRecords();
-            _loadRaceWithRunners(raceRecord, runners);
-          } catch (e) {
-            Logger.e('Error saving race: $e');
+          final saveResult = await storage.saveNewRace(raceRecord);
+          if (saveResult case Failure(:final error)) {
+            Logger.e(
+                '[BibNumberController.showLoadRaceSheet] ${error.originalException}');
             if (context.mounted) {
-              DialogUtils.showErrorDialog(context,
-                  message: 'Failed to load race: $e');
+              DialogUtils.showErrorDialog(context, message: error.userMessage);
             }
+            return;
           }
+
+          // Save runners to database
+          if (runners.isNotEmpty) {
+            final dbRunners = runners
+                .map((runner) => db_models.Runner(
+                      raceId: raceRecord.raceId,
+                      bibNumber: runner.bib,
+                      name: runner.name,
+                      teamAbbreviation: runner.teamAbbreviation,
+                      grade: runner.grade,
+                      teamColor: runner.teamColor,
+                      createdAt: DateTime.now(),
+                    ))
+                .toList();
+            await storage.saveRunners(raceRecord.raceId, dbRunners);
+          }
+
+          clearBibRecords();
+          _loadRaceWithRunners(raceRecord, runners);
         },
       ),
     );
@@ -349,15 +370,16 @@ class BibNumberController extends BibNumberDataController {
   Future<void> deleteCurrentRace() async {
     if (currentRace == null) return;
 
-    try {
-      await storage.deleteRace(currentRace!.raceId, currentRace!.type);
-      setCurrentRace(null);
-      clearBibRecords();
-      notifyListeners();
-    } catch (e) {
-      Logger.e('Failed to delete race: $e');
-      throw Exception('Failed to delete race: $e');
+    final result =
+        await storage.deleteRace(currentRace!.raceId, currentRace!.type);
+    if (result case Failure(:final error)) {
+      Logger.e(
+          '[BibNumberController.deleteCurrentRace] ${error.originalException}');
+      return;
     }
+    setCurrentRace(null);
+    clearBibRecords();
+    notifyListeners();
   }
 
   Future<void> showShareBibNumbersPopup(BuildContext context) async {
@@ -873,30 +895,22 @@ class BibNumberDataController extends ChangeNotifier {
     final bibValue = record.bib;
 
     if (_currentRace != null && bibValue.isNotEmpty) {
-      try {
-        // Check if this bib record already exists in the database
-        final existingRecord = await storage.getBibRecord(
-          _currentRace!.raceId,
-          index,
-        );
-
-        if (existingRecord == null) {
+      // Check if this bib record already exists in the database
+      final getBibResult = await storage.getBibRecord(
+        _currentRace!.raceId,
+        index,
+      );
+      switch (getBibResult) {
+        case Success(:final value) when value == null:
           // This is a new bib record, add it to database
-          await storage.addBibRecord(
-            _currentRace!.raceId,
-            index,
-            bibValue,
-          );
-        } else {
+          await storage.addBibRecord(_currentRace!.raceId, index, bibValue);
+        case Success():
           // This is an existing bib record, update it in database
           await storage.updateBibRecordValue(
-            _currentRace!.raceId,
-            index,
-            bibValue,
-          );
-        }
-      } catch (e) {
-        Logger.e('Error saving bib to database: $e');
+              _currentRace!.raceId, index, bibValue);
+        case Failure(:final error):
+          Logger.e(
+              '[BibNumberController._saveBibRecordOnFocusLoss] ${error.originalException}');
       }
     } else {
       return;
