@@ -37,6 +37,7 @@ In Progress → In Review → Done. Just mark it Done when it's done.
 This is the most important step and the easiest to forget.
 
 Done means:
+
 - Code merged or finalized
 - Tests passing
 - No known regressions
@@ -62,13 +63,15 @@ Only create an issue if one clearly doesn't exist yet. **Search first.** If it's
 unclear whether an issue already exists, ask before creating.
 
 ### Title
+
 - Verb-first, specific
 - ✅ "Add logout button to profile screen"
 - ❌ "Logout" / "Fix bug" / "Profile work"
 
 ### Description
 
-```
+```markdown
+
 **What:** [one sentence on what this is]
 
 **Why:** [why it's needed]
@@ -80,31 +83,35 @@ unclear whether an issue already exists, ask before creating.
 **Acceptance Criteria:**
 - [ ] ...
 - [ ] ...
+
+**Developer Comments:**
+[Leave blank by default. For human developer use only. Human devs can add notes here for the AI or other developers.]
+
+**Agent Comments:**
+[Leave blank by default. For AI use only. Reserved for the agent to leave comments. Use only when it adds real value — a blocker, a key decision, or a notable deviation from the original plan. Don't narrate normal progress. Keep this concise.]
 ```
 
 ### Required Fields
 
 | Field | Rule |
-|---|---|
+| --- | --- |
 | Title | Verb-first, specific |
-| Description | What, why, acceptance criteria |
+| Description | What, why, acceptance criteria, developer comments, agent comments |
 | Team | Always set |
 | Priority | Set based on impact — don't leave blank |
 | Label | At least one (`bug` / `feature` / `chore`) |
 
 ---
 
-## Adding Comments
+## Acting on Issues
 
-Only comment when it adds real value — a blocker, a key decision, or a notable
-deviation from the original plan. Don't narrate normal progress.
+### Before working with a Linear issue
 
-Format:
-```
-🤖 [brief summary]
+Read the issue carefully and in-depth. Especially look for the `**Developer Comments:**` section and read any notes before deciding on an approach. If the notes say to ask the user for clarification, be sure to do this when instructed.
 
-[What happened or what is blocked. Be specific.]
-```
+### Working on the Issue
+
+Use skills/REFACTORING_SKILL.md to refactor the code as described in the issue.
 
 ---
 
