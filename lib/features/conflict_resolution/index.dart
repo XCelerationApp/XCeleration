@@ -14,7 +14,6 @@ export '../../coach/resolve_bib_number_screen/screen/resolve_bib_number_screen.d
 // Widgets - Merge Conflicts
 export '../../coach/merge_conflicts/widgets/chunk_list.dart';
 export '../../coach/merge_conflicts/widgets/header_widgets.dart';
-export '../../coach/merge_conflicts/widgets/mock_data_selector.dart';
 export '../../coach/merge_conflicts/widgets/runner_time_record.dart';
 export '../../coach/merge_conflicts/widgets/runner_info_widgets.dart'
     hide InfoChip;
