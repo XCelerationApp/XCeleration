@@ -281,5 +281,99 @@ void main() {
         verify(mockStorage.deleteChunks(testRace.raceId)).called(1);
       });
     });
+
+    group('deleteCurrentRace', () {
+      test('is a no-op when currentRace is null', () async {
+        final error = await controller.deleteCurrentRace();
+
+        expect(error, isNull);
+        verifyNever(mockStorage.deleteChunks(any));
+        verifyNever(mockStorage.deleteRace(any, any));
+      });
+
+      test('returns null and clears timing records when a race is loaded',
+          () async {
+        controller.currentRace = testRace;
+        controller.startRace();
+        controller.logTime();
+        expect(controller.currentChunk.timingData, hasLength(1));
+
+        final error = await controller.deleteCurrentRace();
+
+        expect(error, isNull);
+        expect(controller.currentChunk.timingData, isEmpty);
+      });
+
+      test('calls deleteChunks and deleteRace on storage', () async {
+        controller.currentRace = testRace;
+
+        await controller.deleteCurrentRace();
+
+        verify(mockStorage.deleteChunks(testRace.raceId)).called(1);
+        verify(mockStorage.deleteRace(testRace.raceId, testRace.type))
+            .called(1);
+      });
+    });
+
+    group('executeDeleteRecord', () {
+      test('removes unconfirmed runner time and returns true', () async {
+        loadAndStartRace();
+        controller.logTime();
+
+        final record = controller.uiRecords.first;
+        final result = await controller.executeDeleteRecord(record);
+
+        expect(result, isTrue);
+        expect(controller.currentChunk.timingData, isEmpty);
+      });
+
+      test('clears confirmRunner conflict record and returns true', () async {
+        loadAndStartRace();
+        controller.confirmTimes();
+
+        final record = controller.uiRecords.last;
+        final result = await controller.executeDeleteRecord(record);
+
+        expect(result, isTrue);
+        expect(controller.currentChunk.hasConflict, isFalse);
+      });
+
+      test('reduces missingTime conflict by one and returns true', () async {
+        loadAndStartRace();
+        await controller.addMissingTime();
+
+        final record = controller.uiRecords.last;
+        final result = await controller.executeDeleteRecord(record);
+
+        expect(result, isTrue);
+        expect(controller.currentChunk.hasConflict, isFalse);
+      });
+
+      test('reduces extraTime conflict by one and returns true', () async {
+        loadAndStartRace();
+        controller.logTime();
+        controller.logTime();
+        await controller.removeExtraTime();
+
+        final record = controller.uiRecords.last;
+        final result = await controller.executeDeleteRecord(record);
+
+        expect(result, isTrue);
+        expect(controller.currentChunk.hasConflict, isFalse);
+        expect(controller.currentChunk.timingData, hasLength(2));
+      });
+
+      test('returns false for a confirmed runnerTime record', () async {
+        loadAndStartRace();
+        controller.logTime();
+        controller.confirmTimes();
+
+        // First record is a runner time inside a confirmed chunk (Colors.green)
+        final record = controller.uiRecords.first;
+        final result = await controller.executeDeleteRecord(record);
+
+        expect(result, isFalse);
+      });
+    });
   });
 }
