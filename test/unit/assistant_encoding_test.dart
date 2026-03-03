@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:xceleration/core/utils/encode_utils.dart';
 import 'package:xceleration/core/utils/decode_utils.dart';
+import 'package:xceleration/core/utils/logger.dart';
 import 'package:flutter/material.dart';
 import 'package:xceleration/shared/models/timing_records/bib_datum.dart';
 import 'package:xceleration/shared/models/timing_records/timing_datum.dart';
@@ -423,8 +424,7 @@ void main() {
       final raw = utf8.decode(decodedBytes);
       expect(raw.contains('101'), isTrue);
       // Log character lengths for visibility (V2 JSON differs from legacy)
-      // ignore: avoid_print
-      print(
+      Logger.d(
           '[BIB] legacyRaw.length=${legacyRaw.length} unwrapped.length=${raw.length} encoded.length=${encoded.length}');
 
       // Legacy-compatible decoder should accept wrapped input
@@ -538,8 +538,7 @@ void main() {
       final raw = utf8.decode(decodedBytes);
       expect(raw.split(',').length, records.length);
       // Log character lengths for visibility
-      // ignore: avoid_print
-      print(
+      Logger.d(
           '[TIMING] legacyRaw.length=${legacyRaw.length} unwrapped.length=${raw.length} encoded.length=${encoded.length}');
       expect(raw, legacyRaw);
 
