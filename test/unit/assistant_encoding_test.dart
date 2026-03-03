@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:xceleration/core/result.dart';
 import 'package:xceleration/core/utils/encode_utils.dart';
 import 'package:xceleration/core/utils/decode_utils.dart';
-import 'package:flutter/material.dart';
 import 'package:xceleration/shared/models/timing_records/bib_datum.dart';
 import 'package:xceleration/shared/models/timing_records/timing_datum.dart';
 import 'package:xceleration/shared/models/timing_records/conflict.dart';
@@ -12,8 +12,7 @@ import 'package:xceleration/core/utils/enums.dart';
 
 void main() {
   group('Assistant encoding gzip+base64 wrapping', () {
-    testWidgets('BibEncodeUtils wraps and BibDecodeUtils unwraps',
-        (tester) async {
+    test('BibEncodeUtils wraps and BibDecodeUtils unwraps', () async {
       final bibs = <BibDatum>[
         BibDatum(
             bib: '1001',
@@ -428,14 +427,18 @@ void main() {
           '[BIB] legacyRaw.length=${legacyRaw.length} unwrapped.length=${raw.length} encoded.length=${encoded.length}');
 
       // Legacy-compatible decoder should accept wrapped input
-      await tester.pumpWidget(const MaterialApp(home: SizedBox.shrink()));
-      final ctx = tester.element(find.byType(SizedBox));
-      final decoded = await BibDecodeUtils.decodeEncodedRunners(raw, ctx);
-      final decodedWrapped =
-          await BibDecodeUtils.decodeEncodedRunners(encoded, ctx);
+      final decoded = await BibDecodeUtils.decodeEncodedRunners(raw);
+      final decodedWrapped = await BibDecodeUtils.decodeEncodedRunners(encoded);
 
-      expect(decoded?.length, bibs.length);
-      expect(decodedWrapped?.length, bibs.length);
+      expect(
+          switch (decoded) { Success(:final value) => value.length, _ => -1 },
+          bibs.length);
+      expect(
+          switch (decodedWrapped) {
+            Success(:final value) => value.length,
+            _ => -1
+          },
+          bibs.length);
     });
 
     test('TimingEncodeUtils wraps and TimingDecodeUtils unwraps', () async {
