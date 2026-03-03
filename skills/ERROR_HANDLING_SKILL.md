@@ -25,9 +25,23 @@ Widget  →  reads hasError / error.userMessage, renders accordingly
 
 ---
 
+## When to Use `Result<T>`
+
+`Result<T>` is **only** for service and repository methods that perform async I/O where external failure is a real possibility — database queries, network calls, file access, platform APIs.
+
+**Do not use `Result<T>` for:**
+
+- Pure or synchronous helper functions (formatting, sorting, calculations) — return the value directly
+- Controller methods — they consume `Result<T>` but expose plain state or return `AppError?`
+- Widget methods — no error handling at all
+
+The boundary where `Result<T>` applies is between your app and external systems. Everything internal uses normal Dart conventions.
+
+---
+
 ## Result\<T\>
 
-All service and repository methods return `Result<T>`. They never throw.
+All service and repository methods that touch external systems return `Result<T>`. They never throw.
 
 ```dart
 // lib/core/result.dart
