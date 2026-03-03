@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:xceleration/core/components/dialog_utils.dart';
 
 class Logger {
+  static bool silent = false;
+
   static void d(String message) {
-    if (kDebugMode) {
+    if (kDebugMode && !silent) {
       debugPrint(message);
     }
   }
