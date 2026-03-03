@@ -38,12 +38,13 @@ This is the most important step and the easiest to forget.
 
 Done means:
 
-- Code merged or finalized
+- Code committed and pushed to the feature branch
 - Tests passing
 - No known regressions
 - The user has not flagged unresolved concerns
 
-Do not mark Done based on local completion alone if the work hasn't been merged.
+For multi-phase issues, merging is not required — committed and pushed is sufficient.
+Mark Done as soon as the acceptance criteria are met, even if the branch is not yet merged.
 
 ---
 
