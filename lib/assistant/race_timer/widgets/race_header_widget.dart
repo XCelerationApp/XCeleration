@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/result.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/utils/enums.dart';
 import '../controller/timing_controller.dart';
+import '../../shared/models/race_record.dart';
 import '../../shared/services/assistant_storage_service.dart';
 
 class RaceHeaderWidget extends StatelessWidget {
@@ -230,13 +232,12 @@ class RaceHeaderWidget extends StatelessWidget {
     });
   }
 
-  Future<List<dynamic>> _getOtherRaces() async {
-    try {
-      final races = await AssistantStorageService.instance
-          .getRaces(DeviceName.raceTimer.toString());
-      return races;
-    } catch (e) {
-      return [];
-    }
+  Future<List<RaceRecord>> _getOtherRaces() async {
+    final result = await AssistantStorageService.instance
+        .getRaces(DeviceName.raceTimer.toString());
+    return switch (result) {
+      Success(:final value) => value,
+      Failure() => [],
+    };
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/result.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/race_record.dart';
@@ -36,7 +37,11 @@ class DemoRaceGenerator {
       final storage = AssistantStorageService.instance;
 
       // Check if there are any existing races (in case they already used the app before this feature)
-      final races = await storage.getRaces(deviceType);
+      final racesResult = await storage.getRaces(deviceType);
+      final races = switch (racesResult) {
+        Success(:final value) => value,
+        Failure() => <RaceRecord>[],
+      };
 
       if (races.isNotEmpty) {
         // User already has races, mark as not first launch and don't create demo
@@ -183,7 +188,11 @@ class DemoRaceGenerator {
   static Future<void> deleteDemoRace(String deviceType) async {
     try {
       final storage = AssistantStorageService.instance;
-      final race = await storage.getRace(_demoRaceId, deviceType);
+      final raceResult = await storage.getRace(_demoRaceId, deviceType);
+      final race = switch (raceResult) {
+        Success(:final value) => value,
+        Failure() => null,
+      };
 
       if (race != null) {
         await storage.deleteRace(_demoRaceId, deviceType);
