@@ -48,11 +48,12 @@ For every file or feature you refactor, follow this sequence:
 Run after every meaningful change:
 
 ```sh
+dart format .
 flutter analyze
 flutter test
 ```
 
-Both must pass before continuing.
+All three must pass before continuing. Note: If any of them fail and you are unsure whether the failure is caused by an incorrect refactor versus an intentional behavior change that has made the existing tests stale, stop and present this dilemma to the user, waiting for their decision before changing either the implementation or the tests. This is primarily for complex logic refactors.
 
 ### Phase 3 — Testing Pass
 
@@ -76,6 +77,7 @@ Before marking a module complete:
 - [ ] Class under ~300 lines (or justified)
 - [ ] Functions typically under 50 lines
 - [ ] All public methods unit tested
+- [ ] `dart format .` passes (no changes)
 - [ ] `flutter analyze` passes
 - [ ] `flutter test` passes
 
@@ -294,5 +296,6 @@ Key rules that apply during refactoring:
 - No logic in widgets
 - Public methods fully unit tested
 - Class size reasonable
+- `dart format .` clean (no changes)
 - `flutter analyze` clean
 - `flutter test` clean

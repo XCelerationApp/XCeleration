@@ -56,20 +56,21 @@ void main() {
     group('shouldShowAsEditable', () {
       final raceWithName =
           Race(raceId: 1, raceName: 'Test Race', flowState: Race.FLOW_SETUP);
-      final raceEmpty = Race(raceId: 1, raceName: '', flowState: Race.FLOW_SETUP);
+      final raceEmpty =
+          Race(raceId: 1, raceName: '', flowState: Race.FLOW_SETUP);
       final raceNullDate = Race(raceId: 1, flowState: Race.FLOW_SETUP);
       final raceZeroDistance =
           Race(raceId: 1, distance: 0, flowState: Race.FLOW_SETUP);
 
       test('returns false when canEdit is false regardless of field state', () {
-        expect(
-            form.shouldShowAsEditable(RaceField.name, raceEmpty, false), isFalse);
+        expect(form.shouldShowAsEditable(RaceField.name, raceEmpty, false),
+            isFalse);
       });
 
       test('returns true when canEdit and currently editing', () {
         form.startEditing(RaceField.name);
-        expect(
-            form.shouldShowAsEditable(RaceField.name, raceWithName, true), isTrue);
+        expect(form.shouldShowAsEditable(RaceField.name, raceWithName, true),
+            isTrue);
       });
 
       test('returns true for empty name field when canEdit is true', () {
@@ -89,13 +90,15 @@ void main() {
 
       test('returns true for zero distance when canEdit is true', () {
         expect(
-            form.shouldShowAsEditable(RaceField.distance, raceZeroDistance, true),
+            form.shouldShowAsEditable(
+                RaceField.distance, raceZeroDistance, true),
             isTrue);
       });
 
-      test('returns false for unit field always, even when canEdit is true', () {
-        expect(
-            form.shouldShowAsEditable(RaceField.unit, raceEmpty, true), isFalse);
+      test('returns false for unit field always, even when canEdit is true',
+          () {
+        expect(form.shouldShowAsEditable(RaceField.unit, raceEmpty, true),
+            isFalse);
       });
     });
 

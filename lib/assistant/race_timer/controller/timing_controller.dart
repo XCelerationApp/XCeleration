@@ -27,7 +27,8 @@ class TimingController extends TimingData {
   BuildContext? _context;
   final bool enableAudio;
 
-  TimingController({this.enableAudio = true}) : super() {
+  TimingController({this.enableAudio = true})
+      : super(storage: AssistantStorageService.instance) {
     _initializeControllers();
   }
 

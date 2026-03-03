@@ -11,10 +11,11 @@ Flutter, Dart, ChangeNotifier + Provider, SQLite, Supabase.
 - **Writing or modifying tests:** Read `skills/TESTING_SKILL.md`
 - **Building or modifying any UI file (widgets, screens, components):** Read `skills/UI_STANDARD_SKILL.md`
 - **Interacting with a Linear issue (creating, updating, closing):** Read `skills/LINEAR_WORKFLOW_SKILL.md`
+- **Committing changes, creating branches, or opening/updating a PR:** Read `skills/GIT_WORKFLOW_SKILL.md`
 
 ## Always
 
-- Run `flutter analyze` and `flutter test` after every meaningful change
+- Run `dart format .`, `flutter analyze`, and `flutter test` after every meaningful change
 - One concern per commit
 
 ## Working Style
@@ -29,8 +30,9 @@ Flutter is at `/Users/finiandonnelley/Programming_project/flutter/bin/flutter`.
 Always source `~/.zshrc` first, or use the full path:
 
 ```sh
-source ~/.zshrc && flutter analyze
-source ~/.zshrc && flutter test
+dart format .
+/Users/finiandonnelley/Programming_project/flutter/bin/flutter analyze
+/Users/finiandonnelley/Programming_project/flutter/bin/flutter test
 ```
 
 ## When Unsure — Ask First

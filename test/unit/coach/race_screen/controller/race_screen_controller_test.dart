@@ -12,7 +12,8 @@ import 'package:xceleration/core/services/geo_location_service.dart';
 import 'package:xceleration/shared/models/database/master_race.dart';
 import 'package:xceleration/shared/models/database/race.dart';
 
-@GenerateMocks([MasterRace, RacesController, MasterFlowController, IGeoLocationService])
+@GenerateMocks(
+    [MasterRace, RacesController, MasterFlowController, IGeoLocationService])
 import 'race_screen_controller_test.mocks.dart';
 
 // ---------------------------------------------------------------------------
@@ -138,8 +139,8 @@ void main() {
           'error path: hasError is true and isLoading is false after failure',
           (tester) async {
         final ctx = await _buildContext(tester);
-        when(mockMasterRace.race).thenAnswer(
-            (_) async => throw Exception('db error'));
+        when(mockMasterRace.race)
+            .thenAnswer((_) async => throw Exception('db error'));
 
         try {
           await controller.loadAllData(ctx);
@@ -162,8 +163,8 @@ void main() {
         await controller.loadAllData(ctx);
 
         final refreshingStates = <bool>[];
-        controller.addListener(
-            () => refreshingStates.add(controller.isRefreshing));
+        controller
+            .addListener(() => refreshingStates.add(controller.isRefreshing));
 
         await controller.refreshRaceData(ctx);
 
@@ -171,10 +172,12 @@ void main() {
         // Final notification: isRefreshing = false
         expect(refreshingStates.first, isTrue);
         expect(refreshingStates.last, isFalse);
-        verify(mockMasterRace.invalidateCache()).called(greaterThanOrEqualTo(1));
+        verify(mockMasterRace.invalidateCache())
+            .called(greaterThanOrEqualTo(1));
       });
 
-      testWidgets('context not mounted: returns early without invalidating cache',
+      testWidgets(
+          'context not mounted: returns early without invalidating cache',
           (tester) async {
         BuildContext? ctx;
         await tester.pumpWidget(MaterialApp(
@@ -234,7 +237,8 @@ void main() {
         verifyNever(mockMasterRace.updateRace(any));
       });
 
-      testWidgets('valid fields: saves and clears changedFields', (tester) async {
+      testWidgets('valid fields: saves and clears changedFields',
+          (tester) async {
         final ctx = await _buildContext(tester);
         await controller.loadAllData(ctx);
 
@@ -258,13 +262,13 @@ void main() {
 
     // -------------------------------------------------------------------------
     group('saveFieldIfValid', () {
-      testWidgets('invalid field: sets error and returns false', (tester) async {
+      testWidgets('invalid field: sets error and returns false',
+          (tester) async {
         final ctx = await _buildContext(tester);
         await controller.loadAllData(ctx);
         controller.form.nameController.text = ''; // invalid: empty
 
-        final result =
-            await controller.saveFieldIfValid(ctx, RaceField.name);
+        final result = await controller.saveFieldIfValid(ctx, RaceField.name);
 
         expect(result, isFalse);
         expect(controller.form.errorFor(RaceField.name), isNotNull);
@@ -281,8 +285,7 @@ void main() {
         controller.form.distanceController.text = '5.0';
         controller.form.startEditing(RaceField.name);
 
-        final result =
-            await controller.saveFieldIfValid(ctx, RaceField.name);
+        final result = await controller.saveFieldIfValid(ctx, RaceField.name);
 
         expect(result, isTrue);
         expect(controller.form.isEditing(RaceField.name), isFalse);
@@ -380,7 +383,8 @@ void main() {
         verifyNever(mockMasterRace.updateRace(any));
       });
 
-      testWidgets('completed state transitions to next state and calls flow nav',
+      testWidgets(
+          'completed state transitions to next state and calls flow nav',
           (tester) async {
         final completedRace = Race(
           raceId: 1,
@@ -449,19 +453,19 @@ void main() {
             .thenAnswer((_) async => LocationPermission.whileInUse);
         when(mockGeoService.isLocationServiceEnabled())
             .thenAnswer((_) async => true);
-        when(mockGeoService.getCurrentPosition()).thenAnswer((_) async =>
-            Position(
-              latitude: 37.7749,
-              longitude: -122.4194,
-              timestamp: DateTime(2024, 6, 15),
-              accuracy: 10.0,
-              altitude: 0.0,
-              heading: 0.0,
-              speed: 0.0,
-              speedAccuracy: 0.0,
-              altitudeAccuracy: 0.0,
-              headingAccuracy: 0.0,
-            ));
+        when(mockGeoService.getCurrentPosition())
+            .thenAnswer((_) async => Position(
+                  latitude: 37.7749,
+                  longitude: -122.4194,
+                  timestamp: DateTime(2024, 6, 15),
+                  accuracy: 10.0,
+                  altitude: 0.0,
+                  heading: 0.0,
+                  speed: 0.0,
+                  speedAccuracy: 0.0,
+                  altitudeAccuracy: 0.0,
+                  headingAccuracy: 0.0,
+                ));
         when(mockGeoService.placemarkFromCoordinates(any, any))
             .thenAnswer((_) async => [
                   const geocoding.Placemark(
@@ -482,4 +486,3 @@ void main() {
     });
   });
 }
-
