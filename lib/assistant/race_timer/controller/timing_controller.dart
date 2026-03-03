@@ -8,7 +8,6 @@ import '../../../core/utils/enums.dart';
 import '../model/timing_data.dart';
 import '../../../core/utils/logger.dart';
 import '../../../core/utils/time_formatter.dart';
-import '../../../core/components/dialog_utils.dart';
 import '../model/timing_utils.dart';
 import 'package:xceleration/shared/models/timing_records/conflict.dart';
 import 'package:xceleration/shared/models/timing_records/timing_datum.dart';
@@ -16,42 +15,57 @@ import '../../../core/utils/sheet_utils.dart';
 import '../../../core/components/device_connection_widget.dart';
 import '../../../core/services/device_connection_service.dart';
 import '../../shared/widgets/other_races_sheet.dart';
-import '../../shared/services/assistant_storage_service.dart';
+import '../../shared/services/i_assistant_storage_service.dart';
 import '../../shared/services/demo_race_generator.dart';
-import 'package:xceleration/core/result.dart';
+import '../../../core/app_error.dart';
+import '../../../core/result.dart';
+
+sealed class RemoveExtraTimeResult {
+  const RemoveExtraTimeResult();
+}
+
+final class RemoveExtraTimeOk extends RemoveExtraTimeResult {
+  const RemoveExtraTimeOk();
+}
+
+final class RemoveExtraTimeError extends RemoveExtraTimeResult {
+  const RemoveExtraTimeError(this.error);
+  final AppError error;
+}
+
+final class RemoveExtraTimeConfirmRequired extends RemoveExtraTimeResult {
+  const RemoveExtraTimeConfirmRequired(this.offBy);
+  final int offBy;
+}
 
 class TimingController extends TimingData {
   final ScrollController scrollController = ScrollController();
-  AudioPlayer? audioPlayer;
+  final AudioPlayer? _audioPlayer;
+  final IAssistantStorageService _storage;
   bool isAudioPlayerReady = false;
-  BuildContext? _context;
-  final bool enableAudio;
 
-  TimingController({this.enableAudio = true})
-      : super(storage: AssistantStorageService.instance) {
+  TimingController({
+    required super.storage,
+    AudioPlayer? audioPlayer,
+  })  : _storage = storage,
+        _audioPlayer = audioPlayer {
     _initializeControllers();
   }
 
-  void setContext(BuildContext context) {
-    _context = context;
-  }
-
   void _initializeControllers() {
-    if (enableAudio) {
-      audioPlayer = AudioPlayer();
+    if (_audioPlayer != null) {
       _initAudioPlayer();
     }
     _loadLastRace();
   }
 
   Future<void> showOtherRaces(BuildContext context) async {
-    final result = await AssistantStorageService.instance
-        .getRaces(DeviceName.raceTimer.toString());
-    if (!context.mounted) return;
+    final result = await _storage.getRaces(DeviceName.raceTimer.toString());
     final races = switch (result) {
       Success(:final value) => value,
       Failure() => <RaceRecord>[],
     };
+    if (!context.mounted) return;
 
     sheet(
       context: context,
@@ -70,10 +84,13 @@ class TimingController extends TimingData {
     await DemoRaceGenerator.ensureDemoRaceExists(
         DeviceName.raceTimer.toString());
 
-    final result = await AssistantStorageService.instance
-        .getRaces(DeviceName.raceTimer.toString());
-    if (result case Success(:final value) when value.isNotEmpty) {
-      _loadRace(value.last);
+    final result = await _storage.getRaces(DeviceName.raceTimer.toString());
+    final races = switch (result) {
+      Success(:final value) => value,
+      Failure() => <RaceRecord>[],
+    };
+    if (races.isNotEmpty) {
+      _loadRace(races.last);
     }
   }
 
@@ -91,8 +108,6 @@ class TimingController extends TimingData {
         callback: () async {
           final data = devices.coach?.data;
           if (data == null) {
-            DialogUtils.showErrorDialog(context,
-                message: 'Race data not received');
             return;
           }
           late RaceRecord raceRecord;
@@ -105,29 +120,21 @@ class TimingController extends TimingData {
                 'Parsed race record: ${raceRecord.name}, date: ${raceRecord.date}');
           } catch (e) {
             Logger.e('Error parsing race data: $e');
-            if (context.mounted) {
-              DialogUtils.showErrorDialog(context,
-                  message: 'Failed to parse race data: $e');
-            }
-          }
-          final saveResult =
-              await AssistantStorageService.instance.saveNewRace(raceRecord);
-          if (saveResult case Failure(:final error)) {
-            Logger.e(
-                '[TimingController.showLoadRaceSheet] ${error.originalException}');
-            if (context.mounted) {
-              DialogUtils.showErrorDialog(context, message: error.userMessage);
-            }
             return;
           }
-          clearRecords();
-          // Also save an initial empty timing chunk for this race, so that the UI is ready for entry.
-          // (If a chunk with id 0 already exists, this will update it.)
-          await AssistantStorageService.instance.saveChunk(
-            raceRecord.raceId,
-            TimingChunk(id: 0, timingData: []),
-          );
-          _loadRace(raceRecord);
+          try {
+            await _storage.saveNewRace(raceRecord);
+            clearRecords();
+            // Also save an initial empty timing chunk for this race, so that the UI is ready for entry.
+            // (If a chunk with id 0 already exists, this will update it.)
+            await _storage.saveChunk(
+              raceRecord.raceId,
+              TimingChunk(id: 0, timingData: []),
+            );
+            _loadRace(raceRecord);
+          } catch (e) {
+            Logger.e('Error saving race: $e');
+          }
         },
       ),
     );
@@ -139,15 +146,11 @@ class TimingController extends TimingData {
     raceDuration = raceRecord.duration;
     raceStopped = raceRecord.stopped;
     // Load timing chunks
-    final List<TimingChunk> chunks;
-    switch (
-        await AssistantStorageService.instance.getChunks(raceRecord.raceId)) {
-      case Success(:final value):
-        chunks = value;
-      case Failure(:final error):
-        Logger.e('[TimingController._loadRace] ${error.originalException}');
-        chunks = [];
-    }
+    final chunksResult = await _storage.getChunks(raceRecord.raceId);
+    final chunks = switch (chunksResult) {
+      Success(:final value) => value,
+      Failure() => <TimingChunk>[],
+    };
 
     if (chunks.isNotEmpty) {
       // Set the last chunk as current
@@ -170,10 +173,10 @@ class TimingController extends TimingData {
   }
 
   Future<void> _initAudioPlayer() async {
-    if (audioPlayer == null) return;
+    if (_audioPlayer == null) return;
     try {
-      await audioPlayer!.setReleaseMode(ReleaseMode.stop);
-      await audioPlayer!.setSource(AssetSource('sounds/click.mp3'));
+      await _audioPlayer.setReleaseMode(ReleaseMode.stop);
+      await _audioPlayer.setSource(AssetSource('sounds/click.mp3'));
       isAudioPlayerReady = true;
       notifyListeners();
     } catch (e) {
@@ -216,44 +219,33 @@ class TimingController extends TimingData {
     notifyListeners();
   }
 
-  Future<void> stopRace() async {
-    if (_context == null) return;
-
-    final confirmed = await DialogUtils.showConfirmationDialog(_context!,
-        content: 'Are you sure you want to stop the race?',
-        title: 'Stop the Race');
-    if (confirmed != true) return;
-
+  /// Stops the race. Widget must show a confirmation dialog before calling this.
+  void stopRace() {
     if (raceStopped == false && startTime != null) {
       raceDuration = DateTime.now().difference(startTime!);
       raceStopped = true;
-      notifyListeners();
     }
   }
 
-  Future<void> handleLogButtonPress() async {
-    // Log the time first
-    logTime();
+  Future<AppError?> handleLogButtonPress() async {
+    final error = logTime();
+    if (error != null) return error;
 
-    // Execute haptic feedback and audio playback without blocking the UI
     HapticFeedback.vibrate();
     HapticFeedback.lightImpact();
 
-    if (isAudioPlayerReady && audioPlayer != null) {
-      // Play audio without awaiting
-      audioPlayer!.stop().then((_) {
-        audioPlayer!.play(AssetSource('sounds/click.mp3'));
+    if (isAudioPlayerReady && _audioPlayer != null) {
+      _audioPlayer.stop().then((_) {
+        _audioPlayer.play(AssetSource('sounds/click.mp3'));
       });
     }
+    return null;
   }
 
-  void logTime() {
+  AppError? logTime() {
     if (startTime == null || raceStopped) {
-      if (_context != null) {
-        DialogUtils.showErrorDialog(_context!,
-            message: 'Start time cannot be null or race stopped.');
-      }
-      return;
+      return const AppError(
+          userMessage: 'Start time cannot be null or race stopped.');
     }
 
     final time = TimeFormatter.formatDuration(
@@ -261,15 +253,13 @@ class TimingController extends TimingData {
     addRunnerTimeRecord(TimingDatum(time: time));
     scrollToBottom(scrollController);
     notifyListeners();
+    return null;
   }
 
-  void confirmTimes() {
+  AppError? confirmTimes() {
     if (startTime == null || raceStopped) {
-      if (_context != null) {
-        DialogUtils.showErrorDialog(_context!,
-            message: 'Race must be started to confirm a time.');
-      }
-      return;
+      return const AppError(
+          userMessage: 'Race must be started to confirm a time.');
     }
     final time = TimeFormatter.formatDuration(
         getCurrentDuration(startTime, raceDuration));
@@ -279,15 +269,13 @@ class TimingController extends TimingData {
         conflict: Conflict(type: ConflictType.confirmRunner, offBy: 1)));
     scrollToBottom(scrollController);
     notifyListeners();
+    return null;
   }
 
-  Future<void> addMissingTime() async {
+  Future<AppError?> addMissingTime() async {
     if (startTime == null) {
-      if (_context != null) {
-        DialogUtils.showErrorDialog(_context!,
-            message: 'Race must be started to mark a missing time.');
-      }
-      return;
+      return const AppError(
+          userMessage: 'Race must be started to mark a missing time.');
     }
 
     final time = TimeFormatter.formatDuration(
@@ -298,15 +286,13 @@ class TimingController extends TimingData {
         conflict: Conflict(type: ConflictType.missingTime, offBy: 1)));
     scrollToBottom(scrollController);
     notifyListeners();
+    return null;
   }
 
-  Future<void> removeExtraTime() async {
+  Future<RemoveExtraTimeResult> removeExtraTime() async {
     if (startTime == null || raceStopped) {
-      if (_context != null) {
-        DialogUtils.showErrorDialog(_context!,
-            message: 'Race must be started to mark an extra time.');
-      }
-      return;
+      return const RemoveExtraTimeError(
+          AppError(userMessage: 'Race must be started to mark an extra time.'));
     }
     final currentDuration = getCurrentDuration(startTime, raceDuration);
 
@@ -314,23 +300,22 @@ class TimingController extends TimingData {
         time: TimeFormatter.formatDuration(currentDuration),
         conflict: Conflict(type: ConflictType.extraTime, offBy: 1));
 
-    if (!await _validateExtraTimeConflict(extraTimeRecord)) {
-      return;
-    }
-    addExtraTimeRecord(extraTimeRecord);
+    final result = _checkRemoveExtraTimeConflict(extraTimeRecord);
+    if (result != null) return result;
 
+    addExtraTimeRecord(extraTimeRecord);
     scrollToBottom(scrollController);
     notifyListeners();
+    return const RemoveExtraTimeOk();
   }
 
-  Future<bool> _validateExtraTimeConflict(TimingDatum record) async {
+  RemoveExtraTimeResult? _checkRemoveExtraTimeConflict(TimingDatum record) {
     if (record.conflict?.type == ConflictType.confirmRunner) {
-      DialogUtils.showErrorDialog(_context!,
-          message: 'You cannot remove a confirmed time.');
-      return false;
+      return const RemoveExtraTimeError(
+          AppError(userMessage: 'You cannot remove a confirmed time.'));
     }
     if (record.conflict?.type == ConflictType.missingTime) {
-      return true;
+      return null;
     }
 
     // Calculate the total offBy that would result after adding this record
@@ -342,97 +327,53 @@ class TimingController extends TimingData {
 
     final int numRunnerRecords = currentChunk.timingData.length;
 
-    // If total off by is less than the number of records, then the conflict is valid
     if (totalOffBy < numRunnerRecords) {
-      return true;
+      return null;
     } else if (totalOffBy == numRunnerRecords) {
-      // let the user decide if they want to remove all the unconfirmed times
-      if (await _handleTimesDeletion(totalOffBy)) {
-        deleteCurrentChunk();
-        return false; // Return false to prevent adding the record
-      } else {
-        return false;
-      }
+      return RemoveExtraTimeConfirmRequired(totalOffBy);
     } else {
-      if (_context != null) {
-        DialogUtils.showErrorDialog(
-          _context!,
-          message: "You can't remove any more unconfirmed times",
-        );
-      }
-      return false;
+      return const RemoveExtraTimeError(
+          AppError(userMessage: "You can't remove any more unconfirmed times"));
     }
   }
 
-  Future<bool> _handleTimesDeletion(int offBy) async {
-    if (_context == null) return false;
-
-    final confirmed = await DialogUtils.showConfirmationDialog(_context!,
-        content:
-            'This will delete the last $offBy finish times, are you sure you want to continue?',
-        title: 'Confirm Deletion');
-    if (confirmed) {
-      return true;
-    }
-    return false;
+  /// Called after the widget confirms deletion of the current chunk.
+  void executeRemoveExtraTimeDeletion() {
+    deleteCurrentChunk();
   }
 
-  Future<void> undoLastConflict() async {
-    if (_context == null) return;
-
+  String get undoDialogTitle {
     final isConflict = currentChunk.conflictRecord?.conflict?.type !=
         ConflictType.confirmRunner;
-    final dialogTitle = isConflict ? 'Undo Conflict' : 'Undo Confirmation';
-    final dialogContent = isConflict
-        ? 'Are you sure you want to undo the last conflict?'
-        : 'Are you sure you want to undo the last confirmation?';
-
-    final confirmed = await DialogUtils.showConfirmationDialog(
-      _context!,
-      title: dialogTitle,
-      content: dialogContent,
-    );
-
-    if (confirmed != true) return;
-
-    // Clear the conflict record
-    currentChunk.conflictRecord = null;
-
-    // If chunk becomes empty, delete it
-    if (currentChunk.isEmpty) {
-      deleteCurrentChunk();
-    }
-
-    scrollToBottom(scrollController);
-    notifyListeners();
+    return isConflict ? 'Undo Conflict' : 'Undo Confirmation';
   }
 
-  void clearRaceTimes() {
-    if (_context == null) return;
+  String get undoDialogContent {
+    final isConflict = currentChunk.conflictRecord?.conflict?.type !=
+        ConflictType.confirmRunner;
+    return isConflict
+        ? 'Are you sure you want to undo the last conflict?'
+        : 'Are you sure you want to undo the last confirmation?';
+  }
 
-    showDialog<bool>(
-      context: _context!,
-      builder: (context) => AlertDialog(
-        title: const Text('Clear Race Times'),
-        content: const Text('Are you sure you want to clear all race times?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Clear'),
-          ),
-        ],
-      ),
-    ).then((confirmed) {
-      if (confirmed ?? false) {
-        clearRecords();
-        notifyListeners();
-        AssistantStorageService.instance.deleteChunks(currentRace!.raceId);
-      }
-    });
+  /// Executes the undo. Widget must show a confirmation dialog before calling this.
+  void doUndoLastConflict() {
+    currentChunk.conflictRecord = null;
+
+    scrollToBottom(scrollController);
+    if (currentChunk.isEmpty) {
+      deleteCurrentChunk();
+    } else {
+      notifyListeners();
+    }
+  }
+
+  /// Clears all race times. Widget must show a confirmation dialog before calling this.
+  Future<void> doClearRaceTimes() async {
+    clearRecords();
+    if (currentRace != null) {
+      _storage.deleteChunks(currentRace!.raceId);
+    }
   }
 
   Duration calculateElapsedTime(DateTime? startTime, Duration? endTime) {
@@ -450,130 +391,100 @@ class TimingController extends TimingData {
     return isUndoable;
   }
 
-  Future<bool> handleRecordDeletion(UIRecord record) async {
-    if (_context == null) return false;
-
+  /// Validates whether a record can be deleted. Returns an [AppError] if deletion
+  /// is not allowed, or null if the widget may proceed to show a confirmation dialog.
+  AppError? validateDeleteRecord(UIRecord record) {
     final bool isUnconfirmed = record.textColor == Colors.black;
 
-    // Unconfirmed runner time: delete by index
     if (isUnconfirmed) {
       final int index =
           currentChunk.timingData.indexOf(TimingDatum(time: record.time));
       if (index == -1) {
-        return false;
+        return const AppError(userMessage: 'Record not found.');
       }
-      final confirmed = await DialogUtils.showConfirmationDialog(
-        _context!,
-        title: 'Confirm Deletion',
-        content: 'Are you sure you want to delete the time ${record.time}?',
-      );
-      if (!confirmed) return false;
+      return null;
+    }
+
+    final uiRecords = this.uiRecords;
+    final int recordIndex = uiRecords.indexOf(record);
+    final bool isLast = recordIndex == uiRecords.length - 1;
+    if (!isLast) {
+      return const AppError(
+          userMessage: 'Cannot delete a record when there are later records.');
+    }
+
+    if (record.type == RecordType.runnerTime) {
+      return const AppError(userMessage: 'Cannot delete this record.');
+    }
+
+    return null;
+  }
+
+  /// Executes the deletion of a record. Call [validateDeleteRecord] first and
+  /// show a confirmation dialog before calling this.
+  Future<bool> executeDeleteRecord(UIRecord record) async {
+    final bool isUnconfirmed = record.textColor == Colors.black;
+
+    if (isUnconfirmed) {
+      final int index =
+          currentChunk.timingData.indexOf(TimingDatum(time: record.time));
+      if (index == -1) return false;
 
       currentChunk.timingData.removeAt(index);
-      AssistantStorageService.instance.updateChunkTimingData(
+      _storage.updateChunkTimingData(
           currentRace!.raceId, currentChunk.id, currentChunk.timingData);
       if (currentChunk.timingData.isEmpty && !currentChunk.hasConflict) {
         deleteCurrentChunk();
-        AssistantStorageService.instance
-            .deleteChunk(currentRace!.raceId, currentChunk.id);
+        _storage.deleteChunk(currentRace!.raceId, currentChunk.id);
         return true;
       }
       notifyListeners();
       return true;
     }
 
-    // Only allow deleting non-unconfirmed records if this is the last record
-    final uiRecords = this.uiRecords;
-    final int recordIndex = uiRecords.indexOf(record);
-    final bool isLast = recordIndex == uiRecords.length - 1;
-    if (!isLast) {
-      DialogUtils.showErrorDialog(
-        _context!,
-        message: 'Cannot delete a record when there are later records.',
-      );
-      return false;
-    }
-
-    // Handle conflicts/confirmed types
     switch (record.type) {
       case RecordType.confirmRunner:
-        {
-          final confirmed = await DialogUtils.showConfirmationDialog(
-            _context!,
-            title: 'Confirm Deletion',
-            content:
-                'Are you sure you want to delete the confirmation ${record.time}?',
-          );
-          if (!confirmed) return false;
-          // Clear conflict record
-          currentChunk.conflictRecord = null;
-          if (currentChunk.timingData.isEmpty) {
-            deleteCurrentChunk();
-          }
+        currentChunk.conflictRecord = null;
+        if (currentChunk.timingData.isEmpty) {
+          deleteCurrentChunk();
+        } else {
           notifyListeners();
-          return true;
         }
+        return true;
       case RecordType.missingTime:
-        {
-          final confirmed = await DialogUtils.showConfirmationDialog(
-            _context!,
-            title: 'Confirm Deletion',
-            content:
-                'Are you sure you want to delete the missing time ${record.time}?',
-          );
-          if (!confirmed) return false;
-          reduceCurrentConflictByOne();
-          if (currentChunk.conflictRecord == null &&
-              currentChunk.timingData.isEmpty) {
-            deleteCurrentChunk();
-            return true;
-          }
-          return true;
+        reduceCurrentConflictByOne();
+        if (currentChunk.conflictRecord == null &&
+            currentChunk.timingData.isEmpty) {
+          deleteCurrentChunk();
         }
+        return true;
       case RecordType.extraTime:
-        {
-          final confirmed = await DialogUtils.showConfirmationDialog(
-            _context!,
-            title: 'Confirm Deletion',
-            content:
-                'Are you sure you want to delete the extra time ${record.time}?',
-          );
-          if (!confirmed) return false;
-
-          // Use existing method to reduce conflict by one
-          reduceCurrentConflictByOne();
-
-          if (currentChunk.conflictRecord == null &&
-              currentChunk.timingData.isEmpty) {
-            deleteCurrentChunk();
-            return true;
-          }
-          return true;
+        reduceCurrentConflictByOne();
+        if (currentChunk.conflictRecord == null &&
+            currentChunk.timingData.isEmpty) {
+          deleteCurrentChunk();
         }
+        return true;
       case RecordType.runnerTime:
       default:
-        DialogUtils.showErrorDialog(
-          _context!,
-          message: 'Cannot delete this record.',
-        );
         return false;
     }
   }
 
-  /// Deletes the current race and all its associated data
-  Future<void> deleteCurrentRace() async {
-    if (currentRace == null) return;
+  /// Deletes the current race and all its associated data.
+  /// Returns an [AppError] if deletion fails, or null on success.
+  Future<AppError?> deleteCurrentRace() async {
+    if (currentRace == null) return null;
 
     try {
       // Clear all timing data first
       clearRecords();
 
       // Delete all chunks associated with this race
-      await AssistantStorageService.instance.deleteChunks(currentRace!.raceId);
+      await _storage.deleteChunks(currentRace!.raceId);
 
       // Delete the race from the database
-      await AssistantStorageService.instance
-          .deleteRace(currentRace!.raceId, currentRace!.type);
+      await _storage.deleteRace(currentRace!.raceId, currentRace!.type);
 
       // Reset race state
       raceStopped = false;
@@ -584,19 +495,18 @@ class TimingController extends TimingData {
       _loadLastRace();
 
       notifyListeners();
+      return null;
     } catch (e) {
       Logger.e('Error deleting race: $e');
-      if (_context != null) {
-        DialogUtils.showErrorDialog(_context!,
-            message: 'Failed to delete race: $e');
-      }
+      return AppError(
+          userMessage: 'Failed to delete race.', originalException: e);
     }
   }
 
   @override
   void dispose() {
     scrollController.dispose();
-    audioPlayer?.dispose();
+    _audioPlayer?.dispose();
     super.dispose();
   }
 }
