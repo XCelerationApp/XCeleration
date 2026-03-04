@@ -4,19 +4,19 @@ import 'package:mockito/annotations.dart';
 import 'package:flutter_nearby_connections/flutter_nearby_connections.dart';
 import 'package:xceleration/core/utils/data_protocol.dart';
 import 'package:xceleration/core/utils/data_package.dart';
-import 'package:xceleration/core/services/device_connection_service.dart';
+import 'package:xceleration/core/utils/connection_interfaces.dart';
 
-@GenerateMocks([DeviceConnectionService])
+@GenerateMocks([DeviceConnectionServiceInterface])
 import 'data_protocol_test.mocks.dart';
 
 void main() {
   late Protocol protocol;
-  late MockDeviceConnectionService mockConnectionService;
+  late MockDeviceConnectionServiceInterface mockConnectionService;
   final mockDevice =
       Device('test_id', 'test_device', SessionState.connected.index);
 
   setUp(() {
-    mockConnectionService = MockDeviceConnectionService();
+    mockConnectionService = MockDeviceConnectionServiceInterface();
     protocol = Protocol(deviceConnectionService: mockConnectionService);
     protocol.addDevice(mockDevice);
 
