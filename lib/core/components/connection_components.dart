@@ -2,17 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:xceleration/core/services/nearby_connections.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import '../utils/connection_utils.dart';
-import 'package:flutter/services.dart';
 import 'dart:async';
-import 'dart:io';
 import 'package:flutter_nearby_connections/flutter_nearby_connections.dart';
-import 'package:qr_flutter/qr_flutter.dart';
-import 'package:barcode_scan2/barcode_scan2.dart';
 import '../services/device_connection_service.dart';
 import '../utils/data_protocol.dart';
 import 'dialog_utils.dart';
-import '../utils/sheet_utils.dart';
 import '../utils/enums.dart';
+import '../utils/platform_checker.dart';
+import '../connection/controller/qr_connection_controller.dart';
 import 'package:xceleration/core/result.dart';
 
 class WirelessConnectionButton extends StatefulWidget {
@@ -349,11 +346,13 @@ class _QRConnectionButtonState extends State<QRConnectionButton> {
 class QRConnectionWidget extends StatefulWidget {
   final DevicesManager devices;
   final Function callback;
+  final PlatformCheckerInterface platformChecker;
 
   const QRConnectionWidget({
     super.key,
     required this.devices,
     required this.callback,
+    this.platformChecker = const PlatformChecker(),
   });
 
   @override
@@ -361,134 +360,45 @@ class QRConnectionWidget extends StatefulWidget {
 }
 
 class _QRConnectionState extends State<QRConnectionWidget> {
+  late QRConnectionController _controller;
+
   @override
   void initState() {
     super.initState();
-  }
-
-  Future<void> _showQR(BuildContext context, DeviceName device) async {
-    // Get the data and handle the case where it might be a Future
-    String rawData = widget.devices.getDevice(device)!.data!;
-    Logger.d('Raw data: $rawData');
-    String qrData =
-        '${getDeviceNameString(widget.devices.currentDeviceName)}:$rawData';
-
-    sheet(
-      context: context,
-      title: 'QR Code',
-      body: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          QrImageView(
-            data: qrData,
-            version: QrVersions.auto,
-            size: 250.0,
-          ),
-        ],
-      ),
+    _controller = QRConnectionController(
+      devices: widget.devices,
+      platformChecker: widget.platformChecker,
+      callback: widget.callback,
     );
+    _controller.addListener(_onControllerChange);
   }
 
-  Future<void> _scanQRCodes() async {
-    try {
-      // Check if the device is a mobile device (iOS or Android)
-      if (!Platform.isIOS && !Platform.isAndroid) {
-        DialogUtils.showErrorDialog(
-          context,
-          message:
-              'QR scanner is not available on this device. Please use a mobile device.',
-        );
-        return;
-      }
-
-      // Use the barcode_scan2 package for scanning
-      final result = await BarcodeScanner.scan();
-
-      if (!mounted) return;
-
-      if (result.type == ResultType.Barcode) {
-        final parts = result.rawContent.split(':');
-
-        DeviceName? scannedDeviceName;
-        try {
-          scannedDeviceName =
-              widget.devices.getDevice(getDeviceNameFromString(parts[0]))?.name;
-        } catch (e) {
-          // No match found, scannedDeviceName remains null
-        }
-
-        if (parts.isEmpty || scannedDeviceName == null) {
-          DialogUtils.showErrorDialog(context,
-              message: 'Incorrect QR Code Scanned');
-          return;
-        }
-
-        widget.devices.getDevice(scannedDeviceName)!.status =
-            ConnectionStatus.finished;
-        widget.devices.getDevice(scannedDeviceName)!.data =
-            parts.sublist(1).join(':');
-        Logger.d(
-            'Data received: ${widget.devices.getDevice(scannedDeviceName)!.data}');
-
-        // Call the callback function if provided
-        if (widget.devices.allDevicesFinished()) {
-          widget.callback();
-        }
-      }
-    } on PlatformException catch (e) {
-      if (e.code == 'PERMISSION_NOT_GRANTED') {
-        DialogUtils.showErrorDialog(
-          context,
-          message: 'Camera permission is required to scan QR codes.',
-        );
-      } else if (e.code == 'MissingPluginException') {
-        DialogUtils.showErrorDialog(
-          context,
-          message:
-              'QR scanner is not available on this device. Please use a different connection method.',
-        );
-      } else {
-        Logger.d('Error scanning QR code: ${e.message}');
-        DialogUtils.showErrorDialog(
-          context,
-          message: 'Error scanning QR code',
-        );
-      }
-    } catch (e) {
-      Logger.d('Error scanning QR code: $e');
+  void _onControllerChange() {
+    if (_controller.hasError && mounted) {
       DialogUtils.showErrorDialog(
         context,
-        message:
-            'An error occurred while scanning the QR code. Please try again.',
+        message: _controller.error!.userMessage,
       );
     }
   }
 
-  Future<void> _handleTap() async {
-    if (widget.devices.currentDeviceType == DeviceType.advertiserDevice) {
-      await _showQR(context, widget.devices.otherDevices.first.name);
-    } else {
-      _scanQRCodes();
-    }
+  @override
+  void dispose() {
+    _controller.removeListener(_onControllerChange);
+    _controller.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () async {
-        await _handleTap();
-      },
+      onTap: () => _controller.handleTap(context),
       child: QRConnectionButton(
         deviceName: widget.devices.currentDeviceName,
         deviceType: widget.devices.currentDeviceType,
         connectionStatus: ConnectionStatus.searching,
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
   }
 }
 

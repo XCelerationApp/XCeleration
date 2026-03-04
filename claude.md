@@ -47,6 +47,23 @@ When adding or changing mocks (e.g. after `@GenerateMocks` changes):
 /Users/finiandonnelley/Programming_project/flutter/bin/dart run build_runner build --delete-conflicting-outputs
 ```
 
+## Reading Test Output
+
+`flutter test` produces 50KB+ of output — the Bash tool truncates it before failures are visible.
+Always tee to a file, then use the Read/Grep tools on the file:
+
+```sh
+# Full suite
+source ~/.zshrc && flutter test 2>&1 | tee /tmp/flutter_test_output.txt; echo "EXIT_CODE: $?"
+
+# Single file
+source ~/.zshrc && flutter test path/to/test.dart 2>&1 | tee /tmp/flutter_test_output.txt; echo "EXIT_CODE: $?"
+```
+
+- Use the **Read tool** on `/tmp/flutter_test_output.txt` with `offset`/`limit` to paginate
+- Use **Grep** on `/tmp/flutter_test_output.txt` to find `FAILED`, `Error`, `Exception`
+- Do NOT pipe to `tail` or `grep` in Bash — those also hit the size limit
+
 ## When Unsure — Ask First
 
 If a request is unclear, ambiguous, or could be interpreted multiple ways, always ask (using the AskUserQuestion tool) for clarification before starting. Do not make assumptions and proceed. A short question upfront is better than work that needs to be redone.
