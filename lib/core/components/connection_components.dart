@@ -13,6 +13,7 @@ import '../utils/data_protocol.dart';
 import 'dialog_utils.dart';
 import '../utils/sheet_utils.dart';
 import '../utils/enums.dart';
+import 'package:xceleration/core/result.dart';
 
 class WirelessConnectionButton extends StatefulWidget {
   final ConnectedDevice device;
@@ -537,8 +538,12 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
       );
       _protocol = Protocol(deviceConnectionService: _deviceConnectionService);
 
-      final isServiceAvailable =
+      final checkResult =
           await _deviceConnectionService.checkIfNearbyConnectionsWorks();
+      final isServiceAvailable = switch (checkResult) {
+        Success(:final value) => value,
+        Failure() => false,
+      };
 
       if (!mounted) return;
 
@@ -551,7 +556,11 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
       }
 
       try {
-        final initSuccess = await _deviceConnectionService.init();
+        final initResult = await _deviceConnectionService.init();
+        final initSuccess = switch (initResult) {
+          Success(:final value) => value,
+          Failure() => false,
+        };
 
         if (!mounted) return;
 

@@ -3,11 +3,13 @@ import 'package:flutter_nearby_connections/flutter_nearby_connections.dart';
 import 'package:xceleration/core/services/nearby_connections.dart';
 import '../utils/enums.dart';
 import '../utils/data_package.dart';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import '../utils/connection_utils.dart';
 import '../utils/connection_interfaces.dart';
+import '../utils/platform_checker.dart';
 import 'package:xceleration/core/utils/logger.dart';
+import 'package:xceleration/core/result.dart';
+import 'package:xceleration/core/app_error.dart';
 
 /// Represents a connected device with its properties
 class ConnectedDevice extends ChangeNotifier {
@@ -221,6 +223,8 @@ class DeviceConnectionService implements DeviceConnectionServiceInterface {
 
   // External service for nearby connections
   final NearbyConnectionsInterface _nearbyConnections;
+  final PlatformCheckerInterface _platformChecker;
+  final NearbyConnectionsInterface Function() _nearbyConnectionsFactory;
   bool nearbyConnectionsInitialized = false;
 
   final DevicesManager _devicesManager;
@@ -251,8 +255,17 @@ class DeviceConnectionService implements DeviceConnectionServiceInterface {
   Duration _monitorTimeout = const Duration(seconds: 60);
   Future<void> Function()? _timeoutCallback;
 
-  DeviceConnectionService(this._devicesManager, this._serviceType,
-      this._deviceName, this._deviceType, this._nearbyConnections);
+  DeviceConnectionService(
+    this._devicesManager,
+    this._serviceType,
+    this._deviceName,
+    this._deviceType,
+    this._nearbyConnections, {
+    PlatformCheckerInterface? platformChecker,
+    NearbyConnectionsInterface Function()? nearbyConnectionsFactory,
+  })  : _platformChecker = platformChecker ?? const PlatformChecker(),
+        _nearbyConnectionsFactory =
+            nearbyConnectionsFactory ?? NearbyConnections.new;
 
   @override
   bool get isActive => !_isDisposed;
@@ -297,16 +310,16 @@ class DeviceConnectionService implements DeviceConnectionServiceInterface {
 
   /// Check if nearby connections functionality works on this device
   @override
-  Future<bool> checkIfNearbyConnectionsWorks(
+  Future<Result<bool>> checkIfNearbyConnectionsWorks(
       {Duration timeout = const Duration(seconds: 5)}) async {
     // Don't proceed if the service is disposed
-    if (_isDisposed) return false;
+    if (_isDisposed) return const Success(false);
 
     final token = _createCancellationToken('check_nearby');
     final completer = Completer<bool>();
 
     try {
-      if (Platform.isAndroid || Platform.isIOS) {
+      if (_platformChecker.isAndroid || _platformChecker.isIOS) {
         // Create timeout timer
         final timer = Timer(timeout, () {
           if (!completer.isCompleted) {
@@ -316,7 +329,7 @@ class DeviceConnectionService implements DeviceConnectionServiceInterface {
 
         try {
           // Try to initialize NearbyConnections - this will fail if permissions are denied
-          final testService = NearbyConnections();
+          final testService = _nearbyConnectionsFactory();
           await testService.init(
             serviceType: 'test',
             deviceName: 'test',
@@ -324,7 +337,7 @@ class DeviceConnectionService implements DeviceConnectionServiceInterface {
             callback: (isRunning) {
               if (!completer.isCompleted) {
                 nearbyConnectionsInitialized = true;
-                completer.complete(isRunning);
+                completer.complete(isRunning as bool);
               }
             },
           );
@@ -347,14 +360,17 @@ class DeviceConnectionService implements DeviceConnectionServiceInterface {
           testService.stopAdvertisingPeer();
           testService.stopBrowsingForPeers();
 
-          return completer.future;
+          return Success(await completer.future);
         } catch (e) {
           Logger.d('Failed to initialize NearbyConnections: $e');
           timer.cancel();
-          return false;
+          return Failure(AppError(
+            userMessage: 'Failed to check nearby connections availability.',
+            originalException: e,
+          ));
         }
       } else {
-        return false;
+        return const Success(false);
       }
     } finally {
       _cleanupToken(token);
@@ -363,9 +379,9 @@ class DeviceConnectionService implements DeviceConnectionServiceInterface {
 
   /// Initialize the connection service
   @override
-  Future<bool> init() async {
+  Future<Result<bool>> init() async {
     // Don't proceed if the service is disposed
-    if (_isDisposed) return false;
+    if (_isDisposed) return const Success(false);
 
     Logger.d('Initializing connection service');
 
@@ -425,13 +441,16 @@ class DeviceConnectionService implements DeviceConnectionServiceInterface {
         }
       });
 
-      return await completer.future;
+      return Success(await completer.future);
     } catch (e) {
       Logger.e('Error initializing NearbyConnections: $e');
       if (!completer.isCompleted) {
         completer.complete(false);
       }
-      return false;
+      return Failure(AppError(
+        userMessage: 'Failed to initialize connection service.',
+        originalException: e,
+      ));
     } finally {
       _cleanupToken(token);
     }
