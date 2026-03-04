@@ -77,14 +77,15 @@ class RaceShareDecoder {
       }
 
       // Compute team/individual aggregates using existing service helpers
-      final individual = RaceResultsService.convertToResultsRecords(
-          RaceResultsService.calculateIndividualResults(results),
+      const service = RaceResultsService();
+      final individual = service.convertToResultsRecords(
+          service.calculateIndividualResults(results),
           raceDistance: distance,
           distanceUnit: distanceUnit);
-      final teamResults = RaceResultsService.calculateTeamResults(results);
-      RaceResultsService.sortAndPlaceTeams(teamResults);
+      final teamResults = service.calculateTeamResults(results);
+      service.sortAndPlaceTeams(teamResults);
       final h2h = teamResults.length >= 2 && teamResults.length <= 4
-          ? RaceResultsService.calculateHeadToHeadResults(teamResults)
+          ? service.calculateHeadToHeadResults(teamResults)
           : <List<TeamRecord>>[];
 
       return Success(RaceShareDecodedData(

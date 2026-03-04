@@ -4,12 +4,17 @@ import '../models/database/master_race.dart';
 import '../../coach/race_results/model/team_record.dart';
 import '../../coach/race_results/model/results_record.dart';
 import '../../core/utils/logger.dart';
+import '../../core/result.dart';
+import '../../core/app_error.dart';
+import 'i_race_results_service.dart';
 import 'package:collection/collection.dart';
 
 /// Service for calculating and processing race results
-class RaceResultsService {
+class RaceResultsService implements IRaceResultsService {
+  const RaceResultsService();
+
   /// Calculate team results from race results
-  static List<TeamRecord> calculateTeamResults(List<RaceResult> allResults) {
+  List<TeamRecord> calculateTeamResults(List<RaceResult> allResults) {
     // Group results by team and create TeamRecord objects
     // Results should already be sorted by finish time from calculateIndividualResults
     final teams = _getTeamsFromResults(allResults);
@@ -23,7 +28,7 @@ class RaceResultsService {
   }
 
   /// Helper function to group results by team into TeamRecord objects
-  static List<TeamRecord> _getTeamsFromResults(List<RaceResult> results) {
+  List<TeamRecord> _getTeamsFromResults(List<RaceResult> results) {
     final List<TeamRecord> teams = [];
     for (var team in groupBy(results, (result) => result.team!).entries) {
       final teamRecord = TeamRecord(
@@ -36,7 +41,7 @@ class RaceResultsService {
   }
 
   /// Calculate individual results with places assigned
-  static List<RaceResult> calculateIndividualResults(List<RaceResult> results) {
+  List<RaceResult> calculateIndividualResults(List<RaceResult> results) {
     if (results.isEmpty) return [];
 
     _sortRunners(results);
@@ -46,10 +51,8 @@ class RaceResultsService {
   }
 
   /// Convert RaceResult objects to ResultsRecord objects for UI display
-  static List<ResultsRecord> convertToResultsRecords(
-      List<RaceResult> raceResults,
-      {double? raceDistance,
-      String? distanceUnit}) {
+  List<ResultsRecord> convertToResultsRecords(List<RaceResult> raceResults,
+      {double? raceDistance, String? distanceUnit}) {
     // Convert race distance to miles and compute pace/mi only
     double miles = 0.0;
     if (raceDistance != null && raceDistance > 0) {
@@ -84,7 +87,7 @@ class RaceResultsService {
   }
 
   /// Calculate head-to-head matchups between teams
-  static List<List<TeamRecord>> calculateHeadToHeadResults(
+  List<List<TeamRecord>> calculateHeadToHeadResults(
       List<TeamRecord> teamResults) {
     final List<TeamRecord> scoringTeams =
         teamResults.where((r) => r.score != 0).toList();
@@ -110,19 +113,19 @@ class RaceResultsService {
   }
 
   /// Update places for a list of results
-  static void updateResultsPlaces(List<RaceResult> results) {
+  void updateResultsPlaces(List<RaceResult> results) {
     for (int i = 0; i < results.length; i++) {
       results[i].place = i + 1;
     }
   }
 
   /// Sort runners by their finish time
-  static void _sortRunners(List<RaceResult> results) {
+  void _sortRunners(List<RaceResult> results) {
     results.sort((a, b) => a.compareTimeTo(b));
   }
 
   /// Sort teams by score and assign places
-  static void sortAndPlaceTeams(List<TeamRecord> teams) {
+  void sortAndPlaceTeams(List<TeamRecord> teams) {
     // Recompute places using ONLY teams with at least 5 runners
     final List<TeamRecord> eligibleTeams = [
       for (final team in teams)
@@ -173,58 +176,66 @@ class RaceResultsService {
   }
 
   /// Complete race results calculation - main orchestrator function
-  static Future<RaceResultsData> calculateCompleteRaceResults(
+  @override
+  Future<Result<RaceResultsData>> calculateCompleteRaceResults(
       MasterRace masterRace) async {
-    Logger.d('RaceResultsService: Starting calculateCompleteRaceResults');
+    try {
+      Logger.d('RaceResultsService: Starting calculateCompleteRaceResults');
 
-    final resultsTitle = await RaceResultsData.getResultsTitle(masterRace);
+      final resultsTitle = await RaceResultsData.getResultsTitle(masterRace);
 
-    final race = await masterRace.race;
-    final double? raceDistance = race.distance;
-    final String? distanceUnit = race.distanceUnit;
+      final race = await masterRace.race;
+      final double? raceDistance = race.distance;
+      final String? distanceUnit = race.distanceUnit;
 
-    // Get race results from database
-    final List<RaceResult> results = await masterRace.results;
-    Logger.d('RaceResultsService: Got ${results.length} race results');
+      // Get race results from database
+      final List<RaceResult> results = await masterRace.results;
+      Logger.d('RaceResultsService: Got ${results.length} race results');
 
-    if (results.isEmpty) {
-      return RaceResultsData(
+      if (results.isEmpty) {
+        return Success(RaceResultsData(
+          resultsTitle: resultsTitle,
+          individualResults: <ResultsRecord>[],
+          overallTeamResults: [],
+          headToHeadTeamResults: [],
+        ));
+      }
+
+      // Calculate individual results
+      final raceResults = calculateIndividualResults(results);
+      final individualResults = convertToResultsRecords(raceResults,
+          raceDistance: raceDistance, distanceUnit: distanceUnit);
+
+      // Calculate team results
+      final teamResults = calculateTeamResults(raceResults);
+      sortAndPlaceTeams(teamResults);
+
+      // DEEP COPY: Create completely independent copies for team results
+      final overallTeamResults =
+          teamResults.map((r) => TeamRecord.from(r)).toList();
+
+      // Calculate head-to-head matchups
+      List<List<TeamRecord>> headToHeadTeamResults = [];
+      if (teamResults.length >= 2 && teamResults.length <= 4) {
+        headToHeadTeamResults = calculateHeadToHeadResults(teamResults);
+      }
+
+      return Success(RaceResultsData(
         resultsTitle: resultsTitle,
-        individualResults: <ResultsRecord>[],
-        overallTeamResults: [],
-        headToHeadTeamResults: [],
-      );
+        individualResults: individualResults,
+        overallTeamResults: overallTeamResults,
+        headToHeadTeamResults: headToHeadTeamResults,
+      ));
+    } catch (e) {
+      return Failure(AppError(
+        userMessage: 'Could not calculate race results. Please try again.',
+        originalException: e,
+      ));
     }
-
-    // Calculate individual results
-    final raceResults = calculateIndividualResults(results);
-    final individualResults = convertToResultsRecords(raceResults,
-        raceDistance: raceDistance, distanceUnit: distanceUnit);
-
-    // Calculate team results
-    final teamResults = calculateTeamResults(raceResults);
-    sortAndPlaceTeams(teamResults);
-
-    // DEEP COPY: Create completely independent copies for team results
-    final overallTeamResults =
-        teamResults.map((r) => TeamRecord.from(r)).toList();
-
-    // Calculate head-to-head matchups
-    List<List<TeamRecord>> headToHeadTeamResults = [];
-    if (teamResults.length >= 2 && teamResults.length <= 4) {
-      headToHeadTeamResults = calculateHeadToHeadResults(teamResults);
-    }
-
-    return RaceResultsData(
-      resultsTitle: resultsTitle,
-      individualResults: individualResults,
-      overallTeamResults: overallTeamResults,
-      headToHeadTeamResults: headToHeadTeamResults,
-    );
   }
 
   /// Get results filtered by team
-  static List<RaceResult> getResultsByTeam(
+  List<RaceResult> getResultsByTeam(
     List<RaceResult> results,
     Team team,
   ) {
@@ -234,7 +245,7 @@ class RaceResultsService {
   }
 
   /// Get top performers across all teams
-  static List<RaceResult> getTopPerformers(
+  List<RaceResult> getTopPerformers(
     List<RaceResult> results, {
     int count = 10,
   }) {
@@ -248,7 +259,7 @@ class RaceResultsService {
   }
 
   /// Calculate average time for a team
-  static Duration? calculateTeamAverageTime(List<RaceResult> teamResults) {
+  Duration? calculateTeamAverageTime(List<RaceResult> teamResults) {
     final finishedResults = teamResults
         .where((result) => result.finishTime != null)
         .take(5) // Top 5 runners

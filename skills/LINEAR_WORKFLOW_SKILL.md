@@ -106,6 +106,35 @@ unclear whether an issue already exists, ask before creating.
 
 ---
 
+## Subissues
+
+Use subissues when a large or complex problem requires multiple distinct steps or phases — each phase becomes its own issue, linked to a parent.
+
+**When to use subissues:**
+
+- The work spans multiple phases (e.g. refactor service → update controller → update tests)
+- Each step could be committed and reviewed independently
+- A single issue would have too many unrelated acceptance criteria
+
+**When not to use subissues:**
+
+- Small, tightly related changes that belong together
+- Work already covered by a single set of acceptance criteria
+
+### Creating Subissues
+
+1. Create the parent issue first (broad scope, no code changes of its own)
+2. Create each child issue with its own acceptance criteria
+3. Link each child to the parent using `mcp__linear__sub_issue_write`
+
+### Completing Subissues
+
+- Mark each subissue Done as its work is finished (same Done criteria as above)
+- Once **all** subissues are marked Done, mark the parent issue Done as well
+- Do not mark the parent Done while any subissue is still open
+
+---
+
 ## Acting on Issues
 
 ### Before working with a Linear issue
