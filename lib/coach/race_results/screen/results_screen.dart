@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/result.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/coach/share_race/controller/share_race_controller.dart';
 import 'package:xceleration/shared/models/database/master_race.dart';
@@ -42,8 +43,15 @@ class ResultsScreenState extends State<ResultsScreen> {
     Logger.d(
         'ResultsScreen: Starting to load race results for raceId: ${widget.masterRace.raceId}');
     try {
-      _raceResultsData = await RaceResultsService.calculateCompleteRaceResults(
-          widget.masterRace);
+      final result = await const RaceResultsService()
+          .calculateCompleteRaceResults(widget.masterRace);
+      switch (result) {
+        case Success(:final value):
+          _raceResultsData = value;
+        case Failure(:final error):
+          Logger.e(
+              'ResultsScreen: Error loading race results: ${error.originalException}');
+      }
       Logger.d(
           'ResultsScreen: Race results loaded successfully, results count: ${_raceResultsData?.individualResults.length ?? 0}');
       _hasLoaded = true;

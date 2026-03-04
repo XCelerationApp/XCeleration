@@ -82,9 +82,10 @@ void main() {
       final all = <db.RaceResult>[...resultsA, ...resultsB];
 
       // Full pipeline as used in app
-      final individual = RaceResultsService.calculateIndividualResults(all);
-      final teams = RaceResultsService.calculateTeamResults(individual);
-      RaceResultsService.sortAndPlaceTeams(teams);
+      const service = RaceResultsService();
+      final individual = service.calculateIndividualResults(all);
+      final teams = service.calculateTeamResults(individual);
+      service.sortAndPlaceTeams(teams);
 
       // Expect ordering: teamA first (eligible), teamB last (incomplete)
       expect(teams.length, 2);
@@ -192,9 +193,10 @@ void main() {
 
       final all = <db.RaceResult>[...resultsA, ...resultsB, ...resultsC];
 
-      final individual = RaceResultsService.calculateIndividualResults(all);
-      final teams = RaceResultsService.calculateTeamResults(individual);
-      RaceResultsService.sortAndPlaceTeams(teams);
+      const service = RaceResultsService();
+      final individual = service.calculateIndividualResults(all);
+      final teams = service.calculateTeamResults(individual);
+      service.sortAndPlaceTeams(teams);
 
       // Order: A then C (eligible), B (incomplete) last
       expect(teams.length, 3);
@@ -236,10 +238,10 @@ void main() {
             finish: const Duration(minutes: 19, seconds: 0)),
       ];
 
-      final individual =
-          RaceResultsService.calculateIndividualResults(resultsX);
-      final teams = RaceResultsService.calculateTeamResults(individual);
-      RaceResultsService.sortAndPlaceTeams(teams);
+      const service = RaceResultsService();
+      final individual = service.calculateIndividualResults(resultsX);
+      final teams = service.calculateTeamResults(individual);
+      service.sortAndPlaceTeams(teams);
 
       // Team incomplete 01 score should be 0
       expect(teams.single.score, 0);
