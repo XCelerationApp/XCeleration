@@ -3,16 +3,17 @@
 // Do not manually edit this file.
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'dart:async' as _i3;
+import 'dart:async' as _i4;
 
 import 'package:flutter_nearby_connections/flutter_nearby_connections.dart'
-    as _i4;
+    as _i5;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:xceleration/core/services/device_connection_service.dart'
-    as _i2;
-import 'package:xceleration/core/utils/data_package.dart' as _i5;
-import 'package:xceleration/core/utils/data_protocol.dart' as _i6;
-import 'package:xceleration/core/utils/enums.dart' as _i7;
+    as _i3;
+import 'package:xceleration/core/utils/connection_interfaces.dart' as _i2;
+import 'package:xceleration/core/utils/data_package.dart' as _i6;
+import 'package:xceleration/core/utils/data_protocol.dart' as _i7;
+import 'package:xceleration/core/utils/enums.dart' as _i8;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -39,9 +40,9 @@ class _FakeDuration_0 extends _i1.SmartFake implements Duration {
         );
 }
 
-class _FakeDeviceConnectionService_1 extends _i1.SmartFake
-    implements _i2.DeviceConnectionService {
-  _FakeDeviceConnectionService_1(
+class _FakeDeviceConnectionServiceInterface_1 extends _i1.SmartFake
+    implements _i2.DeviceConnectionServiceInterface {
+  _FakeDeviceConnectionServiceInterface_1(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -51,7 +52,7 @@ class _FakeDeviceConnectionService_1 extends _i1.SmartFake
 }
 
 class _FakeDevicesManager_2 extends _i1.SmartFake
-    implements _i2.DevicesManager {
+    implements _i3.DevicesManager {
   _FakeDevicesManager_2(
     Object parent,
     Invocation parentInvocation,
@@ -65,7 +66,7 @@ class _FakeDevicesManager_2 extends _i1.SmartFake
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockDeviceConnectionService extends _i1.Mock
-    implements _i2.DeviceConnectionService {
+    implements _i3.DeviceConnectionService {
   MockDeviceConnectionService() {
     _i1.throwOnMissingStub(this);
   }
@@ -116,7 +117,7 @@ class MockDeviceConnectionService extends _i1.Mock
       );
 
   @override
-  set receivedDataSubscription(_i3.StreamSubscription<dynamic>? value) =>
+  set receivedDataSubscription(_i4.StreamSubscription<dynamic>? value) =>
       super.noSuchMethod(
         Invocation.setter(
           #receivedDataSubscription,
@@ -126,7 +127,7 @@ class MockDeviceConnectionService extends _i1.Mock
       );
 
   @override
-  set deviceMonitorSubscription(_i3.StreamSubscription<dynamic>? value) =>
+  set deviceMonitorSubscription(_i4.StreamSubscription<dynamic>? value) =>
       super.noSuchMethod(
         Invocation.setter(
           #deviceMonitorSubscription,
@@ -136,7 +137,7 @@ class MockDeviceConnectionService extends _i1.Mock
       );
 
   @override
-  _i3.Future<bool> checkIfNearbyConnectionsWorks(
+  _i4.Future<bool> checkIfNearbyConnectionsWorks(
           {Duration? timeout = const Duration(seconds: 5)}) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -144,25 +145,25 @@ class MockDeviceConnectionService extends _i1.Mock
           [],
           {#timeout: timeout},
         ),
-        returnValue: _i3.Future<bool>.value(false),
-      ) as _i3.Future<bool>);
+        returnValue: _i4.Future<bool>.value(false),
+      ) as _i4.Future<bool>);
 
   @override
-  _i3.Future<bool> init() => (super.noSuchMethod(
+  _i4.Future<bool> init() => (super.noSuchMethod(
         Invocation.method(
           #init,
           [],
         ),
-        returnValue: _i3.Future<bool>.value(false),
-      ) as _i3.Future<bool>);
+        returnValue: _i4.Future<bool>.value(false),
+      ) as _i4.Future<bool>);
 
   @override
-  _i3.Future<void> monitorDevicesConnectionStatus({
-    _i3.Future<void> Function(_i4.Device)? deviceFoundCallback,
-    _i3.Future<void> Function(_i4.Device)? deviceConnectingCallback,
-    _i3.Future<void> Function(_i4.Device)? deviceConnectedCallback,
+  _i4.Future<void> monitorDevicesConnectionStatus({
+    _i4.Future<void> Function(_i5.Device)? deviceFoundCallback,
+    _i4.Future<void> Function(_i5.Device)? deviceConnectingCallback,
+    _i4.Future<void> Function(_i5.Device)? deviceConnectedCallback,
     Duration? timeout = const Duration(seconds: 60),
-    _i3.Future<void> Function()? timeoutCallback,
+    _i4.Future<void> Function()? timeoutCallback,
   }) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -176,42 +177,42 @@ class MockDeviceConnectionService extends _i1.Mock
             #timeoutCallback: timeoutCallback,
           },
         ),
-        returnValue: _i3.Future<void>.value(),
-        returnValueForMissingStub: _i3.Future<void>.value(),
-      ) as _i3.Future<void>);
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 
   @override
-  _i3.Future<bool> inviteDevice(_i4.Device? device) => (super.noSuchMethod(
+  _i4.Future<bool> inviteDevice(_i5.Device? device) => (super.noSuchMethod(
         Invocation.method(
           #inviteDevice,
           [device],
         ),
-        returnValue: _i3.Future<bool>.value(false),
-      ) as _i3.Future<bool>);
+        returnValue: _i4.Future<bool>.value(false),
+      ) as _i4.Future<bool>);
 
   @override
-  _i3.Future<bool> attemptReconnection(_i4.Device? device) =>
+  _i4.Future<bool> attemptReconnection(_i5.Device? device) =>
       (super.noSuchMethod(
         Invocation.method(
           #attemptReconnection,
           [device],
         ),
-        returnValue: _i3.Future<bool>.value(false),
-      ) as _i3.Future<bool>);
+        returnValue: _i4.Future<bool>.value(false),
+      ) as _i4.Future<bool>);
 
   @override
-  _i3.Future<bool> disconnectDevice(_i4.Device? device) => (super.noSuchMethod(
+  _i4.Future<bool> disconnectDevice(_i5.Device? device) => (super.noSuchMethod(
         Invocation.method(
           #disconnectDevice,
           [device],
         ),
-        returnValue: _i3.Future<bool>.value(false),
-      ) as _i3.Future<bool>);
+        returnValue: _i4.Future<bool>.value(false),
+      ) as _i4.Future<bool>);
 
   @override
-  _i3.Future<bool> sendMessageToDevice(
-    _i4.Device? device,
-    _i5.Package? package,
+  _i4.Future<bool> sendMessageToDevice(
+    _i5.Device? device,
+    _i6.Package? package,
   ) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -221,14 +222,14 @@ class MockDeviceConnectionService extends _i1.Mock
             package,
           ],
         ),
-        returnValue: _i3.Future<bool>.value(false),
-      ) as _i3.Future<bool>);
+        returnValue: _i4.Future<bool>.value(false),
+      ) as _i4.Future<bool>);
 
   @override
-  _i3.Future<String?> monitorMessageReceives(
-    _i4.Device? device, {
+  _i4.Future<String?> monitorMessageReceives(
+    _i5.Device? device, {
     required dynamic Function(
-      _i5.Package,
+      _i6.Package,
       String,
     )? messageReceivedCallback,
   }) =>
@@ -238,8 +239,8 @@ class MockDeviceConnectionService extends _i1.Mock
           [device],
           {#messageReceivedCallback: messageReceivedCallback},
         ),
-        returnValue: _i3.Future<String?>.value(),
-      ) as _i3.Future<String?>);
+        returnValue: _i4.Future<String?>.value(),
+      ) as _i4.Future<String?>);
 
   @override
   void stopMessageMonitoring(String? token) => super.noSuchMethod(
@@ -263,26 +264,26 @@ class MockDeviceConnectionService extends _i1.Mock
 /// A class which mocks [Protocol].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockProtocol extends _i1.Mock implements _i6.Protocol {
+class MockProtocol extends _i1.Mock implements _i7.Protocol {
   MockProtocol() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
-  _i2.DeviceConnectionService get deviceConnectionService =>
+  _i2.DeviceConnectionServiceInterface get deviceConnectionService =>
       (super.noSuchMethod(
         Invocation.getter(#deviceConnectionService),
-        returnValue: _FakeDeviceConnectionService_1(
+        returnValue: _FakeDeviceConnectionServiceInterface_1(
           this,
           Invocation.getter(#deviceConnectionService),
         ),
-      ) as _i2.DeviceConnectionService);
+      ) as _i2.DeviceConnectionServiceInterface);
 
   @override
-  Map<String, _i4.Device> get connectedDevices => (super.noSuchMethod(
+  Map<String, _i5.Device> get connectedDevices => (super.noSuchMethod(
         Invocation.getter(#connectedDevices),
-        returnValue: <String, _i4.Device>{},
-      ) as Map<String, _i4.Device>);
+        returnValue: <String, _i5.Device>{},
+      ) as Map<String, _i5.Device>);
 
   @override
   bool get isTerminated => (super.noSuchMethod(
@@ -291,7 +292,7 @@ class MockProtocol extends _i1.Mock implements _i6.Protocol {
       ) as bool);
 
   @override
-  void addDevice(_i4.Device? device) => super.noSuchMethod(
+  void addDevice(_i5.Device? device) => super.noSuchMethod(
         Invocation.method(
           #addDevice,
           [device],
@@ -309,18 +310,18 @@ class MockProtocol extends _i1.Mock implements _i6.Protocol {
       );
 
   @override
-  _i3.Future<void> terminate() => (super.noSuchMethod(
+  _i4.Future<void> terminate() => (super.noSuchMethod(
         Invocation.method(
           #terminate,
           [],
         ),
-        returnValue: _i3.Future<void>.value(),
-        returnValueForMissingStub: _i3.Future<void>.value(),
-      ) as _i3.Future<void>);
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 
   @override
-  _i3.Future<void> handleMessage(
-    _i5.Package? package,
+  _i4.Future<void> handleMessage(
+    _i6.Package? package,
     String? senderId,
   ) =>
       (super.noSuchMethod(
@@ -331,12 +332,12 @@ class MockProtocol extends _i1.Mock implements _i6.Protocol {
             senderId,
           ],
         ),
-        returnValue: _i3.Future<void>.value(),
-        returnValueForMissingStub: _i3.Future<void>.value(),
-      ) as _i3.Future<void>);
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 
   @override
-  _i3.Future<void> sendData(
+  _i4.Future<void> sendData(
     String? data,
     String? senderId,
   ) =>
@@ -348,12 +349,12 @@ class MockProtocol extends _i1.Mock implements _i6.Protocol {
             senderId,
           ],
         ),
-        returnValue: _i3.Future<void>.value(),
-        returnValueForMissingStub: _i3.Future<void>.value(),
-      ) as _i3.Future<void>);
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 
   @override
-  _i3.Future<String?> handleDataTransfer({
+  _i4.Future<String?> handleDataTransfer({
     required String? deviceId,
     String? dataToSend,
     bool? isReceiving = false,
@@ -370,8 +371,8 @@ class MockProtocol extends _i1.Mock implements _i6.Protocol {
             #shouldContinueTransfer: shouldContinueTransfer,
           },
         ),
-        returnValue: _i3.Future<String?>.value(),
-      ) as _i3.Future<String?>);
+        returnValue: _i4.Future<String?>.value(),
+      ) as _i4.Future<String?>);
 
   @override
   void resetDeviceState(String? deviceId) => super.noSuchMethod(
@@ -413,22 +414,22 @@ class MockProtocol extends _i1.Mock implements _i6.Protocol {
 /// A class which mocks [DevicesManager].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockDevicesManager extends _i1.Mock implements _i2.DevicesManager {
+class MockDevicesManager extends _i1.Mock implements _i3.DevicesManager {
   MockDevicesManager() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
-  _i7.DeviceName get currentDeviceName => (super.noSuchMethod(
+  _i8.DeviceName get currentDeviceName => (super.noSuchMethod(
         Invocation.getter(#currentDeviceName),
-        returnValue: _i7.DeviceName.coach,
-      ) as _i7.DeviceName);
+        returnValue: _i8.DeviceName.coach,
+      ) as _i8.DeviceName);
 
   @override
-  _i7.DeviceType get currentDeviceType => (super.noSuchMethod(
+  _i8.DeviceType get currentDeviceType => (super.noSuchMethod(
         Invocation.getter(#currentDeviceType),
-        returnValue: _i7.DeviceType.advertiserDevice,
-      ) as _i7.DeviceType);
+        returnValue: _i8.DeviceType.advertiserDevice,
+      ) as _i8.DeviceType);
 
   @override
   bool get toSpectator => (super.noSuchMethod(
@@ -437,16 +438,16 @@ class MockDevicesManager extends _i1.Mock implements _i2.DevicesManager {
       ) as bool);
 
   @override
-  List<_i2.ConnectedDevice> get devices => (super.noSuchMethod(
+  List<_i3.ConnectedDevice> get devices => (super.noSuchMethod(
         Invocation.getter(#devices),
-        returnValue: <_i2.ConnectedDevice>[],
-      ) as List<_i2.ConnectedDevice>);
+        returnValue: <_i3.ConnectedDevice>[],
+      ) as List<_i3.ConnectedDevice>);
 
   @override
-  List<_i2.ConnectedDevice> get otherDevices => (super.noSuchMethod(
+  List<_i3.ConnectedDevice> get otherDevices => (super.noSuchMethod(
         Invocation.getter(#otherDevices),
-        returnValue: <_i2.ConnectedDevice>[],
-      ) as List<_i2.ConnectedDevice>);
+        returnValue: <_i3.ConnectedDevice>[],
+      ) as List<_i3.ConnectedDevice>);
 
   @override
   void reset() => super.noSuchMethod(
@@ -458,7 +459,7 @@ class MockDevicesManager extends _i1.Mock implements _i2.DevicesManager {
       );
 
   @override
-  bool hasDevice(_i7.DeviceName? name) => (super.noSuchMethod(
+  bool hasDevice(_i8.DeviceName? name) => (super.noSuchMethod(
         Invocation.method(
           #hasDevice,
           [name],
@@ -467,11 +468,11 @@ class MockDevicesManager extends _i1.Mock implements _i2.DevicesManager {
       ) as bool);
 
   @override
-  _i2.ConnectedDevice? getDevice(_i7.DeviceName? name) =>
+  _i3.ConnectedDevice? getDevice(_i8.DeviceName? name) =>
       (super.noSuchMethod(Invocation.method(
         #getDevice,
         [name],
-      )) as _i2.ConnectedDevice?);
+      )) as _i3.ConnectedDevice?);
 
   @override
   bool allDevicesFinished() => (super.noSuchMethod(
@@ -483,7 +484,7 @@ class MockDevicesManager extends _i1.Mock implements _i2.DevicesManager {
       ) as bool);
 
   @override
-  _i2.DevicesManager copy() => (super.noSuchMethod(
+  _i3.DevicesManager copy() => (super.noSuchMethod(
         Invocation.method(
           #copy,
           [],
@@ -495,5 +496,5 @@ class MockDevicesManager extends _i1.Mock implements _i2.DevicesManager {
             [],
           ),
         ),
-      ) as _i2.DevicesManager);
+      ) as _i3.DevicesManager);
 }
