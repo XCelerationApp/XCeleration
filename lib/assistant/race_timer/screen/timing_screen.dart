@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/components/dialog_utils.dart';
 import '../../../shared/role_bar/role_bar.dart';
 import '../../../core/services/tutorial_manager.dart';
 import '../../../core/utils/enums.dart';
@@ -6,7 +7,9 @@ import '../widgets/timer_display_widget.dart';
 import '../widgets/race_controls_widget.dart';
 import '../widgets/race_status_widget.dart';
 import '../widgets/bottom_controls_widget.dart';
+import 'package:audioplayers/audioplayers.dart';
 import '../controller/timing_controller.dart';
+import '../../shared/services/assistant_storage_service.dart';
 import '../widgets/records_list_widget.dart';
 import '../../../shared/role_bar/models/role_enums.dart';
 import '../../shared/widgets/race_header_widget.dart';
@@ -29,7 +32,10 @@ class _TimingScreenState extends State<TimingScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _controller = TimingController();
+    _controller = TimingController(
+      storage: AssistantStorageService.instance,
+      audioPlayer: AudioPlayer(),
+    );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       RoleBar.showInstructionsSheet(context, Role.timer).then((_) {
@@ -47,9 +53,6 @@ class _TimingScreenState extends State<TimingScreen>
 
   @override
   Widget build(BuildContext context) {
-    // Set the context in the controller for dialog management
-    _controller.setContext(context);
-
     return TutorialRoot(
       tutorialManager: tutorialManager,
       child: Scaffold(
@@ -89,7 +92,13 @@ class _TimingScreenState extends State<TimingScreen>
                               _controller.showLoadRaceSheet(context),
                           onShowOtherRaces: () =>
                               _controller.showOtherRaces(context),
-                          onDeleteRace: () => _controller.deleteCurrentRace(),
+                          onDeleteRace: () async {
+                            final error = await _controller.deleteCurrentRace();
+                            if (error != null && context.mounted) {
+                              DialogUtils.showErrorDialog(context,
+                                  message: error.userMessage);
+                            }
+                          },
                         ),
                       ),
                       const SizedBox(height: 8),

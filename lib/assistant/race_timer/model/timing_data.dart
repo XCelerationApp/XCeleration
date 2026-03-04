@@ -8,18 +8,18 @@ import 'package:xceleration/shared/models/timing_records/timing_chunk.dart';
 import 'package:xceleration/shared/models/timing_records/timing_datum.dart';
 import '../utils/timing_data_converter.dart';
 import 'chunk_cacher.dart';
-import '../../shared/services/assistant_storage_service.dart';
+import '../../shared/services/i_assistant_storage_service.dart';
 import 'package:xceleration/core/utils/logger.dart';
 
 class TimingData with ChangeNotifier {
   TimingChunk currentChunk = TimingChunk(id: 0, timingData: []);
-  final AssistantStorageService _storage;
+  final IAssistantStorageService _storage;
   final ChunkCacher _chunkCacher;
   final TimingDataConverter _timingDataConverter;
   DateTime? _startTime;
 
   TimingData({
-    required AssistantStorageService storage,
+    required IAssistantStorageService storage,
     ChunkCacher? chunkCacher,
     TimingDataConverter? timingDataConverter,
   })  : _storage = storage,
