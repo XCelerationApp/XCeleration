@@ -5,14 +5,16 @@ import 'package:flutter_nearby_connections/flutter_nearby_connections.dart';
 import 'package:mockito/mockito.dart';
 import 'package:xceleration/core/services/device_connection_service.dart';
 import 'package:xceleration/core/services/nearby_connections.dart';
+import 'package:xceleration/core/result.dart';
 import 'package:xceleration/core/utils/connection_utils.dart';
 import 'package:xceleration/core/utils/data_package.dart';
 import 'package:xceleration/core/utils/logger.dart';
+import 'package:xceleration/core/utils/platform_checker.dart';
 import 'package:mockito/annotations.dart';
 import 'package:xceleration/core/utils/enums.dart';
 
 // Generate mocks for our classes
-@GenerateMocks([DevicesManager, NearbyConnections])
+@GenerateMocks([DevicesManager, NearbyConnections, PlatformCheckerInterface])
 import 'device_connection_service_test.mocks.dart';
 
 /// Helper class to enhance MockNearbyConnections with device state change functionality
@@ -39,6 +41,7 @@ void main() {
   late MockDevicesManager mockDevicesManager;
   late MockNearbyConnections mockNearbyConnections;
   late MockNearbyConnectionsHelper mockNearbyHelper;
+  late MockPlatformCheckerInterface mockPlatformChecker;
   StreamController<List<Device>>? stateChangeController;
   StreamController? dataController;
   final ConnectedDevice mockConnectedDevice =
@@ -51,6 +54,11 @@ void main() {
   setUp(() async {
     mockNearbyConnections = MockNearbyConnections();
     mockDevicesManager = MockDevicesManager();
+    mockPlatformChecker = MockPlatformCheckerInterface();
+
+    // Platform returns false by default (non-mobile test host)
+    when(mockPlatformChecker.isAndroid).thenReturn(false);
+    when(mockPlatformChecker.isIOS).thenReturn(false);
 
     // Reset mock object states to ensure test independence
     // Reset mock object states to ensure test independence
@@ -142,6 +150,8 @@ void main() {
       'coach', // deviceName
       DeviceType.browserDevice,
       mockNearbyConnections, // Pass the mock as the NearbyConnectionsInterface
+      platformChecker: mockPlatformChecker,
+      nearbyConnectionsFactory: () => mockNearbyConnections,
     );
 
     deviceConnectionService.rescanBackoff = const Duration(milliseconds: 100);
@@ -153,8 +163,10 @@ void main() {
     final initResult = await deviceConnectionService.init();
 
     // Verify initialization succeeded
-    expect(initResult, isTrue,
-        reason: 'Service initialization should return true');
+    expect(initResult, isA<Success<bool>>(),
+        reason: 'Service initialization should return Success');
+    expect((initResult as Success<bool>).value, isTrue,
+        reason: 'Service initialization should return Success(true)');
     expect(deviceConnectionService.isActive, isTrue,
         reason: 'Service should be active after initialization');
 
@@ -191,9 +203,6 @@ void main() {
 
       // Assert
       expect(deviceConnectionService.isActive, isFalse);
-
-      // Reinitialize for subsequent tests
-      await deviceConnectionService.init();
     });
   });
 
@@ -204,7 +213,8 @@ void main() {
       final result = await deviceConnectionService.init();
 
       // Assert
-      expect(result, isTrue);
+      expect(result, isA<Success<bool>>());
+      expect((result as Success<bool>).value, isTrue);
       verify(mockNearbyConnections.startBrowsingForPeers()).called(1);
       verifyNever(mockNearbyConnections.startAdvertisingPeer());
     });
@@ -689,7 +699,9 @@ void main() {
       // Assert
       expect(deviceConnectionService.isActive, isFalse);
       expect(deviceConnectionService.nearbyConnectionsInitialized, isFalse);
-      expect(await deviceConnectionService.init(), isFalse);
+      final result = await deviceConnectionService.init();
+      expect(result, isA<Success<bool>>());
+      expect((result as Success<bool>).value, isFalse);
     });
 
     test('double dispose is idempotent and does not throw', () {
@@ -777,22 +789,23 @@ void main() {
   });
 
   group('checkIfNearbyConnectionsWorks', () {
-    test('returns false when service is disposed', () async {
+    test('returns Success(false) when service is disposed', () async {
       deviceConnectionService.dispose();
 
       final result =
           await deviceConnectionService.checkIfNearbyConnectionsWorks();
 
-      expect(result, isFalse);
+      expect(result, isA<Success<bool>>());
+      expect((result as Success<bool>).value, isFalse);
     });
 
-    test('returns false on non-mobile platform', () async {
-      // On the test host (macOS/Linux), Platform.isAndroid and Platform.isIOS
-      // are both false, so the method returns false without attempting init.
+    test('returns Success(false) on non-mobile platform', () async {
+      // mockPlatformChecker returns false for both isAndroid and isIOS by default
       final result =
           await deviceConnectionService.checkIfNearbyConnectionsWorks();
 
-      expect(result, isFalse);
+      expect(result, isA<Success<bool>>());
+      expect((result as Success<bool>).value, isFalse);
     });
   });
 }

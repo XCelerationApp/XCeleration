@@ -6,10 +6,12 @@
 import 'dart:async' as _i3;
 
 import 'package:flutter_nearby_connections/flutter_nearby_connections.dart'
-    as _i4;
+    as _i6;
 import 'package:mockito/mockito.dart' as _i1;
+import 'package:mockito/src/dummies.dart' as _i5;
+import 'package:xceleration/core/result.dart' as _i4;
 import 'package:xceleration/core/utils/connection_interfaces.dart' as _i2;
-import 'package:xceleration/core/utils/data_package.dart' as _i5;
+import 'package:xceleration/core/utils/data_package.dart' as _i7;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -42,19 +44,26 @@ class MockDeviceConnectionServiceInterface extends _i1.Mock
       ) as bool);
 
   @override
-  _i3.Future<bool> init() => (super.noSuchMethod(
+  _i3.Future<_i4.Result<bool>> init() => (super.noSuchMethod(
         Invocation.method(
           #init,
           [],
         ),
-        returnValue: _i3.Future<bool>.value(false),
-      ) as _i3.Future<bool>);
+        returnValue:
+            _i3.Future<_i4.Result<bool>>.value(_i5.dummyValue<_i4.Result<bool>>(
+          this,
+          Invocation.method(
+            #init,
+            [],
+          ),
+        )),
+      ) as _i3.Future<_i4.Result<bool>>);
 
   @override
   _i3.Future<void> monitorDevicesConnectionStatus({
-    _i3.Future<void> Function(_i4.Device)? deviceFoundCallback,
-    _i3.Future<void> Function(_i4.Device)? deviceConnectingCallback,
-    _i3.Future<void> Function(_i4.Device)? deviceConnectedCallback,
+    _i3.Future<void> Function(_i6.Device)? deviceFoundCallback,
+    _i3.Future<void> Function(_i6.Device)? deviceConnectingCallback,
+    _i3.Future<void> Function(_i6.Device)? deviceConnectedCallback,
     Duration? timeout = const Duration(seconds: 60),
     _i3.Future<void> Function()? timeoutCallback,
   }) =>
@@ -76,8 +85,8 @@ class MockDeviceConnectionServiceInterface extends _i1.Mock
 
   @override
   _i3.Future<bool> sendMessageToDevice(
-    _i4.Device? device,
-    _i5.Package? package,
+    _i6.Device? device,
+    _i7.Package? package,
   ) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -92,9 +101,9 @@ class MockDeviceConnectionServiceInterface extends _i1.Mock
 
   @override
   _i3.Future<String?> monitorMessageReceives(
-    _i4.Device? device, {
+    _i6.Device? device, {
     required dynamic Function(
-      _i5.Package,
+      _i7.Package,
       String,
     )? messageReceivedCallback,
   }) =>
@@ -117,7 +126,7 @@ class MockDeviceConnectionServiceInterface extends _i1.Mock
       );
 
   @override
-  _i3.Future<bool> inviteDevice(_i4.Device? device) => (super.noSuchMethod(
+  _i3.Future<bool> inviteDevice(_i6.Device? device) => (super.noSuchMethod(
         Invocation.method(
           #inviteDevice,
           [device],
@@ -126,7 +135,7 @@ class MockDeviceConnectionServiceInterface extends _i1.Mock
       ) as _i3.Future<bool>);
 
   @override
-  _i3.Future<bool> checkIfNearbyConnectionsWorks(
+  _i3.Future<_i4.Result<bool>> checkIfNearbyConnectionsWorks(
           {Duration? timeout = const Duration(seconds: 5)}) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -134,8 +143,16 @@ class MockDeviceConnectionServiceInterface extends _i1.Mock
           [],
           {#timeout: timeout},
         ),
-        returnValue: _i3.Future<bool>.value(false),
-      ) as _i3.Future<bool>);
+        returnValue:
+            _i3.Future<_i4.Result<bool>>.value(_i5.dummyValue<_i4.Result<bool>>(
+          this,
+          Invocation.method(
+            #checkIfNearbyConnectionsWorks,
+            [],
+            {#timeout: timeout},
+          ),
+        )),
+      ) as _i3.Future<_i4.Result<bool>>);
 
   @override
   void dispose() => super.noSuchMethod(
