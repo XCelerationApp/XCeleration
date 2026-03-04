@@ -50,8 +50,10 @@ Run after every meaningful change:
 ```sh
 dart format .
 flutter analyze
-flutter test
+flutter test 2>&1 | tail -20
 ```
+
+> `flutter test` produces large output that gets truncated and saved to a temp file, requiring a second command to check results. Piping to `tail -20` avoids this — you see the summary directly. If a test fails, re-run without the pipe to get full output.
 
 All three must pass before continuing. Note: If any of them fail and you are unsure whether the failure is caused by an incorrect refactor versus an intentional behavior change that has made the existing tests stale, stop and present this dilemma to the user, waiting for their decision before changing either the implementation or the tests. This is primarily for complex logic refactors.
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/result.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import '../../../core/utils/database_helper.dart';
 import '../../services/race_results_service.dart';
@@ -181,11 +182,16 @@ class MasterRace with ChangeNotifier {
   Future<List<TeamRecord>> get teamStandings async {
     final resultsList = await results;
 
-    return RaceResultsService.calculateTeamResults(resultsList);
+    return const RaceResultsService().calculateTeamResults(resultsList);
   }
 
   Future<RaceResultsData> get raceResultsData async {
-    return RaceResultsService.calculateCompleteRaceResults(this);
+    final result =
+        await const RaceResultsService().calculateCompleteRaceResults(this);
+    return switch (result) {
+      Success(:final value) => value,
+      Failure(:final error) => throw Exception(error.userMessage),
+    };
   }
 
   // ============================================================================
