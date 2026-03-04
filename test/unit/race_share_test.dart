@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:xceleration/coach/share_race/services/race_share_service.dart';
+import 'package:xceleration/core/result.dart';
 import 'package:xceleration/core/utils/race_share_decoder.dart';
 import 'package:xceleration/shared/models/database/race.dart';
 import 'package:xceleration/shared/models/database/race_result.dart';
@@ -53,7 +54,7 @@ void main() {
       expect(map['r'][0][3], 18 * 60 * 1000 + 5 * 1000 + 30); // finish ms
     });
 
-    test('decodeToResultsData reconstructs RaceResultsData from payload', () {
+    test('decodeToResultsData returns Success with reconstructed data', () {
       final race = Race(
         uuid: 'r-uuid',
         raceName: 'Preview Race',
@@ -84,11 +85,71 @@ void main() {
         results: results,
       );
 
-      final decoded = RaceShareDecoder.decodeToResultsData(payload);
+      final result = RaceShareDecoder.decodeToResultsData(payload);
+      expect(result, isA<Success<RaceShareDecodedData>>());
+      final decoded = (result as Success<RaceShareDecodedData>).value;
       expect(decoded.title.contains('Preview Race'), isTrue);
       expect(decoded.results.individualResults.length, 2);
       expect(decoded.results.individualResults.first.name, 'Eve');
       expect(decoded.results.overallTeamResults.isNotEmpty, isTrue);
+    });
+
+    test('decodeToResultsData returns Failure for invalid payload', () {
+      final result =
+          RaceShareDecoder.decodeToResultsData('not-valid-base64!!!');
+      expect(result, isA<Failure<RaceShareDecodedData>>());
+      final error = (result as Failure<RaceShareDecodedData>).error;
+      expect(error.userMessage, isNotEmpty);
+      expect(error.originalException, isNotNull);
+    });
+
+    test('decodeToResultsData returns Failure for unsupported payload type',
+        () {
+      // Build a valid base64+gzip payload with wrong type field
+      final json = jsonEncode({'type': 'RACE_SHARE_V1', 'race': {}, 'r': []});
+      final encoded = base64Encode(gzip.encode(utf8.encode(json)));
+
+      final result = RaceShareDecoder.decodeToResultsData(encoded);
+      expect(result, isA<Failure<RaceShareDecodedData>>());
+    });
+
+    test('decodeWithRaw returns Success with rawEncoded preserved', () {
+      final race = Race(
+        uuid: 'r-uuid',
+        raceName: 'Test Race',
+        raceDate: DateTime.utc(2025, 9, 23),
+        location: 'Track',
+        distance: 5.0,
+        distanceUnit: 'mi',
+        flowState: Race.FLOW_FINISHED,
+      );
+      final team = Team(name: 'Tigers', abbreviation: 'TIG');
+      final raceResults = <RaceResult>[
+        RaceResult(
+          place: 1,
+          runner: Runner(name: 'Sam', bibNumber: '300', grade: 11),
+          team: team,
+          finishTime: const Duration(minutes: 20, seconds: 0),
+        ),
+      ];
+
+      final payload = RaceShareService.preparePayloadFromData(
+        race: race,
+        results: raceResults,
+      );
+
+      final result = RaceShareDecoder.decodeWithRaw(payload);
+      expect(result, isA<Success>());
+      final value = (result as Success).value;
+      expect(value.rawEncoded, equals(payload));
+      expect(value.results.individualResults.length, 1);
+    });
+
+    test('decodeWithRaw returns Failure for invalid payload', () {
+      final result = RaceShareDecoder.decodeWithRaw('garbage');
+      expect(result, isA<Failure>());
+      final error = (result as Failure).error;
+      expect(error.userMessage, isNotEmpty);
     });
 
     test('encode/decode 75 runners and print lengths', () {
@@ -128,7 +189,9 @@ void main() {
       );
 
       // Verify decode works
-      final decoded = RaceShareDecoder.decodeToResultsData(encoded);
+      final result = RaceShareDecoder.decodeToResultsData(encoded);
+      expect(result, isA<Success<RaceShareDecodedData>>());
+      final decoded = (result as Success<RaceShareDecodedData>).value;
       expect(decoded.results.individualResults.length, 75);
 
       // Print character lengths
