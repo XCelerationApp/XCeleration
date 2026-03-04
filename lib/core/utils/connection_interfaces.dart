@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter_nearby_connections/flutter_nearby_connections.dart';
 import 'data_package.dart';
+import 'package:xceleration/core/result.dart';
 
 /// Interface for the protocol layer
 abstract class ProtocolInterface {
@@ -80,7 +81,7 @@ abstract class NearbyConnectionsInterface {
 /// Interface for device connection management
 abstract class DeviceConnectionServiceInterface {
   /// Initialize the connection service
-  Future<bool> init();
+  Future<Result<bool>> init();
 
   /// Check if the service can still be used (not disposed)
   bool get isActive;
@@ -108,7 +109,7 @@ abstract class DeviceConnectionServiceInterface {
   Future<bool> inviteDevice(Device device);
 
   /// Check if nearby connections functionality works
-  Future<bool> checkIfNearbyConnectionsWorks(
+  Future<Result<bool>> checkIfNearbyConnectionsWorks(
       {Duration timeout = const Duration(seconds: 5)});
 
   /// Dispose the service and release resources

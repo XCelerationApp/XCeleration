@@ -12,6 +12,7 @@ import 'package:xceleration/core/services/device_connection_service.dart'
     as _i2;
 import 'package:xceleration/core/services/nearby_connections.dart' as _i5;
 import 'package:xceleration/core/utils/enums.dart' as _i4;
+import 'package:xceleration/core/utils/platform_checker.dart' as _i7;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -239,4 +240,26 @@ class MockNearbyConnections extends _i1.Mock implements _i5.NearbyConnections {
           ),
         ),
       ) as _i3.StreamSubscription<dynamic>);
+}
+
+/// A class which mocks [PlatformCheckerInterface].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockPlatformCheckerInterface extends _i1.Mock
+    implements _i7.PlatformCheckerInterface {
+  MockPlatformCheckerInterface() {
+    _i1.throwOnMissingStub(this);
+  }
+
+  @override
+  bool get isAndroid => (super.noSuchMethod(
+        Invocation.getter(#isAndroid),
+        returnValue: false,
+      ) as bool);
+
+  @override
+  bool get isIOS => (super.noSuchMethod(
+        Invocation.getter(#isIOS),
+        returnValue: false,
+      ) as bool);
 }
