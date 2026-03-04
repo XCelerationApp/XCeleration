@@ -5,11 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:xceleration/core/result.dart';
 import 'package:xceleration/core/utils/encode_utils.dart';
 import 'package:xceleration/core/utils/decode_utils.dart';
-<<<<<<< refactor/bibdecodeutils-result-type
-=======
 import 'package:xceleration/core/utils/logger.dart';
-import 'package:flutter/material.dart';
->>>>>>> dev
 import 'package:xceleration/shared/models/timing_records/bib_datum.dart';
 import 'package:xceleration/shared/models/timing_records/timing_datum.dart';
 import 'package:xceleration/shared/models/timing_records/conflict.dart';
