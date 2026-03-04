@@ -33,13 +33,18 @@ Never assume or pick arbitrarily. Use the AskUserQuestion tool to present option
 
 ## Running Flutter Commands
 
-Flutter is at `/Users/finiandonnelley/Programming_project/flutter/bin/flutter`.
-Always source `~/.zshrc` first, or use the full path:
+The `dart` and `flutter` binaries are not on PATH in non-interactive shells. Always use full paths:
 
 ```sh
-dart format .
+/Users/finiandonnelley/Programming_project/flutter/bin/dart format .
 /Users/finiandonnelley/Programming_project/flutter/bin/flutter analyze
 /Users/finiandonnelley/Programming_project/flutter/bin/flutter test
+```
+
+When adding or changing mocks (e.g. after `@GenerateMocks` changes):
+
+```sh
+/Users/finiandonnelley/Programming_project/flutter/bin/dart run build_runner build --delete-conflicting-outputs
 ```
 
 ## When Unsure — Ask First
