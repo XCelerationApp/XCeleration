@@ -1,105 +1,107 @@
-// import 'package:flutter_test/flutter_test.dart';
-// import 'package:xceleration/coach/race_results/controller/race_results_controller.dart';
-// import 'package:mockito/mockito.dart';
-// import 'package:xceleration/core/utils/database_helper.dart';
-// import 'package:xceleration/coach/race_results/model/results_record.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:mockito/annotations.dart';
+import 'package:mockito/mockito.dart';
+import 'package:xceleration/coach/race_results/controller/race_results_controller.dart';
+import 'package:xceleration/core/app_error.dart';
+import 'package:xceleration/core/result.dart';
+import 'package:xceleration/shared/models/database/master_race.dart';
+import 'package:xceleration/shared/services/i_race_results_service.dart';
+import 'package:xceleration/shared/services/race_results_service.dart';
 
-// // Manual mock class
-// class MockDatabaseHelper extends Mock implements DatabaseHelper {
-//   @override
-//   Future<List<ResultsRecord>> getRaceResults(int raceId) async {
-//     if (raceId == 1) {
-//       return [
-//         ResultsRecord(
-//           place: 0,
-//           name: 'Runner B',
-//           team: 'Team B',
-//           teamAbbreviation: 'TB',
-//           finishTime: Duration(minutes: 20),
-//           grade: 12,
-//           bib: '102',
-//           raceId: raceId,
-//           runnerId: 102,
-//         ),
-//         ResultsRecord(
-//           place: 0,
-//           name: 'Runner A',
-//           team: 'Team A',
-//           teamAbbreviation: 'TA',
-//           finishTime: Duration(minutes: 16, seconds: 40),
-//           grade: 11,
-//           bib: '101',
-//           raceId: raceId,
-//           runnerId: 101,
-//         ),
-//       ];
-//     } else if (raceId == 2) {
-//       return [];
-//     } else {
-//       return [];
-//     }
-//   }
-// }
+@GenerateMocks([IRaceResultsService, MasterRace])
+import 'race_results_controller_test.mocks.dart';
 
-// void main() {
-//   group('RaceResultsController Empty Tests', () {
-//     late MockDatabaseHelper mockDbHelper;
-//     late RaceResultsController controller;
+void main() {
+  late RaceResultsController controller;
+  late MockIRaceResultsService mockService;
+  late MockMasterRace mockMasterRace;
 
-//     setUp(() async {
-//       mockDbHelper = MockDatabaseHelper();
+  setUpAll(() {
+    provideDummy<Result<RaceResultsData>>(
+      Failure<RaceResultsData>(const AppError(userMessage: '')),
+    );
+  });
 
-//       // Initialize controller with mock
-//       controller = RaceResultsController(raceId: 0, dbHelper: mockDbHelper);
+  setUp(() {
+    mockService = MockIRaceResultsService();
+    mockMasterRace = MockMasterRace();
+    controller = RaceResultsController(service: mockService);
+  });
 
-//       // Wait for the async initialization to complete
-//       while (controller.isLoading) {
-//         await Future.delayed(Duration(milliseconds: 10));
-//       }
-//     });
+  group('RaceResultsController', () {
+    group('loadRaceResults', () {
+      test('sets isLoading to true during call then false after completing',
+          () async {
+        bool wasLoadingDuringCall = false;
 
-//     test('should initialize with empty results', () {
-//       expect(controller.individualResults, isEmpty);
-//       expect(controller.overallTeamResults, isEmpty);
-//       expect(controller.headToHeadTeamResults, isNull);
-//     });
-//   });
+        when(mockService.calculateCompleteRaceResults(any))
+            .thenAnswer((_) async {
+          wasLoadingDuringCall = controller.isLoading;
+          return Success(RaceResultsData(
+            resultsTitle: 'Test',
+            individualResults: [],
+            overallTeamResults: [],
+            headToHeadTeamResults: [],
+          ));
+        });
 
-//   group('RaceResultsController Tests', () {
-//     late MockDatabaseHelper mockDbHelper;
-//     late RaceResultsController controller;
+        await controller.loadRaceResults(mockMasterRace);
 
-//     setUp(() async {
-//       mockDbHelper = MockDatabaseHelper();
+        expect(wasLoadingDuringCall, isTrue);
+        expect(controller.isLoading, isFalse);
+      });
 
-//       // Initialize controller with mock
-//       controller = RaceResultsController(raceId: 1, dbHelper: mockDbHelper);
+      test('sets raceResultsData and clears error on Success', () async {
+        final data = RaceResultsData(
+          resultsTitle: 'State Meet',
+          individualResults: [],
+          overallTeamResults: [],
+          headToHeadTeamResults: [],
+        );
 
-//       // Wait for the async initialization to complete
-//       while (controller.isLoading) {
-//         await Future.delayed(Duration(milliseconds: 10));
-//       }
-//     });
+        when(mockService.calculateCompleteRaceResults(any))
+            .thenAnswer((_) async => Success(data));
 
-//     test('should properly sort runners by finish time', () async {
-//       // Verify results were sorted by finish time
-//       expect(controller.individualResults.length, 2);
-//       expect(controller.individualResults[0].name,
-//           'Runner A'); // Faster runner first
-//       expect(controller.individualResults[0].place, 1); // Should be place 1
-//       expect(controller.individualResults[1].name, 'Runner B');
-//       expect(controller.individualResults[1].place, 2); // Should be place 2
-//     });
+        await controller.loadRaceResults(mockMasterRace);
 
-//     test('should handle teams with no scorers', () {
-//       expect(controller.individualResults.length, 2);
-//       expect(controller.overallTeamResults.length, 2);
-//       expect(controller.overallTeamResults[0].score, 0);
-//       expect(controller.overallTeamResults[1].score, 0);
-//       expect(controller.overallTeamResults[0].avgTime, Duration.zero);
-//       expect(controller.overallTeamResults[1].split, Duration.zero);
-//       expect(controller.headToHeadTeamResults, isNull);
-//     });
-//   });
-// }
-void main() {}
+        expect(controller.raceResultsData, equals(data));
+        expect(controller.hasError, isFalse);
+        expect(controller.isLoading, isFalse);
+      });
+
+      test('sets hasError and error on Failure, raceResultsData remains null',
+          () async {
+        when(mockService.calculateCompleteRaceResults(any))
+            .thenAnswer((_) async => Failure(AppError(
+                  userMessage:
+                      'Could not calculate race results. Please try again.',
+                )));
+
+        await controller.loadRaceResults(mockMasterRace);
+
+        expect(controller.hasError, isTrue);
+        expect(controller.error!.userMessage,
+            'Could not calculate race results. Please try again.');
+        expect(controller.raceResultsData, isNull);
+        expect(controller.isLoading, isFalse);
+      });
+
+      test('notifies listeners at start and end of loadRaceResults', () async {
+        int notifyCount = 0;
+        controller.addListener(() => notifyCount++);
+
+        when(mockService.calculateCompleteRaceResults(any))
+            .thenAnswer((_) async => Success(RaceResultsData(
+                  resultsTitle: 'Test',
+                  individualResults: [],
+                  overallTeamResults: [],
+                  headToHeadTeamResults: [],
+                )));
+
+        await controller.loadRaceResults(mockMasterRace);
+
+        expect(notifyCount, 2);
+      });
+    });
+  });
+}
