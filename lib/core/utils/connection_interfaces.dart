@@ -15,10 +15,10 @@ abstract class ProtocolInterface {
   Future<void> handleMessage(Package package, String senderId);
 
   /// Send data to a specific device
-  Future<void> sendData(String? data, String senderId);
+  Future<Result<void>> sendData(String? data, String senderId);
 
   /// Handle data transfer (both sending and receiving)
-  Future<String?> handleDataTransfer({
+  Future<Result<String?>> handleDataTransfer({
     required String deviceId,
     String? dataToSend,
     bool isReceiving = false,
