@@ -1,5 +1,10 @@
 # XCeleration — Claude Reference
 
+## GitHub Repository
+
+- **Owner:** `XCelerationApp`
+- **Repo:** `XCeleration`
+
 ## Stack
 
 Flutter, Dart, ChangeNotifier + Provider, SQLite, Supabase.

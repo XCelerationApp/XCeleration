@@ -317,9 +317,16 @@ class BibNumberController extends BibNumberDataController {
                   type: DeviceName.bibRecorder.toString());
 
               // Decode runner data
-              final runnersData =
-                  await BibDecodeUtils.decodeEncodedRunners(parts[1], context);
-              runners = runnersData ?? [];
+              final runnersResult =
+                  await BibDecodeUtils.decodeEncodedRunners(parts[1]);
+              switch (runnersResult) {
+                case Success(:final value):
+                  runners = value;
+                case Failure(:final error):
+                  Logger.e(
+                      '[BibNumberController.showLoadRaceSheet] ${error.originalException}');
+                  return;
+              }
             } else {
               // Fallback: try to decode as race data only
               raceRecord = RaceRecord.fromEncodedString(data,

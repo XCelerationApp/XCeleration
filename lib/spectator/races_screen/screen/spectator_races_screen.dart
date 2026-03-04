@@ -8,6 +8,7 @@ import 'package:xceleration/spectator/receive_race/screen/receive_race_screen.da
 import 'package:xceleration/core/utils/sheet_utils.dart';
 import 'package:xceleration/spectator/services/spectator_storage_service.dart';
 import 'package:xceleration/core/utils/race_share_decoder.dart';
+import 'package:xceleration/core/result.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/core/components/dialog_utils.dart';
 import 'package:xceleration/spectator/races_screen/widgets/spectator_race_card.dart';
@@ -64,28 +65,31 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
   }
 
   Future<void> _viewRace(Map<String, dynamic> race) async {
-    try {
-      final encodedPayload = race['encoded_payload'] as String;
-      final decoded = RaceShareDecoder.decodeWithRaw(encodedPayload);
-      final raceName = race['race_name'] as String? ?? 'Race Results';
+    final encodedPayload = race['encoded_payload'] as String;
+    final result = RaceShareDecoder.decodeWithRaw(encodedPayload);
 
-      if (!mounted) return;
+    switch (result) {
+      case Failure(:final error):
+        Logger.e('[SpectatorRacesScreen._viewRace] ${error.originalException}');
+        if (mounted) {
+          DialogUtils.showErrorDialog(context, message: error.userMessage);
+        }
+        return;
+      case Success(:final value):
+        final raceName = race['race_name'] as String? ?? 'Race Results';
 
-      // Show in a sheet instead of navigating
-      await sheet(
-        context: context,
-        title: raceName,
-        body: _RaceResultsSheet(
-          data: decoded.results,
-          encodedPayload: decoded.rawEncoded,
-          onShare: () => _shareRace(race),
-        ),
-      );
-    } catch (e) {
-      Logger.e('Failed to view race: $e');
-      if (mounted) {
-        DialogUtils.showErrorDialog(context, message: 'Failed to load race');
-      }
+        if (!mounted) return;
+
+        // Show in a sheet instead of navigating
+        await sheet(
+          context: context,
+          title: raceName,
+          body: _RaceResultsSheet(
+            data: value.results,
+            encodedPayload: value.rawEncoded,
+            onShare: () => _shareRace(race),
+          ),
+        );
     }
   }
 
