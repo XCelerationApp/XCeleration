@@ -354,7 +354,7 @@ class MockProtocol extends _i1.Mock implements _i9.Protocol {
       ) as _i4.Future<void>);
 
   @override
-  _i4.Future<void> sendData(
+  _i4.Future<_i5.Result<void>> sendData(
     String? data,
     String? senderId,
   ) =>
@@ -366,12 +366,21 @@ class MockProtocol extends _i1.Mock implements _i9.Protocol {
             senderId,
           ],
         ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
+        returnValue:
+            _i4.Future<_i5.Result<void>>.value(_i6.dummyValue<_i5.Result<void>>(
+          this,
+          Invocation.method(
+            #sendData,
+            [
+              data,
+              senderId,
+            ],
+          ),
+        )),
+      ) as _i4.Future<_i5.Result<void>>);
 
   @override
-  _i4.Future<String?> handleDataTransfer({
+  _i4.Future<_i5.Result<String?>> handleDataTransfer({
     required String? deviceId,
     String? dataToSend,
     bool? isReceiving = false,
@@ -388,8 +397,21 @@ class MockProtocol extends _i1.Mock implements _i9.Protocol {
             #shouldContinueTransfer: shouldContinueTransfer,
           },
         ),
-        returnValue: _i4.Future<String?>.value(),
-      ) as _i4.Future<String?>);
+        returnValue: _i4.Future<_i5.Result<String?>>.value(
+            _i6.dummyValue<_i5.Result<String?>>(
+          this,
+          Invocation.method(
+            #handleDataTransfer,
+            [],
+            {
+              #deviceId: deviceId,
+              #dataToSend: dataToSend,
+              #isReceiving: isReceiving,
+              #shouldContinueTransfer: shouldContinueTransfer,
+            },
+          ),
+        )),
+      ) as _i4.Future<_i5.Result<String?>>);
 
   @override
   void resetDeviceState(String? deviceId) => super.noSuchMethod(

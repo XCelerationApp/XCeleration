@@ -5,6 +5,7 @@ import 'package:flutter_nearby_connections/flutter_nearby_connections.dart';
 import 'package:xceleration/core/utils/data_protocol.dart';
 import 'package:xceleration/core/utils/data_package.dart';
 import 'package:xceleration/core/utils/connection_interfaces.dart';
+import 'package:xceleration/core/result.dart';
 
 @GenerateMocks([DeviceConnectionServiceInterface])
 import 'data_protocol_test.mocks.dart';
@@ -42,11 +43,11 @@ void main() {
       expect(protocol.connectedDevices, isNot(contains(mockDevice.deviceId)));
     });
 
-    test('protocol can be terminated', () {
-      protocol.terminate();
+    test('protocol can be terminated', () async {
+      await protocol.terminate();
       // Should be marked as terminated
-      expect(() => protocol.sendData('test', 'deviceId'),
-          throwsA(isA<ProtocolTerminatedException>()));
+      final result = await protocol.sendData('test', 'deviceId');
+      expect(result, isA<Failure<void>>());
     });
   });
 
@@ -102,7 +103,8 @@ void main() {
       });
 
       // Send test data
-      await protocol.sendData('test_data', mockDevice.deviceId);
+      final result = await protocol.sendData('test_data', mockDevice.deviceId);
+      expect(result, isA<Success<void>>());
 
       // Verify appropriate packages were sent
       // Should send at least one DATA package and one FIN package
@@ -114,15 +116,15 @@ void main() {
           any, argThat(predicate((Package p) => p.type == 'FIN')))).called(1);
     });
 
-    test('throws error when sending empty data', () async {
-      expect(() async {
-        await protocol.sendData('', mockDevice.deviceId);
-      }, throwsA(isA<ProtocolTerminatedException>()));
+    test('returns Failure when sending empty data', () async {
+      final result = await protocol.sendData('', mockDevice.deviceId);
+      expect(result, isA<Failure<void>>());
     });
   });
 
   group('Data transfer handling', () {
-    test('handleDataTransfer sends data and returns null for sender', () async {
+    test('handleDataTransfer sends data and returns Success(null) for sender',
+        () async {
       // Set up the mock to "receive" acknowledgments
       when(mockConnectionService.sendMessageToDevice(any, any))
           .thenAnswer((args) async {
@@ -140,8 +142,9 @@ void main() {
           isReceiving: false,
           shouldContinueTransfer: () => true);
 
-      // Sender doesn't receive data
-      expect(result, null);
+      // Sender gets Success(null)
+      expect(result, isA<Success<String?>>());
+      expect((result as Success<String?>).value, null);
 
       // Verify a DATA package and FIN package were sent
       verify(mockConnectionService.sendMessageToDevice(
@@ -152,7 +155,8 @@ void main() {
           any, argThat(predicate((Package p) => p.type == 'FIN')))).called(1);
     });
 
-    test('handleDataTransfer aborts if shouldContinueTransfer returns false',
+    test(
+        'handleDataTransfer returns Failure if shouldContinueTransfer returns false',
         () async {
       bool shouldContinue = true;
 
@@ -162,12 +166,12 @@ void main() {
       });
 
       // Handle data transfer with a status that will change
-      expect(
-          () => protocol.handleDataTransfer(
-              deviceId: mockDevice.deviceId,
-              isReceiving: true,
-              shouldContinueTransfer: () => shouldContinue),
-          throwsA(isA<ProtocolTerminatedException>()));
+      final result = await protocol.handleDataTransfer(
+          deviceId: mockDevice.deviceId,
+          isReceiving: true,
+          shouldContinueTransfer: () => shouldContinue);
+
+      expect(result, isA<Failure<String?>>());
     });
   });
 }
