@@ -1,5 +1,10 @@
 # XCeleration — Claude Reference
 
+## GitHub Repository
+
+- **Owner:** `XCelerationApp`
+- **Repo:** `XCeleration`
+
 ## Stack
 
 Flutter, Dart, ChangeNotifier + Provider, SQLite, Supabase.
@@ -15,7 +20,9 @@ Flutter, Dart, ChangeNotifier + Provider, SQLite, Supabase.
 
 ## Always
 
-- Run `dart format .`, `flutter analyze`, and `flutter test` after every meaningful change
+- Run `dart format .` and `flutter analyze` after every meaningful change
+- Run `flutter test <path/to/specific_test.dart>` for the test files related to your changes
+- Run the full `flutter test` before committing to catch regressions
 - One concern per commit
 
 ## Working Style

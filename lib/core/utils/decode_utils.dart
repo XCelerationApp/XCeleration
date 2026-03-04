@@ -1,10 +1,10 @@
-import 'package:flutter/material.dart';
 // import 'package:xceleration/coach/merge_conflicts/model/timing_data.dart';
+import 'package:xceleration/core/app_error.dart';
+import 'package:xceleration/core/result.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/shared/models/timing_records/bib_datum.dart';
 import 'package:xceleration/shared/models/timing_records/timing_datum.dart';
 import 'enums.dart';
-import '../components/dialog_utils.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -18,8 +18,8 @@ String decodeAndDecompress(String input) {
 
 class BibDecodeUtils {
   /// Decodes encoded runner data
-  static Future<List<BibDatum>?> decodeEncodedRunners(
-      String encodedBibData, BuildContext context) async {
+  static Future<Result<List<BibDatum>>> decodeEncodedRunners(
+      String encodedBibData) async {
     try {
       // Try to detect if data is already decompressed (raw JSON)
       String decompressed;
@@ -62,14 +62,13 @@ class BibDecodeUtils {
           ));
         }
       }
-      return bibs;
+      return Success(bibs);
     } catch (e) {
-      Logger.e('Error processing data: $e');
-      if (context.mounted) {
-        DialogUtils.showErrorDialog(context,
-            message: 'Error processing data: $e');
-      }
-      return null;
+      Logger.e('[BibDecodeUtils.decodeEncodedRunners] $e');
+      return Failure(AppError(
+        userMessage: 'Could not read bib data. Please try again.',
+        originalException: e,
+      ));
     }
   }
 }

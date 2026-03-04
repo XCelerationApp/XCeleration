@@ -61,11 +61,11 @@ class TimingController extends TimingData {
 
   Future<void> showOtherRaces(BuildContext context) async {
     final result = await _storage.getRaces(DeviceName.raceTimer.toString());
+    if (!context.mounted) return;
     final races = switch (result) {
       Success(:final value) => value,
       Failure() => <RaceRecord>[],
     };
-    if (!context.mounted) return;
 
     sheet(
       context: context,
