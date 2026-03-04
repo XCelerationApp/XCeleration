@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_nearby_connections/flutter_nearby_connections.dart';
 import 'package:mockito/mockito.dart';
@@ -253,6 +254,61 @@ void main() {
               deviceID: mockDevice.deviceId))
           .called(1);
     });
+
+    test(
+        'inviteDevice returns true when device already connected without calling invitePeer',
+        () async {
+      mockDevice.state = SessionState.connected;
+
+      final result = await deviceConnectionService.inviteDevice(mockDevice);
+
+      expect(result, isTrue);
+      verifyNever(mockNearbyConnections.invitePeer(
+        deviceID: anyNamed('deviceID'),
+        deviceName: anyNamed('deviceName'),
+      ));
+    });
+
+    test('inviteDevice returns false when service is disposed', () async {
+      deviceConnectionService.dispose();
+
+      final result = await deviceConnectionService.inviteDevice(mockDevice);
+
+      expect(result, isFalse);
+    });
+
+    test('inviteDevice returns false when invite throws', () async {
+      mockDevice.state = SessionState.notConnected;
+      when(mockNearbyConnections.invitePeer(
+        deviceID: anyNamed('deviceID'),
+        deviceName: anyNamed('deviceName'),
+      )).thenThrow(Exception('network error'));
+
+      final result = await deviceConnectionService.inviteDevice(mockDevice);
+
+      expect(result, isFalse);
+    });
+
+    test('disconnectDevice returns false when device is not connected',
+        () async {
+      mockDevice.state = SessionState.notConnected;
+
+      final result = await deviceConnectionService.disconnectDevice(mockDevice);
+
+      expect(result, isFalse);
+      verifyNever(
+          mockNearbyConnections.disconnectPeer(deviceID: anyNamed('deviceID')));
+    });
+
+    test('disconnectDevice returns false when disconnect throws', () async {
+      mockDevice.state = SessionState.connected;
+      when(mockNearbyConnections.disconnectPeer(deviceID: anyNamed('deviceID')))
+          .thenThrow(Exception('disconnect error'));
+
+      final result = await deviceConnectionService.disconnectDevice(mockDevice);
+
+      expect(result, isFalse);
+    });
   });
 
   group('Message handling', () {
@@ -316,6 +372,63 @@ void main() {
       // Verify it was called exactly twice (initial try + retry)
       verify(mockNearbyConnections.sendMessage(mockDevice.deviceId, any))
           .called(2);
+    });
+
+    test('sendMessageToDevice returns false when service is disposed',
+        () async {
+      mockDevice.state = SessionState.connected;
+      deviceConnectionService.dispose();
+
+      final result = await deviceConnectionService.sendMessageToDevice(
+          mockDevice, Package(number: 1, type: 'DATA', data: 'test'));
+
+      expect(result, isFalse);
+    });
+
+    test('sendMessageToDevice returns false when device is not connected',
+        () async {
+      mockDevice.state = SessionState.notConnected;
+
+      final result = await deviceConnectionService.sendMessageToDevice(
+          mockDevice, Package(number: 1, type: 'DATA', data: 'test'));
+
+      expect(result, isFalse);
+      verifyNever(mockNearbyConnections.sendMessage(any, any));
+    });
+
+    test('monitorMessageReceives returns null when service is disposed',
+        () async {
+      deviceConnectionService.dispose();
+
+      final token = await deviceConnectionService.monitorMessageReceives(
+        mockDevice,
+        messageReceivedCallback: (_, __) {},
+      );
+
+      expect(token, isNull);
+    });
+
+    test(
+        'monitorMessageReceives does not invoke callback on message parsing error',
+        () async {
+      bool callbackInvoked = false;
+
+      await deviceConnectionService.monitorMessageReceives(
+        mockDevice,
+        messageReceivedCallback: (_, __) {
+          callbackInvoked = true;
+        },
+      );
+
+      // Emit data with an invalid package string (not valid JSON)
+      dataController!.add({
+        'senderDeviceId': mockDevice.deviceId,
+        'message': 'INVALID_PACKAGE_FORMAT',
+      });
+
+      await Future.delayed(const Duration(milliseconds: 200));
+
+      expect(callbackInvoked, isFalse);
     });
 
     test('monitorMessageReceives should handle incoming messages', () async {
@@ -577,6 +690,109 @@ void main() {
       expect(deviceConnectionService.isActive, isFalse);
       expect(deviceConnectionService.nearbyConnectionsInitialized, isFalse);
       expect(await deviceConnectionService.init(), isFalse);
+    });
+
+    test('double dispose is idempotent and does not throw', () {
+      deviceConnectionService.dispose();
+
+      expect(() => deviceConnectionService.dispose(), returnsNormally);
+      expect(deviceConnectionService.isActive, isFalse);
+    });
+  });
+
+  group('attemptReconnection', () {
+    test('returns false when service is disposed', () async {
+      deviceConnectionService.dispose();
+
+      final result =
+          await deviceConnectionService.attemptReconnection(mockDevice);
+
+      expect(result, isFalse);
+    });
+
+    test('returns true on successful reconnect', () {
+      mockDevice.state = SessionState.notConnected;
+
+      fakeAsync((fake) {
+        bool? result;
+        deviceConnectionService.attemptReconnection(mockDevice).then((r) {
+          result = r;
+        });
+
+        // First attempt: increments to 1, delay = 500 * (1 << 1) = 1000ms
+        fake.elapse(const Duration(milliseconds: 1100));
+
+        expect(result, isTrue);
+      });
+    });
+
+    test('returns false when max reconnection attempts are exceeded', () {
+      mockDevice.state = SessionState.notConnected;
+
+      fakeAsync((fake) {
+        // Make maxReconnectionAttempts (8) calls, advancing time past each delay
+        for (var i = 0; i < 8; i++) {
+          deviceConnectionService.attemptReconnection(mockDevice);
+          // Delay for attempt (i+1): 500 * (1 << (i+1)) ms
+          fake.elapse(Duration(milliseconds: 500 * (1 << (i + 1)) + 100));
+        }
+
+        // The 9th call exceeds max attempts and returns false immediately
+        bool? finalResult;
+        deviceConnectionService.attemptReconnection(mockDevice).then((r) {
+          finalResult = r;
+        });
+        fake.flushMicrotasks();
+
+        expect(finalResult, isFalse);
+      });
+    });
+  });
+
+  group('stopMessageMonitoring', () {
+    test('stops dispatching messages to callback after token is cancelled',
+        () async {
+      bool callbackInvoked = false;
+
+      final token = await deviceConnectionService.monitorMessageReceives(
+        mockDevice,
+        messageReceivedCallback: (_, __) {
+          callbackInvoked = true;
+        },
+      );
+
+      deviceConnectionService.stopMessageMonitoring(token!);
+
+      // Emit a valid message after monitoring is stopped
+      final testData = Package(number: 1, type: 'DATA', data: 'test_data');
+      dataController!.add({
+        'senderDeviceId': mockDevice.deviceId,
+        'message': testData.toString(),
+      });
+
+      await Future.delayed(const Duration(milliseconds: 200));
+
+      expect(callbackInvoked, isFalse);
+    });
+  });
+
+  group('checkIfNearbyConnectionsWorks', () {
+    test('returns false when service is disposed', () async {
+      deviceConnectionService.dispose();
+
+      final result =
+          await deviceConnectionService.checkIfNearbyConnectionsWorks();
+
+      expect(result, isFalse);
+    });
+
+    test('returns false on non-mobile platform', () async {
+      // On the test host (macOS/Linux), Platform.isAndroid and Platform.isIOS
+      // are both false, so the method returns false without attempting init.
+      final result =
+          await deviceConnectionService.checkIfNearbyConnectionsWorks();
+
+      expect(result, isFalse);
     });
   });
 }
