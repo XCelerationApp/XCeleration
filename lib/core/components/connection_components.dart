@@ -749,86 +749,82 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
         return;
       }
 
-      try {
-        // Use the new comprehensive handleDataTransfer method for both sending and receiving
-        final results = await _protocol.handleDataTransfer(
-          deviceId: device.deviceId,
-          // If browser device, we're receiving; otherwise we're sending the device's data
-          isReceiving: isBrowserDevice,
-          dataToSend: isBrowserDevice ? null : connectedDevice.data,
-          // Check if we should continue the transfer based on device status
-          shouldContinueTransfer: () {
-            // Only continue if the device's status is still in receiving/sending state
-            if (!mounted) return false; // Abort if widget is no longer mounted
+      final transferResult = await _protocol.handleDataTransfer(
+        deviceId: device.deviceId,
+        // If browser device, we're receiving; otherwise we're sending the device's data
+        isReceiving: isBrowserDevice,
+        dataToSend: isBrowserDevice ? null : connectedDevice.data,
+        // Check if we should continue the transfer based on device status
+        shouldContinueTransfer: () {
+          // Only continue if the device's status is still in receiving/sending state
+          if (!mounted) return false; // Abort if widget is no longer mounted
 
-            final deviceStatus = widget.devices.getDevice(deviceName)?.status;
-            final expectedStatus = isBrowserDevice
-                ? ConnectionStatus.receiving
-                : ConnectionStatus.sending;
+          final deviceStatus = widget.devices.getDevice(deviceName)?.status;
+          final expectedStatus = isBrowserDevice
+              ? ConnectionStatus.receiving
+              : ConnectionStatus.sending;
 
-            // Continue if status is as expected, otherwise abort
-            bool shouldContinue = deviceStatus == expectedStatus;
-            if (!shouldContinue) {
-              Logger.d(
-                  'Device status changed: $deviceStatus != $expectedStatus');
-            }
-            return shouldContinue;
-          },
-        );
-
-        // Skip updating UI if we're disposed
-        if (!mounted || _connectionCompleter.isCompleted) return;
-
-        // Update device status and data if we're a browser device (and received data)
-        setState(() {
-          if (isBrowserDevice && results != null) {
-            connectedDevice.data = results;
+          // Continue if status is as expected, otherwise abort
+          bool shouldContinue = deviceStatus == expectedStatus;
+          if (!shouldContinue) {
+            Logger.d('Device status changed: $deviceStatus != $expectedStatus');
           }
-          connectedDevice.status = ConnectionStatus.finished;
-        });
+          return shouldContinue;
+        },
+      );
 
-        // Spectator data will be handled by the callback function in ReceiveRaceScreen
-        // No need to show raw encoded data in a sheet here
+      // Skip updating UI if we're disposed
+      if (!mounted || _connectionCompleter.isCompleted) return;
 
-        // In spectator broadcast mode (advertiser), briefly show Done then return to Searching
-        if (!isBrowserDevice && widget.devices.toSpectator && mounted) {
-          Timer(const Duration(seconds: 2), () {
-            if (!mounted) return;
-            setState(() {
-              connectedDevice.status = ConnectionStatus.searching;
-            });
-          });
-        }
-
-        // Check if all devices have finished loading data
-        bool allDevicesFinished = widget.devices.allDevicesFinished();
-
-        // Call the callback if all devices are finished
-        if (allDevicesFinished && mounted) {
-          // Complete the connection to stop monitoring
-          if (!_connectionCompleter.isCompleted) {
-            _connectionCompleter.complete();
-            _deviceConnectionService.dispose();
-            _protocol.dispose();
-          }
-          widget.callback();
-        }
-
-        // For advertiser devices, disconnect after sending
-        if (!isBrowserDevice && mounted) {
-          Timer(const Duration(seconds: 1), () {
-            if (mounted) {
-              _deviceConnectionService.disconnectDevice(device);
-            }
-          });
-        }
-      } catch (e) {
-        Logger.d('Error ${isBrowserDevice ? "receiving" : "sending"} data: $e');
-        if (mounted) {
+      switch (transferResult) {
+        case Success(:final value):
+          // Update device status and data if we're a browser device (and received data)
           setState(() {
-            connectedDevice.status = ConnectionStatus.error;
+            if (isBrowserDevice && value != null) {
+              connectedDevice.data = value;
+            }
+            connectedDevice.status = ConnectionStatus.finished;
           });
-        }
+
+          // In spectator broadcast mode (advertiser), briefly show Done then return to Searching
+          if (!isBrowserDevice && widget.devices.toSpectator && mounted) {
+            Timer(const Duration(seconds: 2), () {
+              if (!mounted) return;
+              setState(() {
+                connectedDevice.status = ConnectionStatus.searching;
+              });
+            });
+          }
+
+          // Check if all devices have finished loading data
+          bool allDevicesFinished = widget.devices.allDevicesFinished();
+
+          // Call the callback if all devices are finished
+          if (allDevicesFinished && mounted) {
+            // Complete the connection to stop monitoring
+            if (!_connectionCompleter.isCompleted) {
+              _connectionCompleter.complete();
+              _deviceConnectionService.dispose();
+              _protocol.dispose();
+            }
+            widget.callback();
+          }
+
+          // For advertiser devices, disconnect after sending
+          if (!isBrowserDevice && mounted) {
+            Timer(const Duration(seconds: 1), () {
+              if (mounted) {
+                _deviceConnectionService.disconnectDevice(device);
+              }
+            });
+          }
+        case Failure(:final error):
+          Logger.e('[WirelessConnectionWidget] ${error.originalException}');
+          if (mounted) {
+            setState(() {
+              connectedDevice.status = ConnectionStatus.error;
+            });
+          }
       }
 
       // Clean up device from protocol

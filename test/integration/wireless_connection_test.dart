@@ -4,6 +4,8 @@ import 'package:mockito/annotations.dart';
 import 'package:xceleration/core/services/device_connection_service.dart';
 import 'package:xceleration/core/utils/data_protocol.dart';
 import 'package:xceleration/core/utils/enums.dart';
+import 'package:xceleration/core/result.dart';
+import 'package:xceleration/core/app_error.dart';
 import 'dart:async';
 
 // Create mocks for the external dependencies
@@ -16,6 +18,10 @@ void main() {
   late MockDevicesManager browserDevicesManager;
 
   setUp(() {
+    // Provide dummy values for sealed Result types so Mockito can generate stubs
+    provideDummy<Result<String?>>(const Success(null));
+    provideDummy<Result<void>>(const Success(null));
+
     mockConnectionService = MockDeviceConnectionService();
     advertiserDevicesManager = MockDevicesManager();
     browserDevicesManager = MockDevicesManager();
@@ -78,7 +84,7 @@ void main() {
         // Simulate FIN package sent and receive ACK
         advertiserDevice.status = ConnectionStatus.finished;
 
-        return null; // Sender returns null
+        return const Success(null); // Sender returns Success(null)
       });
 
       // Configure browser (receiving data)
@@ -96,7 +102,7 @@ void main() {
         browserDevice.status = ConnectionStatus.finished;
         browserDevice.data = advertiserDevice.data;
 
-        return advertiserDevice.data;
+        return Success(advertiserDevice.data);
       });
 
       // Create completers to track the async flow
@@ -113,7 +119,8 @@ void main() {
               shouldContinueTransfer: () =>
                   advertiserDevice.status != ConnectionStatus.found);
 
-          expect(result, null);
+          expect(result, isA<Success<String?>>());
+          expect((result as Success<String?>).value, null);
           expect(advertiserDevice.status, ConnectionStatus.finished);
           advertiserCompleted.complete();
         } catch (e) {
@@ -131,7 +138,8 @@ void main() {
               shouldContinueTransfer: () =>
                   browserDevice.status != ConnectionStatus.found);
 
-          expect(result, 'test_data_to_send');
+          expect(result, isA<Success<String?>>());
+          expect((result as Success<String?>).value, 'test_data_to_send');
           expect(browserDevice.status, ConnectionStatus.finished);
           browserCompleted.complete();
         } catch (e) {
@@ -185,8 +193,11 @@ void main() {
         // Simulate premature disconnection
         advertiserDevice.status = ConnectionStatus.found;
 
-        throw ProtocolTerminatedException(
-            'Transfer aborted: device status changed');
+        return Failure(AppError(
+          userMessage: 'Data transfer failed. Please try again.',
+          originalException: ProtocolTerminatedException(
+              'Transfer aborted: device status changed'),
+        ));
       });
 
       // Configure browser to handle disconnection
@@ -203,29 +214,30 @@ void main() {
         // Simulate disconnection detected
         browserDevice.status = ConnectionStatus.error;
 
-        throw ProtocolTerminatedException(
-            'Transfer aborted: device status changed');
+        return Failure(AppError(
+          userMessage: 'Data transfer failed. Please try again.',
+          originalException: ProtocolTerminatedException(
+              'Transfer aborted: device status changed'),
+        ));
       });
 
-      // Test advertiser side
-      expect(() async {
-        await advertiserProtocol.handleDataTransfer(
-            deviceId: 'Browser',
-            dataToSend: advertiserDevice.data,
-            isReceiving: false,
-            shouldContinueTransfer: () =>
-                advertiserDevice.status == ConnectionStatus.sending);
-      }, throwsA(isA<ProtocolTerminatedException>()));
+      // Test advertiser side returns Failure
+      final advertiserResult = await advertiserProtocol.handleDataTransfer(
+          deviceId: 'Browser',
+          dataToSend: advertiserDevice.data,
+          isReceiving: false,
+          shouldContinueTransfer: () =>
+              advertiserDevice.status == ConnectionStatus.sending);
+      expect(advertiserResult, isA<Failure<String?>>());
 
-      // Test browser side
-      expect(() async {
-        await browserProtocol.handleDataTransfer(
-            deviceId: 'Advertiser',
-            dataToSend: null,
-            isReceiving: true,
-            shouldContinueTransfer: () =>
-                browserDevice.status == ConnectionStatus.receiving);
-      }, throwsA(isA<ProtocolTerminatedException>()));
+      // Test browser side returns Failure
+      final browserResult = await browserProtocol.handleDataTransfer(
+          deviceId: 'Advertiser',
+          dataToSend: null,
+          isReceiving: true,
+          shouldContinueTransfer: () =>
+              browserDevice.status == ConnectionStatus.receiving);
+      expect(browserResult, isA<Failure<String?>>());
     });
   });
 
