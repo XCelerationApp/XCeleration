@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:math';
-import '../services/device_connection_service.dart';
 import 'package:flutter_nearby_connections/flutter_nearby_connections.dart';
 import 'data_package.dart';
 import 'package:xceleration/core/utils/logger.dart';
@@ -28,7 +27,7 @@ class Protocol implements ProtocolInterface {
   static const int retryTimeoutSeconds = 5;
   static const int chunkSize = 1000;
 
-  final DeviceConnectionService deviceConnectionService;
+  final DeviceConnectionServiceInterface deviceConnectionService;
   final Map<String, Device> connectedDevices =
       {}; // Map of device IDs to devices
 
