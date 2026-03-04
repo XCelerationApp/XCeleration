@@ -48,7 +48,6 @@ For every file or feature you refactor, follow this sequence:
 Run after every meaningful change:
 
 ```sh
-dart format .
 flutter analyze
 flutter test 2>&1 | tail -20
 ```
@@ -79,7 +78,6 @@ Before marking a module complete:
 - [ ] Class under ~300 lines (or justified)
 - [ ] Functions typically under 50 lines
 - [ ] All public methods unit tested
-- [ ] `dart format .` passes (no changes)
 - [ ] `flutter analyze` passes
 - [ ] `flutter test` passes
 
@@ -298,6 +296,5 @@ Key rules that apply during refactoring:
 - No logic in widgets
 - Public methods fully unit tested
 - Class size reasonable
-- `dart format .` clean (no changes)
 - `flutter analyze` clean
 - `flutter test` clean
