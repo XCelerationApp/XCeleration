@@ -77,6 +77,7 @@ EOF
 5. Update the PR description using: `gh pr edit <number> --body "..."`
 6. **Verify** the description was applied: `gh pr view <number> --json body -q .body`
    - If the body still shows the auto-generated text, re-run step 5
+7. If this PR was related to a linear issue, mark the linear issue as completed, as said in the @LINEAR_WORKFLOW_SKILL.md  
 
 ### Finding the PR number
 
