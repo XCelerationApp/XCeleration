@@ -67,23 +67,28 @@ EOF
 
 ## Pull Requests
 
+### GitHub Tool Reference
+
+Use the right tool for the job:
+
+| Operation | Tool |
+| --- | --- |
+| List PRs / find PR number | `gh pr list --head <branch>` (Bash) |
+| Read PR details | `gh pr view <number>` (Bash) |
+| Update PR description or title | `mcp__github__update_pull_request` |
+| Add a PR comment | `mcp__github__add_issue_comment` |
+
 ### Flow
 
 1. Create a branch from `dev`
 2. Make commits (one concern per commit)
 3. Push: `git push -u origin <branch-name>`
-4. A PR is **automatically created** — do not run `gh pr create`
-   - The PR may take a few seconds to appear; wait then run `gh pr list --head <branch-name>` to confirm it exists before proceeding
-5. Update the PR description using: `gh pr edit <number> --body "..."`
+4. A PR is **automatically created** — do not create one manually
+   - The PR may take a few seconds to appear; wait then run `gh pr list --head <branch-name>` to confirm it exists and get the PR number
+5. Update the PR description using: `mcp__github__update_pull_request`
 6. **Verify** the description was applied: `gh pr view <number> --json body -q .body`
    - If the body still shows the auto-generated text, re-run step 5
 7. If this PR was related to a linear issue, mark the linear issue as completed, as said in the @LINEAR_WORKFLOW_SKILL.md  
-
-### Finding the PR number
-
-```sh
-gh pr list --head <branch-name>
-```
 
 ### PR Description Format
 
@@ -112,6 +117,6 @@ gh pr list --head <branch-name>
 
 - Don't `git add .` — stage files explicitly
 - Don't skip `Co-Authored-By` in commit messages
-- Don't run `gh pr create` — PRs are auto-created on push
+- Don't create PRs manually — they are auto-created on push
 - Don't amend published commits
 - Don't push to `main`

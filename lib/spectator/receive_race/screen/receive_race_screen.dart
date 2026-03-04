@@ -3,6 +3,7 @@ import 'package:xceleration/core/services/device_connection_service.dart';
 import 'package:xceleration/core/components/connection_components.dart';
 import 'package:xceleration/core/utils/enums.dart';
 import 'package:xceleration/core/components/dialog_utils.dart';
+import 'package:xceleration/core/result.dart';
 import 'package:xceleration/core/utils/race_share_decoder.dart';
 import 'package:xceleration/spectator/services/spectator_storage_service.dart';
 import 'package:xceleration/shared/services/race_results_service.dart';
@@ -43,29 +44,33 @@ class _ReceiveRaceScreenState extends State<ReceiveRaceScreen> {
       DialogUtils.showErrorDialog(context, message: 'No data received');
       return;
     }
-    try {
-      final decoded = RaceShareDecoder.decodeWithRaw(data);
 
-      // Save to local storage first
-      await _saveRaceToLocalStorage(decoded.rawEncoded, decoded.results);
+    final result = RaceShareDecoder.decodeWithRaw(data);
 
-      if (!mounted) return;
+    switch (result) {
+      case Failure(:final error):
+        Logger.e('[ReceiveRaceScreen._onComplete] ${error.originalException}');
+        if (!mounted) return;
+        DialogUtils.showErrorDialog(context, message: error.userMessage);
+        return;
+      case Success(:final value):
+        // Save to local storage first
+        await _saveRaceToLocalStorage(value.rawEncoded, value.results);
 
-      // Close the receive sheet
-      Navigator.of(context).pop();
+        if (!mounted) return;
 
-      // Show results in a sheet
-      await sheet(
-        context: context,
-        title: decoded.results.resultsTitle,
-        body: ReceiveRacePreviewSheet(
-          data: decoded.results,
-          encodedPayload: decoded.rawEncoded,
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      DialogUtils.showErrorDialog(context, message: 'Import failed: $e');
+        // Close the receive sheet
+        Navigator.of(context).pop();
+
+        // Show results in a sheet
+        await sheet(
+          context: context,
+          title: value.results.resultsTitle,
+          body: ReceiveRacePreviewSheet(
+            data: value.results,
+            encodedPayload: value.rawEncoded,
+          ),
+        );
     }
   }
 
