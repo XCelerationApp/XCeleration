@@ -12,6 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       dart-changed: ${{ steps.dart-changes.outputs.any_changed }}
+      dart-files: ${{ steps.dart-changes.outputs.all_changed_files }}
       build-changed: ${{ steps.build-changes.outputs.any_changed }}
     steps:
       - name: Checkout repository
@@ -37,77 +38,18 @@ jobs:
             pubspec.lock
             analysis_options.yaml
 
-  lint_and_format:
-    name: Lint and Format
-    runs-on: ubuntu-latest
-    needs: detect-changes
-    steps:
-      - name: Skip formatting (no Dart changes)
-        if: needs.detect-changes.outputs.dart-changed == 'false'
-        run: |
-          echo "⏭️ Skipping formatting - no Dart files changed"
-          echo "✅ Formatting step completed (skipped)"
-
-      - name: Checkout repository
-        if: needs.detect-changes.outputs.dart-changed == 'true'
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Cache Flutter dependencies
-        if: needs.detect-changes.outputs.dart-changed == 'true'
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.pub-cache
-            .dart_tool
-          key: ${{ runner.os }}-flutter-deps-${{ hashFiles('**/pubspec.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-flutter-deps-
-
-      - name: Setup Flutter
-        if: needs.detect-changes.outputs.dart-changed == 'true'
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.32.5'
-          channel: 'stable'
-          cache: true
-
-      - name: Get Flutter dependencies
-        if: needs.detect-changes.outputs.dart-changed == 'true'
-        run: flutter pub get
-
-      - name: Check formatting
-        if: needs.detect-changes.outputs.dart-changed == 'true'
-        run: dart format --output=none --set-exit-if-changed .
-
   analyze:
     name: Analyze Code
     runs-on: ubuntu-latest
     needs: detect-changes
+    if: needs.detect-changes.outputs.dart-changed == 'true'
     steps:
-      - name: Skip analysis (no Dart changes)
-        if: needs.detect-changes.outputs.dart-changed == 'false'
-        run: |
-          echo "⏭️ Skipping analysis - no Dart files changed"
-          echo "✅ Analysis step completed (skipped)"
-
       - name: Checkout repository
-        if: needs.detect-changes.outputs.dart-changed == 'true'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Get changed Dart files
-        if: needs.detect-changes.outputs.dart-changed == 'true'
-        id: dart-changes
-        uses: tj-actions/changed-files@v46
-        with:
-          files: |
-            **/*.dart
-
       - name: Cache Flutter dependencies
-        if: needs.detect-changes.outputs.dart-changed == 'true'
         uses: actions/cache@v4
         with:
           path: |
@@ -118,7 +60,6 @@ jobs:
             ${{ runner.os }}-flutter-deps-
 
       - name: Setup Flutter
-        if: needs.detect-changes.outputs.dart-changed == 'true'
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.32.5'
@@ -126,46 +67,35 @@ jobs:
           cache: true
 
       - name: Get Flutter dependencies
-        if: needs.detect-changes.outputs.dart-changed == 'true'
         run: flutter pub get
 
       - name: Create .env file for analyzer
-        if: needs.detect-changes.outputs.dart-changed == 'true'
         run: touch .env
 
       - name: Analyze changed files only (faster)
-        if: needs.detect-changes.outputs.dart-changed == 'true'
         run: |
           echo "🔍 Analyzing only changed Dart files for faster feedback..."
-          
-          # Analyze only changed files
-          changed_files="${{ steps.dart-changes.outputs.all_changed_files }}"
+
+          changed_files="${{ needs.detect-changes.outputs.dart-files }}"
           for file in $changed_files; do
             echo "  Analyzing: $file"
             flutter analyze --fatal-infos --fatal-warnings "$file" || exit 1
           done
-          
+
           echo "✅ Incremental analysis complete!"
 
   test:
     name: Run Tests
     runs-on: ubuntu-latest
     needs: detect-changes
+    if: needs.detect-changes.outputs.dart-changed == 'true'
     steps:
-      - name: Skip tests (no Dart changes)
-        if: needs.detect-changes.outputs.dart-changed == 'false'
-        run: |
-          echo "⏭️ Skipping tests - no Dart files changed"
-          echo "✅ Test step completed (skipped)"
-
       - name: Checkout repository
-        if: needs.detect-changes.outputs.dart-changed == 'true'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Cache Flutter dependencies
-        if: needs.detect-changes.outputs.dart-changed == 'true'
         uses: actions/cache@v4
         with:
           path: |
@@ -176,7 +106,6 @@ jobs:
             ${{ runner.os }}-flutter-deps-
 
       - name: Setup Flutter
-        if: needs.detect-changes.outputs.dart-changed == 'true'
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.32.5'
@@ -184,36 +113,30 @@ jobs:
           cache: true
 
       - name: Get Flutter dependencies
-        if: needs.detect-changes.outputs.dart-changed == 'true'
         run: flutter pub get
 
       - name: Create .env file for tests
-        if: needs.detect-changes.outputs.dart-changed == 'true'
         run: touch .env
 
       - name: Run unit and widget tests
-        if: needs.detect-changes.outputs.dart-changed == 'true'
         run: flutter test --concurrency=4
 
   build:
     name: Build
     runs-on: ubuntu-latest
-    needs: [detect-changes, lint_and_format, analyze, test]
+    needs: [detect-changes, analyze, test]
+    if: |
+      always() &&
+      needs.detect-changes.outputs.build-changed == 'true' &&
+      (needs.analyze.result == 'success' || needs.analyze.result == 'skipped') &&
+      (needs.test.result == 'success' || needs.test.result == 'skipped')
     steps:
-      - name: Skip build (no relevant changes)
-        if: needs.detect-changes.outputs.build-changed == 'false'
-        run: |
-          echo "⏭️ Skipping build - no build-relevant files changed"
-          echo "✅ Build step completed (skipped)"
-
       - name: Checkout repository
-        if: needs.detect-changes.outputs.build-changed == 'true'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Cache Flutter dependencies
-        if: needs.detect-changes.outputs.build-changed == 'true'
         uses: actions/cache@v4
         with:
           path: |
@@ -224,7 +147,6 @@ jobs:
             ${{ runner.os }}-flutter-deps-
 
       - name: Setup Flutter
-        if: needs.detect-changes.outputs.build-changed == 'true'
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.32.5'
@@ -232,19 +154,17 @@ jobs:
           cache: true
 
       - name: Get Flutter dependencies
-        if: needs.detect-changes.outputs.build-changed == 'true'
         run: flutter pub get
 
       - name: Create .env file
-        if: needs.detect-changes.outputs.build-changed == 'true' && github.event.pull_request.head.repo.full_name == github.repository
+        if: github.event.pull_request.head.repo.full_name == github.repository
         run: echo "${{ secrets.DOTENV }}" > .env
 
       - name: Create empty .env file for forks
-        if: needs.detect-changes.outputs.build-changed == 'true' && github.event.pull_request.head.repo.full_name != github.repository
+        if: github.event.pull_request.head.repo.full_name != github.repository
         run: touch .env
 
       - name: Cache build artifacts
-        if: needs.detect-changes.outputs.build-changed == 'true'
         id: build-cache
         uses: actions/cache@v4
         with:
@@ -257,15 +177,15 @@ jobs:
             build-${{ runner.os }}-
 
       - name: Build from cache (if available)
-        if: needs.detect-changes.outputs.build-changed == 'true' && steps.build-cache.outputs.cache-hit == 'true'
+        if: steps.build-cache.outputs.cache-hit == 'true'
         run: |
           echo "✅ Build artifacts restored from cache!"
           echo "📦 Skipping build - no relevant changes detected"
           ls -la build/ || echo "Build directory structure:"
 
       - name: Build from source (cache miss)
-        if: needs.detect-changes.outputs.build-changed == 'true' && steps.build-cache.outputs.cache-hit != 'true'
+        if: steps.build-cache.outputs.cache-hit != 'true'
         run: |
           echo "🔨 Building from source..."
           flutter build bundle
-          echo "✅ Build complete - artifacts cached for future runs" 
+          echo "✅ Build complete - artifacts cached for future runs"

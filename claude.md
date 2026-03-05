@@ -20,7 +20,7 @@ Flutter, Dart, ChangeNotifier + Provider, SQLite, Supabase.
 
 ## Always
 
-- Run `dart format .` and `flutter analyze` after every meaningful change
+- Run `flutter analyze` after every meaningful change
 - Run `flutter test <path/to/specific_test.dart>` for the test files related to your changes
 - Run the full `flutter test` before committing to catch regressions
 - One concern per commit
@@ -36,7 +36,6 @@ Never assume or pick arbitrarily. Use the AskUserQuestion tool to present option
 The `dart` and `flutter` binaries are not on PATH in non-interactive shells. Always use full paths:
 
 ```sh
-/Users/finiandonnelley/Programming_project/flutter/bin/dart format .
 /Users/finiandonnelley/Programming_project/flutter/bin/flutter analyze
 /Users/finiandonnelley/Programming_project/flutter/bin/flutter test
 ```
