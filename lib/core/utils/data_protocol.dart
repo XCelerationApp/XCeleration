@@ -26,10 +26,13 @@ class ProtocolTerminatedException implements Exception {
 
 class Protocol implements ProtocolInterface {
   static const int maxSendAttempts = 4;
-  static const int retryTimeoutSeconds = 5;
   static const int chunkSize = 1000;
 
   final DeviceConnectionServiceInterface deviceConnectionService;
+  final Duration retryTimeout;
+  final Duration sendStabilizationDelay;
+  final Duration transferAbortTimeout;
+
   final Map<String, Device> connectedDevices =
       {}; // Map of device IDs to devices
 
@@ -44,7 +47,12 @@ class Protocol implements ProtocolInterface {
   bool _isTerminated = false;
   final Map<String, int> _finishSequenceNumbers = {};
 
-  Protocol({required this.deviceConnectionService});
+  Protocol({
+    required this.deviceConnectionService,
+    this.retryTimeout = const Duration(seconds: 5),
+    this.sendStabilizationDelay = const Duration(milliseconds: 500),
+    this.transferAbortTimeout = const Duration(seconds: 3),
+  });
 
   @override
   void addDevice(Device device) {
@@ -195,7 +203,7 @@ class Protocol implements ProtocolInterface {
 
     void scheduleRetry() {
       state.retryTimer = Timer(
-        Duration(seconds: retryTimeoutSeconds),
+        retryTimeout,
         () async {
           if (state.isCancelled || state.completer.isCompleted) return;
 
@@ -346,7 +354,7 @@ class Protocol implements ProtocolInterface {
     // Variables to track state changes and timer
     bool lastKnownState = true;
     Timer? stateChangeTimer;
-    final stateChangeTimeout = const Duration(seconds: 3);
+    final stateChangeTimeout = transferAbortTimeout;
 
     // Helper function to check if we should abort the transfer
     bool shouldAbort() {
@@ -420,7 +428,7 @@ class Protocol implements ProtocolInterface {
           return Failure(error);
         }
         // Add a small delay to allow state stabilization after sending data
-        await Future.delayed(Duration(milliseconds: 500));
+        await Future.delayed(sendStabilizationDelay);
       }
 
       if (shouldAbort()) {
