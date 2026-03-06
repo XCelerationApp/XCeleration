@@ -13,8 +13,13 @@ import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/core/components/dialog_utils.dart';
 import 'package:xceleration/spectator/races_screen/widgets/spectator_race_card.dart';
 import 'package:xceleration/core/services/device_connection_service.dart';
+import 'package:xceleration/core/services/nearby_connections.dart';
 import 'package:xceleration/core/utils/enums.dart';
+import 'package:xceleration/core/utils/connection_utils.dart';
+import 'package:xceleration/core/utils/data_protocol.dart';
 import 'package:xceleration/core/components/connection_components.dart';
+import 'package:xceleration/core/connection/controller/wireless_connection_controller.dart';
+import 'package:provider/provider.dart';
 import 'package:xceleration/shared/services/race_results_service.dart';
 import 'package:xceleration/coach/race_results/widgets/team_results_widget.dart';
 import 'package:xceleration/coach/race_results/widgets/individual_results_widget.dart';
@@ -110,14 +115,27 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
       await sheet(
         context: context,
         title: 'Share "$raceName"',
-        body: WirelessConnectionWidget(
-          devices: devices,
-          callback: () {
-            // Share complete callback
-            if (context.mounted) {
-              Navigator.of(context).pop();
-            }
+        body: ChangeNotifierProvider(
+          create: (_) {
+            final svc = DeviceConnectionService(
+              devices,
+              'wirelessconn',
+              getDeviceNameString(devices.currentDeviceName),
+              devices.currentDeviceType,
+              NearbyConnections(),
+            );
+            return WirelessConnectionController(
+              deviceConnectionService: svc,
+              protocol: Protocol(deviceConnectionService: svc),
+              devices: devices,
+              callback: () {
+                if (context.mounted) {
+                  Navigator.of(context).pop();
+                }
+              },
+            );
           },
+          child: const WirelessConnectionWidget(),
         ),
       );
     } catch (e) {

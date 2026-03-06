@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/utils/logger.dart';
+import 'package:xceleration/core/utils/connection_utils.dart';
 import 'connection_components.dart';
-import 'dart:async';
 import 'package:audioplayers/audioplayers.dart' as audio;
 import '../services/device_connection_service.dart';
+import '../services/nearby_connections.dart';
+import '../utils/data_protocol.dart';
+import '../connection/controller/wireless_connection_controller.dart';
+import 'package:provider/provider.dart';
 
 Widget deviceConnectionWidget(BuildContext context, DevicesManager devices,
     {Function? callback, bool inSheet = true}) {
@@ -30,9 +34,25 @@ Widget deviceConnectionWidget(BuildContext context, DevicesManager devices,
   return Column(
     mainAxisSize: MainAxisSize.min,
     children: [
-      WirelessConnectionWidget(
-        devices: devices,
-        callback: handleCallback,
+      ChangeNotifierProvider(
+        create: (_) {
+          final deviceConnectionService = DeviceConnectionService(
+            devices,
+            'wirelessconn',
+            getDeviceNameString(devices.currentDeviceName),
+            devices.currentDeviceType,
+            NearbyConnections(),
+          );
+          final protocol =
+              Protocol(deviceConnectionService: deviceConnectionService);
+          return WirelessConnectionController(
+            deviceConnectionService: deviceConnectionService,
+            protocol: protocol,
+            devices: devices,
+            callback: handleCallback,
+          );
+        },
+        child: const WirelessConnectionWidget(),
       ),
 
       // Separator
