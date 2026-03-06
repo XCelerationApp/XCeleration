@@ -6,6 +6,8 @@ import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:xceleration/coach/races_screen/widgets/race_creation_sheet.dart';
 import 'package:xceleration/core/components/dialog_utils.dart';
+import 'package:xceleration/core/result.dart';
+import 'package:xceleration/core/utils/database_helper.dart';
 import 'package:xceleration/core/utils/sheet_utils.dart' show sheet;
 import '../../../shared/models/database/race.dart';
 import '../../../shared/models/database/master_race.dart';
@@ -45,8 +47,12 @@ class RacesController extends ChangeNotifier {
   BuildContext? _context;
 
   final bool canEdit;
+  late final RacesService _racesService;
 
-  RacesController({this.canEdit = true});
+  RacesController({this.canEdit = true, RacesService? racesService}) {
+    _racesService =
+        racesService ?? RacesService(db: DatabaseHelper.instance);
+  }
 
   void setContext(BuildContext context) {
     _context = context;
@@ -333,26 +339,45 @@ class RacesController extends ChangeNotifier {
     );
 
     if (confirmed == true) {
-      await RacesService.deleteRace(race.raceId!);
+      final result = await _racesService.deleteRace(race.raceId!);
+      if (result case Failure(:final error)) {
+        Logger.e('[RacesController.deleteRace] ${error.originalException}');
+        if (context.mounted) {
+          DialogUtils.showErrorDialog(context, message: error.userMessage);
+        }
+        return;
+      }
       await loadRaces();
     }
   }
 
   // Create a new race with minimal information
   Future<int> createRace(Race race) async {
-    final newRaceId = await RacesService.createRace(race);
+    final result = await _racesService.createRace(race);
     await loadRaces(); // Refresh the races list
-    return newRaceId;
+    return switch (result) {
+      Success(:final value) => value,
+      Failure(:final error) => throw Exception(error.userMessage),
+    };
   }
 
   // Update an existing race
   Future<void> updateRace(Race race) async {
-    await RacesService.updateRace(race);
+    final result = await _racesService.updateRace(race);
+    if (result case Failure(:final error)) {
+      Logger.e('[RacesController.updateRace] ${error.originalException}');
+    }
     await loadRaces(); // Refresh the races list
   }
 
   Future<void> loadRaces() async {
-    races = await RacesService.loadRaces();
+    final result = await _racesService.loadRaces();
+    switch (result) {
+      case Success(:final value):
+        races = value;
+      case Failure(:final error):
+        Logger.e('[RacesController.loadRaces] ${error.originalException}');
+    }
     notifyListeners();
   }
 

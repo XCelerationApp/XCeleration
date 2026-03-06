@@ -1,31 +1,74 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/app_error.dart';
+import 'package:xceleration/core/result.dart';
 import 'package:xceleration/core/services/auth_service.dart';
+import 'package:xceleration/core/utils/i_database_helper.dart';
 import 'package:xceleration/shared/models/database/master_race.dart';
 import '../../../shared/models/database/race.dart';
-import '../../../core/utils/database_helper.dart';
 
 class RacesService {
+  final IDatabaseHelper _db;
+  final String? Function() _currentUserId;
+
+  RacesService({
+    required IDatabaseHelper db,
+    String? Function()? currentUserId,
+  })  : _db = db,
+        _currentUserId =
+            currentUserId ?? (() => AuthService.instance.currentUserId);
+
   /// Loads all races from the database.
-  static Future<List<Race>> loadRaces() async {
-    return await DatabaseHelper.instance.getAllRaces();
+  Future<Result<List<Race>>> loadRaces() async {
+    try {
+      final races = await _db.getAllRaces();
+      return Success(races);
+    } catch (e) {
+      return Failure(AppError(
+        userMessage: 'Could not load races. Please try again.',
+        originalException: e,
+      ));
+    }
   }
 
   /// Creates a new race in the database.
-  static Future<int> createRace(Race race) async {
-    // Stamp owner on create
-    final ownerId = AuthService.instance.currentUserId;
-    final raceWithOwner = race.copyWith(ownerUserId: ownerId);
-    return await DatabaseHelper.instance.createRace(raceWithOwner);
+  Future<Result<int>> createRace(Race race) async {
+    try {
+      final ownerId = _currentUserId();
+      final raceWithOwner = race.copyWith(ownerUserId: ownerId);
+      final id = await _db.createRace(raceWithOwner);
+      return Success(id);
+    } catch (e) {
+      return Failure(AppError(
+        userMessage: 'Could not create race. Please try again.',
+        originalException: e,
+      ));
+    }
   }
 
   /// Updates an existing race in the database.
-  static Future<void> updateRace(Race race) async {
-    await MasterRace.getInstance(race.raceId!).updateRace(race);
+  Future<Result<void>> updateRace(Race race) async {
+    try {
+      await MasterRace.getInstance(race.raceId!).updateRace(race);
+      return const Success(null);
+    } catch (e) {
+      return Failure(AppError(
+        userMessage: 'Could not update race. Please try again.',
+        originalException: e,
+      ));
+    }
   }
 
   /// Deletes a race from the database.
-  static Future<void> deleteRace(int raceId) async {
-    await DatabaseHelper.instance.deleteRace(raceId);
+  Future<Result<void>> deleteRace(int raceId) async {
+    try {
+      await _db.deleteRace(raceId);
+      return const Success(null);
+    } catch (e) {
+      return Failure(AppError(
+        userMessage: 'Could not delete race. Please try again.',
+        originalException: e,
+      ));
+    }
   }
 
   /// Validates race creation form fields.
