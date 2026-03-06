@@ -18,11 +18,18 @@ class MasterFlowController {
   final RaceController raceController;
   late PreRaceController preRaceController;
   late PostRaceController postRaceController;
+  late final EventBus _eventBus;
 
-  MasterFlowController({required this.raceController}) {
-    preRaceController =
+  MasterFlowController({
+    required this.raceController,
+    EventBus? eventBus,
+    PreRaceController? preRaceController,
+    PostRaceController? postRaceController,
+  }) {
+    _eventBus = eventBus ?? EventBus.instance;
+    this.preRaceController = preRaceController ??
         PreRaceController(masterRace: raceController.masterRace);
-    postRaceController =
+    this.postRaceController = postRaceController ??
         PostRaceController(masterRace: raceController.masterRace);
   }
 
@@ -49,7 +56,7 @@ class MasterFlowController {
     // Master flow state change
 
     // Fire event (for components that use the event bus)
-    EventBus.instance.fire(EventTypes.raceFlowStateChanged, {
+    _eventBus.fire(EventTypes.raceFlowStateChanged, {
       'raceId': raceController.masterRace.raceId,
       'newState': newState,
       'race': await raceController.masterRace.race,
