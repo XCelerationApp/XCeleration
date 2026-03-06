@@ -96,10 +96,11 @@ Use the right tool for the job:
 3. Push: `git push -u origin <branch-name>`
 4. A PR is **automatically created** — do not create one manually
    - The PR may take a few seconds to appear; wait then run `gh pr list --head <branch-name>` to confirm it exists and get the PR number
-5. Update the PR description using: `mcp__github__update_pull_request`
-6. **Verify** the description was applied: `gh pr view <number> --json body -q .body`
-   - If the body still shows the auto-generated text, re-run step 5
-7. If this PR was related to a linear issue, mark the linear issue as completed, as said in the @LINEAR_WORKFLOW_SKILL.md  
+5. **Only update the PR description after all commits are pushed.** GitHub replaces the PR description with auto-generated text whenever a new commit is pushed, wiping any custom description set earlier. Set it once, at the end.
+6. Update the PR description using: `mcp__github__update_pull_request`
+7. **Verify** the description was applied: `gh pr view <number> --json body -q .body`
+   - If the body still shows the auto-generated text, re-run step 6
+8. If this PR was related to a linear issue, mark the linear issue as completed, as said in the @LINEAR_WORKFLOW_SKILL.md
 
 ### PR Description Format
 
