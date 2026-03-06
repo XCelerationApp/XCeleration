@@ -489,7 +489,7 @@ If the screen is data-heavy (lists with 10+ items, timing data, scoring tables),
 
 ```sh
 flutter analyze
-flutter test
+python3 scripts/test_runner.py
 ```
 
 Both must pass before the file is considered done.
@@ -542,4 +542,4 @@ Check every item before every pull request, and before marking any UI file as co
 ### Quality
 
 - [ ] `flutter analyze` passes with zero warnings
-- [ ] `flutter test` passes
+- [ ] `python3 scripts/test_runner.py` passes

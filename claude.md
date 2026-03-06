@@ -21,8 +21,8 @@ Flutter, Dart, ChangeNotifier + Provider, SQLite, Supabase.
 ## Always
 
 - Run `flutter analyze` after every meaningful change
-- Run `flutter test <path/to/specific_test.dart>` for the test files related to your changes
-- Run the full `flutter test` before committing to catch regressions
+- Run `python3 scripts/test_runner.py  <path/to/specific_test.dart>` for the test files related to your changes
+- Run the full `python3 scripts/test_runner.py` before committing to catch regressions
 - One concern per commit
 
 ## Working Style
@@ -37,7 +37,6 @@ The `dart` and `flutter` binaries are not on PATH in non-interactive shells. Alw
 
 ```sh
 /Users/finiandonnelley/Programming_project/flutter/bin/flutter analyze
-/Users/finiandonnelley/Programming_project/flutter/bin/flutter test
 ```
 
 When adding or changing mocks (e.g. after `@GenerateMocks` changes):

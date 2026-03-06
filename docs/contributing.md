@@ -21,13 +21,13 @@ Last reviewed: 2025-08-11
 
 ### Code quality
 
-- Run `flutter analyze` and `flutter test` before PRs
+- Run `flutter analyze` and `python3 scripts/test_runner.py` before PRs
 - Format code with `dart format .`
 
 ## Testing
 
 ```bash
-flutter test
+python3 scripts/test_runner.py
 dart run build_runner build --delete-conflicting-outputs
 ```
 
