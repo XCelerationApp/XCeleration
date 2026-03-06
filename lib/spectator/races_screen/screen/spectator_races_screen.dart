@@ -19,7 +19,6 @@ import 'package:xceleration/core/utils/connection_utils.dart';
 import 'package:xceleration/core/utils/data_protocol.dart';
 import 'package:xceleration/core/components/connection_components.dart';
 import 'package:xceleration/core/connection/controller/wireless_connection_controller.dart';
-import 'package:provider/provider.dart';
 import 'package:xceleration/shared/services/race_results_service.dart';
 import 'package:xceleration/coach/race_results/widgets/team_results_widget.dart';
 import 'package:xceleration/coach/race_results/widgets/individual_results_widget.dart';
@@ -115,8 +114,8 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
       await sheet(
         context: context,
         title: 'Share "$raceName"',
-        body: ChangeNotifierProvider(
-          create: (_) {
+        body: WirelessConnectionWidget(
+          controller: () {
             final svc = DeviceConnectionService(
               devices,
               'wirelessconn',
@@ -134,8 +133,7 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
                 }
               },
             );
-          },
-          child: const WirelessConnectionWidget(),
+          }(),
         ),
       );
     } catch (e) {

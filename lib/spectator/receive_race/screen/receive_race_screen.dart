@@ -6,7 +6,6 @@ import 'package:xceleration/core/utils/data_protocol.dart';
 import 'package:xceleration/core/components/connection_components.dart';
 import 'package:xceleration/core/utils/enums.dart';
 import 'package:xceleration/core/connection/controller/wireless_connection_controller.dart';
-import 'package:provider/provider.dart';
 import 'package:xceleration/core/components/dialog_utils.dart';
 import 'package:xceleration/core/result.dart';
 import 'package:xceleration/core/utils/race_share_decoder.dart';
@@ -123,8 +122,8 @@ class _ReceiveRaceScreenState extends State<ReceiveRaceScreen> {
                   : 'Searching for nearby coaches...\nThis will automatically connect and receive a race.',
             ),
             const SizedBox(height: 16),
-            ChangeNotifierProvider(
-              create: (_) {
+            WirelessConnectionWidget(
+              controller: () {
                 final svc = DeviceConnectionService(
                   devices,
                   'wirelessconn',
@@ -138,8 +137,7 @@ class _ReceiveRaceScreenState extends State<ReceiveRaceScreen> {
                   devices: devices,
                   callback: _onComplete,
                 );
-              },
-              child: const WirelessConnectionWidget(),
+              }(),
             ),
           ],
         ),
@@ -173,8 +171,8 @@ class ReceiveRacePreviewSheet extends StatelessWidget {
       await sheet(
         context: context,
         title: 'Share to Another Spectator',
-        body: ChangeNotifierProvider(
-          create: (_) {
+        body: WirelessConnectionWidget(
+          controller: () {
             final svc = DeviceConnectionService(
               devices,
               'wirelessconn',
@@ -192,8 +190,7 @@ class ReceiveRacePreviewSheet extends StatelessWidget {
                 }
               },
             );
-          },
-          child: const WirelessConnectionWidget(),
+          }(),
         ),
       );
     } catch (e) {

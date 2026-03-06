@@ -6,7 +6,6 @@ import '../utils/enums.dart';
 import '../utils/platform_checker.dart';
 import '../connection/controller/qr_connection_controller.dart';
 import '../connection/controller/wireless_connection_controller.dart';
-import 'package:provider/provider.dart';
 
 class WirelessConnectionButton extends StatefulWidget {
   final ConnectedDevice device;
@@ -399,7 +398,12 @@ class _QRConnectionState extends State<QRConnectionWidget> {
 }
 
 class WirelessConnectionWidget extends StatefulWidget {
-  const WirelessConnectionWidget({super.key});
+  final WirelessConnectionController controller;
+
+  const WirelessConnectionWidget({
+    super.key,
+    required this.controller,
+  });
 
   @override
   State<WirelessConnectionWidget> createState() => _WirelessConnectionState();
@@ -409,16 +413,24 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        context.read<WirelessConnectionController>().initialize();
-      }
-    });
+    widget.controller.addListener(_rebuild);
+    widget.controller.initialize();
+  }
+
+  void _rebuild() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_rebuild);
+    widget.controller.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final controller = context.watch<WirelessConnectionController>();
+    final controller = widget.controller;
 
     if (controller.wirelessConnectionError != null) {
       return Column(
