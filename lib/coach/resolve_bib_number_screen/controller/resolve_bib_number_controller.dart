@@ -1,9 +1,9 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show ChangeNotifier, TextEditingController;
+import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/shared/models/database/race_participant.dart';
 import 'package:xceleration/shared/models/database/race_runner.dart';
 import 'package:xceleration/shared/models/database/runner.dart';
-import '../../../core/components/dialog_utils.dart';
 import '../../../shared/models/database/master_race.dart';
 import '../../../shared/models/database/team.dart';
 
@@ -21,8 +21,6 @@ class ResolveBibNumberController with ChangeNotifier {
   final Function(RaceRunner) onComplete;
   final RaceRunner raceRunner;
 
-  BuildContext? _context;
-
   ResolveBibNumberController({
     required this.raceRunners,
     required this.raceId,
@@ -35,16 +33,6 @@ class ResolveBibNumberController with ChangeNotifier {
     masterRace.addListener(() {
       notifyListeners();
     });
-  }
-
-  void setContext(BuildContext context) {
-    _context = context;
-  }
-
-  BuildContext get context {
-    assert(_context != null,
-        'Context not set in ResolveBibNumberController. Call setContext() first.');
-    return _context!;
   }
 
   /// Get all teams (cached by MasterRace)
@@ -84,15 +72,14 @@ class ResolveBibNumberController with ChangeNotifier {
     Logger.d('Filtered search results');
   }
 
-  Future<void> createNewRunner() async {
+  Future<AppError?> createNewRunner() async {
     if (nameController.text.isEmpty ||
         gradeController.text.isEmpty ||
         teamController.text.isEmpty ||
         bibController.text.isEmpty) {
-      DialogUtils.showErrorDialog(context,
-          message:
+      return const AppError(
+          userMessage:
               'Please enter a name, grade, team, and bib number for the runner');
-      return;
     }
 
     Logger.d(
@@ -151,34 +138,27 @@ class ResolveBibNumberController with ChangeNotifier {
       Logger.d(
           'Created new RaceRunner: ${updatedRaceRunner.runner.name} (bib: ${updatedRaceRunner.runner.bibNumber}, team: ${updatedRaceRunner.team.name})');
       onComplete(updatedRaceRunner);
+      return null;
     } catch (e) {
       Logger.e('Error creating new runner: $e');
-      if (context.mounted) {
-        DialogUtils.showErrorDialog(context,
-            message: 'Failed to create runner: $e');
-      }
+      return AppError(userMessage: 'Failed to create runner. Please try again.');
     }
   }
 
-  Future<void> assignExistingRaceRunner(RaceRunner raceRunner) async {
+  /// Returns an [AppError] if the runner's bib is already assigned; otherwise
+  /// calls [onComplete] and returns null. The caller is responsible for showing
+  /// a confirmation dialog before invoking this method.
+  AppError? assignExistingRaceRunner(RaceRunner raceRunner) {
     if (raceRunners
         .any((r) => r.runner.bibNumber == raceRunner.runner.bibNumber)) {
-      DialogUtils.showErrorDialog(context,
-          message: 'This bib number is already assigned to another runner');
-      return;
+      return const AppError(
+          userMessage: 'This bib number is already assigned to another runner');
     }
 
-    final confirmed = await DialogUtils.showConfirmationDialog(context,
-        title: 'Assign Runner',
-        content:
-            'Are you sure this is the correct runner? \nName: ${raceRunner.runner.name} \nGrade: ${raceRunner.runner.grade ?? 'N/A'} \nTeam: ${raceRunner.team.name} \nBib Number: ${raceRunner.runner.bibNumber}');
-
-    // Check if context is still mounted after the async operation
-    if (!context.mounted || !confirmed) return;
     Logger.d(
         'Assigning existing race runner: $raceRunner to raceRunner: ${raceRunner.toString()}');
-
     onComplete(raceRunner);
+    return null;
   }
 
   @override
@@ -191,7 +171,6 @@ class ResolveBibNumberController with ChangeNotifier {
     masterRace.removeListener(() {
       notifyListeners();
     });
-    _context = null;
     super.dispose();
   }
 }
