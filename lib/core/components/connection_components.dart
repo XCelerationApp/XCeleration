@@ -1,16 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:xceleration/core/services/nearby_connections.dart';
-import 'package:xceleration/core/utils/logger.dart';
 import '../utils/connection_utils.dart';
-import 'dart:async';
-import 'package:flutter_nearby_connections/flutter_nearby_connections.dart';
 import '../services/device_connection_service.dart';
-import '../utils/data_protocol.dart';
 import 'dialog_utils.dart';
 import '../utils/enums.dart';
 import '../utils/platform_checker.dart';
 import '../connection/controller/qr_connection_controller.dart';
-import 'package:xceleration/core/result.dart';
+import '../connection/controller/wireless_connection_controller.dart';
 
 class WirelessConnectionButton extends StatefulWidget {
   final ConnectedDevice device;
@@ -403,13 +398,11 @@ class _QRConnectionState extends State<QRConnectionWidget> {
 }
 
 class WirelessConnectionWidget extends StatefulWidget {
-  final DevicesManager devices;
-  final Function callback;
+  final WirelessConnectionController controller;
 
   const WirelessConnectionWidget({
     super.key,
-    required this.devices,
-    required this.callback,
+    required this.controller,
   });
 
   @override
@@ -417,375 +410,41 @@ class WirelessConnectionWidget extends StatefulWidget {
 }
 
 class _WirelessConnectionState extends State<WirelessConnectionWidget> {
-  late DeviceConnectionService _deviceConnectionService;
-  late Protocol _protocol;
-  WirelessConnectionError? _wirelessConnectionError;
-  bool _isInitialized = false;
-  String? _messageMonitorToken;
-
-  // Add a completer to properly handle cancellation
-  late Completer<void> _connectionCompleter;
-
   @override
   void initState() {
     super.initState();
-    // // Reset devices when widget is first created
-    // widget.devices.reset();
-    _initialize();
+    widget.controller.addListener(_rebuild);
+    widget.controller.initialize();
   }
 
-  Future<void> _initialize() async {
-    if (!mounted) return;
-    _connectionCompleter = Completer<void>();
-
-    try {
-      _deviceConnectionService = DeviceConnectionService(
-        widget.devices,
-        'wirelessconn',
-        getDeviceNameString(widget.devices.currentDeviceName),
-        widget.devices.currentDeviceType,
-        NearbyConnections(),
-      );
-      _protocol = Protocol(deviceConnectionService: _deviceConnectionService);
-
-      final checkResult =
-          await _deviceConnectionService.checkIfNearbyConnectionsWorks();
-      final isServiceAvailable = switch (checkResult) {
-        Success(:final value) => value,
-        Failure() => false,
-      };
-
-      if (!mounted) return;
-
-      if (!isServiceAvailable) {
-        setState(() {
-          _wirelessConnectionError = WirelessConnectionError.unavailable;
-          _isInitialized = true;
-        });
-        return;
-      }
-
-      try {
-        final initResult = await _deviceConnectionService.init();
-        final initSuccess = switch (initResult) {
-          Success(:final value) => value,
-          Failure() => false,
-        };
-
-        if (!mounted) return;
-
-        if (!initSuccess) {
-          setState(() {
-            _wirelessConnectionError = WirelessConnectionError.unknown;
-            _isInitialized = true;
-          });
-          return;
-        }
-
-        setState(() {
-          _isInitialized = true;
-        });
-
-        // Start the connection process in a non-blocking way
-        _startConnectionProcess();
-      } catch (e) {
-        if (!mounted) return;
-
-        setState(() {
-          Logger.d('Error initializing connection service: $e');
-          _wirelessConnectionError = WirelessConnectionError.unknown;
-          _isInitialized = true;
-        });
-      }
-    } catch (e) {
-      if (!mounted) return;
-
-      setState(() {
-        _wirelessConnectionError = WirelessConnectionError.unknown;
-        _isInitialized = true;
-      });
-
-      if (mounted) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          DialogUtils.showErrorDialog(
-            context,
-            title: 'Error',
-            message:
-                'An error occurred while trying to connect. Please try again.',
-          );
-        });
-      }
-    }
-  }
-
-  void _startConnectionProcess() {
-    // Don't proceed if we've been disposed
-    if (!mounted || !_deviceConnectionService.isActive) return;
-
-    // Start device monitoring process asynchronously
-    _monitorDevices();
-  }
-
-  Future<void> _monitorDevices() async {
-    try {
-      await _deviceConnectionService.monitorDevicesConnectionStatus(
-        deviceFoundCallback: _deviceFoundCallback,
-        deviceConnectingCallback: _deviceConnectingCallback,
-        deviceConnectedCallback: _deviceConnectedCallback,
-        timeout: const Duration(seconds: 60),
-        timeoutCallback: () async {
-          if (!mounted) return;
-          if (widget.devices.allDevicesFinished()) return;
-          setState(() {
-            _wirelessConnectionError = WirelessConnectionError.timeout;
-            _deviceConnectionService.dispose();
-            _protocol.dispose();
-            _connectionCompleter.complete();
-          });
-        },
-      );
-    } catch (e) {
-      Logger.d('Error monitoring devices: $e');
-    } finally {
-      // Ensure we mark connection as complete when monitoring ends
-      if (!_connectionCompleter.isCompleted) {
-        _connectionCompleter.complete();
-      }
-    }
-  }
-
-  Future<void> _deviceFoundCallback(Device device) async {
-    // Skip if we're disposed or the connection is complete
-    if (!mounted || _connectionCompleter.isCompleted) return;
-
-    final deviceName = getDeviceNameFromString(device.deviceName);
-    if (!widget.devices.hasDevice(deviceName) ||
-        widget.devices.getDevice(deviceName)!.isFinished) {
-      return;
-    }
-
-    // Skip invite if we're an advertiser
-    if (widget.devices.currentDeviceType == DeviceType.advertiserDevice) return;
-
-    // Try to invite the device
-    if (!_connectionCompleter.isCompleted) {
-      await _deviceConnectionService.inviteDevice(device);
-    }
-  }
-
-  // Future<void> _deviceLostCallback(Device device) async {
-  //   // Skip if we're disposed or the connection is complete
-  //   if (!mounted || _connectionCompleter.isCompleted) return;
-
-  //   // Handle device lost
-  //   final deviceName = getDeviceNameFromString(device.deviceName);
-  //   if (!widget.devices.hasDevice(deviceName) ||
-  //       widget.devices.getDevice(deviceName)!.isFinished) {
-  //     return;
-  //   }
-
-  //   // Attempt to reconnect if appropriate
-  //   if (!_connectionCompleter.isCompleted &&
-  //       widget.devices.currentDeviceType == DeviceType.browserDevice) {
-  //     // Let the reconnection mechanism handle it
-  //     await _deviceConnectionService.attemptReconnection(device);
-  //   }
-  // }
-
-  Future<void> _deviceConnectingCallback(Device device) async {
-    // Skip if we're disposed or the connection is complete
-    if (!mounted || _connectionCompleter.isCompleted) return;
-
-    final deviceName = getDeviceNameFromString(device.deviceName);
-    if (!widget.devices.hasDevice(deviceName) ||
-        widget.devices.getDevice(deviceName)!.isFinished) {
-      return;
-    }
-    // No action needed for connecting state
-  }
-
-  Future<void> _deviceConnectedCallback(Device device) async {
-    // Skip if we're disposed or the connection is complete
-    if (!mounted || _connectionCompleter.isCompleted) return;
-
-    final deviceName = getDeviceNameFromString(device.deviceName);
-    if (!widget.devices.hasDevice(deviceName) ||
-        widget.devices.getDevice(deviceName)!.isFinished) {
-      return;
-    }
-
-    try {
-      _protocol.addDevice(device);
-
-      // Monitor messages with proper tracking for cleanup
-      _messageMonitorToken =
-          await _deviceConnectionService.monitorMessageReceives(
-        device,
-        messageReceivedCallback: (package, senderId) async {
-          // Skip if we're disposed or the connection is complete
-          if (!mounted || _connectionCompleter.isCompleted) return;
-          await _protocol.handleMessage(package, senderId);
-        },
-      );
-
-      // Get device reference once to avoid repetition
-      final connectedDevice = widget.devices.getDevice(deviceName);
-      if (connectedDevice == null) {
-        Logger.d('Device not found in connected devices list');
-        return;
-      }
-
-      // Determine if this is a browser device (receiving) or advertiser (sending)
-      final isBrowserDevice =
-          widget.devices.currentDeviceType == DeviceType.browserDevice;
-
-      // Set initial status
-      if (mounted) {
-        setState(() {
-          connectedDevice.status = isBrowserDevice
-              ? ConnectionStatus.receiving
-              : ConnectionStatus.sending;
-        });
-      }
-
-      // For advertiser device, check if we have data to send
-      if (!isBrowserDevice && connectedDevice.data == null) {
-        Logger.d('No data for advertiser device to send');
-        if (mounted) {
-          setState(() {
-            connectedDevice.status = ConnectionStatus.error;
-          });
-        }
-        return;
-      }
-
-      final transferResult = await _protocol.handleDataTransfer(
-        deviceId: device.deviceId,
-        // If browser device, we're receiving; otherwise we're sending the device's data
-        isReceiving: isBrowserDevice,
-        dataToSend: isBrowserDevice ? null : connectedDevice.data,
-        // Check if we should continue the transfer based on device status
-        shouldContinueTransfer: () {
-          // Only continue if the device's status is still in receiving/sending state
-          if (!mounted) return false; // Abort if widget is no longer mounted
-
-          final deviceStatus = widget.devices.getDevice(deviceName)?.status;
-          final expectedStatus = isBrowserDevice
-              ? ConnectionStatus.receiving
-              : ConnectionStatus.sending;
-
-          // Continue if status is as expected, otherwise abort
-          bool shouldContinue = deviceStatus == expectedStatus;
-          if (!shouldContinue) {
-            Logger.d('Device status changed: $deviceStatus != $expectedStatus');
-          }
-          return shouldContinue;
-        },
-      );
-
-      // Skip updating UI if we're disposed
-      if (!mounted || _connectionCompleter.isCompleted) return;
-
-      switch (transferResult) {
-        case Success(:final value):
-          // Update device status and data if we're a browser device (and received data)
-          setState(() {
-            if (isBrowserDevice && value != null) {
-              connectedDevice.data = value;
-            }
-            connectedDevice.status = ConnectionStatus.finished;
-          });
-
-          // In spectator broadcast mode (advertiser), briefly show Done then return to Searching
-          if (!isBrowserDevice && widget.devices.toSpectator && mounted) {
-            Timer(const Duration(seconds: 2), () {
-              if (!mounted) return;
-              setState(() {
-                connectedDevice.status = ConnectionStatus.searching;
-              });
-            });
-          }
-
-          // Check if all devices have finished loading data
-          bool allDevicesFinished = widget.devices.allDevicesFinished();
-
-          // Call the callback if all devices are finished
-          if (allDevicesFinished && mounted) {
-            // Complete the connection to stop monitoring
-            if (!_connectionCompleter.isCompleted) {
-              _connectionCompleter.complete();
-              _deviceConnectionService.dispose();
-              _protocol.dispose();
-            }
-            widget.callback();
-          }
-
-          // For advertiser devices, disconnect after sending
-          if (!isBrowserDevice && mounted) {
-            Timer(const Duration(seconds: 1), () {
-              if (mounted) {
-                _deviceConnectionService.disconnectDevice(device);
-              }
-            });
-          }
-        case Failure(:final error):
-          Logger.e('[WirelessConnectionWidget] ${error.originalException}');
-          if (mounted) {
-            setState(() {
-              connectedDevice.status = ConnectionStatus.error;
-            });
-          }
-      }
-
-      // Clean up device from protocol
-      _protocol.removeDevice(device.deviceId);
-    } catch (e) {
-      Logger.d('Error in connection: $e');
-      _protocol.removeDevice(device.deviceId);
-
-      if (mounted) {
-        setState(() {
-          widget.devices.getDevice(deviceName)!.status = ConnectionStatus.error;
-        });
-      }
-    }
+  void _rebuild() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
-    Logger.d('Disposing WirelessConnectionWidget');
-    if (_messageMonitorToken != null) {
-      _deviceConnectionService.stopMessageMonitoring(_messageMonitorToken!);
-    }
-    if (!_connectionCompleter.isCompleted) {
-      _connectionCompleter.complete();
-    }
-    _deviceConnectionService.dispose();
-    _protocol.dispose();
-
+    widget.controller.removeListener(_rebuild);
+    widget.controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_wirelessConnectionError != null) {
-      // Show a single error button
+    final controller = widget.controller;
+
+    if (controller.wirelessConnectionError != null) {
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Padding(
-              padding: const EdgeInsets.only(bottom: 8.0),
-              child: WirelessConnectionButton(
-                device: ConnectedDevice(DeviceName.coach),
-              ).error(
-                  error: _wirelessConnectionError!,
-                  retryAction: () {
-                    setState(() {
-                      _wirelessConnectionError = null;
-                      _isInitialized = false;
-                    });
-                    _initialize();
-                  })),
+            padding: const EdgeInsets.only(bottom: 8.0),
+            child: WirelessConnectionButton(
+              device: ConnectedDevice(DeviceName.coach),
+            ).error(
+              error: controller.wirelessConnectionError!,
+              retryAction: controller.retry,
+            ),
+          ),
         ],
       );
     }
@@ -793,16 +452,12 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        for (var device in widget.devices.otherDevices)
+        for (var device in controller.devices.otherDevices)
           Padding(
             padding: const EdgeInsets.only(bottom: 16.0),
-            child: !_isInitialized
-                ? WirelessConnectionButton(
-                    device: device,
-                  ).skeleton
-                : WirelessConnectionButton(
-                    device: device,
-                  ),
+            child: controller.isLoading
+                ? WirelessConnectionButton(device: device).skeleton
+                : WirelessConnectionButton(device: device),
           ),
       ],
     );
