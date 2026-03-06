@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
-import 'package:xceleration/core/utils/database_helper.dart';
 import '../theme/app_colors.dart';
 import 'textfield_utils.dart';
 import '../../shared/models/database/master_race.dart';
@@ -36,7 +35,7 @@ class _CreateTeamSheetState extends State<CreateTeamSheet> {
   void initState() {
     super.initState();
     // Preload ALL team names from the database (not just this race)
-    DatabaseHelper.instance.getAllTeams().then((teams) {
+    widget.masterRace.db.getAllTeams().then((teams) {
       if (!mounted) return;
       setState(() {
         _existingTeamNamesLower =
