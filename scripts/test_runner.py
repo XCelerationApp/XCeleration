@@ -6,6 +6,7 @@ Usage:
   python3 scripts/test_runner.py path/to/test.dart        # single file
   python3 scripts/test_runner.py test/unit/               # whole folder
   python3 scripts/test_runner.py file1.dart test/unit/    # multiple targets
+  python3 scripts/test_runner.py -v [targets...]          # verbose: full errors, no truncation
 """
 
 import json
@@ -37,7 +38,7 @@ def _find_flutter():
 FLUTTER = _find_flutter()
 
 
-def run_tests(paths=None):
+def run_tests(paths=None, verbose=False):
     cmd = [FLUTTER, "test", "--reporter=json"]
     if paths:
         cmd.extend(paths)
@@ -74,8 +75,9 @@ def run_tests(paths=None):
             tid = event["testID"]
             error_msg = event.get("error", "")
             stack = event.get("stackTrace", "")
-            # Keep first 3 lines of stack trace
-            stack_lines = [l for l in stack.splitlines() if l.strip()][:3]
+            stack_lines = [l for l in stack.splitlines() if l.strip()]
+            if not verbose:
+                stack_lines = stack_lines[:3]
             errors[tid].append(error_msg)
             if stack_lines:
                 errors[tid].extend(stack_lines)
@@ -111,7 +113,7 @@ def run_tests(paths=None):
             for line in err_lines:
                 # Trim long lines
                 line = line.strip()
-                if len(line) > 120:
+                if not verbose and len(line) > 120:
                     line = line[:117] + "..."
                 print(f"        {line}")
             print()
@@ -120,4 +122,8 @@ def run_tests(paths=None):
 
 
 if __name__ == "__main__":
-    run_tests(sys.argv[1:] or None)
+    args = sys.argv[1:]
+    verbose = "-v" in args
+    if verbose:
+        args = [a for a in args if a != "-v"]
+    run_tests(args or None, verbose=verbose)
