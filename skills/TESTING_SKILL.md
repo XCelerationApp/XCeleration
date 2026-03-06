@@ -210,6 +210,20 @@ testWidgets('shows error widget when hasError is true', (tester) async {
 
 ---
 
+## Running Tests
+
+Always use the custom runner — output fits in a single Bash tool read:
+
+```sh
+python3 scripts/test_runner.py                        # all tests
+python3 scripts/test_runner.py path/to/test.dart     # single file
+python3 scripts/test_runner.py test/unit/            # whole folder
+```
+
+Do NOT run `flutter test` directly — its raw output exceeds the Bash tool's readable limit.
+
+---
+
 ## Checklist
 
 - [ ] Test file mirrors `lib/` path under `test/unit/`, `test/widget/`, or `test/integration/`
@@ -217,4 +231,4 @@ testWidgets('shows error widget when hasError is true', (tester) async {
 - [ ] Controller tests assert on `isLoading`, `hasError`, and state after each action
 - [ ] Service tests assert on `Result<T>` — never on thrown exceptions
 - [ ] No test touches a real database, network, or platform API
-- [ ] `flutter test` passes
+- [ ] `python3 scripts/test_runner.py` passes
