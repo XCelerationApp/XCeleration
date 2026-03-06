@@ -13,6 +13,7 @@ import 'package:xceleration/core/services/i_device_connection_factory.dart';
 import 'package:xceleration/core/services/tutorial_manager.dart';
 import 'package:xceleration/core/utils/enums.dart';
 import 'package:xceleration/assistant/shared/models/bib_record.dart' as db_models;
+import 'package:xceleration/shared/models/timing_records/bib_datum.dart';
 
 import 'bib_number_controller_test.mocks.dart';
 
@@ -193,6 +194,19 @@ void main() {
 
         controller.dispose();
       });
+
+      test('removes empty trailing record when stopping race', () async {
+        final controller = buildController();
+        controller.setCurrentRace(testRace);
+        controller.setRaceStopped(false);
+        await controller.addBibRecord(BibDatumRecord.blank());
+
+        controller.raceStopped = true;
+
+        expect(controller.bibRecords, isEmpty);
+
+        controller.dispose();
+      });
     });
 
     group('deleteCurrentRace', () {
@@ -229,6 +243,162 @@ void main() {
         await controller.deleteCurrentRace();
 
         expect(controller.currentRace, equals(testRace));
+
+        controller.dispose();
+      });
+    });
+
+    group('_loadLastRace', () {
+      test('leaves currentRace null when getRaces returns Failure', () async {
+        when(mockStorage.getRaces(any)).thenAnswer(
+          (_) async => const Failure(AppError(userMessage: 'error')),
+        );
+
+        final controller = buildController();
+        await Future.delayed(Duration.zero);
+
+        expect(controller.currentRace, isNull);
+
+        controller.dispose();
+      });
+    });
+
+    group('validateBibNumber', () {
+      test('clears flags for empty input', () async {
+        final controller = buildController();
+        await controller.addBibRecord(
+            BibDatumRecord(bib: '5', name: '', teamAbbreviation: '', grade: ''));
+
+        await controller.validateBibNumber(0, '');
+
+        expect(controller.bibRecords[0].bib, equals(''));
+        expect(controller.bibRecords[0].flags.notInDatabase, isFalse);
+        expect(controller.bibRecords[0].flags.duplicateBibNumber, isFalse);
+
+        controller.dispose();
+      });
+
+      test('marks notInDatabase for non-numeric input', () async {
+        final controller = buildController();
+        await controller.addBibRecord(BibDatumRecord.blank());
+
+        await controller.validateBibNumber(0, 'abc');
+
+        expect(controller.bibRecords[0].flags.notInDatabase, isTrue);
+
+        controller.dispose();
+      });
+
+      test('marks notInDatabase when runner not found', () async {
+        final controller = buildController();
+        await controller.addBibRecord(BibDatumRecord.blank());
+
+        await controller.validateBibNumber(0, '99');
+
+        expect(controller.bibRecords[0].flags.notInDatabase, isTrue);
+
+        controller.dispose();
+      });
+
+      test('populates runner info and clears notInDatabase when runner found',
+          () async {
+        final controller = buildController();
+        controller.runners.add(BibDatum(
+          bib: '42',
+          name: 'Alice',
+          teamAbbreviation: 'EAG',
+          grade: '10',
+        ));
+        await controller.addBibRecord(BibDatumRecord.blank());
+
+        await controller.validateBibNumber(0, '42');
+
+        expect(controller.bibRecords[0].flags.notInDatabase, isFalse);
+        expect(controller.bibRecords[0].name, equals('Alice'));
+
+        controller.dispose();
+      });
+
+      test('marks duplicateBibNumber for second occurrence of same bib',
+          () async {
+        final controller = buildController();
+        controller.runners.add(BibDatum(
+          bib: '7',
+          name: 'Bob',
+          teamAbbreviation: 'TIG',
+          grade: '11',
+        ));
+        await controller.addBibRecord(
+            BibDatumRecord(bib: '7', name: '', teamAbbreviation: '', grade: ''));
+        await controller.addBibRecord(
+            BibDatumRecord(bib: '7', name: '', teamAbbreviation: '', grade: ''));
+
+        await controller.validateBibNumber(1, '7');
+
+        expect(controller.bibRecords[1].flags.duplicateBibNumber, isTrue);
+
+        controller.dispose();
+      });
+
+      test('does nothing for out-of-range index', () async {
+        final controller = buildController();
+
+        await expectLater(controller.validateBibNumber(5, '42'), completes);
+
+        controller.dispose();
+      });
+    });
+
+    group('loadOtherRace', () {
+      test('resets state and loads the provided race', () async {
+        final otherRace = RaceRecord(
+          raceId: 2,
+          date: DateTime(2024, 6, 1),
+          name: 'Regional Meet',
+          type: DeviceName.bibRecorder.toString(),
+          stopped: false,
+        );
+        when(mockStorage.getRunners(otherRace.raceId))
+            .thenAnswer((_) async => const Success([]));
+        when(mockStorage.getBibRecords(otherRace.raceId))
+            .thenAnswer((_) async => const Success([]));
+
+        final controller = buildController();
+        controller.setCurrentRace(testRace);
+
+        await controller.loadOtherRace(otherRace);
+
+        expect(controller.currentRace, equals(otherRace));
+        verify(mockStorage.getRunners(otherRace.raceId)).called(1);
+        verify(mockStorage.getBibRecords(otherRace.raceId)).called(1);
+
+        controller.dispose();
+      });
+    });
+
+    group('saveBibRecords', () {
+      test('saves non-empty records using current race id', () async {
+        final controller = buildController();
+        controller.setCurrentRace(testRace);
+        await controller.addBibRecord(
+            BibDatumRecord(bib: '3', name: '', teamAbbreviation: '', grade: ''));
+
+        await controller.saveBibRecords();
+
+        verify(mockStorage.saveBibRecords(testRace.raceId, argThat(isNotEmpty)))
+            .called(1);
+
+        controller.dispose();
+      });
+
+      test('does nothing when no race is loaded', () async {
+        final controller = buildController();
+        await controller.addBibRecord(
+            BibDatumRecord(bib: '3', name: '', teamAbbreviation: '', grade: ''));
+
+        await controller.saveBibRecords();
+
+        verifyNever(mockStorage.saveBibRecords(any, any));
 
         controller.dispose();
       });
@@ -469,6 +639,159 @@ void main() {
         controller.setRaceStopped(false);
 
         expect(controller.raceStopped, isFalse);
+
+        controller.dispose();
+      });
+    });
+
+    group('cleanEmptyRecords', () {
+      test('removes all records with empty bib', () async {
+        final controller = buildController();
+        await controller.addBibRecord(
+            BibDatumRecord(bib: '1', name: '', teamAbbreviation: '', grade: ''));
+        await controller.addBibRecord(BibDatumRecord.blank());
+        await controller.addBibRecord(
+            BibDatumRecord(bib: '2', name: '', teamAbbreviation: '', grade: ''));
+
+        await controller.cleanEmptyRecords();
+
+        expect(
+          controller.bibRecords.map((r) => r.bib),
+          containsAll(['1', '2']),
+        );
+        expect(controller.bibRecords.any((r) => r.bib.isEmpty), isFalse);
+
+        controller.dispose();
+      });
+
+      test('returns true', () async {
+        final controller = buildController();
+        await controller.addBibRecord(BibDatumRecord.blank());
+
+        final result = await controller.cleanEmptyRecords();
+
+        expect(result, isTrue);
+
+        controller.dispose();
+      });
+    });
+
+    group('getBibsAndRunners', () {
+      test('returns map of non-empty bibs to records', () async {
+        final controller = buildController();
+        await controller.addBibRecord(
+            BibDatumRecord(bib: '10', name: 'Alice', teamAbbreviation: 'EAG', grade: '10'));
+        await controller.addBibRecord(BibDatumRecord.blank());
+
+        final map = controller.getBibsAndRunners();
+
+        expect(map.keys, contains('10'));
+        expect(map.keys, isNot(contains('')));
+        expect(map['10']!.name, equals('Alice'));
+
+        controller.dispose();
+      });
+
+      test('returns empty map when all bibs are empty', () async {
+        final controller = buildController();
+        await controller.addBibRecord(BibDatumRecord.blank());
+
+        expect(controller.getBibsAndRunners(), isEmpty);
+
+        controller.dispose();
+      });
+
+      test('last record wins for duplicate bib keys', () async {
+        final controller = buildController();
+        await controller.addBibRecord(
+            BibDatumRecord(bib: '5', name: 'First', teamAbbreviation: '', grade: ''));
+        await controller.addBibRecord(
+            BibDatumRecord(bib: '5', name: 'Second', teamAbbreviation: '', grade: ''));
+
+        final map = controller.getBibsAndRunners();
+
+        expect(map['5']!.name, equals('Second'));
+
+        controller.dispose();
+      });
+    });
+
+    group('stat helpers', () {
+      test('hasNonEmptyBibNumbers returns true when at least one non-empty bib',
+          () async {
+        final controller = buildController();
+        await controller.addBibRecord(
+            BibDatumRecord(bib: '1', name: '', teamAbbreviation: '', grade: ''));
+
+        expect(controller.hasNonEmptyBibNumbers(), isTrue);
+
+        controller.dispose();
+      });
+
+      test('hasNonEmptyBibNumbers returns false when all bibs are empty',
+          () async {
+        final controller = buildController();
+        await controller.addBibRecord(BibDatumRecord.blank());
+
+        expect(controller.hasNonEmptyBibNumbers(), isFalse);
+
+        controller.dispose();
+      });
+
+      test('countNonEmptyBibNumbers returns count of non-empty bibs', () async {
+        final controller = buildController();
+        await controller.addBibRecord(
+            BibDatumRecord(bib: '1', name: '', teamAbbreviation: '', grade: ''));
+        await controller.addBibRecord(BibDatumRecord.blank());
+
+        expect(controller.countNonEmptyBibNumbers(), equals(1));
+
+        controller.dispose();
+      });
+
+      test('countEmptyBibNumbers returns count of empty bibs', () async {
+        final controller = buildController();
+        await controller.addBibRecord(BibDatumRecord.blank());
+        await controller.addBibRecord(
+            BibDatumRecord(bib: '1', name: '', teamAbbreviation: '', grade: ''));
+
+        expect(controller.countEmptyBibNumbers(), equals(1));
+
+        controller.dispose();
+      });
+
+      test('countDuplicateBibNumbers returns count of duplicate-flagged records',
+          () async {
+        final controller = buildController();
+        await controller.addBibRecord(BibDatumRecord(
+          bib: '5',
+          name: '',
+          teamAbbreviation: '',
+          grade: '',
+          flags: const BibDatumRecordFlags(
+              notInDatabase: false, duplicateBibNumber: true),
+        ));
+        await controller.addBibRecord(BibDatumRecord.blank());
+
+        expect(controller.countDuplicateBibNumbers(), equals(1));
+
+        controller.dispose();
+      });
+
+      test('countUnknownBibNumbers returns count of notInDatabase-flagged records',
+          () async {
+        final controller = buildController();
+        await controller.addBibRecord(BibDatumRecord(
+          bib: '99',
+          name: '',
+          teamAbbreviation: '',
+          grade: '',
+          flags: const BibDatumRecordFlags(
+              notInDatabase: true, duplicateBibNumber: false),
+        ));
+        await controller.addBibRecord(BibDatumRecord.blank());
+
+        expect(controller.countUnknownBibNumbers(), equals(1));
 
         controller.dispose();
       });
