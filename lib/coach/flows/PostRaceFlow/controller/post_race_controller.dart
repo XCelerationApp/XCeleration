@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/coach/flows/model/flow_model.dart';
 import 'package:xceleration/coach/flows/PostRaceFlow/steps/load_results/load_results_step.dart';
+import 'package:xceleration/core/services/device_connection_service.dart';
+import 'package:xceleration/core/utils/enums.dart';
 
 import 'package:xceleration/shared/models/database/master_race.dart';
 import '../../controller/flow_controller.dart';
@@ -29,7 +31,15 @@ class PostRaceController {
   /// Initialize the flow steps
   void _initializeSteps() {
     // Create controllers first so they can be shared between steps
-    _loadResultsController = LoadResultsController(masterRace: masterRace);
+    final devices = DeviceConnectionService.createDevices(
+      DeviceName.coach,
+      DeviceType.browserDevice,
+    );
+    _loadResultsController = LoadResultsController(
+      masterRace: masterRace,
+      devices: devices,
+    );
+    _loadResultsController.initialize();
 
     // Create steps with the controllers
     _reconnectStep = ReconnectStep();

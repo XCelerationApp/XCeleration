@@ -30,17 +30,14 @@ class LoadResultsController with ChangeNotifier {
   List<RaceResult> results = [];
   List<TimingChunk>? timingChunks;
   List<dynamic>? raceRunners;
-  late final DevicesManager devices;
+  final DevicesManager devices;
 
   LoadResultsController({
     required this.masterRace,
-  }) {
-    devices = DeviceConnectionService.createDevices(
-      DeviceName.coach,
-      DeviceType.browserDevice,
-    );
+    required this.devices,
+  });
 
-    // Load any existing results
+  void initialize() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       loadResults();
     });
