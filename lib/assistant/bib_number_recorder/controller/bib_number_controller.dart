@@ -7,22 +7,26 @@ import '../../../core/services/tutorial_manager.dart';
 import '../../../core/utils/logger.dart';
 import '../../../core/utils/sheet_utils.dart';
 import '../../../core/components/device_connection_widget.dart';
-import '../../../core/services/device_connection_service.dart';
+import '../../../core/services/i_device_connection_factory.dart';
 import '../../../core/utils/decode_utils.dart';
 import 'package:xceleration/shared/models/timing_records/bib_datum.dart';
 import '../model/bib_record.dart';
 import '../../shared/models/race_record.dart';
-import '../../shared/services/assistant_storage_service.dart';
+import '../../shared/services/i_assistant_storage_service.dart';
+import '../../shared/services/i_demo_race_generator.dart';
 import '../../shared/models/bib_record.dart' as db_models;
 import '../../shared/models/runner.dart' as db_models;
 import 'package:xceleration/core/result.dart';
 import '../../shared/widgets/other_races_sheet.dart';
-import '../../shared/services/demo_race_generator.dart';
 import '../widget/runners_loaded_sheet.dart';
 
 class BibNumberController extends BibNumberDataController {
   late final ScrollController scrollController;
   late final List<BibDatum> runners;
+
+  final TutorialManager tutorialManager;
+  final IDemoRaceGenerator _demoRaceGenerator;
+  final IDeviceConnectionFactory _deviceConnectionFactory;
 
   // Debounce timer for validations
   Timer? _debounceTimer;
@@ -35,13 +39,17 @@ class BibNumberController extends BibNumberDataController {
     _runnersJustLoaded = false;
   }
 
-  BibNumberController() {
+  BibNumberController({
+    required super.storage,
+    required this.tutorialManager,
+    required IDemoRaceGenerator demoRaceGenerator,
+    required IDeviceConnectionFactory deviceConnectionFactory,
+  })  : _demoRaceGenerator = demoRaceGenerator,
+        _deviceConnectionFactory = deviceConnectionFactory {
     runners = [];
     scrollController = ScrollController();
     _loadLastRace();
   }
-
-  final tutorialManager = TutorialManager();
 
   set raceStopped(bool value) {
     if (raceStopped == value) {
@@ -72,6 +80,11 @@ class BibNumberController extends BibNumberDataController {
     setRaceStopped(value);
   }
 
+  bool isCurrentRaceDemoRace() {
+    if (currentRace == null) return false;
+    return _demoRaceGenerator.isDemoRace(currentRace!);
+  }
+
   void setupTutorials() {
     tutorialManager
         .startTutorial(['race_header_tutorial', 'role_bar_tutorial']);
@@ -79,7 +92,7 @@ class BibNumberController extends BibNumberDataController {
 
   Future<void> _loadLastRace() async {
     // Ensure demo race exists if no races are present
-    await DemoRaceGenerator.ensureDemoRaceExists(
+    await _demoRaceGenerator.ensureDemoRaceExists(
         DeviceName.bibRecorder.toString());
 
     final result = await storage.getRaces(DeviceName.bibRecorder.toString());
@@ -280,7 +293,7 @@ class BibNumberController extends BibNumberDataController {
   }
 
   Future<void> showLoadRaceSheet(BuildContext context) async {
-    final devices = DeviceConnectionService.createDevices(
+    final devices = _deviceConnectionFactory.createDevices(
       DeviceName.bibRecorder,
       DeviceType.browserDevice,
     );
@@ -386,7 +399,7 @@ class BibNumberController extends BibNumberDataController {
       title: 'Share Bib Numbers',
       body: deviceConnectionWidget(
         context,
-        DeviceConnectionService.createDevices(
+        _deviceConnectionFactory.createDevices(
           DeviceName.bibRecorder,
           DeviceType.advertiserDevice,
           data: encodedData,
@@ -630,9 +643,11 @@ class BibNumberDataController extends ChangeNotifier {
   bool _isKeyboardVisible = false;
 
   // Race context and storage - single source of truth
-  final AssistantStorageService storage = AssistantStorageService.instance;
+  final IAssistantStorageService storage;
   RaceRecord? _currentRace;
   bool _raceStopped = true;
+
+  BibNumberDataController({required this.storage});
 
   bool get isKeyboardVisible => _isKeyboardVisible;
 
@@ -863,7 +878,6 @@ class BibNumberDataController extends ChangeNotifier {
         }
       }
 
-      final storage = AssistantStorageService.instance;
       await storage.saveBibRecords(raceId, dbBibRecords);
       if (dbRunners.isNotEmpty) {
         await storage.saveRunners(raceId, dbRunners);
