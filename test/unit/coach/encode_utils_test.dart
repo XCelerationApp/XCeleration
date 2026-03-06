@@ -1,45 +1,142 @@
-// import 'package:flutter_test/flutter_test.dart';
-// import 'package:xceleration/core/utils/decode_utils.dart';
-// import 'package:xceleration/coach/merge_conflicts/model/timing_data.dart';
-// import 'package:xceleration/core/utils/logger.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:xceleration/core/result.dart';
+import 'package:xceleration/core/utils/decode_utils.dart';
+import 'package:xceleration/core/utils/encode_utils.dart';
+import 'package:xceleration/core/utils/enums.dart';
+import 'package:xceleration/shared/models/timing_records/bib_datum.dart';
+import 'package:xceleration/shared/models/timing_records/conflict.dart';
+import 'package:xceleration/shared/models/timing_records/timing_datum.dart';
 
-// void main() {
-//   test('decodeRaceTimesString includes all places from 1 to 21', () async {
-//     const encoded =
-//         '0.95,1.18,1.36,1.54,3.17,3.37,RecordType.confirmRunner 6 6.69,11.10,11.28,11.44,11.61,11.81,RecordType.extraTime 1 13.97,14.73,14.90,15.05,15.23,RecordType.confirmRunner 14 17.61,18.60,18.77,18.95,TBD,RecordType.missingTime 1 20.26,RecordType.confirmRunner 18 20.84,24.50,24.70,24.88,RecordType.extraTime 1 28.50,30.11,RecordType.confirmRunner 21 30.88';
-//     final TimingData timingData = await decodeRaceTimesString(encoded);
-//     final recordPlaces =
-//         timingData.records.map((r) => r.place).whereType<int>().toList();
-//     final maxPlace = 21;
-//     final expectedPlaces = Set<int>.from(List.generate(maxPlace, (i) => i + 1));
-//     final actualPlaces = Set<int>.from(recordPlaces);
-//     final missingPlaces = expectedPlaces.difference(actualPlaces);
-//     if (missingPlaces.isNotEmpty) {
-//       Logger.e('Test failed: Missing places: $missingPlaces');
-//     }
-//     expect(timingData.records.last.place, 21,
-//         reason: 'The last place should be 21');
-//   });
+/// Round-trip encode/decode tests covering the coach workflow:
+/// timing data is encoded by the assistant device and decoded on the coach side.
+void main() {
+  group('TimingEncodeUtils + TimingDecodeUtils round-trip', () {
+    test('simple runner times survive encode → decode', () async {
+      final original = [
+        TimingDatum(time: '1:01.5'),
+        TimingDatum(time: '1:02.3'),
+        TimingDatum(time: '1:03.1'),
+      ];
 
-//   test(
-//       'decodeRaceTimesString handles problematic input with missing and duplicate places',
-//       () async {
-//     const encoded =
-//         '0.36,0.63,0.89,1.14,1.36,TBD,RecordType.missingTime 1 2.31,2.92,3.10,RecordType.extraTime 1 4.19,4.68,4.86,5.13,5.28,5.56,5.68,TBD,RecordType.missingTime 1 6.59,7.09,7.27,7.47,RecordType.extraTime 1 8.70,9.15,9.33,RecordType.confirmRunner 18 10.73,11.44,11.64,12.14';
-//     final TimingData timingData = await decodeRaceTimesString(encoded);
-//     final recordPlaces =
-//         timingData.records.map((r) => r.place).whereType<int>().toList();
-//     final maxPlace = 21;
-//     final expectedPlaces = Set<int>.from(List.generate(maxPlace, (i) => i + 1));
-//     final actualPlaces = Set<int>.from(recordPlaces);
-//     final missingPlaces = expectedPlaces.difference(actualPlaces);
-//     if (missingPlaces.isNotEmpty) {
-//       Logger.e('Test failed: Missing places: $missingPlaces');
-//     }
-//     expect(missingPlaces.isEmpty, true,
-//         reason: 'All places from 1 to 21 should be present');
-//     expect(timingData.records.last.place, 21,
-//         reason: 'The last place should be 21');
-//   });
-// }
-void main() {}
+      final encoded = await TimingEncodeUtils.encodeTimeRecords(original);
+      final decoded = await TimingDecodeUtils.decodeEncodedTimingData(encoded);
+
+      expect(decoded.length, 3);
+      expect(decoded[0].time, '1:01.5');
+      expect(decoded[1].time, '1:02.3');
+      expect(decoded[2].time, '1:03.1');
+      for (final datum in decoded) {
+        expect(datum.hasConflict, isFalse);
+      }
+    });
+
+    test('extraTime conflict survives encode → decode', () async {
+      final original = [
+        TimingDatum(time: '1:01.5'),
+        TimingDatum(time: '1:02.3'),
+        TimingDatum(
+          time: '1:02.3',
+          conflict: Conflict(type: ConflictType.extraTime, offBy: 1),
+        ),
+      ];
+
+      final encoded = await TimingEncodeUtils.encodeTimeRecords(original);
+      final decoded = await TimingDecodeUtils.decodeEncodedTimingData(encoded);
+
+      expect(decoded.length, 3);
+      expect(decoded[2].conflict!.type, ConflictType.extraTime);
+      expect(decoded[2].conflict!.offBy, 1);
+    });
+
+    test('missingTime conflict survives encode → decode', () async {
+      final original = [
+        TimingDatum(time: '1:01.5'),
+        TimingDatum(
+          time: 'TBD',
+          conflict: Conflict(type: ConflictType.missingTime, offBy: 2),
+        ),
+      ];
+
+      final encoded = await TimingEncodeUtils.encodeTimeRecords(original);
+      final decoded = await TimingDecodeUtils.decodeEncodedTimingData(encoded);
+
+      expect(decoded.length, 2);
+      expect(decoded[1].conflict!.type, ConflictType.missingTime);
+      expect(decoded[1].conflict!.offBy, 2);
+    });
+
+    test('confirmRunner conflict survives encode → decode', () async {
+      final original = [
+        TimingDatum(time: '1:01.5'),
+        TimingDatum(time: '1:02.3'),
+        TimingDatum(
+          time: '1:02.3',
+          conflict: Conflict(type: ConflictType.confirmRunner, offBy: 2),
+        ),
+      ];
+
+      final encoded = await TimingEncodeUtils.encodeTimeRecords(original);
+      final decoded = await TimingDecodeUtils.decodeEncodedTimingData(encoded);
+
+      expect(decoded.length, 3);
+      expect(decoded[2].conflict!.type, ConflictType.confirmRunner);
+    });
+
+    test('empty timing list encodes and decodes to empty list', () async {
+      final encoded = await TimingEncodeUtils.encodeTimeRecords([]);
+      final decoded = await TimingDecodeUtils.decodeEncodedTimingData(encoded);
+
+      expect(decoded, isEmpty);
+    });
+  });
+
+  group('BibEncodeUtils + BibDecodeUtils round-trip', () {
+    test('bib data with full runner info survives encode → decode', () async {
+      final original = [
+        BibDatum(bib: '101', name: 'Alice', teamAbbreviation: 'EA', grade: '10'),
+        BibDatum(bib: '102', name: 'Bob', teamAbbreviation: 'WB', grade: '11'),
+        BibDatum(bib: '103', name: 'Carol', teamAbbreviation: 'EA', grade: '9'),
+      ];
+
+      final encoded = await BibEncodeUtils.getEncodedBibData(original);
+      final decoded = await BibDecodeUtils.decodeEncodedRunners(encoded);
+
+      expect(decoded, isA<Success<List<BibDatum>>>());
+      final bibs = (decoded as Success<List<BibDatum>>).value;
+      expect(bibs.length, 3);
+      expect(bibs[0].bib, '101');
+      expect(bibs[0].name, 'Alice');
+      expect(bibs[0].teamAbbreviation, 'EA');
+      expect(bibs[0].grade, '10');
+      expect(bibs[1].bib, '102');
+      expect(bibs[1].teamAbbreviation, 'WB');
+    });
+
+    test('bib data with special characters in names survives encode → decode',
+        () async {
+      final original = [
+        BibDatum(
+            bib: '101',
+            name: "O'Brien",
+            teamAbbreviation: 'EA',
+            grade: '10'),
+      ];
+
+      final encoded = await BibEncodeUtils.getEncodedBibData(original);
+      final decoded = await BibDecodeUtils.decodeEncodedRunners(encoded);
+
+      expect(decoded, isA<Success<List<BibDatum>>>());
+      final bibs = (decoded as Success<List<BibDatum>>).value;
+      expect(bibs[0].name, "O'Brien");
+    });
+
+    test('empty bib list encodes and decodes to empty list', () async {
+      final encoded = await BibEncodeUtils.getEncodedBibData([]);
+      final decoded = await BibDecodeUtils.decodeEncodedRunners(encoded);
+
+      expect(decoded, isA<Success<List<BibDatum>>>());
+      final bibs = (decoded as Success<List<BibDatum>>).value;
+      expect(bibs, isEmpty);
+    });
+  });
+}
