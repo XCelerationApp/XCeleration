@@ -5,10 +5,11 @@ import '../../../core/utils/database_helper.dart';
 import '../../services/race_results_service.dart';
 import '../../../coach/race_results/model/team_record.dart';
 import 'base_models.dart';
+import 'i_master_race_resolver.dart';
 
 /// Central orchestrator for all race-related data and operations
 /// Provides lazy loading, caching, and unified API for race management
-class MasterRace with ChangeNotifier {
+class MasterRace with ChangeNotifier implements IMasterRaceResolver {
   static final Map<int, MasterRace> _instances = {};
 
   final int raceId;
@@ -77,6 +78,7 @@ class MasterRace with ChangeNotifier {
   }
 
   /// Get all race runners (lazy loaded)
+  @override
   Future<List<RaceRunner>> get raceRunners async {
     if (_raceRunners == null) {
       await _loadRaceRunners();
@@ -85,6 +87,7 @@ class MasterRace with ChangeNotifier {
   }
 
   /// Get all teams in the race (lazy loaded)
+  @override
   Future<List<Team>> get teams async {
     if (_teams == null) {
       await _loadTeams();
@@ -121,6 +124,7 @@ class MasterRace with ChangeNotifier {
     return _teamRaceRunnersMap!;
   }
 
+  @override
   Future<Map<Team, List<RaceRunner>>> get filteredSearchResults async {
     if (_filteredSearchResults == null) {
       return await teamtoRaceRunnersMap;
@@ -210,6 +214,7 @@ class MasterRace with ChangeNotifier {
     notifyListeners();
   }
 
+  @override
   Future<void> addRaceParticipant(RaceParticipant raceParticipant) async {
     if (raceParticipant.raceId != raceId) {
       throw Exception('Race participant race ID does not match race ID');
@@ -386,6 +391,7 @@ class MasterRace with ChangeNotifier {
 
   /// Search runners by query (name, bib, team, grade)
   /// Only returns runners whose teams are participating in the race
+  @override
   Future<void> searchRaceRunners(String query,
       [String searchAttribute = 'all']) async {
     Future<void> sortSearchResults() async {
@@ -470,6 +476,17 @@ class MasterRace with ChangeNotifier {
     await sortSearchResults();
     notifyListeners();
   }
+
+  @override
+  Future<Runner?> getRunnerByBib(String bibNumber) =>
+      db.getRunnerByBib(bibNumber);
+
+  @override
+  Future<int> createRunner(Runner runner) => db.createRunner(runner);
+
+  @override
+  Future<void> addRunnerToTeam(int teamId, int runnerId) =>
+      db.addRunnerToTeam(teamId, runnerId);
 
   /// Get all available teams (from other races) that could be added to this race
   Future<List<Team>> getOtherTeams() async {

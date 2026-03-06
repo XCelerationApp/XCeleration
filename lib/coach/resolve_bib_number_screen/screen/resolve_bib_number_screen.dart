@@ -141,7 +141,7 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
           initialRaceRunner: _controller.raceRunner,
           teamOptions: _teams,
           onSubmit: _handleSubmit,
-          getRunnerByBib: _controller.masterRace.db.getRunnerByBib,
+          getRunnerByBib: _controller.masterRace.getRunnerByBib,
           submitButtonText: 'Create New Runner',
           useSheetLayout: false,
           showBibField: true,

@@ -4,11 +4,12 @@ import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/shared/models/database/race_participant.dart';
 import 'package:xceleration/shared/models/database/race_runner.dart';
 import 'package:xceleration/shared/models/database/runner.dart';
+import '../../../shared/models/database/i_master_race_resolver.dart';
 import '../../../shared/models/database/master_race.dart';
 import '../../../shared/models/database/team.dart';
 
 class ResolveBibNumberController with ChangeNotifier {
-  late final MasterRace masterRace;
+  late final IMasterRaceResolver masterRace;
   List<RaceRunner> searchResults = [];
   final TextEditingController searchController = TextEditingController();
   final TextEditingController nameController = TextEditingController();
@@ -26,11 +27,12 @@ class ResolveBibNumberController with ChangeNotifier {
     required this.raceId,
     required this.onComplete,
     required this.raceRunner,
+    IMasterRaceResolver? masterRace,
   }) {
-    masterRace = MasterRace.getInstance(raceId);
+    this.masterRace = masterRace ?? MasterRace.getInstance(raceId);
 
     // Listen to changes from MasterRace
-    masterRace.addListener(() {
+    this.masterRace.addListener(() {
       notifyListeners();
     });
   }
@@ -111,13 +113,13 @@ class ResolveBibNumberController with ChangeNotifier {
 
       // Check if runner already exists by bib
       final existingRunner =
-          await masterRace.db.getRunnerByBib(formRunner.bibNumber!);
+          await masterRace.getRunnerByBib(formRunner.bibNumber!);
 
       int runnerId;
       if (existingRunner == null) {
         // Create new runner and get the ID
-        runnerId = await masterRace.db.createRunner(formRunner);
-        masterRace.db.addRunnerToTeam(selectedTeam.teamId!, runnerId);
+        runnerId = await masterRace.createRunner(formRunner);
+        masterRace.addRunnerToTeam(selectedTeam.teamId!, runnerId);
       } else {
         // Runner already exists, use existing ID
         runnerId = existingRunner.runnerId!;
