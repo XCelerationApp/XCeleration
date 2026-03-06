@@ -14,7 +14,7 @@ import sys
 from collections import defaultdict
 
 import shutil
-FLUTTER = shutil.which("flutter") or "/Users/teodonnelley/Programming/flutter/bin/flutter"
+FLUTTER = shutil.which("flutter") or "/Users/finiandonnelley/Programming_project/flutter/bin/flutter"
 
 
 def run_tests(paths=None):
