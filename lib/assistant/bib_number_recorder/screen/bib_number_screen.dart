@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
+import '../../../core/components/dialog_utils.dart';
 import '../../../core/services/tutorial_manager.dart';
 import '../../../core/utils/enums.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/sheet_utils.dart';
 import '../../../shared/role_bar/models/role_enums.dart';
 import '../../../shared/role_bar/role_bar.dart';
+import '../../shared/services/demo_race_generator.dart';
 import '../controller/bib_number_controller.dart';
 import '../widget/bib_list_widget.dart';
 import '../widget/race_controls_widget.dart';
 import '../widget/keyboard_accessory_bar.dart';
+import '../widget/runners_loaded_sheet.dart';
 import '../../shared/widgets/race_header_widget.dart';
 import '../../../core/components/race_components.dart' as core;
 import '../../../core/components/coach_mark.dart';
@@ -25,13 +29,94 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
   @override
   void initState() {
     super.initState();
-    _controller = BibNumberController(
-      context: context,
-    );
+    _controller = BibNumberController();
+    _controller.addListener(_onControllerChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      RoleBar.showInstructionsSheet(context, Role.bibRecorder).then((_) {
+        if (mounted) _controller.setupTutorials();
+      });
+    });
+  }
+
+  void _onControllerChanged() {
+    if (_controller.runnersJustLoaded) {
+      _controller.clearRunnersJustLoaded();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        sheet(
+          context: context,
+          title: 'Loaded Runners',
+          body: RunnersLoadedSheet(runners: _controller.runners),
+        );
+      });
+    }
+  }
+
+  Future<void> _onShareBibNumbers() async {
+    if (_controller.currentRace != null &&
+        DemoRaceGenerator.isDemoRace(_controller.currentRace!)) {
+      DialogUtils.showMessageDialog(
+        context,
+        title: 'Demo Race',
+        message:
+            'The demo race is for practice only and cannot be shared. Please load a real race from your coach to share results.',
+      );
+      return;
+    }
+
+    for (var node in _controller.focusNodes) {
+      node.unfocus();
+      node.canRequestFocus = false;
+    }
+
+    final confirmed = await _controller.cleanEmptyRecords();
+    if (!confirmed) {
+      _controller.restoreFocusability();
+      return;
+    }
+    if (!mounted) return;
+
+    final duplicates = _controller.checkDuplicateRecords();
+    if (duplicates.isNotEmpty) {
+      final ok = await DialogUtils.showConfirmationDialog(
+        context,
+        title: 'Duplicate Bib Numbers',
+        content:
+            'There are duplicate bib numbers in the list: ${duplicates.join(', ')}. Do you want to continue?',
+      );
+      if (!ok) {
+        _controller.restoreFocusability();
+        return;
+      }
+    }
+    if (!mounted) return;
+
+    final hasUnknown = _controller.checkUnknownRecords();
+    if (hasUnknown) {
+      final ok = await DialogUtils.showConfirmationDialog(
+        context,
+        title: 'Unknown Bib Numbers',
+        content:
+            'There are bib numbers in the list that do not match any runners in the database. Do you want to continue?',
+      );
+      if (!ok) {
+        _controller.restoreFocusability();
+        return;
+      }
+    }
+    if (!mounted) return;
+
+    final encodedData = await _controller.getEncodedBibData();
+    if (!mounted) return;
+
+    _controller.showShareBibNumbersSheet(context, encodedData);
+    _controller.restoreFocusability();
   }
 
   @override
   void dispose() {
+    _controller.removeListener(_onControllerChanged);
     _controller.dispose();
     super.dispose();
   }
@@ -90,7 +175,10 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                         const SizedBox(height: 8),
                         _buildRaceStatusWidget(),
                         const SizedBox(height: 16),
-                        RaceControlsWidget(controller: _controller),
+                        RaceControlsWidget(
+                          controller: _controller,
+                          onShare: _onShareBibNumbers,
+                        ),
                         const SizedBox(height: 8),
                       ])),
 

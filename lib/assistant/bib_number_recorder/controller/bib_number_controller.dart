@@ -4,8 +4,6 @@ import 'package:xceleration/core/utils/encode_utils.dart';
 import 'package:xceleration/core/utils/enums.dart' hide RunnerRecordFlags;
 import '../../../core/components/dialog_utils.dart';
 import '../../../core/services/tutorial_manager.dart';
-import '../../../shared/role_bar/models/role_enums.dart' as role_enums;
-import '../../../shared/role_bar/role_bar.dart';
 import '../../../core/utils/logger.dart';
 import '../../../core/utils/sheet_utils.dart';
 import '../../../core/components/device_connection_widget.dart';
@@ -20,22 +18,27 @@ import '../../shared/models/runner.dart' as db_models;
 import 'package:xceleration/core/result.dart';
 import '../../shared/widgets/other_races_sheet.dart';
 import '../../shared/services/demo_race_generator.dart';
+import '../widget/runners_loaded_sheet.dart';
 
 class BibNumberController extends BibNumberDataController {
-  final BuildContext context;
   late final ScrollController scrollController;
   late final List<BibDatum> runners;
 
   // Debounce timer for validations
   Timer? _debounceTimer;
 
-  BibNumberController({
-    required this.context,
-  }) {
+  // Flag to notify screen that runners were just loaded (screen shows the sheet)
+  bool _runnersJustLoaded = false;
+  bool get runnersJustLoaded => _runnersJustLoaded;
+
+  void clearRunnersJustLoaded() {
+    _runnersJustLoaded = false;
+  }
+
+  BibNumberController() {
     runners = [];
     scrollController = ScrollController();
-    _loadLastRace(); // Load race immediately like timing controller
-    init(context);
+    _loadLastRace();
   }
 
   final tutorialManager = TutorialManager();
@@ -72,17 +75,6 @@ class BibNumberController extends BibNumberDataController {
   void setupTutorials() {
     tutorialManager
         .startTutorial(['race_header_tutorial', 'role_bar_tutorial']);
-  }
-
-  void init(BuildContext context) async {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      RoleBar.showInstructionsSheet(context, role_enums.Role.bibRecorder)
-          .then((_) {
-        if (context.mounted) {
-          setupTutorials();
-        }
-      });
-    });
   }
 
   Future<void> _loadLastRace() async {
@@ -253,11 +245,10 @@ class BibNumberController extends BibNumberDataController {
     // Final notification to update UI
     notifyListeners();
 
-    // Show runners loaded sheet if there are runners
-    if (runners.isNotEmpty && context.mounted) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        showRunnersLoadedSheet(context);
-      });
+    // Notify screen that runners were loaded so it can show the sheet
+    if (runners.isNotEmpty) {
+      _runnersJustLoaded = true;
+      notifyListeners();
     }
   }
 
@@ -389,47 +380,7 @@ class BibNumberController extends BibNumberDataController {
     notifyListeners();
   }
 
-  Future<void> showShareBibNumbersPopup(BuildContext context) async {
-    // Prevent sharing demo race
-    if (currentRace != null && DemoRaceGenerator.isDemoRace(currentRace!)) {
-      DialogUtils.showMessageDialog(
-        context,
-        title: 'Demo Race',
-        message:
-            'The demo race is for practice only and cannot be shared. Please load a real race from your coach to share results.',
-      );
-      return;
-    }
-
-    for (var node in focusNodes) {
-      node.unfocus();
-      // Disable focus restoration for this node
-      node.canRequestFocus = false;
-    }
-
-    bool confirmed = await cleanEmptyRecords();
-    if (!confirmed) {
-      restoreFocusability();
-      return;
-    }
-    if (!context.mounted) return;
-
-    confirmed = await checkDuplicateRecords(context);
-    if (!confirmed) {
-      restoreFocusability();
-      return;
-    }
-    if (!context.mounted) return;
-
-    confirmed = await checkUnknownRecords(context);
-    if (!confirmed) {
-      restoreFocusability();
-      return;
-    }
-
-    if (!context.mounted) return;
-    final encodedData = await getEncodedBibData();
-    if (!context.mounted) return;
+  void showShareBibNumbersSheet(BuildContext context, String encodedData) {
     sheet(
       context: context,
       title: 'Share Bib Numbers',
@@ -442,143 +393,13 @@ class BibNumberController extends BibNumberDataController {
         ),
       ),
     );
-
-    restoreFocusability();
   }
 
   void showRunnersLoadedSheet(BuildContext context) {
     sheet(
       context: context,
       title: 'Loaded Runners',
-      body: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Loaded Runners (${runners.length})',
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // Table Header
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(color: Colors.grey[300]!),
-              ),
-            ),
-            child: Row(
-              children: const [
-                Expanded(
-                  flex: 3,
-                  child: Text(
-                    'Name',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-                Expanded(
-                  flex: 2,
-                  child: Text(
-                    'Team',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: Text(
-                    'Gr.',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: Text(
-                    'Bib',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Table Rows
-          ConstrainedBox(
-            constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(context).size.height * 0.5,
-            ),
-            child: ListView.builder(
-              shrinkWrap: true,
-              physics: const AlwaysScrollableScrollPhysics(),
-              itemCount: runners.length,
-              itemBuilder: (context, index) {
-                final runner = runners[index];
-                return Container(
-                  decoration: BoxDecoration(
-                    border: Border(
-                      bottom: BorderSide(color: Colors.grey[300]!),
-                    ),
-                  ),
-                  child: Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          flex: 3,
-                          child: Text(
-                            runner.name!,
-                            style: const TextStyle(fontSize: 15),
-                          ),
-                        ),
-                        Expanded(
-                          flex: 2,
-                          child: Text(
-                            runner.teamAbbreviation!,
-                            style: const TextStyle(fontSize: 15),
-                          ),
-                        ),
-                        Expanded(
-                          child: Text(
-                            runner.grade!,
-                            style: const TextStyle(fontSize: 15),
-                          ),
-                        ),
-                        Expanded(
-                          child: Text(
-                            runner.bib,
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
+      body: RunnersLoadedSheet(runners: runners),
     );
   }
 
@@ -1075,14 +896,12 @@ class BibNumberDataController extends ChangeNotifier {
     return map;
   }
 
-  Future<bool> checkDuplicateRecords(BuildContext context) async {
-    final records = _bibRecords;
-
-    // Find all duplicate bib numbers
-    final duplicates = <String>{};
+  /// Returns duplicate bib numbers (empty list means no duplicates).
+  List<String> checkDuplicateRecords() {
+    final duplicates = <String>[];
     final seen = <String>{};
 
-    for (final record in records) {
+    for (final record in _bibRecords) {
       final bib = record.bib;
       if (bib.isEmpty) continue;
 
@@ -1093,39 +912,12 @@ class BibNumberDataController extends ChangeNotifier {
       }
     }
 
-    if (duplicates.isEmpty) {
-      return true;
-    }
-
-    return await DialogUtils.showConfirmationDialog(
-      context,
-      title: 'Duplicate Bib Numbers',
-      content:
-          'There are duplicate bib numbers in the list: ${duplicates.join(', ')}. Do you want to continue?',
-    );
+    return duplicates;
   }
 
-  Future<bool> checkUnknownRecords(BuildContext context) async {
-    final records = _bibRecords;
-
-    bool hasUnknown = false;
-    for (final record in records) {
-      if (record.flags.notInDatabase) {
-        hasUnknown = true;
-        break;
-      }
-    }
-
-    if (!hasUnknown) {
-      return true;
-    }
-
-    return await DialogUtils.showConfirmationDialog(
-      context,
-      title: 'Unknown Bib Numbers',
-      content:
-          'There are bib numbers in the list that do not match any runners in the database. Do you want to continue?',
-    );
+  /// Returns true if any bib record is not in the database.
+  bool checkUnknownRecords() {
+    return _bibRecords.any((record) => record.flags.notInDatabase);
   }
 
   Future<bool> cleanEmptyRecords() async {
