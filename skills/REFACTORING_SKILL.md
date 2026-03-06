@@ -49,10 +49,8 @@ Run after every meaningful change:
 
 ```sh
 flutter analyze
-flutter test 2>&1 | tail -20
+python3 scripts/test_runner.py
 ```
-
-> `flutter test` produces large output that gets truncated and saved to a temp file, requiring a second command to check results. Piping to `tail -20` avoids this — you see the summary directly. If a test fails, re-run without the pipe to get full output.
 
 All three must pass before continuing. Note: If any of them fail and you are unsure whether the failure is caused by an incorrect refactor versus an intentional behavior change that has made the existing tests stale, stop and present this dilemma to the user, waiting for their decision before changing either the implementation or the tests. This is primarily for complex logic refactors.
 
@@ -79,7 +77,7 @@ Before marking a module complete:
 - [ ] Functions typically under 50 lines
 - [ ] All public methods unit tested
 - [ ] `flutter analyze` passes
-- [ ] `flutter test` passes
+- [ ] `python3 scripts/test_runner.py` passes
 
 ---
 
@@ -297,4 +295,4 @@ Key rules that apply during refactoring:
 - Public methods fully unit tested
 - Class size reasonable
 - `flutter analyze` clean
-- `flutter test` clean
+- `python3 scripts/test_runner.py` clean
