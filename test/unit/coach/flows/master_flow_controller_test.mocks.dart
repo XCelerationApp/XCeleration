@@ -10,11 +10,12 @@ import 'package:flutter/material.dart' as _i2;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i13;
 import 'package:xceleration/coach/flows/controller/flow_controller.dart' as _i6;
+import 'package:xceleration/coach/flows/model/flow_model.dart' as _i19;
 import 'package:xceleration/coach/flows/PostRaceFlow/controller/post_race_controller.dart'
-    as _i19;
+    as _i20;
 import 'package:xceleration/coach/flows/PreRaceFlow/controller/pre_race_controller.dart'
     as _i18;
-import 'package:xceleration/coach/race_results/model/team_record.dart' as _i22;
+import 'package:xceleration/coach/race_results/model/team_record.dart' as _i23;
 import 'package:xceleration/coach/race_screen/controller/race_form_state.dart'
     as _i4;
 import 'package:xceleration/coach/race_screen/controller/race_screen_controller.dart'
@@ -23,10 +24,10 @@ import 'package:xceleration/coach/races_screen/controller/races_controller.dart'
     as _i7;
 import 'package:xceleration/core/services/device_connection_service.dart'
     as _i8;
-import 'package:xceleration/core/services/event_bus.dart' as _i20;
+import 'package:xceleration/core/services/event_bus.dart' as _i21;
 import 'package:xceleration/core/utils/database_helper.dart' as _i10;
 import 'package:xceleration/core/utils/enums.dart' as _i16;
-import 'package:xceleration/shared/models/database/base_models.dart' as _i21;
+import 'package:xceleration/shared/models/database/base_models.dart' as _i22;
 import 'package:xceleration/shared/models/database/master_race.dart' as _i3;
 import 'package:xceleration/shared/models/database/race.dart' as _i5;
 import 'package:xceleration/shared/models/database/race_runner.dart' as _i14;
@@ -724,13 +725,26 @@ class MockPreRaceController extends _i1.Mock implements _i18.PreRaceController {
       ) as _i8.DevicesManager);
 
   @override
-  set devices(_i8.DevicesManager? value) => super.noSuchMethod(
-        Invocation.setter(
-          #devices,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+  _i9.Future<String> Function(_i3.MasterRace) get encodeRaceData =>
+      (super.noSuchMethod(
+        Invocation.getter(#encodeRaceData),
+        returnValue: (_i3.MasterRace __p0) =>
+            _i9.Future<String>.value(_i13.dummyValue<String>(
+          this,
+          Invocation.getter(#encodeRaceData),
+        )),
+      ) as _i9.Future<String> Function(_i3.MasterRace));
+
+  @override
+  _i9.Future<String> Function(_i3.MasterRace) get encodeBibData =>
+      (super.noSuchMethod(
+        Invocation.getter(#encodeBibData),
+        returnValue: (_i3.MasterRace __p0) =>
+            _i9.Future<String>.value(_i13.dummyValue<String>(
+          this,
+          Invocation.getter(#encodeBibData),
+        )),
+      ) as _i9.Future<String> Function(_i3.MasterRace));
 
   @override
   _i9.Future<bool> showPreRaceFlow(
@@ -747,13 +761,22 @@ class MockPreRaceController extends _i1.Mock implements _i18.PreRaceController {
         ),
         returnValue: _i9.Future<bool>.value(false),
       ) as _i9.Future<bool>);
+
+  @override
+  List<_i19.FlowStep> buildSteps() => (super.noSuchMethod(
+        Invocation.method(
+          #buildSteps,
+          [],
+        ),
+        returnValue: <_i19.FlowStep>[],
+      ) as List<_i19.FlowStep>);
 }
 
 /// A class which mocks [PostRaceController].
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockPostRaceController extends _i1.Mock
-    implements _i19.PostRaceController {
+    implements _i20.PostRaceController {
   MockPostRaceController() {
     _i1.throwOnMissingStub(this);
   }
@@ -787,19 +810,19 @@ class MockPostRaceController extends _i1.Mock
 /// A class which mocks [EventBus].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockEventBus extends _i1.Mock implements _i20.EventBus {
+class MockEventBus extends _i1.Mock implements _i21.EventBus {
   MockEventBus() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
-  _i9.Stream<_i20.Event> get stream => (super.noSuchMethod(
+  _i9.Stream<_i21.Event> get stream => (super.noSuchMethod(
         Invocation.getter(#stream),
-        returnValue: _i9.Stream<_i20.Event>.empty(),
-      ) as _i9.Stream<_i20.Event>);
+        returnValue: _i9.Stream<_i21.Event>.empty(),
+      ) as _i9.Stream<_i21.Event>);
 
   @override
-  void publish(_i20.Event? event) => super.noSuchMethod(
+  void publish(_i21.Event? event) => super.noSuchMethod(
         Invocation.method(
           #publish,
           [event],
@@ -824,26 +847,26 @@ class MockEventBus extends _i1.Mock implements _i20.EventBus {
       );
 
   @override
-  _i9.StreamSubscription<_i20.Event> listen(
-          void Function(_i20.Event)? onData) =>
+  _i9.StreamSubscription<_i21.Event> listen(
+          void Function(_i21.Event)? onData) =>
       (super.noSuchMethod(
         Invocation.method(
           #listen,
           [onData],
         ),
-        returnValue: _FakeStreamSubscription_7<_i20.Event>(
+        returnValue: _FakeStreamSubscription_7<_i21.Event>(
           this,
           Invocation.method(
             #listen,
             [onData],
           ),
         ),
-      ) as _i9.StreamSubscription<_i20.Event>);
+      ) as _i9.StreamSubscription<_i21.Event>);
 
   @override
-  _i9.StreamSubscription<_i20.Event> on<T>(
+  _i9.StreamSubscription<_i21.Event> on<T>(
     String? eventType,
-    void Function(_i20.Event)? onData,
+    void Function(_i21.Event)? onData,
   ) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -853,7 +876,7 @@ class MockEventBus extends _i1.Mock implements _i20.EventBus {
             onData,
           ],
         ),
-        returnValue: _FakeStreamSubscription_7<_i20.Event>(
+        returnValue: _FakeStreamSubscription_7<_i21.Event>(
           this,
           Invocation.method(
             #on,
@@ -863,7 +886,7 @@ class MockEventBus extends _i1.Mock implements _i20.EventBus {
             ],
           ),
         ),
-      ) as _i9.StreamSubscription<_i20.Event>);
+      ) as _i9.StreamSubscription<_i21.Event>);
 
   @override
   void dispose() => super.noSuchMethod(
@@ -908,12 +931,12 @@ class MockMasterRace extends _i1.Mock implements _i3.MasterRace {
       ) as _i9.Future<_i5.Race>);
 
   @override
-  _i9.Future<List<_i21.RaceParticipant>> get raceParticipants =>
+  _i9.Future<List<_i22.RaceParticipant>> get raceParticipants =>
       (super.noSuchMethod(
         Invocation.getter(#raceParticipants),
-        returnValue: _i9.Future<List<_i21.RaceParticipant>>.value(
-            <_i21.RaceParticipant>[]),
-      ) as _i9.Future<List<_i21.RaceParticipant>>);
+        returnValue: _i9.Future<List<_i22.RaceParticipant>>.value(
+            <_i22.RaceParticipant>[]),
+      ) as _i9.Future<List<_i22.RaceParticipant>>);
 
   @override
   _i9.Future<List<_i14.RaceRunner>> get raceRunners => (super.noSuchMethod(
@@ -945,18 +968,18 @@ class MockMasterRace extends _i1.Mock implements _i3.MasterRace {
       ) as _i9.Future<Map<_i15.Team, List<_i14.RaceRunner>>>);
 
   @override
-  _i9.Future<List<_i21.RaceResult>> get results => (super.noSuchMethod(
+  _i9.Future<List<_i22.RaceResult>> get results => (super.noSuchMethod(
         Invocation.getter(#results),
         returnValue:
-            _i9.Future<List<_i21.RaceResult>>.value(<_i21.RaceResult>[]),
-      ) as _i9.Future<List<_i21.RaceResult>>);
+            _i9.Future<List<_i22.RaceResult>>.value(<_i22.RaceResult>[]),
+      ) as _i9.Future<List<_i22.RaceResult>>);
 
   @override
-  _i9.Future<List<_i22.TeamRecord>> get teamStandings => (super.noSuchMethod(
+  _i9.Future<List<_i23.TeamRecord>> get teamStandings => (super.noSuchMethod(
         Invocation.getter(#teamStandings),
         returnValue:
-            _i9.Future<List<_i22.TeamRecord>>.value(<_i22.TeamRecord>[]),
-      ) as _i9.Future<List<_i22.TeamRecord>>);
+            _i9.Future<List<_i23.TeamRecord>>.value(<_i23.TeamRecord>[]),
+      ) as _i9.Future<List<_i23.TeamRecord>>);
 
   @override
   _i9.Future<_i11.RaceResultsData> get raceResultsData => (super.noSuchMethod(
@@ -976,7 +999,7 @@ class MockMasterRace extends _i1.Mock implements _i3.MasterRace {
 
   @override
   _i9.Future<_i14.RaceRunner?> getRaceRunnerFromRaceParticipant(
-          _i21.RaceParticipant? raceParticipant) =>
+          _i22.RaceParticipant? raceParticipant) =>
       (super.noSuchMethod(
         Invocation.method(
           #getRaceRunnerFromRaceParticipant,
@@ -987,7 +1010,7 @@ class MockMasterRace extends _i1.Mock implements _i3.MasterRace {
 
   @override
   _i9.Future<void> updateRaceParticipant(
-          _i21.RaceParticipant? raceParticipant) =>
+          _i22.RaceParticipant? raceParticipant) =>
       (super.noSuchMethod(
         Invocation.method(
           #updateRaceParticipant,
@@ -998,7 +1021,7 @@ class MockMasterRace extends _i1.Mock implements _i3.MasterRace {
       ) as _i9.Future<void>);
 
   @override
-  _i9.Future<void> addRaceParticipant(_i21.RaceParticipant? raceParticipant) =>
+  _i9.Future<void> addRaceParticipant(_i22.RaceParticipant? raceParticipant) =>
       (super.noSuchMethod(
         Invocation.method(
           #addRaceParticipant,
@@ -1010,7 +1033,7 @@ class MockMasterRace extends _i1.Mock implements _i3.MasterRace {
 
   @override
   _i9.Future<void> addRaceParticipantsBulk(
-          List<_i21.RaceParticipant>? raceParticipants) =>
+          List<_i22.RaceParticipant>? raceParticipants) =>
       (super.noSuchMethod(
         Invocation.method(
           #addRaceParticipantsBulk,
@@ -1022,7 +1045,7 @@ class MockMasterRace extends _i1.Mock implements _i3.MasterRace {
 
   @override
   _i9.Future<void> removeRaceParticipant(
-          _i21.RaceParticipant? raceParticipant) =>
+          _i22.RaceParticipant? raceParticipant) =>
       (super.noSuchMethod(
         Invocation.method(
           #removeRaceParticipant,
@@ -1033,7 +1056,7 @@ class MockMasterRace extends _i1.Mock implements _i3.MasterRace {
       ) as _i9.Future<void>);
 
   @override
-  _i9.Future<void> addTeamParticipant(_i21.TeamParticipant? teamParticipant) =>
+  _i9.Future<void> addTeamParticipant(_i22.TeamParticipant? teamParticipant) =>
       (super.noSuchMethod(
         Invocation.method(
           #addTeamParticipant,
@@ -1044,7 +1067,7 @@ class MockMasterRace extends _i1.Mock implements _i3.MasterRace {
       ) as _i9.Future<void>);
 
   @override
-  _i9.Future<void> removeTeamFromRace(_i21.TeamParticipant? teamParticipant) =>
+  _i9.Future<void> removeTeamFromRace(_i22.TeamParticipant? teamParticipant) =>
       (super.noSuchMethod(
         Invocation.method(
           #removeTeamFromRace,
@@ -1076,7 +1099,7 @@ class MockMasterRace extends _i1.Mock implements _i3.MasterRace {
       ) as _i9.Future<void>);
 
   @override
-  _i9.Future<void> addResult(_i21.RaceResult? result) => (super.noSuchMethod(
+  _i9.Future<void> addResult(_i22.RaceResult? result) => (super.noSuchMethod(
         Invocation.method(
           #addResult,
           [result],
@@ -1086,7 +1109,7 @@ class MockMasterRace extends _i1.Mock implements _i3.MasterRace {
       ) as _i9.Future<void>);
 
   @override
-  _i9.Future<void> saveResults(List<_i21.RaceResult>? results) =>
+  _i9.Future<void> saveResults(List<_i22.RaceResult>? results) =>
       (super.noSuchMethod(
         Invocation.method(
           #saveResults,
