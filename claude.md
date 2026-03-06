@@ -46,22 +46,20 @@ When adding or changing mocks (e.g. after `@GenerateMocks` changes):
 /Users/finiandonnelley/Programming_project/flutter/bin/dart run build_runner build --delete-conflicting-outputs
 ```
 
-## Reading Test Output
+## Running Tests
 
-`flutter test` produces 50KB+ of output — the Bash tool truncates it before failures are visible.
-Always tee to a file, then use the Read/Grep tools on the file:
+Always use the custom test runner — it parses `flutter test --reporter=json` and prints a concise summary that fits in a single Bash tool read:
 
 ```sh
-# Full suite
-source ~/.zshrc && flutter test 2>&1 | tee /tmp/flutter_test_output.txt; echo "EXIT_CODE: $?"
-
-# Single file
-source ~/.zshrc && flutter test path/to/test.dart 2>&1 | tee /tmp/flutter_test_output.txt; echo "EXIT_CODE: $?"
+python3 scripts/test_runner.py                           # all tests
+python3 scripts/test_runner.py path/to/test.dart        # single file
+python3 scripts/test_runner.py test/unit/               # whole folder
+python3 scripts/test_runner.py test/unit/ test/integration/  # multiple targets
 ```
 
-- Use the **Read tool** on `/tmp/flutter_test_output.txt` with `offset`/`limit` to paginate
-- Use **Grep** on `/tmp/flutter_test_output.txt` to find `FAILED`, `Error`, `Exception`
-- Do NOT pipe to `tail` or `grep` in Bash — those also hit the size limit
+Output: pass/fail/skip counts + test name and first few error lines for each failure. Exit code 1 if any fail.
+
+Do NOT use `flutter test` directly for reading results — its raw output exceeds the Bash tool's readable limit. Do NOT add `2>&1` to the runner command.
 
 ## When Unsure — Ask First
 
