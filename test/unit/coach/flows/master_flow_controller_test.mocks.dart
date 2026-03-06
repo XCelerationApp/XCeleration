@@ -1156,6 +1156,42 @@ class MockMasterRace extends _i1.Mock implements _i3.MasterRace {
       ) as _i9.Future<void>);
 
   @override
+  _i9.Future<_i22.Runner?> getRunnerByBib(String? bibNumber) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getRunnerByBib,
+          [bibNumber],
+        ),
+        returnValue: _i9.Future<_i22.Runner?>.value(),
+      ) as _i9.Future<_i22.Runner?>);
+
+  @override
+  _i9.Future<int> createRunner(_i22.Runner? runner) => (super.noSuchMethod(
+        Invocation.method(
+          #createRunner,
+          [runner],
+        ),
+        returnValue: _i9.Future<int>.value(0),
+      ) as _i9.Future<int>);
+
+  @override
+  _i9.Future<void> addRunnerToTeam(
+    int? teamId,
+    int? runnerId,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #addRunnerToTeam,
+          [
+            teamId,
+            runnerId,
+          ],
+        ),
+        returnValue: _i9.Future<void>.value(),
+        returnValueForMissingStub: _i9.Future<void>.value(),
+      ) as _i9.Future<void>);
+
+  @override
   _i9.Future<List<_i15.Team>> getOtherTeams() => (super.noSuchMethod(
         Invocation.method(
           #getOtherTeams,
