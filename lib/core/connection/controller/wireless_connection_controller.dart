@@ -99,7 +99,10 @@ class WirelessConnectionController extends ChangeNotifier {
   }
 
   void _startConnectionProcess() {
+    // Don't proceed if we've been disposed
     if (_isDisposed || !_deviceConnectionService.isActive) return;
+
+    // Start device monitoring process asynchronously
     _monitorDevices();
   }
 
@@ -125,6 +128,7 @@ class WirelessConnectionController extends ChangeNotifier {
     } catch (e) {
       Logger.d('Error monitoring devices: $e');
     } finally {
+      // Ensure we mark connection as complete when monitoring ends
       if (!_connectionCompleter.isCompleted) {
         _connectionCompleter.complete();
       }
@@ -132,6 +136,7 @@ class WirelessConnectionController extends ChangeNotifier {
   }
 
   Future<void> _deviceFoundCallback(Device device) async {
+    // Skip if we're disposed or the connection is complete
     if (_isDisposed || _connectionCompleter.isCompleted) return;
 
     final deviceName = getDeviceNameFromString(device.deviceName);
@@ -140,14 +145,17 @@ class WirelessConnectionController extends ChangeNotifier {
       return;
     }
 
+    // Skip invite if we're an advertiser
     if (_devices.currentDeviceType == DeviceType.advertiserDevice) return;
 
+    // Try to invite the device
     if (!_connectionCompleter.isCompleted) {
       await _deviceConnectionService.inviteDevice(device);
     }
   }
 
   Future<void> _deviceConnectingCallback(Device device) async {
+    // Skip if we're disposed or the connection is complete
     if (_isDisposed || _connectionCompleter.isCompleted) return;
 
     final deviceName = getDeviceNameFromString(device.deviceName);
@@ -155,9 +163,11 @@ class WirelessConnectionController extends ChangeNotifier {
         _devices.getDevice(deviceName)!.isFinished) {
       return;
     }
+    // No action needed for connecting state
   }
 
   Future<void> _deviceConnectedCallback(Device device) async {
+    // Skip if we're disposed or the connection is complete
     if (_isDisposed || _connectionCompleter.isCompleted) return;
 
     final deviceName = getDeviceNameFromString(device.deviceName);
@@ -169,28 +179,34 @@ class WirelessConnectionController extends ChangeNotifier {
     try {
       _protocol.addDevice(device);
 
+      // Monitor messages with proper tracking for cleanup
       _messageMonitorToken =
           await _deviceConnectionService.monitorMessageReceives(
         device,
         messageReceivedCallback: (package, senderId) async {
+          // Skip if we're disposed or the connection is complete
           if (_isDisposed || _connectionCompleter.isCompleted) return;
           await _protocol.handleMessage(package, senderId);
         },
       );
 
+      // Get device reference once to avoid repetition
       final connectedDevice = _devices.getDevice(deviceName);
       if (connectedDevice == null) {
         Logger.d('Device not found in connected devices list');
         return;
       }
 
+      // Determine if this is a browser device (receiving) or advertiser (sending)
       final isBrowserDevice =
           _devices.currentDeviceType == DeviceType.browserDevice;
 
+      // Set initial status
       connectedDevice.status = isBrowserDevice
           ? ConnectionStatus.receiving
           : ConnectionStatus.sending;
 
+      // For advertiser device, check if we have data to send
       if (!isBrowserDevice && connectedDevice.data == null) {
         Logger.d('No data for advertiser device to send');
         connectedDevice.status = ConnectionStatus.error;
@@ -199,9 +215,12 @@ class WirelessConnectionController extends ChangeNotifier {
 
       final transferResult = await _protocol.handleDataTransfer(
         deviceId: device.deviceId,
+        // If browser device, we're receiving; otherwise we're sending the device's data
         isReceiving: isBrowserDevice,
         dataToSend: isBrowserDevice ? null : connectedDevice.data,
+        // Check if we should continue the transfer based on device status
         shouldContinueTransfer: () {
+          // Only continue if the device's status is still in receiving/sending state
           if (_isDisposed) return false;
           final deviceStatus = _devices.getDevice(deviceName)?.status;
           final expectedStatus = isBrowserDevice
@@ -215,15 +234,18 @@ class WirelessConnectionController extends ChangeNotifier {
         },
       );
 
+      // Skip updating UI if we're disposed
       if (_isDisposed || _connectionCompleter.isCompleted) return;
 
       switch (transferResult) {
         case Success(:final value):
+          // Update device status and data if we're a browser device (and received data)
           if (isBrowserDevice && value != null) {
             connectedDevice.data = value;
           }
           connectedDevice.status = ConnectionStatus.finished;
 
+          // In spectator broadcast mode (advertiser), briefly show Done then return to Searching
           if (!isBrowserDevice && _devices.toSpectator) {
             Timer(const Duration(seconds: 2), () {
               if (_isDisposed) return;
@@ -231,8 +253,12 @@ class WirelessConnectionController extends ChangeNotifier {
             });
           }
 
+          // Check if all devices have finished loading data
           bool allDevicesFinished = _devices.allDevicesFinished();
+
+          // Call the callback if all devices are finished
           if (allDevicesFinished) {
+            // Complete the connection to stop monitoring
             if (!_connectionCompleter.isCompleted) {
               _connectionCompleter.complete();
               _deviceConnectionService.dispose();
@@ -241,6 +267,7 @@ class WirelessConnectionController extends ChangeNotifier {
             _callback();
           }
 
+          // For advertiser devices, disconnect after sending
           if (!isBrowserDevice) {
             Timer(const Duration(seconds: 1), () {
               if (!_isDisposed) {
@@ -254,6 +281,7 @@ class WirelessConnectionController extends ChangeNotifier {
           connectedDevice.status = ConnectionStatus.error;
       }
 
+      // Clean up device from protocol
       _protocol.removeDevice(device.deviceId);
     } catch (e) {
       Logger.d('Error in connection: $e');
