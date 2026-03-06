@@ -12,18 +12,30 @@ import '../steps/flow_complete/pre_race_flow_complete.dart';
 
 class PreRaceController {
   final MasterRace masterRace;
+  final DevicesManager devices;
+  final Future<String> Function(MasterRace) encodeRaceData;
+  final Future<String> Function(MasterRace) encodeBibData;
+
   late ReviewRunnersStep _reviewRunnersStep;
   late ShareRaceStep _shareRaceStep;
   late PreRaceFlowCompleteStep _preRaceFlowCompleteStep;
   int? _lastStepIndex;
 
-  DevicesManager devices = DeviceConnectionService.createDevices(
-    DeviceName.coach,
-    DeviceType.advertiserDevice,
-    data: '',
-  );
-
-  PreRaceController({required this.masterRace}) {
+  PreRaceController({
+    required this.masterRace,
+    DevicesManager? devices,
+    Future<String> Function(MasterRace)? encodeRaceData,
+    Future<String> Function(MasterRace)? encodeBibData,
+  })  : devices = devices ??
+            DeviceConnectionService.createDevices(
+              DeviceName.coach,
+              DeviceType.advertiserDevice,
+              data: '',
+            ),
+        encodeRaceData =
+            encodeRaceData ?? RaceEncodeUtils.getEncodedRaceData,
+        encodeBibData =
+            encodeBibData ?? BibEncodeUtils.getEncodedRunnersBibData {
     _initializeSteps();
   }
 
@@ -31,15 +43,13 @@ class PreRaceController {
     _reviewRunnersStep = ReviewRunnersStep(
       masterRace: masterRace,
       onNext: () async {
-        final encodedRaceData =
-            await RaceEncodeUtils.getEncodedRaceData(masterRace);
+        final encodedRaceData = await encodeRaceData(masterRace);
         if (encodedRaceData == '') {
           Logger.e('Failed to encode race data');
           return;
         }
         devices.raceTimer!.data = encodedRaceData;
-        final encodedBibData =
-            await BibEncodeUtils.getEncodedRunnersBibData(masterRace);
+        final encodedBibData = await encodeBibData(masterRace);
         if (encodedBibData == '') {
           Logger.e('Failed to encode runners data');
           return;
@@ -64,7 +74,7 @@ class PreRaceController {
     return await showFlow(
       context: context,
       showProgressIndicator: showProgressIndicator,
-      steps: _getSteps(context),
+      steps: _getSteps(),
       initialIndex: startIndex,
       onDismiss: (lastIndex) {
         _lastStepIndex = lastIndex;
@@ -72,11 +82,14 @@ class PreRaceController {
     );
   }
 
-  List<FlowStep> _getSteps(BuildContext context) {
+  List<FlowStep> _getSteps() {
     return [
       _reviewRunnersStep,
       _shareRaceStep,
       _preRaceFlowCompleteStep,
     ];
   }
+
+  @visibleForTesting
+  List<FlowStep> buildSteps() => _getSteps();
 }
