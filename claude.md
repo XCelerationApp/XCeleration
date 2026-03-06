@@ -54,9 +54,12 @@ python3 scripts/test_runner.py                           # all tests
 python3 scripts/test_runner.py path/to/test.dart        # single file
 python3 scripts/test_runner.py test/unit/               # whole folder
 python3 scripts/test_runner.py test/unit/ test/integration/  # multiple targets
+python3 scripts/test_runner.py -v [targets...]          # verbose: full stack traces, no line truncation
 ```
 
 Output: pass/fail/skip counts + test name and first few error lines for each failure. Exit code 1 if any fail.
+
+Use `-v` when the default output truncates the error and more context is needed.
 
 Do NOT use `flutter test` directly for reading results — its raw output exceeds the Bash tool's readable limit. Do NOT add `2>&1` to the runner command.
 

@@ -218,9 +218,12 @@ Always use the custom runner — output fits in a single Bash tool read:
 python3 scripts/test_runner.py                        # all tests
 python3 scripts/test_runner.py path/to/test.dart     # single file
 python3 scripts/test_runner.py test/unit/            # whole folder
+python3 scripts/test_runner.py -v [targets...]       # verbose: full stack traces, no line truncation
 ```
 
 Do NOT run `flutter test` directly — its raw output exceeds the Bash tool's readable limit.
+
+Use `-v` when the default output truncates the error and more context is needed.
 
 ---
 

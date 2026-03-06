@@ -94,12 +94,14 @@ Use the right tool for the job:
 1. Create a branch from `dev`
 2. Make commits (one concern per commit)
 3. Push: `git push -u origin <branch-name>`
-4. A PR is **automatically created** — do not create one manually
-   - The PR may take a few seconds to appear; wait then run `gh pr list --head <branch-name>` to confirm it exists and get the PR number
-5. Update the PR description using: `mcp__github__update_pull_request`
-6. **Verify** the description was applied: `gh pr view <number> --json body -q .body`
-   - If the body still shows the auto-generated text, re-run step 5
-7. If this PR was related to a linear issue, mark the linear issue as completed, as said in the @LINEAR_WORKFLOW_SKILL.md  
+4. A PR is **automatically created** — never create one manually unless the user explicitly asks you to
+   - Wait a few seconds, then run `gh pr list --head <branch-name>` to confirm it exists and get the PR number
+   - If the auto-created PR does not appear after waiting, check again before considering any other action
+5. **Only update the PR description after all commits are pushed.** GitHub replaces the PR description with auto-generated text whenever a new commit is pushed, wiping any custom description set earlier. Set it once, at the end.
+6. Update the PR description using: `mcp__github__update_pull_request`
+7. **Verify** the description was applied: `gh pr view <number> --json body -q .body`
+   - If the body still shows the auto-generated text, re-run step 6
+8. If this PR was related to a linear issue, mark the linear issue as completed, as said in the @LINEAR_WORKFLOW_SKILL.md
 
 ### PR Description Format
 
@@ -128,6 +130,6 @@ Use the right tool for the job:
 
 - Don't `git add .` — stage files explicitly
 - Don't skip `Co-Authored-By` in commit messages
-- Don't create PRs manually — they are auto-created on push
+- Don't create PRs manually unless the user explicitly asks — they are auto-created on push
 - Don't amend published commits
 - Don't push to `main`
