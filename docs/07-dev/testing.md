@@ -6,7 +6,7 @@ Last reviewed: 2025-08-11
 
 ```bash
 flutter analyze
-flutter test
+python3 scripts/test_runner.py
 dart run build_runner build --delete-conflicting-outputs
 ```
 
