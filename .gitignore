@@ -50,3 +50,5 @@ app.*.map.json
 
 # Node
 node_modules/
+# Test coverage output
+coverage/
