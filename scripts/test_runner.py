@@ -13,8 +13,28 @@ import subprocess
 import sys
 from collections import defaultdict
 
+import os
 import shutil
-FLUTTER = shutil.which("flutter") or "/Users/finiandonnelley/Programming_project/flutter/bin/flutter"
+
+def _find_flutter():
+    # 1. flutter on PATH (works in interactive shells)
+    on_path = shutil.which("flutter")
+    if on_path:
+        return on_path
+    # 2. Common relative layout: repo lives inside a directory alongside flutter/
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    repo_root = os.path.dirname(script_dir)
+    candidate = os.path.join(os.path.dirname(repo_root), "flutter", "bin", "flutter")
+    if os.path.isfile(candidate):
+        return candidate
+    # 3. $HOME/flutter
+    home_candidate = os.path.join(os.path.expanduser("~"), "flutter", "bin", "flutter")
+    if os.path.isfile(home_candidate):
+        return home_candidate
+    # 4. Give up and let the OS report a useful error
+    return "flutter"
+
+FLUTTER = _find_flutter()
 
 
 def run_tests(paths=None):
