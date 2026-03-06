@@ -297,6 +297,33 @@ class MockProtocol extends _i1.Mock implements _i9.Protocol {
       ) as _i2.DeviceConnectionServiceInterface);
 
   @override
+  Duration get retryTimeout => (super.noSuchMethod(
+        Invocation.getter(#retryTimeout),
+        returnValue: _FakeDuration_0(
+          this,
+          Invocation.getter(#retryTimeout),
+        ),
+      ) as Duration);
+
+  @override
+  Duration get sendStabilizationDelay => (super.noSuchMethod(
+        Invocation.getter(#sendStabilizationDelay),
+        returnValue: _FakeDuration_0(
+          this,
+          Invocation.getter(#sendStabilizationDelay),
+        ),
+      ) as Duration);
+
+  @override
+  Duration get transferAbortTimeout => (super.noSuchMethod(
+        Invocation.getter(#transferAbortTimeout),
+        returnValue: _FakeDuration_0(
+          this,
+          Invocation.getter(#transferAbortTimeout),
+        ),
+      ) as Duration);
+
+  @override
   Map<String, _i7.Device> get connectedDevices => (super.noSuchMethod(
         Invocation.getter(#connectedDevices),
         returnValue: <String, _i7.Device>{},
