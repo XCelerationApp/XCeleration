@@ -334,6 +334,7 @@ class RacesController extends ChangeNotifier {
 
     if (confirmed == true) {
       await RacesService.deleteRace(race.raceId!);
+      MasterRace.clearInstance(race.raceId!);
       await loadRaces();
     }
   }
