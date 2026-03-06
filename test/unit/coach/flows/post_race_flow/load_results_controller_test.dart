@@ -1,0 +1,352 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:mockito/annotations.dart';
+import 'package:mockito/mockito.dart';
+import 'package:xceleration/coach/flows/PostRaceFlow/steps/load_results/controller/load_results_controller.dart';
+import 'package:xceleration/core/services/device_connection_service.dart';
+import 'package:xceleration/core/utils/enums.dart';
+import 'package:xceleration/shared/models/database/base_models.dart';
+import 'package:xceleration/shared/models/database/master_race.dart';
+import 'package:xceleration/shared/models/timing_records/conflict.dart';
+import 'package:xceleration/shared/models/timing_records/timing_chunk.dart';
+import 'package:xceleration/shared/models/timing_records/timing_datum.dart';
+
+@GenerateMocks([MasterRace])
+import 'load_results_controller_test.mocks.dart';
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+const _team = Team(teamId: 1, name: 'Eagles');
+
+RaceRunner _runner(int id) => RaceRunner(
+      raceId: 1,
+      runner: Runner(
+          runnerId: id, name: 'Runner $id', bibNumber: '$id', grade: 11),
+      team: _team,
+    );
+
+LoadResultsController _buildController(
+    MockMasterRace mockMasterRace, DevicesManager devices) {
+  return LoadResultsController(
+    masterRace: mockMasterRace,
+    devices: devices,
+  );
+}
+
+// ---------------------------------------------------------------------------
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  late LoadResultsController controller;
+  late MockMasterRace mockMasterRace;
+  late DevicesManager devices;
+
+  setUp(() {
+    mockMasterRace = MockMasterRace();
+    // Coach browser device creates bibRecorder and raceTimer slots.
+    devices = DevicesManager(DeviceName.coach, DeviceType.browserDevice);
+    controller = _buildController(mockMasterRace, devices);
+  });
+
+  // =========================================================================
+  group('LoadResultsController', () {
+    // -----------------------------------------------------------------------
+    group('loadResults', () {
+      test('sets resultsLoaded to true and populates results on success',
+          () async {
+        final results = [
+          RaceResult(
+            raceId: 1,
+            runner: _runner(1).runner,
+            team: _team,
+            place: 1,
+            finishTime: const Duration(minutes: 10),
+          ),
+        ];
+        when(mockMasterRace.results).thenAnswer((_) async => results);
+
+        await controller.loadResults();
+
+        expect(controller.resultsLoaded, isTrue);
+        expect(controller.results, equals(results));
+      });
+
+      test('keeps resultsLoaded false when saved results list is empty',
+          () async {
+        when(mockMasterRace.results).thenAnswer((_) async => []);
+
+        await controller.loadResults();
+
+        expect(controller.resultsLoaded, isFalse);
+        expect(controller.results, isEmpty);
+      });
+
+      test(
+          'does not surface "Race is not finished" exception through error state',
+          () async {
+        when(mockMasterRace.results)
+            .thenAnswer((_) async => throw Exception('Race is not finished'));
+
+        await controller.loadResults();
+
+        expect(controller.hasError, isFalse);
+      });
+
+      test('does not surface other exceptions through error state', () async {
+        when(mockMasterRace.results)
+            .thenAnswer((_) async => throw Exception('DB error'));
+
+        await controller.loadResults();
+
+        expect(controller.hasError, isFalse);
+      });
+    });
+
+    // -----------------------------------------------------------------------
+    group('saveCurrentResults', () {
+      test('skips when hasBibConflicts is true', () async {
+        controller.raceRunners = [_runner(1), 99];
+        controller.timingChunks = [
+          TimingChunk(id: 0, timingData: [TimingDatum(time: '10:00.0')]),
+        ];
+        controller.hasBibConflicts = true;
+
+        await controller.saveCurrentResults();
+
+        verifyNever(mockMasterRace.addResult(any));
+      });
+
+      test('skips when hasTimingConflicts is true', () async {
+        controller.raceRunners = [_runner(1)];
+        controller.timingChunks = [
+          TimingChunk(
+            id: 0,
+            timingData: [TimingDatum(time: '10:00.0')],
+            conflictRecord: TimingDatum(
+              time: 'MISSING_TIMES',
+              conflict: Conflict(type: ConflictType.missingTime, offBy: 1),
+            ),
+          ),
+        ];
+        controller.hasTimingConflicts = true;
+
+        await controller.saveCurrentResults();
+
+        verifyNever(mockMasterRace.addResult(any));
+      });
+
+      test('skips when timingChunks is null', () async {
+        controller.raceRunners = [_runner(1)];
+        controller.timingChunks = null;
+
+        await controller.saveCurrentResults();
+
+        verifyNever(mockMasterRace.addResult(any));
+      });
+
+      test('skips when raceRunners is null', () async {
+        controller.timingChunks = [
+          TimingChunk(id: 0, timingData: [TimingDatum(time: '10:00.0')]),
+        ];
+        controller.raceRunners = null;
+
+        await controller.saveCurrentResults();
+
+        verifyNever(mockMasterRace.addResult(any));
+      });
+
+      test('saves results when no conflicts and matching data is present',
+          () async {
+        when(mockMasterRace.raceId).thenReturn(1);
+        when(mockMasterRace.addResult(any)).thenAnswer((_) async {});
+
+        controller.raceRunners = [_runner(1)];
+        controller.timingChunks = [
+          TimingChunk(id: 0, timingData: [TimingDatum(time: '10:00.0')]),
+        ];
+
+        await controller.saveCurrentResults();
+
+        verify(mockMasterRace.addResult(any)).called(1);
+      });
+    });
+
+    // -----------------------------------------------------------------------
+    group('containsBibConflicts', () {
+      test('returns false when raceRunners is null', () {
+        controller.raceRunners = null;
+        expect(controller.containsBibConflicts(), isFalse);
+      });
+
+      test('returns false when raceRunners has no int entries', () {
+        controller.raceRunners = [_runner(1), _runner(2)];
+        expect(controller.containsBibConflicts(), isFalse);
+      });
+
+      test('returns true when raceRunners contains an int entry', () {
+        // int in the list represents an unresolved bib number conflict
+        controller.raceRunners = [_runner(1), 99];
+        expect(controller.containsBibConflicts(), isTrue);
+      });
+    });
+
+    // -----------------------------------------------------------------------
+    group('containsTimingConflicts', () {
+      test('returns false when timingChunks is null', () {
+        controller.timingChunks = null;
+        expect(controller.containsTimingConflicts(), isFalse);
+      });
+
+      test('returns false when all chunks have only confirmRunner conflicts',
+          () {
+        controller.timingChunks = [
+          TimingChunk(
+            id: 0,
+            timingData: [TimingDatum(time: '10:00.0')],
+            conflictRecord: TimingDatum(
+              time: '10:30.0',
+              conflict: Conflict(type: ConflictType.confirmRunner, offBy: 0),
+            ),
+          ),
+        ];
+        expect(controller.containsTimingConflicts(), isFalse);
+      });
+
+      test('returns true when a chunk has a missingTime conflict', () {
+        controller.timingChunks = [
+          TimingChunk(
+            id: 0,
+            timingData: const [],
+            conflictRecord: TimingDatum(
+              time: 'MISSING_TIMES',
+              conflict: Conflict(type: ConflictType.missingTime, offBy: 1),
+            ),
+          ),
+        ];
+        expect(controller.containsTimingConflicts(), isTrue);
+      });
+
+      test('returns true when a chunk has an extraTime conflict', () {
+        controller.timingChunks = [
+          TimingChunk(
+            id: 0,
+            timingData: [
+              TimingDatum(time: '10:00.0'),
+              TimingDatum(time: '11:00.0'),
+            ],
+            conflictRecord: TimingDatum(
+              time: '11:00.0',
+              conflict: Conflict(type: ConflictType.extraTime, offBy: 1),
+            ),
+          ),
+        ];
+        expect(controller.containsTimingConflicts(), isTrue);
+      });
+    });
+
+    // -----------------------------------------------------------------------
+    group('resetDevices', () {
+      test('clears all state flags and collections', () async {
+        when(mockMasterRace.raceParticipants).thenAnswer((_) async => []);
+
+        // Set some state before reset
+        controller.raceRunners = [_runner(1)];
+        controller.timingChunks = [
+          TimingChunk(id: 0, timingData: [TimingDatum(time: '10:00.0')]),
+        ];
+        controller.resultsLoaded = true;
+        controller.hasBibConflicts = true;
+        controller.hasTimingConflicts = true;
+
+        await controller.resetDevices();
+
+        expect(controller.resultsLoaded, isFalse);
+        expect(controller.hasBibConflicts, isFalse);
+        expect(controller.hasTimingConflicts, isFalse);
+        expect(controller.results, isEmpty);
+        expect(controller.timingChunks, isNull);
+        expect(controller.raceRunners, isNull);
+      });
+    });
+
+    // -----------------------------------------------------------------------
+    group(
+        '_ensureBibNumberAndRunnerRecordLengthsAreEqual via processReceivedData',
+        () {
+      testWidgets('trims excess runners when raceRunners count > timing records',
+          (tester) async {
+        late BuildContext capturedContext;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Builder(builder: (ctx) {
+              capturedContext = ctx;
+              return const SizedBox();
+            }),
+          ),
+        );
+
+        final runner1 = _runner(1);
+        final runner2 = _runner(2);
+        when(mockMasterRace.getRaceRunnerByBib('1'))
+            .thenAnswer((_) async => runner1);
+        when(mockMasterRace.getRaceRunnerByBib('2'))
+            .thenAnswer((_) async => runner2);
+
+        // 2 bib entries, 1 timing record → raceRunners.length(2) > totalTimingRecords(1)
+        // Raw JSON bib format is accepted directly by BibDecodeUtils.
+        const rawBibJson =
+            '{"teams":["EAGLES"],"r":[["1","Runner 1",0,"11"],["2","Runner 2",0,"11"]]}';
+        // Raw timing: 1 plain datum + 1 confirmRunner delimiter → 1 chunk with 1 record.
+        const rawTiming = '10:00.0,CR 0 10:30.0';
+
+        devices.bibRecorder!.data = rawBibJson;
+        devices.raceTimer!.data = rawTiming;
+
+        await controller.processReceivedData(capturedContext);
+
+        expect(controller.raceRunners?.length, 1);
+      });
+
+      testWidgets(
+          'adds missingTime conflict chunk when timing records > raceRunners count',
+          (tester) async {
+        late BuildContext capturedContext;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Builder(builder: (ctx) {
+              capturedContext = ctx;
+              return const SizedBox();
+            }),
+          ),
+        );
+
+        final runner1 = _runner(1);
+        when(mockMasterRace.getRaceRunnerByBib('1'))
+            .thenAnswer((_) async => runner1);
+
+        // 1 bib entry, 2 timing records → raceRunners.length(1) < totalTimingRecords(2)
+        const rawBibJson =
+            '{"teams":["EAGLES"],"r":[["1","Runner 1",0,"11"]]}';
+        // Raw timing: 2 plain datums + 1 confirmRunner delimiter → 1 chunk with 2 records.
+        const rawTiming = '10:00.0,11:00.0,CR 0 11:30.0';
+
+        devices.bibRecorder!.data = rawBibJson;
+        devices.raceTimer!.data = rawTiming;
+
+        await controller.processReceivedData(capturedContext);
+
+        final hasMissingTimeChunk = controller.timingChunks?.any(
+              (chunk) =>
+                  chunk.hasConflict &&
+                  chunk.conflictRecord!.conflict!.type ==
+                      ConflictType.missingTime,
+            ) ??
+            false;
+        expect(hasMissingTimeChunk, isTrue);
+      });
+    });
+  });
+}
