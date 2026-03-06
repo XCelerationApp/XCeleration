@@ -217,8 +217,7 @@ void main() {
     });
 
     test('returns Failure when device is not connected', () async {
-      final result =
-          await protocol.sendData('hello', 'unconnected_device_id');
+      final result = await protocol.sendData('hello', 'unconnected_device_id');
       expect(result, isA<Failure<void>>());
     });
 
@@ -228,26 +227,21 @@ void main() {
 
       expect(result, isA<Success<void>>());
       verify(mockConnectionService.sendMessageToDevice(
-              any, argThat(predicate((Package p) => p.type == 'DATA'))))
-          .called(1);
+          any, argThat(predicate((Package p) => p.type == 'DATA')))).called(1);
       verify(mockConnectionService.sendMessageToDevice(
-              any, argThat(predicate((Package p) => p.type == 'FIN'))))
-          .called(1);
+          any, argThat(predicate((Package p) => p.type == 'FIN')))).called(1);
     });
 
     test('sends multiple DATA chunks for data exceeding chunk size', () async {
       setupAutoAck();
       // chunkSize == 1000; 2500 chars → 3 chunks
-      final result =
-          await protocol.sendData('x' * 2500, mockDevice.deviceId);
+      final result = await protocol.sendData('x' * 2500, mockDevice.deviceId);
 
       expect(result, isA<Success<void>>());
       verify(mockConnectionService.sendMessageToDevice(
-              any, argThat(predicate((Package p) => p.type == 'DATA'))))
-          .called(3);
+          any, argThat(predicate((Package p) => p.type == 'DATA')))).called(3);
       verify(mockConnectionService.sendMessageToDevice(
-              any, argThat(predicate((Package p) => p.type == 'FIN'))))
-          .called(1);
+          any, argThat(predicate((Package p) => p.type == 'FIN')))).called(1);
     });
 
     test('returns Failure when retry attempts are exhausted', () async {

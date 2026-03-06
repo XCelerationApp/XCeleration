@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import '../../../core/components/dialog_utils.dart';
+import '../../../core/services/device_connection_factory_impl.dart';
 import '../../../core/services/tutorial_manager.dart';
 import '../../../core/utils/enums.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/sheet_utils.dart';
 import '../../../shared/role_bar/models/role_enums.dart';
 import '../../../shared/role_bar/role_bar.dart';
-import '../../shared/services/demo_race_generator.dart';
+import '../../shared/services/assistant_storage_service.dart';
+import '../../shared/services/demo_race_generator_impl.dart';
 import '../controller/bib_number_controller.dart';
 import '../widget/bib_list_widget.dart';
 import '../widget/race_controls_widget.dart';
@@ -29,7 +31,12 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
   @override
   void initState() {
     super.initState();
-    _controller = BibNumberController();
+    _controller = BibNumberController(
+      storage: AssistantStorageService.instance,
+      tutorialManager: TutorialManager(),
+      demoRaceGenerator: const DemoRaceGeneratorImpl(),
+      deviceConnectionFactory: const DeviceConnectionFactoryImpl(),
+    );
     _controller.addListener(_onControllerChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -54,8 +61,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
   }
 
   Future<void> _onShareBibNumbers() async {
-    if (_controller.currentRace != null &&
-        DemoRaceGenerator.isDemoRace(_controller.currentRace!)) {
+    if (_controller.isCurrentRaceDemoRace()) {
       DialogUtils.showMessageDialog(
         context,
         title: 'Demo Race',

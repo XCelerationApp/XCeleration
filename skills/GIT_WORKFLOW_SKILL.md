@@ -25,6 +25,17 @@ Read this file fully before taking any git or PR action.
 - Be specific — `fix/race-result-sort-order` not `fix/bug`
 - Branch off `dev` unless told otherwise
 
+### When Starting a New Issue
+
+Before creating a new branch, check the current branch:
+
+1. **On `dev` or an unrelated branch** → create a new branch using the naming format above.
+2. **On a closely related branch** (same file/module, sequential issues) → do **not** create a new branch. Instead:
+   - If the current branch name still accurately describes the work, keep it.
+   - If the scope has grown, **ask the user** whether to rename the branch before doing so.
+   - Use `git branch -m <old> <new>` to rename; update the remote with `git push origin :<old> && git push -u origin <new>` if already pushed.
+3. **Never silently create a new branch** when already on a related one — always confirm with the user first.
+
 ---
 
 ## Commits
