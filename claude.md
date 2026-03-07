@@ -16,7 +16,7 @@ Flutter, Dart, ChangeNotifier + Provider, SQLite, Supabase.
 - **Writing or modifying tests:** Read `skills/TESTING_SKILL.md`
 - **Building or modifying any UI file (widgets, screens, components):** Read `skills/UI_STANDARD_SKILL.md`
 - **Interacting with a Linear issue (creating, updating, closing):** Read `skills/LINEAR_WORKFLOW_SKILL.md`
-- **Committing changes, creating branches, or opening/updating a PR:** Read `skills/GIT_WORKFLOW_SKILL.md`
+- **Committing changes, creating branches, or opening/updating a PR:** Read `skills/GIT_WORKFLOW_SKILL.md` — **MUST be read before any git action, no exceptions**
 
 ## Always
 
