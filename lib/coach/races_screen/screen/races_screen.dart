@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/shared/role_bar/role_bar.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_spacing.dart';
 import '../../../shared/role_bar/models/role_enums.dart';
 import '../../../core/services/tutorial_manager.dart';
 import '../../../core/components/coach_mark.dart';
@@ -68,7 +69,7 @@ class RacesScreenState extends State<RacesScreen> {
                               description: 'Click here to create a new race',
                               icon: Icons.add,
                               type: CoachMarkType.targeted,
-                              backgroundColor: Color(0xFF1976D2),
+                              backgroundColor: AppColors.statusPreRace,
                               elevation: 12,
                             ),
                             child: FloatingActionButton(
@@ -86,7 +87,7 @@ class RacesScreenState extends State<RacesScreen> {
                   children: [
                     // Sticky header
                     Padding(
-                      padding: EdgeInsets.fromLTRB(24.0, 0, 24.0, 0),
+                      padding: EdgeInsets.fromLTRB(AppSpacing.xl, 0, AppSpacing.xl, 0),
                       child: RoleBar(
                           currentRole:
                               widget.canEdit ? Role.coach : Role.spectator,
@@ -95,7 +96,7 @@ class RacesScreenState extends State<RacesScreen> {
                     // Scrollable content
                     Expanded(
                       child: Padding(
-                        padding: EdgeInsets.fromLTRB(24.0, 0, 24.0, 24.0),
+                        padding: EdgeInsets.fromLTRB(AppSpacing.xl, 0, AppSpacing.xl, AppSpacing.xl),
                         child: SingleChildScrollView(
                           child: RaceCoachMark(
                             controller: _controller,
