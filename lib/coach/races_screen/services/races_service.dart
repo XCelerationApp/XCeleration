@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:xceleration/core/services/auth_service.dart';
 import 'package:xceleration/core/utils/database_helper.dart';
 import 'package:xceleration/core/utils/i_database_helper.dart';
-import 'package:xceleration/shared/models/database/master_race.dart';
 import '../../../shared/models/database/race.dart';
 
 abstract interface class IRacesService {
@@ -51,7 +50,7 @@ class RacesService implements IRacesService {
   /// Updates an existing race in the database.
   @override
   Future<void> updateRace(Race race) async {
-    await MasterRace.getInstance(race.raceId!).updateRace(race);
+    await _db.updateRace(race);
   }
 
   /// Deletes a race from the database.

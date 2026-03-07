@@ -76,6 +76,25 @@ void main() {
     });
 
     // -----------------------------------------------------------------------
+    group('updateRace', () {
+      final race = Race(raceId: 1, raceName: 'Spring Classic');
+
+      test('calls database updateRace', () async {
+        when(mockDb.updateRace(any)).thenAnswer((_) async {});
+
+        await service.updateRace(race);
+
+        verify(mockDb.updateRace(any)).called(1);
+      });
+
+      test('propagates exception when database throws', () async {
+        when(mockDb.updateRace(any)).thenThrow(Exception('update failed'));
+
+        expect(() => service.updateRace(race), throwsA(isA<Exception>()));
+      });
+    });
+
+    // -----------------------------------------------------------------------
     group('deleteRace', () {
       test('calls database delete', () async {
         when(mockDb.deleteRace(1)).thenAnswer((_) async {});
