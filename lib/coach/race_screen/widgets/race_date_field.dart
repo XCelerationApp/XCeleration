@@ -6,12 +6,10 @@ import '../controller/race_form_state.dart';
 
 class RaceDateField extends StatelessWidget {
   final RaceController controller;
-  final StateSetter setSheetState;
   final ValueChanged<String>? onChanged;
 
   const RaceDateField({
     required this.controller,
-    required this.setSheetState,
     this.onChanged,
     super.key,
   });
@@ -29,10 +27,8 @@ class RaceDateField extends StatelessWidget {
           icon: const Icon(Icons.calendar_today, color: AppColors.primaryColor),
           onPressed: () => controller.selectDate(context),
         ),
-        setSheetState: setSheetState,
         onChanged: (value) {
-          controller.validateDate(
-              controller.form.dateController.text, setSheetState);
+          controller.validateDate(controller.form.dateController.text);
           if (onChanged != null) onChanged!(value);
         },
       ),

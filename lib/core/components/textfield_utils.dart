@@ -77,7 +77,6 @@ Widget buildTextField({
   String? warning,
   TextInputType? keyboardType,
   required Function(String) onChanged,
-  required StateSetter setSheetState,
   IconButton? prefixIcon,
   IconButton? suffixIcon,
   VoidCallback? onSuffixIconPressed,
