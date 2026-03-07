@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../../shared/models/database/race.dart'; // Import Race model for constants
+import '../../../core/theme/app_animations.dart';
+import '../../../core/theme/app_border_radius.dart';
+import '../../../core/theme/app_opacity.dart';
+import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/typography.dart';
 
-class FlowNotification extends StatelessWidget {
+class FlowNotification extends StatefulWidget {
   final String flowState;
   final Color color;
   final IconData icon;
@@ -15,11 +19,18 @@ class FlowNotification extends StatelessWidget {
       required this.icon,
       required this.continueAction});
 
+  @override
+  State<FlowNotification> createState() => _FlowNotificationState();
+}
+
+class _FlowNotificationState extends State<FlowNotification> {
+  bool _pressed = false;
+
   // Get appropriate button text based on the flow state
   String _getButtonText() {
-    if (flowState == Race.FLOW_SETUP_COMPLETED) {
+    if (widget.flowState == Race.FLOW_SETUP_COMPLETED) {
       return 'Share Race';
-    } else if (flowState == Race.FLOW_PRE_RACE_COMPLETED) {
+    } else if (widget.flowState == Race.FLOW_PRE_RACE_COMPLETED) {
       return 'Process Results';
     } else {
       return 'Continue';
@@ -29,7 +40,7 @@ class FlowNotification extends StatelessWidget {
   // Get appropriate status text
   String _getStatusText() {
     // Simplified status text based on flow state
-    switch (flowState) {
+    switch (widget.flowState) {
       case Race.FLOW_SETUP:
         return 'Race Setup';
       case Race.FLOW_SETUP_COMPLETED:
@@ -45,50 +56,57 @@ class FlowNotification extends StatelessWidget {
         return 'Race Complete';
       default:
         // For backward compatibility or custom states
-        if (flowState.contains(Race.FLOW_COMPLETED_SUFFIX)) {
-          final baseState = flowState.split(Race.FLOW_COMPLETED_SUFFIX).first;
+        if (widget.flowState.contains(Race.FLOW_COMPLETED_SUFFIX)) {
+          final baseState =
+              widget.flowState.split(Race.FLOW_COMPLETED_SUFFIX).first;
           if (baseState == Race.FLOW_POST_RACE.split('-').first) {
             return 'Race Complete';
           }
         }
-        return flowState;
+        return widget.flowState;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
         child: Row(
           children: [
             Text(
               _getStatusText(),
               style: AppTypography.bodySemibold.copyWith(
-                color: color,
+                color: widget.color,
               ),
             ),
             const Spacer(),
             // Don't show action button for post-race completed or finished states
-            if (flowState != Race.FLOW_FINISHED)
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: color.withAlpha((0.1 * 255).round()),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: color.withAlpha((0.5 * 255).round()),
-                    width: 1,
+            if (widget.flowState != Race.FLOW_FINISHED)
+              GestureDetector(
+                onTapDown: (_) => setState(() => _pressed = true),
+                onTapUp: (_) => setState(() => _pressed = false),
+                onTapCancel: () => setState(() => _pressed = false),
+                onTap: widget.continueAction,
+                child: AnimatedContainer(
+                  duration: AppAnimations.fast,
+                  curve: AppAnimations.spring,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+                  decoration: BoxDecoration(
+                    color: widget.color.withValues(
+                        alpha: _pressed ? AppOpacity.medium : AppOpacity.light),
+                    borderRadius: BorderRadius.circular(AppBorderRadius.lg),
+                    border: Border.all(
+                      color: widget.color.withValues(alpha: AppOpacity.solid),
+                      width: 1,
+                    ),
                   ),
-                ),
-                child: InkWell(
-                  onTap: continueAction,
                   child: Text(
                     _getButtonText(),
                     style: AppTypography.smallBodySemibold.copyWith(
-                      color: color,
+                      color: widget.color,
                     ),
                   ),
                 ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/typography.dart';
 import '../../../shared/models/database/race.dart';
 import '../controller/race_screen_controller.dart';
@@ -10,18 +11,18 @@ import '../widgets/flow_notification.dart';
 Color _getStatusColor(String flowState) {
   switch (flowState) {
     case Race.FLOW_SETUP:
-      return Colors.amber;
+      return AppColors.statusSetup;
     case Race.FLOW_SETUP_COMPLETED:
     case Race.FLOW_PRE_RACE:
-      return Colors.blue;
+      return AppColors.statusPreRace;
     case Race.FLOW_PRE_RACE_COMPLETED:
     case Race.FLOW_POST_RACE:
-      return Colors.purple;
+      return AppColors.statusPostRace;
     // case Race.FLOW_POST_RACE_COMPLETED:
     case Race.FLOW_FINISHED:
-      return Colors.green;
+      return AppColors.statusFinished;
     default:
-      return Colors.grey;
+      return AppColors.lightColor;
   }
 }
 
@@ -96,7 +97,7 @@ class _RaceHeaderState extends State<RaceHeader> {
         // Editable race title
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
           child: widget.controller.form.isEditing(RaceField.name)
               ? TextField(
                   controller: widget.controller.form.nameController,
