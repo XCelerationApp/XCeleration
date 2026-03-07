@@ -82,7 +82,7 @@ void main() {
     });
 
     // -----------------------------------------------------------------------
-    group('_lastStepIndex', () {
+    group('showPostRaceFlow', () {
       testWidgets(
           'starts at 0 on the first call and uses persisted index on the next call',
           (tester) async {
@@ -120,6 +120,82 @@ void main() {
 
         expect(capturedIndices[0], 0); // first call: starts at default 0
         expect(capturedIndices[1], 1); // second call: resumes at persisted 1
+      });
+
+      testWidgets('forwards dismissible as showProgressIndicator',
+          (tester) async {
+        final captured = <bool>[];
+
+        Future<bool> fakeShowFlow({
+          required BuildContext context,
+          required List<FlowStep> steps,
+          bool showProgressIndicator = true,
+          int initialIndex = 0,
+          StepChangedCallback? onStepChanged,
+          void Function(int lastIndex)? onDismiss,
+        }) async {
+          captured.add(showProgressIndicator);
+          onDismiss?.call(0);
+          return false;
+        }
+
+        final controller = _buildController(
+          mockMasterRace,
+          showFlowFn: fakeShowFlow,
+          loadResultsController: mockLoadResultsController,
+        );
+
+        BuildContext? ctx;
+        await tester.pumpWidget(MaterialApp(
+          home: Builder(builder: (context) {
+            ctx = context;
+            return const SizedBox();
+          }),
+        ));
+
+        await controller.showPostRaceFlow(ctx!, true);
+        await controller.showPostRaceFlow(ctx!, false);
+
+        expect(captured[0], isTrue);
+        expect(captured[1], isFalse);
+      });
+
+      testWidgets('passes the correct steps in order', (tester) async {
+        List<FlowStep>? capturedSteps;
+
+        Future<bool> fakeShowFlow({
+          required BuildContext context,
+          required List<FlowStep> steps,
+          bool showProgressIndicator = true,
+          int initialIndex = 0,
+          StepChangedCallback? onStepChanged,
+          void Function(int lastIndex)? onDismiss,
+        }) async {
+          capturedSteps = steps;
+          onDismiss?.call(0);
+          return false;
+        }
+
+        final controller = _buildController(
+          mockMasterRace,
+          showFlowFn: fakeShowFlow,
+          loadResultsController: mockLoadResultsController,
+        );
+
+        BuildContext? ctx;
+        await tester.pumpWidget(MaterialApp(
+          home: Builder(builder: (context) {
+            ctx = context;
+            return const SizedBox();
+          }),
+        ));
+
+        await controller.showPostRaceFlow(ctx!, false);
+
+        expect(capturedSteps, isNotNull);
+        expect(capturedSteps!.length, 2);
+        expect(capturedSteps![0], isA<ReconnectStep>());
+        expect(capturedSteps![1], isA<LoadResultsStep>());
       });
     });
   });
