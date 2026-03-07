@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:xceleration/core/utils/encode_utils.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/core/result.dart';
+import 'package:xceleration/core/services/i_text_input_factory.dart';
 import '../model/bib_record.dart';
 import '../../shared/models/race_record.dart';
 import '../../shared/services/i_assistant_storage_service.dart';
@@ -17,10 +18,14 @@ class BibNumberDataController extends ChangeNotifier {
 
   // Race context and storage - single source of truth
   final IAssistantStorageService storage;
+  final ITextInputFactory _textInputFactory;
   RaceRecord? _currentRace;
   bool _raceStopped = true;
 
-  BibNumberDataController({required this.storage});
+  BibNumberDataController({
+    required this.storage,
+    required ITextInputFactory textInputFactory,
+  }) : _textInputFactory = textInputFactory;
 
   bool get isKeyboardVisible => _isKeyboardVisible;
 
@@ -81,10 +86,10 @@ class BibNumberDataController extends ChangeNotifier {
     _bibRecords.add(record);
 
     final newIndex = _bibRecords.length - 1;
-    final controller = TextEditingController(text: record.bib);
+    final controller = _textInputFactory.createController(record.bib);
     controllers.add(controller);
 
-    final focusNode = FocusNode();
+    final focusNode = _textInputFactory.createFocusNode();
     focusNode.addListener(() {
       // Handle keyboard visibility
       if (focusNode.hasFocus != _isKeyboardVisible) {

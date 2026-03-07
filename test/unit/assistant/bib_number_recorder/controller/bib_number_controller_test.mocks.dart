@@ -20,6 +20,7 @@ import 'package:xceleration/core/services/device_connection_service.dart'
     as _i2;
 import 'package:xceleration/core/services/i_device_connection_factory.dart'
     as _i13;
+import 'package:xceleration/core/services/i_post_frame_scheduler.dart' as _i17;
 import 'package:xceleration/core/services/tutorial_manager.dart' as _i15;
 import 'package:xceleration/core/utils/enums.dart' as _i14;
 import 'package:xceleration/shared/models/timing_records/timing_chunk.dart'
@@ -1136,6 +1137,25 @@ class MockTutorialManager extends _i1.Mock implements _i15.TutorialManager {
         Invocation.method(
           #notifyListeners,
           [],
+        ),
+        returnValueForMissingStub: null,
+      );
+}
+
+/// A class which mocks [IPostFrameScheduler].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockIPostFrameScheduler extends _i1.Mock
+    implements _i17.IPostFrameScheduler {
+  MockIPostFrameScheduler() {
+    _i1.throwOnMissingStub(this);
+  }
+
+  @override
+  void schedulePostFrame(_i16.VoidCallback? callback) => super.noSuchMethod(
+        Invocation.method(
+          #schedulePostFrame,
+          [callback],
         ),
         returnValueForMissingStub: null,
       );
