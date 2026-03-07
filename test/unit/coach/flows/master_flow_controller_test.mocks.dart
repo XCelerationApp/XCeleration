@@ -805,6 +805,15 @@ class MockPostRaceController extends _i1.Mock
         ),
         returnValue: _i9.Future<bool>.value(false),
       ) as _i9.Future<bool>);
+
+  @override
+  List<_i19.FlowStep> buildSteps() => (super.noSuchMethod(
+        Invocation.method(
+          #buildSteps,
+          [],
+        ),
+        returnValue: <_i19.FlowStep>[],
+      ) as List<_i19.FlowStep>);
 }
 
 /// A class which mocks [EventBus].

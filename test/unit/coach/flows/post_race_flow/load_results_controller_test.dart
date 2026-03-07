@@ -28,10 +28,14 @@ RaceRunner _runner(int id) => RaceRunner(
     );
 
 LoadResultsController _buildController(
-    MockMasterRace mockMasterRace, DevicesManager devices) {
+  MockMasterRace mockMasterRace,
+  DevicesManager devices, {
+  Future<String> Function(MasterRace)? encodeBibData,
+}) {
   return LoadResultsController(
     masterRace: mockMasterRace,
     devices: devices,
+    encodeBibData: encodeBibData,
   );
 }
 
@@ -102,6 +106,46 @@ void main() {
         await controller.loadResults();
 
         expect(controller.hasError, isFalse);
+      });
+    });
+
+    // -----------------------------------------------------------------------
+    group('saveRaceResults', () {
+      test('delegates to masterRace.saveResults on success', () async {
+        final results = [
+          RaceResult(
+            raceId: 1,
+            runner: _runner(1).runner,
+            team: _team,
+            place: 1,
+            finishTime: const Duration(minutes: 10),
+          ),
+        ];
+        when(mockMasterRace.saveResults(any)).thenAnswer((_) async {});
+
+        await controller.saveRaceResults(results);
+
+        verify(mockMasterRace.saveResults(results)).called(1);
+      });
+
+      test('rethrows exception from masterRace.saveResults on failure',
+          () async {
+        final results = [
+          RaceResult(
+            raceId: 1,
+            runner: _runner(1).runner,
+            team: _team,
+            place: 1,
+            finishTime: const Duration(minutes: 10),
+          ),
+        ];
+        when(mockMasterRace.saveResults(any))
+            .thenAnswer((_) async => throw Exception('DB error'));
+
+        await expectLater(
+          controller.saveRaceResults(results),
+          throwsException,
+        );
       });
     });
 
@@ -250,7 +294,11 @@ void main() {
     // -----------------------------------------------------------------------
     group('resetDevices', () {
       test('clears all state flags and collections', () async {
-        when(mockMasterRace.raceParticipants).thenAnswer((_) async => []);
+        controller = _buildController(
+          mockMasterRace,
+          devices,
+          encodeBibData: (_) async => 'encoded',
+        );
 
         // Set some state before reset
         controller.raceRunners = [_runner(1)];
@@ -269,6 +317,104 @@ void main() {
         expect(controller.results, isEmpty);
         expect(controller.timingChunks, isNull);
         expect(controller.raceRunners, isNull);
+      });
+
+      test('sets bibRecorder.data to the encoded value from stub encoder',
+          () async {
+        const encodedData = 'stub-encoded-data';
+        controller = _buildController(
+          mockMasterRace,
+          devices,
+          encodeBibData: (_) async => encodedData,
+        );
+
+        await controller.resetDevices();
+
+        expect(devices.bibRecorder?.data, equals(encodedData));
+      });
+    });
+
+    // -----------------------------------------------------------------------
+    group('processReceivedData', () {
+      testWidgets(
+          'when bibRecorder data is null, shows error dialog without throwing',
+          (tester) async {
+        late BuildContext capturedContext;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Builder(builder: (ctx) {
+              capturedContext = ctx;
+              return const SizedBox();
+            }),
+          ),
+        );
+
+        // bibRecorder.data is null by default; only set raceTimer data
+        devices.raceTimer!.data = '10:00.0,CR 0 10:30.0';
+
+        await controller.processReceivedData(capturedContext);
+        // Advance past the FToast notification duration (3 s)
+        await tester.pump(const Duration(seconds: 4));
+
+        expect(controller.hasError, isFalse);
+        expect(controller.resultsLoaded, isFalse);
+      });
+
+      testWidgets(
+          'when BibDecodeUtils returns Failure, sets error and does not proceed',
+          (tester) async {
+        late BuildContext capturedContext;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Builder(builder: (ctx) {
+              capturedContext = ctx;
+              return const SizedBox();
+            }),
+          ),
+        );
+
+        // Valid JSON but a List not a Map → FormatException → Failure
+        devices.bibRecorder!.data = '[1, 2, 3]';
+        devices.raceTimer!.data = '10:00.0,CR 0 10:30.0';
+
+        await controller.processReceivedData(capturedContext);
+
+        expect(controller.hasError, isTrue);
+        verifyNever(mockMasterRace.getRaceRunnerByBib(any));
+      });
+
+      testWidgets(
+          'converts second occurrence of duplicate bib to int conflict',
+          (tester) async {
+        late BuildContext capturedContext;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Builder(builder: (ctx) {
+              capturedContext = ctx;
+              return const SizedBox();
+            }),
+          ),
+        );
+
+        final runner1 = _runner(1);
+        when(mockMasterRace.getRaceRunnerByBib('1'))
+            .thenAnswer((_) async => runner1);
+
+        // Bib "1" appears twice in the bib list
+        const rawBibJson =
+            '{"teams":["EAGLES"],"r":[["1","Runner 1",0,"11"],["1","Runner 1 Again",0,"11"]]}';
+        // 2 timing records so lengths match
+        const rawTiming = '10:00.0,11:00.0,CR 0 11:30.0';
+
+        devices.bibRecorder!.data = rawBibJson;
+        devices.raceTimer!.data = rawTiming;
+
+        await controller.processReceivedData(capturedContext);
+
+        expect(controller.raceRunners, isNotNull);
+        expect(controller.raceRunners!.length, 2);
+        expect(controller.raceRunners![0], isA<RaceRunner>());
+        expect(controller.raceRunners![1], isA<int>());
       });
     });
 
