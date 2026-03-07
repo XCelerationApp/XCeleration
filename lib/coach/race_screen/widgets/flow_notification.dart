@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../shared/models/database/race.dart'; // Import Race model for constants
+import '../../../core/theme/app_border_radius.dart';
+import '../../../core/theme/app_opacity.dart';
+import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/typography.dart';
 
 class FlowNotification extends StatelessWidget {
@@ -58,9 +61,9 @@ class FlowNotification extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
         child: Row(
           children: [
             Text(
@@ -74,12 +77,12 @@ class FlowNotification extends StatelessWidget {
             if (flowState != Race.FLOW_FINISHED)
               Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
                 decoration: BoxDecoration(
-                  color: color.withAlpha((0.1 * 255).round()),
-                  borderRadius: BorderRadius.circular(16),
+                  color: color.withValues(alpha: AppOpacity.light),
+                  borderRadius: BorderRadius.circular(AppBorderRadius.lg),
                   border: Border.all(
-                    color: color.withAlpha((0.5 * 255).round()),
+                    color: color.withValues(alpha: AppOpacity.solid),
                     width: 1,
                   ),
                 ),

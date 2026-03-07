@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../../core/theme/app_border_radius.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_opacity.dart';
+import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/typography.dart';
-import 'package:xceleration/core/utils/color_utils.dart';
 import 'package:xceleration/core/components/textfield_utils.dart';
 import '../controller/race_screen_controller.dart';
 import '../controller/race_form_state.dart';
@@ -44,7 +46,7 @@ class RaceDetailsTab extends StatelessWidget {
         ),
         if (controller.isLocationButtonVisible &&
             (Platform.isIOS || Platform.isAndroid)) ...[
-          const SizedBox(width: 12),
+          const SizedBox(width: AppSpacing.md),
           Expanded(
             flex: 1,
             child: IconButton(
@@ -80,7 +82,7 @@ class RaceDetailsTab extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: AppSpacing.md),
         Expanded(
           flex: 1,
           child: Focus(
@@ -121,11 +123,9 @@ class RaceDetailsTab extends StatelessWidget {
         children: [
           Text(
             'Race Details',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+            style: AppTypography.titleSemibold,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.lg),
           // Inline editable fields
           InlineEditableField(
             controller: controller,
@@ -174,10 +174,10 @@ class RaceDetailsTab extends StatelessWidget {
             },
           ),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.lg),
           runnerCount == 0
               ? Container(
-                  margin: const EdgeInsets.only(bottom: 16),
+                  margin: const EdgeInsets.only(bottom: AppSpacing.lg),
                   width: double.infinity,
                   child: Builder(
                     builder: (context) {
@@ -193,17 +193,16 @@ class RaceDetailsTab extends StatelessWidget {
                         },
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 12),
+                              horizontal: AppSpacing.lg, vertical: AppSpacing.md),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(AppBorderRadius.sm),
                             side: BorderSide(color: AppColors.primaryColor),
                           ),
                         ),
                         child: Text(
                           'Load Teams and Runners',
-                          style: TextStyle(
+                          style: AppTypography.bodySemibold.copyWith(
                             color: AppColors.primaryColor,
-                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       );
@@ -222,20 +221,19 @@ class RaceDetailsTab extends StatelessWidget {
                             isViewMode: isViewMode);
                       },
                       child: Container(
-                        margin: const EdgeInsets.only(bottom: 16),
+                        margin: const EdgeInsets.only(bottom: AppSpacing.lg),
                         child: Row(
                           children: [
                             Container(
-                              padding: const EdgeInsets.all(10),
+                              padding: const EdgeInsets.all(AppSpacing.md),
                               decoration: BoxDecoration(
-                                color: ColorUtils.withOpacity(
-                                    AppColors.primaryColor, 0.1),
-                                borderRadius: BorderRadius.circular(10),
+                                color: AppColors.primaryColor.withValues(alpha: AppOpacity.light),
+                                borderRadius: BorderRadius.circular(AppBorderRadius.md),
                               ),
                               child: Icon(Icons.group_rounded,
                                   color: AppColors.primaryColor, size: 22),
                             ),
-                            const SizedBox(width: 16),
+                            const SizedBox(width: AppSpacing.lg),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -243,11 +241,10 @@ class RaceDetailsTab extends StatelessWidget {
                                   Text(
                                     'Teams and Runners',
                                     style: AppTypography.bodyRegular.copyWith(
-                                      color: ColorUtils.withOpacity(
-                                          AppColors.darkColor, 0.6),
+                                      color: AppColors.mediumColor,
                                     ),
                                   ),
-                                  const SizedBox(height: 4),
+                                  const SizedBox(height: AppSpacing.xs),
                                   Text(
                                     '$teamCount team${teamCount == 1 ? '' : 's'}, $runnerCount runner${runnerCount == 1 ? '' : 's'}',
                                     style: AppTypography.bodySemibold.copyWith(
@@ -262,7 +259,7 @@ class RaceDetailsTab extends StatelessWidget {
                             Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const SizedBox(width: 8),
+                                const SizedBox(width: AppSpacing.sm),
                                 Icon(
                                   Icons.chevron_right,
                                   color: AppColors.primaryColor,
