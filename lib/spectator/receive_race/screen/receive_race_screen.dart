@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/services/device_connection_service.dart';
+import 'package:xceleration/core/services/nearby_connections.dart';
+import 'package:xceleration/core/utils/connection_utils.dart';
+import 'package:xceleration/core/utils/data_protocol.dart';
 import 'package:xceleration/core/components/connection_components.dart';
 import 'package:xceleration/core/utils/enums.dart';
+import 'package:xceleration/core/connection/controller/wireless_connection_controller.dart';
 import 'package:xceleration/core/components/dialog_utils.dart';
 import 'package:xceleration/core/result.dart';
 import 'package:xceleration/core/utils/race_share_decoder.dart';
@@ -119,8 +123,21 @@ class _ReceiveRaceScreenState extends State<ReceiveRaceScreen> {
             ),
             const SizedBox(height: 16),
             WirelessConnectionWidget(
-              devices: devices,
-              callback: _onComplete,
+              controller: () {
+                final svc = DeviceConnectionService(
+                  devices,
+                  'wirelessconn',
+                  getDeviceNameString(devices.currentDeviceName),
+                  devices.currentDeviceType,
+                  NearbyConnections(),
+                );
+                return WirelessConnectionController(
+                  deviceConnectionService: svc,
+                  protocol: Protocol(deviceConnectionService: svc),
+                  devices: devices,
+                  callback: _onComplete,
+                );
+              }(),
             ),
           ],
         ),
@@ -155,13 +172,25 @@ class ReceiveRacePreviewSheet extends StatelessWidget {
         context: context,
         title: 'Share to Another Spectator',
         body: WirelessConnectionWidget(
-          devices: devices,
-          callback: () {
-            // Share complete callback
-            if (context.mounted) {
-              Navigator.of(context).pop();
-            }
-          },
+          controller: () {
+            final svc = DeviceConnectionService(
+              devices,
+              'wirelessconn',
+              getDeviceNameString(devices.currentDeviceName),
+              devices.currentDeviceType,
+              NearbyConnections(),
+            );
+            return WirelessConnectionController(
+              deviceConnectionService: svc,
+              protocol: Protocol(deviceConnectionService: svc),
+              devices: devices,
+              callback: () {
+                if (context.mounted) {
+                  Navigator.of(context).pop();
+                }
+              },
+            );
+          }(),
         ),
       );
     } catch (e) {

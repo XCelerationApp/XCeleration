@@ -13,6 +13,11 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'coach/race_screen/controller/race_screen_controller.dart';
 import 'coach/races_screen/controller/races_controller.dart';
+import 'core/services/geo_location_service.dart';
+import 'core/services/post_frame_callback_scheduler.dart';
+import 'coach/races_screen/services/races_service.dart';
+import 'core/services/auth_service.dart';
+import 'core/services/tutorial_manager.dart';
 import 'shared/models/database/master_race.dart';
 import 'core/services/sync_service.dart';
 
@@ -68,9 +73,10 @@ void _runApp() async {
         ChangeNotifierProvider(
           create: (context) => RaceController(
               masterRace: MasterRace.getInstance(0),
-              parentController: RacesController()),
+              parentController: RacesController(racesService: RacesService(), authService: AuthService.instance, eventBus: EventBus.instance, geoLocationService: GeoLocationService(), postFrameCallbackScheduler: WidgetsBindingAdapter(), tutorialManager: TutorialManager())),
         ),
-        ChangeNotifierProvider(create: (context) => RacesController()),
+        ChangeNotifierProvider(
+            create: (context) => RacesController(racesService: RacesService(), authService: AuthService.instance, eventBus: EventBus.instance, geoLocationService: GeoLocationService(), postFrameCallbackScheduler: WidgetsBindingAdapter(), tutorialManager: TutorialManager())),
       ],
       child: const MyApp(),
     ),

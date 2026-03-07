@@ -1,3 +1,5 @@
+import 'package:fake_async/fake_async.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
@@ -10,6 +12,8 @@ import 'package:xceleration/assistant/shared/services/i_demo_race_generator.dart
 import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/result.dart';
 import 'package:xceleration/core/services/i_device_connection_factory.dart';
+import 'package:xceleration/core/services/i_post_frame_scheduler.dart';
+import 'package:xceleration/core/services/i_text_input_factory.dart';
 import 'package:xceleration/core/services/tutorial_manager.dart';
 import 'package:xceleration/core/utils/enums.dart';
 import 'package:xceleration/assistant/shared/models/bib_record.dart' as db_models;
@@ -17,17 +21,28 @@ import 'package:xceleration/shared/models/timing_records/bib_datum.dart';
 
 import 'bib_number_controller_test.mocks.dart';
 
+class FakeTextInputFactory implements ITextInputFactory {
+  @override
+  TextEditingController createController(String text) =>
+      TextEditingController(text: text);
+
+  @override
+  FocusNode createFocusNode() => FocusNode();
+}
+
 @GenerateMocks([
   IAssistantStorageService,
   IDemoRaceGenerator,
   IDeviceConnectionFactory,
   TutorialManager,
+  IPostFrameScheduler,
 ])
 void main() {
   late MockIAssistantStorageService mockStorage;
   late MockIDemoRaceGenerator mockDemoRaceGenerator;
   late MockIDeviceConnectionFactory mockDeviceConnectionFactory;
   late MockTutorialManager mockTutorialManager;
+  late MockIPostFrameScheduler mockScheduler;
 
   final testRace = RaceRecord(
     raceId: 1,
@@ -48,18 +63,20 @@ void main() {
   BibNumberController buildController() {
     return BibNumberController(
       storage: mockStorage,
+      textInputFactory: FakeTextInputFactory(),
       tutorialManager: mockTutorialManager,
       demoRaceGenerator: mockDemoRaceGenerator,
       deviceConnectionFactory: mockDeviceConnectionFactory,
+      scheduler: mockScheduler,
     );
   }
 
   setUp(() {
-    TestWidgetsFlutterBinding.ensureInitialized();
     mockStorage = MockIAssistantStorageService();
     mockDemoRaceGenerator = MockIDemoRaceGenerator();
     mockDeviceConnectionFactory = MockIDeviceConnectionFactory();
     mockTutorialManager = MockTutorialManager();
+    mockScheduler = MockIPostFrameScheduler();
 
     // Stubs for async calls made during construction
     when(mockDemoRaceGenerator.ensureDemoRaceExists(any))
@@ -78,6 +95,8 @@ void main() {
         .thenAnswer((_) async => const Success(null));
     when(mockStorage.saveBibRecords(any, any))
         .thenAnswer((_) async => const Success(null));
+    when(mockStorage.saveNewRace(any))
+        .thenAnswer((_) async => const Success(null));
     when(mockStorage.saveRunners(any, any))
         .thenAnswer((_) async => const Success(null));
     when(mockStorage.getBibRecord(any, any))
@@ -86,6 +105,9 @@ void main() {
         .thenAnswer((_) async => const Success(null));
     when(mockStorage.updateBibRecordValue(any, any, any))
         .thenAnswer((_) async => const Success(null));
+
+    // schedulePostFrame is a no-op in unit tests
+    when(mockScheduler.schedulePostFrame(any)).thenReturn(null);
   });
 
   group('BibNumberController', () {
@@ -248,6 +270,80 @@ void main() {
       });
     });
 
+    group('prepareShareData', () {
+      test('returns ShareDataDemoRace when current race is a demo race',
+          () async {
+        when(mockDemoRaceGenerator.isDemoRace(any)).thenReturn(true);
+        final controller = buildController();
+        controller.setCurrentRace(testRace);
+
+        final result = await controller.prepareShareData();
+
+        expect(result, isA<ShareDataDemoRace>());
+
+        controller.dispose();
+      });
+
+      test('returns ShareDataHasDuplicates when duplicate bibs exist', () async {
+        when(mockDemoRaceGenerator.isDemoRace(any)).thenReturn(false);
+        final controller = buildController();
+        controller.setCurrentRace(testRace);
+        await controller.addBibRecord(
+            BibDatumRecord(bib: '5', name: '', teamAbbreviation: '', grade: ''));
+        await controller.addBibRecord(
+            BibDatumRecord(bib: '5', name: '', teamAbbreviation: '', grade: ''));
+
+        final result = await controller.prepareShareData();
+
+        expect(result, isA<ShareDataHasDuplicates>());
+        final dupeResult = result as ShareDataHasDuplicates;
+        expect(dupeResult.duplicates, contains('5'));
+        expect(dupeResult.hasUnknown, isFalse);
+
+        controller.dispose();
+      });
+
+      test('returns ShareDataHasUnknown when unknown bibs exist', () async {
+        when(mockDemoRaceGenerator.isDemoRace(any)).thenReturn(false);
+        final controller = buildController();
+        controller.setCurrentRace(testRace);
+        await controller.addBibRecord(BibDatumRecord(
+          bib: '99',
+          name: '',
+          teamAbbreviation: '',
+          grade: '',
+          flags: const BibDatumRecordFlags(
+              notInDatabase: true, duplicateBibNumber: false),
+        ));
+
+        final result = await controller.prepareShareData();
+
+        expect(result, isA<ShareDataHasUnknown>());
+
+        controller.dispose();
+      });
+
+      test('returns ShareDataReady when all records are valid', () async {
+        when(mockDemoRaceGenerator.isDemoRace(any)).thenReturn(false);
+        final controller = buildController();
+        controller.setCurrentRace(testRace);
+        await controller.addBibRecord(BibDatumRecord(
+          bib: '1',
+          name: 'Alice',
+          teamAbbreviation: 'EAG',
+          grade: '10',
+          flags: const BibDatumRecordFlags(
+              notInDatabase: false, duplicateBibNumber: false),
+        ));
+
+        final result = await controller.prepareShareData();
+
+        expect(result, isA<ShareDataReady>());
+
+        controller.dispose();
+      });
+    });
+
     group('_loadLastRace', () {
       test('leaves currentRace null when getRaces returns Failure', () async {
         when(mockStorage.getRaces(any)).thenAnswer(
@@ -349,6 +445,191 @@ void main() {
       });
     });
 
+    group('getRunnerByBib', () {
+      test('returns null when runners list is empty', () {
+        final controller = buildController();
+
+        expect(controller.getRunnerByBib('42'), isNull);
+
+        controller.dispose();
+      });
+
+      test('returns null when bib is not found', () {
+        final controller = buildController();
+        controller.runners.add(BibDatum(
+          bib: '1',
+          name: 'Alice',
+          teamAbbreviation: 'EAG',
+          grade: '10',
+        ));
+
+        expect(controller.getRunnerByBib('99'), isNull);
+
+        controller.dispose();
+      });
+
+      test('returns matching runner when bib is found', () {
+        final controller = buildController();
+        controller.runners.add(BibDatum(
+          bib: '42',
+          name: 'Alice',
+          teamAbbreviation: 'EAG',
+          grade: '10',
+        ));
+
+        final result = controller.getRunnerByBib('42');
+
+        expect(result, isNotNull);
+        expect(result!.name, equals('Alice'));
+        expect(result.teamAbbreviation, equals('EAG'));
+
+        controller.dispose();
+      });
+    });
+
+    group('handleBibNumber', () {
+      test('adds a new bib record when no index is provided', () async {
+        final controller = buildController();
+
+        await controller.handleBibNumber('42');
+
+        expect(controller.bibRecords.length, equals(1));
+        expect(controller.bibRecords.first.bib, equals('42'));
+
+        controller.dispose();
+      });
+
+      test('schedules scroll and focus callbacks when adding new record',
+          () async {
+        final controller = buildController();
+
+        await controller.handleBibNumber('1');
+
+        verify(mockScheduler.schedulePostFrame(any)).called(2);
+
+        controller.dispose();
+      });
+
+      test('updates existing record immediately when index is provided',
+          () async {
+        final controller = buildController();
+        await controller.addBibRecord(BibDatumRecord.blank());
+
+        await controller.handleBibNumber('99', index: 0);
+
+        expect(controller.bibRecords[0].bib, equals('99'));
+
+        controller.dispose();
+      });
+
+      test('does not schedule callbacks when updating existing record',
+          () async {
+        final controller = buildController();
+        await controller.addBibRecord(BibDatumRecord.blank());
+
+        await controller.handleBibNumber('5', index: 0);
+
+        verifyNever(mockScheduler.schedulePostFrame(any));
+
+        controller.dispose();
+      });
+
+      test('does not update record when index is out of range', () async {
+        final controller = buildController();
+
+        await controller.handleBibNumber('5', index: 99);
+
+        expect(controller.bibRecords, isEmpty);
+
+        controller.dispose();
+      });
+
+      test('validates new record after debounce using fakeAsync', () {
+        fakeAsync((async) {
+          final controller = buildController();
+          controller.runners.add(BibDatum(
+            bib: '42',
+            name: 'Alice',
+            teamAbbreviation: 'EAG',
+            grade: '10',
+          ));
+
+          controller.handleBibNumber('42');
+          async.elapse(const Duration(milliseconds: 500));
+
+          expect(controller.bibRecords.first.flags.notInDatabase, isFalse);
+          expect(controller.bibRecords.first.name, equals('Alice'));
+
+          controller.dispose();
+        });
+      });
+
+      test('cancels previous debounce timer when called again for same index',
+          () {
+        fakeAsync((async) {
+          final controller = buildController();
+          controller.runners.add(BibDatum(
+            bib: '99',
+            name: 'Bob',
+            teamAbbreviation: 'TIG',
+            grade: '11',
+          ));
+          controller.addBibRecord(BibDatumRecord.blank());
+          async.flushMicrotasks();
+
+          // Partial input '9' — would validate to notInDatabase=true
+          controller.handleBibNumber('9', index: 0);
+          // Complete to '99' before debounce fires — cancels the first timer
+          controller.handleBibNumber('99', index: 0);
+
+          async.elapse(const Duration(milliseconds: 600));
+
+          // Only the second validation should have run
+          expect(controller.bibRecords[0].bib, equals('99'));
+          expect(controller.bibRecords[0].flags.notInDatabase, isFalse);
+
+          controller.dispose();
+        });
+      });
+    });
+
+    group('addBib', () {
+      test('adds a new empty record when bib list is empty', () async {
+        final controller = buildController();
+
+        await controller.addBib();
+
+        expect(controller.bibRecords.length, equals(1));
+        expect(controller.bibRecords.first.bib, isEmpty);
+
+        controller.dispose();
+      });
+
+      test('adds a new empty record when last record has content', () async {
+        final controller = buildController();
+        await controller.addBibRecord(
+            BibDatumRecord(bib: '5', name: '', teamAbbreviation: '', grade: ''));
+
+        await controller.addBib();
+
+        expect(controller.bibRecords.length, equals(2));
+        expect(controller.bibRecords.last.bib, isEmpty);
+
+        controller.dispose();
+      });
+
+      test('does not add a record when last record is already empty', () async {
+        final controller = buildController();
+        await controller.addBibRecord(BibDatumRecord.blank());
+
+        await controller.addBib();
+
+        expect(controller.bibRecords.length, equals(1));
+
+        controller.dispose();
+      });
+    });
+
     group('loadOtherRace', () {
       test('resets state and loads the provided race', () async {
         final otherRace = RaceRecord(
@@ -371,6 +652,76 @@ void main() {
         expect(controller.currentRace, equals(otherRace));
         verify(mockStorage.getRunners(otherRace.raceId)).called(1);
         verify(mockStorage.getBibRecords(otherRace.raceId)).called(1);
+
+        controller.dispose();
+      });
+    });
+
+    group('processLoadedRaceData', () {
+      final validRunnerJson =
+          '{"teams":["EAG"],"r":[["42","Alice",0,"10"]]}';
+
+      test('returns Failure for malformed race data', () async {
+        final controller = buildController();
+
+        final result =
+            await controller.processLoadedRaceData('not valid json');
+
+        expect(result, isA<Failure<void>>());
+
+        controller.dispose();
+      });
+
+      test('returns Failure when runner section is invalid', () async {
+        final controller = buildController();
+        final data = '${testRace.encode()}---invalid-runner-data';
+
+        final result = await controller.processLoadedRaceData(data);
+
+        expect(result, isA<Failure<void>>());
+
+        controller.dispose();
+      });
+
+      test('returns Failure when saveNewRace fails', () async {
+        when(mockStorage.saveNewRace(any)).thenAnswer(
+          (_) async => const Failure(AppError(userMessage: 'Save failed')),
+        );
+        final controller = buildController();
+
+        final result =
+            await controller.processLoadedRaceData(testRace.encode());
+
+        expect(result, isA<Failure<void>>());
+        expect((result as Failure).error.userMessage, 'Save failed');
+
+        controller.dispose();
+      });
+
+      test('returns Success and saves runners on happy path with runners',
+          () async {
+        final controller = buildController();
+        final data = '${testRace.encode()}---$validRunnerJson';
+
+        final result = await controller.processLoadedRaceData(data);
+
+        expect(result, isA<Success<void>>());
+        verify(mockStorage.saveNewRace(any)).called(1);
+        verify(mockStorage.saveRunners(any, argThat(isNotEmpty))).called(1);
+
+        controller.dispose();
+      });
+
+      test('returns Success and skips saveRunners on happy path without runners',
+          () async {
+        final controller = buildController();
+
+        final result =
+            await controller.processLoadedRaceData(testRace.encode());
+
+        expect(result, isA<Success<void>>());
+        verify(mockStorage.saveNewRace(any)).called(1);
+        verifyNever(mockStorage.saveRunners(any, any));
 
         controller.dispose();
       });
@@ -512,6 +863,38 @@ void main() {
       });
     });
 
+    group('canAddBib', () {
+      test('returns true when bibRecords is empty', () {
+        final controller = buildController();
+
+        expect(controller.canAddBib, isTrue);
+
+        controller.dispose();
+      });
+
+      test('returns true when last record has non-empty bib', () async {
+        final controller = buildController();
+        await controller.addBibRecord(
+            BibDatumRecord(bib: '5', name: '', teamAbbreviation: '', grade: ''));
+
+        expect(controller.canAddBib, isTrue);
+
+        controller.dispose();
+      });
+
+      test('returns true when last record has empty bib but no primary focus',
+          () async {
+        final controller = buildController();
+        await controller.addBibRecord(BibDatumRecord.blank());
+
+        // Without a widget tree hasPrimaryFocus is always false, so canAddBib
+        // returns true even with an empty bib.
+        expect(controller.canAddBib, isTrue);
+
+        controller.dispose();
+      });
+    });
+
     group('checkDuplicateRecords', () {
       test('returns empty list when no duplicates', () async {
         final controller = buildController();
@@ -606,6 +989,32 @@ void main() {
         await controller.saveBibRecordsToDatabase(testRace.raceId);
 
         verify(mockStorage.saveBibRecords(any, argThat(isEmpty))).called(1);
+
+        controller.dispose();
+      });
+    });
+
+    group('restoreFocusability', () {
+      test('sets canRequestFocus to true on all focus nodes', () async {
+        final controller = buildController();
+        await controller.addBibRecord(BibDatumRecord.blank());
+        await controller.addBibRecord(BibDatumRecord.blank());
+
+        for (final node in controller.focusNodes) {
+          node.canRequestFocus = false;
+        }
+
+        controller.restoreFocusability();
+
+        expect(controller.focusNodes.every((n) => n.canRequestFocus), isTrue);
+
+        controller.dispose();
+      });
+
+      test('does nothing when focusNodes is empty', () {
+        final controller = buildController();
+
+        expect(() => controller.restoreFocusability(), returnsNormally);
 
         controller.dispose();
       });
@@ -711,6 +1120,34 @@ void main() {
         final map = controller.getBibsAndRunners();
 
         expect(map['5']!.name, equals('Second'));
+
+        controller.dispose();
+      });
+    });
+
+    group('getEncodedBibData', () {
+      test('returns non-empty string for non-empty records', () async {
+        final controller = buildController();
+        await controller.addBibRecord(BibDatumRecord(
+          bib: '42',
+          name: 'Alice',
+          teamAbbreviation: 'EAG',
+          grade: '10',
+        ));
+
+        final encoded = await controller.getEncodedBibData();
+
+        expect(encoded, isNotEmpty);
+
+        controller.dispose();
+      });
+
+      test('returns a string for empty records list', () async {
+        final controller = buildController();
+
+        final encoded = await controller.getEncodedBibData();
+
+        expect(encoded, isA<String>());
 
         controller.dispose();
       });

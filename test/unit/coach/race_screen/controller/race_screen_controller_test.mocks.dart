@@ -98,19 +98,9 @@ class _FakeTutorialManager_4 extends _i1.SmartFake
         );
 }
 
-class _FakeBuildContext_5 extends _i1.SmartFake implements _i5.BuildContext {
-  _FakeBuildContext_5(
-    Object parent,
-    Invocation parentInvocation,
-  ) : super(
-          parent,
-          parentInvocation,
-        );
-}
-
-class _FakeRaceController_6 extends _i1.SmartFake
+class _FakeRaceController_5 extends _i1.SmartFake
     implements _i7.RaceController {
-  _FakeRaceController_6(
+  _FakeRaceController_5(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -119,9 +109,9 @@ class _FakeRaceController_6 extends _i1.SmartFake
         );
 }
 
-class _FakePreRaceController_7 extends _i1.SmartFake
+class _FakePreRaceController_6 extends _i1.SmartFake
     implements _i8.PreRaceController {
-  _FakePreRaceController_7(
+  _FakePreRaceController_6(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -130,9 +120,9 @@ class _FakePreRaceController_7 extends _i1.SmartFake
         );
 }
 
-class _FakePostRaceController_8 extends _i1.SmartFake
+class _FakePostRaceController_7 extends _i1.SmartFake
     implements _i9.PostRaceController {
-  _FakePostRaceController_8(
+  _FakePostRaceController_7(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -141,8 +131,8 @@ class _FakePostRaceController_8 extends _i1.SmartFake
         );
 }
 
-class _FakePosition_9 extends _i1.SmartFake implements _i10.Position {
-  _FakePosition_9(
+class _FakePosition_8 extends _i1.SmartFake implements _i10.Position {
+  _FakePosition_8(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -610,15 +600,6 @@ class MockRacesController extends _i1.Mock implements _i15.RacesController {
       ) as bool);
 
   @override
-  _i5.BuildContext get context => (super.noSuchMethod(
-        Invocation.getter(#context),
-        returnValue: _FakeBuildContext_5(
-          this,
-          Invocation.getter(#context),
-        ),
-      ) as _i5.BuildContext);
-
-  @override
   set races(List<_i3.Race>? value) => super.noSuchMethod(
         Invocation.setter(
           #races,
@@ -697,19 +678,10 @@ class MockRacesController extends _i1.Mock implements _i15.RacesController {
       ) as bool);
 
   @override
-  void setContext(_i5.BuildContext? context) => super.noSuchMethod(
-        Invocation.method(
-          #setContext,
-          [context],
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
-  void initState() => super.noSuchMethod(
+  void initState(_i5.BuildContext? context) => super.noSuchMethod(
         Invocation.method(
           #initState,
-          [],
+          [context],
         ),
         returnValueForMissingStub: null,
       );
@@ -844,10 +816,11 @@ class MockRacesController extends _i1.Mock implements _i15.RacesController {
       ) as bool);
 
   @override
-  _i12.Future<void> getCurrentLocation() => (super.noSuchMethod(
+  _i12.Future<void> getCurrentLocation(_i5.BuildContext? context) =>
+      (super.noSuchMethod(
         Invocation.method(
           #getCurrentLocation,
-          [],
+          [context],
         ),
         returnValue: _i12.Future<void>.value(),
         returnValueForMissingStub: _i12.Future<void>.value(),
@@ -866,6 +839,7 @@ class MockRacesController extends _i1.Mock implements _i15.RacesController {
 
   @override
   void showColorPicker(
+    _i5.BuildContext? context,
     _i5.StateSetter? setSheetState,
     _i5.TextEditingController? controller,
   ) =>
@@ -873,6 +847,7 @@ class MockRacesController extends _i1.Mock implements _i15.RacesController {
         Invocation.method(
           #showColorPicker,
           [
+            context,
             setSheetState,
             controller,
           ],
@@ -881,20 +856,34 @@ class MockRacesController extends _i1.Mock implements _i15.RacesController {
       );
 
   @override
-  _i12.Future<void> editRace(_i3.Race? race) => (super.noSuchMethod(
+  _i12.Future<void> editRace(
+    _i3.Race? race,
+    _i5.BuildContext? context,
+  ) =>
+      (super.noSuchMethod(
         Invocation.method(
           #editRace,
-          [race],
+          [
+            race,
+            context,
+          ],
         ),
         returnValue: _i12.Future<void>.value(),
         returnValueForMissingStub: _i12.Future<void>.value(),
       ) as _i12.Future<void>);
 
   @override
-  _i12.Future<void> deleteRace(_i3.Race? race) => (super.noSuchMethod(
+  _i12.Future<void> deleteRace(
+    _i3.Race? race,
+    _i5.BuildContext? context,
+  ) =>
+      (super.noSuchMethod(
         Invocation.method(
           #deleteRace,
-          [race],
+          [
+            race,
+            context,
+          ],
         ),
         returnValue: _i12.Future<void>.value(),
         returnValueForMissingStub: _i12.Future<void>.value(),
@@ -978,7 +967,7 @@ class MockMasterFlowController extends _i1.Mock
   @override
   _i7.RaceController get raceController => (super.noSuchMethod(
         Invocation.getter(#raceController),
-        returnValue: _FakeRaceController_6(
+        returnValue: _FakeRaceController_5(
           this,
           Invocation.getter(#raceController),
         ),
@@ -987,7 +976,7 @@ class MockMasterFlowController extends _i1.Mock
   @override
   _i8.PreRaceController get preRaceController => (super.noSuchMethod(
         Invocation.getter(#preRaceController),
-        returnValue: _FakePreRaceController_7(
+        returnValue: _FakePreRaceController_6(
           this,
           Invocation.getter(#preRaceController),
         ),
@@ -996,7 +985,7 @@ class MockMasterFlowController extends _i1.Mock
   @override
   _i9.PostRaceController get postRaceController => (super.noSuchMethod(
         Invocation.getter(#postRaceController),
-        returnValue: _FakePostRaceController_8(
+        returnValue: _FakePostRaceController_7(
           this,
           Invocation.getter(#postRaceController),
         ),
@@ -1110,7 +1099,7 @@ class MockIGeoLocationService extends _i1.Mock
           #getCurrentPosition,
           [],
         ),
-        returnValue: _i12.Future<_i10.Position>.value(_FakePosition_9(
+        returnValue: _i12.Future<_i10.Position>.value(_FakePosition_8(
           this,
           Invocation.method(
             #getCurrentPosition,

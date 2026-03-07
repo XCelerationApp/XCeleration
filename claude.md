@@ -16,13 +16,13 @@ Flutter, Dart, ChangeNotifier + Provider, SQLite, Supabase.
 - **Writing or modifying tests:** Read `skills/TESTING_SKILL.md`
 - **Building or modifying any UI file (widgets, screens, components):** Read `skills/UI_STANDARD_SKILL.md`
 - **Interacting with a Linear issue (creating, updating, closing):** Read `skills/LINEAR_WORKFLOW_SKILL.md`
-- **Committing changes, creating branches, or opening/updating a PR:** Read `skills/GIT_WORKFLOW_SKILL.md`
+- **Committing changes, creating branches, or opening/updating a PR:** Read `skills/GIT_WORKFLOW_SKILL.md` — **MUST be read before any git action, no exceptions**
 
 ## Always
 
 - Run `flutter analyze` after every meaningful change
-- Run `flutter test <path/to/specific_test.dart>` for the test files related to your changes
-- Run the full `flutter test` before committing to catch regressions
+- Run `python3 scripts/test_runner.py  <path/to/specific_test.dart>` for the test files related to your changes
+- Run the full `python3 scripts/test_runner.py` before committing to catch regressions
 - One concern per commit
 
 ## Working Style
@@ -37,7 +37,6 @@ The `dart` and `flutter` binaries are not on PATH in non-interactive shells. Alw
 
 ```sh
 /Users/finiandonnelley/Programming_project/flutter/bin/flutter analyze
-/Users/finiandonnelley/Programming_project/flutter/bin/flutter test
 ```
 
 When adding or changing mocks (e.g. after `@GenerateMocks` changes):
@@ -55,9 +54,12 @@ python3 scripts/test_runner.py                           # all tests
 python3 scripts/test_runner.py path/to/test.dart        # single file
 python3 scripts/test_runner.py test/unit/               # whole folder
 python3 scripts/test_runner.py test/unit/ test/integration/  # multiple targets
+python3 scripts/test_runner.py -v [targets...]          # verbose: full stack traces, no line truncation
 ```
 
 Output: pass/fail/skip counts + test name and first few error lines for each failure. Exit code 1 if any fail.
+
+Use `-v` when the default output truncates the error and more context is needed.
 
 Do NOT use `flutter test` directly for reading results — its raw output exceeds the Bash tool's readable limit. Do NOT add `2>&1` to the runner command.
 

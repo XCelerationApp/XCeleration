@@ -40,11 +40,9 @@ class MasterRace with ChangeNotifier implements IMasterRaceResolver {
     return _instances.putIfAbsent(raceId, () => MasterRace._(raceId));
   }
 
-  /// Clear the instance cache (useful for testing or when race is deleted)
+  /// Clear the instance cache (useful for testing or when race is deleted).
+  /// No-op if the instance does not exist.
   static void clearInstance(int raceId) {
-    if (!_instances.containsKey(raceId)) {
-      throw Exception('MasterRace instance for race $raceId not found');
-    }
     _instances.remove(raceId);
   }
 
