@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:xceleration/core/theme/typography.dart';
 import 'package:xceleration/core/utils/sheet_utils.dart';
 import '../../../core/theme/app_colors.dart';
+import 'package:xceleration/core/theme/app_spacing.dart';
+import 'package:xceleration/core/theme/app_border_radius.dart';
+import 'package:xceleration/core/theme/app_shadows.dart';
+import 'package:xceleration/core/theme/app_opacity.dart';
+import 'package:xceleration/core/theme/app_animations.dart';
 import '../models/role_enums.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/components/page_route_animations.dart';
@@ -69,97 +74,22 @@ class RoleSelectorSheet {
       context: context,
       title: 'Select New Role',
       body: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 0, horizontal: 8.0),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
         child: ListView.separated(
           shrinkWrap: true,
           itemCount: roles.length + 1,
-          separatorBuilder: (context, index) => const SizedBox(height: 16),
+          separatorBuilder: (context, index) =>
+              const SizedBox(height: AppSpacing.lg),
           itemBuilder: (context, index) {
             if (index < roles.length) {
-              return _buildRoleListTile(
-                context: context,
-                role: roles[index],
-              );
+              return _RoleListTile(role: roles[index]);
             }
             if (currentValue == Role.coach) {
-              return _buildSignOutTile(context);
+              return const _SignOutTile();
             } else {
               return const SizedBox.shrink();
             }
           },
-        ),
-      ),
-    );
-  }
-
-  /// Build a list tile for a role option
-  static Widget _buildRoleListTile({
-    required BuildContext context,
-    required Role role,
-  }) {
-    return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      color: Theme.of(context).cardColor,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => Navigator.of(context).pop(role),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 18.0, horizontal: 16.0),
-          child: Row(
-            children: [
-              Icon(role.icon, size: 36, color: AppColors.selectedRoleTextColor),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      role.displayName,
-                      style: AppTypography.bodySemibold,
-                    ),
-                    Text(
-                      role.description,
-                      style: AppTypography.bodySmall,
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 2,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  static Widget _buildSignOutTile(BuildContext context) {
-    return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      color: Theme.of(context).cardColor,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () async {
-          await AuthService.instance.signOut();
-          if (!context.mounted) return;
-          Navigator.of(context).pop();
-          Navigator.of(context).pushAndRemoveUntil(
-            RolePageRouteAnimation(child: const RoleScreen()),
-            (route) => false,
-          );
-        },
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 18.0, horizontal: 16.0),
-          child: Row(
-            children: [
-              Icon(Icons.logout,
-                  size: 28, color: AppColors.selectedRoleTextColor),
-              const SizedBox(width: 12),
-              Text('Sign out', style: AppTypography.bodySemibold),
-            ],
-          ),
         ),
       ),
     );
@@ -172,17 +102,27 @@ class RoleSelectorSheet {
 
     final result = await showDialog<bool>(
       context: context,
-      barrierColor: Colors.black54,
+      barrierColor: Colors.black.withValues(alpha: AppOpacity.solid),
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16.0),
+                borderRadius: BorderRadius.circular(AppBorderRadius.lg),
               ),
               backgroundColor: AppColors.backgroundColor,
-              titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
-              contentPadding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+              titlePadding: const EdgeInsets.fromLTRB(
+                AppSpacing.xl,
+                AppSpacing.xl,
+                AppSpacing.xl,
+                AppSpacing.lg,
+              ),
+              contentPadding: const EdgeInsets.fromLTRB(
+                AppSpacing.xl,
+                0,
+                AppSpacing.xl,
+                AppSpacing.lg,
+              ),
               title: Text(
                 'Change Role?',
                 style: AppTypography.titleSemibold.copyWith(
@@ -199,7 +139,7 @@ class RoleSelectorSheet {
                       color: AppColors.mediumColor,
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSpacing.lg),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -235,7 +175,12 @@ class RoleSelectorSheet {
                   ),
                 ],
               ),
-              actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              actionsPadding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                0,
+                AppSpacing.lg,
+                AppSpacing.lg,
+              ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(false),
@@ -272,6 +217,131 @@ class RoleSelectorSheet {
     Navigator.of(context).pushAndRemoveUntil(
       RolePageRouteAnimation(child: role.screen),
       (route) => false,
+    );
+  }
+}
+
+class _RoleListTile extends StatefulWidget {
+  const _RoleListTile({required this.role});
+
+  final Role role;
+
+  @override
+  State<_RoleListTile> createState() => _RoleListTileState();
+}
+
+class _RoleListTileState extends State<_RoleListTile> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) => setState(() => _pressed = false),
+      onTapCancel: () => setState(() => _pressed = false),
+      onTap: () => Navigator.of(context).pop(widget.role),
+      child: AnimatedContainer(
+        duration: AppAnimations.fast,
+        curve: AppAnimations.spring,
+        padding: const EdgeInsets.symmetric(
+          vertical: AppSpacing.xl,
+          horizontal: AppSpacing.lg,
+        ),
+        decoration: BoxDecoration(
+          color: _pressed
+              ? AppColors.primaryColor.withValues(alpha: AppOpacity.faint)
+              : AppColors.backgroundColor,
+          borderRadius: BorderRadius.circular(AppBorderRadius.md),
+          boxShadow: AppShadows.low,
+        ),
+        child: Row(
+          children: [
+            Icon(
+              widget.role.icon,
+              size: 36,
+              color: AppColors.selectedRoleTextColor,
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.role.displayName,
+                    style: AppTypography.bodySemibold,
+                  ),
+                  Text(
+                    widget.role.description,
+                    style: AppTypography.bodySmall,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 2,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SignOutTile extends StatefulWidget {
+  const _SignOutTile();
+
+  @override
+  State<_SignOutTile> createState() => _SignOutTileState();
+}
+
+class _SignOutTileState extends State<_SignOutTile> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) => setState(() => _pressed = false),
+      onTapCancel: () => setState(() => _pressed = false),
+      onTap: () async {
+        await AuthService.instance.signOut();
+        if (!context.mounted) return;
+        Navigator.of(context).pop();
+        Navigator.of(context).pushAndRemoveUntil(
+          RolePageRouteAnimation(child: const RoleScreen()),
+          (route) => false,
+        );
+      },
+      child: AnimatedContainer(
+        duration: AppAnimations.fast,
+        curve: AppAnimations.spring,
+        padding: const EdgeInsets.symmetric(
+          vertical: AppSpacing.xl,
+          horizontal: AppSpacing.lg,
+        ),
+        decoration: BoxDecoration(
+          color: _pressed
+              ? AppColors.redColor.withValues(alpha: AppOpacity.faint)
+              : AppColors.backgroundColor,
+          borderRadius: BorderRadius.circular(AppBorderRadius.md),
+          border: Border.all(
+            color: AppColors.redColor.withValues(alpha: AppOpacity.light),
+            width: 1,
+          ),
+          boxShadow: AppShadows.low,
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.logout, size: 28, color: AppColors.redColor),
+            const SizedBox(width: AppSpacing.md),
+            Text(
+              'Sign out',
+              style: AppTypography.bodySemibold.copyWith(
+                color: AppColors.redColor,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
