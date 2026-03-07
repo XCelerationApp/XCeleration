@@ -7,9 +7,10 @@ import 'package:path_provider/path_provider.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'google_auth_service.dart';
 import 'google_drive_service.dart';
+import 'i_google_sheets_service.dart';
 
 /// Service for interacting with Google Sheets API
-class GoogleSheetsService {
+class GoogleSheetsService implements IGoogleSheetsService {
   static GoogleSheetsService? _instance;
   final GoogleAuthService _authService = GoogleAuthService.instance;
   GoogleDriveService? _driveService;
@@ -34,12 +35,14 @@ class GoogleSheetsService {
   }
 
   /// Sign in to Google
+  @override
   Future<bool> signIn() async {
     return await _authService.signIn();
   }
 
   /// Create a Google Sheet with the given title.
   /// Returns the spreadsheet ID if successful.
+  @override
   Future<String?> createSheet({
     required String title,
   }) async {
@@ -78,6 +81,7 @@ class GoogleSheetsService {
   }
 
   /// Updates a Google Sheet with the given data
+  @override
   Future<bool> updateSheet({
     required String spreadsheetId,
     required List<List<dynamic>> data,
@@ -139,6 +143,7 @@ class GoogleSheetsService {
   }
 
   /// Gets the shareable URI for a sheet
+  @override
   Future<Uri> getSheetUri(String spreadsheetId) async {
     try {
       // First try to get the URL via the Drive API
