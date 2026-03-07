@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:xceleration/core/utils/enums.dart' hide RunnerRecordFlags;
 import '../../../core/components/dialog_utils.dart';
 import '../../../core/services/i_post_frame_scheduler.dart';
+import '../../../core/services/text_input_factory.dart';
 import '../../../core/services/tutorial_manager.dart';
 import '../../../core/utils/logger.dart';
 import '../../../core/utils/sheet_utils.dart';
@@ -67,6 +68,7 @@ class BibNumberController extends BibNumberDataController {
 
   BibNumberController({
     required super.storage,
+    super.textInputFactory = const TextInputFactory(),
     required this.tutorialManager,
     required IDemoRaceGenerator demoRaceGenerator,
     required IDeviceConnectionFactory deviceConnectionFactory,

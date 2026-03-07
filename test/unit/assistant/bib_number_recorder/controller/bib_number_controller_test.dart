@@ -1,4 +1,5 @@
 import 'package:fake_async/fake_async.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
@@ -12,12 +13,22 @@ import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/result.dart';
 import 'package:xceleration/core/services/i_device_connection_factory.dart';
 import 'package:xceleration/core/services/i_post_frame_scheduler.dart';
+import 'package:xceleration/core/services/i_text_input_factory.dart';
 import 'package:xceleration/core/services/tutorial_manager.dart';
 import 'package:xceleration/core/utils/enums.dart';
 import 'package:xceleration/assistant/shared/models/bib_record.dart' as db_models;
 import 'package:xceleration/shared/models/timing_records/bib_datum.dart';
 
 import 'bib_number_controller_test.mocks.dart';
+
+class FakeTextInputFactory implements ITextInputFactory {
+  @override
+  TextEditingController createController(String text) =>
+      TextEditingController(text: text);
+
+  @override
+  FocusNode createFocusNode() => FocusNode();
+}
 
 @GenerateMocks([
   IAssistantStorageService,
@@ -52,6 +63,7 @@ void main() {
   BibNumberController buildController() {
     return BibNumberController(
       storage: mockStorage,
+      textInputFactory: FakeTextInputFactory(),
       tutorialManager: mockTutorialManager,
       demoRaceGenerator: mockDemoRaceGenerator,
       deviceConnectionFactory: mockDeviceConnectionFactory,
