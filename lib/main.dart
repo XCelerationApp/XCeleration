@@ -70,10 +70,10 @@ void _runApp() async {
         ChangeNotifierProvider(
           create: (context) => RaceController(
               masterRace: MasterRace.getInstance(0),
-              parentController: RacesController(racesService: RacesService(), authService: AuthService.instance)),
+              parentController: RacesController(racesService: RacesService(), authService: AuthService.instance, eventBus: EventBus.instance)),
         ),
         ChangeNotifierProvider(
-            create: (context) => RacesController(racesService: RacesService(), authService: AuthService.instance)),
+            create: (context) => RacesController(racesService: RacesService(), authService: AuthService.instance, eventBus: EventBus.instance)),
       ],
       child: const MyApp(),
     ),

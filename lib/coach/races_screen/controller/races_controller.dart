@@ -23,6 +23,7 @@ class RacesController extends ChangeNotifier {
 
   final IRacesService _racesService;
   final IAuthService _authService;
+  final IEventBus _eventBus;
 
   List<Race> races = [];
   bool isLocationButtonVisible = true;
@@ -52,9 +53,11 @@ class RacesController extends ChangeNotifier {
   RacesController({
     required IRacesService racesService,
     required IAuthService authService,
+    required IEventBus eventBus,
     this.canEdit = true,
   })  : _racesService = racesService,
-        _authService = authService;
+        _authService = authService,
+        _eventBus = eventBus;
 
   void setContext(BuildContext context) {
     _context = context;
@@ -82,7 +85,7 @@ class RacesController extends ChangeNotifier {
 
     // Subscribe to race flow state change events
     _eventSubscription =
-        EventBus.instance.on(EventTypes.raceFlowStateChanged, (event) {
+        _eventBus.on(EventTypes.raceFlowStateChanged, (event) {
       // Reload races when any race's flow state changes
       loadRaces();
     });

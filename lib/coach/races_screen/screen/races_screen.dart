@@ -5,6 +5,7 @@ import '../../../shared/role_bar/models/role_enums.dart';
 import '../../../core/services/tutorial_manager.dart';
 import '../../../core/components/coach_mark.dart';
 import '../../../core/services/auth_service.dart';
+import '../../../core/services/event_bus.dart';
 import '../controller/races_controller.dart';
 import '../services/races_service.dart';
 import '../widgets/race_tutorial_coach_mark.dart';
@@ -27,6 +28,7 @@ class RacesScreenState extends State<RacesScreen> {
     _controller = RacesController(
       racesService: RacesService(),
       authService: AuthService.instance,
+      eventBus: EventBus.instance,
       canEdit: widget.canEdit,
     );
     _controller.setContext(context);
