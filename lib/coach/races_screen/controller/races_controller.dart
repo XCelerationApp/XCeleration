@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/services/auth_service.dart';
 import 'package:xceleration/core/utils/logger.dart';
-import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:geolocator/geolocator.dart' show LocationPermission;
 import 'package:xceleration/coach/races_screen/widgets/race_creation_sheet.dart';
+import 'package:xceleration/core/services/color_picker_dialog_service.dart';
+import 'package:xceleration/core/services/date_picker_service.dart';
 import 'package:xceleration/core/services/geo_location_service.dart';
 import 'package:xceleration/core/services/post_frame_callback_scheduler.dart';
 import 'package:xceleration/core/components/dialog_utils.dart';
@@ -27,6 +28,8 @@ class RacesController extends ChangeNotifier {
   final IEventBus _eventBus;
   final IGeoLocationService _geoLocationService;
   final IPostFrameCallbackScheduler _postFrameCallbackScheduler;
+  final IDatePickerService _datePickerService;
+  final IColorPickerDialogService _colorPickerDialogService;
 
   List<Race> races = [];
   bool isLocationButtonVisible = true;
@@ -49,8 +52,6 @@ class RacesController extends ChangeNotifier {
   String? distanceError;
   String? teamsError;
 
-  BuildContext? _context;
-
   final bool canEdit;
 
   RacesController({
@@ -60,24 +61,19 @@ class RacesController extends ChangeNotifier {
     required IGeoLocationService geoLocationService,
     required IPostFrameCallbackScheduler postFrameCallbackScheduler,
     required this.tutorialManager,
+    IDatePickerService? datePickerService,
+    IColorPickerDialogService? colorPickerDialogService,
     this.canEdit = true,
   })  : _racesService = racesService,
         _authService = authService,
         _eventBus = eventBus,
         _geoLocationService = geoLocationService,
-        _postFrameCallbackScheduler = postFrameCallbackScheduler;
+        _postFrameCallbackScheduler = postFrameCallbackScheduler,
+        _datePickerService = datePickerService ?? DatePickerService(),
+        _colorPickerDialogService =
+            colorPickerDialogService ?? ColorPickerDialogService();
 
-  void setContext(BuildContext context) {
-    _context = context;
-  }
-
-  BuildContext get context {
-    assert(_context != null,
-        'Context not set in RacesController. Call setContext() first.');
-    return _context!;
-  }
-
-  void initState() {
+  void initState(BuildContext context) {
     loadRaces();
     teamControllers.add(TextEditingController());
     teamControllers.add(TextEditingController());
@@ -213,7 +209,7 @@ class RacesController extends ChangeNotifier {
     return validateRaceName();
   }
 
-  Future<void> getCurrentLocation() async {
+  Future<void> getCurrentLocation(BuildContext context) async {
     try {
       LocationPermission permission =
           await _geoLocationService.checkPermission();
@@ -265,17 +261,14 @@ class RacesController extends ChangeNotifier {
       updateLocationButtonVisibility();
     } catch (e) {
       Logger.d('Error getting location: $e');
-      DialogUtils.showErrorDialog(context, message: 'Could not get location');
+      if (context.mounted) {
+        DialogUtils.showErrorDialog(context, message: 'Could not get location');
+      }
     }
   }
 
   Future<void> selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2101),
-    );
+    final DateTime? picked = await _datePickerService.pickDate(context);
     if (picked != null) {
       dateController.text = picked.toLocal().toString().split(' ')[0];
       dateError = null;
@@ -284,37 +277,22 @@ class RacesController extends ChangeNotifier {
   }
 
   void showColorPicker(
-      StateSetter setSheetState, TextEditingController controller) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Pick a color'),
-          content: SingleChildScrollView(
-            child: ColorPicker(
-              pickerColor: teamColors[teamControllers.indexOf(controller)],
-              onColorChanged: (color) {
-                setSheetState(() {
-                  teamColors[teamControllers.indexOf(controller)] = color;
-                });
-              },
-              pickerAreaHeightPercent: 0.8,
-            ),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: Text('Done'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
+      BuildContext context,
+      StateSetter setSheetState,
+      TextEditingController controller) {
+    final index = teamControllers.indexOf(controller);
+    _colorPickerDialogService.showColorPicker(
+      context,
+      currentColor: teamColors[index],
+      onColorChanged: (color) {
+        setSheetState(() {
+          teamColors[index] = color;
+        });
       },
     );
   }
 
-  Future<void> editRace(Race race) async {
+  Future<void> editRace(Race race, BuildContext context) async {
     if (race.raceId == null) {
       throw Exception('Race ID is null');
     }
@@ -331,7 +309,7 @@ class RacesController extends ChangeNotifier {
     await RaceController.showRaceScreen(context, this, masterRace);
   }
 
-  Future<void> deleteRace(Race race) async {
+  Future<void> deleteRace(Race race, BuildContext context) async {
     if (race.raceId == null) {
       throw Exception('Race ID is null');
     }
@@ -391,7 +369,6 @@ class RacesController extends ChangeNotifier {
     }
     teamColors.clear();
     tutorialManager.dispose();
-    _context = null;
     _eventSubscription?.cancel();
     super.dispose();
   }

@@ -36,8 +36,7 @@ class RacesScreenState extends State<RacesScreen> {
       tutorialManager: TutorialManager(),
       canEdit: widget.canEdit,
     );
-    _controller.setContext(context);
-    _controller.initState();
+    _controller.initState(context);
   }
 
   @override
