@@ -4,14 +4,23 @@ import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/shared/constants/app_constants.dart';
 import 'package:http/http.dart' as http;
 
-class AuthService {
+abstract interface class IAuthService {
+  String? get currentUserId;
+  String? get currentEmail;
+  bool get isSignedIn;
+}
+
+class AuthService implements IAuthService {
   AuthService._();
   static final AuthService instance = AuthService._();
 
   SupabaseClient get _client => Supabase.instance.client;
 
+  @override
   String? get currentUserId => _client.auth.currentUser?.id;
+  @override
   String? get currentEmail => _client.auth.currentUser?.email;
+  @override
   bool get isSignedIn => _client.auth.currentSession != null;
 
   Stream<AuthState> get onAuthStateChange => _client.auth.onAuthStateChange;

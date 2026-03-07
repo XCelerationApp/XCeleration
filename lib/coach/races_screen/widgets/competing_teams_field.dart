@@ -61,7 +61,7 @@ class CompetingTeamsField extends StatelessWidget {
                 const SizedBox(width: 12),
                 GestureDetector(
                   onTap: () =>
-                      controller.showColorPicker(setSheetState, textController),
+                      controller.showColorPicker(context, setSheetState, textController),
                   child: Container(
                     width: 40,
                     height: 40,

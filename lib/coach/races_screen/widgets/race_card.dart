@@ -59,7 +59,7 @@ class RaceCard extends StatelessWidget {
         children: [
           if (canEdit)
             CustomSlidableAction(
-              onPressed: (_) => controller.editRace(race),
+              onPressed: (context) => controller.editRace(race, context),
               backgroundColor: AppColors.primaryColor,
               foregroundColor: Colors.white,
               padding: EdgeInsets.zero,
@@ -83,7 +83,7 @@ class RaceCard extends StatelessWidget {
             ),
           if (canEdit)
             CustomSlidableAction(
-              onPressed: (_) => controller.deleteRace(race),
+              onPressed: (context) => controller.deleteRace(race, context),
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
               padding: EdgeInsets.zero,
