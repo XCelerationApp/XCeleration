@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter_nearby_connections/flutter_nearby_connections.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
@@ -18,6 +21,7 @@ void main() {
   setUp(() {
     provideDummy<Result<bool>>(const Success(false));
     provideDummy<Result<String?>>(const Success(null));
+    provideDummy(Device('', '', 0));
 
     mockService = MockDeviceConnectionService();
     mockProtocol = MockProtocol();
@@ -199,6 +203,135 @@ void main() {
       test('exposes the injected DevicesManager', () {
         final controller = buildController();
         expect(controller.devices, same(mockDevices));
+      });
+    });
+
+    group('_deviceFoundCallback', () {
+      late Completer<void> monitorCompleter;
+      late Future<void> Function(Device) capturedFoundCallback;
+
+      setUp(() {
+        monitorCompleter = Completer<void>();
+        when(mockService.checkIfNearbyConnectionsWorks())
+            .thenAnswer((_) async => const Success(true));
+        when(mockService.init()).thenAnswer((_) async => const Success(true));
+        when(mockService.monitorDevicesConnectionStatus(
+          deviceFoundCallback: anyNamed('deviceFoundCallback'),
+          deviceConnectingCallback: anyNamed('deviceConnectingCallback'),
+          deviceConnectedCallback: anyNamed('deviceConnectedCallback'),
+          timeout: anyNamed('timeout'),
+          timeoutCallback: anyNamed('timeoutCallback'),
+        )).thenAnswer((invocation) async {
+          capturedFoundCallback = invocation.namedArguments[#deviceFoundCallback]
+              as Future<void> Function(Device);
+          await monitorCompleter.future;
+        });
+      });
+
+      tearDown(() {
+        if (!monitorCompleter.isCompleted) monitorCompleter.complete();
+      });
+
+      test('skips invite when device not in manager', () async {
+        when(mockDevices.hasDevice(DeviceName.coach)).thenReturn(false);
+        final controller = buildController();
+        await controller.initialize();
+
+        await capturedFoundCallback(Device('id', 'Coach', 0));
+
+        verifyNever(mockService.inviteDevice(any));
+      });
+
+      test('skips invite when current device is advertiser', () async {
+        when(mockDevices.currentDeviceType)
+            .thenReturn(DeviceType.advertiserDevice);
+        when(mockDevices.hasDevice(DeviceName.coach)).thenReturn(true);
+        when(mockDevices.getDevice(DeviceName.coach))
+            .thenReturn(ConnectedDevice(DeviceName.coach));
+        final controller = buildController();
+        await controller.initialize();
+
+        await capturedFoundCallback(Device('id', 'Coach', 0));
+
+        verifyNever(mockService.inviteDevice(any));
+      });
+    });
+
+    group('_deviceConnectedCallback', () {
+      late Completer<void> monitorCompleter;
+      late Future<void> Function(Device) capturedConnectedCallback;
+      late ConnectedDevice connectedDevice;
+
+      setUp(() {
+        monitorCompleter = Completer<void>();
+        connectedDevice = ConnectedDevice(DeviceName.coach);
+        when(mockService.checkIfNearbyConnectionsWorks())
+            .thenAnswer((_) async => const Success(true));
+        when(mockService.init()).thenAnswer((_) async => const Success(true));
+        when(mockService.monitorDevicesConnectionStatus(
+          deviceFoundCallback: anyNamed('deviceFoundCallback'),
+          deviceConnectingCallback: anyNamed('deviceConnectingCallback'),
+          deviceConnectedCallback: anyNamed('deviceConnectedCallback'),
+          timeout: anyNamed('timeout'),
+          timeoutCallback: anyNamed('timeoutCallback'),
+        )).thenAnswer((invocation) async {
+          capturedConnectedCallback =
+              invocation.namedArguments[#deviceConnectedCallback]
+                  as Future<void> Function(Device);
+          await monitorCompleter.future;
+        });
+        when(mockDevices.hasDevice(DeviceName.coach)).thenReturn(true);
+        when(mockDevices.getDevice(DeviceName.coach)).thenReturn(connectedDevice);
+        when(mockService.monitorMessageReceives(
+          any,
+          messageReceivedCallback: anyNamed('messageReceivedCallback'),
+        )).thenAnswer((_) async => 'token');
+      });
+
+      tearDown(() {
+        if (!monitorCompleter.isCompleted) monitorCompleter.complete();
+      });
+
+      test('sets status to finished and fires callback when all devices done',
+          () async {
+        bool callbackFired = false;
+        final controller = WirelessConnectionController(
+          deviceConnectionService: mockService,
+          protocol: mockProtocol,
+          devices: mockDevices,
+          callback: () => callbackFired = true,
+        );
+        when(mockProtocol.handleDataTransfer(
+          deviceId: anyNamed('deviceId'),
+          isReceiving: anyNamed('isReceiving'),
+          dataToSend: anyNamed('dataToSend'),
+          shouldContinueTransfer: anyNamed('shouldContinueTransfer'),
+        )).thenAnswer((_) async => const Success('received data'));
+        when(mockDevices.allDevicesFinished()).thenReturn(true);
+
+        await controller.initialize();
+        await capturedConnectedCallback(Device('coach-id', 'Coach', 2));
+
+        expect(connectedDevice.status, ConnectionStatus.finished);
+        expect(callbackFired, isTrue);
+      });
+
+      test('sets device status to error on transfer failure', () async {
+        when(mockProtocol.handleDataTransfer(
+          deviceId: anyNamed('deviceId'),
+          isReceiving: anyNamed('isReceiving'),
+          dataToSend: anyNamed('dataToSend'),
+          shouldContinueTransfer: anyNamed('shouldContinueTransfer'),
+        )).thenAnswer((_) async => Failure(AppError(
+              userMessage: 'Transfer failed',
+              originalException: null,
+            )));
+
+        final controller = buildController();
+        await controller.initialize();
+        await capturedConnectedCallback(Device('coach-id', 'Coach', 2));
+
+        expect(connectedDevice.status, ConnectionStatus.error);
       });
     });
   });
