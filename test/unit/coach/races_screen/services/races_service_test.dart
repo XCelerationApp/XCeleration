@@ -1,15 +1,117 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mockito/annotations.dart';
+import 'package:mockito/mockito.dart';
 import 'package:xceleration/coach/races_screen/services/races_service.dart';
+import 'package:xceleration/core/utils/i_database_helper.dart';
+import 'package:xceleration/shared/models/database/race.dart';
+
+@GenerateMocks([IDatabaseHelper])
+import 'races_service_test.mocks.dart';
 
 void main() {
   late RacesService service;
+  late MockIDatabaseHelper mockDb;
 
   setUp(() {
-    service = RacesService();
+    mockDb = MockIDatabaseHelper();
+    service = RacesService(db: mockDb, currentUserId: () => 'user-123');
   });
 
+  // =========================================================================
   group('RacesService', () {
+    // -----------------------------------------------------------------------
+    group('loadRaces', () {
+      test('returns races from database', () async {
+        final races = [
+          Race(raceId: 1, raceName: 'State Meet'),
+          Race(raceId: 2, raceName: 'Invitational'),
+        ];
+        when(mockDb.getAllRaces()).thenAnswer((_) async => races);
+
+        final result = await service.loadRaces();
+
+        expect(result, equals(races));
+      });
+
+      test('propagates exception when database throws', () async {
+        when(mockDb.getAllRaces()).thenThrow(Exception('db error'));
+
+        expect(() => service.loadRaces(), throwsA(isA<Exception>()));
+      });
+    });
+
+    // -----------------------------------------------------------------------
+    group('createRace', () {
+      final race = Race(raceId: 0, raceName: 'Spring Classic');
+
+      test('stamps owner and returns new race ID', () async {
+        when(mockDb.createRace(any)).thenAnswer((_) async => 42);
+
+        final result = await service.createRace(race);
+
+        expect(result, 42);
+        final captured =
+            verify(mockDb.createRace(captureAny)).captured.single as Race;
+        expect(captured.ownerUserId, 'user-123');
+      });
+
+      test('stamps null owner when currentUserId returns null', () async {
+        final serviceNoOwner =
+            RacesService(db: mockDb, currentUserId: () => null);
+        when(mockDb.createRace(any)).thenAnswer((_) async => 7);
+
+        await serviceNoOwner.createRace(race);
+
+        final captured =
+            verify(mockDb.createRace(captureAny)).captured.single as Race;
+        expect(captured.ownerUserId, isNull);
+      });
+
+      test('propagates exception when database throws', () async {
+        when(mockDb.createRace(any)).thenThrow(Exception('insert failed'));
+
+        expect(() => service.createRace(race), throwsA(isA<Exception>()));
+      });
+    });
+
+    // -----------------------------------------------------------------------
+    group('updateRace', () {
+      final race = Race(raceId: 1, raceName: 'Spring Classic');
+
+      test('calls database updateRace', () async {
+        when(mockDb.updateRace(any)).thenAnswer((_) async {});
+
+        await service.updateRace(race);
+
+        verify(mockDb.updateRace(any)).called(1);
+      });
+
+      test('propagates exception when database throws', () async {
+        when(mockDb.updateRace(any)).thenThrow(Exception('update failed'));
+
+        expect(() => service.updateRace(race), throwsA(isA<Exception>()));
+      });
+    });
+
+    // -----------------------------------------------------------------------
+    group('deleteRace', () {
+      test('calls database delete', () async {
+        when(mockDb.deleteRace(1)).thenAnswer((_) async {});
+
+        await service.deleteRace(1);
+
+        verify(mockDb.deleteRace(1)).called(1);
+      });
+
+      test('propagates exception when database throws', () async {
+        when(mockDb.deleteRace(1)).thenThrow(Exception('delete failed'));
+
+        expect(() => service.deleteRace(1), throwsA(isA<Exception>()));
+      });
+    });
+
+    // -----------------------------------------------------------------------
     group('validateName', () {
       test('returns null when name is non-empty', () {
         expect(service.validateName('State Meet'), isNull);

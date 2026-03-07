@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/services/auth_service.dart';
-import 'package:xceleration/shared/models/database/master_race.dart';
+import 'package:xceleration/core/utils/database_helper.dart';
+import 'package:xceleration/core/utils/i_database_helper.dart';
 import '../../../shared/models/database/race.dart';
-import '../../../core/utils/database_helper.dart';
 
 abstract interface class IRacesService {
   Future<List<Race>> loadRaces();
@@ -23,31 +23,40 @@ abstract interface class IRacesService {
 }
 
 class RacesService implements IRacesService {
+  final IDatabaseHelper _db;
+  final String? Function() _currentUserId;
+
+  RacesService({
+    IDatabaseHelper? db,
+    String? Function()? currentUserId,
+  })  : _db = db ?? DatabaseHelper.instance,
+        _currentUserId =
+            currentUserId ?? (() => AuthService.instance.currentUserId);
+
   /// Loads all races from the database.
   @override
   Future<List<Race>> loadRaces() async {
-    return await DatabaseHelper.instance.getAllRaces();
+    return await _db.getAllRaces();
   }
 
   /// Creates a new race in the database.
   @override
   Future<int> createRace(Race race) async {
-    // Stamp owner on create
-    final ownerId = AuthService.instance.currentUserId;
+    final ownerId = _currentUserId();
     final raceWithOwner = race.copyWith(ownerUserId: ownerId);
-    return await DatabaseHelper.instance.createRace(raceWithOwner);
+    return await _db.createRace(raceWithOwner);
   }
 
   /// Updates an existing race in the database.
   @override
   Future<void> updateRace(Race race) async {
-    await MasterRace.getInstance(race.raceId!).updateRace(race);
+    await _db.updateRace(race);
   }
 
   /// Deletes a race from the database.
   @override
   Future<void> deleteRace(int raceId) async {
-    await DatabaseHelper.instance.deleteRace(raceId);
+    await _db.deleteRace(raceId);
   }
 
   /// Validates race creation form fields.
