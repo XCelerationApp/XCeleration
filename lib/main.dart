@@ -13,6 +13,7 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'coach/race_screen/controller/race_screen_controller.dart';
 import 'coach/races_screen/controller/races_controller.dart';
+import 'coach/races_screen/services/races_service.dart';
 import 'shared/models/database/master_race.dart';
 import 'core/services/sync_service.dart';
 
@@ -68,9 +69,10 @@ void _runApp() async {
         ChangeNotifierProvider(
           create: (context) => RaceController(
               masterRace: MasterRace.getInstance(0),
-              parentController: RacesController()),
+              parentController: RacesController(racesService: RacesService())),
         ),
-        ChangeNotifierProvider(create: (context) => RacesController()),
+        ChangeNotifierProvider(
+            create: (context) => RacesController(racesService: RacesService())),
       ],
       child: const MyApp(),
     ),

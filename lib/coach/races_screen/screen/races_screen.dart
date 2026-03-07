@@ -5,6 +5,7 @@ import '../../../shared/role_bar/models/role_enums.dart';
 import '../../../core/services/tutorial_manager.dart';
 import '../../../core/components/coach_mark.dart';
 import '../controller/races_controller.dart';
+import '../services/races_service.dart';
 import '../widgets/race_tutorial_coach_mark.dart';
 import '../widgets/races_list.dart';
 
@@ -22,7 +23,10 @@ class RacesScreenState extends State<RacesScreen> {
   @override
   void initState() {
     super.initState();
-    _controller = RacesController(canEdit: widget.canEdit);
+    _controller = RacesController(
+      racesService: RacesService(),
+      canEdit: widget.canEdit,
+    );
     _controller.setContext(context);
     _controller.initState();
   }

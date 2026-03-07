@@ -21,6 +21,8 @@ class RacesController extends ChangeNotifier {
   // Subscription to event bus events
   StreamSubscription? _eventSubscription;
 
+  final IRacesService _racesService;
+
   List<Race> races = [];
   bool isLocationButtonVisible = true;
   final TextEditingController nameController = TextEditingController();
@@ -46,7 +48,8 @@ class RacesController extends ChangeNotifier {
 
   final bool canEdit;
 
-  RacesController({this.canEdit = true});
+  RacesController({required IRacesService racesService, this.canEdit = true})
+      : _racesService = racesService;
 
   void setContext(BuildContext context) {
     _context = context;
@@ -133,25 +136,25 @@ class RacesController extends ChangeNotifier {
 
   void validateName(name, StateSetter setSheetState) {
     setSheetState(() {
-      nameError = RacesService.validateName(name);
+      nameError = _racesService.validateName(name);
     });
   }
 
   void validateLocation(String location, StateSetter setSheetState) {
     setSheetState(() {
-      locationError = RacesService.validateLocation(location);
+      locationError = _racesService.validateLocation(location);
     });
   }
 
   void validateDate(String dateString, StateSetter setSheetState) {
     setSheetState(() {
-      dateError = RacesService.validateDate(dateString);
+      dateError = _racesService.validateDate(dateString);
     });
   }
 
   void validateDistance(String distanceString, StateSetter setSheetState) {
     setSheetState(() {
-      distanceError = RacesService.validateDistance(distanceString);
+      distanceError = _racesService.validateDistance(distanceString);
     });
   }
 
@@ -333,7 +336,7 @@ class RacesController extends ChangeNotifier {
     );
 
     if (confirmed == true) {
-      await RacesService.deleteRace(race.raceId!);
+      await _racesService.deleteRace(race.raceId!);
       MasterRace.clearInstance(race.raceId!);
       await loadRaces();
     }
@@ -341,19 +344,19 @@ class RacesController extends ChangeNotifier {
 
   // Create a new race with minimal information
   Future<int> createRace(Race race) async {
-    final newRaceId = await RacesService.createRace(race);
+    final newRaceId = await _racesService.createRace(race);
     await loadRaces(); // Refresh the races list
     return newRaceId;
   }
 
   // Update an existing race
   Future<void> updateRace(Race race) async {
-    await RacesService.updateRace(race);
+    await _racesService.updateRace(race);
     await loadRaces(); // Refresh the races list
   }
 
   Future<void> loadRaces() async {
-    races = await RacesService.loadRaces();
+    races = await _racesService.loadRaces();
     notifyListeners();
   }
 
