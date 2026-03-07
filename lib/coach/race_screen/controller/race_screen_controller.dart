@@ -18,6 +18,7 @@ import '../../races_screen/controller/races_controller.dart';
 import '../services/race_service.dart';
 import '../../../core/services/geo_location_service.dart';
 import 'package:provider/provider.dart';
+import '../../../core/theme/app_colors.dart';
 
 /// Controller class for the RaceScreen that handles all business logic
 class RaceController with ChangeNotifier {
@@ -608,6 +609,44 @@ class RaceController with ChangeNotifier {
       initialDate: now,
       firstDate: DateTime(now.year - 1),
       lastDate: DateTime(now.year + 2),
+      builder: (context, child) {
+        return Theme(
+          data: ThemeData(
+            colorScheme: const ColorScheme.light(
+              primary: AppColors.primaryColor,
+              onPrimary: Colors.white,
+              surface: AppColors.backgroundColor,
+              onSurface: AppColors.darkColor,
+              onSurfaceVariant: AppColors.mediumColor,
+            ),
+            dialogTheme: DialogThemeData(
+              backgroundColor: AppColors.backgroundColor,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.primaryColor,
+                backgroundColor: AppColors.selectedRoleColor,
+                textStyle: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                  letterSpacing: 0.5,
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 10,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
 
     if (picked != null) {
