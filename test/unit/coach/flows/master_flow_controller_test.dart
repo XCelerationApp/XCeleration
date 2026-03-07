@@ -114,6 +114,67 @@ void main() {
         verify(mockPostRaceController.showPostRaceFlow(any, any)).called(1);
         verifyNever(mockPreRaceController.showPreRaceFlow(any, any));
       });
+
+      testWidgets(
+          '_preRaceFlow complete → updateRaceFlowState called with FLOW_PRE_RACE_COMPLETED',
+          (tester) async {
+        final context = await _buildContext(tester);
+        when(mockRaceController.flowState).thenReturn(Race.FLOW_PRE_RACE);
+        when(mockPreRaceController.showPreRaceFlow(any, any))
+            .thenAnswer((_) async => true);
+        when(mockRaceController.updateRaceFlowState(any, any))
+            .thenAnswer((_) async {});
+
+        await controller.continueRaceFlow(context);
+
+        verify(mockRaceController.updateRaceFlowState(
+                any, Race.FLOW_PRE_RACE_COMPLETED))
+            .called(1);
+      });
+
+      testWidgets(
+          '_postRaceFlow complete → updateRaceFlowState called with FLOW_FINISHED',
+          (tester) async {
+        final context = await _buildContext(tester);
+        when(mockRaceController.flowState).thenReturn(Race.FLOW_POST_RACE);
+        when(mockPostRaceController.showPostRaceFlow(any, any))
+            .thenAnswer((_) async => true);
+        when(mockRaceController.updateRaceFlowState(any, any))
+            .thenAnswer((_) async {});
+        final tabController = TabController(length: 2, vsync: tester);
+        when(mockRaceController.tabController).thenReturn(tabController);
+
+        final future = controller.continueRaceFlow(context);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+        await future;
+
+        verify(mockRaceController.updateRaceFlowState(any, Race.FLOW_FINISHED))
+            .called(1);
+        tabController.dispose();
+      });
+
+      testWidgets('_postRaceFlow complete → tabController.animateTo(1) called',
+          (tester) async {
+        final context = await _buildContext(tester);
+        when(mockRaceController.flowState).thenReturn(Race.FLOW_POST_RACE);
+        when(mockPostRaceController.showPostRaceFlow(any, any))
+            .thenAnswer((_) async => true);
+        when(mockRaceController.updateRaceFlowState(any, any))
+            .thenAnswer((_) async {});
+        final tabController =
+            TabController(length: 2, vsync: tester, initialIndex: 0);
+        when(mockRaceController.tabController).thenReturn(tabController);
+
+        final future = controller.continueRaceFlow(context);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+        await future;
+        await tester.pumpAndSettle();
+
+        expect(tabController.index, 1);
+        tabController.dispose();
+      });
     });
 
     // -----------------------------------------------------------------------
