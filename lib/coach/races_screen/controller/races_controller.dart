@@ -22,6 +22,7 @@ class RacesController extends ChangeNotifier {
   StreamSubscription? _eventSubscription;
 
   final IRacesService _racesService;
+  final IAuthService _authService;
 
   List<Race> races = [];
   bool isLocationButtonVisible = true;
@@ -48,8 +49,12 @@ class RacesController extends ChangeNotifier {
 
   final bool canEdit;
 
-  RacesController({required IRacesService racesService, this.canEdit = true})
-      : _racesService = racesService;
+  RacesController({
+    required IRacesService racesService,
+    required IAuthService authService,
+    this.canEdit = true,
+  })  : _racesService = racesService,
+        _authService = authService;
 
   void setContext(BuildContext context) {
     _context = context;
@@ -301,7 +306,7 @@ class RacesController extends ChangeNotifier {
       throw Exception('Race ID is null');
     }
     // Only owner can edit
-    final currentUserId = AuthService.instance.currentUserId;
+    final currentUserId = _authService.currentUserId;
     if (race.ownerUserId != null &&
         currentUserId != null &&
         race.ownerUserId != currentUserId) {
@@ -318,7 +323,7 @@ class RacesController extends ChangeNotifier {
       throw Exception('Race ID is null');
     }
     // Only owner can delete
-    final currentUserId = AuthService.instance.currentUserId;
+    final currentUserId = _authService.currentUserId;
     if (race.ownerUserId != null &&
         currentUserId != null &&
         race.ownerUserId != currentUserId) {
