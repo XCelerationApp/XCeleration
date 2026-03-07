@@ -7,7 +7,11 @@ export '../../coach/race_screen/controller/race_screen_controller.dart';
 export '../../coach/races_screen/controller/races_controller.dart';
 export '../../coach/flows/controller/flow_controller.dart';
 export '../../coach/flows/PreRaceFlow/controller/pre_race_controller.dart';
-export '../../coach/flows/PostRaceFlow/controller/post_race_controller.dart';
+// ShowFlowFn is hidden here because both pre_race_controller and
+// post_race_controller define the same typedef. Exporting it from both
+// causes an ambiguous_export error — pre_race_controller's export is sufficient.
+export '../../coach/flows/PostRaceFlow/controller/post_race_controller.dart'
+    hide ShowFlowFn;
 
 // Models
 export '../../shared/models/database/race.dart';
