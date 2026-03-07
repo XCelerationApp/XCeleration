@@ -6,7 +6,7 @@ REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 # Resolve flutter binary (mirrors logic in scripts/test_runner.py)
 _find_flutter() {
   # 1. flutter on PATH
-  if command -v flutter &>/dev/null; then flutter; return; fi
+  if command -v flutter &>/dev/null; then echo "flutter"; return; fi
   # 2. Common relative layout: repo lives alongside flutter/
   local sibling="$(dirname "$REPO_ROOT")/flutter/bin/flutter"
   if [ -f "$sibling" ]; then echo "$sibling"; return; fi
