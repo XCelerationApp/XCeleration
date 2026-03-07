@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../coach/races_screen/controller/races_controller.dart';
 import '../../../shared/models/database/race.dart';
 import '../../../../core/theme/typography.dart';
+import '../../../core/theme/app_spacing.dart';
 import 'race_card.dart';
 import '../../flows/widgets/flow_section_header.dart';
 
@@ -14,7 +15,7 @@ class RacesList extends StatelessWidget {
   Widget build(BuildContext context) {
     if (controller.races.isEmpty) {
       return Padding(
-        padding: const EdgeInsets.only(top: 16),
+        padding: const EdgeInsets.only(top: AppSpacing.lg),
         child: Center(
           child: Text('No races.', style: AppTypography.headerRegular),
         ),
@@ -36,9 +37,7 @@ class RacesList extends StatelessWidget {
             race.flowState == Race.FLOW_SETUP ||
             race.flowState == Race.FLOW_SETUP_COMPLETED)
         .toList();
-    return SingleChildScrollView(
-      controller: ScrollController(),
-      child: Column(
+    return Column(
         mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -67,7 +66,6 @@ class RacesList extends StatelessWidget {
                 canEdit: canEdit)),
           ],
         ],
-      ),
     );
   }
 }
