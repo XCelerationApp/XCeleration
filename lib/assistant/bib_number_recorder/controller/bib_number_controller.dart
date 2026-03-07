@@ -16,6 +16,7 @@ import '../../shared/models/race_record.dart';
 import '../../shared/services/i_demo_race_generator.dart';
 import '../../shared/models/bib_record.dart' as db_models;
 import '../../shared/models/runner.dart' as db_models;
+import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/result.dart';
 import '../../shared/widgets/other_races_sheet.dart';
 import '../widget/runners_loaded_sheet.dart';
@@ -322,6 +323,66 @@ class BibNumberController extends BibNumberDataController {
     await _loadRace(race);
   }
 
+  /// Parses [data], saves the race and any runners to storage, then loads
+  /// the race into the controller. Returns [Failure] with a user-readable
+  /// message if parsing or saving fails.
+  Future<Result<void>> processLoadedRaceData(String data) async {
+    late RaceRecord raceRecord;
+    List<BibDatum> loadedRunners = [];
+
+    try {
+      // Coach sends: raceData---runnerData (runners section is optional)
+      final parts = data.split('---');
+      if (parts.length == 2) {
+        raceRecord = RaceRecord.fromEncodedString(parts[0],
+            type: DeviceName.bibRecorder.toString());
+
+        final runnersResult =
+            await BibDecodeUtils.decodeEncodedRunners(parts[1]);
+        switch (runnersResult) {
+          case Success(:final value):
+            loadedRunners = value;
+          case Failure(:final error):
+            Logger.e(
+                '[BibNumberController.processLoadedRaceData] ${error.originalException}');
+            return Failure(error);
+        }
+      } else {
+        raceRecord = RaceRecord.fromEncodedString(data,
+            type: DeviceName.bibRecorder.toString());
+      }
+    } catch (e) {
+      Logger.e('Error parsing race data: $e');
+      return Failure(AppError(userMessage: 'Failed to parse race data: $e'));
+    }
+
+    final saveResult = await storage.saveNewRace(raceRecord);
+    if (saveResult case Failure(:final error)) {
+      Logger.e(
+          '[BibNumberController.processLoadedRaceData] ${error.originalException}');
+      return Failure(error);
+    }
+
+    if (loadedRunners.isNotEmpty) {
+      final dbRunners = loadedRunners
+          .map((runner) => db_models.Runner(
+                raceId: raceRecord.raceId,
+                bibNumber: runner.bib,
+                name: runner.name,
+                teamAbbreviation: runner.teamAbbreviation,
+                grade: runner.grade,
+                teamColor: runner.teamColor,
+                createdAt: DateTime.now(),
+              ))
+          .toList();
+      await storage.saveRunners(raceRecord.raceId, dbRunners);
+    }
+
+    clearBibRecords();
+    await _loadRaceWithRunners(raceRecord, loadedRunners);
+    return const Success(null);
+  }
+
   Future<void> showLoadRaceSheet(BuildContext context) async {
     final devices = _deviceConnectionFactory.createDevices(
       DeviceName.bibRecorder,
@@ -340,68 +401,10 @@ class BibNumberController extends BibNumberDataController {
                 message: 'Race data not received');
             return;
           }
-          late RaceRecord raceRecord;
-          List<BibDatum> runners = [];
-          try {
-            // Split the data - coach sends: raceData---runnerData
-            final parts = data.split('---');
-            if (parts.length == 2) {
-              // Decode race data
-              raceRecord = RaceRecord.fromEncodedString(parts[0],
-                  type: DeviceName.bibRecorder.toString());
-
-              // Decode runner data
-              final runnersResult =
-                  await BibDecodeUtils.decodeEncodedRunners(parts[1]);
-              switch (runnersResult) {
-                case Success(:final value):
-                  runners = value;
-                case Failure(:final error):
-                  Logger.e(
-                      '[BibNumberController.showLoadRaceSheet] ${error.originalException}');
-                  return;
-              }
-            } else {
-              // Fallback: try to decode as race data only
-              raceRecord = RaceRecord.fromEncodedString(data,
-                  type: DeviceName.bibRecorder.toString());
-            }
-          } catch (e) {
-            Logger.e('Error parsing race data: $e');
-            if (context.mounted) {
-              DialogUtils.showErrorDialog(context,
-                  message: 'Failed to parse race data: $e');
-            }
-            return;
+          final result = await processLoadedRaceData(data);
+          if (result case Failure(:final error) when context.mounted) {
+            DialogUtils.showErrorDialog(context, message: error.userMessage);
           }
-          final saveResult = await storage.saveNewRace(raceRecord);
-          if (saveResult case Failure(:final error)) {
-            Logger.e(
-                '[BibNumberController.showLoadRaceSheet] ${error.originalException}');
-            if (context.mounted) {
-              DialogUtils.showErrorDialog(context, message: error.userMessage);
-            }
-            return;
-          }
-
-          // Save runners to database
-          if (runners.isNotEmpty) {
-            final dbRunners = runners
-                .map((runner) => db_models.Runner(
-                      raceId: raceRecord.raceId,
-                      bibNumber: runner.bib,
-                      name: runner.name,
-                      teamAbbreviation: runner.teamAbbreviation,
-                      grade: runner.grade,
-                      teamColor: runner.teamColor,
-                      createdAt: DateTime.now(),
-                    ))
-                .toList();
-            await storage.saveRunners(raceRecord.raceId, dbRunners);
-          }
-
-          clearBibRecords();
-          _loadRaceWithRunners(raceRecord, runners);
         },
       ),
     );

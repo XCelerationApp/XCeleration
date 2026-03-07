@@ -95,6 +95,8 @@ void main() {
         .thenAnswer((_) async => const Success(null));
     when(mockStorage.saveBibRecords(any, any))
         .thenAnswer((_) async => const Success(null));
+    when(mockStorage.saveNewRace(any))
+        .thenAnswer((_) async => const Success(null));
     when(mockStorage.saveRunners(any, any))
         .thenAnswer((_) async => const Success(null));
     when(mockStorage.getBibRecord(any, any))
@@ -543,6 +545,76 @@ void main() {
         expect(controller.currentRace, equals(otherRace));
         verify(mockStorage.getRunners(otherRace.raceId)).called(1);
         verify(mockStorage.getBibRecords(otherRace.raceId)).called(1);
+
+        controller.dispose();
+      });
+    });
+
+    group('processLoadedRaceData', () {
+      final validRunnerJson =
+          '{"teams":["EAG"],"r":[["42","Alice",0,"10"]]}';
+
+      test('returns Failure for malformed race data', () async {
+        final controller = buildController();
+
+        final result =
+            await controller.processLoadedRaceData('not valid json');
+
+        expect(result, isA<Failure<void>>());
+
+        controller.dispose();
+      });
+
+      test('returns Failure when runner section is invalid', () async {
+        final controller = buildController();
+        final data = '${testRace.encode()}---invalid-runner-data';
+
+        final result = await controller.processLoadedRaceData(data);
+
+        expect(result, isA<Failure<void>>());
+
+        controller.dispose();
+      });
+
+      test('returns Failure when saveNewRace fails', () async {
+        when(mockStorage.saveNewRace(any)).thenAnswer(
+          (_) async => const Failure(AppError(userMessage: 'Save failed')),
+        );
+        final controller = buildController();
+
+        final result =
+            await controller.processLoadedRaceData(testRace.encode());
+
+        expect(result, isA<Failure<void>>());
+        expect((result as Failure).error.userMessage, 'Save failed');
+
+        controller.dispose();
+      });
+
+      test('returns Success and saves runners on happy path with runners',
+          () async {
+        final controller = buildController();
+        final data = '${testRace.encode()}---$validRunnerJson';
+
+        final result = await controller.processLoadedRaceData(data);
+
+        expect(result, isA<Success<void>>());
+        verify(mockStorage.saveNewRace(any)).called(1);
+        verify(mockStorage.saveRunners(any, argThat(isNotEmpty))).called(1);
+
+        controller.dispose();
+      });
+
+      test('returns Success and skips saveRunners on happy path without runners',
+          () async {
+        final controller = buildController();
+
+        final result =
+            await controller.processLoadedRaceData(testRace.encode());
+
+        expect(result, isA<Success<void>>());
+        verify(mockStorage.saveNewRace(any)).called(1);
+        verifyNever(mockStorage.saveRunners(any, any));
 
         controller.dispose();
       });
