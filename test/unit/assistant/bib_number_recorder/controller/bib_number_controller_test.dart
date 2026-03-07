@@ -445,6 +445,48 @@ void main() {
       });
     });
 
+    group('getRunnerByBib', () {
+      test('returns null when runners list is empty', () {
+        final controller = buildController();
+
+        expect(controller.getRunnerByBib('42'), isNull);
+
+        controller.dispose();
+      });
+
+      test('returns null when bib is not found', () {
+        final controller = buildController();
+        controller.runners.add(BibDatum(
+          bib: '1',
+          name: 'Alice',
+          teamAbbreviation: 'EAG',
+          grade: '10',
+        ));
+
+        expect(controller.getRunnerByBib('99'), isNull);
+
+        controller.dispose();
+      });
+
+      test('returns matching runner when bib is found', () {
+        final controller = buildController();
+        controller.runners.add(BibDatum(
+          bib: '42',
+          name: 'Alice',
+          teamAbbreviation: 'EAG',
+          grade: '10',
+        ));
+
+        final result = controller.getRunnerByBib('42');
+
+        expect(result, isNotNull);
+        expect(result!.name, equals('Alice'));
+        expect(result.teamAbbreviation, equals('EAG'));
+
+        controller.dispose();
+      });
+    });
+
     group('handleBibNumber', () {
       test('adds a new bib record when no index is provided', () async {
         final controller = buildController();
@@ -520,6 +562,71 @@ void main() {
 
           controller.dispose();
         });
+      });
+
+      test('cancels previous debounce timer when called again for same index',
+          () {
+        fakeAsync((async) {
+          final controller = buildController();
+          controller.runners.add(BibDatum(
+            bib: '99',
+            name: 'Bob',
+            teamAbbreviation: 'TIG',
+            grade: '11',
+          ));
+          controller.addBibRecord(BibDatumRecord.blank());
+          async.flushMicrotasks();
+
+          // Partial input '9' — would validate to notInDatabase=true
+          controller.handleBibNumber('9', index: 0);
+          // Complete to '99' before debounce fires — cancels the first timer
+          controller.handleBibNumber('99', index: 0);
+
+          async.elapse(const Duration(milliseconds: 600));
+
+          // Only the second validation should have run
+          expect(controller.bibRecords[0].bib, equals('99'));
+          expect(controller.bibRecords[0].flags.notInDatabase, isFalse);
+
+          controller.dispose();
+        });
+      });
+    });
+
+    group('addBib', () {
+      test('adds a new empty record when bib list is empty', () async {
+        final controller = buildController();
+
+        await controller.addBib();
+
+        expect(controller.bibRecords.length, equals(1));
+        expect(controller.bibRecords.first.bib, isEmpty);
+
+        controller.dispose();
+      });
+
+      test('adds a new empty record when last record has content', () async {
+        final controller = buildController();
+        await controller.addBibRecord(
+            BibDatumRecord(bib: '5', name: '', teamAbbreviation: '', grade: ''));
+
+        await controller.addBib();
+
+        expect(controller.bibRecords.length, equals(2));
+        expect(controller.bibRecords.last.bib, isEmpty);
+
+        controller.dispose();
+      });
+
+      test('does not add a record when last record is already empty', () async {
+        final controller = buildController();
+        await controller.addBibRecord(BibDatumRecord.blank());
+
+        await controller.addBib();
+
+        expect(controller.bibRecords.length, equals(1));
+
+        controller.dispose();
       });
     });
 
@@ -756,6 +863,38 @@ void main() {
       });
     });
 
+    group('canAddBib', () {
+      test('returns true when bibRecords is empty', () {
+        final controller = buildController();
+
+        expect(controller.canAddBib, isTrue);
+
+        controller.dispose();
+      });
+
+      test('returns true when last record has non-empty bib', () async {
+        final controller = buildController();
+        await controller.addBibRecord(
+            BibDatumRecord(bib: '5', name: '', teamAbbreviation: '', grade: ''));
+
+        expect(controller.canAddBib, isTrue);
+
+        controller.dispose();
+      });
+
+      test('returns true when last record has empty bib but no primary focus',
+          () async {
+        final controller = buildController();
+        await controller.addBibRecord(BibDatumRecord.blank());
+
+        // Without a widget tree hasPrimaryFocus is always false, so canAddBib
+        // returns true even with an empty bib.
+        expect(controller.canAddBib, isTrue);
+
+        controller.dispose();
+      });
+    });
+
     group('checkDuplicateRecords', () {
       test('returns empty list when no duplicates', () async {
         final controller = buildController();
@@ -850,6 +989,32 @@ void main() {
         await controller.saveBibRecordsToDatabase(testRace.raceId);
 
         verify(mockStorage.saveBibRecords(any, argThat(isEmpty))).called(1);
+
+        controller.dispose();
+      });
+    });
+
+    group('restoreFocusability', () {
+      test('sets canRequestFocus to true on all focus nodes', () async {
+        final controller = buildController();
+        await controller.addBibRecord(BibDatumRecord.blank());
+        await controller.addBibRecord(BibDatumRecord.blank());
+
+        for (final node in controller.focusNodes) {
+          node.canRequestFocus = false;
+        }
+
+        controller.restoreFocusability();
+
+        expect(controller.focusNodes.every((n) => n.canRequestFocus), isTrue);
+
+        controller.dispose();
+      });
+
+      test('does nothing when focusNodes is empty', () {
+        final controller = buildController();
+
+        expect(() => controller.restoreFocusability(), returnsNormally);
 
         controller.dispose();
       });
@@ -955,6 +1120,34 @@ void main() {
         final map = controller.getBibsAndRunners();
 
         expect(map['5']!.name, equals('Second'));
+
+        controller.dispose();
+      });
+    });
+
+    group('getEncodedBibData', () {
+      test('returns non-empty string for non-empty records', () async {
+        final controller = buildController();
+        await controller.addBibRecord(BibDatumRecord(
+          bib: '42',
+          name: 'Alice',
+          teamAbbreviation: 'EAG',
+          grade: '10',
+        ));
+
+        final encoded = await controller.getEncodedBibData();
+
+        expect(encoded, isNotEmpty);
+
+        controller.dispose();
+      });
+
+      test('returns a string for empty records list', () async {
+        final controller = buildController();
+
+        final encoded = await controller.getEncodedBibData();
+
+        expect(encoded, isA<String>());
 
         controller.dispose();
       });
