@@ -23,7 +23,6 @@ class RaceDateField extends StatelessWidget {
           icon: const Icon(Icons.calendar_today, color: AppColors.primaryColor),
           onPressed: () => controller.selectDate(context),
         ),
-        setSheetState: setSheetState,
         onChanged: (_) => controller.validateDate(
             controller.dateController.text, setSheetState),
       ),

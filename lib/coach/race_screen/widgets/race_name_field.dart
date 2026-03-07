@@ -5,12 +5,10 @@ import '../controller/race_form_state.dart';
 
 class RaceNameField extends StatelessWidget {
   final RaceController controller;
-  final StateSetter setSheetState;
   final ValueChanged<String>? onChanged;
 
   const RaceNameField({
     required this.controller,
-    required this.setSheetState,
     this.onChanged,
     super.key,
   });
@@ -28,7 +26,6 @@ class RaceNameField extends StatelessWidget {
           controller.validateName(controller.form.nameController.text);
           if (onChanged != null) onChanged!(value);
         },
-        setSheetState: setSheetState,
       ),
     );
   }

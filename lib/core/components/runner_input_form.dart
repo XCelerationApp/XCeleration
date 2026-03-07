@@ -483,7 +483,6 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
               Team(name: value, abbreviation: Team.generateAbbreviation(value));
           _handleTeamChange(tempTeam);
         },
-        setSheetState: setState,
       );
     } else {
       // Show dropdown
@@ -592,8 +591,7 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
               hint: 'John Doe',
               error: nameError,
               onChanged: validateName,
-              setSheetState: setState,
-            ),
+                  ),
           ),
           const SizedBox(height: 16),
           buildInputField(
@@ -605,8 +603,7 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
               keyboardType: TextInputType.number,
               error: gradeError,
               onChanged: validateGrade,
-              setSheetState: setState,
-            ),
+                  ),
           ),
           const SizedBox(height: 16),
           if (_isEditing)
@@ -625,8 +622,7 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
                 error: bibError,
                 warning: bibWarning,
                 onChanged: validateBib,
-                setSheetState: setState,
-              ),
+                      ),
             ),
           ],
           const SizedBox(height: 24),

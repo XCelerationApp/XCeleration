@@ -7,12 +7,10 @@ import '../controller/race_form_state.dart';
 
 class RaceLocationField extends StatelessWidget {
   final RaceController controller;
-  final StateSetter setSheetState;
   final ValueChanged<String>? onChanged;
 
   const RaceLocationField({
     required this.controller,
-    required this.setSheetState,
     this.onChanged,
     super.key,
   });
@@ -32,7 +30,6 @@ class RaceLocationField extends StatelessWidget {
                   ? 'Other location'
                   : 'Enter race location',
               error: controller.form.errorFor(RaceField.location),
-              setSheetState: setSheetState,
               onChanged: (value) {
                 controller.validateLocation(
                     controller.form.locationController.text);

@@ -163,8 +163,6 @@ class InlineEditableField extends StatelessWidget {
                 error: error,
                 keyboardType: keyboardType,
                 suffixIcon: suffixIcon as IconButton?,
-                setSheetState: (fn) =>
-                    fn(), // No-op since we don't use sheet state
                 onChanged: (value) => controller.trackFieldChange(field),
               ),
             ),
