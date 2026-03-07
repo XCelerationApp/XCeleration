@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/theme/app_colors.dart';
-import 'package:xceleration/core/utils/database_helper.dart';
 import 'package:xceleration/shared/models/database/master_race.dart';
 import 'package:xceleration/shared/models/database/team.dart';
 import '../controller/runners_management_controller.dart';
@@ -24,8 +23,6 @@ class AddRunnersToTeamSheet extends StatefulWidget {
 }
 
 class _AddRunnersToTeamSheetState extends State<AddRunnersToTeamSheet> {
-  final DatabaseHelper db = DatabaseHelper.instance;
-
   @override
   Widget build(BuildContext context) {
     return SafeArea(

@@ -2,15 +2,15 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/result.dart';
-import 'package:xceleration/core/utils/database_helper.dart';
+import 'package:xceleration/core/utils/i_database_helper.dart';
 import 'package:xceleration/shared/models/database/base_models.dart';
 import 'package:xceleration/core/utils/logger.dart';
 
 /// Imports a shared race payload into local DB (read-only tag via naming)
 class RaceShareImporter {
-  final DatabaseHelper _db;
+  final IDatabaseHelper _db;
 
-  RaceShareImporter({required DatabaseHelper db}) : _db = db;
+  RaceShareImporter({required IDatabaseHelper db}) : _db = db;
 
   Future<Result<void>> importFromJson(String jsonStr) async {
     try {

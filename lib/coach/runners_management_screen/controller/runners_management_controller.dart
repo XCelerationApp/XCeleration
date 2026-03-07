@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:xceleration/core/utils/database_helper.dart';
+import 'package:xceleration/core/utils/i_database_helper.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/shared/models/database/race_runner.dart';
 import 'package:xceleration/shared/models/database/team_participant.dart';
@@ -30,7 +30,7 @@ class RunnersManagementController with ChangeNotifier {
   final MasterRace masterRace;
 
   // Database Helper
-  late final DatabaseHelper db;
+  late final IDatabaseHelper db;
 
   // Store the listener function to properly remove it later
   late final VoidCallback _masterRaceListener;

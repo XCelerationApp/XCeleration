@@ -2,9 +2,10 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../../shared/models/database/base_models.dart';
 import 'package:xceleration/core/utils/logger.dart';
+import 'i_database_helper.dart';
 import 'local_schema.dart';
 
-class DatabaseHelper {
+class DatabaseHelper implements IDatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
   static Database? _initializedDatabase;
 
@@ -17,6 +18,7 @@ class DatabaseHelper {
   }
 
   // Expose a public connection getter for services like SyncService
+  @override
   Future<Database> get databaseConn async => await _database;
 
   Future<Database> _initDB(String fileName) async {
@@ -70,6 +72,7 @@ class DatabaseHelper {
   // ============================================================================
 
   // --- RUNNERS ---
+  @override
   Future<int> createRunner(Runner runner) async {
     if (!runner.isValid) {
       throw Exception('Runner is not valid');
@@ -90,6 +93,7 @@ class DatabaseHelper {
     return result;
   }
 
+  @override
   Future<Runner?> getRunner(int runnerId) async {
     final db = await _database;
     final results = await db.query(
@@ -100,6 +104,7 @@ class DatabaseHelper {
     return results.isNotEmpty ? Runner.fromMap(results.first) : null;
   }
 
+  @override
   Future<Runner?> getRunnerByBib(String bibNumber) async {
     final db = await _database;
     final results = await db.query(
@@ -110,12 +115,14 @@ class DatabaseHelper {
     return results.isNotEmpty ? Runner.fromMap(results.first) : null;
   }
 
+  @override
   Future<List<Runner>> getAllRunners() async {
     final db = await _database;
     final results = await db.query('runners', orderBy: 'name');
     return results.map((map) => Runner.fromMap(map)).toList();
   }
 
+  @override
   Future<List<Runner>> searchRunners(String query) async {
     final db = await _database;
     final results = await db.query(
@@ -127,6 +134,7 @@ class DatabaseHelper {
     return results.map((map) => Runner.fromMap(map)).toList();
   }
 
+  @override
   Future<void> updateRunner(Runner runner) async {
     if (runner.runnerId == null) {
       throw Exception('Runner id is required');
@@ -141,6 +149,7 @@ class DatabaseHelper {
         where: 'runner_id = ?', whereArgs: [runner.runnerId]);
   }
 
+  @override
   Future<void> removeRunner(int runnerId) async {
     if (await getRunner(runnerId) == null) {
       throw Exception('Runner with id $runnerId not found');
@@ -150,6 +159,7 @@ class DatabaseHelper {
   }
 
   // --- TEAMS ---
+  @override
   Future<int> createTeam(Team team) async {
     if (!team.isValid) {
       throw Exception('Team is not valid');
@@ -169,6 +179,7 @@ class DatabaseHelper {
     });
   }
 
+  @override
   Future<Team?> getTeam(int teamId) async {
     final db = await _database;
     final results =
@@ -176,6 +187,7 @@ class DatabaseHelper {
     return results.isNotEmpty ? Team.fromMap(results.first) : null;
   }
 
+  @override
   Future<Team?> getTeamByName(String name) async {
     final db = await _database;
     final results = await db.query(
@@ -187,12 +199,14 @@ class DatabaseHelper {
     return results.isNotEmpty ? Team.fromMap(results.first) : null;
   }
 
+  @override
   Future<List<Team>> getAllTeams() async {
     final db = await _database;
     final results = await db.query('teams', orderBy: 'name');
     return results.map((map) => Team.fromMap(map)).toList();
   }
 
+  @override
   Future<List<Team>> searchTeams(String query) async {
     final db = await _database;
     final results = await db.query(
@@ -204,6 +218,7 @@ class DatabaseHelper {
     return results.map((map) => Team.fromMap(map)).toList();
   }
 
+  @override
   Future<void> updateTeam(Team team) async {
     if (!team.isValid) {
       throw Exception('Team is not valid');
@@ -225,6 +240,7 @@ class DatabaseHelper {
     }
   }
 
+  @override
   Future<void> deleteTeam(int teamId) async {
     if (await getTeam(teamId) == null) {
       throw Exception('Team with id $teamId not found');
@@ -234,6 +250,7 @@ class DatabaseHelper {
   }
 
   // --- RACES ---
+  @override
   Future<int> createRace(Race race) async {
     if (!race.isValid) {
       throw Exception('Race is not valid');
@@ -245,6 +262,7 @@ class DatabaseHelper {
     return await db.insert('races', map);
   }
 
+  @override
   Future<Race?> getRace(int raceId) async {
     final db = await _database;
     final results =
@@ -252,12 +270,14 @@ class DatabaseHelper {
     return results.isNotEmpty ? Race.fromJson(results.first) : null;
   }
 
+  @override
   Future<List<Race>> getAllRaces() async {
     final db = await _database;
     final results = await db.query('races', orderBy: 'race_date DESC');
     return results.map((map) => Race.fromJson(map)).toList();
   }
 
+  @override
   Future<void> updateRace(Race race) async {
     if (race.raceId == null) {
       throw Exception('Race id is required');
@@ -275,6 +295,7 @@ class DatabaseHelper {
         .update('races', rmap, where: 'race_id = ?', whereArgs: [race.raceId]);
   }
 
+  @override
   Future<void> deleteRace(int raceId) async {
     if (await getRace(raceId) == null) {
       throw Exception('Race with id $raceId not found');
@@ -288,6 +309,7 @@ class DatabaseHelper {
   // ============================================================================
 
   // --- TEAM ROSTERS ---
+  @override
   Future<void> addRunnerToTeam(int teamId, int runnerId) async {
     // If already linked, do nothing
     if (await getTeamRunner(teamId, runnerId) != null) {
@@ -301,6 +323,7 @@ class DatabaseHelper {
     );
   }
 
+  @override
   Future<void> removeRunnerFromTeam(int teamId, int runnerId) async {
     if (await getTeamRunner(teamId, runnerId) == null) {
       throw Exception('Runner $runnerId not in team $teamId');
@@ -315,6 +338,7 @@ class DatabaseHelper {
 
   /// Set a runner's team globally in team_rosters.
   /// Removes any existing roster entries for the runner, then inserts the new team mapping.
+  @override
   Future<void> setRunnerTeam(int runnerId, int newTeamId) async {
     if (await getRunner(runnerId) == null) {
       throw Exception('Runner with id $runnerId not found');
@@ -337,6 +361,7 @@ class DatabaseHelper {
   }
 
   /// Update a race participant's team mapping within a race.
+  @override
   Future<void> updateRaceParticipantTeam({
     required int raceId,
     required int runnerId,
@@ -366,6 +391,7 @@ class DatabaseHelper {
 
   /// Convenience: update runner core fields and optionally move to a new team
   /// and/or update the runner's team within a specific race.
+  @override
   Future<void> updateRunnerWithTeams({
     required Runner runner,
     int? newTeamId,
@@ -384,6 +410,7 @@ class DatabaseHelper {
     }
   }
 
+  @override
   Future<Runner?> getTeamRunner(int teamId, int runnerId) async {
     if (await getTeam(teamId) == null) {
       throw Exception('Team with id $teamId not found');
@@ -400,6 +427,7 @@ class DatabaseHelper {
     return results.isNotEmpty ? Runner.fromMap(results.first) : null;
   }
 
+  @override
   Future<List<Runner>> getTeamRunners(int teamId) async {
     if (await getTeam(teamId) == null) {
       throw Exception('Team with id $teamId not found');
@@ -414,6 +442,7 @@ class DatabaseHelper {
     return results.map((map) => Runner.fromMap(map)).toList();
   }
 
+  @override
   Future<List<Team>> getRunnerTeams(int runnerId) async {
     if (await getRunner(runnerId) == null) {
       throw Exception('Runner with id $runnerId not found');
@@ -429,6 +458,7 @@ class DatabaseHelper {
   }
 
   // --- RACE PARTICIPATION ---
+  @override
   Future<void> addTeamParticipantToRace(TeamParticipant teamParticipant) async {
     if (!teamParticipant.isValid) {
       throw Exception('TeamParticipant is not valid');
@@ -449,6 +479,7 @@ class DatabaseHelper {
     );
   }
 
+  @override
   Future<void> removeTeamParticipantFromRace(
       TeamParticipant teamParticipant) async {
     if (await getRaceTeamParticipant(teamParticipant) == null) {
@@ -463,6 +494,7 @@ class DatabaseHelper {
     );
   }
 
+  @override
   Future<Team?> getRaceTeamParticipant(TeamParticipant teamParticipant) async {
     if (await getRace(teamParticipant.raceId!) == null) {
       throw Exception('Race with id ${teamParticipant.raceId} not found');
@@ -482,6 +514,7 @@ class DatabaseHelper {
         : null;
   }
 
+  @override
   Future<List<Team>> getRaceTeams(int raceId) async {
     if (await getRace(raceId) == null) {
       throw Exception('Race with id $raceId not found');
@@ -497,6 +530,7 @@ class DatabaseHelper {
     return results.map((map) => Team.fromRaceParticipationMap(map)).toList();
   }
 
+  @override
   Future<void> addRaceParticipant(RaceParticipant raceParticipant) async {
     if (!raceParticipant.isValid) {
       throw Exception('RaceParticipant is not valid');
@@ -519,6 +553,7 @@ class DatabaseHelper {
     );
   }
 
+  @override
   Future<void> updateRaceParticipant(RaceParticipant raceParticipant) async {
     if (await getRaceParticipant(raceParticipant) == null) {
       throw Exception('RaceParticipant not found');
@@ -532,6 +567,7 @@ class DatabaseHelper {
         whereArgs: [raceParticipant.raceId!, raceParticipant.runnerId!]);
   }
 
+  @override
   Future<void> removeRaceParticipant(RaceParticipant raceParticipant) async {
     if (await getRaceParticipant(raceParticipant) == null) {
       throw Exception(
@@ -545,6 +581,7 @@ class DatabaseHelper {
     );
   }
 
+  @override
   Future<RaceParticipant?> getRaceParticipant(
       RaceParticipant raceParticipant) async {
     if (await getRace(raceParticipant.raceId!) == null) {
@@ -562,6 +599,7 @@ class DatabaseHelper {
     return results.isNotEmpty ? RaceParticipant.fromMap(results.first) : null;
   }
 
+  @override
   Future<List<RaceParticipant>> getRaceParticipants(int raceId) async {
     if (await getRace(raceId) == null) {
       throw Exception('Race with id $raceId not found');
@@ -576,6 +614,7 @@ class DatabaseHelper {
     return results.map((map) => RaceParticipant.fromMap(map)).toList();
   }
 
+  @override
   Future<RaceParticipant?> getRaceParticipantByBib(
       int raceId, String bibNumber) async {
     final db = await _database;
@@ -589,6 +628,7 @@ class DatabaseHelper {
     return results.isNotEmpty ? RaceParticipant.fromMap(results.first) : null;
   }
 
+  @override
   Future<List<RaceParticipant>> getRaceParticipantsByBibs(
       int raceId, List<String> bibNumbers) async {
     final results = <RaceParticipant>[];
@@ -601,6 +641,7 @@ class DatabaseHelper {
     return results;
   }
 
+  @override
   Future<List<RaceParticipant>> searchRaceParticipants(int raceId, String query,
       [String searchParameter = 'all']) async {
     final db = await _database;
@@ -636,6 +677,7 @@ class DatabaseHelper {
   // RACE RESULTS OPERATIONS
   // ============================================================================
 
+  @override
   Future<void> saveRaceResults(int raceId, List<RaceResult> results) async {
     // Validate all results before saving
     for (final result in results) {
@@ -657,6 +699,7 @@ class DatabaseHelper {
     });
   }
 
+  @override
   Future<void> addRaceResult(RaceResult result) async {
     // Check if result already exists using a simpler query that doesn't require full validation
     if (result.raceId != null && result.runner?.runnerId != null) {
@@ -678,6 +721,7 @@ class DatabaseHelper {
     await db.insert('race_results', rr);
   }
 
+  @override
   Future<RaceResult?> getRaceResult(RaceResult raceResult) async {
     // For existence checks, we only need raceId and runnerId to be set
     if (raceResult.raceId == null || raceResult.runner?.runnerId == null) {
@@ -694,6 +738,7 @@ class DatabaseHelper {
     return results.isNotEmpty ? RaceResult.fromMap(results.first) : null;
   }
 
+  @override
   Future<List<RaceResult>> getRaceResults(int raceId) async {
     final db = await _database;
 
@@ -720,6 +765,7 @@ class DatabaseHelper {
     return results.map((map) => RaceResult.fromMap(map)).toList();
   }
 
+  @override
   Future<void> updateRaceResult(RaceResult raceResult) async {
     if (!raceResult.isValid) {
       throw Exception('RaceResult is not valid');
@@ -736,6 +782,7 @@ class DatabaseHelper {
         whereArgs: [raceResult.raceId!, raceResult.runner!.runnerId!]);
   }
 
+  @override
   Future<void> deleteRaceResult(RaceResult raceResult) async {
     if (raceResult.raceId == null || raceResult.runner?.runnerId == null) {
       throw Exception('Race or runner not given');
@@ -757,17 +804,20 @@ class DatabaseHelper {
   // ============================================================================
 
   /// Get race flow state
+  @override
   Future<String> getRaceFlowState(int raceId) async {
     final race = await getRace(raceId);
     return race?.flowState ?? 'pre_race';
   }
 
   /// Update race flow state
+  @override
   Future<void> updateRaceFlowState(int raceId, String flowState) async {
     await updateRace(Race(raceId: raceId, flowState: flowState));
   }
 
   /// Quick search across all entities
+  @override
   Future<Map<String, List<dynamic>>> quickSearch(String query) async {
     final results = <String, List<dynamic>>{};
 
@@ -778,6 +828,7 @@ class DatabaseHelper {
   }
 
   /// Get race state
+  @override
   Future<String> getRaceState(int raceId) async {
     final raceResults = await getRaceResults(raceId);
     return raceResults.isEmpty ? 'in_progress' : 'finished';
@@ -788,6 +839,7 @@ class DatabaseHelper {
   // ============================================================================
 
   /// Clear all data from _database
+  @override
   Future<void> clearAllData() async {
     final db = await _database;
     await db.transaction((txn) async {
@@ -802,6 +854,7 @@ class DatabaseHelper {
   }
 
   /// Clear race-specific data
+  @override
   Future<void> clearRaceData(int raceId) async {
     final db = await _database;
     await db.transaction((txn) async {
@@ -815,6 +868,7 @@ class DatabaseHelper {
   }
 
   /// Delete all races and related data
+  @override
   Future<void> deleteAllRaces() async {
     final db = await _database;
     await db.transaction((txn) async {
@@ -826,11 +880,13 @@ class DatabaseHelper {
   }
 
   /// Delete all race runners for a specific race
+  @override
   Future<void> deleteAllRaceRunners(int raceId) async {
     await clearRaceData(raceId);
   }
 
   /// Delete the database file
+  @override
   Future<void> deleteDatabase() async {
     Logger.d('Deleting database');
     final path = join(await getDatabasesPath(), 'races.db');
@@ -839,12 +895,14 @@ class DatabaseHelper {
   }
 
   /// Close the database connection
+  @override
   Future<void> close() async {
     final db = await _database;
     await db.close();
     _initializedDatabase = null;
   }
 
+  @override
   Future<void> deleteRunnerEverywhere(int runnerId) async {
     if (await getRunner(runnerId) == null) {
       return;
@@ -869,6 +927,7 @@ class DatabaseHelper {
     });
   }
 
+  @override
   Future<List<Runner>> getRunnersByBibAll(String bib) async {
     final db = await _database;
     final results = await db.query(
