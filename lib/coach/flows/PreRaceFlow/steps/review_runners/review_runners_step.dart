@@ -6,11 +6,15 @@ import 'package:xceleration/shared/models/database/master_race.dart';
 class ReviewRunnersStep extends FlowStep {
   bool _canProceed = false;
   final MasterRace masterRace;
+  final Future<bool> Function(MasterRace) _checkMinimumRunners;
 
   ReviewRunnersStep({
     required this.masterRace,
     required Future<void> Function() onNext,
-  }) : super(
+    Future<bool> Function(MasterRace)? checkMinimumRunners,
+  })  : _checkMinimumRunners = checkMinimumRunners ??
+            TeamsAndRunnersManagementWidget.checkMinimumRunnersLoaded,
+        super(
           title: 'Review Runners',
           description:
               'Make sure all runner information is correct before the race starts. You can make any last-minute changes here.',
@@ -29,16 +33,12 @@ class ReviewRunnersStep extends FlowStep {
 
   /// Precompute initial canProceed value before the sheet renders
   Future<void> seedInitialProceed() async {
-    final hasEnoughRunners =
-        await TeamsAndRunnersManagementWidget.checkMinimumRunnersLoaded(
-            masterRace);
+    final hasEnoughRunners = await _checkMinimumRunners(masterRace);
     _canProceed = hasEnoughRunners;
   }
 
   Future<void> checkRunners() async {
-    final hasEnoughRunners =
-        await TeamsAndRunnersManagementWidget.checkMinimumRunnersLoaded(
-            masterRace);
+    final hasEnoughRunners = await _checkMinimumRunners(masterRace);
     if (_canProceed != hasEnoughRunners) {
       _canProceed = hasEnoughRunners;
       notifyContentChanged();

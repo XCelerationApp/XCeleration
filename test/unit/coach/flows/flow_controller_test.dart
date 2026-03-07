@@ -203,6 +203,62 @@ void main() {
       });
     });
 
+    group('canGoForward', () {
+      test('is true when not on last step and canProceed is true', () {
+        final controller = FlowController([_step(), _step()]);
+        expect(controller.canGoForward, isTrue);
+        controller.dispose();
+      });
+
+      test('is false when on last step even if canProceed is true', () async {
+        final controller = FlowController([_step(), _step()]);
+        await controller.goToNext();
+        expect(controller.isLastStep, isTrue);
+        expect(controller.canProceed, isTrue);
+        expect(controller.canGoForward, isFalse);
+        controller.dispose();
+      });
+
+      test('is false when canProceed is false even if not on last step', () {
+        final controller = FlowController([
+          _step(canProceed: () => false),
+          _step(),
+        ]);
+        expect(controller.isLastStep, isFalse);
+        expect(controller.canProceed, isFalse);
+        expect(controller.canGoForward, isFalse);
+        controller.dispose();
+      });
+    });
+
+    group('initialIndex', () {
+      test('controller starts at the given initialIndex', () {
+        final controller = FlowController([_step(), _step()], initialIndex: 1);
+        expect(controller.currentIndex, 1);
+        controller.dispose();
+      });
+    });
+
+    group('single-step flow', () {
+      test('isLastStep is true at construction', () {
+        final controller = FlowController([_step()]);
+        expect(controller.isLastStep, isTrue);
+        controller.dispose();
+      });
+
+      test('canGoBack is false at construction', () {
+        final controller = FlowController([_step()]);
+        expect(controller.canGoBack, isFalse);
+        controller.dispose();
+      });
+
+      test('canGoForward is false at construction', () {
+        final controller = FlowController([_step()]);
+        expect(controller.canGoForward, isFalse);
+        controller.dispose();
+      });
+    });
+
     group('dispose', () {
       test('disposes all steps, closing their stream controllers', () {
         final step1 = _step();
