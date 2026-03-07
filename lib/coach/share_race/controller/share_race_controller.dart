@@ -8,6 +8,8 @@ import 'package:xceleration/core/utils/logger.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
+import '../services/i_share_service.dart';
+import '../services/share_service.dart';
 import 'package:path/path.dart' as p;
 import 'package:xceleration/shared/services/race_results_service.dart';
 import '../../../core/utils/enums.dart';
@@ -48,6 +50,7 @@ class ShareRaceController extends ChangeNotifier {
       raceResultsData: raceResultsData,
       googleSheetsService: GoogleSheetsService.instance,
       formattedResultsController: formattedResultsController,
+      shareService: ShareService(),
     );
     return sheet(
       context: context,
@@ -115,14 +118,17 @@ class ShareRaceController extends ChangeNotifier {
 class ShareResultsController {
   final FormattedResultsController _formattedResultsController;
   final IGoogleSheetsService _googleSheetsService;
+  final IShareService _shareService;
   final RaceResultsData raceResultsData;
 
   ShareResultsController({
     required this.raceResultsData,
     required IGoogleSheetsService googleSheetsService,
     required FormattedResultsController formattedResultsController,
+    required IShareService shareService,
   })  : _googleSheetsService = googleSheetsService,
-        _formattedResultsController = formattedResultsController;
+        _formattedResultsController = formattedResultsController,
+        _shareService = shareService;
 
   /// Handle plain text format - copy to clipboard
   Future<void> handlePlainTextCopy(BuildContext context) async {
@@ -407,12 +413,8 @@ class ShareResultsController {
 
   /// Generic share function
   Future<void> _share(BuildContext context, ShareParams params) async {
-    // TODO(refactor): SharePlus.instance is a singleton — wrap behind IShareService for full testability
-    SharePlus share = SharePlus.instance;
     try {
-      await share.share(
-        params,
-      );
+      await _shareService.share(params);
     } catch (e) {
       Logger.d('Error sharing: $e');
       if (context.mounted) {

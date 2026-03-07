@@ -9,10 +9,14 @@ import 'dart:ui' as _i11;
 import 'package:flutter/foundation.dart' as _i6;
 import 'package:flutter/material.dart' as _i5;
 import 'package:mockito/mockito.dart' as _i1;
+import 'package:share_plus/share_plus.dart' as _i13;
 import 'package:xceleration/coach/race_results/model/team_record.dart' as _i10;
 import 'package:xceleration/coach/share_race/controller/share_race_controller.dart'
     as _i7;
+import 'package:xceleration/coach/share_race/services/i_share_service.dart'
+    as _i12;
 import 'package:xceleration/core/utils/database_helper.dart' as _i3;
+import 'package:xceleration/core/utils/i_google_sheets_service.dart' as _i14;
 import 'package:xceleration/shared/models/database/base_models.dart' as _i4;
 import 'package:xceleration/shared/models/database/master_race.dart' as _i9;
 import 'package:xceleration/shared/services/race_results_service.dart' as _i2;
@@ -109,6 +113,16 @@ class _FakeDiagnosticsNode_5 extends _i1.SmartFake
     _i5.DiagnosticLevel? minLevel = _i5.DiagnosticLevel.info,
   }) =>
       super.toString();
+}
+
+class _FakeUri_6 extends _i1.SmartFake implements Uri {
+  _FakeUri_6(
+    Object parent,
+    Invocation parentInvocation,
+  ) : super(
+          parent,
+          parentInvocation,
+        );
 }
 
 /// A class which mocks [ShareResultsController].
@@ -656,4 +670,85 @@ class MockBuildContext extends _i1.Mock implements _i5.BuildContext {
           ),
         ),
       ) as _i5.DiagnosticsNode);
+}
+
+/// A class which mocks [IShareService].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockIShareService extends _i1.Mock implements _i12.IShareService {
+  MockIShareService() {
+    _i1.throwOnMissingStub(this);
+  }
+
+  @override
+  _i8.Future<void> share(_i13.ShareParams? params) => (super.noSuchMethod(
+        Invocation.method(
+          #share,
+          [params],
+        ),
+        returnValue: _i8.Future<void>.value(),
+        returnValueForMissingStub: _i8.Future<void>.value(),
+      ) as _i8.Future<void>);
+}
+
+/// A class which mocks [IGoogleSheetsService].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockIGoogleSheetsService extends _i1.Mock
+    implements _i14.IGoogleSheetsService {
+  MockIGoogleSheetsService() {
+    _i1.throwOnMissingStub(this);
+  }
+
+  @override
+  _i8.Future<bool> signIn() => (super.noSuchMethod(
+        Invocation.method(
+          #signIn,
+          [],
+        ),
+        returnValue: _i8.Future<bool>.value(false),
+      ) as _i8.Future<bool>);
+
+  @override
+  _i8.Future<String?> createSheet({required String? title}) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #createSheet,
+          [],
+          {#title: title},
+        ),
+        returnValue: _i8.Future<String?>.value(),
+      ) as _i8.Future<String?>);
+
+  @override
+  _i8.Future<bool> updateSheet({
+    required String? spreadsheetId,
+    required List<List<dynamic>>? data,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #updateSheet,
+          [],
+          {
+            #spreadsheetId: spreadsheetId,
+            #data: data,
+          },
+        ),
+        returnValue: _i8.Future<bool>.value(false),
+      ) as _i8.Future<bool>);
+
+  @override
+  _i8.Future<Uri> getSheetUri(String? spreadsheetId) => (super.noSuchMethod(
+        Invocation.method(
+          #getSheetUri,
+          [spreadsheetId],
+        ),
+        returnValue: _i8.Future<Uri>.value(_FakeUri_6(
+          this,
+          Invocation.method(
+            #getSheetUri,
+            [spreadsheetId],
+          ),
+        )),
+      ) as _i8.Future<Uri>);
 }

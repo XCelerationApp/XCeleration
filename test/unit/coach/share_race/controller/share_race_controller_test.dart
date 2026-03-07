@@ -4,11 +4,13 @@ import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:xceleration/coach/race_results/model/results_record.dart';
 import 'package:xceleration/coach/share_race/controller/share_race_controller.dart';
+import 'package:xceleration/coach/share_race/services/i_share_service.dart';
 import 'package:xceleration/core/utils/enums.dart';
+import 'package:xceleration/core/utils/i_google_sheets_service.dart';
 import 'package:xceleration/shared/models/database/master_race.dart';
 import 'package:xceleration/shared/services/race_results_service.dart';
 
-@GenerateMocks([ShareResultsController, MasterRace, BuildContext])
+@GenerateMocks([ShareResultsController, MasterRace, BuildContext, IShareService, IGoogleSheetsService])
 import 'share_race_controller_test.mocks.dart';
 
 // ---------------------------------------------------------------------------
@@ -173,6 +175,21 @@ void main() {
 
         expect(identical(first, second), isTrue);
       });
+    });
+  });
+
+  group('ShareResultsController', () {
+    test('can be constructed with all injected dependencies', () {
+      final controller = ShareResultsController(
+        raceResultsData: _emptyData(),
+        googleSheetsService: MockIGoogleSheetsService(),
+        formattedResultsController:
+            FormattedResultsController(raceResultsData: _emptyData()),
+        shareService: MockIShareService(),
+      );
+
+      expect(controller, isNotNull);
+      expect(controller.raceResultsData.resultsTitle, 'Test Race');
     });
   });
 
