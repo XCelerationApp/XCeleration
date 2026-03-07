@@ -5,6 +5,7 @@ import '../../../assistant/bib_number_recorder/controller/bib_number_controller.
 import '../../../assistant/shared/services/assistant_storage_service.dart';
 import '../../../assistant/shared/services/demo_race_generator_impl.dart';
 import '../../../core/services/device_connection_factory_impl.dart';
+import '../../../core/services/post_frame_scheduler.dart';
 import '../../../core/services/tutorial_manager.dart';
 import '../../../coach/races_screen/screen/races_screen.dart';
 import '../../../spectator/races_screen/screen/spectator_races_screen.dart';
@@ -66,6 +67,7 @@ enum Role {
             tutorialManager: TutorialManager(),
             demoRaceGenerator: const DemoRaceGeneratorImpl(),
             deviceConnectionFactory: const DeviceConnectionFactoryImpl(),
+            scheduler: const PostFrameScheduler(),
           ),
         );
       case Role.coach:

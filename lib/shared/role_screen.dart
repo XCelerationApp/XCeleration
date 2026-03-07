@@ -7,6 +7,7 @@ import '../assistant/bib_number_recorder/controller/bib_number_controller.dart';
 import '../assistant/shared/services/assistant_storage_service.dart';
 import '../assistant/shared/services/demo_race_generator_impl.dart';
 import '../core/services/device_connection_factory_impl.dart';
+import '../core/services/post_frame_scheduler.dart';
 import '../core/services/tutorial_manager.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/typography.dart';
@@ -171,6 +172,7 @@ class AssistantRoleScreen extends StatelessWidget {
                               demoRaceGenerator: const DemoRaceGeneratorImpl(),
                               deviceConnectionFactory:
                                   const DeviceConnectionFactoryImpl(),
+                              scheduler: const PostFrameScheduler(),
                             ),
                           ),
                         ),

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/utils/enums.dart' hide RunnerRecordFlags;
 import '../../../core/components/dialog_utils.dart';
+import '../../../core/services/i_post_frame_scheduler.dart';
 import '../../../core/services/tutorial_manager.dart';
 import '../../../core/utils/logger.dart';
 import '../../../core/utils/sheet_utils.dart';
@@ -51,6 +52,7 @@ class BibNumberController extends BibNumberDataController {
   final TutorialManager tutorialManager;
   final IDemoRaceGenerator _demoRaceGenerator;
   final IDeviceConnectionFactory _deviceConnectionFactory;
+  final IPostFrameScheduler _scheduler;
 
   // Debounce timer for validations
   Timer? _debounceTimer;
@@ -68,8 +70,10 @@ class BibNumberController extends BibNumberDataController {
     required this.tutorialManager,
     required IDemoRaceGenerator demoRaceGenerator,
     required IDeviceConnectionFactory deviceConnectionFactory,
+    required IPostFrameScheduler scheduler,
   })  : _demoRaceGenerator = demoRaceGenerator,
-        _deviceConnectionFactory = deviceConnectionFactory {
+        _deviceConnectionFactory = deviceConnectionFactory,
+        _scheduler = scheduler {
     runners = [];
     scrollController = ScrollController();
     _loadLastRace();
@@ -580,9 +584,7 @@ class BibNumberController extends BibNumberDataController {
       ));
 
       // Only scroll if necessary - check if we need to scroll to make new item visible
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _scrollToLastItemIfNeeded();
-      });
+      _scheduler.schedulePostFrame(_scrollToLastItemIfNeeded);
 
       // Validate the new record and revalidate all others for duplicate state
       // in a single timer to avoid the triple-assignment bug
@@ -602,9 +604,7 @@ class BibNumberController extends BibNumberDataController {
       // Only request focus if the index is valid
       if (focusIndex >= 0 && focusIndex < focusNodes.length) {
         // Request focus after a slight delay to allow the UI to settle
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          focusNodes[focusIndex].requestFocus();
-        });
+        _scheduler.schedulePostFrame(() => focusNodes[focusIndex].requestFocus());
       }
     }
   }

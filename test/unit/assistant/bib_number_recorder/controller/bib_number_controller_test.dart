@@ -1,3 +1,4 @@
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
@@ -10,6 +11,7 @@ import 'package:xceleration/assistant/shared/services/i_demo_race_generator.dart
 import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/result.dart';
 import 'package:xceleration/core/services/i_device_connection_factory.dart';
+import 'package:xceleration/core/services/i_post_frame_scheduler.dart';
 import 'package:xceleration/core/services/tutorial_manager.dart';
 import 'package:xceleration/core/utils/enums.dart';
 import 'package:xceleration/assistant/shared/models/bib_record.dart' as db_models;
@@ -22,12 +24,14 @@ import 'bib_number_controller_test.mocks.dart';
   IDemoRaceGenerator,
   IDeviceConnectionFactory,
   TutorialManager,
+  IPostFrameScheduler,
 ])
 void main() {
   late MockIAssistantStorageService mockStorage;
   late MockIDemoRaceGenerator mockDemoRaceGenerator;
   late MockIDeviceConnectionFactory mockDeviceConnectionFactory;
   late MockTutorialManager mockTutorialManager;
+  late MockIPostFrameScheduler mockScheduler;
 
   final testRace = RaceRecord(
     raceId: 1,
@@ -51,15 +55,16 @@ void main() {
       tutorialManager: mockTutorialManager,
       demoRaceGenerator: mockDemoRaceGenerator,
       deviceConnectionFactory: mockDeviceConnectionFactory,
+      scheduler: mockScheduler,
     );
   }
 
   setUp(() {
-    TestWidgetsFlutterBinding.ensureInitialized();
     mockStorage = MockIAssistantStorageService();
     mockDemoRaceGenerator = MockIDemoRaceGenerator();
     mockDeviceConnectionFactory = MockIDeviceConnectionFactory();
     mockTutorialManager = MockTutorialManager();
+    mockScheduler = MockIPostFrameScheduler();
 
     // Stubs for async calls made during construction
     when(mockDemoRaceGenerator.ensureDemoRaceExists(any))
@@ -86,6 +91,9 @@ void main() {
         .thenAnswer((_) async => const Success(null));
     when(mockStorage.updateBibRecordValue(any, any, any))
         .thenAnswer((_) async => const Success(null));
+
+    // schedulePostFrame is a no-op in unit tests
+    when(mockScheduler.schedulePostFrame(any)).thenReturn(null);
   });
 
   group('BibNumberController', () {
@@ -420,6 +428,84 @@ void main() {
         await expectLater(controller.validateBibNumber(5, '42'), completes);
 
         controller.dispose();
+      });
+    });
+
+    group('handleBibNumber', () {
+      test('adds a new bib record when no index is provided', () async {
+        final controller = buildController();
+
+        await controller.handleBibNumber('42');
+
+        expect(controller.bibRecords.length, equals(1));
+        expect(controller.bibRecords.first.bib, equals('42'));
+
+        controller.dispose();
+      });
+
+      test('schedules scroll and focus callbacks when adding new record',
+          () async {
+        final controller = buildController();
+
+        await controller.handleBibNumber('1');
+
+        verify(mockScheduler.schedulePostFrame(any)).called(2);
+
+        controller.dispose();
+      });
+
+      test('updates existing record immediately when index is provided',
+          () async {
+        final controller = buildController();
+        await controller.addBibRecord(BibDatumRecord.blank());
+
+        await controller.handleBibNumber('99', index: 0);
+
+        expect(controller.bibRecords[0].bib, equals('99'));
+
+        controller.dispose();
+      });
+
+      test('does not schedule callbacks when updating existing record',
+          () async {
+        final controller = buildController();
+        await controller.addBibRecord(BibDatumRecord.blank());
+
+        await controller.handleBibNumber('5', index: 0);
+
+        verifyNever(mockScheduler.schedulePostFrame(any));
+
+        controller.dispose();
+      });
+
+      test('does not update record when index is out of range', () async {
+        final controller = buildController();
+
+        await controller.handleBibNumber('5', index: 99);
+
+        expect(controller.bibRecords, isEmpty);
+
+        controller.dispose();
+      });
+
+      test('validates new record after debounce using fakeAsync', () {
+        fakeAsync((async) {
+          final controller = buildController();
+          controller.runners.add(BibDatum(
+            bib: '42',
+            name: 'Alice',
+            teamAbbreviation: 'EAG',
+            grade: '10',
+          ));
+
+          controller.handleBibNumber('42');
+          async.elapse(const Duration(milliseconds: 500));
+
+          expect(controller.bibRecords.first.flags.notInDatabase, isFalse);
+          expect(controller.bibRecords.first.name, equals('Alice'));
+
+          controller.dispose();
+        });
       });
     });
 
