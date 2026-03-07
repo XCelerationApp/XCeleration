@@ -28,10 +28,14 @@ RaceRunner _runner(int id) => RaceRunner(
     );
 
 LoadResultsController _buildController(
-    MockMasterRace mockMasterRace, DevicesManager devices) {
+  MockMasterRace mockMasterRace,
+  DevicesManager devices, {
+  Future<String> Function(MasterRace)? encodeBibData,
+}) {
   return LoadResultsController(
     masterRace: mockMasterRace,
     devices: devices,
+    encodeBibData: encodeBibData,
   );
 }
 
@@ -290,7 +294,11 @@ void main() {
     // -----------------------------------------------------------------------
     group('resetDevices', () {
       test('clears all state flags and collections', () async {
-        when(mockMasterRace.raceParticipants).thenAnswer((_) async => []);
+        controller = _buildController(
+          mockMasterRace,
+          devices,
+          encodeBibData: (_) async => 'encoded',
+        );
 
         // Set some state before reset
         controller.raceRunners = [_runner(1)];
@@ -309,6 +317,20 @@ void main() {
         expect(controller.results, isEmpty);
         expect(controller.timingChunks, isNull);
         expect(controller.raceRunners, isNull);
+      });
+
+      test('sets bibRecorder.data to the encoded value from stub encoder',
+          () async {
+        const encodedData = 'stub-encoded-data';
+        controller = _buildController(
+          mockMasterRace,
+          devices,
+          encodeBibData: (_) async => encodedData,
+        );
+
+        await controller.resetDevices();
+
+        expect(devices.bibRecorder?.data, equals(encodedData));
       });
     });
 
