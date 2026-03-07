@@ -87,6 +87,84 @@ void main() {
   // =========================================================================
   group('RaceController', () {
     // -------------------------------------------------------------------------
+    group('validateName', () {
+      test('sets name error when name is empty', () {
+        controller.validateName('');
+
+        expect(controller.form.errorFor(RaceField.name), isNotNull);
+      });
+
+      test('clears name error when name is valid', () {
+        controller.validateName('Valid Name');
+
+        expect(controller.form.errorFor(RaceField.name), isNull);
+      });
+    });
+
+    // -------------------------------------------------------------------------
+    group('validateLocation', () {
+      test('sets location error when location is empty', () {
+        controller.validateLocation('');
+
+        expect(controller.form.errorFor(RaceField.location), isNotNull);
+      });
+
+      test('clears location error when location is valid', () {
+        controller.validateLocation('Some Location');
+
+        expect(controller.form.errorFor(RaceField.location), isNull);
+      });
+    });
+
+    // -------------------------------------------------------------------------
+    group('validateDate', () {
+      test('sets date error when date is empty', () {
+        controller.validateDate('');
+
+        expect(controller.form.errorFor(RaceField.date), isNotNull);
+      });
+
+      test('sets date error when date is invalid format', () {
+        controller.validateDate('not-a-date');
+
+        expect(controller.form.errorFor(RaceField.date), isNotNull);
+      });
+
+      test('clears date error when date is valid', () {
+        controller.validateDate('2024-06-15');
+
+        expect(controller.form.errorFor(RaceField.date), isNull);
+      });
+    });
+
+    // -------------------------------------------------------------------------
+    group('validateDistance', () {
+      test('sets distance error when distance is empty', () {
+        controller.validateDistance('');
+
+        expect(controller.form.errorFor(RaceField.distance), isNotNull);
+      });
+
+      test('sets distance error when distance is not a number', () {
+        controller.validateDistance('abc');
+
+        expect(controller.form.errorFor(RaceField.distance), isNotNull);
+      });
+
+      test('sets distance error when distance is zero or negative', () {
+        controller.validateDistance('0');
+
+        expect(controller.form.errorFor(RaceField.distance), isNotNull);
+      });
+
+      test('clears distance error when distance is valid', () {
+        controller.validateDistance('5.0');
+
+        expect(controller.form.errorFor(RaceField.distance), isNull);
+      });
+    });
+
+    // -------------------------------------------------------------------------
     group('navigateToRunnersManagement', () {
       test('sets showingRunnersManagement to true and notifies listeners', () {
         int notifyCount = 0;
@@ -217,7 +295,66 @@ void main() {
     });
 
     // -------------------------------------------------------------------------
+    group('handleFieldFocusLoss', () {
+      testWidgets(
+          'in setup flow: tracks change but does not autosave',
+          (tester) async {
+        final setupRace = Race(
+          raceId: 1,
+          raceName: 'Test',
+          flowState: Race.FLOW_SETUP,
+        );
+        when(mockMasterRace.race).thenAnswer((_) async => setupRace);
+
+        final ctx = await _buildContext(tester);
+        await controller.loadAllData(ctx);
+
+        controller.form.nameController.text = 'New Name';
+
+        await controller.handleFieldFocusLoss(ctx, RaceField.name);
+
+        // In setup flow — no autosave, so updateRace is NOT called
+        verifyNever(mockMasterRace.updateRace(any));
+      });
+
+      testWidgets(
+          'outside setup flow with unsaved changes: triggers autosave',
+          (tester) async {
+        // testRace has flowState = FLOW_PRE_RACE — not a setup flow
+        final ctx = await _buildContext(tester);
+        await controller.loadAllData(ctx);
+
+        // Set up a valid name change so autosave succeeds
+        controller.form.storeOriginalValue(
+            RaceField.name, Race(raceId: 1, raceName: 'Old Name'));
+        controller.form.nameController.text = 'New Name';
+        // Pre-fill other required fields so saveRaceDetails doesn't fail
+        controller.form.locationController.text = 'Test Location';
+        controller.form.dateController.text = '2024-06-15';
+        controller.form.distanceController.text = '5.0';
+
+        await controller.handleFieldFocusLoss(ctx, RaceField.name);
+
+        // Outside setup flow with unsaved changes — autosave triggers
+        verify(mockMasterRace.updateRace(any)).called(greaterThanOrEqualTo(1));
+      });
+    });
+
+    // -------------------------------------------------------------------------
     group('saveAllChanges', () {
+      testWidgets('no unsaved changes: returns early without saving',
+          (tester) async {
+        final ctx = await _buildContext(tester);
+        await controller.loadAllData(ctx);
+
+        // No changes tracked — hasUnsavedChanges is false
+        expect(controller.form.hasUnsavedChanges, isFalse);
+
+        await controller.saveAllChanges(ctx);
+
+        verifyNever(mockMasterRace.updateRace(any));
+      });
+
       testWidgets('invalid field: sets error on form and does NOT save',
           (tester) async {
         final ctx = await _buildContext(tester);
