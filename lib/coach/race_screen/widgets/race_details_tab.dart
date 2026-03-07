@@ -39,7 +39,6 @@ class RaceDetailsTab extends StatelessWidget {
                   ? 'Other location'
                   : 'Enter race location',
               error: controller.form.errorFor(RaceField.location),
-              setSheetState: (fn) => fn(),
               onChanged: (_) => controller.trackFieldChange(RaceField.location),
               keyboardType: TextInputType.text,
             ),
@@ -77,7 +76,6 @@ class RaceDetailsTab extends StatelessWidget {
               controller: controller.form.distanceController,
               hint: '0.0',
               error: controller.form.errorFor(RaceField.distance),
-              setSheetState: (fn) => fn(),
               onChanged: (_) => controller.trackFieldChange(RaceField.distance),
               keyboardType: TextInputType.numberWithOptions(decimal: true),
             ),

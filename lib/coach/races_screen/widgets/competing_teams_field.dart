@@ -55,7 +55,6 @@ class CompetingTeamsField extends StatelessWidget {
                             : null;
                       });
                     },
-                    setSheetState: setSheetState,
                   ),
                 ),
                 const SizedBox(width: 12),

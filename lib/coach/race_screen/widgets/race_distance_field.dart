@@ -5,12 +5,10 @@ import '../controller/race_form_state.dart';
 
 class RaceDistanceField extends StatelessWidget {
   final RaceController controller;
-  final StateSetter setSheetState;
   final ValueChanged<String>? onChanged;
 
   const RaceDistanceField({
     required this.controller,
-    required this.setSheetState,
     this.onChanged,
     super.key,
   });
@@ -28,10 +26,9 @@ class RaceDistanceField extends StatelessWidget {
               controller: controller.form.distanceController,
               hint: '0.0',
               error: controller.form.errorFor(RaceField.distance),
-              setSheetState: setSheetState,
               onChanged: (value) {
-                controller.validateDistance(
-                    controller.form.distanceController.text, setSheetState);
+                controller
+                    .validateDistance(controller.form.distanceController.text);
                 // Only trigger autosave when we have valid input
                 if (value.isNotEmpty &&
                     controller.form.errorFor(RaceField.distance) == null) {
@@ -48,7 +45,7 @@ class RaceDistanceField extends StatelessWidget {
               controller: controller.form.unitController,
               hint: 'mi',
               error: null,
-              setSheetState: setSheetState,
+              setSheetState: (fn) => fn(),
               items: ['mi', 'km'],
               onChanged: (value) {
                 controller.form.unitController.text = value;

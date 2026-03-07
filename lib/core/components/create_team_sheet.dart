@@ -213,7 +213,6 @@ class _CreateTeamSheetState extends State<CreateTeamSheet> {
               controller: _teamNameController,
               hint: 'Enter team name',
               error: _teamNameError,
-              setSheetState: setState,
               onChanged: (value) {
                 _validateTeamName(value);
                 _generateAbbreviation(value);
@@ -230,7 +229,6 @@ class _CreateTeamSheetState extends State<CreateTeamSheet> {
               controller: _abbreviationController,
               hint: 'Team abbreviation',
               error: _abbreviationError,
-              setSheetState: setState,
               onChanged: _validateAbbreviation,
             ),
           ),

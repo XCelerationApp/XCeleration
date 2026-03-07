@@ -26,7 +26,6 @@ class RaceLocationField extends StatelessWidget {
                   ? 'Other location'
                   : 'Enter race location',
               error: controller.locationError,
-              setSheetState: setSheetState,
               onChanged: (_) => controller.validateLocation(
                   controller.locationController.text, setSheetState),
               keyboardType: TextInputType.text,

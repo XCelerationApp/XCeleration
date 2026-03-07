@@ -277,7 +277,6 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
                                   hint: 'Search runners',
                                   onChanged: (value) =>
                                       controller.searchRunners(value),
-                                  setSheetState: setState,
                                 ),
                                 const SizedBox(height: 16),
                                 Expanded(

@@ -20,7 +20,6 @@ class RaceNameField extends StatelessWidget {
         error: controller.nameError,
         onChanged: (_) => controller.validateName(
             controller.nameController.text, setSheetState),
-        setSheetState: setSheetState,
       ),
     );
   }

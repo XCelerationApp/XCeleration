@@ -72,7 +72,6 @@ class _EditTeamSheetState extends State<EditTeamSheet> {
             controller: _nameController,
             hint: 'Team name',
             onChanged: (_) => setState(() {}),
-            setSheetState: setState,
           ),
         ),
         const SizedBox(height: 12),
