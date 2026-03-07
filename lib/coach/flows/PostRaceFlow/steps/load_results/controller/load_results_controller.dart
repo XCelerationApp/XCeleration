@@ -32,10 +32,14 @@ class LoadResultsController with ChangeNotifier {
   List<dynamic>? raceRunners;
   final DevicesManager devices;
 
+  final Future<String> Function(MasterRace) _encodeBibData;
+
   LoadResultsController({
     required this.masterRace,
     required this.devices,
-  });
+    Future<String> Function(MasterRace)? encodeBibData,
+  }) : _encodeBibData =
+            encodeBibData ?? BibEncodeUtils.getEncodedRunnersBibData;
 
   void initialize() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -68,7 +72,7 @@ class LoadResultsController with ChangeNotifier {
   Future<void> resetDevices() async {
     devices.reset();
     // Re-encode and assign runner data after reset
-    final encoded = await BibEncodeUtils.getEncodedRunnersBibData(masterRace);
+    final encoded = await _encodeBibData(masterRace);
     devices.bibRecorder?.data = encoded;
     Logger.d('POST-RESET: Encoded runners data length: ${encoded.length}');
     resultsLoaded = false;

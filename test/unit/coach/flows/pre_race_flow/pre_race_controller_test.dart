@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
@@ -5,6 +6,7 @@ import 'package:xceleration/coach/flows/PreRaceFlow/controller/pre_race_controll
 import 'package:xceleration/coach/flows/PreRaceFlow/steps/flow_complete/pre_race_flow_complete.dart';
 import 'package:xceleration/coach/flows/PreRaceFlow/steps/review_runners/review_runners_step.dart';
 import 'package:xceleration/coach/flows/PreRaceFlow/steps/share_race/share_race_step.dart';
+import 'package:xceleration/coach/flows/model/flow_model.dart';
 import 'package:xceleration/core/services/device_connection_service.dart';
 import 'package:xceleration/core/utils/enums.dart';
 import 'package:xceleration/shared/models/database/master_race.dart';
@@ -21,6 +23,7 @@ PreRaceController _buildController(
   Future<String> Function(MasterRace)? encodeRaceData,
   Future<String> Function(MasterRace)? encodeBibData,
   DevicesManager? devices,
+  ShowFlowFn? showFlowFn,
 }) {
   return PreRaceController(
     masterRace: mockMasterRace,
@@ -28,6 +31,7 @@ PreRaceController _buildController(
         DevicesManager(DeviceName.coach, DeviceType.advertiserDevice, data: ''),
     encodeRaceData: encodeRaceData,
     encodeBibData: encodeBibData,
+    showFlowFn: showFlowFn,
   );
 }
 
@@ -64,6 +68,123 @@ void main() {
         expect(steps[0], isA<ReviewRunnersStep>());
         expect(steps[1], isA<ShareRaceStep>());
         expect(steps[2], isA<PreRaceFlowCompleteStep>());
+      });
+    });
+
+    // -----------------------------------------------------------------------
+    group('showPreRaceFlow', () {
+      testWidgets('starts at index 0 on first call and resumes at persisted index on next call',
+          (tester) async {
+        final capturedIndices = <int>[];
+
+        Future<bool> fakeShowFlow({
+          required BuildContext context,
+          required List<FlowStep> steps,
+          bool showProgressIndicator = true,
+          int initialIndex = 0,
+          StepChangedCallback? onStepChanged,
+          void Function(int lastIndex)? onDismiss,
+        }) async {
+          capturedIndices.add(initialIndex);
+          onDismiss?.call(1);
+          return false;
+        }
+
+        final controller = _buildController(
+          mockMasterRace,
+          devices: devices,
+          showFlowFn: fakeShowFlow,
+        );
+
+        BuildContext? ctx;
+        await tester.pumpWidget(MaterialApp(
+          home: Builder(builder: (context) {
+            ctx = context;
+            return const SizedBox();
+          }),
+        ));
+
+        await controller.showPreRaceFlow(ctx!, false);
+        await controller.showPreRaceFlow(ctx!, false);
+
+        expect(capturedIndices[0], 0);
+        expect(capturedIndices[1], 1);
+      });
+
+      testWidgets('forwards showProgressIndicator correctly', (tester) async {
+        final captured = <bool>[];
+
+        Future<bool> fakeShowFlow({
+          required BuildContext context,
+          required List<FlowStep> steps,
+          bool showProgressIndicator = true,
+          int initialIndex = 0,
+          StepChangedCallback? onStepChanged,
+          void Function(int lastIndex)? onDismiss,
+        }) async {
+          captured.add(showProgressIndicator);
+          onDismiss?.call(0);
+          return false;
+        }
+
+        final controller = _buildController(
+          mockMasterRace,
+          devices: devices,
+          showFlowFn: fakeShowFlow,
+        );
+
+        BuildContext? ctx;
+        await tester.pumpWidget(MaterialApp(
+          home: Builder(builder: (context) {
+            ctx = context;
+            return const SizedBox();
+          }),
+        ));
+
+        await controller.showPreRaceFlow(ctx!, true);
+        await controller.showPreRaceFlow(ctx!, false);
+
+        expect(captured[0], isTrue);
+        expect(captured[1], isFalse);
+      });
+
+      testWidgets('passes the correct steps in order', (tester) async {
+        List<FlowStep>? capturedSteps;
+
+        Future<bool> fakeShowFlow({
+          required BuildContext context,
+          required List<FlowStep> steps,
+          bool showProgressIndicator = true,
+          int initialIndex = 0,
+          StepChangedCallback? onStepChanged,
+          void Function(int lastIndex)? onDismiss,
+        }) async {
+          capturedSteps = steps;
+          onDismiss?.call(0);
+          return false;
+        }
+
+        final controller = _buildController(
+          mockMasterRace,
+          devices: devices,
+          showFlowFn: fakeShowFlow,
+        );
+
+        BuildContext? ctx;
+        await tester.pumpWidget(MaterialApp(
+          home: Builder(builder: (context) {
+            ctx = context;
+            return const SizedBox();
+          }),
+        ));
+
+        await controller.showPreRaceFlow(ctx!, false);
+
+        expect(capturedSteps, isNotNull);
+        expect(capturedSteps!.length, 3);
+        expect(capturedSteps![0], isA<ReviewRunnersStep>());
+        expect(capturedSteps![1], isA<ShareRaceStep>());
+        expect(capturedSteps![2], isA<PreRaceFlowCompleteStep>());
       });
     });
 
