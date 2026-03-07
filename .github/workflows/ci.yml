@@ -10,6 +10,7 @@ jobs:
   detect-changes:
     name: Detect Changes
     runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
     outputs:
       dart-changed: ${{ steps.dart-changes.outputs.any_changed }}
       dart-files: ${{ steps.dart-changes.outputs.all_changed_files }}
