@@ -39,21 +39,31 @@ class PostRaceController {
   PostRaceController({
     required this.masterRace,
     ShowFlowFn? showFlowFn,
+    DevicesManager? devices,
+    LoadResultsController? loadResultsController,
   }) : _showFlow = showFlowFn ?? showFlow {
-    _initializeSteps();
+    _initializeSteps(
+      devices: devices,
+      loadResultsController: loadResultsController,
+    );
   }
 
   /// Initialize the flow steps
-  void _initializeSteps() {
+  void _initializeSteps({
+    DevicesManager? devices,
+    LoadResultsController? loadResultsController,
+  }) {
     // Create controllers first so they can be shared between steps
-    final devices = DeviceConnectionService.createDevices(
-      DeviceName.coach,
-      DeviceType.browserDevice,
-    );
-    _loadResultsController = LoadResultsController(
-      masterRace: masterRace,
-      devices: devices,
-    );
+    final resolvedDevices = devices ??
+        DeviceConnectionService.createDevices(
+          DeviceName.coach,
+          DeviceType.browserDevice,
+        );
+    _loadResultsController = loadResultsController ??
+        LoadResultsController(
+          masterRace: masterRace,
+          devices: resolvedDevices,
+        );
     _loadResultsController.initialize();
 
     // Create steps with the controllers
