@@ -248,6 +248,80 @@ void main() {
       });
     });
 
+    group('prepareShareData', () {
+      test('returns ShareDataDemoRace when current race is a demo race',
+          () async {
+        when(mockDemoRaceGenerator.isDemoRace(any)).thenReturn(true);
+        final controller = buildController();
+        controller.setCurrentRace(testRace);
+
+        final result = await controller.prepareShareData();
+
+        expect(result, isA<ShareDataDemoRace>());
+
+        controller.dispose();
+      });
+
+      test('returns ShareDataHasDuplicates when duplicate bibs exist', () async {
+        when(mockDemoRaceGenerator.isDemoRace(any)).thenReturn(false);
+        final controller = buildController();
+        controller.setCurrentRace(testRace);
+        await controller.addBibRecord(
+            BibDatumRecord(bib: '5', name: '', teamAbbreviation: '', grade: ''));
+        await controller.addBibRecord(
+            BibDatumRecord(bib: '5', name: '', teamAbbreviation: '', grade: ''));
+
+        final result = await controller.prepareShareData();
+
+        expect(result, isA<ShareDataHasDuplicates>());
+        final dupeResult = result as ShareDataHasDuplicates;
+        expect(dupeResult.duplicates, contains('5'));
+        expect(dupeResult.hasUnknown, isFalse);
+
+        controller.dispose();
+      });
+
+      test('returns ShareDataHasUnknown when unknown bibs exist', () async {
+        when(mockDemoRaceGenerator.isDemoRace(any)).thenReturn(false);
+        final controller = buildController();
+        controller.setCurrentRace(testRace);
+        await controller.addBibRecord(BibDatumRecord(
+          bib: '99',
+          name: '',
+          teamAbbreviation: '',
+          grade: '',
+          flags: const BibDatumRecordFlags(
+              notInDatabase: true, duplicateBibNumber: false),
+        ));
+
+        final result = await controller.prepareShareData();
+
+        expect(result, isA<ShareDataHasUnknown>());
+
+        controller.dispose();
+      });
+
+      test('returns ShareDataReady when all records are valid', () async {
+        when(mockDemoRaceGenerator.isDemoRace(any)).thenReturn(false);
+        final controller = buildController();
+        controller.setCurrentRace(testRace);
+        await controller.addBibRecord(BibDatumRecord(
+          bib: '1',
+          name: 'Alice',
+          teamAbbreviation: 'EAG',
+          grade: '10',
+          flags: const BibDatumRecordFlags(
+              notInDatabase: false, duplicateBibNumber: false),
+        ));
+
+        final result = await controller.prepareShareData();
+
+        expect(result, isA<ShareDataReady>());
+
+        controller.dispose();
+      });
+    });
+
     group('_loadLastRace', () {
       test('leaves currentRace null when getRaces returns Failure', () async {
         when(mockStorage.getRaces(any)).thenAnswer(

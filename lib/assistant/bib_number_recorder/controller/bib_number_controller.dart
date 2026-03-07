@@ -19,6 +19,31 @@ import '../../shared/widgets/other_races_sheet.dart';
 import '../widget/runners_loaded_sheet.dart';
 import 'bib_number_data_controller.dart';
 
+sealed class ShareDataResult {}
+
+final class ShareDataDemoRace extends ShareDataResult {}
+
+final class ShareDataHasDuplicates extends ShareDataResult {
+  final List<String> duplicates;
+  final bool hasUnknown;
+  final String encodedData;
+  ShareDataHasDuplicates({
+    required this.duplicates,
+    required this.hasUnknown,
+    required this.encodedData,
+  });
+}
+
+final class ShareDataHasUnknown extends ShareDataResult {
+  final String encodedData;
+  ShareDataHasUnknown({required this.encodedData});
+}
+
+final class ShareDataReady extends ShareDataResult {
+  final String encodedData;
+  ShareDataReady({required this.encodedData});
+}
+
 class BibNumberController extends BibNumberDataController {
   late final ScrollController scrollController;
   late final List<BibDatum> runners;
@@ -604,6 +629,35 @@ class BibNumberController extends BibNumberDataController {
         curve: Curves.fastOutSlowIn,
       );
     }
+  }
+
+  /// Validates bib records and encodes share data, returning a typed result.
+  /// The screen should show dialogs based on the result and call
+  /// [showShareBibNumbersSheet] with the encoded data on user confirmation.
+  Future<ShareDataResult> prepareShareData() async {
+    if (isCurrentRaceDemoRace()) {
+      return ShareDataDemoRace();
+    }
+
+    await cleanEmptyRecords();
+
+    final duplicates = checkDuplicateRecords();
+    if (duplicates.isNotEmpty) {
+      final encodedData = await getEncodedBibData();
+      return ShareDataHasDuplicates(
+        duplicates: duplicates,
+        hasUnknown: checkUnknownRecords(),
+        encodedData: encodedData,
+      );
+    }
+
+    if (checkUnknownRecords()) {
+      final encodedData = await getEncodedBibData();
+      return ShareDataHasUnknown(encodedData: encodedData);
+    }
+
+    final encodedData = await getEncodedBibData();
+    return ShareDataReady(encodedData: encodedData);
   }
 
   @override

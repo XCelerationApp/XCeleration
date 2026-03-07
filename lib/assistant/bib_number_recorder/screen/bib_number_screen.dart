@@ -55,63 +55,68 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
   }
 
   Future<void> _onShareBibNumbers() async {
-    if (_controller.isCurrentRaceDemoRace()) {
-      DialogUtils.showMessageDialog(
-        context,
-        title: 'Demo Race',
-        message:
-            'The demo race is for practice only and cannot be shared. Please load a real race from your coach to share results.',
-      );
-      return;
-    }
-
     for (var node in _controller.focusNodes) {
       node.unfocus();
       node.canRequestFocus = false;
     }
 
-    final confirmed = await _controller.cleanEmptyRecords();
-    if (!confirmed) {
-      _controller.restoreFocusability();
-      return;
-    }
+    final result = await _controller.prepareShareData();
     if (!mounted) return;
 
-    final duplicates = _controller.checkDuplicateRecords();
-    if (duplicates.isNotEmpty) {
-      final ok = await DialogUtils.showConfirmationDialog(
-        context,
-        title: 'Duplicate Bib Numbers',
-        content:
-            'There are duplicate bib numbers in the list: ${duplicates.join(', ')}. Do you want to continue?',
-      );
-      if (!ok) {
+    switch (result) {
+      case ShareDataDemoRace():
+        DialogUtils.showMessageDialog(
+          context,
+          title: 'Demo Race',
+          message:
+              'The demo race is for practice only and cannot be shared. Please load a real race from your coach to share results.',
+        );
         _controller.restoreFocusability();
-        return;
-      }
-    }
-    if (!mounted) return;
-
-    final hasUnknown = _controller.checkUnknownRecords();
-    if (hasUnknown) {
-      final ok = await DialogUtils.showConfirmationDialog(
-        context,
-        title: 'Unknown Bib Numbers',
-        content:
-            'There are bib numbers in the list that do not match any runners in the database. Do you want to continue?',
-      );
-      if (!ok) {
+      case ShareDataHasDuplicates(:final duplicates, :final hasUnknown, :final encodedData):
+        final okDupes = await DialogUtils.showConfirmationDialog(
+          context,
+          title: 'Duplicate Bib Numbers',
+          content:
+              'There are duplicate bib numbers in the list: ${duplicates.join(', ')}. Do you want to continue?',
+        );
+        if (!mounted) return;
+        if (!okDupes) {
+          _controller.restoreFocusability();
+          return;
+        }
+        if (hasUnknown) {
+          final okUnknown = await DialogUtils.showConfirmationDialog(
+            context,
+            title: 'Unknown Bib Numbers',
+            content:
+                'There are bib numbers in the list that do not match any runners in the database. Do you want to continue?',
+          );
+          if (!mounted) return;
+          if (!okUnknown) {
+            _controller.restoreFocusability();
+            return;
+          }
+        }
+        _controller.showShareBibNumbersSheet(context, encodedData);
         _controller.restoreFocusability();
-        return;
-      }
+      case ShareDataHasUnknown(:final encodedData):
+        final ok = await DialogUtils.showConfirmationDialog(
+          context,
+          title: 'Unknown Bib Numbers',
+          content:
+              'There are bib numbers in the list that do not match any runners in the database. Do you want to continue?',
+        );
+        if (!mounted) return;
+        if (!ok) {
+          _controller.restoreFocusability();
+          return;
+        }
+        _controller.showShareBibNumbersSheet(context, encodedData);
+        _controller.restoreFocusability();
+      case ShareDataReady(:final encodedData):
+        _controller.showShareBibNumbersSheet(context, encodedData);
+        _controller.restoreFocusability();
     }
-    if (!mounted) return;
-
-    final encodedData = await _controller.getEncodedBibData();
-    if (!mounted) return;
-
-    _controller.showShareBibNumbersSheet(context, encodedData);
-    _controller.restoreFocusability();
   }
 
   @override
