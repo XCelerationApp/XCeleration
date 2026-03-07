@@ -25,8 +25,7 @@ class RaceNameField extends StatelessWidget {
         hint: 'Enter race name',
         error: controller.form.errorFor(RaceField.name),
         onChanged: (value) {
-          controller.validateName(
-              controller.form.nameController.text, setSheetState);
+          controller.validateName(controller.form.nameController.text);
           if (onChanged != null) onChanged!(value);
         },
         setSheetState: setSheetState,

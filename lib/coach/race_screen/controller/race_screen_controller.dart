@@ -562,42 +562,22 @@ class RaceController with ChangeNotifier {
         flowState == Race.FLOW_POST_RACE;
   }
 
-  // Validation methods for form fields (used by races_screen widgets via StateSetter)
-  // TODO(refactor): StateSetter coupling — controllers must not call widget state setters.
-  // Fix: remove StateSetter parameter. Callers should call form.setError(RaceField.name, msg)
-  // then call setState themselves. Requires updating all widget call sites.
-  void validateName(String name, StateSetter setSheetState) {
-    setSheetState(() {
-      form.setError(RaceField.name, RaceService.validateName(name));
-    });
+  // Validation methods for form fields — set error on form and notify listeners.
+  void validateName(String name) {
+    form.setError(RaceField.name, RaceService.validateName(name));
   }
 
-  // TODO(refactor): StateSetter coupling — controllers must not call widget state setters.
-  // Fix: remove StateSetter parameter. Callers should call form.setError(RaceField.location, msg)
-  // then call setState themselves. Requires updating all widget call sites.
-  void validateLocation(String location, StateSetter setSheetState) {
-    setSheetState(() {
-      form.setError(RaceField.location, RaceService.validateLocation(location));
-    });
+  void validateLocation(String location) {
+    form.setError(RaceField.location, RaceService.validateLocation(location));
   }
 
-  // TODO(refactor): StateSetter coupling — controllers must not call widget state setters.
-  // Fix: remove StateSetter parameter. Callers should call form.setError(RaceField.date, msg)
-  // then call setState themselves. Requires updating all widget call sites.
-  void validateDate(String dateString, StateSetter setSheetState) {
-    setSheetState(() {
-      form.setError(RaceField.date, RaceService.validateDate(dateString));
-    });
+  void validateDate(String dateString) {
+    form.setError(RaceField.date, RaceService.validateDate(dateString));
   }
 
-  // TODO(refactor): StateSetter coupling — controllers must not call widget state setters.
-  // Fix: remove StateSetter parameter. Callers should call form.setError(RaceField.distance, msg)
-  // then call setState themselves. Requires updating all widget call sites.
-  void validateDistance(String distanceString, StateSetter setSheetState) {
-    setSheetState(() {
-      form.setError(
-          RaceField.distance, RaceService.validateDistance(distanceString));
-    });
+  void validateDistance(String distanceString) {
+    form.setError(
+        RaceField.distance, RaceService.validateDistance(distanceString));
   }
 
   // Date picker method
