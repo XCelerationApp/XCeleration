@@ -5,6 +5,7 @@ import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:geolocator/geolocator.dart' show LocationPermission;
 import 'package:xceleration/coach/races_screen/widgets/race_creation_sheet.dart';
 import 'package:xceleration/core/services/geo_location_service.dart';
+import 'package:xceleration/core/services/post_frame_callback_scheduler.dart';
 import 'package:xceleration/core/components/dialog_utils.dart';
 import 'package:xceleration/core/utils/sheet_utils.dart' show sheet;
 import '../../../shared/models/database/race.dart';
@@ -25,6 +26,7 @@ class RacesController extends ChangeNotifier {
   final IAuthService _authService;
   final IEventBus _eventBus;
   final IGeoLocationService _geoLocationService;
+  final IPostFrameCallbackScheduler _postFrameCallbackScheduler;
 
   List<Race> races = [];
   bool isLocationButtonVisible = true;
@@ -56,12 +58,14 @@ class RacesController extends ChangeNotifier {
     required IAuthService authService,
     required IEventBus eventBus,
     required IGeoLocationService geoLocationService,
+    required IPostFrameCallbackScheduler postFrameCallbackScheduler,
     required this.tutorialManager,
     this.canEdit = true,
   })  : _racesService = racesService,
         _authService = authService,
         _eventBus = eventBus,
-        _geoLocationService = geoLocationService;
+        _geoLocationService = geoLocationService,
+        _postFrameCallbackScheduler = postFrameCallbackScheduler;
 
   void setContext(BuildContext context) {
     _context = context;
@@ -80,7 +84,7 @@ class RacesController extends ChangeNotifier {
     teamColors.add(Colors.white);
     teamColors.add(Colors.white);
     unitController.text = 'mi';
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    _postFrameCallbackScheduler.addPostFrameCallback(() {
       final role = canEdit ? Role.coach : Role.spectator;
       RoleBar.showInstructionsSheet(context, role).then((_) {
         if (context.mounted) setupTutorials();
