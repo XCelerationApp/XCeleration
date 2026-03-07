@@ -29,6 +29,7 @@ class RacesScreenState extends State<RacesScreen> {
       racesService: RacesService(),
       authService: AuthService.instance,
       eventBus: EventBus.instance,
+      tutorialManager: TutorialManager(),
       canEdit: widget.canEdit,
     );
     _controller.setContext(context);

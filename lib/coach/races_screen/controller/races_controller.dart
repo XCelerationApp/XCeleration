@@ -37,7 +37,7 @@ class RacesController extends ChangeNotifier {
   final List<Color> teamColors = [];
   String unit = 'mi';
 
-  final TutorialManager tutorialManager = TutorialManager();
+  final TutorialManager tutorialManager;
 
   // Validation error messages
   String? nameError;
@@ -54,6 +54,7 @@ class RacesController extends ChangeNotifier {
     required IRacesService racesService,
     required IAuthService authService,
     required IEventBus eventBus,
+    required this.tutorialManager,
     this.canEdit = true,
   })  : _racesService = racesService,
         _authService = authService,

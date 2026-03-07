@@ -15,6 +15,7 @@ import 'coach/race_screen/controller/race_screen_controller.dart';
 import 'coach/races_screen/controller/races_controller.dart';
 import 'coach/races_screen/services/races_service.dart';
 import 'core/services/auth_service.dart';
+import 'core/services/tutorial_manager.dart';
 import 'shared/models/database/master_race.dart';
 import 'core/services/sync_service.dart';
 
@@ -70,10 +71,10 @@ void _runApp() async {
         ChangeNotifierProvider(
           create: (context) => RaceController(
               masterRace: MasterRace.getInstance(0),
-              parentController: RacesController(racesService: RacesService(), authService: AuthService.instance, eventBus: EventBus.instance)),
+              parentController: RacesController(racesService: RacesService(), authService: AuthService.instance, eventBus: EventBus.instance, tutorialManager: TutorialManager())),
         ),
         ChangeNotifierProvider(
-            create: (context) => RacesController(racesService: RacesService(), authService: AuthService.instance, eventBus: EventBus.instance)),
+            create: (context) => RacesController(racesService: RacesService(), authService: AuthService.instance, eventBus: EventBus.instance, tutorialManager: TutorialManager())),
       ],
       child: const MyApp(),
     ),
