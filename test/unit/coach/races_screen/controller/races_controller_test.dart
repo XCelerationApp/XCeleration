@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:geocoding/geocoding.dart' as geocoding;
+import 'package:geolocator/geolocator.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:xceleration/coach/races_screen/controller/races_controller.dart';
@@ -277,6 +279,53 @@ void main() {
       });
     });
 
+    group('createRace', () {
+      test('delegates to service and returns the new race id', () async {
+        final race = Race(raceName: 'New Race');
+        when(mockRacesService.createRace(race)).thenAnswer((_) async => 42);
+        when(mockRacesService.loadRaces()).thenAnswer((_) async => [race]);
+
+        final id = await controller.createRace(race);
+
+        expect(id, 42);
+        verify(mockRacesService.createRace(race)).called(1);
+      });
+
+      test('reloads races after creation', () async {
+        final race = Race(raceName: 'New Race');
+        when(mockRacesService.createRace(race)).thenAnswer((_) async => 1);
+        final updated = [race];
+        when(mockRacesService.loadRaces()).thenAnswer((_) async => updated);
+
+        await controller.createRace(race);
+
+        expect(controller.races, equals(updated));
+      });
+    });
+
+    group('updateRace', () {
+      test('delegates to service', () async {
+        final race = Race(raceName: 'Updated Race', raceId: 1);
+        when(mockRacesService.updateRace(race)).thenAnswer((_) async {});
+        when(mockRacesService.loadRaces()).thenAnswer((_) async => [race]);
+
+        await controller.updateRace(race);
+
+        verify(mockRacesService.updateRace(race)).called(1);
+      });
+
+      test('reloads races after update', () async {
+        final race = Race(raceName: 'Updated Race', raceId: 1);
+        when(mockRacesService.updateRace(race)).thenAnswer((_) async {});
+        final updated = [race];
+        when(mockRacesService.loadRaces()).thenAnswer((_) async => updated);
+
+        await controller.updateRace(race);
+
+        expect(controller.races, equals(updated));
+      });
+    });
+
     group('editRace', () {
       testWidgets('throws when raceId is null', (tester) async {
         final context = await _buildContext(tester);
@@ -286,6 +335,21 @@ void main() {
           () => controller.editRace(race, context),
           throwsException,
         );
+      });
+
+      testWidgets('returns early without navigating when user is not owner',
+          (tester) async {
+        final context = await _buildContext(tester);
+        when(mockAuthService.currentUserId).thenReturn('user-1');
+        final race =
+            Race(raceName: 'Owned Race', raceId: 1, ownerUserId: 'user-2');
+
+        await controller.editRace(race, context);
+        // Drain the 3-second overlay notification timer
+        await tester.pump(const Duration(seconds: 4));
+
+        // No service call proves we returned early
+        verifyNever(mockRacesService.loadRaces());
       });
     });
 
@@ -298,6 +362,145 @@ void main() {
           () => controller.deleteRace(race, context),
           throwsException,
         );
+      });
+
+      testWidgets('returns early without deleting when user is not owner',
+          (tester) async {
+        final context = await _buildContext(tester);
+        when(mockAuthService.currentUserId).thenReturn('user-1');
+        final race =
+            Race(raceName: 'Owned Race', raceId: 1, ownerUserId: 'user-2');
+
+        await controller.deleteRace(race, context);
+        // Drain the 3-second overlay notification timer
+        await tester.pump(const Duration(seconds: 4));
+
+        verifyNever(mockRacesService.deleteRace(any));
+      });
+    });
+
+    group('getCurrentLocation', () {
+      testWidgets('shows error when permission is permanently denied',
+          (tester) async {
+        final context = await _buildContext(tester);
+        when(mockGeoService.checkPermission())
+            .thenAnswer((_) async => LocationPermission.deniedForever);
+
+        await controller.getCurrentLocation(context);
+        await tester.pump(const Duration(seconds: 4));
+
+        expect(controller.locationController.text, isEmpty);
+      });
+
+      testWidgets('shows error when permission is denied after request',
+          (tester) async {
+        final context = await _buildContext(tester);
+        when(mockGeoService.checkPermission())
+            .thenAnswer((_) async => LocationPermission.denied);
+        when(mockGeoService.requestPermission())
+            .thenAnswer((_) async => LocationPermission.denied);
+
+        await controller.getCurrentLocation(context);
+        await tester.pump(const Duration(seconds: 4));
+
+        expect(controller.locationController.text, isEmpty);
+      });
+
+      testWidgets('shows error when location services are disabled',
+          (tester) async {
+        final context = await _buildContext(tester);
+        when(mockGeoService.checkPermission())
+            .thenAnswer((_) async => LocationPermission.whileInUse);
+        when(mockGeoService.isLocationServiceEnabled())
+            .thenAnswer((_) async => false);
+
+        await controller.getCurrentLocation(context);
+        await tester.pump(const Duration(seconds: 4));
+
+        expect(controller.locationController.text, isEmpty);
+      });
+
+      testWidgets('updates locationController on success', (tester) async {
+        final context = await _buildContext(tester);
+        final position = Position(
+          latitude: 37.7749,
+          longitude: -122.4194,
+          timestamp: DateTime(2024, 1, 1),
+          accuracy: 1.0,
+          altitude: 0.0,
+          altitudeAccuracy: 0.0,
+          heading: 0.0,
+          headingAccuracy: 0.0,
+          speed: 0.0,
+          speedAccuracy: 0.0,
+        );
+        const placemark = geocoding.Placemark(
+          subThoroughfare: '100',
+          thoroughfare: 'Main St',
+          locality: 'San Francisco',
+          administrativeArea: 'CA',
+          postalCode: '94102',
+        );
+        when(mockGeoService.checkPermission())
+            .thenAnswer((_) async => LocationPermission.whileInUse);
+        when(mockGeoService.isLocationServiceEnabled())
+            .thenAnswer((_) async => true);
+        when(mockGeoService.getCurrentPosition())
+            .thenAnswer((_) async => position);
+        when(mockGeoService.placemarkFromCoordinates(
+                position.latitude, position.longitude))
+            .thenAnswer((_) async => [placemark]);
+
+        await controller.getCurrentLocation(context);
+
+        expect(controller.locationController.text,
+            '100 Main St, San Francisco, CA 94102');
+        expect(controller.locationError, isNull);
+      });
+    });
+
+    group('event bus', () {
+      testWidgets('reloads races when raceFlowStateChanged event fires',
+          (tester) async {
+        final context = await _buildContext(tester);
+
+        void Function(Event)? capturedHandler;
+        when(mockEventBus.on(any, any)).thenAnswer((invocation) {
+          capturedHandler =
+              invocation.positionalArguments[1] as void Function(Event);
+          return Stream<Event>.empty().listen((_) {});
+        });
+
+        // Rebuild controller so we capture the subscription set in initState
+        controller.dispose();
+        controller = _buildController(
+          racesService: mockRacesService,
+          authService: mockAuthService,
+          eventBus: mockEventBus,
+          geoService: mockGeoService,
+          postFrameScheduler: mockPostFrameScheduler,
+          tutorialManager: mockTutorialManager,
+          datePickerService: mockDatePickerService,
+          colorPickerService: mockColorPickerService,
+        );
+
+        when(mockRacesService.loadRaces()).thenAnswer((_) async => []);
+        when(mockPostFrameScheduler.addPostFrameCallback(any))
+            .thenAnswer((_) {});
+
+        controller.initState(context);
+        expect(capturedHandler, isNotNull);
+
+        // Clear loadRaces interactions from initState
+        clearInteractions(mockRacesService);
+        when(mockRacesService.loadRaces())
+            .thenAnswer((_) async => [Race(raceName: 'Reloaded')]);
+
+        capturedHandler!(Event(EventTypes.raceFlowStateChanged));
+        await tester.pump();
+
+        verify(mockRacesService.loadRaces()).called(1);
+        expect(controller.races.first.raceName, 'Reloaded');
       });
     });
   });
