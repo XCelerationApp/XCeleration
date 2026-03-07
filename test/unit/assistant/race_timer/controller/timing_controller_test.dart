@@ -7,15 +7,17 @@ import 'package:xceleration/assistant/shared/models/race_record.dart';
 import 'package:xceleration/assistant/shared/services/i_assistant_storage_service.dart';
 import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/result.dart';
+import 'package:xceleration/core/services/haptic_feedback_service.dart';
 import 'package:xceleration/core/utils/enums.dart';
 import 'package:xceleration/shared/models/timing_records/timing_chunk.dart';
 import 'package:xceleration/shared/models/timing_records/timing_datum.dart';
 
 import 'timing_controller_test.mocks.dart';
 
-@GenerateMocks([IAssistantStorageService])
+@GenerateMocks([IAssistantStorageService, IHapticFeedback])
 void main() {
   late MockIAssistantStorageService mockStorage;
+  late MockIHapticFeedback mockHaptic;
   late TimingController controller;
 
   final testRace = RaceRecord(
@@ -40,6 +42,11 @@ void main() {
     TestWidgetsFlutterBinding.ensureInitialized();
     SharedPreferences.setMockInitialValues({});
     mockStorage = MockIAssistantStorageService();
+    mockHaptic = MockIHapticFeedback();
+
+    // Stub haptic methods (fire-and-forget, return immediately)
+    when(mockHaptic.vibrate()).thenAnswer((_) => Future.value());
+    when(mockHaptic.lightImpact()).thenAnswer((_) => Future.value());
 
     // Stub the getRaces call made during constructor (_loadLastRace)
     when(mockStorage.getRaces(any)).thenAnswer((_) async => const Success([]));
@@ -66,7 +73,7 @@ void main() {
     when(mockStorage.deleteRace(any, any))
         .thenAnswer((_) async => const Success(null));
 
-    controller = TimingController(storage: mockStorage);
+    controller = TimingController(storage: mockStorage, hapticFeedback: mockHaptic);
   });
 
   tearDown(() {
@@ -312,6 +319,82 @@ void main() {
         verify(mockStorage.deleteChunks(testRace.raceId)).called(1);
         verify(mockStorage.deleteRace(testRace.raceId, testRace.type))
             .called(1);
+      });
+    });
+
+    group('handleLogButtonPress', () {
+      test('returns AppError when race has not started', () async {
+        final error = await controller.handleLogButtonPress();
+
+        expect(error, isNotNull);
+        verifyNever(mockHaptic.vibrate());
+        verifyNever(mockHaptic.lightImpact());
+      });
+
+      test('returns null and triggers haptic when race is active', () async {
+        loadAndStartRace();
+
+        final error = await controller.handleLogButtonPress();
+
+        expect(error, isNull);
+        verify(mockHaptic.vibrate()).called(1);
+        verify(mockHaptic.lightImpact()).called(1);
+      });
+    });
+
+    group('validateDeleteRecord', () {
+      test('returns null for an unconfirmed runner time', () {
+        loadAndStartRace();
+        controller.logTime();
+
+        final record = controller.uiRecords.first;
+        final error = controller.validateDeleteRecord(record);
+
+        expect(error, isNull);
+      });
+
+      test('returns error for a non-last confirmed record', () {
+        loadAndStartRace();
+        controller.logTime();
+        controller.confirmTimes();
+        // The confirmed runnerTime (green) is first; confirmRunner is last.
+        final record = controller.uiRecords.first;
+
+        final error = controller.validateDeleteRecord(record);
+
+        expect(error, isNotNull);
+      });
+
+      test('returns null for the last conflict record', () {
+        loadAndStartRace();
+        controller.logTime();
+        controller.confirmTimes();
+        // The confirmRunner record is the last — deletion is allowed.
+        final record = controller.uiRecords.last;
+
+        final error = controller.validateDeleteRecord(record);
+
+        expect(error, isNull);
+      });
+    });
+
+    group('loadOtherRace', () {
+      test('clears existing records and loads the new race', () async {
+        loadAndStartRace();
+        controller.logTime();
+        expect(controller.currentChunk.timingData, hasLength(1));
+
+        final newRace = RaceRecord(
+          raceId: 2,
+          date: DateTime(2024, 6, 1),
+          name: 'New Race',
+          type: DeviceName.raceTimer.toString(),
+          stopped: true,
+        );
+        await controller.loadOtherRace(newRace);
+
+        expect(controller.currentChunk.timingData, isEmpty);
+        expect(controller.currentRace, equals(newRace));
       });
     });
 
