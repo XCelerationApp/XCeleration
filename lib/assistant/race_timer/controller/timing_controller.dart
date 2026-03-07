@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
+import '../../../core/services/haptic_feedback_service.dart';
 import 'package:xceleration/assistant/race_timer/model/ui_record.dart';
 import 'package:xceleration/assistant/shared/models/race_record.dart';
 import 'package:xceleration/shared/models/timing_records/timing_chunk.dart';
@@ -42,13 +42,16 @@ class TimingController extends TimingData {
   final ScrollController scrollController = ScrollController();
   final AudioPlayer? _audioPlayer;
   final IAssistantStorageService _storage;
+  final IHapticFeedback _hapticFeedback;
   bool isAudioPlayerReady = false;
 
   TimingController({
     required super.storage,
     AudioPlayer? audioPlayer,
+    IHapticFeedback? hapticFeedback,
   })  : _storage = storage,
-        _audioPlayer = audioPlayer {
+        _audioPlayer = audioPlayer,
+        _hapticFeedback = hapticFeedback ?? HapticFeedbackService() {
     _initializeControllers();
   }
 
@@ -231,8 +234,8 @@ class TimingController extends TimingData {
     final error = logTime();
     if (error != null) return error;
 
-    HapticFeedback.vibrate();
-    HapticFeedback.lightImpact();
+    _hapticFeedback.vibrate();
+    _hapticFeedback.lightImpact();
 
     if (isAudioPlayerReady && _audioPlayer != null) {
       _audioPlayer.stop().then((_) {
