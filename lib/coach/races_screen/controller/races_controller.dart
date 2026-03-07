@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:xceleration/core/services/auth_service.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
-import 'package:geocoding/geocoding.dart';
-import 'package:geolocator/geolocator.dart';
+import 'package:geolocator/geolocator.dart' show LocationPermission;
 import 'package:xceleration/coach/races_screen/widgets/race_creation_sheet.dart';
+import 'package:xceleration/core/services/geo_location_service.dart';
 import 'package:xceleration/core/components/dialog_utils.dart';
 import 'package:xceleration/core/utils/sheet_utils.dart' show sheet;
 import '../../../shared/models/database/race.dart';
@@ -24,6 +24,7 @@ class RacesController extends ChangeNotifier {
   final IRacesService _racesService;
   final IAuthService _authService;
   final IEventBus _eventBus;
+  final IGeoLocationService _geoLocationService;
 
   List<Race> races = [];
   bool isLocationButtonVisible = true;
@@ -54,11 +55,13 @@ class RacesController extends ChangeNotifier {
     required IRacesService racesService,
     required IAuthService authService,
     required IEventBus eventBus,
+    required IGeoLocationService geoLocationService,
     required this.tutorialManager,
     this.canEdit = true,
   })  : _racesService = racesService,
         _authService = authService,
-        _eventBus = eventBus;
+        _eventBus = eventBus,
+        _geoLocationService = geoLocationService;
 
   void setContext(BuildContext context) {
     _context = context;
@@ -208,13 +211,14 @@ class RacesController extends ChangeNotifier {
 
   Future<void> getCurrentLocation() async {
     try {
-      LocationPermission permission = await Geolocator.checkPermission();
+      LocationPermission permission =
+          await _geoLocationService.checkPermission();
 
       // Check if context is still mounted after async operation
       if (!context.mounted) return;
 
       if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
+        permission = await _geoLocationService.requestPermission();
       }
 
       // Check if context is still mounted after async operation
@@ -232,7 +236,8 @@ class RacesController extends ChangeNotifier {
         return;
       }
 
-      bool locationEnabled = await Geolocator.isLocationServiceEnabled();
+      bool locationEnabled =
+          await _geoLocationService.isLocationServiceEnabled();
       if (!context.mounted) return; // Check if context is still valid
 
       if (!locationEnabled) {
@@ -241,10 +246,10 @@ class RacesController extends ChangeNotifier {
         return;
       }
 
-      final position = await Geolocator.getCurrentPosition();
+      final position = await _geoLocationService.getCurrentPosition();
       if (!context.mounted) return; // Check if context is still valid
-      final placemarks =
-          await placemarkFromCoordinates(position.latitude, position.longitude);
+      final placemarks = await _geoLocationService.placemarkFromCoordinates(
+          position.latitude, position.longitude);
       if (!context.mounted) return; // Check if context is still valid
 
       final placemark = placemarks.first;

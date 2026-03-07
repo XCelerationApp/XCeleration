@@ -6,6 +6,7 @@ import '../../../core/services/tutorial_manager.dart';
 import '../../../core/components/coach_mark.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/event_bus.dart';
+import '../../../core/services/geo_location_service.dart';
 import '../controller/races_controller.dart';
 import '../services/races_service.dart';
 import '../widgets/race_tutorial_coach_mark.dart';
@@ -29,6 +30,7 @@ class RacesScreenState extends State<RacesScreen> {
       racesService: RacesService(),
       authService: AuthService.instance,
       eventBus: EventBus.instance,
+      geoLocationService: GeoLocationService(),
       tutorialManager: TutorialManager(),
       canEdit: widget.canEdit,
     );
