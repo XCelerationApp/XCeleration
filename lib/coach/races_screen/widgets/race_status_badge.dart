@@ -23,20 +23,9 @@ class RaceStatusBadge extends StatelessWidget {
       }[flowState] ??
       'Setting up';
 
-  static Color _colorFor(String flowState) =>
-      {
-        Race.FLOW_SETUP: AppColors.statusSetup,
-        Race.FLOW_SETUP_COMPLETED: AppColors.statusSetup,
-        Race.FLOW_PRE_RACE: AppColors.statusPreRace,
-        Race.FLOW_PRE_RACE_COMPLETED: AppColors.statusPreRace,
-        Race.FLOW_POST_RACE: AppColors.statusPostRace,
-        Race.FLOW_FINISHED: AppColors.statusFinished,
-      }[flowState] ??
-      AppColors.statusSetup;
-
   @override
   Widget build(BuildContext context) {
-    final color = _colorFor(flowState);
+    const color = AppColors.primaryColor;
     return Container(
       padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.md, vertical: AppSpacing.xs),
