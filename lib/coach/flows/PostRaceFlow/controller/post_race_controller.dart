@@ -9,9 +9,21 @@ import '../../controller/flow_controller.dart';
 import '../steps/load_results/controller/load_results_controller.dart';
 import '../steps/reconnect/reconnect_step.dart';
 
+/// Function type that matches the [showFlow] top-level function signature,
+/// used to allow injection in tests.
+typedef ShowFlowFn = Future<bool> Function({
+  required BuildContext context,
+  required List<FlowStep> steps,
+  bool showProgressIndicator,
+  int initialIndex,
+  StepChangedCallback? onStepChanged,
+  void Function(int lastIndex)? onDismiss,
+});
+
 /// Controller for managing the post-race flow
 class PostRaceController {
   final MasterRace masterRace;
+  final ShowFlowFn _showFlow;
 
   // Controllers
   late final LoadResultsController _loadResultsController;
@@ -24,7 +36,10 @@ class PostRaceController {
   int? _lastStepIndex;
 
   /// Constructor
-  PostRaceController({required this.masterRace}) {
+  PostRaceController({
+    required this.masterRace,
+    ShowFlowFn? showFlowFn,
+  }) : _showFlow = showFlowFn ?? showFlow {
     _initializeSteps();
   }
 
@@ -55,7 +70,7 @@ class PostRaceController {
     final int startIndex = _lastStepIndex ?? 0;
 
     // Show the flow
-    return await showFlow(
+    return await _showFlow(
       context: context,
       steps: steps,
       showProgressIndicator: dismissible,
@@ -73,4 +88,7 @@ class PostRaceController {
       _loadResultsStep,
     ];
   }
+
+  @visibleForTesting
+  List<FlowStep> buildSteps() => _getSteps();
 }
