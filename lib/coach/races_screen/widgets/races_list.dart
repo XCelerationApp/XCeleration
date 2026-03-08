@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../coach/races_screen/controller/races_controller.dart';
 import '../../../shared/models/database/race.dart';
-import '../../../core/theme/typography.dart';
-import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_animations.dart';
+import '../../../core/components/empty_section_state.dart';
 import 'race_card.dart';
 import '../../flows/widgets/flow_section_header.dart';
 
@@ -14,20 +13,7 @@ class RacesList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isEmpty = controller.races.isEmpty;
-
-    return AnimatedSwitcher(
-      duration: AppAnimations.standard,
-      child: isEmpty
-          ? Padding(
-              key: const ValueKey('empty'),
-              padding: const EdgeInsets.only(top: AppSpacing.lg),
-              child: Center(
-                child: Text('No races.', style: AppTypography.headerRegular),
-              ),
-            )
-          : _buildList(),
-    );
+    return _buildList();
   }
 
   Widget _buildList() {
@@ -54,8 +40,17 @@ class RacesList extends StatelessWidget {
     int itemIndex = 0;
     final List<Widget> children = [];
 
-    if (raceInProgress.isNotEmpty) {
-      children.add(FlowSectionHeader(title: 'In Progress'));
+    // In Progress section
+    children.add(
+      FlowSectionHeader(title: 'In Progress', count: raceInProgress.length, countHighlight: true),
+    );
+    if (raceInProgress.isEmpty) {
+      children.add(const EmptySectionState(
+        icon: Icons.timer_outlined,
+        title: 'No races in progress',
+        subtitle: 'Active races will appear here',
+      ));
+    } else {
       for (final race in raceInProgress) {
         final index = itemIndex++;
         final card = RaceCard(
@@ -70,8 +65,17 @@ class RacesList extends StatelessWidget {
       }
     }
 
-    if (upcomingRaces.isNotEmpty) {
-      children.add(FlowSectionHeader(title: 'Upcoming'));
+    // Upcoming section
+    children.add(
+      FlowSectionHeader(title: 'Upcoming', count: upcomingRaces.length, countHighlight: true),
+    );
+    if (upcomingRaces.isEmpty) {
+      children.add(const EmptySectionState(
+        icon: Icons.calendar_today_outlined,
+        title: 'No upcoming races',
+        subtitle: 'Races you\'re setting up will appear here',
+      ));
+    } else {
       for (final race in upcomingRaces) {
         final index = itemIndex++;
         final card = RaceCard(
@@ -86,8 +90,17 @@ class RacesList extends StatelessWidget {
       }
     }
 
-    if (finishedRaces.isNotEmpty) {
-      children.add(FlowSectionHeader(title: 'Finished'));
+    // Finished section
+    children.add(
+      FlowSectionHeader(title: 'Finished', count: finishedRaces.length),
+    );
+    if (finishedRaces.isEmpty) {
+      children.add(const EmptySectionState(
+        icon: Icons.history,
+        title: 'No finished races yet',
+        subtitle: 'Completed races will appear here',
+      ));
+    } else {
       for (final race in finishedRaces) {
         final index = itemIndex++;
         final card = RaceCard(
