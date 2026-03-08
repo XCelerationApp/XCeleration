@@ -5,7 +5,9 @@ import '../../../core/utils/enums.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/sheet_utils.dart';
 import '../../../shared/role_bar/models/role_enums.dart';
-import '../../../shared/role_bar/role_bar.dart';
+import '../../../core/components/app_header.dart';
+import '../../../core/theme/typography.dart';
+import '../../../shared/role_bar/widgets/instructions_banner.dart';
 import '../controller/bib_number_controller.dart';
 import '../widget/bib_list_widget.dart';
 import '../widget/race_controls_widget.dart';
@@ -34,7 +36,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     _controller.addListener(_onControllerChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      RoleBar.showInstructionsSheet(context, Role.bibRecorder).then((_) {
+      InstructionsBanner.showInstructionsSheet(context, Role.bibRecorder).then((_) {
         if (mounted) _controller.setupTutorials();
       });
     });
@@ -143,14 +145,15 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
               return Scaffold(
                 resizeToAvoidBottomInset: true,
                 body: Column(children: [
+                  AppHeader(
+                    title: 'Bib Recorder',
+                    currentRole: Role.bibRecorder,
+                    tutorialManager: _controller.tutorialManager,
+                    titleStyle: AppTypography.displaySmall,
+                  ),
                   Padding(
                       padding: EdgeInsets.symmetric(horizontal: 16),
                       child: Column(children: [
-                        RoleBar(
-                          currentRole: Role.bibRecorder,
-                          tutorialManager: _controller.tutorialManager,
-                        ),
-                        const SizedBox(height: 16.0),
                         CoachMark(
                           id: 'race_header_tutorial',
                           tutorialManager: _controller.tutorialManager,

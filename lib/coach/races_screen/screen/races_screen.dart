@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:xceleration/shared/role_bar/role_bar.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../shared/role_bar/models/role_enums.dart';
@@ -12,6 +11,7 @@ import '../../../core/services/post_frame_callback_scheduler.dart';
 import '../controller/races_controller.dart';
 import '../services/races_service.dart';
 import '../widgets/race_tutorial_coach_mark.dart';
+import '../../../core/components/app_header.dart';
 import '../widgets/races_list.dart';
 
 class RacesScreen extends StatefulWidget {
@@ -86,12 +86,11 @@ class RacesScreenState extends State<RacesScreen> {
                 body: Column(
                   children: [
                     // Sticky header
-                    Padding(
-                      padding: EdgeInsets.fromLTRB(AppSpacing.xl, 0, AppSpacing.xl, 0),
-                      child: RoleBar(
-                          currentRole:
-                              widget.canEdit ? Role.coach : Role.spectator,
-                          tutorialManager: _controller.tutorialManager),
+                    AppHeader(
+                      title: 'My Races',
+                      currentRole:
+                          widget.canEdit ? Role.coach : Role.spectator,
+                      tutorialManager: _controller.tutorialManager,
                     ),
                     // Scrollable content
                     Expanded(
