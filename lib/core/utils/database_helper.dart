@@ -41,100 +41,80 @@ class DatabaseHelper implements IDatabaseHelper {
     }
   }
 
+  static final _migrations = <int, Future<void> Function(Database)>{
+    15: _migrateV15,
+    16: _migrateV16,
+    17: _migrateV17,
+    18: _migrateV18,
+  };
+
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    // Add missing owner_user_id column to races table if it doesn't exist
-    if (oldVersion < 15) {
-      try {
-        await db.execute('ALTER TABLE races ADD COLUMN owner_user_id TEXT');
-        Logger.d('Added owner_user_id column to races table');
-      } catch (e) {
-        // Column might already exist, ignore error
-        Logger.d('owner_user_id column might already exist: $e');
-      }
-
-      // Create missing sync_state table if it doesn't exist
-      try {
-        await db.execute('''
-          CREATE TABLE IF NOT EXISTS sync_state (
-            key TEXT PRIMARY KEY,
-            value TEXT NOT NULL
-          )
-        ''');
-        Logger.d('Created sync_state table');
-      } catch (e) {
-        Logger.d('sync_state table might already exist: $e');
-      }
+    for (int v = oldVersion + 1; v <= newVersion; v++) {
+      await _migrations[v]?.call(db);
     }
+  }
 
-    if (oldVersion < 16) {
-      // Add partial indexes for soft-delete filtering
-      const partialIndexes = [
-        'CREATE INDEX IF NOT EXISTS idx_runners_active ON runners(name) WHERE deleted_at IS NULL',
-        'CREATE INDEX IF NOT EXISTS idx_teams_active ON teams(name) WHERE deleted_at IS NULL',
-        'CREATE INDEX IF NOT EXISTS idx_races_active ON races(race_date) WHERE deleted_at IS NULL',
-        'CREATE INDEX IF NOT EXISTS idx_race_participants_active ON race_participants(race_id) WHERE deleted_at IS NULL',
-        'CREATE INDEX IF NOT EXISTS idx_team_rosters_active ON team_rosters(team_id) WHERE deleted_at IS NULL',
-      ];
-      for (final stmt in partialIndexes) {
-        try {
-          await db.execute(stmt);
-        } catch (e) {
-          Logger.d('Partial index might already exist: $e');
-        }
-      }
-      Logger.d('v16 migration: partial soft-delete indexes created');
-    }
+  static Future<void> _migrateV15(Database db) async {
+    await db.execute('ALTER TABLE races ADD COLUMN owner_user_id TEXT');
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS sync_state (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+      )
+    ''');
+    Logger.d('v15 migration: owner_user_id column and sync_state table added');
+  }
 
-    if (oldVersion < 17) {
-      // Add UUID foreign key columns to race_results for cross-device sync
-      for (final col in ['runner_uuid TEXT', 'race_uuid TEXT']) {
-        try {
-          await db.execute('ALTER TABLE race_results ADD COLUMN $col');
-        } catch (e) {
-          Logger.d('race_results.$col might already exist: $e');
-        }
-      }
-      // Populate runner_uuid and race_uuid for existing rows
-      await db.rawUpdate('''
-        UPDATE race_results
-        SET runner_uuid = (SELECT uuid FROM runners WHERE runners.runner_id = race_results.runner_id)
-        WHERE runner_uuid IS NULL
-      ''');
-      await db.rawUpdate('''
-        UPDATE race_results
-        SET race_uuid = (SELECT uuid FROM races WHERE races.race_id = race_results.race_id)
-        WHERE race_uuid IS NULL
-      ''');
-      Logger.d('v17 migration: runner_uuid and race_uuid added to race_results');
+  static Future<void> _migrateV16(Database db) async {
+    const partialIndexes = [
+      'CREATE INDEX IF NOT EXISTS idx_runners_active ON runners(name) WHERE deleted_at IS NULL',
+      'CREATE INDEX IF NOT EXISTS idx_teams_active ON teams(name) WHERE deleted_at IS NULL',
+      'CREATE INDEX IF NOT EXISTS idx_races_active ON races(race_date) WHERE deleted_at IS NULL',
+      'CREATE INDEX IF NOT EXISTS idx_race_participants_active ON race_participants(race_id) WHERE deleted_at IS NULL',
+      'CREATE INDEX IF NOT EXISTS idx_team_rosters_active ON team_rosters(team_id) WHERE deleted_at IS NULL',
+    ];
+    for (final stmt in partialIndexes) {
+      await db.execute(stmt);
     }
+    Logger.d('v16 migration: partial soft-delete indexes created');
+  }
 
-    if (oldVersion < 18) {
-      // Add UUID foreign key columns to race_participants for cross-device sync
-      for (final col in ['race_uuid TEXT', 'runner_uuid TEXT', 'team_uuid TEXT']) {
-        try {
-          await db.execute('ALTER TABLE race_participants ADD COLUMN $col');
-        } catch (e) {
-          Logger.d('race_participants.$col might already exist: $e');
-        }
-      }
-      // Populate UUID columns for existing rows
-      await db.rawUpdate('''
-        UPDATE race_participants
-        SET race_uuid = (SELECT uuid FROM races WHERE races.race_id = race_participants.race_id)
-        WHERE race_uuid IS NULL
-      ''');
-      await db.rawUpdate('''
-        UPDATE race_participants
-        SET runner_uuid = (SELECT uuid FROM runners WHERE runners.runner_id = race_participants.runner_id)
-        WHERE runner_uuid IS NULL
-      ''');
-      await db.rawUpdate('''
-        UPDATE race_participants
-        SET team_uuid = (SELECT uuid FROM teams WHERE teams.team_id = race_participants.team_id)
-        WHERE team_uuid IS NULL
-      ''');
-      Logger.d('v18 migration: race_uuid, runner_uuid, team_uuid added to race_participants');
-    }
+  static Future<void> _migrateV17(Database db) async {
+    await db.execute('ALTER TABLE race_results ADD COLUMN runner_uuid TEXT');
+    await db.execute('ALTER TABLE race_results ADD COLUMN race_uuid TEXT');
+    await db.rawUpdate('''
+      UPDATE race_results
+      SET runner_uuid = (SELECT uuid FROM runners WHERE runners.runner_id = race_results.runner_id)
+      WHERE runner_uuid IS NULL
+    ''');
+    await db.rawUpdate('''
+      UPDATE race_results
+      SET race_uuid = (SELECT uuid FROM races WHERE races.race_id = race_results.race_id)
+      WHERE race_uuid IS NULL
+    ''');
+    Logger.d('v17 migration: runner_uuid and race_uuid added to race_results');
+  }
+
+  static Future<void> _migrateV18(Database db) async {
+    await db.execute('ALTER TABLE race_participants ADD COLUMN race_uuid TEXT');
+    await db.execute('ALTER TABLE race_participants ADD COLUMN runner_uuid TEXT');
+    await db.execute('ALTER TABLE race_participants ADD COLUMN team_uuid TEXT');
+    await db.rawUpdate('''
+      UPDATE race_participants
+      SET race_uuid = (SELECT uuid FROM races WHERE races.race_id = race_participants.race_id)
+      WHERE race_uuid IS NULL
+    ''');
+    await db.rawUpdate('''
+      UPDATE race_participants
+      SET runner_uuid = (SELECT uuid FROM runners WHERE runners.runner_id = race_participants.runner_id)
+      WHERE runner_uuid IS NULL
+    ''');
+    await db.rawUpdate('''
+      UPDATE race_participants
+      SET team_uuid = (SELECT uuid FROM teams WHERE teams.team_id = race_participants.team_id)
+      WHERE team_uuid IS NULL
+    ''');
+    Logger.d('v18 migration: race_uuid, runner_uuid, team_uuid added to race_participants');
   }
 
   // ============================================================================
