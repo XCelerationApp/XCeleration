@@ -58,54 +58,6 @@ void main() {
   // ===========================================================================
   group('SyncService', () {
     // -------------------------------------------------------------------------
-    group('getSyncMode', () {
-      test('returns syncModeOff when sync_state has no entry', () async {
-        when(mockDatabase.query('sync_state',
-                where: anyNamed('where'), whereArgs: anyNamed('whereArgs')))
-            .thenAnswer((_) async => []);
-
-        final mode = await service.getSyncMode();
-
-        expect(mode, equals(SyncService.syncModeOff));
-      });
-
-      test('returns the stored mode when an entry exists', () async {
-        when(mockDatabase.query('sync_state',
-                where: anyNamed('where'), whereArgs: anyNamed('whereArgs')))
-            .thenAnswer((_) async => [
-                  {
-                    'key': SyncService.syncModeKey,
-                    'value': SyncService.syncModeAuthenticated,
-                  }
-                ]);
-
-        final mode = await service.getSyncMode();
-
-        expect(mode, equals(SyncService.syncModeAuthenticated));
-      });
-    });
-
-    // -------------------------------------------------------------------------
-    group('setSyncMode', () {
-      test('inserts the mode key-value into sync_state', () async {
-        when(mockDatabase.insert(any, any,
-                conflictAlgorithm: anyNamed('conflictAlgorithm')))
-            .thenAnswer((_) async => 1);
-
-        await service.setSyncMode(SyncService.syncModeAuthenticated);
-
-        verify(mockDatabase.insert(
-          'sync_state',
-          {
-            'key': SyncService.syncModeKey,
-            'value': SyncService.syncModeAuthenticated,
-          },
-          conflictAlgorithm: anyNamed('conflictAlgorithm'),
-        )).called(1);
-      });
-    });
-
-    // -------------------------------------------------------------------------
     group('syncAll', () {
       test('skips all sync when remote is not initialized after init()', () async {
         when(mockRemote.isInitialized).thenReturn(false);
@@ -113,52 +65,24 @@ void main() {
         await service.syncAll();
 
         verify(mockRemote.init()).called(1);
-        // No DB access — returned before getSyncMode
         verifyNever(mockDbHelper.databaseConn);
-      });
-
-      test('skips push and pull when sync mode is off', () async {
-        when(mockRemote.isInitialized).thenReturn(true);
-        when(mockDatabase.query('sync_state',
-                where: anyNamed('where'), whereArgs: anyNamed('whereArgs')))
-            .thenAnswer((_) async => [
-                  {
-                    'key': SyncService.syncModeKey,
-                    'value': SyncService.syncModeOff,
-                  }
-                ]);
-
-        await service.syncAll();
-
-        // DB accessed once for getSyncMode only; schema rawQuery never called
-        verify(mockDbHelper.databaseConn).called(1);
-        verifyNever(mockDatabase.rawQuery(any, any));
       });
 
       test('skips push and pull when user is not authenticated', () async {
         when(mockRemote.isInitialized).thenReturn(true);
         when(mockAuth.isSignedIn).thenReturn(false);
-        when(mockDatabase.query('sync_state',
-                where: anyNamed('where'), whereArgs: anyNamed('whereArgs')))
-            .thenAnswer((_) async => [
-                  {
-                    'key': SyncService.syncModeKey,
-                    'value': SyncService.syncModeAuthenticated,
-                  }
-                ]);
 
         await service.syncAll();
 
-        // DB accessed once for getSyncMode only; no schema queries issued
-        verify(mockDbHelper.databaseConn).called(1);
+        verifyNever(mockDbHelper.databaseConn);
         verifyNever(mockDatabase.rawQuery(any, any));
       });
 
       test('rethrows exceptions from underlying operations', () async {
         when(mockRemote.isInitialized).thenReturn(true);
-        when(mockDatabase.query('sync_state',
-                where: anyNamed('where'), whereArgs: anyNamed('whereArgs')))
-            .thenThrow(Exception('db failure'));
+        when(mockAuth.isSignedIn).thenReturn(true);
+        when(mockAuth.currentUserId).thenReturn('user-1');
+        when(mockDbHelper.databaseConn).thenThrow(Exception('db failure'));
 
         await expectLater(service.syncAll(), throwsA(isA<Exception>()));
       });
