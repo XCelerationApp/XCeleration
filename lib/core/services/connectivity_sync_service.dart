@@ -22,6 +22,20 @@ class ConnectivitySyncService {
         } catch (_) {}
       }
     });
+
+    // If the device is already on Wi‑Fi at launch, the listener won't fire.
+    // Check current connectivity immediately and trigger sync if needed.
+    _syncIfAlreadyOnWifi();
+  }
+
+  Future<void> _syncIfAlreadyOnWifi() async {
+    try {
+      final results = await Connectivity().checkConnectivity();
+      if (AuthService.instance.isSignedIn &&
+          results.contains(ConnectivityResult.wifi)) {
+        await SyncService.instance.syncAll();
+      }
+    } catch (_) {}
   }
 
   void stop() {
