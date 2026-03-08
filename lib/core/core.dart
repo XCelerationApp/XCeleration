@@ -15,7 +15,6 @@ export 'components/coach_mark.dart';
 // Theme
 export 'theme/app_colors.dart';
 export 'theme/typography.dart';
-export 'theme/app_loading.dart';
 
 // Utils
 export 'utils/logger.dart';
