@@ -20,6 +20,10 @@ import 'core/services/auth_service.dart';
 import 'core/services/tutorial_manager.dart';
 import 'shared/models/database/master_race.dart';
 import 'core/services/sync_service.dart';
+import 'core/services/remote_api_client.dart';
+import 'core/services/connectivity_sync_service.dart';
+import 'core/services/i_sync_service.dart';
+import 'core/utils/database_helper.dart';
 
 /// EventBus provider wrapper for global event management
 class EventBusProvider extends ChangeNotifier {
@@ -66,17 +70,30 @@ void _runApp() async {
     DeviceOrientation.portraitDown,
   ]);
 
+  // Wire up concrete service instances once at startup
+  final syncService = SyncService(
+    db: DatabaseHelper.instance,
+    remote: RemoteApiClient(),
+    auth: AuthService.instance,
+  );
+  final connectivitySyncService = ConnectivitySyncService(
+    sync: syncService,
+    auth: AuthService.instance,
+  );
+
   runApp(
     MultiProvider(
       providers: [
+        Provider<ISyncService>.value(value: syncService),
+        Provider<ConnectivitySyncService>.value(value: connectivitySyncService),
         ChangeNotifierProvider(create: (context) => EventBusProvider()),
         ChangeNotifierProvider(
           create: (context) => RaceController(
               masterRace: MasterRace.getInstance(0),
-              parentController: RacesController(racesService: RacesService(), authService: AuthService.instance, eventBus: EventBus.instance, geoLocationService: GeoLocationService(), postFrameCallbackScheduler: WidgetsBindingAdapter(), tutorialManager: TutorialManager(), syncStream: SyncService.instance.syncEvents)),
+              parentController: RacesController(racesService: RacesService(), authService: AuthService.instance, eventBus: EventBus.instance, geoLocationService: GeoLocationService(), postFrameCallbackScheduler: WidgetsBindingAdapter(), tutorialManager: TutorialManager(), syncStream: syncService.syncEvents)),
         ),
         ChangeNotifierProvider(
-            create: (context) => RacesController(racesService: RacesService(), authService: AuthService.instance, eventBus: EventBus.instance, geoLocationService: GeoLocationService(), postFrameCallbackScheduler: WidgetsBindingAdapter(), tutorialManager: TutorialManager(), syncStream: SyncService.instance.syncEvents)),
+            create: (context) => RacesController(racesService: RacesService(), authService: AuthService.instance, eventBus: EventBus.instance, geoLocationService: GeoLocationService(), postFrameCallbackScheduler: WidgetsBindingAdapter(), tutorialManager: TutorialManager(), syncStream: syncService.syncEvents)),
       ],
       child: const MyApp(),
     ),
@@ -85,7 +102,7 @@ void _runApp() async {
   // Kick off a background sync shortly after startup
   WidgetsBinding.instance.addPostFrameCallback((_) async {
     try {
-      await SyncService.instance.syncAll();
+      await syncService.syncAll();
     } catch (_) {}
   });
 }

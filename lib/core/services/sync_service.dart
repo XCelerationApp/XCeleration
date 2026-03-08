@@ -1,11 +1,12 @@
 import 'dart:async';
 
 import 'package:uuid/uuid.dart';
-import 'package:xceleration/core/utils/database_helper.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:xceleration/core/utils/logger.dart';
-import 'package:xceleration/core/services/remote_api_client.dart';
-import 'package:xceleration/core/services/auth_service.dart';
+import 'package:xceleration/core/services/i_auth_service.dart';
+import 'package:xceleration/core/services/i_remote_api_client.dart';
+import 'package:xceleration/core/services/i_sync_service.dart';
+import 'package:xceleration/core/utils/i_database_helper.dart';
 
 /// Emitted by [SyncService.syncEvents] after each successful [SyncService.pullAll].
 class SyncEvent {
@@ -41,36 +42,28 @@ class _PushConflictResult {
 /// - Mark writes dirty (to be called by data layer later)
 /// - Push dirty rows to remote (requires authentication)
 /// - Pull changed rows from remote since last cursor and apply LWW
-///
-/// Usage:
-/// ```dart
-/// // Sync is disabled by default - requires user authentication
-///
-/// // Enable authenticated sync after user signs in
-/// await SyncService.instance.setSyncMode(SyncService.syncModeAuthenticated);
-/// await SyncService.instance.syncAll(); // Now works!
-///
-/// // Check current mode (defaults to 'off')
-/// final mode = await SyncService.instance.getSyncMode();
-/// print('Current sync mode: $mode'); // Will show 'off' or 'authenticated'
-///
-/// // Disable sync entirely
-/// await SyncService.instance.setSyncMode(SyncService.syncModeOff);
-///
-/// // Manual override for testing/debugging
-// await SyncService.instance.forceEnableSyncForTesting();
-/// ```
-class SyncService {
+class SyncService implements ISyncService {
   /// Sync mode preference
   static const String syncModeKey = 'sync_mode';
   static const String syncModeAuthenticated = 'authenticated';
   static const String syncModeOff = 'off';
-  SyncService._();
-  static final SyncService instance = SyncService._();
+
+  final IDatabaseHelper _db;
+  final IRemoteApiClient _remote;
+  final IAuthService _auth;
+
+  SyncService({
+    required IDatabaseHelper db,
+    required IRemoteApiClient remote,
+    required IAuthService auth,
+  })  : _db = db,
+        _remote = remote,
+        _auth = auth;
 
   final _syncEventController = StreamController<SyncEvent>.broadcast();
 
   /// Emits a [SyncEvent] after each successful [pullAll] that wrote at least one row.
+  @override
   Stream<SyncEvent> get syncEvents => _syncEventController.stream;
 
   final _uuid = const Uuid();
@@ -105,7 +98,7 @@ class SyncService {
   }
 
   Future<void> ensureLocalUuids() async {
-    final db = await DatabaseHelper.instance.databaseConn;
+    final db = await _db.databaseConn;
     if (!await _hasNormalizedSchema(db)) {
       Logger.d('Sync skipped: normalized schema not found yet.');
       return;
@@ -164,13 +157,13 @@ class SyncService {
 
   // Placeholder: persist cursors in sync_state
   Future<void> setCursor(String key, String value) async {
-    final db = await DatabaseHelper.instance.databaseConn;
+    final db = await _db.databaseConn;
     await db.insert('sync_state', {'key': key, 'value': value},
         conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<String?> getCursor(String key) async {
-    final db = await DatabaseHelper.instance.databaseConn;
+    final db = await _db.databaseConn;
     final rows =
         await db.query('sync_state', where: 'key = ?', whereArgs: [key]);
     return rows.isNotEmpty ? rows.first['value'] as String : null;
@@ -251,8 +244,9 @@ class SyncService {
   }
 
   /// Get current sync mode preference
+  @override
   Future<String> getSyncMode() async {
-    final db = await DatabaseHelper.instance.databaseConn;
+    final db = await _db.databaseConn;
     final rows = await db
         .query('sync_state', where: 'key = ?', whereArgs: [syncModeKey]);
     final mode = rows.isNotEmpty ? rows.first['value'] as String : syncModeOff;
@@ -261,26 +255,21 @@ class SyncService {
   }
 
   /// Set sync mode preference
+  @override
   Future<void> setSyncMode(String mode) async {
-    final db = await DatabaseHelper.instance.databaseConn;
+    final db = await _db.databaseConn;
     await db.insert('sync_state', {'key': syncModeKey, 'value': mode},
         conflictAlgorithm: ConflictAlgorithm.replace);
 
     Logger.d('Sync mode set to: $mode');
   }
 
-  /// Force enable sync for testing (bypasses authentication requirement)
-  /// WARNING: Only use for testing/debugging!
-  // Future<void> forceEnableSyncForTesting() async {
-  //   Logger.d('⚠️ Force enabling sync for testing (bypassing auth)');
-  //   await setSyncMode(syncModeAuthenticated);
-  // }
-
   // Public API
+  @override
   Future<void> syncAll() async {
     try {
-      await RemoteApiClient.instance.init();
-      if (!RemoteApiClient.instance.isInitialized) {
+      await _remote.init();
+      if (!_remote.isInitialized) {
         Logger.d('Remote not configured; skipping sync.');
         return;
       }
@@ -291,18 +280,6 @@ class SyncService {
         Logger.d('Sync is disabled by user preference.');
         return;
       }
-
-      // // Require user to be signed in for sync (unless in testing mode)
-      // final isTestingMode =
-      //     syncMode == 'authenticated' && !AuthService.instance.isSignedIn;
-      // if (!AuthService.instance.isSignedIn && !isTestingMode) {
-      //   Logger.d('User not signed in; skipping sync.');
-      //   return;
-      // }
-
-      // if (isTestingMode) {
-      //   Logger.d('⚠️ Running in testing mode (authentication bypassed)');
-      // }
 
       await ensureLocalUuids();
       await pushAll();
@@ -315,8 +292,8 @@ class SyncService {
 
   // Push dirty rows (scaffold only; integrate with remote client later)
   Future<void> pushAll() async {
-    final client = RemoteApiClient.instance.client;
-    final db = await DatabaseHelper.instance.databaseConn;
+    final client = _remote.client;
+    final db = await _db.databaseConn;
     if (!await _hasNormalizedSchema(db)) {
       Logger.d('Push skipped: normalized schema not found yet.');
       return;
@@ -348,7 +325,7 @@ class SyncService {
       for (final row in rows) {
         final copy = Map<String, dynamic>.from(row);
         copy.remove('is_dirty');
-        final uid = AuthService.instance.currentUserId;
+        final uid = _auth.currentUserId;
         if (uid != null) {
           copy['owner_user_id'] = uid;
         } else {
@@ -392,10 +369,10 @@ class SyncService {
   /// Strips local integer runner_id/race_id from the remote payload and
   /// requires runner_uuid/race_uuid to be present.
   Future<void> _pushRaceResults() async {
-    final client = RemoteApiClient.instance.client;
-    final db = await DatabaseHelper.instance.databaseConn;
+    final client = _remote.client;
+    final db = await _db.databaseConn;
 
-    final uid = AuthService.instance.currentUserId;
+    final uid = _auth.currentUserId;
     if (uid == null) {
       Logger.d('User not authenticated; skipping push for race_results');
       return;
@@ -469,10 +446,10 @@ class SyncService {
   /// Strips local integer race_id/runner_id/team_id from the remote payload and
   /// requires race_uuid/runner_uuid to be present.
   Future<void> _pushRaceParticipants() async {
-    final client = RemoteApiClient.instance.client;
-    final db = await DatabaseHelper.instance.databaseConn;
+    final client = _remote.client;
+    final db = await _db.databaseConn;
 
-    final uid = AuthService.instance.currentUserId;
+    final uid = _auth.currentUserId;
     if (uid == null) {
       Logger.d('User not authenticated; skipping push for race_participants');
       return;
@@ -522,8 +499,8 @@ class SyncService {
   /// Returns the list of owner user IDs the current user can read:
   /// themselves plus any coaches who have shared access.
   Future<List<String>> _getAccessibleOwnerIds() async {
-    final client = RemoteApiClient.instance.client;
-    final uid = AuthService.instance.currentUserId;
+    final client = _remote.client;
+    final uid = _auth.currentUserId;
     if (uid == null) {
       Logger.d('User not authenticated; cannot determine accessible owners');
       return [];
@@ -547,8 +524,8 @@ class SyncService {
 
   // Pull changed rows (scaffold only)
   Future<void> pullAll() async {
-    final client = RemoteApiClient.instance.client;
-    final db = await DatabaseHelper.instance.databaseConn;
+    final client = _remote.client;
+    final db = await _db.databaseConn;
     if (!await _hasNormalizedSchema(db)) {
       Logger.d('Pull skipped: normalized schema not found yet.');
       return;
@@ -708,8 +685,8 @@ class SyncService {
   /// local integer IDs before inserting or updating. Skips any row whose
   /// runner_uuid or race_uuid cannot be resolved locally (will retry next sync).
   Future<void> _pullRaceResults(List<String> accessibleOwnerIds, Set<String> changedTables) async {
-    final client = RemoteApiClient.instance.client;
-    final db = await DatabaseHelper.instance.databaseConn;
+    final client = _remote.client;
+    final db = await _db.databaseConn;
 
     const table = 'race_results';
     const cursorKey = 'cursor.$table';
@@ -890,8 +867,8 @@ class SyncService {
   /// local integer IDs before inserting or updating. Skips rows where any UUID
   /// cannot be resolved locally (will retry next sync).
   Future<void> _pullRaceParticipants(List<String> accessibleOwnerIds, Set<String> changedTables) async {
-    final client = RemoteApiClient.instance.client;
-    final db = await DatabaseHelper.instance.databaseConn;
+    final client = _remote.client;
+    final db = await _db.databaseConn;
 
     const table = 'race_participants';
     const cursorKey = cursorRaceParticipants;
