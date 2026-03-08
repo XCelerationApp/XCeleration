@@ -414,11 +414,21 @@ class MockIDatePickerService extends _i1.Mock
   }
 
   @override
-  _i2.Future<DateTime?> pickDate(_i6.BuildContext? context) =>
+  _i2.Future<DateTime?> pickDate(
+    _i6.BuildContext? context, {
+    DateTime? initialDate,
+    DateTime? firstDate,
+    DateTime? lastDate,
+  }) =>
       (super.noSuchMethod(
         Invocation.method(
           #pickDate,
           [context],
+          {
+            #initialDate: initialDate,
+            #firstDate: firstDate,
+            #lastDate: lastDate,
+          },
         ),
         returnValue: _i2.Future<DateTime?>.value(),
       ) as _i2.Future<DateTime?>);
