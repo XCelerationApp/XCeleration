@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
-import '../theme/app_loading.dart';
+import '../components/app_loading.dart';
 import '../../shared/role_screen.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:xceleration/core/utils/color_utils.dart';

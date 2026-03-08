@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_portal/flutter_portal.dart';
+import '../theme/app_border_radius.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_opacity.dart';
+import '../theme/app_spacing.dart';
 import '../services/tutorial_manager.dart';
 
 /// Configuration for a coach mark tooltip
@@ -25,10 +29,10 @@ class CoachMarkConfig {
     this.icon,
     this.type = CoachMarkType.targeted,
     this.width = 250,
-    this.padding = const EdgeInsets.all(16),
-    this.backgroundColor = const Color(0xFF2196F3),
+    this.padding = const EdgeInsets.all(AppSpacing.lg),
+    this.backgroundColor = AppColors.statusPreRace,
     this.textColor = Colors.white,
-    this.arrowSize = 12,
+    this.arrowSize = AppSpacing.md,
     this.elevation = 8,
   });
 }
@@ -186,20 +190,24 @@ class _CoachMarkState extends State<CoachMark> {
     }
   }
 
+  // Named constant for the horizontal edge inset used to position the arrow
+  // relative to the target widget's edge when aligned left or right.
+  static const double _arrowEdgeInset = 30.0;
+
   Offset _getOffset() {
     if (widget.config.type == CoachMarkType.general) {
       return Offset.zero;
     }
 
     final double xOffset = widget.config.alignmentX == AlignmentX.left
-        ? 30 + widget.config.arrowSize
+        ? _arrowEdgeInset + widget.config.arrowSize
         : (widget.config.alignmentX == AlignmentX.right
-            ? -(30 + widget.config.arrowSize)
+            ? -(_arrowEdgeInset + widget.config.arrowSize)
             : 0);
 
     final double yOffset = widget.config.alignmentY == AlignmentY.top
-        ? -8
-        : (widget.config.alignmentY == AlignmentY.bottom ? 8 : 0);
+        ? -AppSpacing.sm
+        : (widget.config.alignmentY == AlignmentY.bottom ? AppSpacing.sm : 0);
 
     return Offset(xOffset, yOffset);
   }
@@ -221,7 +229,7 @@ class _CoachMarkState extends State<CoachMark> {
             padding: widget.config.padding,
             decoration: BoxDecoration(
               color: widget.config.backgroundColor,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppBorderRadius.md),
               // boxShadow: [
               //   BoxShadow(
               //     color: Colors.black.withOpacity(0.2),
@@ -239,7 +247,7 @@ class _CoachMarkState extends State<CoachMark> {
                     color: widget.config.textColor,
                     size: 24,
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.md),
                 ],
                 Text(
                   widget.config.title,
@@ -252,12 +260,12 @@ class _CoachMarkState extends State<CoachMark> {
                   textAlign: TextAlign.center,
                 ),
                 if (widget.config.description != null) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.sm),
                   Text(
                     widget.config.description!,
                     style: TextStyle(
                       color: widget.config.textColor
-                          .withAlpha((0.9 * 255).round()),
+                          .withValues(alpha: AppOpacity.glass),
                       fontSize: 12,
                       height: 1.4,
                     ),
@@ -280,6 +288,9 @@ class _CoachMarkState extends State<CoachMark> {
   }
 }
 
+// Named constant matching _CoachMarkState._arrowEdgeInset for arrow positioning.
+const double _arrowEdgeInset = 30.0;
+
 Widget buildArrow(double arrowSize, double width, AlignmentX alignmentX,
     AlignmentY alignmentY, Color backgroundColor) {
   return SizedBox(
@@ -289,8 +300,8 @@ Widget buildArrow(double arrowSize, double width, AlignmentX alignmentX,
       alignment: Alignment.center,
       children: [
         Positioned(
-          right: alignmentX == AlignmentX.left ? 30 : null,
-          left: alignmentX == AlignmentX.right ? 30 : null,
+          right: alignmentX == AlignmentX.left ? _arrowEdgeInset : null,
+          left: alignmentX == AlignmentX.right ? _arrowEdgeInset : null,
           child: CustomPaint(
             size: Size(arrowSize * 2, arrowSize),
             painter: ArrowPainter(

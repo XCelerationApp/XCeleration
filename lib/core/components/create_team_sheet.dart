@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
+import '../theme/app_animations.dart';
+import '../theme/app_border_radius.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_opacity.dart';
+import '../theme/app_spacing.dart';
 import 'textfield_utils.dart';
 import '../../shared/models/database/master_race.dart';
 import '../../shared/models/database/team.dart';
@@ -122,7 +126,7 @@ class _CreateTeamSheetState extends State<CreateTeamSheet> {
     // Debounced local uniqueness check using preloaded names
     _nameDebounce?.cancel();
     if (trimmed.isNotEmpty) {
-      _nameDebounce = Timer(const Duration(milliseconds: 500), () {
+      _nameDebounce = Timer(AppAnimations.debounce, () {
         final exists = _existingTeamNamesLower.contains(trimmed.toLowerCase());
         if (!mounted) return;
         if (_teamNameController.text.trim() != trimmed) return;
@@ -201,7 +205,8 @@ class _CreateTeamSheetState extends State<CreateTeamSheet> {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -219,7 +224,7 @@ class _CreateTeamSheetState extends State<CreateTeamSheet> {
               },
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.lg),
 
           // Abbreviation field
           buildInputRow(
@@ -232,7 +237,7 @@ class _CreateTeamSheetState extends State<CreateTeamSheet> {
               onChanged: _validateAbbreviation,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.lg),
 
           // Color picker section styled like an input row
           buildInputRow(
@@ -246,11 +251,11 @@ class _CreateTeamSheetState extends State<CreateTeamSheet> {
                     height: 36,
                     decoration: BoxDecoration(
                       color: _selectedColor,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(AppBorderRadius.sm),
                       border: Border.all(color: Colors.grey.shade300),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.06),
+                          color: Colors.black.withValues(alpha: AppOpacity.faint),
                           blurRadius: 4,
                           offset: const Offset(0, 2),
                         ),
@@ -258,7 +263,7 @@ class _CreateTeamSheetState extends State<CreateTeamSheet> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: _showColorPicker,
@@ -267,11 +272,11 @@ class _CreateTeamSheetState extends State<CreateTeamSheet> {
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size(0, 36),
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
+                          horizontal: AppSpacing.md, vertical: AppSpacing.sm),
                       foregroundColor: AppColors.primaryColor,
                       side: BorderSide(color: AppColors.primaryColor),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(AppBorderRadius.sm),
                       ),
                     ),
                   ),
@@ -279,7 +284,7 @@ class _CreateTeamSheetState extends State<CreateTeamSheet> {
               ],
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.xl),
 
           // Create button
           SizedBox(
@@ -289,9 +294,9 @@ class _CreateTeamSheetState extends State<CreateTeamSheet> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryColor,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(AppBorderRadius.sm),
                 ),
               ),
               child: _isCreating

@@ -7,22 +7,33 @@ import '../services/tutorial_manager.dart';
 import 'coach_mark.dart';
 import '../../shared/role_bar/models/role_enums.dart';
 import '../../shared/role_bar/widgets/instructions_banner.dart';
-import '../../shared/role_bar/widgets/role_selector_sheet.dart';
-import '../../shared/settings_screen.dart';
 
 /// Top-of-screen header used across all role screens.
 /// Includes a large title, instructions button, role switcher, and settings.
+///
+/// Navigation is decoupled via [onRoleTap] and [onSettingsTap] callbacks —
+/// screens own navigation; this shared component does not.
 class AppHeader extends StatelessWidget {
   final String title;
   final Role currentRole;
   final TutorialManager tutorialManager;
   final TextStyle? titleStyle;
 
+  /// Called when the user taps the role-switcher button.
+  /// The parent screen is responsible for showing the role selector.
+  final VoidCallback onRoleTap;
+
+  /// Called when the user taps the settings button.
+  /// The parent screen is responsible for navigating to settings.
+  final VoidCallback onSettingsTap;
+
   const AppHeader({
     super.key,
     required this.title,
     required this.currentRole,
     required this.tutorialManager,
+    required this.onRoleTap,
+    required this.onSettingsTap,
     this.titleStyle,
   });
 
@@ -70,20 +81,13 @@ class AppHeader extends StatelessWidget {
             ),
             child: _HeaderIconButton(
               icon: Icons.person_outline,
-              onTap: () =>
-                  RoleSelectorSheet.showRoleSelection(context, currentRole),
+              onTap: onRoleTap,
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
           _HeaderIconButton(
             icon: Icons.settings_outlined,
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => SettingsScreen(
-                  currentRole: currentRole.toValueString(),
-                ),
-              ),
-            ),
+            onTap: onSettingsTap,
           ),
         ],
       ),

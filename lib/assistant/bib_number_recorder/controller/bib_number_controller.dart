@@ -391,9 +391,8 @@ class BibNumberController extends BibNumberDataController {
     sheet(
       context: context,
       title: 'Load Race',
-      body: deviceConnectionWidget(
-        context,
-        devices,
+      body: DeviceConnectionWidget(
+        devices: devices,
         callback: () async {
           final data = devices.coach?.data;
           if (data == null) {
@@ -430,9 +429,8 @@ class BibNumberController extends BibNumberDataController {
     sheet(
       context: context,
       title: 'Share Bib Numbers',
-      body: deviceConnectionWidget(
-        context,
-        _deviceConnectionFactory.createDevices(
+      body: DeviceConnectionWidget(
+        devices: _deviceConnectionFactory.createDevices(
           DeviceName.bibRecorder,
           DeviceType.advertiserDevice,
           data: encodedData,

@@ -3,6 +3,8 @@ import 'package:xceleration/core/services/connectivity_sync_service.dart';
 import 'package:xceleration/core/components/app_header.dart';
 import 'package:xceleration/shared/role_bar/models/role_enums.dart'
     as role_enums;
+import 'package:xceleration/shared/role_bar/widgets/role_selector_sheet.dart';
+import 'package:xceleration/shared/settings_screen.dart';
 import 'package:xceleration/core/services/tutorial_manager.dart';
 import 'package:xceleration/spectator/receive_race/screen/receive_race_screen.dart';
 import 'package:xceleration/core/utils/sheet_utils.dart';
@@ -187,6 +189,15 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
             title: 'My Races',
             currentRole: role_enums.Role.spectator,
             tutorialManager: _tutorialManager,
+            onRoleTap: () => RoleSelectorSheet.showRoleSelection(
+                context, role_enums.Role.spectator),
+            onSettingsTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => SettingsScreen(
+                  currentRole: role_enums.Role.spectator.toValueString(),
+                ),
+              ),
+            ),
           ),
           Expanded(
             child: Padding(

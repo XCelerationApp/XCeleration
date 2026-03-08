@@ -1,9 +1,47 @@
 import 'package:flutter/material.dart';
+import '../theme/app_animations.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_spacing.dart';
 import '../theme/typography.dart';
 
 /// UI state components for different application states
 /// This file contains widgets for loading, error, and empty states
+
+/// Wraps async content states in an [AnimatedSwitcher] for smooth transitions
+/// between loading and content states. Use this wherever a screen switches
+/// from a [LoadingWidget] to its content.
+class AsyncContentSwitcher extends StatelessWidget {
+  const AsyncContentSwitcher({
+    super.key,
+    required this.isLoading,
+    required this.child,
+    this.loadingWidget,
+  });
+
+  final bool isLoading;
+  final Widget child;
+
+  /// Override the default [LoadingWidget] with a custom loading indicator.
+  final Widget? loadingWidget;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: AppAnimations.standard,
+      switchInCurve: AppAnimations.enter,
+      switchOutCurve: AppAnimations.exit,
+      child: isLoading
+          ? KeyedSubtree(
+              key: const ValueKey('loading'),
+              child: loadingWidget ?? const LoadingWidget(),
+            )
+          : KeyedSubtree(
+              key: const ValueKey('content'),
+              child: child,
+            ),
+    );
+  }
+}
 
 /// Reusable loading indicator with consistent styling
 class LoadingWidget extends StatelessWidget {
@@ -26,7 +64,7 @@ class LoadingWidget extends StatelessWidget {
             valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryColor),
           ),
           if (message != null) ...[
-            SizedBox(height: isCompact ? 12 : 16),
+            SizedBox(height: isCompact ? AppSpacing.md : AppSpacing.lg),
             Text(
               message!,
               style: AppTypography.bodyRegular
@@ -57,7 +95,7 @@ class AppErrorWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: EdgeInsets.all(isCompact ? 16.0 : 24.0),
+        padding: EdgeInsets.all(isCompact ? AppSpacing.lg : AppSpacing.xl),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -66,7 +104,7 @@ class AppErrorWidget extends StatelessWidget {
               size: isCompact ? 48 : 64,
               color: AppColors.redColor,
             ),
-            SizedBox(height: isCompact ? 12 : 16),
+            SizedBox(height: isCompact ? AppSpacing.md : AppSpacing.lg),
             Text(
               'Oops! Something went wrong',
               style: isCompact
@@ -74,7 +112,7 @@ class AppErrorWidget extends StatelessWidget {
                   : AppTypography.titleLarge,
               textAlign: TextAlign.center,
             ),
-            SizedBox(height: isCompact ? 8 : 12),
+            SizedBox(height: isCompact ? AppSpacing.sm : AppSpacing.md),
             Text(
               message,
               style: AppTypography.bodyRegular
@@ -82,7 +120,7 @@ class AppErrorWidget extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             if (onRetry != null) ...[
-              SizedBox(height: isCompact ? 16 : 24),
+              SizedBox(height: isCompact ? AppSpacing.lg : AppSpacing.xl),
               ElevatedButton.icon(
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh),
@@ -123,7 +161,7 @@ class EmptyStateWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: EdgeInsets.all(isCompact ? 16.0 : 24.0),
+        padding: EdgeInsets.all(isCompact ? AppSpacing.lg : AppSpacing.xl),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -132,7 +170,7 @@ class EmptyStateWidget extends StatelessWidget {
               size: isCompact ? 48 : 64,
               color: AppColors.mediumColor,
             ),
-            SizedBox(height: isCompact ? 12 : 16),
+            SizedBox(height: isCompact ? AppSpacing.md : AppSpacing.lg),
             Text(
               title,
               style: isCompact
@@ -141,7 +179,7 @@ class EmptyStateWidget extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             if (subtitle != null) ...[
-              SizedBox(height: isCompact ? 8 : 12),
+              SizedBox(height: isCompact ? AppSpacing.sm : AppSpacing.md),
               Text(
                 subtitle!,
                 style: AppTypography.bodyRegular
@@ -150,7 +188,7 @@ class EmptyStateWidget extends StatelessWidget {
               ),
             ],
             if (onAction != null && actionLabel != null) ...[
-              SizedBox(height: isCompact ? 16 : 24),
+              SizedBox(height: isCompact ? AppSpacing.lg : AppSpacing.xl),
               ElevatedButton.icon(
                 onPressed: onAction,
                 icon: const Icon(Icons.add),

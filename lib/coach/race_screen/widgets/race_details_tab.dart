@@ -90,11 +90,9 @@ class RaceDetailsTab extends StatelessWidget {
                 controller.handleFieldFocusLoss(context, RaceField.unit);
               }
             },
-            child: buildDropdown(
+            child: AppDropdownField(
               controller: controller.form.unitController,
               hint: 'mi',
-              error: null,
-              setSheetState: (fn) => fn(),
               items: ['mi', 'km'],
               onChanged: (value) {
                 controller.form.unitController.text = value;

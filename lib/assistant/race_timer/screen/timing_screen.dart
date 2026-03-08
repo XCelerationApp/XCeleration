@@ -3,6 +3,8 @@ import '../../../core/components/dialog_utils.dart';
 import '../../../core/components/app_header.dart';
 import '../../../core/services/tutorial_manager.dart';
 import '../../../shared/role_bar/widgets/instructions_banner.dart';
+import '../../../shared/role_bar/widgets/role_selector_sheet.dart';
+import '../../../shared/settings_screen.dart';
 import '../../../core/utils/enums.dart';
 import '../widgets/timer_display_widget.dart';
 import '../widgets/race_controls_widget.dart';
@@ -64,6 +66,15 @@ class _TimingScreenState extends State<TimingScreen>
               title: 'Race Timer',
               currentRole: Role.timer,
               tutorialManager: tutorialManager,
+              onRoleTap: () =>
+                  RoleSelectorSheet.showRoleSelection(context, Role.timer),
+              onSettingsTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => SettingsScreen(
+                    currentRole: Role.timer.toValueString(),
+                  ),
+                ),
+              ),
             ),
             Expanded(
               child: Padding(

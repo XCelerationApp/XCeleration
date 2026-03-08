@@ -41,11 +41,9 @@ class RaceDistanceField extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             flex: 1,
-            child: buildDropdown(
+            child: AppDropdownField(
               controller: controller.form.unitController,
               hint: 'mi',
-              error: null,
-              setSheetState: (fn) => fn(),
               items: ['mi', 'km'],
               onChanged: (value) {
                 controller.form.unitController.text = value;
