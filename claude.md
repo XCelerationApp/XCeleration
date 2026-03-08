@@ -24,6 +24,7 @@ Flutter, Dart, ChangeNotifier + Provider, SQLite, Supabase.
 - Run `python3 scripts/test_runner.py  <path/to/specific_test.dart>` for the test files related to your changes
 - Run the full `python3 scripts/test_runner.py` before committing to catch regressions
 - One concern per commit
+- Ask the user before opening a new PR or renaming the curerent branch
 
 ## Working Style
 
