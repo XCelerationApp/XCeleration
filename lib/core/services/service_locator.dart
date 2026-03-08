@@ -1,6 +1,17 @@
 import '../../coach/race_screen/services/race_service.dart';
-import '../utils/logger.dart';
+import '../repositories/database_connection_provider.dart';
+import '../repositories/i_database_connection_provider.dart';
+import '../repositories/i_race_repository.dart';
+import '../repositories/i_results_repository.dart';
+import '../repositories/i_runner_repository.dart';
+import '../repositories/i_team_repository.dart';
+import '../repositories/race_repository.dart';
+import '../repositories/results_repository.dart';
+import '../repositories/runner_repository.dart';
+import '../repositories/team_repository.dart';
 import '../utils/database_helper.dart';
+import '../utils/i_database_helper.dart';
+import '../utils/logger.dart';
 import 'event_bus.dart';
 import 'google_service.dart';
 
@@ -15,7 +26,33 @@ class ServiceLocator {
 
     // Core services
     _services[EventBus] = EventBus.instance;
-    _services[DatabaseHelper] = DatabaseHelper.instance;
+
+    // Database layer — one connection provider shared across all repositories
+    final connProvider = DatabaseConnectionProvider();
+    _services[IDatabaseConnectionProvider] = connProvider;
+
+    final runnerRepo = RunnerRepository(conn: connProvider);
+    _services[IRunnerRepository] = runnerRepo;
+
+    final teamRepo = TeamRepository(conn: connProvider);
+    _services[ITeamRepository] = teamRepo;
+
+    final raceRepo = RaceRepository(conn: connProvider, runnerRepo: runnerRepo);
+    _services[IRaceRepository] = raceRepo;
+
+    final resultsRepo = ResultsRepository(conn: connProvider);
+    _services[IResultsRepository] = resultsRepo;
+
+    // Backward-compat shim — prefer injecting specific repository interfaces
+    final dbHelper = DatabaseHelper(
+      connProvider: connProvider,
+      runnerRepo: runnerRepo,
+      teamRepo: teamRepo,
+      raceRepo: raceRepo,
+      resultsRepo: resultsRepo,
+    );
+    _services[IDatabaseHelper] = dbHelper;
+    _services[DatabaseHelper] = dbHelper;
 
     // Consolidated Google service
     _services[GoogleService] = GoogleService.instance;
