@@ -400,7 +400,6 @@ void main() {
         final ctx = await _buildContext(tester);
         await controller.loadAllData(ctx);
 
-        // No changes tracked — hasUnsavedChanges is false
         expect(controller.form.hasUnsavedChanges, isFalse);
 
         await controller.saveAllChanges(ctx);
@@ -408,23 +407,86 @@ void main() {
         verifyNever(mockMasterRace.updateRace(any));
       });
 
-      testWidgets('invalid field: sets error on form and does NOT save',
-          (tester) async {
+      testWidgets('invalid name: sets error and does NOT save', (tester) async {
         final ctx = await _buildContext(tester);
         await controller.loadAllData(ctx);
 
-        // Stage a change with an empty name (invalid)
         controller.form.nameController.text = '';
         controller.form.storeOriginalValue(
             RaceField.name, Race(raceId: 1, raceName: 'Original'));
         controller.form.trackChange(RaceField.name);
-        expect(controller.form.hasUnsavedChanges, isTrue);
 
         await controller.saveAllChanges(ctx);
 
         expect(controller.form.errorFor(RaceField.name), isNotNull);
-        // updateRace should NOT have been called
         verifyNever(mockMasterRace.updateRace(any));
+      });
+
+      testWidgets('invalid location: sets error and does NOT save',
+          (tester) async {
+        final ctx = await _buildContext(tester);
+        await controller.loadAllData(ctx);
+
+        controller.form.locationController.text = '';
+        controller.form.storeOriginalValue(RaceField.location,
+            Race(raceId: 1, location: 'Original Location'));
+        controller.form.trackChange(RaceField.location);
+
+        await controller.saveAllChanges(ctx);
+
+        expect(controller.form.errorFor(RaceField.location), isNotNull);
+        verifyNever(mockMasterRace.updateRace(any));
+      });
+
+      testWidgets('invalid date: sets error and does NOT save', (tester) async {
+        final ctx = await _buildContext(tester);
+        await controller.loadAllData(ctx);
+
+        controller.form.dateController.text = 'not-a-date';
+        controller.form.storeOriginalValue(
+            RaceField.date, Race(raceId: 1, raceDate: DateTime(2024)));
+        controller.form.trackChange(RaceField.date);
+
+        await controller.saveAllChanges(ctx);
+
+        expect(controller.form.errorFor(RaceField.date), isNotNull);
+        verifyNever(mockMasterRace.updateRace(any));
+      });
+
+      testWidgets('invalid distance: sets error and does NOT save',
+          (tester) async {
+        final ctx = await _buildContext(tester);
+        await controller.loadAllData(ctx);
+
+        controller.form.distanceController.text = '-1';
+        controller.form.storeOriginalValue(
+            RaceField.distance, Race(raceId: 1, distance: 5.0));
+        controller.form.trackChange(RaceField.distance);
+
+        await controller.saveAllChanges(ctx);
+
+        expect(controller.form.errorFor(RaceField.distance), isNotNull);
+        verifyNever(mockMasterRace.updateRace(any));
+      });
+
+      testWidgets('unit field: no validation applied, does not block save',
+          (tester) async {
+        final ctx = await _buildContext(tester);
+        await controller.loadAllData(ctx);
+
+        controller.form.nameController.text = 'Test Race';
+        controller.form.locationController.text = 'Test Location';
+        controller.form.dateController.text = '2024-06-15';
+        controller.form.distanceController.text = '5.0';
+        controller.form.unitController.text = 'km';
+        controller.form.storeOriginalValue(
+            RaceField.unit, Race(raceId: 1, distanceUnit: 'mi'));
+        controller.form.trackChange(RaceField.unit);
+
+        await controller.saveAllChanges(ctx);
+
+        expect(controller.form.errorFor(RaceField.unit), isNull);
+        verify(mockMasterRace.updateRace(any)).called(greaterThanOrEqualTo(1));
       });
 
       testWidgets('valid fields: saves and clears changedFields',
@@ -432,13 +494,11 @@ void main() {
         final ctx = await _buildContext(tester);
         await controller.loadAllData(ctx);
 
-        // Stage a valid name change
         controller.form.storeOriginalValue(
             RaceField.name, Race(raceId: 1, raceName: 'Old Name'));
         controller.form.nameController.text = 'New Name';
         controller.form.trackChange(RaceField.name);
 
-        // Also fill required fields so validation passes
         controller.form.locationController.text = 'Test Location';
         controller.form.dateController.text = '2024-06-15';
         controller.form.distanceController.text = '5.0';
@@ -452,11 +512,10 @@ void main() {
 
     // -------------------------------------------------------------------------
     group('saveFieldIfValid', () {
-      testWidgets('invalid field: sets error and returns false',
-          (tester) async {
+      testWidgets('invalid name: sets error and returns false', (tester) async {
         final ctx = await _buildContext(tester);
         await controller.loadAllData(ctx);
-        controller.form.nameController.text = ''; // invalid: empty
+        controller.form.nameController.text = '';
 
         final result = await controller.saveFieldIfValid(ctx, RaceField.name);
 
@@ -465,7 +524,66 @@ void main() {
         verifyNever(mockMasterRace.updateRace(any));
       });
 
-      testWidgets('valid field: saves, stops editing, and returns true',
+      testWidgets('invalid location: sets error and returns false',
+          (tester) async {
+        final ctx = await _buildContext(tester);
+        await controller.loadAllData(ctx);
+        controller.form.locationController.text = '';
+
+        final result =
+            await controller.saveFieldIfValid(ctx, RaceField.location);
+
+        expect(result, isFalse);
+        expect(controller.form.errorFor(RaceField.location), isNotNull);
+        verifyNever(mockMasterRace.updateRace(any));
+      });
+
+      testWidgets('invalid date: sets error and returns false', (tester) async {
+        final ctx = await _buildContext(tester);
+        await controller.loadAllData(ctx);
+        controller.form.dateController.text = 'bad-date';
+
+        final result = await controller.saveFieldIfValid(ctx, RaceField.date);
+
+        expect(result, isFalse);
+        expect(controller.form.errorFor(RaceField.date), isNotNull);
+        verifyNever(mockMasterRace.updateRace(any));
+      });
+
+      testWidgets('invalid distance: sets error and returns false',
+          (tester) async {
+        final ctx = await _buildContext(tester);
+        await controller.loadAllData(ctx);
+        controller.form.distanceController.text = '0';
+
+        final result =
+            await controller.saveFieldIfValid(ctx, RaceField.distance);
+
+        expect(result, isFalse);
+        expect(controller.form.errorFor(RaceField.distance), isNotNull);
+        verifyNever(mockMasterRace.updateRace(any));
+      });
+
+      testWidgets('unit field: no validation, saves and returns true',
+          (tester) async {
+        final ctx = await _buildContext(tester);
+        await controller.loadAllData(ctx);
+        controller.form.nameController.text = 'Test Race';
+        controller.form.locationController.text = 'Test Location';
+        controller.form.dateController.text = '2024-06-15';
+        controller.form.distanceController.text = '5.0';
+        controller.form.unitController.text = 'km';
+        controller.form.startEditing(RaceField.unit);
+
+        final result = await controller.saveFieldIfValid(ctx, RaceField.unit);
+
+        expect(result, isTrue);
+        expect(controller.form.errorFor(RaceField.unit), isNull);
+        expect(controller.form.isEditing(RaceField.unit), isFalse);
+        verify(mockMasterRace.updateRace(any)).called(greaterThanOrEqualTo(1));
+      });
+
+      testWidgets('valid name: saves, stops editing, and returns true',
           (tester) async {
         final ctx = await _buildContext(tester);
         await controller.loadAllData(ctx);

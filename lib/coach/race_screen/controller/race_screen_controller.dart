@@ -245,32 +245,30 @@ class RaceController with ChangeNotifier {
         flowState == Race.FLOW_SETUP_COMPLETED;
   }
 
+  // Maps each RaceField to its validator. Fields with no validation (unit) are absent.
+  static final Map<RaceField, String? Function(String)> _fieldValidators = {
+    RaceField.name: RaceService.validateName,
+    RaceField.location: RaceService.validateLocation,
+    RaceField.date: RaceService.validateDate,
+    RaceField.distance: RaceService.validateDistance,
+  };
+
+  // Looks up the validator for [field] and applies it via form.setError.
+  void _applyValidation(RaceField field) {
+    final validator = _fieldValidators[field];
+    if (validator != null) {
+      form.setError(field, validator(form.controllerFor(field).text));
+    }
+  }
+
   Future<void> saveAllChanges(BuildContext context) async {
     if (!form.hasUnsavedChanges) return;
 
     // Validate all changed fields
     bool allValid = true;
     for (final field in form.changedFields) {
-      switch (field) {
-        case RaceField.name:
-          form.setError(RaceField.name,
-              RaceService.validateName(form.nameController.text));
-          if (form.errorFor(RaceField.name) != null) allValid = false;
-        case RaceField.location:
-          form.setError(RaceField.location,
-              RaceService.validateLocation(form.locationController.text));
-          if (form.errorFor(RaceField.location) != null) allValid = false;
-        case RaceField.date:
-          form.setError(RaceField.date,
-              RaceService.validateDate(form.dateController.text));
-          if (form.errorFor(RaceField.date) != null) allValid = false;
-        case RaceField.distance:
-          form.setError(RaceField.distance,
-              RaceService.validateDistance(form.distanceController.text));
-          if (form.errorFor(RaceField.distance) != null) allValid = false;
-        case RaceField.unit:
-          break; // no validation needed
-      }
+      _applyValidation(field);
+      if (form.errorFor(field) != null) allValid = false;
     }
 
     if (!allValid) {
@@ -287,30 +285,9 @@ class RaceController with ChangeNotifier {
 
   // Individual field save methods with validation
   Future<bool> saveFieldIfValid(BuildContext context, RaceField field) async {
-    // Validate the specific field first
-    bool isValid = true;
-    switch (field) {
-      case RaceField.name:
-        form.setError(
-            RaceField.name, RaceService.validateName(form.nameController.text));
-        isValid = form.errorFor(RaceField.name) == null;
-      case RaceField.location:
-        form.setError(RaceField.location,
-            RaceService.validateLocation(form.locationController.text));
-        isValid = form.errorFor(RaceField.location) == null;
-      case RaceField.date:
-        form.setError(
-            RaceField.date, RaceService.validateDate(form.dateController.text));
-        isValid = form.errorFor(RaceField.date) == null;
-      case RaceField.distance:
-        form.setError(RaceField.distance,
-            RaceService.validateDistance(form.distanceController.text));
-        isValid = form.errorFor(RaceField.distance) == null;
-      case RaceField.unit:
-        isValid = true;
-    }
+    _applyValidation(field);
 
-    if (!isValid) {
+    if (form.errorFor(field) != null) {
       // form.setError already triggered notifyListeners
       return false;
     }
