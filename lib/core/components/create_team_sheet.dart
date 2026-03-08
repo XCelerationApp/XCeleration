@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
+import '../repositories/i_team_repository.dart';
+import '../services/service_locator.dart';
 import '../theme/app_animations.dart';
 import '../theme/app_border_radius.dart';
 import '../theme/app_colors.dart';
@@ -39,7 +41,7 @@ class _CreateTeamSheetState extends State<CreateTeamSheet> {
   void initState() {
     super.initState();
     // Preload ALL team names from the database (not just this race)
-    widget.masterRace.db.getAllTeams().then((teams) {
+    ServiceLocator.get<ITeamRepository>().getAllTeams().then((teams) {
       if (!mounted) return;
       setState(() {
         _existingTeamNamesLower =

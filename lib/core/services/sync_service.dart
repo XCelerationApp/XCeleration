@@ -1,7 +1,8 @@
 import 'dart:async';
 
 import 'package:uuid/uuid.dart';
-import 'package:xceleration/core/utils/database_helper.dart';
+import 'package:xceleration/core/repositories/i_database_connection_provider.dart';
+import 'package:xceleration/core/services/service_locator.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/core/services/remote_api_client.dart';
@@ -54,7 +55,12 @@ class SyncService {
   static const String syncModeKey = 'sync_mode';
   static const String syncModeAuthenticated = 'authenticated';
   static const String syncModeOff = 'off';
-  SyncService._();
+
+  final IDatabaseConnectionProvider _connProvider;
+
+  SyncService._()
+      : _connProvider = ServiceLocator.get<IDatabaseConnectionProvider>();
+
   static final SyncService instance = SyncService._();
 
   final _uuid = const Uuid();
@@ -88,7 +94,7 @@ class SyncService {
   }
 
   Future<void> ensureLocalUuids() async {
-    final db = await DatabaseHelper.instance.databaseConn;
+    final db = await _connProvider.database;
     if (!await _hasNormalizedSchema(db)) {
       Logger.d('Sync skipped: normalized schema not found yet.');
       return;
@@ -118,13 +124,13 @@ class SyncService {
 
   // Placeholder: persist cursors in sync_state
   Future<void> setCursor(String key, String value) async {
-    final db = await DatabaseHelper.instance.databaseConn;
+    final db = await _connProvider.database;
     await db.insert('sync_state', {'key': key, 'value': value},
         conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<String?> getCursor(String key) async {
-    final db = await DatabaseHelper.instance.databaseConn;
+    final db = await _connProvider.database;
     final rows =
         await db.query('sync_state', where: 'key = ?', whereArgs: [key]);
     return rows.isNotEmpty ? rows.first['value'] as String : null;
@@ -227,7 +233,7 @@ class SyncService {
 
   /// Get current sync mode preference
   Future<String> getSyncMode() async {
-    final db = await DatabaseHelper.instance.databaseConn;
+    final db = await _connProvider.database;
     final rows = await db
         .query('sync_state', where: 'key = ?', whereArgs: [syncModeKey]);
     final mode = rows.isNotEmpty ? rows.first['value'] as String : syncModeOff;
@@ -237,7 +243,7 @@ class SyncService {
 
   /// Set sync mode preference
   Future<void> setSyncMode(String mode) async {
-    final db = await DatabaseHelper.instance.databaseConn;
+    final db = await _connProvider.database;
     await db.insert('sync_state', {'key': syncModeKey, 'value': mode},
         conflictAlgorithm: ConflictAlgorithm.replace);
 
@@ -291,7 +297,7 @@ class SyncService {
   // Push dirty rows (scaffold only; integrate with remote client later)
   Future<void> pushAll() async {
     final client = RemoteApiClient.instance.client;
-    final db = await DatabaseHelper.instance.databaseConn;
+    final db = await _connProvider.database;
     if (!await _hasNormalizedSchema(db)) {
       Logger.d('Push skipped: normalized schema not found yet.');
       return;
@@ -351,7 +357,7 @@ class SyncService {
   // Pull changed rows (scaffold only)
   Future<void> pullAll() async {
     final client = RemoteApiClient.instance.client;
-    final db = await DatabaseHelper.instance.databaseConn;
+    final db = await _connProvider.database;
     if (!await _hasNormalizedSchema(db)) {
       Logger.d('Pull skipped: normalized schema not found yet.');
       return;
