@@ -62,6 +62,9 @@ CREATE TABLE IF NOT EXISTS race_participants (
   race_id INTEGER NOT NULL,
   runner_id INTEGER NOT NULL,
   team_id INTEGER NOT NULL,
+  race_uuid TEXT,
+  runner_uuid TEXT,
+  team_uuid TEXT,
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
   deleted_at TEXT,
@@ -95,6 +98,8 @@ CREATE TABLE IF NOT EXISTS race_results (
   uuid TEXT UNIQUE,
   race_id INTEGER NOT NULL,
   runner_id INTEGER NOT NULL,
+  runner_uuid TEXT,
+  race_uuid TEXT,
   team_id INTEGER,  -- Added team_id column
   place INTEGER,
   finish_time INTEGER,

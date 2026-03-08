@@ -28,7 +28,7 @@ class DatabaseHelper implements IDatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 16,
+      version: 18,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -83,6 +83,57 @@ class DatabaseHelper implements IDatabaseHelper {
         }
       }
       Logger.d('v16 migration: partial soft-delete indexes created');
+    }
+
+    if (oldVersion < 17) {
+      // Add UUID foreign key columns to race_results for cross-device sync
+      for (final col in ['runner_uuid TEXT', 'race_uuid TEXT']) {
+        try {
+          await db.execute('ALTER TABLE race_results ADD COLUMN $col');
+        } catch (e) {
+          Logger.d('race_results.$col might already exist: $e');
+        }
+      }
+      // Populate runner_uuid and race_uuid for existing rows
+      await db.rawUpdate('''
+        UPDATE race_results
+        SET runner_uuid = (SELECT uuid FROM runners WHERE runners.runner_id = race_results.runner_id)
+        WHERE runner_uuid IS NULL
+      ''');
+      await db.rawUpdate('''
+        UPDATE race_results
+        SET race_uuid = (SELECT uuid FROM races WHERE races.race_id = race_results.race_id)
+        WHERE race_uuid IS NULL
+      ''');
+      Logger.d('v17 migration: runner_uuid and race_uuid added to race_results');
+    }
+
+    if (oldVersion < 18) {
+      // Add UUID foreign key columns to race_participants for cross-device sync
+      for (final col in ['race_uuid TEXT', 'runner_uuid TEXT', 'team_uuid TEXT']) {
+        try {
+          await db.execute('ALTER TABLE race_participants ADD COLUMN $col');
+        } catch (e) {
+          Logger.d('race_participants.$col might already exist: $e');
+        }
+      }
+      // Populate UUID columns for existing rows
+      await db.rawUpdate('''
+        UPDATE race_participants
+        SET race_uuid = (SELECT uuid FROM races WHERE races.race_id = race_participants.race_id)
+        WHERE race_uuid IS NULL
+      ''');
+      await db.rawUpdate('''
+        UPDATE race_participants
+        SET runner_uuid = (SELECT uuid FROM runners WHERE runners.runner_id = race_participants.runner_id)
+        WHERE runner_uuid IS NULL
+      ''');
+      await db.rawUpdate('''
+        UPDATE race_participants
+        SET team_uuid = (SELECT uuid FROM teams WHERE teams.team_id = race_participants.team_id)
+        WHERE team_uuid IS NULL
+      ''');
+      Logger.d('v18 migration: race_uuid, runner_uuid, team_uuid added to race_participants');
     }
   }
 
@@ -733,6 +784,9 @@ class DatabaseHelper implements IDatabaseHelper {
     }
 
     final db = await _database;
+    final race = await getRace(raceId);
+    final raceUuid = race?.uuid;
+
     await db.transaction((txn) async {
       // Clear existing results
       await txn
@@ -744,6 +798,8 @@ class DatabaseHelper implements IDatabaseHelper {
         final map = result.toMap();
         map['is_dirty'] = 1;
         map['updated_at'] = now;
+        // Ensure UUID foreign keys are populated for sync
+        if (map['race_uuid'] == null) map['race_uuid'] = raceUuid;
         await txn.insert('race_results', map);
       }
     });
@@ -768,6 +824,11 @@ class DatabaseHelper implements IDatabaseHelper {
     final rr = result.toMap();
     rr['is_dirty'] = 1;
     rr['updated_at'] = DateTime.now().toIso8601String();
+    // Ensure UUID foreign keys are populated for sync
+    if (rr['race_uuid'] == null && result.raceId != null) {
+      final race = await getRace(result.raceId!);
+      rr['race_uuid'] = race?.uuid;
+    }
     await db.insert('race_results', rr);
   }
 
@@ -794,7 +855,10 @@ class DatabaseHelper implements IDatabaseHelper {
 
     final results = await db.rawQuery('''
       SELECT
+        rr.result_id,
+        rr.uuid,
         rr.runner_id,
+        r.uuid AS runner_uuid,
         r.bib_number,
         r.name,
         rr.team_id,
@@ -804,9 +868,15 @@ class DatabaseHelper implements IDatabaseHelper {
         r.grade,
         rr.place,
         rr.finish_time,
-        rr.race_id
+        rr.race_id,
+        ra.uuid AS race_uuid,
+        rr.created_at,
+        rr.updated_at,
+        rr.deleted_at,
+        rr.is_dirty
       FROM race_results rr
       JOIN runners r ON rr.runner_id = r.runner_id
+      JOIN races ra ON rr.race_id = ra.race_id
       LEFT JOIN teams t ON rr.team_id = t.team_id
       WHERE rr.race_id = ? AND rr.deleted_at IS NULL AND r.deleted_at IS NULL
       ORDER BY rr.place

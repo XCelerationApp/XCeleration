@@ -64,6 +64,7 @@ class SyncService {
   static const String cursorTeams = 'cursor.teams';
   static const String cursorRaces = 'cursor.races';
   static const String cursorRaceResults = 'cursor.race_results';
+  static const String cursorRaceParticipants = 'cursor.race_participants';
 
   Future<bool> _tableExists(Database db, String table) async {
     final rows = await db.rawQuery(
@@ -114,6 +115,35 @@ class SyncService {
     await assignUuids('teams', 'team_id');
     await assignUuids('races', 'race_id');
     await assignUuids('race_results', 'result_id');
+
+    // Populate runner_uuid and race_uuid for race_results rows that are missing them
+    await db.rawUpdate('''
+      UPDATE race_results
+      SET runner_uuid = (SELECT uuid FROM runners WHERE runners.runner_id = race_results.runner_id)
+      WHERE runner_uuid IS NULL
+    ''');
+    await db.rawUpdate('''
+      UPDATE race_results
+      SET race_uuid = (SELECT uuid FROM races WHERE races.race_id = race_results.race_id)
+      WHERE race_uuid IS NULL
+    ''');
+
+    // Populate race_uuid, runner_uuid, team_uuid for race_participants
+    await db.rawUpdate('''
+      UPDATE race_participants
+      SET race_uuid = (SELECT uuid FROM races WHERE races.race_id = race_participants.race_id)
+      WHERE race_uuid IS NULL
+    ''');
+    await db.rawUpdate('''
+      UPDATE race_participants
+      SET runner_uuid = (SELECT uuid FROM runners WHERE runners.runner_id = race_participants.runner_id)
+      WHERE runner_uuid IS NULL
+    ''');
+    await db.rawUpdate('''
+      UPDATE race_participants
+      SET team_uuid = (SELECT uuid FROM teams WHERE teams.team_id = race_participants.team_id)
+      WHERE team_uuid IS NULL
+    ''');
   }
 
   // Placeholder: persist cursors in sync_state
@@ -345,7 +375,147 @@ class SyncService {
     await pushTable('runners', 'uuid');
     await pushTable('teams', 'uuid');
     await pushTable('races', 'uuid');
-    await pushTable('race_results', 'uuid');
+    await _pushRaceResults();
+    await _pushRaceParticipants();
+  }
+
+  /// Push dirty race_results rows using UUID-based foreign keys.
+  /// Strips local integer runner_id/race_id from the remote payload and
+  /// requires runner_uuid/race_uuid to be present.
+  Future<void> _pushRaceResults() async {
+    final client = RemoteApiClient.instance.client;
+    final db = await DatabaseHelper.instance.databaseConn;
+
+    final uid = AuthService.instance.currentUserId;
+    if (uid == null) {
+      Logger.d('User not authenticated; skipping push for race_results');
+      return;
+    }
+
+    final rows = await db.query('race_results', where: 'is_dirty = 1');
+    if (rows.isEmpty) return;
+
+    final payload = <Map<String, dynamic>>[];
+
+    for (final row in rows) {
+      final copy = Map<String, dynamic>.from(row);
+      copy.remove('is_dirty');
+      // Remove local integer foreign keys — remote schema uses UUIDs
+      copy.remove('runner_id');
+      copy.remove('race_id');
+
+      final runnerUuid = copy['runner_uuid'];
+      final raceUuid = copy['race_uuid'];
+      if (runnerUuid == null || raceUuid == null) {
+        Logger.d(
+            'Skipping race_result UUID:${copy['uuid']} — missing runner_uuid or race_uuid');
+        continue;
+      }
+
+      copy['owner_user_id'] = uid;
+
+      final conflictCheck =
+          await _checkForPushConflict('race_results', copy);
+      if (conflictCheck.hasConflict) {
+        Logger.d(
+            '⚠️ Push conflict for race_results UUID:${copy['uuid']}: ${conflictCheck.details}');
+      }
+
+      payload.add(copy);
+    }
+
+    if (payload.isNotEmpty) {
+      await client.from('race_results').upsert(payload, onConflict: 'uuid');
+      final uuids =
+          payload.map((r) => r['uuid']).whereType<String>().toList();
+      if (uuids.isNotEmpty) {
+        final qMarks = List.filled(uuids.length, '?').join(',');
+        await db.rawUpdate(
+            'UPDATE race_results SET is_dirty = 0 WHERE uuid IN ($qMarks)',
+            uuids);
+      }
+      Logger.d('Pushed ${payload.length} dirty records for race_results');
+    }
+  }
+
+  /// Push dirty race_participants rows using UUID-based foreign keys.
+  /// Strips local integer race_id/runner_id/team_id from the remote payload and
+  /// requires race_uuid/runner_uuid to be present.
+  Future<void> _pushRaceParticipants() async {
+    final client = RemoteApiClient.instance.client;
+    final db = await DatabaseHelper.instance.databaseConn;
+
+    final uid = AuthService.instance.currentUserId;
+    if (uid == null) {
+      Logger.d('User not authenticated; skipping push for race_participants');
+      return;
+    }
+
+    final rows = await db.query('race_participants', where: 'is_dirty = 1');
+    if (rows.isEmpty) return;
+
+    final payload = <Map<String, dynamic>>[];
+    final pushedKeys = <(String, String)>[];
+
+    for (final row in rows) {
+      final copy = Map<String, dynamic>.from(row);
+      copy.remove('is_dirty');
+      // Remove local integer foreign keys — remote schema uses UUIDs
+      copy.remove('race_id');
+      copy.remove('runner_id');
+      copy.remove('team_id');
+
+      final raceUuid = copy['race_uuid'];
+      final runnerUuid = copy['runner_uuid'];
+      if (raceUuid == null || runnerUuid == null) {
+        Logger.d(
+            'Skipping race_participant — missing race_uuid or runner_uuid');
+        continue;
+      }
+
+      copy['owner_user_id'] = uid;
+      payload.add(copy);
+      pushedKeys.add((raceUuid as String, runnerUuid as String));
+    }
+
+    if (payload.isNotEmpty) {
+      await client
+          .from('race_participants')
+          .upsert(payload, onConflict: 'race_uuid,runner_uuid');
+      for (final (raceUuid, runnerUuid) in pushedKeys) {
+        await db.rawUpdate(
+          'UPDATE race_participants SET is_dirty = 0 WHERE race_uuid = ? AND runner_uuid = ?',
+          [raceUuid, runnerUuid],
+        );
+      }
+      Logger.d('Pushed ${payload.length} dirty records for race_participants');
+    }
+  }
+
+  /// Returns the list of owner user IDs the current user can read:
+  /// themselves plus any coaches who have shared access.
+  Future<List<String>> _getAccessibleOwnerIds() async {
+    final client = RemoteApiClient.instance.client;
+    final uid = AuthService.instance.currentUserId;
+    if (uid == null) {
+      Logger.d('User not authenticated; cannot determine accessible owners');
+      return [];
+    }
+    try {
+      // Optional table `coach_links(coach_user_id, viewer_user_id)`
+      final List links = await client
+          .from('coach_links')
+          .select('coach_user_id')
+          .eq('viewer_user_id', uid);
+      final coachIds = links
+          .map((e) => (e as Map)['coach_user_id']?.toString())
+          .whereType<String>()
+          .toList();
+      return [uid, ...coachIds];
+    } catch (_) {
+      // If table doesn't exist yet, just return self
+      return [uid];
+    }
   }
 
   // Pull changed rows (scaffold only)
@@ -357,31 +527,7 @@ class SyncService {
       return;
     }
 
-    // Determine accessible owners: self plus any linked coaches (if feature present)
-    Future<List<String>> getAccessibleOwnerIds() async {
-      final uid = AuthService.instance.currentUserId;
-      if (uid == null) {
-        Logger.d('User not authenticated; cannot determine accessible owners');
-        return [];
-      }
-      try {
-        // Optional table `coach_links(coach_user_id, viewer_user_id)`
-        final List links = await client
-            .from('coach_links')
-            .select('coach_user_id')
-            .eq('viewer_user_id', uid);
-        final coachIds = links
-            .map((e) => (e as Map)['coach_user_id']?.toString())
-            .whereType<String>()
-            .toList();
-        return [uid, ...coachIds];
-      } catch (_) {
-        // If table doesn't exist yet, just return self
-        return [uid];
-      }
-    }
-
-    final accessibleOwnerIds = await getAccessibleOwnerIds();
+    final accessibleOwnerIds = await _getAccessibleOwnerIds();
 
     Future<void> pullTable(String table, String idCol) async {
       final cursorKey = 'cursor.$table';
@@ -513,6 +659,369 @@ class SyncService {
     await pullTable('runners', 'runner_id');
     await pullTable('teams', 'team_id');
     await pullTable('races', 'race_id');
-    await pullTable('race_results', 'result_id');
+    await _pullRaceResults(accessibleOwnerIds);
+    await _pullRaceParticipants(accessibleOwnerIds);
+  }
+
+  /// Pull race_results from remote and resolve UUID-based foreign keys to
+  /// local integer IDs before inserting or updating. Skips any row whose
+  /// runner_uuid or race_uuid cannot be resolved locally (will retry next sync).
+  Future<void> _pullRaceResults(List<String> accessibleOwnerIds) async {
+    final client = RemoteApiClient.instance.client;
+    final db = await DatabaseHelper.instance.databaseConn;
+
+    const table = 'race_results';
+    const cursorKey = 'cursor.$table';
+    final cursor = await getCursor(cursorKey);
+
+    final query = client.from(table).select();
+    if (accessibleOwnerIds.isNotEmpty) {
+      if (accessibleOwnerIds.length == 1) {
+        query.eq('owner_user_id', accessibleOwnerIds.first);
+      } else {
+        final orExpr =
+            accessibleOwnerIds.map((id) => 'owner_user_id.eq.$id').join(',');
+        query.or(orExpr);
+      }
+    }
+    if (cursor != null && cursor.isNotEmpty) {
+      query.gt('updated_at', cursor);
+    }
+    final List data = await query.order('updated_at').limit(1000);
+    if (data.isEmpty) return;
+
+    // Batch-resolve all runner_uuids and race_uuids to local integer IDs
+    final runnerUuids =
+        data.map((r) => (r as Map)['runner_uuid']).whereType<String>().toSet().toList();
+    final raceUuids =
+        data.map((r) => (r as Map)['race_uuid']).whereType<String>().toSet().toList();
+
+    final runnerUuidToId = <String, int>{};
+    final raceUuidToId = <String, int>{};
+
+    if (runnerUuids.isNotEmpty) {
+      final qMarks = List.filled(runnerUuids.length, '?').join(',');
+      final rows = await db.rawQuery(
+          'SELECT uuid, runner_id FROM runners WHERE uuid IN ($qMarks)',
+          runnerUuids);
+      for (final r in rows) {
+        runnerUuidToId[r['uuid'] as String] = r['runner_id'] as int;
+      }
+    }
+    if (raceUuids.isNotEmpty) {
+      final qMarks = List.filled(raceUuids.length, '?').join(',');
+      final rows = await db.rawQuery(
+          'SELECT uuid, race_id FROM races WHERE uuid IN ($qMarks)', raceUuids);
+      for (final r in rows) {
+        raceUuidToId[r['uuid'] as String] = r['race_id'] as int;
+      }
+    }
+
+    String? newCursor = cursor;
+
+    for (final row in data) {
+      final remote = Map<String, dynamic>.from(row as Map);
+      final uuid = remote['uuid'] as String?;
+      if (uuid == null) continue;
+
+      remote.remove('owner_user_id');
+
+      final runnerUuid = remote['runner_uuid'] as String?;
+      final raceUuid = remote['race_uuid'] as String?;
+
+      if (runnerUuid == null || raceUuid == null) {
+        Logger.d(
+            'Skipping race_result UUID:$uuid — missing runner_uuid or race_uuid');
+        continue;
+      }
+
+      final runnerId = runnerUuidToId[runnerUuid];
+      final raceId = raceUuidToId[raceUuid];
+
+      if (runnerId == null || raceId == null) {
+        Logger.d(
+            'Skipping race_result UUID:$uuid — runner_uuid=$runnerUuid or race_uuid=$raceUuid not yet pulled locally. Will retry on next sync.');
+        continue;
+      }
+
+      // Inject resolved local integer IDs
+      remote['runner_id'] = runnerId;
+      remote['race_id'] = raceId;
+
+      final locals =
+          await db.query(table, where: 'uuid = ?', whereArgs: [uuid]);
+
+      // Handle tombstones: apply soft delete regardless of LWW
+      if (remote['deleted_at'] != null) {
+        if (locals.isEmpty) {
+          final insert = Map<String, dynamic>.from(remote);
+          insert['is_dirty'] = 0;
+          await db.insert(table, insert,
+              conflictAlgorithm: ConflictAlgorithm.replace);
+        } else if (locals.first['deleted_at'] == null) {
+          await db.update(
+            table,
+            {'deleted_at': remote['deleted_at'], 'is_dirty': 0},
+            where: 'uuid = ?',
+            whereArgs: [uuid],
+          );
+          Logger.d('Applied remote tombstone to $table UUID:$uuid');
+        }
+        final updatedAtStr = remote['updated_at']?.toString();
+        if (updatedAtStr != null &&
+            (newCursor == null || updatedAtStr.compareTo(newCursor) > 0)) {
+          newCursor = updatedAtStr;
+        }
+        continue;
+      }
+
+      if (locals.isEmpty) {
+        final insert = Map<String, dynamic>.from(remote);
+        insert['is_dirty'] = 0;
+        await db.insert(table, insert,
+            conflictAlgorithm: ConflictAlgorithm.replace);
+      } else {
+        final local = locals.first;
+        final localUpdated =
+            DateTime.tryParse(local['updated_at']?.toString() ?? '') ??
+                DateTime.fromMillisecondsSinceEpoch(0);
+        final remoteUpdated =
+            DateTime.tryParse(remote['updated_at']?.toString() ?? '') ??
+                DateTime.fromMillisecondsSinceEpoch(0);
+
+        bool shouldUpdateLocal = false;
+        String conflictReason = '';
+
+        if (remoteUpdated.isAfter(localUpdated)) {
+          shouldUpdateLocal = true;
+          conflictReason = 'remote_newer';
+        } else if (localUpdated.isAfter(remoteUpdated)) {
+          conflictReason = 'local_newer';
+        } else {
+          final dataConflict = _detectDataConflict(local, remote);
+          if (dataConflict.hasConflict) {
+            shouldUpdateLocal = true;
+            conflictReason = 'equal_timestamp_data_conflict';
+            Logger.d(
+                '⚠️ Data conflict for $table UUID:$uuid — same timestamp but different data: ${dataConflict.differences}');
+          } else {
+            conflictReason = 'no_conflict_identical_data';
+          }
+        }
+
+        if (shouldUpdateLocal) {
+          final update = Map<String, dynamic>.from(remote);
+          final localDirty = local['is_dirty'] == 1;
+          final timeDifference = remoteUpdated.difference(localUpdated);
+          if (localDirty && timeDifference.inMinutes < 5) {
+            update['is_dirty'] = 1;
+            Logger.d(
+                'Preserving dirty flag for $table UUID:$uuid — local has recent unsaved changes');
+          } else {
+            update['is_dirty'] = 0;
+          }
+          await db.update(table, update, where: 'uuid = ?', whereArgs: [uuid]);
+          Logger.d('Updated $table UUID:$uuid from remote ($conflictReason)');
+        } else {
+          Logger.d('Kept local $table UUID:$uuid ($conflictReason)');
+        }
+      }
+
+      final updatedAtStr = remote['updated_at']?.toString();
+      if (updatedAtStr != null &&
+          (newCursor == null || updatedAtStr.compareTo(newCursor) > 0)) {
+        newCursor = updatedAtStr;
+      }
+    }
+
+    if (newCursor != null && newCursor != cursor) {
+      await setCursor(cursorKey, newCursor);
+    }
+  }
+
+  /// Pull race_participants from remote and resolve UUID-based foreign keys to
+  /// local integer IDs before inserting or updating. Skips rows where any UUID
+  /// cannot be resolved locally (will retry next sync).
+  Future<void> _pullRaceParticipants(List<String> accessibleOwnerIds) async {
+    final client = RemoteApiClient.instance.client;
+    final db = await DatabaseHelper.instance.databaseConn;
+
+    const table = 'race_participants';
+    const cursorKey = cursorRaceParticipants;
+    final cursor = await getCursor(cursorKey);
+
+    final query = client.from(table).select();
+    if (accessibleOwnerIds.isNotEmpty) {
+      if (accessibleOwnerIds.length == 1) {
+        query.eq('owner_user_id', accessibleOwnerIds.first);
+      } else {
+        final orExpr =
+            accessibleOwnerIds.map((id) => 'owner_user_id.eq.$id').join(',');
+        query.or(orExpr);
+      }
+    }
+    if (cursor != null && cursor.isNotEmpty) {
+      query.gt('updated_at', cursor);
+    }
+    final List data = await query.order('updated_at').limit(1000);
+    if (data.isEmpty) return;
+
+    // Batch-resolve all UUIDs to local integer IDs
+    final raceUuids =
+        data.map((r) => (r as Map)['race_uuid']).whereType<String>().toSet().toList();
+    final runnerUuids =
+        data.map((r) => (r as Map)['runner_uuid']).whereType<String>().toSet().toList();
+    final teamUuids =
+        data.map((r) => (r as Map)['team_uuid']).whereType<String>().toSet().toList();
+
+    final raceUuidToId = <String, int>{};
+    final runnerUuidToId = <String, int>{};
+    final teamUuidToId = <String, int>{};
+
+    if (raceUuids.isNotEmpty) {
+      final qMarks = List.filled(raceUuids.length, '?').join(',');
+      final rows = await db.rawQuery(
+          'SELECT uuid, race_id FROM races WHERE uuid IN ($qMarks)', raceUuids);
+      for (final r in rows) {
+        raceUuidToId[r['uuid'] as String] = r['race_id'] as int;
+      }
+    }
+    if (runnerUuids.isNotEmpty) {
+      final qMarks = List.filled(runnerUuids.length, '?').join(',');
+      final rows = await db.rawQuery(
+          'SELECT uuid, runner_id FROM runners WHERE uuid IN ($qMarks)',
+          runnerUuids);
+      for (final r in rows) {
+        runnerUuidToId[r['uuid'] as String] = r['runner_id'] as int;
+      }
+    }
+    if (teamUuids.isNotEmpty) {
+      final qMarks = List.filled(teamUuids.length, '?').join(',');
+      final rows = await db.rawQuery(
+          'SELECT uuid, team_id FROM teams WHERE uuid IN ($qMarks)', teamUuids);
+      for (final r in rows) {
+        teamUuidToId[r['uuid'] as String] = r['team_id'] as int;
+      }
+    }
+
+    String? newCursor = cursor;
+
+    for (final row in data) {
+      final remote = Map<String, dynamic>.from(row as Map);
+      remote.remove('owner_user_id');
+
+      final raceUuid = remote['race_uuid'] as String?;
+      final runnerUuid = remote['runner_uuid'] as String?;
+      final teamUuid = remote['team_uuid'] as String?;
+
+      if (raceUuid == null || runnerUuid == null) {
+        Logger.d(
+            'Skipping race_participant — missing race_uuid or runner_uuid');
+        continue;
+      }
+
+      final raceId = raceUuidToId[raceUuid];
+      final runnerId = runnerUuidToId[runnerUuid];
+
+      if (raceId == null || runnerId == null) {
+        Logger.d(
+            'Skipping race_participant race_uuid=$raceUuid runner_uuid=$runnerUuid — not yet pulled locally. Will retry on next sync.');
+        continue;
+      }
+
+      final teamId = teamUuid != null ? teamUuidToId[teamUuid] : null;
+
+      // Inject resolved local integer IDs
+      remote['race_id'] = raceId;
+      remote['runner_id'] = runnerId;
+      if (teamId != null) remote['team_id'] = teamId;
+
+      final locals = await db.query(
+        table,
+        where: 'race_id = ? AND runner_id = ?',
+        whereArgs: [raceId, runnerId],
+      );
+
+      // Handle tombstones
+      if (remote['deleted_at'] != null) {
+        if (locals.isEmpty) {
+          final insert = Map<String, dynamic>.from(remote);
+          insert['is_dirty'] = 0;
+          await db.insert(table, insert,
+              conflictAlgorithm: ConflictAlgorithm.replace);
+        } else if (locals.first['deleted_at'] == null) {
+          await db.update(
+            table,
+            {'deleted_at': remote['deleted_at'], 'is_dirty': 0},
+            where: 'race_id = ? AND runner_id = ?',
+            whereArgs: [raceId, runnerId],
+          );
+          Logger.d(
+              'Applied remote tombstone to $table race_uuid=$raceUuid runner_uuid=$runnerUuid');
+        }
+        final updatedAtStr = remote['updated_at']?.toString();
+        if (updatedAtStr != null &&
+            (newCursor == null || updatedAtStr.compareTo(newCursor) > 0)) {
+          newCursor = updatedAtStr;
+        }
+        continue;
+      }
+
+      if (locals.isEmpty) {
+        final insert = Map<String, dynamic>.from(remote);
+        insert['is_dirty'] = 0;
+        await db.insert(table, insert,
+            conflictAlgorithm: ConflictAlgorithm.replace);
+      } else {
+        final local = locals.first;
+        final localUpdated =
+            DateTime.tryParse(local['updated_at']?.toString() ?? '') ??
+                DateTime.fromMillisecondsSinceEpoch(0);
+        final remoteUpdated =
+            DateTime.tryParse(remote['updated_at']?.toString() ?? '') ??
+                DateTime.fromMillisecondsSinceEpoch(0);
+
+        bool shouldUpdateLocal = false;
+        String conflictReason = '';
+
+        if (remoteUpdated.isAfter(localUpdated)) {
+          shouldUpdateLocal = true;
+          conflictReason = 'remote_newer';
+        } else if (localUpdated.isAfter(remoteUpdated)) {
+          conflictReason = 'local_newer';
+        } else {
+          conflictReason = 'no_conflict_identical_data';
+        }
+
+        if (shouldUpdateLocal) {
+          final update = Map<String, dynamic>.from(remote);
+          final localDirty = local['is_dirty'] == 1;
+          final timeDifference = remoteUpdated.difference(localUpdated);
+          if (localDirty && timeDifference.inMinutes < 5) {
+            update['is_dirty'] = 1;
+          } else {
+            update['is_dirty'] = 0;
+          }
+          await db.update(table, update,
+              where: 'race_id = ? AND runner_id = ?',
+              whereArgs: [raceId, runnerId]);
+          Logger.d(
+              'Updated $table race_uuid=$raceUuid runner_uuid=$runnerUuid from remote ($conflictReason)');
+        } else {
+          Logger.d(
+              'Kept local $table race_uuid=$raceUuid runner_uuid=$runnerUuid ($conflictReason)');
+        }
+      }
+
+      final updatedAtStr = remote['updated_at']?.toString();
+      if (updatedAtStr != null &&
+          (newCursor == null || updatedAtStr.compareTo(newCursor) > 0)) {
+        newCursor = updatedAtStr;
+      }
+    }
+
+    if (newCursor != null && newCursor != cursor) {
+      await setCursor(cursorKey, newCursor);
+    }
   }
 }
