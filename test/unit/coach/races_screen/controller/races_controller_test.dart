@@ -171,6 +171,118 @@ void main() {
       });
     });
 
+    group('validateName', () {
+      test('clears nameError on valid input', () {
+        when(mockRacesService.validateName('State Meet')).thenReturn(null);
+
+        controller.validateName('State Meet');
+
+        expect(controller.nameError, isNull);
+      });
+
+      test('sets nameError on invalid input', () {
+        when(mockRacesService.validateName('')).thenReturn('Please enter a race name');
+
+        controller.validateName('');
+
+        expect(controller.nameError, 'Please enter a race name');
+      });
+
+      test('notifies listeners', () {
+        when(mockRacesService.validateName(any)).thenReturn(null);
+        var notified = false;
+        controller.addListener(() => notified = true);
+
+        controller.validateName('State Meet');
+
+        expect(notified, isTrue);
+      });
+    });
+
+    group('validateLocation', () {
+      test('clears locationError on valid input', () {
+        when(mockRacesService.validateLocation('123 Main St')).thenReturn(null);
+
+        controller.validateLocation('123 Main St');
+
+        expect(controller.locationError, isNull);
+      });
+
+      test('sets locationError on invalid input', () {
+        when(mockRacesService.validateLocation('')).thenReturn('Please enter a location');
+
+        controller.validateLocation('');
+
+        expect(controller.locationError, 'Please enter a location');
+      });
+
+      test('notifies listeners', () {
+        when(mockRacesService.validateLocation(any)).thenReturn(null);
+        var notified = false;
+        controller.addListener(() => notified = true);
+
+        controller.validateLocation('123 Main St');
+
+        expect(notified, isTrue);
+      });
+    });
+
+    group('validateDate', () {
+      test('clears dateError on valid input', () {
+        when(mockRacesService.validateDate('2024-06-15')).thenReturn(null);
+
+        controller.validateDate('2024-06-15');
+
+        expect(controller.dateError, isNull);
+      });
+
+      test('sets dateError on invalid input', () {
+        when(mockRacesService.validateDate('')).thenReturn('Please select a date');
+
+        controller.validateDate('');
+
+        expect(controller.dateError, 'Please select a date');
+      });
+
+      test('notifies listeners', () {
+        when(mockRacesService.validateDate(any)).thenReturn(null);
+        var notified = false;
+        controller.addListener(() => notified = true);
+
+        controller.validateDate('2024-06-15');
+
+        expect(notified, isTrue);
+      });
+    });
+
+    group('validateDistance', () {
+      test('clears distanceError on valid input', () {
+        when(mockRacesService.validateDistance('5.0')).thenReturn(null);
+
+        controller.validateDistance('5.0');
+
+        expect(controller.distanceError, isNull);
+      });
+
+      test('sets distanceError on invalid input', () {
+        when(mockRacesService.validateDistance('')).thenReturn('Please enter a race distance');
+
+        controller.validateDistance('');
+
+        expect(controller.distanceError, 'Please enter a race distance');
+      });
+
+      test('notifies listeners', () {
+        when(mockRacesService.validateDistance(any)).thenReturn(null);
+        var notified = false;
+        controller.addListener(() => notified = true);
+
+        controller.validateDistance('5.0');
+
+        expect(notified, isTrue);
+      });
+    });
+
     group('addTeamField', () {
       test('appends a controller and a white color', () {
         final initialCount = controller.teamControllers.length;

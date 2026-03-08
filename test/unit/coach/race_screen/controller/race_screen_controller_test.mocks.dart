@@ -725,65 +725,37 @@ class MockRacesController extends _i1.Mock implements _i15.RacesController {
       ) as _i12.Future<void>);
 
   @override
-  void validateName(
-    dynamic name,
-    _i5.StateSetter? setSheetState,
-  ) =>
-      super.noSuchMethod(
+  void validateName(String? name) => super.noSuchMethod(
         Invocation.method(
           #validateName,
-          [
-            name,
-            setSheetState,
-          ],
+          [name],
         ),
         returnValueForMissingStub: null,
       );
 
   @override
-  void validateLocation(
-    String? location,
-    _i5.StateSetter? setSheetState,
-  ) =>
-      super.noSuchMethod(
+  void validateLocation(String? location) => super.noSuchMethod(
         Invocation.method(
           #validateLocation,
-          [
-            location,
-            setSheetState,
-          ],
+          [location],
         ),
         returnValueForMissingStub: null,
       );
 
   @override
-  void validateDate(
-    String? dateString,
-    _i5.StateSetter? setSheetState,
-  ) =>
-      super.noSuchMethod(
+  void validateDate(String? dateString) => super.noSuchMethod(
         Invocation.method(
           #validateDate,
-          [
-            dateString,
-            setSheetState,
-          ],
+          [dateString],
         ),
         returnValueForMissingStub: null,
       );
 
   @override
-  void validateDistance(
-    String? distanceString,
-    _i5.StateSetter? setSheetState,
-  ) =>
-      super.noSuchMethod(
+  void validateDistance(String? distanceString) => super.noSuchMethod(
         Invocation.method(
           #validateDistance,
-          [
-            distanceString,
-            setSheetState,
-          ],
+          [distanceString],
         ),
         returnValueForMissingStub: null,
       );
