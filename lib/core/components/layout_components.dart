@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_animations.dart';
 import '../theme/app_border_radius.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
@@ -7,8 +8,8 @@ import '../theme/typography.dart';
 /// Layout and structural UI components
 /// This file contains widgets for organizing and structuring content
 
-/// Reusable search bar widget
-class SearchBarWidget extends StatelessWidget {
+/// Reusable search bar widget with animated focus state.
+class SearchBarWidget extends StatefulWidget {
   final String? hintText;
   final String? value;
   final ValueChanged<String>? onChanged;
@@ -25,30 +26,62 @@ class SearchBarWidget extends StatelessWidget {
   });
 
   @override
+  State<SearchBarWidget> createState() => _SearchBarWidgetState();
+}
+
+class _SearchBarWidgetState extends State<SearchBarWidget> {
+  bool _isFocused = false;
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode = FocusNode()..addListener(_onFocusChange);
+  }
+
+  void _onFocusChange() {
+    setState(() => _isFocused = _focusNode.hasFocus);
+  }
+
+  @override
+  void dispose() {
+    _focusNode
+      ..removeListener(_onFocusChange)
+      ..dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: EdgeInsets.all(isCompact ? AppSpacing.sm : AppSpacing.lg),
+    return AnimatedContainer(
+      duration: AppAnimations.fast,
+      curve: AppAnimations.spring,
+      margin: EdgeInsets.all(widget.isCompact ? AppSpacing.sm : AppSpacing.lg),
       decoration: BoxDecoration(
         color: AppColors.backgroundColor,
         borderRadius: BorderRadius.circular(AppBorderRadius.md),
-        border: Border.all(color: AppColors.lightColor),
+        border: Border.all(
+          color: _isFocused ? AppColors.primaryColor : AppColors.lightColor,
+        ),
       ),
       child: TextField(
-        controller: value != null ? TextEditingController(text: value) : null,
-        onChanged: onChanged,
+        focusNode: _focusNode,
+        controller:
+            widget.value != null ? TextEditingController(text: widget.value) : null,
+        onChanged: widget.onChanged,
         decoration: InputDecoration(
-          hintText: hintText ?? 'Search...',
+          hintText: widget.hintText ?? 'Search...',
           prefixIcon: const Icon(Icons.search),
-          suffixIcon: value != null && value!.isNotEmpty
+          suffixIcon: widget.value != null && widget.value!.isNotEmpty
               ? IconButton(
                   icon: const Icon(Icons.clear),
-                  onPressed: onClear,
+                  onPressed: widget.onClear,
                 )
               : null,
           border: InputBorder.none,
           contentPadding: EdgeInsets.symmetric(
             horizontal: AppSpacing.lg,
-            vertical: isCompact ? AppSpacing.md : AppSpacing.lg,
+            vertical: widget.isCompact ? AppSpacing.md : AppSpacing.lg,
           ),
         ),
       ),

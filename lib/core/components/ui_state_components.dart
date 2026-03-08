@@ -1,10 +1,47 @@
 import 'package:flutter/material.dart';
+import '../theme/app_animations.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../theme/typography.dart';
 
 /// UI state components for different application states
 /// This file contains widgets for loading, error, and empty states
+
+/// Wraps async content states in an [AnimatedSwitcher] for smooth transitions
+/// between loading and content states. Use this wherever a screen switches
+/// from a [LoadingWidget] to its content.
+class AsyncContentSwitcher extends StatelessWidget {
+  const AsyncContentSwitcher({
+    super.key,
+    required this.isLoading,
+    required this.child,
+    this.loadingWidget,
+  });
+
+  final bool isLoading;
+  final Widget child;
+
+  /// Override the default [LoadingWidget] with a custom loading indicator.
+  final Widget? loadingWidget;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: AppAnimations.standard,
+      switchInCurve: AppAnimations.enter,
+      switchOutCurve: AppAnimations.exit,
+      child: isLoading
+          ? KeyedSubtree(
+              key: const ValueKey('loading'),
+              child: loadingWidget ?? const LoadingWidget(),
+            )
+          : KeyedSubtree(
+              key: const ValueKey('content'),
+              child: child,
+            ),
+    );
+  }
+}
 
 /// Reusable loading indicator with consistent styling
 class LoadingWidget extends StatelessWidget {

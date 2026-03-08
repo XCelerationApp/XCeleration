@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:xceleration/core/components/dialog_utils.dart';
+import 'package:xceleration/core/theme/app_animations.dart';
 import 'package:xceleration/core/theme/app_border_radius.dart';
 import 'package:xceleration/core/theme/app_colors.dart';
 import 'package:xceleration/core/theme/app_opacity.dart';
@@ -97,12 +98,16 @@ class _PermissionsDialogState extends State<PermissionsDialog> {
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
+          AnimatedContainer(
+            duration: AppAnimations.standard,
+            curve: AppAnimations.spring,
             width: AppSpacing.md,
             height: AppSpacing.md,
             decoration: BoxDecoration(
               color: statusData.color,
               shape: BoxShape.circle,
+              border: Border.all(
+                  color: statusData.color.withValues(alpha: AppOpacity.border)),
             ),
           ),
           const SizedBox(width: AppSpacing.sm),

@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import '../theme/app_animations.dart';
 import '../theme/app_border_radius.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_opacity.dart';
 import '../theme/app_spacing.dart';
+import '../theme/typography.dart';
 import '../utils/color_utils.dart';
 
-class InstructionCard extends StatelessWidget {
+class InstructionCard extends StatefulWidget {
   final String title;
   final List<InstructionItem> instructions;
   final Color? accentColor;
@@ -22,62 +24,84 @@ class InstructionCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final color = accentColor ?? AppColors.primaryColor;
+  State<InstructionCard> createState() => _InstructionCardState();
+}
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 0),
-      child: Card(
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppBorderRadius.md),
-          side: BorderSide(
-            color: ColorUtils.withOpacity(color, AppOpacity.strong),
-            width: 0.5,
-          ),
+class _InstructionCardState extends State<InstructionCard> {
+  late bool _isExpanded;
+
+  @override
+  void initState() {
+    super.initState();
+    _isExpanded = widget.initiallyExpanded;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = widget.accentColor ?? AppColors.primaryColor;
+
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppBorderRadius.md),
+        side: BorderSide(
+          color: ColorUtils.withOpacity(color, AppOpacity.strong),
+          width: 0.5,
         ),
-        child: ExpansionTile(
-          initiallyExpanded: initiallyExpanded,
-          title: Row(
-            children: [
-              Container(
-                width: AppSpacing.xxl,
-                height: AppSpacing.xxl,
-                decoration: BoxDecoration(
-                  color: ColorUtils.withOpacity(color, AppOpacity.light),
-                  borderRadius: BorderRadius.circular(AppBorderRadius.lg),
-                ),
-                child: Icon(
-                  icon,
-                  color: color,
-                  size: 20,
-                ),
+      ),
+      child: Column(
+        children: [
+          GestureDetector(
+            onTap: () => setState(() => _isExpanded = !_isExpanded),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.lg,
+                vertical: AppSpacing.md,
               ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    color: color,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 18,
+              child: Row(
+                children: [
+                  Container(
+                    width: AppSpacing.xxl,
+                    height: AppSpacing.xxl,
+                    decoration: BoxDecoration(
+                      color: ColorUtils.withOpacity(color, AppOpacity.light),
+                      borderRadius: BorderRadius.circular(AppBorderRadius.lg),
+                    ),
+                    child: Icon(widget.icon, color: color, size: 20),
                   ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          trailing: Icon(Icons.arrow_drop_down, color: color),
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: instructions,
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Text(
+                      widget.title,
+                      style: AppTypography.titleMedium.copyWith(color: color),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  AnimatedRotation(
+                    turns: _isExpanded ? 0.5 : 0,
+                    duration: AppAnimations.standard,
+                    curve: AppAnimations.spring,
+                    child: Icon(Icons.arrow_drop_down, color: color),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+          AnimatedSize(
+            duration: AppAnimations.standard,
+            curve: AppAnimations.spring,
+            child: _isExpanded
+                ? Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: widget.instructions,
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
+        ],
       ),
     );
   }
@@ -114,22 +138,13 @@ class InstructionItem extends StatelessWidget {
             child: Center(
               child: Text(
                 number,
-                style: TextStyle(
-                  color: color,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: AppTypography.smallBodySemibold.copyWith(color: color),
               ),
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(
-                fontSize: 14,
-                height: 1.4,
-              ),
-            ),
+            child: Text(text, style: AppTypography.smallBodyRegular),
           ),
         ],
       ),

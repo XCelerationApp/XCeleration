@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_animations.dart';
 import '../theme/app_border_radius.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_opacity.dart';
@@ -135,6 +136,77 @@ class RaceInfoHeaderWidget extends StatelessWidget {
 
 }
 
+/// Private button widget with AnimatedScale press feedback.
+class _ControlButton extends StatefulWidget {
+  const _ControlButton({
+    required this.icon,
+    required this.label,
+    this.onPressed,
+    this.isPrimary = false,
+    this.isDestructive = false,
+    this.isCompact = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback? onPressed;
+  final bool isPrimary;
+  final bool isDestructive;
+  final bool isCompact;
+
+  @override
+  State<_ControlButton> createState() => _ControlButtonState();
+}
+
+class _ControlButtonState extends State<_ControlButton> {
+  bool _pressed = false;
+
+  ButtonStyle get _buttonStyle {
+    if (widget.isPrimary) {
+      return ElevatedButton.styleFrom(
+        backgroundColor: AppColors.primaryColor,
+        foregroundColor: Colors.white,
+      );
+    }
+    if (widget.isDestructive) {
+      return ElevatedButton.styleFrom(
+        backgroundColor: AppColors.redColor,
+        foregroundColor: Colors.white,
+      );
+    }
+    return ElevatedButton.styleFrom(
+      backgroundColor: AppColors.lightColor,
+      foregroundColor: AppColors.darkColor,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: widget.onPressed != null
+          ? (_) => setState(() => _pressed = true)
+          : null,
+      onTapUp: widget.onPressed != null
+          ? (_) => setState(() => _pressed = false)
+          : null,
+      onTapCancel: widget.onPressed != null
+          ? () => setState(() => _pressed = false)
+          : null,
+      child: AnimatedScale(
+        scale: _pressed ? 0.94 : 1.0,
+        duration: AppAnimations.fast,
+        curve: AppAnimations.spring,
+        child: ElevatedButton.icon(
+          onPressed: widget.onPressed,
+          icon: Icon(widget.icon, size: widget.isCompact ? 18.0 : 20.0),
+          label: Text(widget.label),
+          style: _buttonStyle,
+        ),
+      ),
+    );
+  }
+}
+
 /// Reusable race controls widget with consistent styling
 class RaceControlsWidget extends StatelessWidget {
   final bool isRaceStarted;
@@ -186,49 +258,49 @@ class RaceControlsWidget extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 if (!isRaceStarted) ...[
-                  _buildControlButton(
-                    context,
+                  _ControlButton(
                     icon: Icons.play_arrow,
                     label: 'Start',
                     onPressed: onStart,
                     isPrimary: true,
+                    isCompact: isCompact,
                   ),
                 ] else if (isRacePaused) ...[
-                  _buildControlButton(
-                    context,
+                  _ControlButton(
                     icon: Icons.play_arrow,
                     label: 'Cont.',
                     onPressed: onResume,
                     isPrimary: true,
+                    isCompact: isCompact,
                   ),
-                  _buildControlButton(
-                    context,
+                  _ControlButton(
                     icon: Icons.stop,
                     label: 'Stop',
                     onPressed: onStop,
                     isDestructive: true,
+                    isCompact: isCompact,
                   ),
                 ] else if (!isRaceFinished) ...[
-                  _buildControlButton(
-                    context,
+                  _ControlButton(
                     icon: Icons.pause,
                     label: 'Pause',
                     onPressed: onPause,
+                    isCompact: isCompact,
                   ),
-                  _buildControlButton(
-                    context,
+                  _ControlButton(
                     icon: Icons.stop,
                     label: 'Stop',
                     onPressed: onStop,
                     isDestructive: true,
+                    isCompact: isCompact,
                   ),
                 ] else ...[
-                  _buildControlButton(
-                    context,
+                  _ControlButton(
                     icon: Icons.refresh,
                     label: 'Reset',
                     onPressed: onReset,
                     isPrimary: true,
+                    isCompact: isCompact,
                   ),
                 ],
               ],
@@ -239,36 +311,6 @@ class RaceControlsWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildControlButton(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    VoidCallback? onPressed,
-    bool isPrimary = false,
-    bool isDestructive = false,
-  }) {
-    final buttonStyle = isPrimary
-        ? ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primaryColor,
-            foregroundColor: Colors.white,
-          )
-        : isDestructive
-            ? ElevatedButton.styleFrom(
-                backgroundColor: AppColors.redColor,
-                foregroundColor: Colors.white,
-              )
-            : ElevatedButton.styleFrom(
-                backgroundColor: AppColors.lightColor,
-                foregroundColor: AppColors.darkColor,
-              );
-
-    return ElevatedButton.icon(
-      onPressed: onPressed,
-      icon: Icon(icon, size: isCompact ? 18 : 20),
-      label: Text(label),
-      style: buttonStyle,
-    );
-  }
 }
 
 /// Shared race status header widget that consolidates RaceInfoHeaderWidget implementations
@@ -306,11 +348,20 @@ class RaceStatusHeaderWidget extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            status,
-            style: AppTypography.bodySemibold.copyWith(
-              color: statusColor,
-              fontWeight: FontWeight.w600,
+          AnimatedContainer(
+            duration: AppAnimations.standard,
+            curve: AppAnimations.spring,
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+            decoration: BoxDecoration(
+              color: statusColor.withValues(alpha: AppOpacity.light),
+              borderRadius: BorderRadius.circular(AppBorderRadius.sm),
+              border: Border.all(
+                  color: statusColor.withValues(alpha: AppOpacity.strong)),
+            ),
+            child: Text(
+              status,
+              style: AppTypography.bodySemibold.copyWith(color: statusColor),
             ),
           ),
           if (runnerCount != null && onRunnersTap != null && showDropdown)
