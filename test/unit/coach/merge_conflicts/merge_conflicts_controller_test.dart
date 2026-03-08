@@ -1,6 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mockito/annotations.dart';
+import 'package:mockito/mockito.dart';
 import 'package:xceleration/coach/merge_conflicts/controller/merge_conflicts_controller.dart';
 import 'package:xceleration/core/app_error.dart';
+import 'package:xceleration/core/services/post_frame_callback_scheduler.dart';
 import 'package:xceleration/core/utils/enums.dart';
 import 'package:xceleration/shared/models/database/master_race.dart';
 import 'package:xceleration/shared/models/database/race_runner.dart';
@@ -9,6 +12,9 @@ import 'package:xceleration/shared/models/database/team.dart';
 import 'package:xceleration/shared/models/timing_records/conflict.dart';
 import 'package:xceleration/shared/models/timing_records/timing_chunk.dart';
 import 'package:xceleration/shared/models/timing_records/timing_datum.dart';
+
+@GenerateMocks([IPostFrameCallbackScheduler])
+import 'merge_conflicts_controller_test.mocks.dart';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -76,11 +82,13 @@ List<RaceRunner> _runners(int n) => List.generate(n, (i) => _runner(i + 1));
 MergeConflictsController _buildController({
   List<TimingChunk>? timingChunks,
   List<RaceRunner>? raceRunners,
+  IPostFrameCallbackScheduler? scheduler,
 }) {
   return MergeConflictsController(
     masterRace: MasterRace.getInstance(1),
     timingChunks: timingChunks ?? [],
     raceRunners: raceRunners ?? [],
+    scheduler: scheduler,
   );
 }
 
@@ -593,6 +601,182 @@ void main() {
         );
 
         expect(controller.canClose(), isNull);
+      });
+    });
+
+    // -----------------------------------------------------------------------
+    group('removeExtraTime — additional cases', () {
+      test('returns false if chunk has wrong conflict type', () {
+        final controller = _buildController(
+          timingChunks: [_missingTimeChunk(1, ['TBD'], 1)],
+          raceRunners: _runners(1),
+        );
+
+        final result = controller.removeExtraTime(1, 0);
+
+        expect(result, isFalse);
+      });
+    });
+
+    // -----------------------------------------------------------------------
+    group('removeExtraTimeRecord', () {
+      test('removes record from uiChunk and timingChunk for extraTime chunk',
+          () {
+        final chunk =
+            _extraTimeChunk(1, ['1:00.0', '2:00.0', '3:00.0'], 1);
+        final controller = _buildController(
+          timingChunks: [chunk],
+          raceRunners: _runners(2),
+        );
+
+        controller.removeExtraTimeRecord(1, 2);
+
+        expect(controller.timingChunks.first.timingData.length, 2);
+      });
+
+      test('does nothing for wrong conflict type', () {
+        final chunk = _missingTimeChunk(1, ['1:00.0', 'TBD'], 1);
+        final controller = _buildController(
+          timingChunks: [chunk],
+          raceRunners: _runners(2),
+        );
+
+        controller.removeExtraTimeRecord(1, 0);
+
+        // timingData unchanged
+        expect(controller.timingChunks.first.timingData.length, 2);
+      });
+    });
+
+    // -----------------------------------------------------------------------
+    group('submitMissingTimeRecord', () {
+      test('updates record time', () async {
+        final chunk = _missingTimeChunk(1, ['TBD'], 1, endTime: '5:00.0');
+        final controller = _buildController(
+          timingChunks: [chunk],
+          raceRunners: _runners(1),
+        );
+
+        final uiChunk = controller.uiChunks.first;
+        await controller.submitMissingTimeRecord(uiChunk.chunkId, 0, '2:00.0');
+
+        expect(uiChunk.records.first.time, '2:00.0');
+      });
+
+      test('calls syncChunkToBackendAndCheckResolution when chunk is resolved',
+          () async {
+        final chunk = _missingTimeChunk(1, ['TBD'], 1, endTime: '5:00.0');
+        final controller = _buildController(
+          timingChunks: [chunk],
+          raceRunners: _runners(1),
+        );
+
+        final uiChunk = controller.uiChunks.first;
+        await controller.submitMissingTimeRecord(uiChunk.chunkId, 0, '1:00.0');
+
+        // Sync sets offBy to 0 when no TBDs remain.
+        expect(chunk.conflictRecord!.conflict!.offBy, 0);
+      });
+    });
+
+    // -----------------------------------------------------------------------
+    group('updateMissingTimeRecord', () {
+      test('updates timeController text and notifies listeners', () {
+        final chunk = _missingTimeChunk(1, ['TBD'], 1, endTime: '5:00.0');
+        final controller = _buildController(
+          timingChunks: [chunk],
+          raceRunners: _runners(1),
+        );
+
+        final uiChunk = controller.uiChunks.first;
+        var notified = false;
+        controller.addListener(() => notified = true);
+
+        controller.updateMissingTimeRecord(uiChunk.chunkId, 0, '2:00.0');
+
+        expect(uiChunk.records.first.timeController.text, '2:00.0');
+        expect(notified, isTrue);
+      });
+
+      test('sets validation error for invalid time', () {
+        final chunk = _missingTimeChunk(1, ['TBD'], 1, endTime: '5:00.0');
+        final controller = _buildController(
+          timingChunks: [chunk],
+          raceRunners: _runners(1),
+        );
+
+        final uiChunk = controller.uiChunks.first;
+        controller.updateMissingTimeRecord(uiChunk.chunkId, 0, 'not-a-time');
+
+        expect(uiChunk.records.first.validationError, isNotNull);
+      });
+    });
+
+    // -----------------------------------------------------------------------
+    group('insertTbdAt', () {
+      test('inserts new TBD record at index for confirmRunner chunk', () {
+        final chunk = _confirmChunk(1, ['1:00.0', '2:00.0']);
+        final controller = _buildController(
+          timingChunks: [chunk],
+          raceRunners: _runners(2),
+        );
+
+        final uiChunk = controller.uiChunks.first;
+        final countBefore = uiChunk.records.length;
+
+        controller.insertTbdAt(uiChunk.chunkId, 0);
+
+        expect(uiChunk.records.length, countBefore + 1);
+        expect(uiChunk.records.first.time, 'TBD');
+      });
+
+      test('moves existing TBD to target index for missingTime chunk', () {
+        final chunk =
+            _missingTimeChunk(1, ['1:00.0', 'TBD'], 1, endTime: '5:00.0');
+        final controller = _buildController(
+          timingChunks: [chunk],
+          raceRunners: _runners(2),
+        );
+
+        final uiChunk = controller.uiChunks.first;
+
+        // TBD is at index 1; move it to index 0.
+        controller.insertTbdAt(uiChunk.chunkId, 0);
+
+        expect(uiChunk.records.first.time, 'TBD');
+      });
+    });
+
+    // -----------------------------------------------------------------------
+    group('_checkForAutoClose', () {
+      test('calls scheduler when all conflicts resolved and single chunk',
+          () async {
+        final mockScheduler = MockIPostFrameCallbackScheduler();
+        final chunk = _confirmChunk(1, ['1:00.0']);
+        final controller = _buildController(
+          timingChunks: [chunk],
+          raceRunners: _runners(1),
+          scheduler: mockScheduler,
+        );
+
+        await controller.consolidateConfirmedTimes();
+
+        verify(mockScheduler.addPostFrameCallback(any)).called(1);
+      });
+
+      test('does not call scheduler when TBD values remain', () async {
+        final mockScheduler = MockIPostFrameCallbackScheduler();
+        final controller = _buildController(
+          timingChunks: [
+            _missingTimeChunk(1, ['TBD'], 1, endTime: '5:00.0'),
+          ],
+          raceRunners: _runners(1),
+          scheduler: mockScheduler,
+        );
+
+        await controller.consolidateConfirmedTimes();
+
+        verifyNever(mockScheduler.addPostFrameCallback(any));
       });
     });
 

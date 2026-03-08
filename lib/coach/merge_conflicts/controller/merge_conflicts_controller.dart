@@ -4,6 +4,7 @@ import 'package:xceleration/coach/merge_conflicts/models/ui_record.dart';
 import 'package:xceleration/coach/merge_conflicts/utils/merge_conflicts_utils.dart';
 import 'package:xceleration/coach/merge_conflicts/utils/timing_data_converter.dart';
 import 'package:xceleration/core/app_error.dart';
+import 'package:xceleration/core/services/post_frame_callback_scheduler.dart';
 import 'package:xceleration/core/utils/index.dart';
 import 'package:xceleration/shared/models/database/master_race.dart';
 import 'package:xceleration/shared/models/database/race_runner.dart';
@@ -27,6 +28,8 @@ class MergeConflictsController with ChangeNotifier {
   List<UIChunk>? _cachedUIChunks;
   bool _needsUIRebuild = true;
 
+  late final IPostFrameCallbackScheduler _scheduler;
+
   /// Force UI rebuild (used by UIChunk when records change)
   void invalidateUICache() {
     _needsUIRebuild = true;
@@ -36,7 +39,8 @@ class MergeConflictsController with ChangeNotifier {
     required this.masterRace,
     required this.timingChunks,
     required this.raceRunners,
-  });
+    IPostFrameCallbackScheduler? scheduler,
+  }) : _scheduler = scheduler ?? WidgetsBindingAdapter();
 
   List<UIChunk> get uiChunks {
     // Cache the UI chunks to preserve controller state across rebuilds
@@ -319,7 +323,7 @@ class MergeConflictsController with ChangeNotifier {
 
         // Check if we now have one consolidated confirmed chunk and auto-close if so
         if (!hasConflicts) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
+          _scheduler.addPostFrameCallback(() {
             onReadyToClose?.call();
           });
           return; // Don't notify listeners since we're closing
@@ -426,7 +430,7 @@ class MergeConflictsController with ChangeNotifier {
   void _checkForAutoClose() {
     if (allConflictsResolved && hasValidTimeOrder && timingChunks.length == 1) {
       // Schedule auto-close for next frame to avoid dispose issues
-      WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scheduler.addPostFrameCallback(() {
         onReadyToClose?.call();
       });
     }
