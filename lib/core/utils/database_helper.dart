@@ -693,8 +693,12 @@ class DatabaseHelper implements IDatabaseHelper {
           .delete('race_results', where: 'race_id = ?', whereArgs: [raceId]);
 
       // Insert new results
+      final now = DateTime.now().toIso8601String();
       for (final result in results) {
-        await txn.insert('race_results', result.toMap());
+        final map = result.toMap();
+        map['is_dirty'] = 1;
+        map['updated_at'] = now;
+        await txn.insert('race_results', map);
       }
     });
   }
