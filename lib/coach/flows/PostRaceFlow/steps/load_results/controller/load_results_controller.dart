@@ -3,6 +3,7 @@ import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/result.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/core/services/device_connection_service.dart';
+import 'package:xceleration/core/services/post_frame_callback_scheduler.dart';
 import 'package:xceleration/core/utils/decode_utils.dart';
 import 'package:xceleration/core/components/dialog_utils.dart';
 import 'package:xceleration/core/utils/enums.dart';
@@ -33,16 +34,19 @@ class LoadResultsController with ChangeNotifier {
   final DevicesManager devices;
 
   final Future<String> Function(MasterRace) _encodeBibData;
+  final IPostFrameCallbackScheduler _scheduler;
 
   LoadResultsController({
     required this.masterRace,
     required this.devices,
     Future<String> Function(MasterRace)? encodeBibData,
-  }) : _encodeBibData =
-            encodeBibData ?? BibEncodeUtils.getEncodedRunnersBibData;
+    IPostFrameCallbackScheduler? scheduler,
+  })  : _encodeBibData =
+            encodeBibData ?? BibEncodeUtils.getEncodedRunnersBibData,
+        _scheduler = scheduler ?? WidgetsBindingAdapter();
 
   void initialize() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    _scheduler.addPostFrameCallback(() {
       loadResults();
     });
   }
