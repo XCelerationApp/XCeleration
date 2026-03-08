@@ -459,6 +459,16 @@ class RaceController with ChangeNotifier {
           distanceController: form.distanceController);
 
       if (!canAdvance) {
+        if (!context.mounted) return;
+        final missing = _getMissingSetupItems();
+        DialogUtils.showMessageDialog(
+          context,
+          title: 'Setup Incomplete',
+          message: missing.isEmpty
+              ? 'Please complete all required fields before continuing.'
+              : 'Please fill in the following before continuing:\n\n${missing.map((item) => '• $item').join('\n')}',
+          doneText: 'Got it',
+        );
         return;
       }
 
@@ -724,5 +734,16 @@ class RaceController with ChangeNotifier {
     isLocationButtonVisible = form.locationController.text.trim() !=
         form.userLocationController.text.trim();
     notifyListeners();
+  }
+
+  /// Returns a list of human-readable missing setup items for the Continue dialog.
+  List<String> _getMissingSetupItems() {
+    final missing = <String>[];
+    if (form.nameController.text.trim().isEmpty) missing.add('Race name');
+    if (form.locationController.text.trim().isEmpty) missing.add('Location');
+    if (form.dateController.text.trim().isEmpty) missing.add('Race date');
+    if (form.distanceController.text.trim().isEmpty) missing.add('Distance');
+    if (_teams?.isEmpty ?? true) missing.add('Teams and runners');
+    return missing;
   }
 }

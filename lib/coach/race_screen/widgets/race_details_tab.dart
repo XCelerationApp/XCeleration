@@ -118,14 +118,11 @@ class RaceDetailsTab extends StatelessWidget {
     final runnerCount = raceRunners.length;
     final teamCount = teams.length;
 
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Column(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Race Details',
-            style: AppTypography.titleSemibold,
-          ),
           const SizedBox(height: AppSpacing.lg),
           // Inline editable fields
           InlineEditableField(
@@ -176,41 +173,8 @@ class RaceDetailsTab extends StatelessWidget {
           ),
 
           const SizedBox(height: AppSpacing.lg),
-          runnerCount == 0
-              ? Container(
-                  margin: const EdgeInsets.only(bottom: AppSpacing.lg),
-                  width: double.infinity,
-                  child: Builder(
-                    builder: (context) {
-                      final isViewMode = !canEdit ||
-                          race.flowState == Race.FLOW_FINISHED ||
-                          race.flowState == Race.FLOW_POST_RACE;
-                      return TextButton(
-                        onPressed: () {
-                          controller
-                              .loadRunnersManagementScreenWithConfirmation(
-                                  context,
-                                  isViewMode: isViewMode);
-                        },
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.lg, vertical: AppSpacing.md),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppBorderRadius.sm),
-                            side: BorderSide(color: AppColors.primaryColor),
-                          ),
-                        ),
-                        child: Text(
-                          'Load Teams and Runners',
-                          style: AppTypography.bodySemibold.copyWith(
-                            color: AppColors.primaryColor,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                )
-              : Builder(
+          if (runnerCount > 0)
+            Builder(
                   builder: (context) {
                     final isViewMode = !canEdit ||
                         race.flowState == Race.FLOW_FINISHED ||
@@ -227,7 +191,7 @@ class RaceDetailsTab extends StatelessWidget {
                 )
         ],
       ),
-    ]);
+    );
   }
 }
 
