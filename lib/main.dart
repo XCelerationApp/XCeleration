@@ -73,10 +73,10 @@ void _runApp() async {
         ChangeNotifierProvider(
           create: (context) => RaceController(
               masterRace: MasterRace.getInstance(0),
-              parentController: RacesController(racesService: RacesService(), authService: AuthService.instance, eventBus: EventBus.instance, geoLocationService: GeoLocationService(), postFrameCallbackScheduler: WidgetsBindingAdapter(), tutorialManager: TutorialManager())),
+              parentController: RacesController(racesService: RacesService(), authService: AuthService.instance, eventBus: EventBus.instance, geoLocationService: GeoLocationService(), postFrameCallbackScheduler: WidgetsBindingAdapter(), tutorialManager: TutorialManager(), syncStream: SyncService.instance.syncEvents)),
         ),
         ChangeNotifierProvider(
-            create: (context) => RacesController(racesService: RacesService(), authService: AuthService.instance, eventBus: EventBus.instance, geoLocationService: GeoLocationService(), postFrameCallbackScheduler: WidgetsBindingAdapter(), tutorialManager: TutorialManager())),
+            create: (context) => RacesController(racesService: RacesService(), authService: AuthService.instance, eventBus: EventBus.instance, geoLocationService: GeoLocationService(), postFrameCallbackScheduler: WidgetsBindingAdapter(), tutorialManager: TutorialManager(), syncStream: SyncService.instance.syncEvents)),
       ],
       child: const MyApp(),
     ),

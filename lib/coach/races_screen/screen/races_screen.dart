@@ -8,6 +8,7 @@ import '../../../core/services/auth_service.dart';
 import '../../../core/services/event_bus.dart';
 import '../../../core/services/geo_location_service.dart';
 import '../../../core/services/post_frame_callback_scheduler.dart';
+import '../../../core/services/sync_service.dart';
 import '../controller/races_controller.dart';
 import '../services/races_service.dart';
 import '../widgets/race_tutorial_coach_mark.dart';
@@ -37,6 +38,7 @@ class RacesScreenState extends State<RacesScreen> {
       geoLocationService: GeoLocationService(),
       postFrameCallbackScheduler: WidgetsBindingAdapter(),
       tutorialManager: TutorialManager(),
+      syncStream: SyncService.instance.syncEvents,
       canEdit: widget.canEdit,
     );
     _controller.initState(context);

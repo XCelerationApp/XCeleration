@@ -7,6 +7,17 @@ import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/core/services/remote_api_client.dart';
 import 'package:xceleration/core/services/auth_service.dart';
 
+/// Emitted by [SyncService.syncEvents] after each successful [SyncService.pullAll].
+class SyncEvent {
+  const SyncEvent({required this.timestamp, required this.changedTables});
+
+  /// When the pull completed.
+  final DateTime timestamp;
+
+  /// Tables that had at least one row inserted or updated during this pull.
+  final Set<String> changedTables;
+}
+
 /// Helper class to track data conflicts
 class _DataConflictResult {
   final bool hasConflict;
@@ -56,6 +67,11 @@ class SyncService {
   static const String syncModeOff = 'off';
   SyncService._();
   static final SyncService instance = SyncService._();
+
+  final _syncEventController = StreamController<SyncEvent>.broadcast();
+
+  /// Emits a [SyncEvent] after each successful [pullAll] that wrote at least one row.
+  Stream<SyncEvent> get syncEvents => _syncEventController.stream;
 
   final _uuid = const Uuid();
 
@@ -539,6 +555,7 @@ class SyncService {
     }
 
     final accessibleOwnerIds = await _getAccessibleOwnerIds();
+    final changedTables = <String>{};
 
     Future<void> pullTable(String table, String idCol) async {
       final cursorKey = 'cursor.$table';
@@ -558,6 +575,7 @@ class SyncService {
       }
       final List data = await query.order('updated_at').limit(1000);
       String? newCursor = cursor;
+      bool hadWrites = false;
       for (final row in data) {
         final remote = Map<String, dynamic>.from(row as Map);
         final uuid = remote['uuid'] as String?;
@@ -575,6 +593,7 @@ class SyncService {
             insert['is_dirty'] = 0;
             await db.insert(table, insert,
                 conflictAlgorithm: ConflictAlgorithm.replace);
+            hadWrites = true;
           } else if (locals.first['deleted_at'] == null) {
             // Active local row — apply the remote tombstone
             await db.update(
@@ -584,6 +603,7 @@ class SyncService {
               whereArgs: [uuid],
             );
             Logger.d('Applied remote tombstone to $table UUID:$uuid');
+            hadWrites = true;
           }
           final updatedAtStr = remote['updated_at']?.toString();
           if (updatedAtStr != null &&
@@ -598,6 +618,7 @@ class SyncService {
           insert['is_dirty'] = 0;
           await db.insert(table, insert,
               conflictAlgorithm: ConflictAlgorithm.replace);
+          hadWrites = true;
         } else {
           final local = locals.first;
           final localUpdated =
@@ -652,6 +673,7 @@ class SyncService {
             await db
                 .update(table, update, where: 'uuid = ?', whereArgs: [uuid]);
             Logger.d('Updated $table UUID:$uuid from remote ($conflictReason)');
+            hadWrites = true;
           } else {
             Logger.d('Kept local $table UUID:$uuid ($conflictReason)');
           }
@@ -662,6 +684,7 @@ class SyncService {
           newCursor = updatedAtStr;
         }
       }
+      if (hadWrites) changedTables.add(table);
       if (newCursor != null && newCursor != cursor) {
         await setCursor(cursorKey, newCursor);
       }
@@ -670,14 +693,21 @@ class SyncService {
     await pullTable('runners', 'runner_id');
     await pullTable('teams', 'team_id');
     await pullTable('races', 'race_id');
-    await _pullRaceResults(accessibleOwnerIds);
-    await _pullRaceParticipants(accessibleOwnerIds);
+    await _pullRaceResults(accessibleOwnerIds, changedTables);
+    await _pullRaceParticipants(accessibleOwnerIds, changedTables);
+
+    if (changedTables.isNotEmpty) {
+      _syncEventController.add(SyncEvent(
+        timestamp: DateTime.now(),
+        changedTables: changedTables,
+      ));
+    }
   }
 
   /// Pull race_results from remote and resolve UUID-based foreign keys to
   /// local integer IDs before inserting or updating. Skips any row whose
   /// runner_uuid or race_uuid cannot be resolved locally (will retry next sync).
-  Future<void> _pullRaceResults(List<String> accessibleOwnerIds) async {
+  Future<void> _pullRaceResults(List<String> accessibleOwnerIds, Set<String> changedTables) async {
     final client = RemoteApiClient.instance.client;
     final db = await DatabaseHelper.instance.databaseConn;
 
@@ -729,6 +759,7 @@ class SyncService {
     }
 
     String? newCursor = cursor;
+    bool hadWrites = false;
 
     for (final row in data) {
       final remote = Map<String, dynamic>.from(row as Map);
@@ -769,6 +800,7 @@ class SyncService {
           insert['is_dirty'] = 0;
           await db.insert(table, insert,
               conflictAlgorithm: ConflictAlgorithm.replace);
+          hadWrites = true;
         } else if (locals.first['deleted_at'] == null) {
           await db.update(
             table,
@@ -777,6 +809,7 @@ class SyncService {
             whereArgs: [uuid],
           );
           Logger.d('Applied remote tombstone to $table UUID:$uuid');
+          hadWrites = true;
         }
         final updatedAtStr = remote['updated_at']?.toString();
         if (updatedAtStr != null &&
@@ -791,6 +824,7 @@ class SyncService {
         insert['is_dirty'] = 0;
         await db.insert(table, insert,
             conflictAlgorithm: ConflictAlgorithm.replace);
+        hadWrites = true;
       } else {
         final local = locals.first;
         final localUpdated =
@@ -833,6 +867,7 @@ class SyncService {
           }
           await db.update(table, update, where: 'uuid = ?', whereArgs: [uuid]);
           Logger.d('Updated $table UUID:$uuid from remote ($conflictReason)');
+          hadWrites = true;
         } else {
           Logger.d('Kept local $table UUID:$uuid ($conflictReason)');
         }
@@ -845,6 +880,7 @@ class SyncService {
       }
     }
 
+    if (hadWrites) changedTables.add(table);
     if (newCursor != null && newCursor != cursor) {
       await setCursor(cursorKey, newCursor);
     }
@@ -853,7 +889,7 @@ class SyncService {
   /// Pull race_participants from remote and resolve UUID-based foreign keys to
   /// local integer IDs before inserting or updating. Skips rows where any UUID
   /// cannot be resolved locally (will retry next sync).
-  Future<void> _pullRaceParticipants(List<String> accessibleOwnerIds) async {
+  Future<void> _pullRaceParticipants(List<String> accessibleOwnerIds, Set<String> changedTables) async {
     final client = RemoteApiClient.instance.client;
     final db = await DatabaseHelper.instance.databaseConn;
 
@@ -916,6 +952,7 @@ class SyncService {
     }
 
     String? newCursor = cursor;
+    bool hadWrites = false;
 
     for (final row in data) {
       final remote = Map<String, dynamic>.from(row as Map);
@@ -960,6 +997,7 @@ class SyncService {
           insert['is_dirty'] = 0;
           await db.insert(table, insert,
               conflictAlgorithm: ConflictAlgorithm.replace);
+          hadWrites = true;
         } else if (locals.first['deleted_at'] == null) {
           await db.update(
             table,
@@ -969,6 +1007,7 @@ class SyncService {
           );
           Logger.d(
               'Applied remote tombstone to $table race_uuid=$raceUuid runner_uuid=$runnerUuid');
+          hadWrites = true;
         }
         final updatedAtStr = remote['updated_at']?.toString();
         if (updatedAtStr != null &&
@@ -983,6 +1022,7 @@ class SyncService {
         insert['is_dirty'] = 0;
         await db.insert(table, insert,
             conflictAlgorithm: ConflictAlgorithm.replace);
+        hadWrites = true;
       } else {
         final local = locals.first;
         final localUpdated =
@@ -1018,6 +1058,7 @@ class SyncService {
               whereArgs: [raceId, runnerId]);
           Logger.d(
               'Updated $table race_uuid=$raceUuid runner_uuid=$runnerUuid from remote ($conflictReason)');
+          hadWrites = true;
         } else {
           Logger.d(
               'Kept local $table race_uuid=$raceUuid runner_uuid=$runnerUuid ($conflictReason)');
@@ -1031,6 +1072,7 @@ class SyncService {
       }
     }
 
+    if (hadWrites) changedTables.add(table);
     if (newCursor != null && newCursor != cursor) {
       await setCursor(cursorKey, newCursor);
     }

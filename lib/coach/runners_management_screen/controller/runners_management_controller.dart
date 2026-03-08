@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/services/sync_service.dart';
 import 'package:xceleration/core/utils/i_database_helper.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/shared/models/database/race_runner.dart';
@@ -33,6 +35,8 @@ class RunnersManagementController with ChangeNotifier {
   // Store the listener function to properly remove it later
   late final VoidCallback _masterRaceListener;
 
+  StreamSubscription? _syncSubscription;
+
   // UI state
   bool isLoading = true;
   String searchAttribute = 'All';
@@ -47,6 +51,7 @@ class RunnersManagementController with ChangeNotifier {
     this.onBack,
     this.onContentChanged,
     this.isViewMode = false,
+    Stream<SyncEvent>? syncStream,
   }) {
     db = masterRace.db;
     // Create and store the listener function
@@ -59,6 +64,12 @@ class RunnersManagementController with ChangeNotifier {
 
     // Listen to changes from MasterRace
     masterRace.addListener(_masterRaceListener);
+
+    // Refresh when a sync pull writes runner, team, or participant data
+    _syncSubscription = syncStream
+        ?.where((event) => event.changedTables
+            .any((t) => t == 'runners' || t == 'teams' || t == 'race_participants'))
+        .listen((_) => forceRefresh());
   }
 
   Future<void> init() async {
@@ -830,6 +841,7 @@ class RunnersManagementController with ChangeNotifier {
   void dispose() {
     searchController.dispose();
     masterRace.removeListener(_masterRaceListener);
+    _syncSubscription?.cancel();
     super.dispose();
   }
 }

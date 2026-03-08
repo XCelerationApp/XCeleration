@@ -13,6 +13,7 @@ import '../../../shared/models/database/race.dart';
 import '../../../shared/models/database/master_race.dart';
 import '../../../core/services/tutorial_manager.dart';
 import '../../../core/services/event_bus.dart';
+import '../../../core/services/sync_service.dart';
 import 'dart:async';
 import '../../../shared/role_bar/models/role_enums.dart';
 import '../../../shared/role_bar/role_bar.dart';
@@ -24,6 +25,9 @@ import '../services/races_service.dart';
 class RacesController extends ChangeNotifier {
   // Subscription to event bus events
   StreamSubscription? _eventSubscription;
+  StreamSubscription? _syncSubscription;
+
+  final Stream<SyncEvent>? _syncStream;
 
   final IRacesService _racesService;
   final IAuthService _authService;
@@ -65,12 +69,14 @@ class RacesController extends ChangeNotifier {
     required this.tutorialManager,
     IDatePickerService? datePickerService,
     IColorPickerDialogService? colorPickerDialogService,
+    Stream<SyncEvent>? syncStream,
     this.canEdit = true,
   })  : _racesService = racesService,
         _authService = authService,
         _eventBus = eventBus,
         _geoLocationService = geoLocationService,
         _postFrameCallbackScheduler = postFrameCallbackScheduler,
+        _syncStream = syncStream,
         _datePickerService = datePickerService ?? DatePickerService(),
         _colorPickerDialogService =
             colorPickerDialogService ?? ColorPickerDialogService();
@@ -92,9 +98,13 @@ class RacesController extends ChangeNotifier {
     // Subscribe to race flow state change events
     _eventSubscription =
         _eventBus.on(EventTypes.raceFlowStateChanged, (event) {
-      // Reload races when any race's flow state changes
       loadRaces();
     });
+
+    // Reload races when a sync pull writes new race data
+    _syncSubscription = _syncStream
+        ?.where((event) => event.changedTables.contains('races'))
+        .listen((_) => loadRaces());
   }
 
   void setupTutorials() {
@@ -404,6 +414,7 @@ class RacesController extends ChangeNotifier {
     teamColors.clear();
     tutorialManager.dispose();
     _eventSubscription?.cancel();
+    _syncSubscription?.cancel();
     super.dispose();
   }
 }
