@@ -10,6 +10,29 @@ import '../utils/platform_checker.dart';
 import '../connection/controller/qr_connection_controller.dart';
 import '../connection/controller/wireless_connection_controller.dart';
 
+/// Shared bordered container used by [WirelessConnectionButton] and [QRConnectionButton].
+/// Provides the full-width white card with a light border that wraps all connection row states.
+class _ConnectionButtonContainer extends StatelessWidget {
+  final Widget child;
+
+  const _ConnectionButtonContainer({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        border: Border.all(color: AppColors.borderColor),
+        borderRadius: BorderRadius.circular(AppBorderRadius.md),
+        color: Colors.white,
+      ),
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.lg, vertical: AppSpacing.lg),
+      child: child,
+    );
+  }
+}
+
 class WirelessConnectionButton extends StatefulWidget {
   final ConnectedDevice device;
   final IconData? icon;
@@ -125,15 +148,7 @@ class _WirelessConnectionButtonState extends State<WirelessConnectionButton> {
   @override
   Widget build(BuildContext context) {
     if (widget.isLoading) {
-      return Container(
-        width: double.infinity,
-        decoration: BoxDecoration(
-          border: Border.all(color: AppColors.borderColor),
-          borderRadius: BorderRadius.circular(AppBorderRadius.md),
-          color: Colors.white,
-        ),
-        padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.lg, vertical: AppSpacing.lg),
+      return _ConnectionButtonContainer(
         child: Row(
           children: [
             Container(
@@ -168,15 +183,7 @@ class _WirelessConnectionButtonState extends State<WirelessConnectionButton> {
     }
 
     if (widget.device.status == ConnectionStatus.error) {
-      return Container(
-        width: double.infinity,
-        decoration: BoxDecoration(
-          border: Border.all(color: AppColors.borderColor),
-          borderRadius: BorderRadius.circular(AppBorderRadius.md),
-          color: Colors.white,
-        ),
-        padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.lg, vertical: AppSpacing.lg),
+      return _ConnectionButtonContainer(
         child: Row(
           children: [
             Icon(
@@ -213,8 +220,7 @@ class _WirelessConnectionButtonState extends State<WirelessConnectionButton> {
               TextButton(
                 onPressed: widget.onRetry,
                 style: TextButton.styleFrom(
-                  padding:
-                      const EdgeInsets.symmetric(
+                  padding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.md, vertical: AppSpacing.sm),
                   minimumSize: Size.zero,
                 ),
@@ -225,14 +231,7 @@ class _WirelessConnectionButtonState extends State<WirelessConnectionButton> {
       );
     }
 
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFFE0E0E0)),
-        borderRadius: BorderRadius.circular(12),
-        color: Colors.white,
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+    return _ConnectionButtonContainer(
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -241,7 +240,7 @@ class _WirelessConnectionButtonState extends State<WirelessConnectionButton> {
             color: Colors.black54,
             size: 24,
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: AppSpacing.lg),
           Text(
             getDeviceNameString(widget.device.name),
             style: const TextStyle(
@@ -303,14 +302,7 @@ class QRConnectionButton extends StatefulWidget {
 class _QRConnectionButtonState extends State<QRConnectionButton> {
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFFE0E0E0)),
-        borderRadius: BorderRadius.circular(12),
-        color: Colors.white,
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+    return _ConnectionButtonContainer(
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [

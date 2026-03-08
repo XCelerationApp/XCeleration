@@ -9,6 +9,31 @@ import '../utils/color_utils.dart';
 /// Race-specific UI components
 /// This file contains widgets specifically related to race management and display
 
+/// Private sub-widget for the icon → gap → content row pattern used within
+/// [RaceInfoHeaderWidget] (location row, date item, distance item).
+class _RaceHeaderRow extends StatelessWidget {
+  final IconData icon;
+  final double iconSize;
+  final Widget content;
+
+  const _RaceHeaderRow({
+    required this.icon,
+    required this.iconSize,
+    required this.content,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: iconSize, color: AppColors.mediumColor),
+        const SizedBox(width: AppSpacing.xs),
+        content,
+      ],
+    );
+  }
+}
+
 /// Reusable race information header widget
 class RaceInfoHeaderWidget extends StatelessWidget {
   final String raceName;
@@ -53,58 +78,47 @@ class RaceInfoHeaderWidget extends StatelessWidget {
               ),
               if (location != null) ...[
                 const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.location_on,
-                      size: isCompact ? AppSpacing.lg : 18,
-                      color: AppColors.mediumColor,
+                _RaceHeaderRow(
+                  icon: Icons.location_on,
+                  iconSize: isCompact ? AppSpacing.lg : 18,
+                  content: Expanded(
+                    child: Text(
+                      location!,
+                      style: isCompact
+                          ? AppTypography.smallBodyRegular
+                              .copyWith(color: AppColors.mediumColor)
+                          : AppTypography.bodyRegular
+                              .copyWith(color: AppColors.mediumColor),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(width: AppSpacing.xs),
-                    Expanded(
-                      child: Text(
-                        location!,
-                        style: isCompact
-                            ? AppTypography.smallBodyRegular
-                                .copyWith(color: AppColors.mediumColor)
-                            : AppTypography.bodyRegular
-                                .copyWith(color: AppColors.mediumColor),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ],
               if (raceDate != null || (distance != null && distance! > 0)) ...[
                 const SizedBox(height: AppSpacing.sm),
                 Row(
                   children: [
-                    if (raceDate != null) ...[
-                      Icon(
-                        Icons.calendar_today,
-                        size: isCompact ? AppSpacing.md : AppSpacing.lg,
-                        color: AppColors.mediumColor,
+                    if (raceDate != null)
+                      _RaceHeaderRow(
+                        icon: Icons.calendar_today,
+                        iconSize: isCompact ? AppSpacing.md : AppSpacing.lg,
+                        content: Text(
+                          _formatDate(raceDate!),
+                          style: AppTypography.caption
+                              .copyWith(color: AppColors.mediumColor),
+                        ),
                       ),
-                      const SizedBox(width: AppSpacing.xs),
-                      Text(
-                        _formatDate(raceDate!),
-                        style: AppTypography.caption
-                            .copyWith(color: AppColors.mediumColor),
-                      ),
-                    ],
                     if (distance != null && distance! > 0) ...[
                       if (raceDate != null) const SizedBox(width: AppSpacing.lg),
-                      Icon(
-                        Icons.straighten,
-                        size: isCompact ? AppSpacing.md : AppSpacing.lg,
-                        color: AppColors.mediumColor,
-                      ),
-                      const SizedBox(width: AppSpacing.xs),
-                      Text(
-                        '${distance!.toStringAsFixed(distance! % 1 == 0 ? 0 : 1)} ${distanceUnit ?? 'mi'}',
-                        style: AppTypography.caption
-                            .copyWith(color: AppColors.mediumColor),
+                      _RaceHeaderRow(
+                        icon: Icons.straighten,
+                        iconSize: isCompact ? AppSpacing.md : AppSpacing.lg,
+                        content: Text(
+                          '${distance!.toStringAsFixed(distance! % 1 == 0 ? 0 : 1)} ${distanceUnit ?? 'mi'}',
+                          style: AppTypography.caption
+                              .copyWith(color: AppColors.mediumColor),
+                        ),
                       ),
                     ],
                   ],

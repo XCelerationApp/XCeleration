@@ -403,7 +403,72 @@ class ToggleButton extends ActionButton {
         );
 }
 
-/// Circular button with custom background and border
+/// Private base widget shared by [CircularButton] and [RoundedRectangleButton].
+/// Encapsulates the SizedBox → decorated Container → transparent ElevatedButton → Text pattern
+/// common to both shaped button variants.
+class _ShapeButton extends StatelessWidget {
+  final double width;
+  final double height;
+  final VoidCallback? onPressed;
+  final String text;
+  final double fontSize;
+  final FontWeight? fontWeight;
+  final BoxDecoration decoration;
+  final OutlinedBorder buttonShape;
+
+  const _ShapeButton({
+    required this.width,
+    required this.height,
+    required this.onPressed,
+    required this.text,
+    required this.fontSize,
+    this.fontWeight,
+    required this.decoration,
+    required this.buttonShape,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width,
+      height: height,
+      child: Container(
+        decoration: decoration,
+        child: ElevatedButton(
+          onPressed: onPressed,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.transparent,
+            shape: buttonShape,
+            padding: EdgeInsets.zero,
+            elevation: 0,
+          ),
+          child: Text(
+            text,
+            style: fontSize <= 16
+                ? AppTypography.bodySemibold.copyWith(
+                    color: Colors.white,
+                    fontSize: fontSize,
+                    fontWeight: fontWeight,
+                  )
+                : AppTypography.titleSemibold.copyWith(
+                    color: Colors.white,
+                    fontSize: fontSize,
+                    fontWeight: fontWeight,
+                  ),
+            maxLines: 1,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Circular button with custom background and border.
+///
+/// Intentionally separate from [ActionButton]: [CircularButton] and [RoundedRectangleButton]
+/// use a different visual structure (transparent ElevatedButton inside a decorated container)
+/// suited for fixed-shape, colour-filled timing controls — not the flexible text/icon
+/// button pattern of [ActionButton].
 class CircularButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final String text;
@@ -424,56 +489,33 @@ class CircularButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    return _ShapeButton(
       width: 70,
       height: 70,
-      child: Container(
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: color,
-          border: Border.all(
-            color: AppColors.backgroundColor,
-            width: 2,
+      onPressed: onPressed,
+      text: text,
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color,
+        border: Border.all(color: AppColors.backgroundColor, width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: color,
+            spreadRadius: 2,
+            blurRadius: elevation > 0 ? 4 : 0,
+            offset: elevation > 0 ? const Offset(0, 2) : Offset.zero,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: color,
-              spreadRadius: 2,
-              blurRadius: elevation > 0 ? 4 : 0,
-              offset: elevation > 0 ? const Offset(0, 2) : Offset.zero,
-            ),
-          ],
-        ),
-        child: ElevatedButton(
-          onPressed: onPressed,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.transparent,
-            shape: const CircleBorder(),
-            padding: EdgeInsets.zero,
-            elevation: 0,
-          ),
-          child: Text(
-            text,
-            style: fontSize <= 16
-                ? AppTypography.bodySemibold.copyWith(
-                    color: Colors.white,
-                    fontSize: fontSize,
-                    fontWeight: fontWeight,
-                  )
-                : AppTypography.titleSemibold.copyWith(
-                    color: Colors.white,
-                    fontSize: fontSize,
-                    fontWeight: fontWeight,
-                  ),
-            maxLines: 1,
-          ),
-        ),
+        ],
       ),
+      buttonShape: const CircleBorder(),
     );
   }
 }
 
-/// Rounded rectangle button with custom width, height, and color
+/// Rounded rectangle button with custom width, height, and color.
+/// See [CircularButton] for an explanation of why these two widgets are separate from [ActionButton].
 class RoundedRectangleButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final String text;
@@ -494,57 +536,36 @@ class RoundedRectangleButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    return _ShapeButton(
       width: width,
       height: height,
-      child: Container(
-        decoration: BoxDecoration(
-          shape: BoxShape.rectangle,
-          color: color,
-          border: Border.all(
-            color: AppColors.backgroundColor,
-            width: 2,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: color,
-              spreadRadius: 2,
-            ),
-          ],
-          borderRadius:
-              const BorderRadius.all(Radius.circular(AppBorderRadius.full)),
-        ),
-        child: ElevatedButton(
-          onPressed: onPressed,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.transparent,
-            shape: const RoundedRectangleBorder(
-              borderRadius:
-                  BorderRadius.all(Radius.circular(AppBorderRadius.full)),
-            ),
-            padding: EdgeInsets.zero,
-            elevation: 0,
-          ),
-          child: Text(
-            text,
-            style: fontSize <= 16
-                ? AppTypography.bodySemibold.copyWith(
-                    color: Colors.white,
-                    fontSize: fontSize,
-                  )
-                : AppTypography.titleSemibold.copyWith(
-                    color: Colors.white,
-                    fontSize: fontSize,
-                  ),
-            maxLines: 1,
-          ),
-        ),
+      onPressed: onPressed,
+      text: text,
+      fontSize: fontSize,
+      decoration: BoxDecoration(
+        shape: BoxShape.rectangle,
+        color: color,
+        border: Border.all(color: AppColors.backgroundColor, width: 2),
+        boxShadow: [BoxShadow(color: color, spreadRadius: 2)],
+        borderRadius:
+            const BorderRadius.all(Radius.circular(AppBorderRadius.full)),
+      ),
+      buttonShape: const RoundedRectangleBorder(
+        borderRadius:
+            BorderRadius.all(Radius.circular(AppBorderRadius.full)),
       ),
     );
   }
 }
 
-/// Shared ActionButton component that consolidates multiple ActionButton implementations
+/// Factory-style widget that routes to [ToggleButton], [ActionButton], or [PrimaryButton]
+/// based on the supplied parameters.
+///
+/// Design note: this is a widget rather than a Dart factory constructor because it
+/// selects between sibling types ([ToggleButton], [PrimaryButton]) that cannot all be
+/// returned from a single factory constructor while preserving type safety and
+/// const-constructibility. The current widget approach keeps the routing logic
+/// explicit, named, and easily discoverable.
 class SharedActionButton extends StatelessWidget {
   final String text;
   final VoidCallback? onPressed;

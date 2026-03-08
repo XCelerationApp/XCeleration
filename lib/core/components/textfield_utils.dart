@@ -87,6 +87,21 @@ Widget buildTextField({
   int? maxLength,
   bool autofocus = false,
 }) {
+  // Shared helpers for error/warning state styling — used by border, enabledBorder, and fillColor.
+  Color fieldFillColor() => error != null
+      ? Colors.red.withValues(alpha: AppOpacity.faint)
+      : (warning != null
+          ? Colors.orange.withValues(alpha: AppOpacity.light)
+          : Colors.grey.withValues(alpha: AppOpacity.faint));
+
+  BorderSide fieldBorderSide() => BorderSide(
+        color: error != null
+            ? Colors.red.withValues(alpha: AppOpacity.solid)
+            : (warning != null
+                ? Colors.orange.withValues(alpha: AppOpacity.border)
+                : Colors.grey.withValues(alpha: AppOpacity.solid)),
+      );
+
   return Focus(
     onFocusChange: (hasFocus) {
       if (!hasFocus) {
@@ -116,32 +131,16 @@ Widget buildTextField({
           vertical: AppSpacing.lg,
         ),
         filled: true,
-        fillColor: error != null
-            ? Colors.red.withValues(alpha: AppOpacity.faint)
-            : (warning != null
-                ? Colors.orange.withValues(alpha: AppOpacity.light)
-                : Colors.grey.withValues(alpha: AppOpacity.faint)),
+        fillColor: fieldFillColor(),
         prefixIcon: prefixIcon,
         suffixIcon: suffixIcon,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppBorderRadius.md),
-          borderSide: BorderSide(
-            color: error != null
-                ? Colors.red.withValues(alpha: AppOpacity.solid)
-                : (warning != null
-                    ? Colors.orange.withValues(alpha: AppOpacity.border)
-                    : Colors.grey.withValues(alpha: AppOpacity.solid)),
-          ),
+          borderSide: fieldBorderSide(),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppBorderRadius.md),
-          borderSide: BorderSide(
-            color: error != null
-                ? Colors.red.withValues(alpha: AppOpacity.solid)
-                : (warning != null
-                    ? Colors.orange.withValues(alpha: AppOpacity.border)
-                    : Colors.grey.withValues(alpha: AppOpacity.solid)),
-          ),
+          borderSide: fieldBorderSide(),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppBorderRadius.md),

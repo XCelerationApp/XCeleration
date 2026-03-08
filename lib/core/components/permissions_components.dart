@@ -8,6 +8,46 @@ import 'package:xceleration/core/theme/app_spacing.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
 import '../services/permissions_service.dart';
 
+/// Consolidates all permission-status-to-UI mappings (color, label, action text)
+/// into one place, eliminating the parallel conditionals that previously appeared
+/// in [_PermissionsDialogState] and [_PermissionRequestButtonState].
+class PermissionStatusData {
+  final Color color;
+  final String label;
+  final String actionLabel;
+
+  const PermissionStatusData({
+    required this.color,
+    required this.label,
+    required this.actionLabel,
+  });
+
+  static PermissionStatusData from(PermissionStatus status) {
+    if (status.isGranted) {
+      return PermissionStatusData(
+          color: AppColors.statusFinished, label: 'Granted', actionLabel: 'Granted');
+    }
+    if (status.isPermanentlyDenied) {
+      return PermissionStatusData(
+          color: AppColors.redColor, label: 'Permanently Denied', actionLabel: 'Settings');
+    }
+    if (status.isDenied) {
+      return PermissionStatusData(
+          color: Colors.orange, label: 'Denied', actionLabel: 'Request');
+    }
+    if (status.isLimited) {
+      return PermissionStatusData(
+          color: Colors.orange, label: 'Limited', actionLabel: 'Request');
+    }
+    if (status.isRestricted) {
+      return PermissionStatusData(
+          color: Colors.grey, label: 'Restricted', actionLabel: 'Request');
+    }
+    return PermissionStatusData(
+        color: Colors.grey, label: 'Unknown', actionLabel: 'Request');
+  }
+}
+
 /// Dialog that shows the current status of all app permissions
 class PermissionsDialog extends StatefulWidget {
   const PermissionsDialog({super.key});
@@ -46,13 +86,12 @@ class _PermissionsDialogState extends State<PermissionsDialog> {
     final String permissionName =
         _permissionsService.getPermissionName(permission);
     final IconData iconData = _getPermissionIcon(permission);
-    final Color statusColor = _getStatusColor(status);
-    final String statusText = _getStatusText(status);
+    final statusData = PermissionStatusData.from(status);
 
     return ListTile(
       leading: Icon(iconData, color: AppColors.primaryColor),
       title: Text(permissionName),
-      subtitle: Text(statusText),
+      subtitle: Text(statusData.label),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -60,7 +99,7 @@ class _PermissionsDialogState extends State<PermissionsDialog> {
             width: AppSpacing.md,
             height: AppSpacing.md,
             decoration: BoxDecoration(
-              color: statusColor,
+              color: statusData.color,
               shape: BoxShape.circle,
             ),
           ),
@@ -75,7 +114,7 @@ class _PermissionsDialogState extends State<PermissionsDialog> {
                 padding: const EdgeInsets.symmetric(
                     horizontal: AppSpacing.md, vertical: AppSpacing.xs),
               ),
-              child: Text(status.isPermanentlyDenied ? 'Settings' : 'Request'),
+              child: Text(statusData.actionLabel),
             ),
         ],
       ),
@@ -100,34 +139,6 @@ class _PermissionsDialogState extends State<PermissionsDialog> {
         return Icons.sd_storage;
       default:
         return Icons.security;
-    }
-  }
-
-  Color _getStatusColor(PermissionStatus status) {
-    if (status.isGranted) {
-      return AppColors.statusFinished;
-    } else if (status.isDenied) {
-      return Colors.orange;
-    } else if (status.isPermanentlyDenied) {
-      return AppColors.redColor;
-    } else {
-      return Colors.grey;
-    }
-  }
-
-  String _getStatusText(PermissionStatus status) {
-    if (status.isGranted) {
-      return 'Granted';
-    } else if (status.isDenied) {
-      return 'Denied';
-    } else if (status.isPermanentlyDenied) {
-      return 'Permanently Denied';
-    } else if (status.isLimited) {
-      return 'Limited';
-    } else if (status.isRestricted) {
-      return 'Restricted';
-    } else {
-      return 'Unknown';
     }
   }
 
@@ -306,11 +317,11 @@ class _PermissionRequestButtonState extends State<PermissionRequestButton> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isGranted = _status?.isGranted ?? false;
-    final bool isPermanentlyDenied = _status?.isPermanentlyDenied ?? false;
+    final statusData =
+        _status != null ? PermissionStatusData.from(_status!) : null;
 
     return ElevatedButton.icon(
-      onPressed: isGranted ? null : _requestPermission,
+      onPressed: (_status?.isGranted ?? false) ? null : _requestPermission,
       icon: _isLoading
           ? const SizedBox(
               width: 20,
@@ -325,33 +336,20 @@ class _PermissionRequestButtonState extends State<PermissionRequestButton> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(widget.label),
-          if (widget.showStatus && _status != null) ...[
+          if (widget.showStatus && statusData != null) ...[
             const SizedBox(width: 8),
             Container(
               padding: const EdgeInsets.symmetric(
                   horizontal: AppSpacing.sm, vertical: 2),
               decoration: BoxDecoration(
-                color: isGranted
-                    ? ColorUtils.withOpacity(Colors.green, AppOpacity.medium)
-                    : isPermanentlyDenied
-                        ? ColorUtils.withOpacity(Colors.red, AppOpacity.medium)
-                        : ColorUtils.withOpacity(
-                            Colors.orange, AppOpacity.medium),
+                color: ColorUtils.withOpacity(statusData.color, AppOpacity.medium),
                 borderRadius: BorderRadius.circular(AppBorderRadius.md),
               ),
               child: Text(
-                isGranted
-                    ? 'Granted'
-                    : isPermanentlyDenied
-                        ? 'Settings'
-                        : 'Request',
+                statusData.actionLabel,
                 style: TextStyle(
                   fontSize: 10,
-                  color: isGranted
-                      ? Colors.green
-                      : isPermanentlyDenied
-                          ? Colors.red
-                          : Colors.orange,
+                  color: statusData.color,
                 ),
               ),
             ),
