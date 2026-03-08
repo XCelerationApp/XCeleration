@@ -43,11 +43,6 @@ class _PushConflictResult {
 /// - Push dirty rows to remote (requires authentication)
 /// - Pull changed rows from remote since last cursor and apply LWW
 class SyncService implements ISyncService {
-  /// Sync mode preference
-  static const String syncModeKey = 'sync_mode';
-  static const String syncModeAuthenticated = 'authenticated';
-  static const String syncModeOff = 'off';
-
   final IDatabaseHelper _db;
   final IRemoteApiClient _remote;
   final IAuthService _auth;
@@ -243,27 +238,6 @@ class SyncService implements ISyncService {
     return _PushConflictResult(false, {'reason': 'local_newer_or_equal'});
   }
 
-  /// Get current sync mode preference
-  @override
-  Future<String> getSyncMode() async {
-    final db = await _db.databaseConn;
-    final rows = await db
-        .query('sync_state', where: 'key = ?', whereArgs: [syncModeKey]);
-    final mode = rows.isNotEmpty ? rows.first['value'] as String : syncModeOff;
-    Logger.d('Current sync mode: $mode (rows found: ${rows.length})');
-    return mode;
-  }
-
-  /// Set sync mode preference
-  @override
-  Future<void> setSyncMode(String mode) async {
-    final db = await _db.databaseConn;
-    await db.insert('sync_state', {'key': syncModeKey, 'value': mode},
-        conflictAlgorithm: ConflictAlgorithm.replace);
-
-    Logger.d('Sync mode set to: $mode');
-  }
-
   // Public API
   @override
   Future<void> syncAll() async {
@@ -271,13 +245,6 @@ class SyncService implements ISyncService {
       await _remote.init();
       if (!_remote.isInitialized) {
         Logger.d('Remote not configured; skipping sync.');
-        return;
-      }
-
-      final syncMode = await getSyncMode();
-
-      if (syncMode == syncModeOff) {
-        Logger.d('Sync is disabled by user preference.');
         return;
       }
 
@@ -346,6 +313,9 @@ class SyncService implements ISyncService {
         copy.remove('is_dirty');
         // uid is guaranteed non-null by the guard at the top of pushAll().
         copy['owner_user_id'] = uid;
+        // Older local rows may have NULL created_at if they pre-date the column.
+        // Supabase enforces NOT NULL on created_at, so supply a fallback.
+        copy['created_at'] ??= copy['updated_at'] ?? DateTime.now().toUtc().toIso8601String();
 
         // Resolve conflict in-memory against pre-fetched remote data
         final conflictCheck = _checkForPushConflictInMemory(
@@ -420,7 +390,8 @@ class SyncService implements ISyncService {
     for (final row in rows) {
       final copy = Map<String, dynamic>.from(row);
       copy.remove('is_dirty');
-      // Remove local integer foreign keys — remote schema uses UUIDs
+      // Remove local integer PKs and FKs — remote schema uses UUIDs
+      copy.remove('result_id');
       copy.remove('runner_id');
       copy.remove('race_id');
 
@@ -433,6 +404,7 @@ class SyncService implements ISyncService {
       }
 
       copy['owner_user_id'] = uid;
+      copy['created_at'] ??= copy['updated_at'] ?? DateTime.now().toUtc().toIso8601String();
 
       // Resolve conflict in-memory against pre-fetched remote data
       final conflictCheck = _checkForPushConflictInMemory(
@@ -498,6 +470,7 @@ class SyncService implements ISyncService {
       }
 
       copy['owner_user_id'] = uid;
+      copy['created_at'] ??= copy['updated_at'] ?? DateTime.now().toUtc().toIso8601String();
       payload.add(copy);
       pushedKeys.add((raceUuid as String, runnerUuid as String));
     }
@@ -764,6 +737,9 @@ class SyncService implements ISyncService {
       if (uuid == null) continue;
 
       remote.remove('owner_user_id');
+      // result_id on remote is a bigserial with its own sequence; strip it so
+      // SQLite assigns a local AUTOINCREMENT ID instead of importing the remote one.
+      remote.remove('result_id');
 
       final runnerUuid = remote['runner_uuid'] as String?;
       final raceUuid = remote['race_uuid'] as String?;
