@@ -310,5 +310,107 @@ void main() {
         });
       });
     });
+
+    // -------------------------------------------------------------------------
+    group('confirmAndDeleteTeam', () {
+      testWidgets('removes team from race, calls loadData, returns true on confirm', (tester) async {
+        when(mockMasterRace.removeTeamFromRace(any)).thenAnswer((_) async {});
+        var called = false;
+        final ctrl = RunnersManagementController(
+          masterRace: mockMasterRace,
+          onContentChanged: () => called = true,
+        );
+        addTearDown(ctrl.dispose);
+
+        late Future<bool> result;
+        await tester.pumpWidget(MaterialApp(
+          home: Builder(builder: (context) {
+            return TextButton(
+              onPressed: () {
+                result = ctrl.confirmAndDeleteTeam(context, testTeam);
+              },
+              child: const Text('trigger'),
+            );
+          }),
+        ));
+
+        await tester.tap(find.text('trigger'));
+        await tester.pump(); // show dialog
+        await tester.tap(find.text('Remove'));
+        await tester.pump(); // process tap — dialog starts closing
+        await tester.pump(const Duration(milliseconds: 300)); // finish close animation
+
+        expect(await result, isTrue);
+        expect(called, isTrue);
+        verify(mockMasterRace.removeTeamFromRace(any)).called(1);
+      });
+
+      testWidgets('returns false when user cancels dialog', (tester) async {
+        late Future<bool> result;
+        await tester.pumpWidget(MaterialApp(
+          home: Builder(builder: (context) {
+            return TextButton(
+              onPressed: () {
+                result = controller.confirmAndDeleteTeam(context, testTeam);
+              },
+              child: const Text('trigger'),
+            );
+          }),
+        ));
+
+        await tester.tap(find.text('trigger'));
+        await tester.pump(); // show dialog
+        await tester.tap(find.text('Cancel'));
+        await tester.pump(); // process tap
+        await tester.pump(const Duration(milliseconds: 300)); // finish close animation
+
+        expect(await result, isFalse);
+        verifyNever(mockMasterRace.removeTeamFromRace(any));
+      });
+
+      testWidgets('returns false when removeTeamFromRace throws', (tester) async {
+        when(mockMasterRace.removeTeamFromRace(any))
+            .thenAnswer((_) async => throw Exception('delete failed'));
+
+        late Future<bool> result;
+        await tester.pumpWidget(MaterialApp(
+          home: Builder(builder: (context) {
+            return TextButton(
+              onPressed: () {
+                result = controller.confirmAndDeleteTeam(context, testTeam);
+              },
+              child: const Text('trigger'),
+            );
+          }),
+        ));
+
+        await tester.tap(find.text('trigger'));
+        await tester.pump(); // show dialog
+        await tester.tap(find.text('Remove'));
+        await tester.pump(); // process tap
+        await tester.pump(const Duration(milliseconds: 300)); // finish close animation
+
+        expect(await result, isFalse);
+      });
+    });
+
+    // -------------------------------------------------------------------------
+    group('forceRefresh', () {
+      test('invalidates cache and calls onContentChanged', () async {
+        var called = false;
+        final ctrl = RunnersManagementController(
+          masterRace: mockMasterRace,
+          onContentChanged: () => called = true,
+        );
+        addTearDown(ctrl.dispose);
+
+        await ctrl.forceRefresh();
+
+        verify(mockMasterRace.invalidateCache()).called(1);
+        verify(mockMasterRace.searchRaceRunners(any, any))
+            .called(greaterThanOrEqualTo(1));
+        expect(called, isTrue);
+      });
+    });
   });
 }

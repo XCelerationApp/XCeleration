@@ -3,9 +3,6 @@ import 'package:xceleration/core/utils/i_database_helper.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/shared/models/database/race_runner.dart';
 import 'package:xceleration/shared/models/database/team_participant.dart';
-import '../../../core/components/dropup_button.dart';
-import 'package:flutter/services.dart';
-import 'package:xceleration/core/theme/typography.dart';
 import '../../../core/components/dialog_utils.dart';
 import '../../../core/components/runner_input_form.dart';
 import '../../../core/utils/file_processing.dart';
@@ -19,6 +16,7 @@ import '../widgets/edit_team_sheet.dart';
 import '../../../shared/models/database/race_participant.dart';
 import '../widgets/add_runners_to_team_sheet.dart';
 import '../widgets/imported_runners_selection_sheet.dart';
+import '../widgets/spreadsheet_load_sheet.dart';
 
 class RunnersManagementController with ChangeNotifier {
   final VoidCallback? onBack;
@@ -823,155 +821,9 @@ class RunnersManagementController with ChangeNotifier {
       context: context,
       title: 'Import Runners',
       titleSize: 24,
-      body: StatefulBuilder(
-        builder: (BuildContext context, StateSetter setState) {
-          return Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // Icon
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF2F2F2),
-                    borderRadius: BorderRadius.circular(40),
-                  ),
-                  child: const Icon(
-                    Icons.insert_drive_file_outlined,
-                    color: Color(0xFFE2572B),
-                    size: 40,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  'Import Runners from Spreadsheet',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Import your runners from a CSV or Excel spreadsheet. Recommended header: "Athlete #, First, Last, Year, M/F".',
-                  style: AppTypography.bodyMedium,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 20),
-                TextButton(
-                  onPressed: () => showSampleSpreadsheet(context),
-                  style: TextButton.styleFrom(
-                    foregroundColor: const Color(0xFFE2572B),
-                  ),
-                  child: const Text(
-                    'View Sample Spreadsheet',
-                    style: AppTypography.bodyMedium,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: DropupButton<Map<String, dynamic>>(
-                    onSelected: (result) {
-                      if (result != null) {
-                        Navigator.pop(context, result);
-                      }
-                    },
-                    verticalOffset: 0,
-                    elevation: 8,
-                    menuShape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    menuColor: Colors.white,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFE2572B),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    items: [
-                      PopupMenuItem<Map<String, dynamic>>(
-                        value: {'useGoogleDrive': true},
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('Select Google Sheet',
-                                style: TextStyle(fontWeight: FontWeight.w500)),
-                            Icon(Icons.arrow_forward_ios,
-                                color: Color(0xFFE2572B), size: 20),
-                          ],
-                        ),
-                      ),
-                      PopupMenuItem<Map<String, dynamic>>(
-                        value: {'useGoogleDrive': false},
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('Select Local File',
-                                style: TextStyle(fontWeight: FontWeight.w500)),
-                            Icon(Icons.arrow_forward_ios,
-                                color: Color(0xFFE2572B), size: 20),
-                          ],
-                        ),
-                      ),
-                    ],
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.file_upload, size: 20, color: Colors.white),
-                        SizedBox(width: 8),
-                        Text('Import Spreadsheet',
-                            style: AppTypography.bodyMedium),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
+      body: const SpreadsheetLoadSheet(),
     );
     return result['useGoogleDrive'] ?? false;
-  }
-
-  Future<void> showSampleSpreadsheet(BuildContext context) async {
-    final file = await rootBundle
-        .loadString('assets/sample_sheets/sample_spreadsheet.csv');
-
-    if (!context.mounted) return;
-
-    final lines = file.split('\n');
-    final table = Table(
-      border: TableBorder.all(color: Colors.grey),
-      children: lines.map((line) {
-        final cells = line.split(',');
-        return TableRow(
-          children: cells.map((cell) {
-            return TableCell(
-              verticalAlignment: TableCellVerticalAlignment.middle,
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Text(cell),
-              ),
-            );
-          }).toList(),
-        );
-      }).toList(),
-    );
-
-    await sheet(
-      context: context,
-      title: 'Sample Spreadsheet',
-      body: SingleChildScrollView(child: table),
-    );
   }
 
   @override
