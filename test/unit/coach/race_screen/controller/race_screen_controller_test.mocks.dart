@@ -22,6 +22,7 @@ import 'package:xceleration/coach/race_screen/controller/race_screen_controller.
     as _i7;
 import 'package:xceleration/coach/races_screen/controller/races_controller.dart'
     as _i15;
+import 'package:xceleration/core/services/date_picker_service.dart' as _i20;
 import 'package:xceleration/core/services/geo_location_service.dart' as _i18;
 import 'package:xceleration/core/services/tutorial_manager.dart' as _i6;
 import 'package:xceleration/core/utils/database_helper.dart' as _i2;
@@ -1096,4 +1097,34 @@ class MockIGeoLocationService extends _i1.Mock
         returnValue:
             _i12.Future<List<_i19.Placemark>>.value(<_i19.Placemark>[]),
       ) as _i12.Future<List<_i19.Placemark>>);
+}
+
+/// A class which mocks [IDatePickerService].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockIDatePickerService extends _i1.Mock
+    implements _i20.IDatePickerService {
+  MockIDatePickerService() {
+    _i1.throwOnMissingStub(this);
+  }
+
+  @override
+  _i12.Future<DateTime?> pickDate(
+    _i5.BuildContext? context, {
+    DateTime? initialDate,
+    DateTime? firstDate,
+    DateTime? lastDate,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #pickDate,
+          [context],
+          {
+            #initialDate: initialDate,
+            #firstDate: firstDate,
+            #lastDate: lastDate,
+          },
+        ),
+        returnValue: _i12.Future<DateTime?>.value(),
+      ) as _i12.Future<DateTime?>);
 }
