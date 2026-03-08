@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/utils/logger.dart';
+import '../theme/app_animations.dart';
+import '../theme/app_border_radius.dart';
+import '../theme/app_spacing.dart';
 import '../theme/typography.dart';
 import '../theme/app_colors.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -34,11 +37,13 @@ class BasicAlertDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return AlertDialog(
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16.0),
+        borderRadius: BorderRadius.circular(AppBorderRadius.lg),
       ),
       backgroundColor: AppColors.backgroundColor,
-      titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
-      contentPadding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+      titlePadding: const EdgeInsets.fromLTRB(
+          AppSpacing.xl, AppSpacing.xl, AppSpacing.xl, AppSpacing.lg),
+      contentPadding: const EdgeInsets.fromLTRB(
+          AppSpacing.xl, 0, AppSpacing.xl, AppSpacing.lg),
       title: Text(
         title,
         style: AppTypography.titleSemibold.copyWith(
@@ -51,7 +56,8 @@ class BasicAlertDialog extends StatelessWidget {
           color: AppColors.mediumColor,
         ),
       ),
-      actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      actionsPadding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
       actions: actions,
     );
   }
@@ -124,7 +130,7 @@ class DialogUtils {
       backgroundColor: AppColors.lightColor,
       textColor: Colors.red.shade500,
       iconColor: Colors.red.shade500,
-      duration: const Duration(seconds: 3),
+      duration: AppAnimations.toastLong,
     );
   }
 
@@ -140,7 +146,7 @@ class DialogUtils {
       backgroundColor: AppColors.lightColor,
       textColor: Colors.green.shade700,
       iconColor: Colors.green.shade700,
-      duration: const Duration(seconds: 3),
+      duration: AppAnimations.toastLong,
     );
   }
 
@@ -254,7 +260,7 @@ class DialogUtils {
     Color backgroundColor = AppColors.lightColor,
     Color textColor = AppColors.darkColor,
     Color iconColor = AppColors.darkColor,
-    Duration duration = const Duration(seconds: 2),
+    Duration duration = AppAnimations.toastShort,
   }) {
     // Log the message for debugging
     Logger.d(message);
@@ -268,10 +274,11 @@ class DialogUtils {
     // Create custom toast widget
     Widget toastWidget = Material(
       elevation: 3.0,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(AppBorderRadius.sm),
       color: backgroundColor,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+        padding: const EdgeInsets.symmetric(
+            vertical: AppSpacing.md, horizontal: AppSpacing.lg),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -297,7 +304,7 @@ class DialogUtils {
       child: toastWidget,
       gravity: ToastGravity.TOP,
       toastDuration: duration,
-      fadeDuration: const Duration(milliseconds: 150),
+      fadeDuration: AppAnimations.fast,
     );
   }
 }
@@ -347,10 +354,13 @@ class LoadingDialog extends StatelessWidget {
         ),
         textAlign: TextAlign.center,
       ),
-      titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
-      contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+      titlePadding: const EdgeInsets.fromLTRB(
+          AppSpacing.xl, AppSpacing.xl, AppSpacing.xl, AppSpacing.sm),
+      contentPadding: const EdgeInsets.fromLTRB(
+          AppSpacing.xl, AppSpacing.lg, AppSpacing.xl, AppSpacing.xl),
       backgroundColor: AppColors.lightColor,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppBorderRadius.md)),
       content: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -394,7 +404,8 @@ class LoadingDialog extends StatelessWidget {
             ]
           : null,
       actionsPadding: showCancelButton
-          ? const EdgeInsets.fromLTRB(16, 0, 16, 16)
+          ? const EdgeInsets.fromLTRB(
+              AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg)
           : EdgeInsets.zero,
     );
   }

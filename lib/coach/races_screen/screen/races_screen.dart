@@ -12,6 +12,8 @@ import '../controller/races_controller.dart';
 import '../services/races_service.dart';
 import '../widgets/race_tutorial_coach_mark.dart';
 import '../../../core/components/app_header.dart';
+import '../../../shared/role_bar/widgets/role_selector_sheet.dart';
+import '../../../shared/settings_screen.dart';
 import '../widgets/races_list.dart';
 
 class RacesScreen extends StatefulWidget {
@@ -91,6 +93,19 @@ class RacesScreenState extends State<RacesScreen> {
                       currentRole:
                           widget.canEdit ? Role.coach : Role.spectator,
                       tutorialManager: _controller.tutorialManager,
+                      onRoleTap: () => RoleSelectorSheet.showRoleSelection(
+                          context,
+                          widget.canEdit ? Role.coach : Role.spectator),
+                      onSettingsTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => SettingsScreen(
+                            currentRole: (widget.canEdit
+                                    ? Role.coach
+                                    : Role.spectator)
+                                .toValueString(),
+                          ),
+                        ),
+                      ),
                     ),
                     // Scrollable content
                     Expanded(

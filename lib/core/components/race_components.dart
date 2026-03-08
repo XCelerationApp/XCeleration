@@ -1,10 +1,40 @@
 import 'package:flutter/material.dart';
+import '../theme/app_animations.dart';
+import '../theme/app_border_radius.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_opacity.dart';
+import '../theme/app_spacing.dart';
 import '../theme/typography.dart';
 import '../utils/color_utils.dart';
+import '../utils/date_format_utils.dart';
 
 /// Race-specific UI components
 /// This file contains widgets specifically related to race management and display
+
+/// Private sub-widget for the icon → gap → content row pattern used within
+/// [RaceInfoHeaderWidget] (location row, date item, distance item).
+class _RaceHeaderRow extends StatelessWidget {
+  final IconData icon;
+  final double iconSize;
+  final Widget content;
+
+  const _RaceHeaderRow({
+    required this.icon,
+    required this.iconSize,
+    required this.content,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: iconSize, color: AppColors.mediumColor),
+        const SizedBox(width: AppSpacing.xs),
+        content,
+      ],
+    );
+  }
+}
 
 /// Reusable race information header widget
 class RaceInfoHeaderWidget extends StatelessWidget {
@@ -30,12 +60,12 @@ class RaceInfoHeaderWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: EdgeInsets.all(isCompact ? 8.0 : 16.0),
+      margin: EdgeInsets.all(isCompact ? AppSpacing.sm : AppSpacing.lg),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppBorderRadius.md),
         child: Padding(
-          padding: EdgeInsets.all(isCompact ? 12.0 : 16.0),
+          padding: EdgeInsets.all(isCompact ? AppSpacing.md : AppSpacing.lg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -50,58 +80,47 @@ class RaceInfoHeaderWidget extends StatelessWidget {
               ),
               if (location != null) ...[
                 const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.location_on,
-                      size: isCompact ? 16 : 18,
-                      color: AppColors.mediumColor,
+                _RaceHeaderRow(
+                  icon: Icons.location_on,
+                  iconSize: isCompact ? AppSpacing.lg : 18,
+                  content: Expanded(
+                    child: Text(
+                      location!,
+                      style: isCompact
+                          ? AppTypography.smallBodyRegular
+                              .copyWith(color: AppColors.mediumColor)
+                          : AppTypography.bodyRegular
+                              .copyWith(color: AppColors.mediumColor),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        location!,
-                        style: isCompact
-                            ? AppTypography.smallBodyRegular
-                                .copyWith(color: AppColors.mediumColor)
-                            : AppTypography.bodyRegular
-                                .copyWith(color: AppColors.mediumColor),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ],
               if (raceDate != null || (distance != null && distance! > 0)) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSpacing.sm),
                 Row(
                   children: [
-                    if (raceDate != null) ...[
-                      Icon(
-                        Icons.calendar_today,
-                        size: isCompact ? 14 : 16,
-                        color: AppColors.mediumColor,
+                    if (raceDate != null)
+                      _RaceHeaderRow(
+                        icon: Icons.calendar_today,
+                        iconSize: isCompact ? AppSpacing.md : AppSpacing.lg,
+                        content: Text(
+                          DateFormatUtils.formatRelativeDate(raceDate!),
+                          style: AppTypography.caption
+                              .copyWith(color: AppColors.mediumColor),
+                        ),
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        _formatDate(raceDate!),
-                        style: AppTypography.caption
-                            .copyWith(color: AppColors.mediumColor),
-                      ),
-                    ],
                     if (distance != null && distance! > 0) ...[
-                      if (raceDate != null) const SizedBox(width: 16),
-                      Icon(
-                        Icons.straighten,
-                        size: isCompact ? 14 : 16,
-                        color: AppColors.mediumColor,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${distance!.toStringAsFixed(distance! % 1 == 0 ? 0 : 1)} ${distanceUnit ?? 'mi'}',
-                        style: AppTypography.caption
-                            .copyWith(color: AppColors.mediumColor),
+                      if (raceDate != null) const SizedBox(width: AppSpacing.lg),
+                      _RaceHeaderRow(
+                        icon: Icons.straighten,
+                        iconSize: isCompact ? AppSpacing.md : AppSpacing.lg,
+                        content: Text(
+                          '${distance!.toStringAsFixed(distance! % 1 == 0 ? 0 : 1)} ${distanceUnit ?? 'mi'}',
+                          style: AppTypography.caption
+                              .copyWith(color: AppColors.mediumColor),
+                        ),
                       ),
                     ],
                   ],
@@ -114,17 +133,77 @@ class RaceInfoHeaderWidget extends StatelessWidget {
     );
   }
 
-  String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final difference = date.difference(now).inDays;
 
-    if (difference == 0) return 'Today';
-    if (difference == 1) return 'Tomorrow';
-    if (difference == -1) return 'Yesterday';
-    if (difference > 0 && difference <= 7) return 'In $difference days';
-    if (difference < 0 && difference >= -7) return '${-difference} days ago';
+}
 
-    return '${date.month}/${date.day}/${date.year}';
+/// Private button widget with AnimatedScale press feedback.
+class _ControlButton extends StatefulWidget {
+  const _ControlButton({
+    required this.icon,
+    required this.label,
+    this.onPressed,
+    this.isPrimary = false,
+    this.isDestructive = false,
+    this.isCompact = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback? onPressed;
+  final bool isPrimary;
+  final bool isDestructive;
+  final bool isCompact;
+
+  @override
+  State<_ControlButton> createState() => _ControlButtonState();
+}
+
+class _ControlButtonState extends State<_ControlButton> {
+  bool _pressed = false;
+
+  ButtonStyle get _buttonStyle {
+    if (widget.isPrimary) {
+      return ElevatedButton.styleFrom(
+        backgroundColor: AppColors.primaryColor,
+        foregroundColor: Colors.white,
+      );
+    }
+    if (widget.isDestructive) {
+      return ElevatedButton.styleFrom(
+        backgroundColor: AppColors.redColor,
+        foregroundColor: Colors.white,
+      );
+    }
+    return ElevatedButton.styleFrom(
+      backgroundColor: AppColors.lightColor,
+      foregroundColor: AppColors.darkColor,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: widget.onPressed != null
+          ? (_) => setState(() => _pressed = true)
+          : null,
+      onTapUp: widget.onPressed != null
+          ? (_) => setState(() => _pressed = false)
+          : null,
+      onTapCancel: widget.onPressed != null
+          ? () => setState(() => _pressed = false)
+          : null,
+      child: AnimatedScale(
+        scale: _pressed ? 0.94 : 1.0,
+        duration: AppAnimations.fast,
+        curve: AppAnimations.spring,
+        child: ElevatedButton.icon(
+          onPressed: widget.onPressed,
+          icon: Icon(widget.icon, size: widget.isCompact ? 18.0 : 20.0),
+          label: Text(widget.label),
+          style: _buttonStyle,
+        ),
+      ),
+    );
   }
 }
 
@@ -158,9 +237,9 @@ class RaceControlsWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: EdgeInsets.all(isCompact ? 8.0 : 16.0),
+      margin: EdgeInsets.all(isCompact ? AppSpacing.sm : AppSpacing.lg),
       child: Padding(
-        padding: EdgeInsets.all(isCompact ? 12.0 : 16.0),
+        padding: EdgeInsets.all(isCompact ? AppSpacing.md : AppSpacing.lg),
         child: Column(
           children: [
             if (currentTime != null) ...[
@@ -173,55 +252,55 @@ class RaceControlsWidget extends StatelessWidget {
                         .copyWith(fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
-              SizedBox(height: isCompact ? 12 : 16),
+              SizedBox(height: isCompact ? AppSpacing.md : AppSpacing.lg),
             ],
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 if (!isRaceStarted) ...[
-                  _buildControlButton(
-                    context,
+                  _ControlButton(
                     icon: Icons.play_arrow,
                     label: 'Start',
                     onPressed: onStart,
                     isPrimary: true,
+                    isCompact: isCompact,
                   ),
                 ] else if (isRacePaused) ...[
-                  _buildControlButton(
-                    context,
+                  _ControlButton(
                     icon: Icons.play_arrow,
                     label: 'Cont.',
                     onPressed: onResume,
                     isPrimary: true,
+                    isCompact: isCompact,
                   ),
-                  _buildControlButton(
-                    context,
+                  _ControlButton(
                     icon: Icons.stop,
                     label: 'Stop',
                     onPressed: onStop,
                     isDestructive: true,
+                    isCompact: isCompact,
                   ),
                 ] else if (!isRaceFinished) ...[
-                  _buildControlButton(
-                    context,
+                  _ControlButton(
                     icon: Icons.pause,
                     label: 'Pause',
                     onPressed: onPause,
+                    isCompact: isCompact,
                   ),
-                  _buildControlButton(
-                    context,
+                  _ControlButton(
                     icon: Icons.stop,
                     label: 'Stop',
                     onPressed: onStop,
                     isDestructive: true,
+                    isCompact: isCompact,
                   ),
                 ] else ...[
-                  _buildControlButton(
-                    context,
+                  _ControlButton(
                     icon: Icons.refresh,
                     label: 'Reset',
                     onPressed: onReset,
                     isPrimary: true,
+                    isCompact: isCompact,
                   ),
                 ],
               ],
@@ -232,36 +311,6 @@ class RaceControlsWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildControlButton(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    VoidCallback? onPressed,
-    bool isPrimary = false,
-    bool isDestructive = false,
-  }) {
-    final buttonStyle = isPrimary
-        ? ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primaryColor,
-            foregroundColor: Colors.white,
-          )
-        : isDestructive
-            ? ElevatedButton.styleFrom(
-                backgroundColor: AppColors.redColor,
-                foregroundColor: Colors.white,
-              )
-            : ElevatedButton.styleFrom(
-                backgroundColor: AppColors.lightColor,
-                foregroundColor: AppColors.darkColor,
-              );
-
-    return ElevatedButton.icon(
-      onPressed: onPressed,
-      icon: Icon(icon, size: isCompact ? 18 : 20),
-      label: Text(label),
-      style: buttonStyle,
-    );
-  }
 }
 
 /// Shared race status header widget that consolidates RaceInfoHeaderWidget implementations
@@ -288,20 +337,31 @@ class RaceStatusHeaderWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+      padding: const EdgeInsets.symmetric(
+          vertical: AppSpacing.md, horizontal: AppSpacing.xl),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F5),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: ColorUtils.withOpacity(Colors.grey, 0.2)),
+        color: AppColors.surfaceColor,
+        borderRadius: BorderRadius.circular(AppBorderRadius.md),
+        border: Border.all(
+            color: ColorUtils.withOpacity(Colors.grey, AppOpacity.medium)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            status,
-            style: AppTypography.bodySemibold.copyWith(
-              color: statusColor,
-              fontWeight: FontWeight.w600,
+          AnimatedContainer(
+            duration: AppAnimations.standard,
+            curve: AppAnimations.spring,
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+            decoration: BoxDecoration(
+              color: statusColor.withValues(alpha: AppOpacity.light),
+              borderRadius: BorderRadius.circular(AppBorderRadius.sm),
+              border: Border.all(
+                  color: statusColor.withValues(alpha: AppOpacity.strong)),
+            ),
+            child: Text(
+              status,
+              style: AppTypography.bodySemibold.copyWith(color: statusColor),
             ),
           ),
           if (runnerCount != null && onRunnersTap != null && showDropdown)
@@ -309,7 +369,7 @@ class RaceStatusHeaderWidget extends StatelessWidget {
               color: Colors.transparent,
               child: InkWell(
                 onTap: onRunnersTap,
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(AppBorderRadius.lg),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -319,7 +379,7 @@ class RaceStatusHeaderWidget extends StatelessWidget {
                         color: Colors.black87,
                       ),
                     ),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: AppSpacing.xs),
                     const Icon(
                       Icons.arrow_drop_down,
                       size: 20,
@@ -337,7 +397,7 @@ class RaceStatusHeaderWidget extends StatelessWidget {
               ),
             ),
           if (recordCount != null) ...[
-            const SizedBox(width: 16),
+            const SizedBox(width: AppSpacing.lg),
             Text(
               '${recordLabel ?? 'Records'}: $recordCount',
               style: AppTypography.bodySemibold.copyWith(
@@ -373,15 +433,15 @@ class ConflictButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 4),
+      margin: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
       elevation: isEnabled ? 2 : 0,
       child: InkWell(
         onTap: isEnabled ? onPressed : null,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppBorderRadius.md),
         child: Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppBorderRadius.md),
             border: Border.all(
               color: isEnabled ? color : Colors.grey[300]!,
               width: 1,
@@ -390,12 +450,12 @@ class ConflictButton extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: 48,
-                height: 48,
+                width: AppSpacing.xxxl,
+                height: AppSpacing.xxxl,
                 decoration: BoxDecoration(
                   color: ColorUtils.withOpacity(
-                      isEnabled ? color : Colors.grey, 0.1),
-                  borderRadius: BorderRadius.circular(24),
+                      isEnabled ? color : Colors.grey, AppOpacity.light),
+                  borderRadius: BorderRadius.circular(AppBorderRadius.xl),
                 ),
                 child: Icon(
                   icon,
@@ -403,7 +463,7 @@ class ConflictButton extends StatelessWidget {
                   size: 24,
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: AppSpacing.lg),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -414,7 +474,7 @@ class ConflictButton extends StatelessWidget {
                         color: isEnabled ? Colors.black87 : Colors.grey,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: AppSpacing.xs),
                     Text(
                       subtitle,
                       style: AppTypography.smallBodyRegular.copyWith(

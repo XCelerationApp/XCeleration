@@ -102,9 +102,8 @@ class RaceControlsWidget extends StatelessWidget {
                 sheet(
                   context: context,
                   title: 'Share Times',
-                  body: deviceConnectionWidget(
-                    context,
-                    DeviceConnectionService.createDevices(
+                  body: DeviceConnectionWidget(
+                    devices: DeviceConnectionService.createDevices(
                       DeviceName.raceTimer,
                       DeviceType.advertiserDevice,
                       data: encodedData,

@@ -122,7 +122,8 @@ class PermissionsUtils {
   static void showPermissionsManager(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => const PermissionsDialog(),
+      builder: (context) =>
+          PermissionsDialog(permissionsService: _permissionsService),
     );
   }
 }

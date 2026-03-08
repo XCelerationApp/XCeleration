@@ -105,9 +105,8 @@ class TimingController extends TimingData {
     sheet(
       context: context,
       title: 'Load Race',
-      body: deviceConnectionWidget(
-        context,
-        devices,
+      body: DeviceConnectionWidget(
+        devices: devices,
         callback: () async {
           final data = devices.coach?.data;
           if (data == null) {
