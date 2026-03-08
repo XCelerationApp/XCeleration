@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../shared/models/database/race.dart';
+import '../services/race_service.dart';
 
 enum RaceField { name, location, date, distance, unit }
 
@@ -173,6 +174,36 @@ class RaceFormState extends ChangeNotifier {
       unitController.text = race.distanceUnit ?? 'mi';
     }
   }
+
+  // ---------------------------------------------------------------------------
+  // Field validators — delegate to RaceService and set errors on this form.
+
+  static final Map<RaceField, String? Function(String)> _fieldValidators = {
+    RaceField.name: RaceService.validateName,
+    RaceField.location: RaceService.validateLocation,
+    RaceField.date: RaceService.validateDate,
+    RaceField.distance: RaceService.validateDistance,
+  };
+
+  /// Looks up the validator for [field] and applies it via [setError].
+  void applyValidation(RaceField field) {
+    final validator = _fieldValidators[field];
+    if (validator != null) {
+      setError(field, validator(controllerFor(field).text));
+    }
+  }
+
+  void validateName(String name) =>
+      setError(RaceField.name, RaceService.validateName(name));
+
+  void validateLocation(String location) =>
+      setError(RaceField.location, RaceService.validateLocation(location));
+
+  void validateDate(String dateString) =>
+      setError(RaceField.date, RaceService.validateDate(dateString));
+
+  void validateDistance(String distanceString) =>
+      setError(RaceField.distance, RaceService.validateDistance(distanceString));
 
   @override
   void dispose() {
