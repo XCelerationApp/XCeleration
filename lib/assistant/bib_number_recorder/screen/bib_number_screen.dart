@@ -198,7 +198,6 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                           controller: _controller,
                           onShare: _onShareBibNumbers,
                         ),
-                        const SizedBox(height: 8),
                       ])),
 
                   // Bib input list section - moved outside the inner Column
