@@ -281,6 +281,16 @@ class SyncService implements ISyncService {
         return;
       }
 
+      // Auth guard: sync requires a signed-in user. Pull operations filter
+      // remote rows by owner_user_id; without a user, the filter is omitted
+      // and Supabase would return all publicly-visible rows (or silently fail
+      // at RLS). Per-row RLS is a last line of defence, not a substitute for
+      // this check.
+      if (!_auth.isSignedIn) {
+        Logger.d('Sync skipped: user is not authenticated.');
+        return;
+      }
+
       await ensureLocalUuids();
       await pushAll();
       await pullAll();
@@ -292,6 +302,15 @@ class SyncService implements ISyncService {
 
   // Push dirty rows (scaffold only; integrate with remote client later)
   Future<void> pushAll() async {
+    // Auth guard: every pushed row must carry an owner_user_id. Check once
+    // here rather than per-row to avoid unnecessary DB and network work before
+    // discovering the user is unauthenticated.
+    final uid = _auth.currentUserId;
+    if (uid == null) {
+      Logger.d('Push skipped: user is not authenticated.');
+      return;
+    }
+
     final client = _remote.client;
     final db = await _db.databaseConn;
     if (!await _hasNormalizedSchema(db)) {
@@ -325,13 +344,8 @@ class SyncService implements ISyncService {
       for (final row in rows) {
         final copy = Map<String, dynamic>.from(row);
         copy.remove('is_dirty');
-        final uid = _auth.currentUserId;
-        if (uid != null) {
-          copy['owner_user_id'] = uid;
-        } else {
-          Logger.d('User not authenticated; skipping push for $table');
-          return;
-        }
+        // uid is guaranteed non-null by the guard at the top of pushAll().
+        copy['owner_user_id'] = uid;
 
         // Resolve conflict in-memory against pre-fetched remote data
         final conflictCheck = _checkForPushConflictInMemory(
@@ -372,9 +386,12 @@ class SyncService implements ISyncService {
     final client = _remote.client;
     final db = await _db.databaseConn;
 
+    // Auth guard: defensive check in case _pushRaceResults is called outside
+    // syncAll(). In the normal flow the top-level guard in syncAll() ensures
+    // the user is authenticated before any push method is reached.
     final uid = _auth.currentUserId;
     if (uid == null) {
-      Logger.d('User not authenticated; skipping push for race_results');
+      Logger.d('Push skipped: user is not authenticated (race_results).');
       return;
     }
 
@@ -449,9 +466,12 @@ class SyncService implements ISyncService {
     final client = _remote.client;
     final db = await _db.databaseConn;
 
+    // Auth guard: defensive check in case _pushRaceParticipants is called
+    // outside syncAll(). In the normal flow the top-level guard in syncAll()
+    // ensures the user is authenticated before any push method is reached.
     final uid = _auth.currentUserId;
     if (uid == null) {
-      Logger.d('User not authenticated; skipping push for race_participants');
+      Logger.d('Push skipped: user is not authenticated (race_participants).');
       return;
     }
 

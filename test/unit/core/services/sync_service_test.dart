@@ -50,8 +50,8 @@ void main() {
     when(mockRemote.init()).thenAnswer((_) async {});
     when(mockRemote.isInitialized).thenReturn(false);
     when(mockRemote.client).thenReturn(mockSupabaseClient);
-    // _pushRaceResults / _pushRaceParticipants check currentUserId before
-    // querying dirty rows, so provide a default stub for all push tests.
+    // Default to unauthenticated; individual tests override as needed.
+    when(mockAuth.isSignedIn).thenReturn(false);
     when(mockAuth.currentUserId).thenReturn(null);
   });
 
@@ -135,6 +135,25 @@ void main() {
         verifyNever(mockDatabase.rawQuery(any, any));
       });
 
+      test('skips push and pull when user is not authenticated', () async {
+        when(mockRemote.isInitialized).thenReturn(true);
+        when(mockAuth.isSignedIn).thenReturn(false);
+        when(mockDatabase.query('sync_state',
+                where: anyNamed('where'), whereArgs: anyNamed('whereArgs')))
+            .thenAnswer((_) async => [
+                  {
+                    'key': SyncService.syncModeKey,
+                    'value': SyncService.syncModeAuthenticated,
+                  }
+                ]);
+
+        await service.syncAll();
+
+        // DB accessed once for getSyncMode only; no schema queries issued
+        verify(mockDbHelper.databaseConn).called(1);
+        verifyNever(mockDatabase.rawQuery(any, any));
+      });
+
       test('rethrows exceptions from underlying operations', () async {
         when(mockRemote.isInitialized).thenReturn(true);
         when(mockDatabase.query('sync_state',
@@ -167,21 +186,13 @@ void main() {
       });
 
       test('skips push when currentUserId is null', () async {
-        _stubSchemaExists(mockDatabase);
         when(mockAuth.currentUserId).thenReturn(null);
-        // One dirty row with a uuid — fetching remote batch will need client
-        when(mockDatabase.query(any, where: anyNamed('where')))
-            .thenAnswer((_) async => [
-                  {'uuid': 'abc-123', 'name': 'Test Runner', 'is_dirty': 1}
-                ]);
-        // Verify no dirty-flag clearing occurs since auth is null.
-        // pushAll returns from the per-row loop early when uid is null,
-        // before any rawUpdate to clear the dirty flag.
-        try {
-          await service.pushAll();
-        } catch (_) {}
 
+        await service.pushAll();
+
+        // Auth guard fires before any DB access — no rawUpdate or schema query.
         verifyNever(mockDatabase.rawUpdate(any, any));
+        verifyNever(mockDatabase.rawQuery(any, any));
       });
     });
 
