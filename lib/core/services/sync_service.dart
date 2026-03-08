@@ -201,58 +201,37 @@ class SyncService {
     return _DataConflictResult(differences.isNotEmpty, differences);
   }
 
-  /// Check for potential conflicts before pushing data to remote
-  Future<_PushConflictResult> _checkForPushConflict(
-      String table, Map<String, dynamic> localData) async {
-    try {
-      final uuid = localData['uuid'];
-      if (uuid == null) {
-        return _PushConflictResult(false, {'reason': 'no_uuid'});
-      }
-
-      // Query remote for existing data
-      final remoteData = await RemoteApiClient.instance.client
-          .from(table)
-          .select()
-          .eq('uuid', uuid)
-          .maybeSingle();
-
-      if (remoteData == null) {
-        // No remote data exists - no conflict
-        return _PushConflictResult(false, {'reason': 'no_remote_data'});
-      }
-
-      // Compare timestamps
-      final localUpdated =
-          DateTime.tryParse(localData['updated_at']?.toString() ?? '');
-      final remoteUpdated =
-          DateTime.tryParse(remoteData['updated_at']?.toString() ?? '');
-
-      if (localUpdated == null || remoteUpdated == null) {
-        return _PushConflictResult(true, {
-          'reason': 'timestamp_missing',
-          'local_updated': localData['updated_at'],
-          'remote_updated': remoteData['updated_at']
-        });
-      }
-
-      if (remoteUpdated.isAfter(localUpdated)) {
-        // Remote is newer - this is a conflict
-        final dataConflict = _detectDataConflict(localData, remoteData);
-        return _PushConflictResult(true, {
-          'reason': 'remote_newer',
-          'time_diff_minutes': remoteUpdated.difference(localUpdated).inMinutes,
-          'data_differences': dataConflict.differences
-        });
-      }
-
-      // Local is newer or same - no conflict
-      return _PushConflictResult(false, {'reason': 'local_newer_or_equal'});
-    } catch (e) {
-      Logger.d('Error checking push conflict for $table: $e');
-      return _PushConflictResult(
-          false, {'reason': 'error', 'error': e.toString()});
+  /// Pure in-memory conflict check — no network calls.
+  /// [remoteData] is the already-fetched remote row, or null if none exists.
+  _PushConflictResult _checkForPushConflictInMemory(
+      Map<String, dynamic> localData, Map<String, dynamic>? remoteData) {
+    if (remoteData == null) {
+      return _PushConflictResult(false, {'reason': 'no_remote_data'});
     }
+
+    final localUpdated =
+        DateTime.tryParse(localData['updated_at']?.toString() ?? '');
+    final remoteUpdated =
+        DateTime.tryParse(remoteData['updated_at']?.toString() ?? '');
+
+    if (localUpdated == null || remoteUpdated == null) {
+      return _PushConflictResult(true, {
+        'reason': 'timestamp_missing',
+        'local_updated': localData['updated_at'],
+        'remote_updated': remoteData['updated_at'],
+      });
+    }
+
+    if (remoteUpdated.isAfter(localUpdated)) {
+      final dataConflict = _detectDataConflict(localData, remoteData);
+      return _PushConflictResult(true, {
+        'reason': 'remote_newer',
+        'time_diff_minutes': remoteUpdated.difference(localUpdated).inMinutes,
+        'data_differences': dataConflict.differences,
+      });
+    }
+
+    return _PushConflictResult(false, {'reason': 'local_newer_or_equal'});
   }
 
   /// Get current sync mode preference
@@ -331,8 +310,24 @@ class SyncService {
       final rows = await db.query(table, where: 'is_dirty = 1');
       if (rows.isEmpty) return;
 
+      // Collect all UUIDs upfront for a single batch conflict check query
+      final uuids = rows.map((r) => r['uuid']).whereType<String>().toList();
+
+      // Fetch all matching remote rows in one round-trip
+      final remoteMap = <String, Map<String, dynamic>>{};
+      if (uuids.isNotEmpty) {
+        final remoteRows = await client
+            .from(table)
+            .select()
+            .inFilter('uuid', uuids);
+        for (final r in remoteRows) {
+          final m = Map<String, dynamic>.from(r as Map);
+          final u = m['uuid'] as String?;
+          if (u != null) remoteMap[u] = m;
+        }
+      }
+
       final payload = <Map<String, dynamic>>[];
-      final conflictChecks = <Map<String, dynamic>>[];
 
       for (final row in rows) {
         final copy = Map<String, dynamic>.from(row);
@@ -341,32 +336,30 @@ class SyncService {
         if (uid != null) {
           copy['owner_user_id'] = uid;
         } else {
-          // Skip push if user is not authenticated
           Logger.d('User not authenticated; skipping push for $table');
           return;
         }
 
-        // Check for potential conflicts before pushing
-        final conflictCheck = await _checkForPushConflict(table, copy);
+        // Resolve conflict in-memory against pre-fetched remote data
+        final conflictCheck = _checkForPushConflictInMemory(
+            copy, remoteMap[copy['uuid'] as String?]);
         if (conflictCheck.hasConflict) {
           Logger.d(
               '⚠️ Push conflict detected for $table UUID:${copy['uuid']}: ${conflictCheck.details}');
-          // For now, still push but log the conflict
-          // In the future, you could implement conflict resolution UI here
         }
 
         payload.add(copy);
-        conflictChecks.add(conflictCheck.details);
       }
 
       if (payload.isNotEmpty) {
         await client.from(table).upsert(payload, onConflict: onConflict);
-        final uuids =
+        final pushedUuids =
             payload.map((r) => r['uuid']).whereType<String>().toList();
-        if (uuids.isNotEmpty) {
-          final qMarks = List.filled(uuids.length, '?').join(',');
+        if (pushedUuids.isNotEmpty) {
+          final qMarks = List.filled(pushedUuids.length, '?').join(',');
           await db.rawUpdate(
-              'UPDATE $table SET is_dirty = 0 WHERE uuid IN ($qMarks)', uuids);
+              'UPDATE $table SET is_dirty = 0 WHERE uuid IN ($qMarks)',
+              pushedUuids);
         }
         Logger.d('Pushed ${payload.length} dirty records for $table');
       }
@@ -395,6 +388,23 @@ class SyncService {
     final rows = await db.query('race_results', where: 'is_dirty = 1');
     if (rows.isEmpty) return;
 
+    // Collect all UUIDs upfront for a single batch conflict check query
+    final uuids = rows.map((r) => r['uuid']).whereType<String>().toList();
+
+    // Fetch all matching remote rows in one round-trip
+    final remoteMap = <String, Map<String, dynamic>>{};
+    if (uuids.isNotEmpty) {
+      final remoteRows = await client
+          .from('race_results')
+          .select()
+          .inFilter('uuid', uuids);
+      for (final r in remoteRows) {
+        final m = Map<String, dynamic>.from(r as Map);
+        final u = m['uuid'] as String?;
+        if (u != null) remoteMap[u] = m;
+      }
+    }
+
     final payload = <Map<String, dynamic>>[];
 
     for (final row in rows) {
@@ -414,8 +424,9 @@ class SyncService {
 
       copy['owner_user_id'] = uid;
 
-      final conflictCheck =
-          await _checkForPushConflict('race_results', copy);
+      // Resolve conflict in-memory against pre-fetched remote data
+      final conflictCheck = _checkForPushConflictInMemory(
+          copy, remoteMap[copy['uuid'] as String?]);
       if (conflictCheck.hasConflict) {
         Logger.d(
             '⚠️ Push conflict for race_results UUID:${copy['uuid']}: ${conflictCheck.details}');
