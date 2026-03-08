@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../theme/app_border_radius.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_spacing.dart';
 import '../theme/typography.dart';
 
 /// Layout and structural UI components
@@ -25,10 +27,10 @@ class SearchBarWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: EdgeInsets.all(isCompact ? 8.0 : 16.0),
+      margin: EdgeInsets.all(isCompact ? AppSpacing.sm : AppSpacing.lg),
       decoration: BoxDecoration(
         color: AppColors.backgroundColor,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppBorderRadius.md),
         border: Border.all(color: AppColors.lightColor),
       ),
       child: TextField(
@@ -45,8 +47,8 @@ class SearchBarWidget extends StatelessWidget {
               : null,
           border: InputBorder.none,
           contentPadding: EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: isCompact ? 12 : 16,
+            horizontal: AppSpacing.lg,
+            vertical: isCompact ? AppSpacing.md : AppSpacing.lg,
           ),
         ),
       ),
@@ -73,8 +75,8 @@ class SectionHeaderWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.symmetric(
-        horizontal: isCompact ? 12.0 : 16.0,
-        vertical: isCompact ? 8.0 : 12.0,
+        horizontal: isCompact ? AppSpacing.md : AppSpacing.lg,
+        vertical: isCompact ? AppSpacing.sm : AppSpacing.md,
       ),
       child: Row(
         children: [
@@ -89,7 +91,7 @@ class SectionHeaderWidget extends StatelessWidget {
                       : AppTypography.titleLarge,
                 ),
                 if (subtitle != null) ...[
-                  const SizedBox(height: 4),
+                  const SizedBox(height: AppSpacing.xs),
                   Text(
                     subtitle!,
                     style: AppTypography.bodyRegular

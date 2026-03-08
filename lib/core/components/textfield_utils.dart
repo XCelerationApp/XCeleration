@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_border_radius.dart';
+import '../theme/app_opacity.dart';
+import '../theme/app_spacing.dart';
 
 Widget buildDropdown({
   required TextEditingController controller,
@@ -10,8 +13,6 @@ Widget buildDropdown({
   required StateSetter setSheetState,
   required List<String> items,
 }) {
-  const double borderRadius = 12.0;
-
   return Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
@@ -24,13 +25,13 @@ Widget buildDropdown({
         child: Container(
           decoration: BoxDecoration(
             color: error != null
-                ? Colors.red.withAlpha((0.05 * 255).round())
-                : Colors.grey.withAlpha((0.05 * 255).round()),
+                ? Colors.red.withValues(alpha: AppOpacity.faint)
+                : Colors.grey.withValues(alpha: AppOpacity.faint),
             border: Border.all(
                 color: error != null
-                    ? Colors.red.withAlpha((0.5 * 255).round())
-                    : Colors.grey.withAlpha((0.5 * 255).round())),
-            borderRadius: BorderRadius.circular(borderRadius),
+                    ? Colors.red.withValues(alpha: AppOpacity.solid)
+                    : Colors.grey.withValues(alpha: AppOpacity.solid)),
+            borderRadius: BorderRadius.circular(AppBorderRadius.md),
           ),
           child: DropdownButtonHideUnderline(
             child: ButtonTheme(
@@ -56,7 +57,7 @@ Widget buildDropdown({
       ),
       if (error != null)
         Padding(
-          padding: const EdgeInsets.only(top: 4, left: 12),
+          padding: const EdgeInsets.only(top: AppSpacing.xs, left: AppSpacing.md),
           child: Text(
             error,
             style: const TextStyle(
@@ -86,9 +87,6 @@ Widget buildTextField({
   int? maxLength,
   bool autofocus = false,
 }) {
-  const double borderRadius = 12.0;
-  const double contentPadding = 16.0;
-
   return Focus(
     onFocusChange: (hasFocus) {
       if (!hasFocus) {
@@ -114,39 +112,39 @@ Widget buildTextField({
           fontSize: 16,
         ),
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: contentPadding,
-          vertical: contentPadding,
+          horizontal: AppSpacing.lg,
+          vertical: AppSpacing.lg,
         ),
         filled: true,
         fillColor: error != null
-            ? Colors.red.withAlpha((0.05 * 255).round())
+            ? Colors.red.withValues(alpha: AppOpacity.faint)
             : (warning != null
-                ? Colors.orange.withAlpha((0.08 * 255).round())
-                : Colors.grey.withAlpha((0.05 * 255).round())),
+                ? Colors.orange.withValues(alpha: AppOpacity.light)
+                : Colors.grey.withValues(alpha: AppOpacity.faint)),
         prefixIcon: prefixIcon,
         suffixIcon: suffixIcon,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(borderRadius),
+          borderRadius: BorderRadius.circular(AppBorderRadius.md),
           borderSide: BorderSide(
             color: error != null
-                ? Colors.red.withAlpha((0.5 * 255).round())
+                ? Colors.red.withValues(alpha: AppOpacity.solid)
                 : (warning != null
-                    ? Colors.orange.withAlpha((0.6 * 255).round())
-                    : Colors.grey.withAlpha((0.5 * 255).round())),
+                    ? Colors.orange.withValues(alpha: AppOpacity.border)
+                    : Colors.grey.withValues(alpha: AppOpacity.solid)),
           ),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(borderRadius),
+          borderRadius: BorderRadius.circular(AppBorderRadius.md),
           borderSide: BorderSide(
             color: error != null
-                ? Colors.red.withAlpha((0.5 * 255).round())
+                ? Colors.red.withValues(alpha: AppOpacity.solid)
                 : (warning != null
-                    ? Colors.orange.withAlpha((0.6 * 255).round())
-                    : Colors.grey.withAlpha((0.5 * 255).round())),
+                    ? Colors.orange.withValues(alpha: AppOpacity.border)
+                    : Colors.grey.withValues(alpha: AppOpacity.solid)),
           ),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(borderRadius),
+          borderRadius: BorderRadius.circular(AppBorderRadius.md),
           borderSide: BorderSide(
             color: error != null
                 ? Colors.red
@@ -189,7 +187,7 @@ Widget buildInputRow({
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Padding(
-        padding: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
         child: Text(
           label,
           style: const TextStyle(

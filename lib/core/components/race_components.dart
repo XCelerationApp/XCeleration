@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import '../theme/app_border_radius.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_opacity.dart';
+import '../theme/app_spacing.dart';
 import '../theme/typography.dart';
 import '../utils/color_utils.dart';
 
@@ -30,12 +33,12 @@ class RaceInfoHeaderWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: EdgeInsets.all(isCompact ? 8.0 : 16.0),
+      margin: EdgeInsets.all(isCompact ? AppSpacing.sm : AppSpacing.lg),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppBorderRadius.md),
         child: Padding(
-          padding: EdgeInsets.all(isCompact ? 12.0 : 16.0),
+          padding: EdgeInsets.all(isCompact ? AppSpacing.md : AppSpacing.lg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -54,10 +57,10 @@ class RaceInfoHeaderWidget extends StatelessWidget {
                   children: [
                     Icon(
                       Icons.location_on,
-                      size: isCompact ? 16 : 18,
+                      size: isCompact ? AppSpacing.lg : 18,
                       color: AppColors.mediumColor,
                     ),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: AppSpacing.xs),
                     Expanded(
                       child: Text(
                         location!,
@@ -74,16 +77,16 @@ class RaceInfoHeaderWidget extends StatelessWidget {
                 ),
               ],
               if (raceDate != null || (distance != null && distance! > 0)) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSpacing.sm),
                 Row(
                   children: [
                     if (raceDate != null) ...[
                       Icon(
                         Icons.calendar_today,
-                        size: isCompact ? 14 : 16,
+                        size: isCompact ? AppSpacing.md : AppSpacing.lg,
                         color: AppColors.mediumColor,
                       ),
-                      const SizedBox(width: 4),
+                      const SizedBox(width: AppSpacing.xs),
                       Text(
                         _formatDate(raceDate!),
                         style: AppTypography.caption
@@ -91,13 +94,13 @@ class RaceInfoHeaderWidget extends StatelessWidget {
                       ),
                     ],
                     if (distance != null && distance! > 0) ...[
-                      if (raceDate != null) const SizedBox(width: 16),
+                      if (raceDate != null) const SizedBox(width: AppSpacing.lg),
                       Icon(
                         Icons.straighten,
-                        size: isCompact ? 14 : 16,
+                        size: isCompact ? AppSpacing.md : AppSpacing.lg,
                         color: AppColors.mediumColor,
                       ),
-                      const SizedBox(width: 4),
+                      const SizedBox(width: AppSpacing.xs),
                       Text(
                         '${distance!.toStringAsFixed(distance! % 1 == 0 ? 0 : 1)} ${distanceUnit ?? 'mi'}',
                         style: AppTypography.caption
@@ -158,9 +161,9 @@ class RaceControlsWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: EdgeInsets.all(isCompact ? 8.0 : 16.0),
+      margin: EdgeInsets.all(isCompact ? AppSpacing.sm : AppSpacing.lg),
       child: Padding(
-        padding: EdgeInsets.all(isCompact ? 12.0 : 16.0),
+        padding: EdgeInsets.all(isCompact ? AppSpacing.md : AppSpacing.lg),
         child: Column(
           children: [
             if (currentTime != null) ...[
@@ -173,7 +176,7 @@ class RaceControlsWidget extends StatelessWidget {
                         .copyWith(fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
-              SizedBox(height: isCompact ? 12 : 16),
+              SizedBox(height: isCompact ? AppSpacing.md : AppSpacing.lg),
             ],
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -288,11 +291,13 @@ class RaceStatusHeaderWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+      padding: const EdgeInsets.symmetric(
+          vertical: AppSpacing.md, horizontal: AppSpacing.xl),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F5),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: ColorUtils.withOpacity(Colors.grey, 0.2)),
+        color: AppColors.surfaceColor,
+        borderRadius: BorderRadius.circular(AppBorderRadius.md),
+        border: Border.all(
+            color: ColorUtils.withOpacity(Colors.grey, AppOpacity.medium)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -309,7 +314,7 @@ class RaceStatusHeaderWidget extends StatelessWidget {
               color: Colors.transparent,
               child: InkWell(
                 onTap: onRunnersTap,
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(AppBorderRadius.lg),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -319,7 +324,7 @@ class RaceStatusHeaderWidget extends StatelessWidget {
                         color: Colors.black87,
                       ),
                     ),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: AppSpacing.xs),
                     const Icon(
                       Icons.arrow_drop_down,
                       size: 20,
@@ -337,7 +342,7 @@ class RaceStatusHeaderWidget extends StatelessWidget {
               ),
             ),
           if (recordCount != null) ...[
-            const SizedBox(width: 16),
+            const SizedBox(width: AppSpacing.lg),
             Text(
               '${recordLabel ?? 'Records'}: $recordCount',
               style: AppTypography.bodySemibold.copyWith(
@@ -373,15 +378,15 @@ class ConflictButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 4),
+      margin: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
       elevation: isEnabled ? 2 : 0,
       child: InkWell(
         onTap: isEnabled ? onPressed : null,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppBorderRadius.md),
         child: Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppBorderRadius.md),
             border: Border.all(
               color: isEnabled ? color : Colors.grey[300]!,
               width: 1,
@@ -390,12 +395,12 @@ class ConflictButton extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: 48,
-                height: 48,
+                width: AppSpacing.xxxl,
+                height: AppSpacing.xxxl,
                 decoration: BoxDecoration(
                   color: ColorUtils.withOpacity(
-                      isEnabled ? color : Colors.grey, 0.1),
-                  borderRadius: BorderRadius.circular(24),
+                      isEnabled ? color : Colors.grey, AppOpacity.light),
+                  borderRadius: BorderRadius.circular(AppBorderRadius.xl),
                 ),
                 child: Icon(
                   icon,
@@ -403,7 +408,7 @@ class ConflictButton extends StatelessWidget {
                   size: 24,
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: AppSpacing.lg),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -414,7 +419,7 @@ class ConflictButton extends StatelessWidget {
                         color: isEnabled ? Colors.black87 : Colors.grey,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: AppSpacing.xs),
                     Text(
                       subtitle,
                       style: AppTypography.smallBodyRegular.copyWith(

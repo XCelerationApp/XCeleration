@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_border_radius.dart';
+import '../theme/app_opacity.dart';
+import '../theme/app_spacing.dart';
 import '../theme/typography.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
 
@@ -72,7 +75,7 @@ class ActionButton extends StatelessWidget {
       effectiveBorderColor = Colors.grey.shade400;
     }
 
-    final effectiveBorderRadius = borderRadius ?? 12.0;
+    final effectiveBorderRadius = borderRadius ?? AppBorderRadius.md;
 
     final effectiveIconSize = iconSize ?? _getIconSizeForButtonSize(size);
     final effectiveFontSize = fontSize ?? _getFontSizeForButtonSize(size);
@@ -102,8 +105,8 @@ class ActionButton extends StatelessWidget {
           boxShadow: elevation > 0
               ? [
                   BoxShadow(
-                    color:
-                        ColorUtils.withOpacity(effectiveBackgroundColor, 0.3),
+                    color: ColorUtils.withOpacity(
+                        effectiveBackgroundColor, AppOpacity.strong),
                     spreadRadius: 0,
                     blurRadius: elevation * 2,
                     offset: Offset(0, elevation),
@@ -127,7 +130,8 @@ class ActionButton extends StatelessWidget {
                   ? BorderSide.none
                   : BorderSide(
                       color: effectiveBorderColor ??
-                          ColorUtils.withOpacity(AppColors.primaryColor, 0.3),
+                          ColorUtils.withOpacity(
+                              AppColors.primaryColor, AppOpacity.strong),
                       width: 1,
                     ),
             ),
@@ -199,12 +203,14 @@ class ActionButton extends StatelessWidget {
   EdgeInsetsGeometry _getPaddingForButtonSize(ButtonSize size) {
     switch (size) {
       case ButtonSize.small:
-        return const EdgeInsets.symmetric(horizontal: 8, vertical: 6);
+        return const EdgeInsets.symmetric(
+            horizontal: AppSpacing.sm, vertical: AppSpacing.xs);
       case ButtonSize.medium:
-        return const EdgeInsets.symmetric(horizontal: 12, vertical: 10);
+        return const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 10);
       case ButtonSize.large:
       case ButtonSize.fullWidth:
-        return const EdgeInsets.symmetric(horizontal: 16, vertical: 16);
+        return const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg, vertical: AppSpacing.lg);
     }
   }
 
@@ -240,7 +246,7 @@ class PrimaryButton extends ActionButton {
     required super.text,
     super.onPressed,
     super.icon,
-    super.borderRadius = 12.0,
+    super.borderRadius = AppBorderRadius.md,
     super.size = ButtonSize.medium,
     super.elevation = 2.0,
     super.iconLeading = true,
@@ -263,7 +269,7 @@ class SecondaryButton extends ActionButton {
     required super.text,
     super.onPressed,
     super.icon,
-    super.borderRadius = 12.0,
+    super.borderRadius = AppBorderRadius.md,
     super.size = ButtonSize.medium,
     super.elevation = 0.0,
     super.iconLeading = true,
@@ -289,7 +295,7 @@ class FullWidthButton extends ActionButton {
     super.icon,
     super.backgroundColor,
     super.textColor,
-    super.borderRadius = 16.0,
+    super.borderRadius = AppBorderRadius.lg,
     super.isSelected = false,
     super.isPrimary = true,
     super.elevation = 2.0,
@@ -300,7 +306,7 @@ class FullWidthButton extends ActionButton {
     super.fontWeight,
   }) : super(
           size: ButtonSize.fullWidth,
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
         );
 }
 
@@ -341,7 +347,7 @@ class CircleIconButton extends StatelessWidget {
           boxShadow: elevation > 0
               ? [
                   BoxShadow(
-                    color: ColorUtils.withOpacity(Colors.black, 0.1),
+                    color: ColorUtils.withOpacity(Colors.black, AppOpacity.light),
                     spreadRadius: 0,
                     blurRadius: elevation * 2,
                     offset: elevation > 0 ? const Offset(0, 2) : Offset.zero,
@@ -355,9 +361,9 @@ class CircleIconButton extends StatelessWidget {
             backgroundColor: effectiveBackgroundColor,
             foregroundColor: effectiveIconColor,
             disabledBackgroundColor:
-                ColorUtils.withOpacity(effectiveBackgroundColor, 0.5),
+                ColorUtils.withOpacity(effectiveBackgroundColor, AppOpacity.solid),
             disabledForegroundColor:
-                ColorUtils.withOpacity(effectiveIconColor, 0.5),
+                ColorUtils.withOpacity(effectiveIconColor, AppOpacity.solid),
             padding: EdgeInsets.zero,
             shape: const CircleBorder(),
             elevation: 0,
@@ -380,7 +386,7 @@ class ToggleButton extends ActionButton {
     required super.text,
     super.onPressed,
     required super.icon,
-    super.borderRadius = 12.0,
+    super.borderRadius = AppBorderRadius.md,
     required super.isSelected,
     super.size = ButtonSize.medium,
     super.elevation = 2.0,
@@ -505,14 +511,16 @@ class RoundedRectangleButton extends StatelessWidget {
               spreadRadius: 2,
             ),
           ],
-          borderRadius: BorderRadius.all(Radius.circular(40)),
+          borderRadius:
+              const BorderRadius.all(Radius.circular(AppBorderRadius.full)),
         ),
         child: ElevatedButton(
           onPressed: onPressed,
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.transparent,
             shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.all(Radius.circular(40)),
+              borderRadius:
+                  BorderRadius.all(Radius.circular(AppBorderRadius.full)),
             ),
             padding: EdgeInsets.zero,
             elevation: 0,
@@ -587,12 +595,13 @@ class SharedActionButton extends StatelessWidget {
         isSelected: isSelected,
         onPressed: onPressed,
         isEnabled: computedEnabled,
-        borderRadius: borderRadius ?? 12,
+        borderRadius: borderRadius ?? AppBorderRadius.md,
         elevation: elevation ?? (isSelected ? 3 : 1),
         fontSize: fontSize ?? 12,
         fontWeight: fontWeight ?? FontWeight.w600,
-        padding:
-            padding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        padding: padding ??
+            const EdgeInsets.symmetric(
+                horizontal: AppSpacing.lg, vertical: AppSpacing.lg),
       );
     } else if (height != null ||
         backgroundColor != null ||
@@ -617,9 +626,10 @@ class SharedActionButton extends StatelessWidget {
                 ? AppColors.primaryColor
                 : AppColors.mediumColor),
         fontWeight: fontWeight ?? FontWeight.w500,
-        padding:
-            padding ?? const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-        borderRadius: borderRadius ?? 12,
+        padding: padding ??
+            const EdgeInsets.symmetric(
+                vertical: AppSpacing.sm, horizontal: AppSpacing.lg),
+        borderRadius: borderRadius ?? AppBorderRadius.md,
         isPrimary: isPrimary,
         onPressed: onPressed,
         isEnabled: computedEnabled,
@@ -631,7 +641,7 @@ class SharedActionButton extends StatelessWidget {
         onPressed: onPressed,
         icon: icon,
         size: size ?? ButtonSize.medium,
-        borderRadius: borderRadius ?? 12,
+        borderRadius: borderRadius ?? AppBorderRadius.md,
         elevation: elevation ?? 4,
         fontSize: fontSize ?? 16,
         fontWeight: fontWeight ?? FontWeight.w600,

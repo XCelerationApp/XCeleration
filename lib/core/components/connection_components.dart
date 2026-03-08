@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../theme/app_border_radius.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_spacing.dart';
 import '../utils/connection_utils.dart';
 import '../services/device_connection_service.dart';
 import 'dialog_utils.dart';
@@ -80,8 +83,8 @@ class _WirelessConnectionButtonState extends State<WirelessConnectionButton> {
       mainAxisSize: MainAxisSize.min,
       children: [
         SizedBox(
-          width: 16,
-          height: 16,
+          width: AppSpacing.lg,
+          height: AppSpacing.lg,
           child: CircularProgressIndicator(
             strokeWidth: 2,
             valueColor: AlwaysStoppedAnimation<Color>(
@@ -125,11 +128,12 @@ class _WirelessConnectionButtonState extends State<WirelessConnectionButton> {
       return Container(
         width: double.infinity,
         decoration: BoxDecoration(
-          border: Border.all(color: const Color(0xFFE0E0E0)),
-          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.borderColor),
+          borderRadius: BorderRadius.circular(AppBorderRadius.md),
           color: Colors.white,
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg, vertical: AppSpacing.lg),
         child: Row(
           children: [
             Container(
@@ -137,16 +141,16 @@ class _WirelessConnectionButtonState extends State<WirelessConnectionButton> {
               height: 24,
               decoration: BoxDecoration(
                 color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(AppBorderRadius.xs),
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: AppSpacing.lg),
             Container(
               width: 120,
               height: 18,
               decoration: BoxDecoration(
                 color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(AppBorderRadius.xs),
               ),
             ),
             const Spacer(),
@@ -155,7 +159,7 @@ class _WirelessConnectionButtonState extends State<WirelessConnectionButton> {
               height: 18,
               decoration: BoxDecoration(
                 color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(AppBorderRadius.xs),
               ),
             ),
           ],
@@ -167,11 +171,12 @@ class _WirelessConnectionButtonState extends State<WirelessConnectionButton> {
       return Container(
         width: double.infinity,
         decoration: BoxDecoration(
-          border: Border.all(color: const Color(0xFFE0E0E0)),
-          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.borderColor),
+          borderRadius: BorderRadius.circular(AppBorderRadius.md),
           color: Colors.white,
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg, vertical: AppSpacing.lg),
         child: Row(
           children: [
             Icon(
@@ -179,7 +184,7 @@ class _WirelessConnectionButtonState extends State<WirelessConnectionButton> {
               color: Colors.red[400],
               size: 24,
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: AppSpacing.lg),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -209,7 +214,8 @@ class _WirelessConnectionButtonState extends State<WirelessConnectionButton> {
                 onPressed: widget.onRetry,
                 style: TextButton.styleFrom(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md, vertical: AppSpacing.sm),
                   minimumSize: Size.zero,
                 ),
                 child: const Text('Retry'),
@@ -253,7 +259,7 @@ class _WirelessConnectionButtonState extends State<WirelessConnectionButton> {
                   color: Colors.green,
                   size: 24,
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppSpacing.sm),
                 Text(
                   'Done',
                   style: TextStyle(
@@ -318,7 +324,7 @@ class _QRConnectionButtonState extends State<QRConnectionButton> {
                     color: Colors.black54,
                     size: 24,
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: AppSpacing.lg),
                   Text(
                     widget.deviceType == DeviceType.advertiserDevice
                         ? 'Show QR Code'
@@ -437,7 +443,7 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Padding(
-            padding: const EdgeInsets.only(bottom: 8.0),
+            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
             child: WirelessConnectionButton(
               device: ConnectedDevice(DeviceName.coach),
             ).error(
@@ -454,7 +460,7 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
       children: [
         for (var device in controller.devices.otherDevices)
           Padding(
-            padding: const EdgeInsets.only(bottom: 16.0),
+            padding: const EdgeInsets.only(bottom: AppSpacing.lg),
             child: controller.isLoading
                 ? WirelessConnectionButton(device: device).skeleton
                 : WirelessConnectionButton(device: device),

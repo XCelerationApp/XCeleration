@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import '../utils/logger.dart';
+import '../theme/app_animations.dart';
+import '../theme/app_border_radius.dart';
+import '../theme/app_opacity.dart';
+import '../theme/app_spacing.dart';
 import './textfield_utils.dart' as textfield_utils;
 import '../components/button_components.dart';
 import '../../shared/models/database/team.dart';
@@ -188,7 +192,7 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
   void validateGrade(String value) {
     _gradeDebounce?.cancel();
     final current = value;
-    _gradeDebounce = Timer(const Duration(milliseconds: 500), () {
+    _gradeDebounce = Timer(AppAnimations.debounce, () {
       // If input changed while waiting, skip
       if (gradeController.text != current) return;
       if (current.isEmpty) {
@@ -277,7 +281,7 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
       // Debounced uniqueness check against DB
       _bibDebounce?.cancel();
       final trimmed = value.trim();
-      _bibDebounce = Timer(const Duration(milliseconds: 500), () async {
+      _bibDebounce = Timer(AppAnimations.debounce, () async {
         // If the input changed during await, don't overwrite
         if (bibController.text.trim() != trimmed) return;
         final existingRunner = await widget.getRunnerByBib(trimmed);
@@ -503,13 +507,13 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
           child: Container(
             decoration: BoxDecoration(
               color: teamError != null
-                  ? Colors.red.withAlpha((0.05 * 255).round())
-                  : Colors.grey.withAlpha((0.05 * 255).round()),
+                  ? Colors.red.withValues(alpha: AppOpacity.faint)
+                  : Colors.grey.withValues(alpha: AppOpacity.faint),
               border: Border.all(
                   color: teamError != null
-                      ? Colors.red.withAlpha((0.5 * 255).round())
-                      : Colors.grey.withAlpha((0.5 * 255).round())),
-              borderRadius: BorderRadius.circular(12.0),
+                      ? Colors.red.withValues(alpha: AppOpacity.solid)
+                      : Colors.grey.withValues(alpha: AppOpacity.solid)),
+              borderRadius: BorderRadius.circular(AppBorderRadius.md),
             ),
             child: DropdownButtonHideUnderline(
               child: ButtonTheme(
@@ -538,7 +542,8 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
         ),
         if (teamError != null)
           Padding(
-            padding: const EdgeInsets.only(top: 4, left: 12),
+            padding: const EdgeInsets.only(
+                top: AppSpacing.xs, left: AppSpacing.md),
             child: Text(
               teamError!,
               style: const TextStyle(
@@ -569,7 +574,7 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
               color: Colors.black87,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.sm),
           inputWidget,
         ],
       );
@@ -582,7 +587,7 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.lg),
           buildInputField(
             'Name',
             textfield_utils.buildTextField(
@@ -593,7 +598,7 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
               onChanged: validateName,
                   ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.lg),
           buildInputField(
             'Grade',
             textfield_utils.buildTextField(
@@ -605,14 +610,14 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
               onChanged: validateGrade,
                   ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.lg),
           if (_isEditing)
             buildInputField(
               'Team',
               _buildTeamField(),
             ),
           if (widget.showBibField) ...[
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.lg),
             buildInputField(
               'Bib #',
               textfield_utils.buildTextField(
@@ -625,12 +630,12 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
                       ),
             ),
           ],
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.xl),
           FullWidthButton(
             text: widget.submitButtonText,
             fontSize: 16,
             fontWeight: FontWeight.w600,
-            borderRadius: 8,
+            borderRadius: AppBorderRadius.sm,
             isEnabled: !_isSubmitting &&
                 !hasErrors() &&
                 (!_isEditing || _hasChanges()),

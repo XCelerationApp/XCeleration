@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import '../theme/app_border_radius.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_opacity.dart';
+import '../theme/app_spacing.dart';
 import '../utils/color_utils.dart';
 
 class InstructionCard extends StatelessWidget {
@@ -27,9 +30,9 @@ class InstructionCard extends StatelessWidget {
       child: Card(
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppBorderRadius.md),
           side: BorderSide(
-            color: ColorUtils.withOpacity(color, 0.3),
+            color: ColorUtils.withOpacity(color, AppOpacity.strong),
             width: 0.5,
           ),
         ),
@@ -38,11 +41,11 @@ class InstructionCard extends StatelessWidget {
           title: Row(
             children: [
               Container(
-                width: 32,
-                height: 32,
+                width: AppSpacing.xxl,
+                height: AppSpacing.xxl,
                 decoration: BoxDecoration(
-                  color: ColorUtils.withOpacity(color, 0.1),
-                  borderRadius: BorderRadius.circular(16),
+                  color: ColorUtils.withOpacity(color, AppOpacity.light),
+                  borderRadius: BorderRadius.circular(AppBorderRadius.lg),
                 ),
                 child: Icon(
                   icon,
@@ -50,7 +53,7 @@ class InstructionCard extends StatelessWidget {
                   size: 20,
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Text(
                   title,
@@ -67,7 +70,7 @@ class InstructionCard extends StatelessWidget {
           trailing: Icon(Icons.arrow_drop_down, color: color),
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: instructions,
@@ -97,16 +100,16 @@ class InstructionItem extends StatelessWidget {
     final color = accentColor ?? AppColors.primaryColor;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 24,
-            height: 24,
+            width: AppSpacing.xl,
+            height: AppSpacing.xl,
             decoration: BoxDecoration(
-              color: ColorUtils.withOpacity(color, 0.1),
-              borderRadius: BorderRadius.circular(12),
+              color: ColorUtils.withOpacity(color, AppOpacity.light),
+              borderRadius: BorderRadius.circular(AppBorderRadius.md),
             ),
             child: Center(
               child: Text(
@@ -118,7 +121,7 @@ class InstructionItem extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Text(
               text,
