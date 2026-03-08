@@ -125,7 +125,6 @@ class _TimingScreenState extends State<TimingScreen>
                       ),
                       const SizedBox(height: 8),
                       RaceControlsWidget(controller: _controller),
-                      if (_controller.hasTimingData) const SizedBox(height: 30),
                     ],
                   );
                 },

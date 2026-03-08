@@ -38,88 +38,110 @@ class RacesList extends StatelessWidget {
     final useStagger = totalItems <= 20;
 
     int itemIndex = 0;
-    final List<Widget> children = [];
 
-    // In Progress section
-    children.add(
-      FlowSectionHeader(title: 'In Progress', count: raceInProgress.length, countHighlight: true),
-    );
-    if (raceInProgress.isEmpty) {
-      children.add(const EmptySectionState(
-        icon: Icons.timer_outlined,
-        title: 'No races in progress',
-        subtitle: 'Active races will appear here',
-      ));
-    } else {
-      for (final race in raceInProgress) {
-        final index = itemIndex++;
-        final card = RaceCard(
-          race: race,
-          flowState: race.flowState!,
-          controller: controller,
-          canEdit: canEdit,
-        );
-        children.add(
-          useStagger ? _AnimatedListItem(index: index, child: card) : card,
-        );
-      }
-    }
-
-    // Upcoming section
-    children.add(
-      FlowSectionHeader(title: 'Upcoming', count: upcomingRaces.length, countHighlight: true),
-    );
-    if (upcomingRaces.isEmpty) {
-      children.add(const EmptySectionState(
-        icon: Icons.calendar_today_outlined,
-        title: 'No upcoming races',
-        subtitle: 'Races you\'re setting up will appear here',
-      ));
-    } else {
-      for (final race in upcomingRaces) {
-        final index = itemIndex++;
-        final card = RaceCard(
-          race: race,
-          flowState: race.flowState!,
-          controller: controller,
-          canEdit: canEdit,
-        );
-        children.add(
-          useStagger ? _AnimatedListItem(index: index, child: card) : card,
-        );
-      }
-    }
-
-    // Finished section
-    children.add(
-      FlowSectionHeader(title: 'Finished', count: finishedRaces.length),
-    );
-    if (finishedRaces.isEmpty) {
-      children.add(const EmptySectionState(
-        icon: Icons.history,
-        title: 'No finished races yet',
-        subtitle: 'Completed races will appear here',
-      ));
-    } else {
-      for (final race in finishedRaces) {
-        final index = itemIndex++;
-        final card = RaceCard(
-          race: race,
-          flowState: race.flowState!,
-          controller: controller,
-          canEdit: canEdit,
-        );
-        children.add(
-          useStagger ? _AnimatedListItem(index: index, child: card) : card,
-        );
-      }
+    List<Widget> buildRaceCards(List<Race> races) {
+      return [
+        for (final race in races)
+          Builder(builder: (context) {
+            final index = itemIndex++;
+            final card = RaceCard(
+              race: race,
+              flowState: race.flowState!,
+              controller: controller,
+              canEdit: canEdit,
+            );
+            return useStagger
+                ? _AnimatedListItem(index: index, child: card)
+                : card;
+          }),
+      ];
     }
 
     return Column(
       key: const ValueKey('list'),
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: children,
+      children: [
+        _CollapsibleSection(
+          title: 'In Progress',
+          count: raceInProgress.length,
+          emptyState: const EmptySectionState(
+            icon: Icons.timer_outlined,
+            title: 'No races in progress',
+            subtitle: 'Active races will appear here',
+          ),
+          children: buildRaceCards(raceInProgress),
+        ),
+        _CollapsibleSection(
+          title: 'Upcoming',
+          count: upcomingRaces.length,
+          emptyState: const EmptySectionState(
+            icon: Icons.calendar_today_outlined,
+            title: 'No upcoming races',
+            subtitle: 'Races you\'re setting up will appear here',
+          ),
+          children: buildRaceCards(upcomingRaces),
+        ),
+        _CollapsibleSection(
+          title: 'Finished',
+          count: finishedRaces.length,
+          emptyState: const EmptySectionState(
+            icon: Icons.history,
+            title: 'No finished races yet',
+            subtitle: 'Completed races will appear here',
+          ),
+          children: buildRaceCards(finishedRaces),
+        ),
+      ],
+    );
+  }
+}
+
+class _CollapsibleSection extends StatefulWidget {
+  final String title;
+  final int count;
+  final Widget emptyState;
+  final List<Widget> children;
+
+  const _CollapsibleSection({
+    required this.title,
+    required this.count,
+    required this.emptyState,
+    required this.children,
+  });
+
+  @override
+  State<_CollapsibleSection> createState() => _CollapsibleSectionState();
+}
+
+class _CollapsibleSectionState extends State<_CollapsibleSection> {
+  bool _isExpanded = true;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        FlowSectionHeader(
+          title: widget.title,
+          count: widget.count,
+          isExpanded: _isExpanded,
+          onToggle: () => setState(() => _isExpanded = !_isExpanded),
+        ),
+        AnimatedSize(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+          alignment: Alignment.topCenter,
+          child: _isExpanded
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: widget.count == 0
+                      ? [widget.emptyState]
+                      : widget.children,
+                )
+              : const SizedBox.shrink(),
+        ),
+      ],
     );
   }
 }
