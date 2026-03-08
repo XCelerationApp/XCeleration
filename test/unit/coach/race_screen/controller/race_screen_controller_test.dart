@@ -9,7 +9,11 @@ import 'package:xceleration/coach/race_screen/controller/race_form_state.dart';
 import 'package:xceleration/coach/race_screen/controller/race_screen_controller.dart';
 import 'package:xceleration/coach/races_screen/controller/races_controller.dart';
 import 'package:xceleration/core/services/date_picker_service.dart';
+import 'package:xceleration/core/services/event_bus.dart';
 import 'package:xceleration/core/services/geo_location_service.dart';
+import 'package:xceleration/core/services/i_device_connection_factory.dart';
+import 'package:xceleration/core/services/device_connection_service.dart';
+import 'package:xceleration/core/utils/enums.dart' hide EventTypes;
 import 'package:xceleration/shared/models/database/master_race.dart';
 import 'package:xceleration/shared/models/database/race.dart';
 
@@ -19,6 +23,8 @@ import 'package:xceleration/shared/models/database/race.dart';
   MasterFlowController,
   IGeoLocationService,
   IDatePickerService,
+  IEventBus,
+  IDeviceConnectionFactory,
 ])
 import 'race_screen_controller_test.mocks.dart';
 
@@ -48,6 +54,8 @@ void main() {
   late MockMasterFlowController mockFlowController;
   late MockIGeoLocationService mockGeoService;
   late MockIDatePickerService mockDatePickerService;
+  late MockIEventBus mockEventBus;
+  late MockIDeviceConnectionFactory mockDevicesFactory;
   late RaceController controller;
 
   // A fully-populated test race (flowState != FLOW_SETUP avoids the
@@ -68,6 +76,8 @@ void main() {
     mockFlowController = MockMasterFlowController();
     mockGeoService = MockIGeoLocationService();
     mockDatePickerService = MockIDatePickerService();
+    mockEventBus = MockIEventBus();
+    mockDevicesFactory = MockIDeviceConnectionFactory();
 
     // Common stubs required on almost every code path
     when(mockMasterRace.raceId).thenReturn(1);
@@ -86,6 +96,8 @@ void main() {
       geoLocationService: mockGeoService,
       datePickerService: mockDatePickerService,
       flowController: mockFlowController,
+      eventBus: mockEventBus,
+      devicesFactory: mockDevicesFactory,
     );
   });
 
@@ -473,7 +485,7 @@ void main() {
 
     // -------------------------------------------------------------------------
     group('updateRaceFlowState', () {
-      testWidgets('updates race via masterRace and fires EventBus event',
+      testWidgets('updates race via masterRace and fires event via IEventBus',
           (tester) async {
         final ctx = await _buildContext(tester);
         await controller.loadAllData(ctx);
@@ -481,6 +493,23 @@ void main() {
         await controller.updateRaceFlowState(ctx, Race.FLOW_SETUP_COMPLETED);
 
         verify(mockMasterRace.updateRace(any)).called(greaterThanOrEqualTo(1));
+        verify(mockEventBus.fire(EventTypes.raceFlowStateChanged, any))
+            .called(1);
+      });
+
+      testWidgets('fires event with correct raceId and newState',
+          (tester) async {
+        final ctx = await _buildContext(tester);
+        await controller.loadAllData(ctx);
+
+        await controller.updateRaceFlowState(ctx, Race.FLOW_POST_RACE);
+
+        final captured =
+            verify(mockEventBus.fire(captureAny, captureAny)).captured;
+        expect(captured[0], EventTypes.raceFlowStateChanged);
+        final data = captured[1] as Map<String, dynamic>;
+        expect(data['raceId'], 1);
+        expect(data['newState'], Race.FLOW_POST_RACE);
       });
 
       testWidgets(
@@ -577,6 +606,35 @@ void main() {
 
         verify(mockMasterRace.updateRace(any)).called(greaterThanOrEqualTo(1));
         verify(mockFlowController.handleFlowNavigation(any, any)).called(1);
+      });
+    });
+
+    // -------------------------------------------------------------------------
+    group('createDevices', () {
+      test('delegates to IDeviceConnectionFactory with correct args', () {
+        final fakeDevices = DevicesManager(
+          DeviceName.coach,
+          DeviceType.browserDevice,
+        );
+        when(mockDevicesFactory.createDevices(
+          any,
+          any,
+          data: anyNamed('data'),
+          toSpectator: anyNamed('toSpectator'),
+        )).thenReturn(fakeDevices);
+
+        final result = controller.createDevices(
+          DeviceType.browserDevice,
+          deviceName: DeviceName.coach,
+          data: 'test-data',
+        );
+
+        expect(result, same(fakeDevices));
+        verify(mockDevicesFactory.createDevices(
+          DeviceName.coach,
+          DeviceType.browserDevice,
+          data: 'test-data',
+        )).called(1);
       });
     });
 
