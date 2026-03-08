@@ -8,8 +8,10 @@ import '../../../core/utils/enums.dart' hide EventTypes;
 import '../../../shared/models/database/race.dart';
 import '../../../shared/models/database/master_race.dart';
 import '../../flows/controller/flow_controller.dart';
+import '../../../core/services/device_connection_factory_impl.dart';
 import '../../../core/services/device_connection_service.dart';
 import '../../../core/services/event_bus.dart';
+import '../../../core/services/i_device_connection_factory.dart';
 import 'package:intl/intl.dart'; // Import the intl package for date formatting
 import 'package:geolocator/geolocator.dart' show LocationPermission;
 import '../../races_screen/controller/races_controller.dart';
@@ -102,6 +104,8 @@ class RaceController with ChangeNotifier {
   RacesController parentController;
   final IGeoLocationService _geoLocationService;
   final IDatePickerService _datePickerService;
+  final IEventBus _eventBus;
+  final IDeviceConnectionFactory _devicesFactory;
 
   RaceController({
     required this.masterRace,
@@ -109,8 +113,12 @@ class RaceController with ChangeNotifier {
     IGeoLocationService? geoLocationService,
     IDatePickerService? datePickerService,
     MasterFlowController? flowController,
+    IEventBus? eventBus,
+    IDeviceConnectionFactory? devicesFactory,
   })  : _geoLocationService = geoLocationService ?? GeoLocationService(),
-        _datePickerService = datePickerService ?? DatePickerService() {
+        _datePickerService = datePickerService ?? DatePickerService(),
+        _eventBus = eventBus ?? EventBus.instance,
+        _devicesFactory = devicesFactory ?? const DeviceConnectionFactoryImpl() {
     this.flowController =
         flowController ?? MasterFlowController(raceController: this);
     form.addListener(notifyListeners);
@@ -347,7 +355,7 @@ class RaceController with ChangeNotifier {
     }
 
     // Publish an event when race flow state changes
-    EventBus.instance.fire(EventTypes.raceFlowStateChanged, {
+    _eventBus.fire(EventTypes.raceFlowStateChanged, {
       'raceId': masterRace.raceId,
       'newState': newState,
       'race': updatedRace,
@@ -562,7 +570,7 @@ class RaceController with ChangeNotifier {
   /// Create device connections list for communication
   DevicesManager createDevices(DeviceType deviceType,
       {DeviceName deviceName = DeviceName.coach, String data = ''}) {
-    return DeviceConnectionService.createDevices(
+    return _devicesFactory.createDevices(
       deviceName,
       deviceType,
       data: data,
