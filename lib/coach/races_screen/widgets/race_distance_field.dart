@@ -4,10 +4,8 @@ import '../controller/races_controller.dart';
 
 class RaceDistanceField extends StatelessWidget {
   final RacesController controller;
-  final StateSetter setSheetState;
 
-  const RaceDistanceField(
-      {required this.controller, required this.setSheetState, super.key});
+  const RaceDistanceField({required this.controller, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -32,11 +30,9 @@ class RaceDistanceField extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               flex: 1,
-              child: buildDropdown(
+              child: AppDropdownField(
                 controller: controller.unitController,
                 hint: 'mi',
-                error: null,
-                setSheetState: setSheetState,
                 items: ['mi', 'km'],
                 onChanged: (value) => controller.unitController.text = value,
               ),

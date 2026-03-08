@@ -9,6 +9,6 @@ class ShareRaceWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-        child: deviceConnectionWidget(context, devices, inSheet: false));
+        child: DeviceConnectionWidget(devices: devices, inSheet: false));
   }
 }

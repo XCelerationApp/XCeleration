@@ -50,14 +50,16 @@ class PermissionStatusData {
 
 /// Dialog that shows the current status of all app permissions
 class PermissionsDialog extends StatefulWidget {
-  const PermissionsDialog({super.key});
+  final PermissionsService permissionsService;
+
+  const PermissionsDialog({super.key, required this.permissionsService});
 
   @override
   State<PermissionsDialog> createState() => _PermissionsDialogState();
 }
 
 class _PermissionsDialogState extends State<PermissionsDialog> {
-  final PermissionsService _permissionsService = PermissionsService();
+  PermissionsService get _permissionsService => widget.permissionsService;
   Map<Permission, PermissionStatus> _permissionStatuses = {};
   bool _isLoading = true;
 
@@ -251,12 +253,14 @@ class PermissionRequestButton extends StatefulWidget {
   final VoidCallback? onGranted;
   final VoidCallback? onDenied;
   final bool showStatus;
+  final PermissionsService permissionsService;
 
   const PermissionRequestButton({
     super.key,
     required this.permission,
     required this.label,
     required this.icon,
+    required this.permissionsService,
     this.onGranted,
     this.onDenied,
     this.showStatus = false,
@@ -268,7 +272,7 @@ class PermissionRequestButton extends StatefulWidget {
 }
 
 class _PermissionRequestButtonState extends State<PermissionRequestButton> {
-  final PermissionsService _permissionsService = PermissionsService();
+  PermissionsService get _permissionsService => widget.permissionsService;
   PermissionStatus? _status;
   bool _isLoading = false;
 
@@ -368,10 +372,13 @@ class _PermissionRequestButtonState extends State<PermissionRequestButton> {
 }
 
 /// Show the permissions management dialog
-void showPermissionsManager(BuildContext context) {
+void showPermissionsManager(BuildContext context,
+    {PermissionsService? permissionsService}) {
   showDialog(
     context: context,
-    builder: (context) => const PermissionsDialog(),
+    builder: (context) => PermissionsDialog(
+      permissionsService: permissionsService ?? PermissionsService(),
+    ),
   );
 }
 
@@ -380,10 +387,10 @@ Future<bool> requestPermission(
   BuildContext context,
   Permission permission, {
   String? message,
+  PermissionsService? permissionsService,
 }) async {
-  final PermissionsService permissionsService = PermissionsService();
-  final bool isGranted =
-      await permissionsService.isPermissionGranted(permission);
+  final PermissionsService service = permissionsService ?? PermissionsService();
+  final bool isGranted = await service.isPermissionGranted(permission);
 
   if (isGranted) {
     return true;
@@ -403,5 +410,5 @@ Future<bool> requestPermission(
     }
   }
 
-  return await permissionsService.requestPermission(permission);
+  return await service.requestPermission(permission);
 }

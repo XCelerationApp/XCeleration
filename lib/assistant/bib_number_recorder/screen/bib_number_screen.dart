@@ -5,6 +5,8 @@ import '../../../core/utils/enums.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/sheet_utils.dart';
 import '../../../shared/role_bar/models/role_enums.dart';
+import '../../../shared/role_bar/widgets/role_selector_sheet.dart';
+import '../../../shared/settings_screen.dart';
 import '../../../core/components/app_header.dart';
 import '../../../core/theme/typography.dart';
 import '../../../shared/role_bar/widgets/instructions_banner.dart';
@@ -150,6 +152,15 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                     currentRole: Role.bibRecorder,
                     tutorialManager: _controller.tutorialManager,
                     titleStyle: AppTypography.displaySmall,
+                    onRoleTap: () => RoleSelectorSheet.showRoleSelection(
+                        context, Role.bibRecorder),
+                    onSettingsTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => SettingsScreen(
+                          currentRole: Role.bibRecorder.toValueString(),
+                        ),
+                      ),
+                    ),
                   ),
                   Padding(
                       padding: EdgeInsets.symmetric(horizontal: 16),

@@ -5,69 +5,91 @@ import '../theme/app_border_radius.dart';
 import '../theme/app_opacity.dart';
 import '../theme/app_spacing.dart';
 
-Widget buildDropdown({
-  required TextEditingController controller,
-  required String hint,
-  String? error,
-  required Function(String) onChanged,
-  required StateSetter setSheetState,
-  required List<String> items,
-}) {
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      Focus(
-        onFocusChange: (hasFocus) {
-          if (!hasFocus) {
-            onChanged(controller.text);
-          }
-        },
-        child: Container(
-          decoration: BoxDecoration(
-            color: error != null
-                ? Colors.red.withValues(alpha: AppOpacity.faint)
-                : Colors.grey.withValues(alpha: AppOpacity.faint),
-            border: Border.all(
-                color: error != null
-                    ? Colors.red.withValues(alpha: AppOpacity.solid)
-                    : Colors.grey.withValues(alpha: AppOpacity.solid)),
-            borderRadius: BorderRadius.circular(AppBorderRadius.md),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: ButtonTheme(
-              alignedDropdown: true,
-              child: DropdownButton<String>(
-                value: (controller.text.isEmpty ? null : controller.text),
-                hint: Text(hint, style: const TextStyle(color: Colors.grey)),
-                isExpanded: true,
-                items: [
-                  ...items.map((item) => DropdownMenuItem(
-                        value: item,
-                        child: Text(item),
-                      )),
-                ],
-                onChanged: (value) {
-                  setSheetState(() => controller.text = value ?? '');
-                  onChanged(value ?? '');
-                },
+/// A dropdown field that manages its own display state via [setState],
+/// so callers do not need to pass a [StateSetter].
+class AppDropdownField extends StatefulWidget {
+  final TextEditingController controller;
+  final String hint;
+  final String? error;
+  final Function(String) onChanged;
+  final List<String> items;
+
+  const AppDropdownField({
+    super.key,
+    required this.controller,
+    required this.hint,
+    required this.onChanged,
+    required this.items,
+    this.error,
+  });
+
+  @override
+  State<AppDropdownField> createState() => _AppDropdownFieldState();
+}
+
+class _AppDropdownFieldState extends State<AppDropdownField> {
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Focus(
+          onFocusChange: (hasFocus) {
+            if (!hasFocus) {
+              widget.onChanged(widget.controller.text);
+            }
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              color: widget.error != null
+                  ? Colors.red.withValues(alpha: AppOpacity.faint)
+                  : Colors.grey.withValues(alpha: AppOpacity.faint),
+              border: Border.all(
+                  color: widget.error != null
+                      ? Colors.red.withValues(alpha: AppOpacity.solid)
+                      : Colors.grey.withValues(alpha: AppOpacity.solid)),
+              borderRadius: BorderRadius.circular(AppBorderRadius.md),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: ButtonTheme(
+                alignedDropdown: true,
+                child: DropdownButton<String>(
+                  value: widget.controller.text.isEmpty
+                      ? null
+                      : widget.controller.text,
+                  hint: Text(widget.hint,
+                      style: const TextStyle(color: Colors.grey)),
+                  isExpanded: true,
+                  items: widget.items
+                      .map((item) => DropdownMenuItem(
+                            value: item,
+                            child: Text(item),
+                          ))
+                      .toList(),
+                  onChanged: (value) {
+                    setState(() => widget.controller.text = value ?? '');
+                    widget.onChanged(value ?? '');
+                  },
+                ),
               ),
             ),
           ),
         ),
-      ),
-      if (error != null)
-        Padding(
-          padding: const EdgeInsets.only(top: AppSpacing.xs, left: AppSpacing.md),
-          child: Text(
-            error,
-            style: const TextStyle(
-              color: Colors.red,
-              fontSize: 12,
+        if (widget.error != null)
+          Padding(
+            padding: const EdgeInsets.only(
+                top: AppSpacing.xs, left: AppSpacing.md),
+            child: Text(
+              widget.error!,
+              style: const TextStyle(
+                color: Colors.red,
+                fontSize: 12,
+              ),
             ),
           ),
-        ),
-    ],
-  );
+      ],
+    );
+  }
 }
 
 Widget buildTextField({

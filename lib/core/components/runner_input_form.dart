@@ -7,6 +7,7 @@ import '../theme/app_opacity.dart';
 import '../theme/app_spacing.dart';
 import './textfield_utils.dart' as textfield_utils;
 import '../components/button_components.dart';
+import '../components/runner_form_validator.dart';
 import '../../shared/models/database/team.dart';
 import '../../shared/models/database/race_runner.dart';
 import '../../shared/models/database/runner.dart';
@@ -178,15 +179,9 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
   }
 
   void validateName(String value) {
-    if (value.isEmpty) {
-      setState(() {
-        nameError = 'Please enter a name';
-      });
-    } else {
-      setState(() {
-        nameError = null;
-      });
-    }
+    setState(() {
+      nameError = RunnerFormValidator.validateName(value);
+    });
   }
 
   void validateGrade(String value) {
@@ -195,26 +190,9 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
     _gradeDebounce = Timer(AppAnimations.debounce, () {
       // If input changed while waiting, skip
       if (gradeController.text != current) return;
-      if (current.isEmpty) {
-        setState(() {
-          gradeError = 'Please enter a grade';
-        });
-      } else if (int.tryParse(current) == null) {
-        setState(() {
-          gradeError = 'Please enter a valid grade number';
-        });
-      } else {
-        final grade = int.parse(current);
-        if (grade < 9 || grade > 12) {
-          setState(() {
-            gradeError = 'Grade must be between 9 and 12';
-          });
-        } else {
-          setState(() {
-            gradeError = null;
-          });
-        }
-      }
+      setState(() {
+        gradeError = RunnerFormValidator.validateGrade(current);
+      });
     });
   }
 
@@ -256,20 +234,11 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
   }
 
   void validateBib(String value) {
-    // Synchronous validation
-    if (value.isEmpty) {
+    // Synchronous format validation
+    final formatError = RunnerFormValidator.validateBibFormat(value);
+    if (formatError != null) {
       setState(() {
-        bibError = 'Please enter a bib number';
-        bibWarning = null;
-      });
-    } else if (int.tryParse(value) == null) {
-      setState(() {
-        bibError = 'Please enter a valid bib number';
-        bibWarning = null;
-      });
-    } else if (int.parse(value) <= 0) {
-      setState(() {
-        bibError = 'Please enter a bib number greater than 0';
+        bibError = formatError;
         bibWarning = null;
       });
     } else {
@@ -391,17 +360,10 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
 
     // Name
     final name = nameController.text.trim();
-    if (name.isEmpty) {
-      nextNameError = 'Please enter a name';
-    }
+    nextNameError = RunnerFormValidator.validateName(name);
 
     // Grade
-    final int? gradeNum = int.tryParse(gradeController.text.trim());
-    if (gradeNum == null) {
-      nextGradeError = 'Please enter a grade';
-    } else if (gradeNum < 9 || gradeNum > 12) {
-      nextGradeError = 'Grade must be between 9 and 12';
-    }
+    nextGradeError = RunnerFormValidator.validateGrade(gradeController.text.trim());
 
     // Team (Creation requires runnerTeam; Editing requires a selection present)
     if (!_isEditing) {
@@ -414,13 +376,8 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
 
     // Bib
     final bib = bibController.text.trim();
-    if (bib.isEmpty) {
-      nextBibError = 'Please enter a bib number';
-    } else if (int.tryParse(bib) == null) {
-      nextBibError = 'Please enter a valid bib number';
-    } else if ((int.tryParse(bib) ?? 0) <= 0) {
-      nextBibError = 'Please enter a bib number greater than 0';
-    } else {
+    nextBibError = RunnerFormValidator.validateBibFormat(bib);
+    if (nextBibError == null) {
       if (!_isEditing) {
         final isUnique = await _checkBibUnique(bib);
         if (!isUnique) {
