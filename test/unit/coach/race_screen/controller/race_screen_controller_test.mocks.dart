@@ -3,37 +3,36 @@
 // Do not manually edit this file.
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'dart:async' as _i11;
-import 'dart:ui' as _i15;
+import 'dart:async' as _i8;
+import 'dart:ui' as _i13;
 
-import 'package:flutter/material.dart' as _i5;
-import 'package:geocoding/geocoding.dart' as _i20;
-import 'package:geolocator/geolocator.dart' as _i10;
+import 'package:flutter/material.dart' as _i16;
 import 'package:mockito/mockito.dart' as _i1;
-import 'package:mockito/src/dummies.dart' as _i17;
 import 'package:xceleration/coach/flows/controller/flow_controller.dart'
-    as _i18;
+    as _i15;
 import 'package:xceleration/coach/flows/PostRaceFlow/controller/post_race_controller.dart'
-    as _i9;
-import 'package:xceleration/coach/flows/PreRaceFlow/controller/pre_race_controller.dart'
-    as _i8;
-import 'package:xceleration/coach/race_results/model/team_record.dart' as _i14;
-import 'package:xceleration/coach/race_screen/controller/race_screen_controller.dart'
     as _i7;
-import 'package:xceleration/coach/races_screen/controller/races_controller.dart'
-    as _i16;
-import 'package:xceleration/core/services/date_picker_service.dart' as _i21;
+import 'package:xceleration/coach/flows/PreRaceFlow/controller/pre_race_controller.dart'
+    as _i6;
+import 'package:xceleration/coach/race_results/model/team_record.dart' as _i12;
+import 'package:xceleration/coach/race_screen/controller/race_form_state.dart'
+    as _i10;
+import 'package:xceleration/coach/race_screen/controller/race_geo_controller.dart'
+    as _i21;
+import 'package:xceleration/coach/race_screen/controller/race_screen_controller.dart'
+    as _i5;
+import 'package:xceleration/coach/races_screen/controller/i_parent_race_controller.dart'
+    as _i14;
+import 'package:xceleration/core/services/date_picker_service.dart' as _i17;
 import 'package:xceleration/core/services/device_connection_service.dart'
-    as _i12;
-import 'package:xceleration/core/services/event_bus.dart' as _i22;
-import 'package:xceleration/core/services/geo_location_service.dart' as _i19;
+    as _i9;
+import 'package:xceleration/core/services/event_bus.dart' as _i18;
 import 'package:xceleration/core/services/i_device_connection_factory.dart'
-    as _i23;
-import 'package:xceleration/core/services/tutorial_manager.dart' as _i6;
+    as _i19;
 import 'package:xceleration/core/utils/database_helper.dart' as _i2;
-import 'package:xceleration/core/utils/enums.dart' as _i24;
+import 'package:xceleration/core/utils/enums.dart' as _i20;
 import 'package:xceleration/shared/models/database/base_models.dart' as _i3;
-import 'package:xceleration/shared/models/database/master_race.dart' as _i13;
+import 'package:xceleration/shared/models/database/master_race.dart' as _i11;
 import 'package:xceleration/shared/services/race_results_service.dart' as _i4;
 
 // ignore_for_file: type=lint
@@ -83,9 +82,9 @@ class _FakeRaceResultsData_2 extends _i1.SmartFake
         );
 }
 
-class _FakeTextEditingController_3 extends _i1.SmartFake
-    implements _i5.TextEditingController {
-  _FakeTextEditingController_3(
+class _FakeRaceController_3 extends _i1.SmartFake
+    implements _i5.RaceController {
+  _FakeRaceController_3(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -94,9 +93,9 @@ class _FakeTextEditingController_3 extends _i1.SmartFake
         );
 }
 
-class _FakeTutorialManager_4 extends _i1.SmartFake
-    implements _i6.TutorialManager {
-  _FakeTutorialManager_4(
+class _FakePreRaceController_4 extends _i1.SmartFake
+    implements _i6.PreRaceController {
+  _FakePreRaceController_4(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -105,9 +104,9 @@ class _FakeTutorialManager_4 extends _i1.SmartFake
         );
 }
 
-class _FakeRaceController_5 extends _i1.SmartFake
-    implements _i7.RaceController {
-  _FakeRaceController_5(
+class _FakePostRaceController_5 extends _i1.SmartFake
+    implements _i7.PostRaceController {
+  _FakePostRaceController_5(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -116,9 +115,9 @@ class _FakeRaceController_5 extends _i1.SmartFake
         );
 }
 
-class _FakePreRaceController_6 extends _i1.SmartFake
-    implements _i8.PreRaceController {
-  _FakePreRaceController_6(
+class _FakeStreamSubscription_6<T1> extends _i1.SmartFake
+    implements _i8.StreamSubscription<T1> {
+  _FakeStreamSubscription_6(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -127,9 +126,9 @@ class _FakePreRaceController_6 extends _i1.SmartFake
         );
 }
 
-class _FakePostRaceController_7 extends _i1.SmartFake
-    implements _i9.PostRaceController {
-  _FakePostRaceController_7(
+class _FakeDevicesManager_7 extends _i1.SmartFake
+    implements _i9.DevicesManager {
+  _FakeDevicesManager_7(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -138,30 +137,8 @@ class _FakePostRaceController_7 extends _i1.SmartFake
         );
 }
 
-class _FakePosition_8 extends _i1.SmartFake implements _i10.Position {
-  _FakePosition_8(
-    Object parent,
-    Invocation parentInvocation,
-  ) : super(
-          parent,
-          parentInvocation,
-        );
-}
-
-class _FakeStreamSubscription_9<T1> extends _i1.SmartFake
-    implements _i11.StreamSubscription<T1> {
-  _FakeStreamSubscription_9(
-    Object parent,
-    Invocation parentInvocation,
-  ) : super(
-          parent,
-          parentInvocation,
-        );
-}
-
-class _FakeDevicesManager_10 extends _i1.SmartFake
-    implements _i12.DevicesManager {
-  _FakeDevicesManager_10(
+class _FakeRaceFormState_8 extends _i1.SmartFake implements _i10.RaceFormState {
+  _FakeRaceFormState_8(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -173,7 +150,7 @@ class _FakeDevicesManager_10 extends _i1.SmartFake
 /// A class which mocks [MasterRace].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockMasterRace extends _i1.Mock implements _i13.MasterRace {
+class MockMasterRace extends _i1.Mock implements _i11.MasterRace {
   MockMasterRace() {
     _i1.throwOnMissingStub(this);
   }
@@ -194,74 +171,72 @@ class MockMasterRace extends _i1.Mock implements _i13.MasterRace {
       ) as _i2.DatabaseHelper);
 
   @override
-  _i11.Future<_i3.Race> get race => (super.noSuchMethod(
+  _i8.Future<_i3.Race> get race => (super.noSuchMethod(
         Invocation.getter(#race),
-        returnValue: _i11.Future<_i3.Race>.value(_FakeRace_1(
+        returnValue: _i8.Future<_i3.Race>.value(_FakeRace_1(
           this,
           Invocation.getter(#race),
         )),
-      ) as _i11.Future<_i3.Race>);
+      ) as _i8.Future<_i3.Race>);
 
   @override
-  _i11.Future<List<_i3.RaceParticipant>> get raceParticipants =>
+  _i8.Future<List<_i3.RaceParticipant>> get raceParticipants =>
       (super.noSuchMethod(
         Invocation.getter(#raceParticipants),
-        returnValue: _i11.Future<List<_i3.RaceParticipant>>.value(
+        returnValue: _i8.Future<List<_i3.RaceParticipant>>.value(
             <_i3.RaceParticipant>[]),
-      ) as _i11.Future<List<_i3.RaceParticipant>>);
+      ) as _i8.Future<List<_i3.RaceParticipant>>);
 
   @override
-  _i11.Future<List<_i3.RaceRunner>> get raceRunners => (super.noSuchMethod(
+  _i8.Future<List<_i3.RaceRunner>> get raceRunners => (super.noSuchMethod(
         Invocation.getter(#raceRunners),
-        returnValue:
-            _i11.Future<List<_i3.RaceRunner>>.value(<_i3.RaceRunner>[]),
-      ) as _i11.Future<List<_i3.RaceRunner>>);
+        returnValue: _i8.Future<List<_i3.RaceRunner>>.value(<_i3.RaceRunner>[]),
+      ) as _i8.Future<List<_i3.RaceRunner>>);
 
   @override
-  _i11.Future<List<_i3.Team>> get teams => (super.noSuchMethod(
+  _i8.Future<List<_i3.Team>> get teams => (super.noSuchMethod(
         Invocation.getter(#teams),
-        returnValue: _i11.Future<List<_i3.Team>>.value(<_i3.Team>[]),
-      ) as _i11.Future<List<_i3.Team>>);
+        returnValue: _i8.Future<List<_i3.Team>>.value(<_i3.Team>[]),
+      ) as _i8.Future<List<_i3.Team>>);
 
   @override
-  _i11.Future<Map<_i3.Team, List<_i3.RaceRunner>>> get teamtoRaceRunnersMap =>
+  _i8.Future<Map<_i3.Team, List<_i3.RaceRunner>>> get teamtoRaceRunnersMap =>
       (super.noSuchMethod(
         Invocation.getter(#teamtoRaceRunnersMap),
-        returnValue: _i11.Future<Map<_i3.Team, List<_i3.RaceRunner>>>.value(
+        returnValue: _i8.Future<Map<_i3.Team, List<_i3.RaceRunner>>>.value(
             <_i3.Team, List<_i3.RaceRunner>>{}),
-      ) as _i11.Future<Map<_i3.Team, List<_i3.RaceRunner>>>);
+      ) as _i8.Future<Map<_i3.Team, List<_i3.RaceRunner>>>);
 
   @override
-  _i11.Future<Map<_i3.Team, List<_i3.RaceRunner>>> get filteredSearchResults =>
+  _i8.Future<Map<_i3.Team, List<_i3.RaceRunner>>> get filteredSearchResults =>
       (super.noSuchMethod(
         Invocation.getter(#filteredSearchResults),
-        returnValue: _i11.Future<Map<_i3.Team, List<_i3.RaceRunner>>>.value(
+        returnValue: _i8.Future<Map<_i3.Team, List<_i3.RaceRunner>>>.value(
             <_i3.Team, List<_i3.RaceRunner>>{}),
-      ) as _i11.Future<Map<_i3.Team, List<_i3.RaceRunner>>>);
+      ) as _i8.Future<Map<_i3.Team, List<_i3.RaceRunner>>>);
 
   @override
-  _i11.Future<List<_i3.RaceResult>> get results => (super.noSuchMethod(
+  _i8.Future<List<_i3.RaceResult>> get results => (super.noSuchMethod(
         Invocation.getter(#results),
-        returnValue:
-            _i11.Future<List<_i3.RaceResult>>.value(<_i3.RaceResult>[]),
-      ) as _i11.Future<List<_i3.RaceResult>>);
+        returnValue: _i8.Future<List<_i3.RaceResult>>.value(<_i3.RaceResult>[]),
+      ) as _i8.Future<List<_i3.RaceResult>>);
 
   @override
-  _i11.Future<List<_i14.TeamRecord>> get teamStandings => (super.noSuchMethod(
+  _i8.Future<List<_i12.TeamRecord>> get teamStandings => (super.noSuchMethod(
         Invocation.getter(#teamStandings),
         returnValue:
-            _i11.Future<List<_i14.TeamRecord>>.value(<_i14.TeamRecord>[]),
-      ) as _i11.Future<List<_i14.TeamRecord>>);
+            _i8.Future<List<_i12.TeamRecord>>.value(<_i12.TeamRecord>[]),
+      ) as _i8.Future<List<_i12.TeamRecord>>);
 
   @override
-  _i11.Future<_i4.RaceResultsData> get raceResultsData => (super.noSuchMethod(
+  _i8.Future<_i4.RaceResultsData> get raceResultsData => (super.noSuchMethod(
         Invocation.getter(#raceResultsData),
         returnValue:
-            _i11.Future<_i4.RaceResultsData>.value(_FakeRaceResultsData_2(
+            _i8.Future<_i4.RaceResultsData>.value(_FakeRaceResultsData_2(
           this,
           Invocation.getter(#raceResultsData),
         )),
-      ) as _i11.Future<_i4.RaceResultsData>);
+      ) as _i8.Future<_i4.RaceResultsData>);
 
   @override
   bool get hasListeners => (super.noSuchMethod(
@@ -270,148 +245,148 @@ class MockMasterRace extends _i1.Mock implements _i13.MasterRace {
       ) as bool);
 
   @override
-  _i11.Future<_i3.RaceRunner?> getRaceRunnerFromRaceParticipant(
+  _i8.Future<_i3.RaceRunner?> getRaceRunnerFromRaceParticipant(
           _i3.RaceParticipant? raceParticipant) =>
       (super.noSuchMethod(
         Invocation.method(
           #getRaceRunnerFromRaceParticipant,
           [raceParticipant],
         ),
-        returnValue: _i11.Future<_i3.RaceRunner?>.value(),
-      ) as _i11.Future<_i3.RaceRunner?>);
+        returnValue: _i8.Future<_i3.RaceRunner?>.value(),
+      ) as _i8.Future<_i3.RaceRunner?>);
 
   @override
-  _i11.Future<void> updateRaceParticipant(
+  _i8.Future<void> updateRaceParticipant(
           _i3.RaceParticipant? raceParticipant) =>
       (super.noSuchMethod(
         Invocation.method(
           #updateRaceParticipant,
           [raceParticipant],
         ),
-        returnValue: _i11.Future<void>.value(),
-        returnValueForMissingStub: _i11.Future<void>.value(),
-      ) as _i11.Future<void>);
+        returnValue: _i8.Future<void>.value(),
+        returnValueForMissingStub: _i8.Future<void>.value(),
+      ) as _i8.Future<void>);
 
   @override
-  _i11.Future<void> addRaceParticipant(_i3.RaceParticipant? raceParticipant) =>
+  _i8.Future<void> addRaceParticipant(_i3.RaceParticipant? raceParticipant) =>
       (super.noSuchMethod(
         Invocation.method(
           #addRaceParticipant,
           [raceParticipant],
         ),
-        returnValue: _i11.Future<void>.value(),
-        returnValueForMissingStub: _i11.Future<void>.value(),
-      ) as _i11.Future<void>);
+        returnValue: _i8.Future<void>.value(),
+        returnValueForMissingStub: _i8.Future<void>.value(),
+      ) as _i8.Future<void>);
 
   @override
-  _i11.Future<void> addRaceParticipantsBulk(
+  _i8.Future<void> addRaceParticipantsBulk(
           List<_i3.RaceParticipant>? raceParticipants) =>
       (super.noSuchMethod(
         Invocation.method(
           #addRaceParticipantsBulk,
           [raceParticipants],
         ),
-        returnValue: _i11.Future<void>.value(),
-        returnValueForMissingStub: _i11.Future<void>.value(),
-      ) as _i11.Future<void>);
+        returnValue: _i8.Future<void>.value(),
+        returnValueForMissingStub: _i8.Future<void>.value(),
+      ) as _i8.Future<void>);
 
   @override
-  _i11.Future<void> removeRaceParticipant(
+  _i8.Future<void> removeRaceParticipant(
           _i3.RaceParticipant? raceParticipant) =>
       (super.noSuchMethod(
         Invocation.method(
           #removeRaceParticipant,
           [raceParticipant],
         ),
-        returnValue: _i11.Future<void>.value(),
-        returnValueForMissingStub: _i11.Future<void>.value(),
-      ) as _i11.Future<void>);
+        returnValue: _i8.Future<void>.value(),
+        returnValueForMissingStub: _i8.Future<void>.value(),
+      ) as _i8.Future<void>);
 
   @override
-  _i11.Future<void> addTeamParticipant(_i3.TeamParticipant? teamParticipant) =>
+  _i8.Future<void> addTeamParticipant(_i3.TeamParticipant? teamParticipant) =>
       (super.noSuchMethod(
         Invocation.method(
           #addTeamParticipant,
           [teamParticipant],
         ),
-        returnValue: _i11.Future<void>.value(),
-        returnValueForMissingStub: _i11.Future<void>.value(),
-      ) as _i11.Future<void>);
+        returnValue: _i8.Future<void>.value(),
+        returnValueForMissingStub: _i8.Future<void>.value(),
+      ) as _i8.Future<void>);
 
   @override
-  _i11.Future<void> removeTeamFromRace(_i3.TeamParticipant? teamParticipant) =>
+  _i8.Future<void> removeTeamFromRace(_i3.TeamParticipant? teamParticipant) =>
       (super.noSuchMethod(
         Invocation.method(
           #removeTeamFromRace,
           [teamParticipant],
         ),
-        returnValue: _i11.Future<void>.value(),
-        returnValueForMissingStub: _i11.Future<void>.value(),
-      ) as _i11.Future<void>);
+        returnValue: _i8.Future<void>.value(),
+        returnValueForMissingStub: _i8.Future<void>.value(),
+      ) as _i8.Future<void>);
 
   @override
-  _i11.Future<void> updateRace(_i3.Race? race) => (super.noSuchMethod(
+  _i8.Future<void> updateRace(_i3.Race? race) => (super.noSuchMethod(
         Invocation.method(
           #updateRace,
           [race],
         ),
-        returnValue: _i11.Future<void>.value(),
-        returnValueForMissingStub: _i11.Future<void>.value(),
-      ) as _i11.Future<void>);
+        returnValue: _i8.Future<void>.value(),
+        returnValueForMissingStub: _i8.Future<void>.value(),
+      ) as _i8.Future<void>);
 
   @override
-  _i11.Future<void> removeRaceRunner(_i3.RaceRunner? raceRunner) =>
+  _i8.Future<void> removeRaceRunner(_i3.RaceRunner? raceRunner) =>
       (super.noSuchMethod(
         Invocation.method(
           #removeRaceRunner,
           [raceRunner],
         ),
-        returnValue: _i11.Future<void>.value(),
-        returnValueForMissingStub: _i11.Future<void>.value(),
-      ) as _i11.Future<void>);
+        returnValue: _i8.Future<void>.value(),
+        returnValueForMissingStub: _i8.Future<void>.value(),
+      ) as _i8.Future<void>);
 
   @override
-  _i11.Future<void> addResult(_i3.RaceResult? result) => (super.noSuchMethod(
+  _i8.Future<void> addResult(_i3.RaceResult? result) => (super.noSuchMethod(
         Invocation.method(
           #addResult,
           [result],
         ),
-        returnValue: _i11.Future<void>.value(),
-        returnValueForMissingStub: _i11.Future<void>.value(),
-      ) as _i11.Future<void>);
+        returnValue: _i8.Future<void>.value(),
+        returnValueForMissingStub: _i8.Future<void>.value(),
+      ) as _i8.Future<void>);
 
   @override
-  _i11.Future<void> saveResults(List<_i3.RaceResult>? results) =>
+  _i8.Future<void> saveResults(List<_i3.RaceResult>? results) =>
       (super.noSuchMethod(
         Invocation.method(
           #saveResults,
           [results],
         ),
-        returnValue: _i11.Future<void>.value(),
-        returnValueForMissingStub: _i11.Future<void>.value(),
-      ) as _i11.Future<void>);
+        returnValue: _i8.Future<void>.value(),
+        returnValueForMissingStub: _i8.Future<void>.value(),
+      ) as _i8.Future<void>);
 
   @override
-  _i11.Future<_i3.Team?> getTeamByName(String? teamName) => (super.noSuchMethod(
+  _i8.Future<_i3.Team?> getTeamByName(String? teamName) => (super.noSuchMethod(
         Invocation.method(
           #getTeamByName,
           [teamName],
         ),
-        returnValue: _i11.Future<_i3.Team?>.value(),
-      ) as _i11.Future<_i3.Team?>);
+        returnValue: _i8.Future<_i3.Team?>.value(),
+      ) as _i8.Future<_i3.Team?>);
 
   @override
-  _i11.Future<_i3.RaceRunner?> getRaceRunnerByBib(String? bibNumber) =>
+  _i8.Future<_i3.RaceRunner?> getRaceRunnerByBib(String? bibNumber) =>
       (super.noSuchMethod(
         Invocation.method(
           #getRaceRunnerByBib,
           [bibNumber],
         ),
-        returnValue: _i11.Future<_i3.RaceRunner?>.value(),
-      ) as _i11.Future<_i3.RaceRunner?>);
+        returnValue: _i8.Future<_i3.RaceRunner?>.value(),
+      ) as _i8.Future<_i3.RaceRunner?>);
 
   @override
-  _i11.Future<void> searchRaceRunners(
+  _i8.Future<void> searchRaceRunners(
     String? query, [
     String? searchAttribute = 'all',
   ]) =>
@@ -423,31 +398,31 @@ class MockMasterRace extends _i1.Mock implements _i13.MasterRace {
             searchAttribute,
           ],
         ),
-        returnValue: _i11.Future<void>.value(),
-        returnValueForMissingStub: _i11.Future<void>.value(),
-      ) as _i11.Future<void>);
+        returnValue: _i8.Future<void>.value(),
+        returnValueForMissingStub: _i8.Future<void>.value(),
+      ) as _i8.Future<void>);
 
   @override
-  _i11.Future<_i3.Runner?> getRunnerByBib(String? bibNumber) =>
+  _i8.Future<_i3.Runner?> getRunnerByBib(String? bibNumber) =>
       (super.noSuchMethod(
         Invocation.method(
           #getRunnerByBib,
           [bibNumber],
         ),
-        returnValue: _i11.Future<_i3.Runner?>.value(),
-      ) as _i11.Future<_i3.Runner?>);
+        returnValue: _i8.Future<_i3.Runner?>.value(),
+      ) as _i8.Future<_i3.Runner?>);
 
   @override
-  _i11.Future<int> createRunner(_i3.Runner? runner) => (super.noSuchMethod(
+  _i8.Future<int> createRunner(_i3.Runner? runner) => (super.noSuchMethod(
         Invocation.method(
           #createRunner,
           [runner],
         ),
-        returnValue: _i11.Future<int>.value(0),
-      ) as _i11.Future<int>);
+        returnValue: _i8.Future<int>.value(0),
+      ) as _i8.Future<int>);
 
   @override
-  _i11.Future<void> addRunnerToTeam(
+  _i8.Future<void> addRunnerToTeam(
     int? teamId,
     int? runnerId,
   ) =>
@@ -459,18 +434,18 @@ class MockMasterRace extends _i1.Mock implements _i13.MasterRace {
             runnerId,
           ],
         ),
-        returnValue: _i11.Future<void>.value(),
-        returnValueForMissingStub: _i11.Future<void>.value(),
-      ) as _i11.Future<void>);
+        returnValue: _i8.Future<void>.value(),
+        returnValueForMissingStub: _i8.Future<void>.value(),
+      ) as _i8.Future<void>);
 
   @override
-  _i11.Future<List<_i3.Team>> getOtherTeams() => (super.noSuchMethod(
+  _i8.Future<List<_i3.Team>> getOtherTeams() => (super.noSuchMethod(
         Invocation.method(
           #getOtherTeams,
           [],
         ),
-        returnValue: _i11.Future<List<_i3.Team>>.value(<_i3.Team>[]),
-      ) as _i11.Future<List<_i3.Team>>);
+        returnValue: _i8.Future<List<_i3.Team>>.value(<_i3.Team>[]),
+      ) as _i8.Future<List<_i3.Team>>);
 
   @override
   void invalidateCache() => super.noSuchMethod(
@@ -482,7 +457,7 @@ class MockMasterRace extends _i1.Mock implements _i13.MasterRace {
       );
 
   @override
-  void addListener(_i15.VoidCallback? listener) => super.noSuchMethod(
+  void addListener(_i13.VoidCallback? listener) => super.noSuchMethod(
         Invocation.method(
           #addListener,
           [listener],
@@ -491,7 +466,7 @@ class MockMasterRace extends _i1.Mock implements _i13.MasterRace {
       );
 
   @override
-  void removeListener(_i15.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i13.VoidCallback? listener) => super.noSuchMethod(
         Invocation.method(
           #removeListener,
           [listener],
@@ -518,109 +493,14 @@ class MockMasterRace extends _i1.Mock implements _i13.MasterRace {
       );
 }
 
-/// A class which mocks [RacesController].
+/// A class which mocks [IParentRaceController].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockRacesController extends _i1.Mock implements _i16.RacesController {
-  MockRacesController() {
+class MockIParentRaceController extends _i1.Mock
+    implements _i14.IParentRaceController {
+  MockIParentRaceController() {
     _i1.throwOnMissingStub(this);
   }
-
-  @override
-  List<_i3.Race> get races => (super.noSuchMethod(
-        Invocation.getter(#races),
-        returnValue: <_i3.Race>[],
-      ) as List<_i3.Race>);
-
-  @override
-  bool get isLocationButtonVisible => (super.noSuchMethod(
-        Invocation.getter(#isLocationButtonVisible),
-        returnValue: false,
-      ) as bool);
-
-  @override
-  _i5.TextEditingController get nameController => (super.noSuchMethod(
-        Invocation.getter(#nameController),
-        returnValue: _FakeTextEditingController_3(
-          this,
-          Invocation.getter(#nameController),
-        ),
-      ) as _i5.TextEditingController);
-
-  @override
-  _i5.TextEditingController get locationController => (super.noSuchMethod(
-        Invocation.getter(#locationController),
-        returnValue: _FakeTextEditingController_3(
-          this,
-          Invocation.getter(#locationController),
-        ),
-      ) as _i5.TextEditingController);
-
-  @override
-  _i5.TextEditingController get dateController => (super.noSuchMethod(
-        Invocation.getter(#dateController),
-        returnValue: _FakeTextEditingController_3(
-          this,
-          Invocation.getter(#dateController),
-        ),
-      ) as _i5.TextEditingController);
-
-  @override
-  _i5.TextEditingController get distanceController => (super.noSuchMethod(
-        Invocation.getter(#distanceController),
-        returnValue: _FakeTextEditingController_3(
-          this,
-          Invocation.getter(#distanceController),
-        ),
-      ) as _i5.TextEditingController);
-
-  @override
-  _i5.TextEditingController get unitController => (super.noSuchMethod(
-        Invocation.getter(#unitController),
-        returnValue: _FakeTextEditingController_3(
-          this,
-          Invocation.getter(#unitController),
-        ),
-      ) as _i5.TextEditingController);
-
-  @override
-  _i5.TextEditingController get userlocationController => (super.noSuchMethod(
-        Invocation.getter(#userlocationController),
-        returnValue: _FakeTextEditingController_3(
-          this,
-          Invocation.getter(#userlocationController),
-        ),
-      ) as _i5.TextEditingController);
-
-  @override
-  List<_i5.TextEditingController> get teamControllers => (super.noSuchMethod(
-        Invocation.getter(#teamControllers),
-        returnValue: <_i5.TextEditingController>[],
-      ) as List<_i5.TextEditingController>);
-
-  @override
-  List<_i15.Color> get teamColors => (super.noSuchMethod(
-        Invocation.getter(#teamColors),
-        returnValue: <_i15.Color>[],
-      ) as List<_i15.Color>);
-
-  @override
-  String get unit => (super.noSuchMethod(
-        Invocation.getter(#unit),
-        returnValue: _i17.dummyValue<String>(
-          this,
-          Invocation.getter(#unit),
-        ),
-      ) as String);
-
-  @override
-  _i6.TutorialManager get tutorialManager => (super.noSuchMethod(
-        Invocation.getter(#tutorialManager),
-        returnValue: _FakeTutorialManager_4(
-          this,
-          Invocation.getter(#tutorialManager),
-        ),
-      ) as _i6.TutorialManager);
 
   @override
   bool get canEdit => (super.noSuchMethod(
@@ -629,371 +509,54 @@ class MockRacesController extends _i1.Mock implements _i16.RacesController {
       ) as bool);
 
   @override
-  set races(List<_i3.Race>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #races,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
-  set isLocationButtonVisible(bool? value) => super.noSuchMethod(
-        Invocation.setter(
-          #isLocationButtonVisible,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
-  set unit(String? value) => super.noSuchMethod(
-        Invocation.setter(
-          #unit,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
-  set nameError(String? value) => super.noSuchMethod(
-        Invocation.setter(
-          #nameError,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
-  set locationError(String? value) => super.noSuchMethod(
-        Invocation.setter(
-          #locationError,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
-  set dateError(String? value) => super.noSuchMethod(
-        Invocation.setter(
-          #dateError,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
-  set distanceError(String? value) => super.noSuchMethod(
-        Invocation.setter(
-          #distanceError,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
-  set teamsError(String? value) => super.noSuchMethod(
-        Invocation.setter(
-          #teamsError,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
-  bool get hasListeners => (super.noSuchMethod(
-        Invocation.getter(#hasListeners),
-        returnValue: false,
-      ) as bool);
-
-  @override
-  void initState(_i5.BuildContext? context) => super.noSuchMethod(
-        Invocation.method(
-          #initState,
-          [context],
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
-  void setupTutorials() => super.noSuchMethod(
-        Invocation.method(
-          #setupTutorials,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
-  void updateLocationButtonVisibility() => super.noSuchMethod(
-        Invocation.method(
-          #updateLocationButtonVisibility,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
-  void addTeamField() => super.noSuchMethod(
-        Invocation.method(
-          #addTeamField,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
-  _i11.Future<void> showCreateRaceSheet(_i5.BuildContext? context) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #showCreateRaceSheet,
-          [context],
-        ),
-        returnValue: _i11.Future<void>.value(),
-        returnValueForMissingStub: _i11.Future<void>.value(),
-      ) as _i11.Future<void>);
-
-  @override
-  void validateName(String? name) => super.noSuchMethod(
-        Invocation.method(
-          #validateName,
-          [name],
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
-  void validateLocation(String? location) => super.noSuchMethod(
-        Invocation.method(
-          #validateLocation,
-          [location],
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
-  void validateDate(String? dateString) => super.noSuchMethod(
-        Invocation.method(
-          #validateDate,
-          [dateString],
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
-  void validateDistance(String? distanceString) => super.noSuchMethod(
-        Invocation.method(
-          #validateDistance,
-          [distanceString],
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
-  void resetControllers() => super.noSuchMethod(
-        Invocation.method(
-          #resetControllers,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
-  bool validateRaceName() => (super.noSuchMethod(
-        Invocation.method(
-          #validateRaceName,
-          [],
-        ),
-        returnValue: false,
-      ) as bool);
-
-  @override
-  bool validateRaceCreation() => (super.noSuchMethod(
-        Invocation.method(
-          #validateRaceCreation,
-          [],
-        ),
-        returnValue: false,
-      ) as bool);
-
-  @override
-  _i11.Future<void> getCurrentLocation(_i5.BuildContext? context) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #getCurrentLocation,
-          [context],
-        ),
-        returnValue: _i11.Future<void>.value(),
-        returnValueForMissingStub: _i11.Future<void>.value(),
-      ) as _i11.Future<void>);
-
-  @override
-  _i11.Future<void> selectDate(_i5.BuildContext? context) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #selectDate,
-          [context],
-        ),
-        returnValue: _i11.Future<void>.value(),
-        returnValueForMissingStub: _i11.Future<void>.value(),
-      ) as _i11.Future<void>);
-
-  @override
-  void showColorPicker(
-    _i5.BuildContext? context,
-    _i5.StateSetter? setSheetState,
-    _i5.TextEditingController? controller,
-  ) =>
-      super.noSuchMethod(
-        Invocation.method(
-          #showColorPicker,
-          [
-            context,
-            setSheetState,
-            controller,
-          ],
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
-  _i11.Future<void> editRace(
-    _i3.Race? race,
-    _i5.BuildContext? context,
-  ) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #editRace,
-          [
-            race,
-            context,
-          ],
-        ),
-        returnValue: _i11.Future<void>.value(),
-        returnValueForMissingStub: _i11.Future<void>.value(),
-      ) as _i11.Future<void>);
-
-  @override
-  _i11.Future<void> deleteRace(
-    _i3.Race? race,
-    _i5.BuildContext? context,
-  ) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #deleteRace,
-          [
-            race,
-            context,
-          ],
-        ),
-        returnValue: _i11.Future<void>.value(),
-        returnValueForMissingStub: _i11.Future<void>.value(),
-      ) as _i11.Future<void>);
-
-  @override
-  _i11.Future<int> createRace(_i3.Race? race) => (super.noSuchMethod(
-        Invocation.method(
-          #createRace,
-          [race],
-        ),
-        returnValue: _i11.Future<int>.value(0),
-      ) as _i11.Future<int>);
-
-  @override
-  _i11.Future<void> updateRace(_i3.Race? race) => (super.noSuchMethod(
-        Invocation.method(
-          #updateRace,
-          [race],
-        ),
-        returnValue: _i11.Future<void>.value(),
-        returnValueForMissingStub: _i11.Future<void>.value(),
-      ) as _i11.Future<void>);
-
-  @override
-  _i11.Future<void> loadRaces() => (super.noSuchMethod(
+  _i8.Future<void> loadRaces() => (super.noSuchMethod(
         Invocation.method(
           #loadRaces,
           [],
         ),
-        returnValue: _i11.Future<void>.value(),
-        returnValueForMissingStub: _i11.Future<void>.value(),
-      ) as _i11.Future<void>);
-
-  @override
-  void dispose() => super.noSuchMethod(
-        Invocation.method(
-          #dispose,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
-  void addListener(_i15.VoidCallback? listener) => super.noSuchMethod(
-        Invocation.method(
-          #addListener,
-          [listener],
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
-  void removeListener(_i15.VoidCallback? listener) => super.noSuchMethod(
-        Invocation.method(
-          #removeListener,
-          [listener],
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
-  void notifyListeners() => super.noSuchMethod(
-        Invocation.method(
-          #notifyListeners,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
+        returnValue: _i8.Future<void>.value(),
+        returnValueForMissingStub: _i8.Future<void>.value(),
+      ) as _i8.Future<void>);
 }
 
 /// A class which mocks [MasterFlowController].
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockMasterFlowController extends _i1.Mock
-    implements _i18.MasterFlowController {
+    implements _i15.MasterFlowController {
   MockMasterFlowController() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
-  _i7.RaceController get raceController => (super.noSuchMethod(
+  _i5.RaceController get raceController => (super.noSuchMethod(
         Invocation.getter(#raceController),
-        returnValue: _FakeRaceController_5(
+        returnValue: _FakeRaceController_3(
           this,
           Invocation.getter(#raceController),
         ),
-      ) as _i7.RaceController);
+      ) as _i5.RaceController);
 
   @override
-  _i8.PreRaceController get preRaceController => (super.noSuchMethod(
+  _i6.PreRaceController get preRaceController => (super.noSuchMethod(
         Invocation.getter(#preRaceController),
-        returnValue: _FakePreRaceController_6(
+        returnValue: _FakePreRaceController_4(
           this,
           Invocation.getter(#preRaceController),
         ),
-      ) as _i8.PreRaceController);
+      ) as _i6.PreRaceController);
 
   @override
-  _i9.PostRaceController get postRaceController => (super.noSuchMethod(
+  _i7.PostRaceController get postRaceController => (super.noSuchMethod(
         Invocation.getter(#postRaceController),
-        returnValue: _FakePostRaceController_7(
+        returnValue: _FakePostRaceController_5(
           this,
           Invocation.getter(#postRaceController),
         ),
-      ) as _i9.PostRaceController);
+      ) as _i7.PostRaceController);
 
   @override
-  set preRaceController(_i8.PreRaceController? value) => super.noSuchMethod(
+  set preRaceController(_i6.PreRaceController? value) => super.noSuchMethod(
         Invocation.setter(
           #preRaceController,
           value,
@@ -1002,7 +565,7 @@ class MockMasterFlowController extends _i1.Mock
       );
 
   @override
-  set postRaceController(_i9.PostRaceController? value) => super.noSuchMethod(
+  set postRaceController(_i7.PostRaceController? value) => super.noSuchMethod(
         Invocation.setter(
           #postRaceController,
           value,
@@ -1011,19 +574,8 @@ class MockMasterFlowController extends _i1.Mock
       );
 
   @override
-  _i11.Future<void> continueRaceFlow(_i5.BuildContext? context) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #continueRaceFlow,
-          [context],
-        ),
-        returnValue: _i11.Future<void>.value(),
-        returnValueForMissingStub: _i11.Future<void>.value(),
-      ) as _i11.Future<void>);
-
-  @override
-  _i11.Future<void> updateRaceFlowState(
-    _i5.BuildContext? context,
+  _i8.Future<void> updateRaceFlowState(
+    _i16.BuildContext? context,
     String? newState,
   ) =>
       (super.noSuchMethod(
@@ -1034,13 +586,46 @@ class MockMasterFlowController extends _i1.Mock
             newState,
           ],
         ),
-        returnValue: _i11.Future<void>.value(),
-        returnValueForMissingStub: _i11.Future<void>.value(),
-      ) as _i11.Future<void>);
+        returnValue: _i8.Future<void>.value(),
+        returnValueForMissingStub: _i8.Future<void>.value(),
+      ) as _i8.Future<void>);
 
   @override
-  _i11.Future<bool> handleFlowNavigation(
-    _i5.BuildContext? context,
+  _i8.Future<void> markCurrentFlowCompleted(_i16.BuildContext? context) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #markCurrentFlowCompleted,
+          [context],
+        ),
+        returnValue: _i8.Future<void>.value(),
+        returnValueForMissingStub: _i8.Future<void>.value(),
+      ) as _i8.Future<void>);
+
+  @override
+  _i8.Future<void> beginNextFlow(_i16.BuildContext? context) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #beginNextFlow,
+          [context],
+        ),
+        returnValue: _i8.Future<void>.value(),
+        returnValueForMissingStub: _i8.Future<void>.value(),
+      ) as _i8.Future<void>);
+
+  @override
+  _i8.Future<void> continueRaceFlow(_i16.BuildContext? context) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #continueRaceFlow,
+          [context],
+        ),
+        returnValue: _i8.Future<void>.value(),
+        returnValueForMissingStub: _i8.Future<void>.value(),
+      ) as _i8.Future<void>);
+
+  @override
+  _i8.Future<bool> handleFlowNavigation(
+    _i16.BuildContext? context,
     String? flowState,
   ) =>
       (super.noSuchMethod(
@@ -1051,94 +636,22 @@ class MockMasterFlowController extends _i1.Mock
             flowState,
           ],
         ),
-        returnValue: _i11.Future<bool>.value(false),
-      ) as _i11.Future<bool>);
-}
-
-/// A class which mocks [IGeoLocationService].
-///
-/// See the documentation for Mockito's code generation for more information.
-class MockIGeoLocationService extends _i1.Mock
-    implements _i19.IGeoLocationService {
-  MockIGeoLocationService() {
-    _i1.throwOnMissingStub(this);
-  }
-
-  @override
-  _i11.Future<_i10.LocationPermission> checkPermission() => (super.noSuchMethod(
-        Invocation.method(
-          #checkPermission,
-          [],
-        ),
-        returnValue: _i11.Future<_i10.LocationPermission>.value(
-            _i10.LocationPermission.denied),
-      ) as _i11.Future<_i10.LocationPermission>);
-
-  @override
-  _i11.Future<_i10.LocationPermission> requestPermission() =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #requestPermission,
-          [],
-        ),
-        returnValue: _i11.Future<_i10.LocationPermission>.value(
-            _i10.LocationPermission.denied),
-      ) as _i11.Future<_i10.LocationPermission>);
-
-  @override
-  _i11.Future<bool> isLocationServiceEnabled() => (super.noSuchMethod(
-        Invocation.method(
-          #isLocationServiceEnabled,
-          [],
-        ),
-        returnValue: _i11.Future<bool>.value(false),
-      ) as _i11.Future<bool>);
-
-  @override
-  _i11.Future<_i10.Position> getCurrentPosition() => (super.noSuchMethod(
-        Invocation.method(
-          #getCurrentPosition,
-          [],
-        ),
-        returnValue: _i11.Future<_i10.Position>.value(_FakePosition_8(
-          this,
-          Invocation.method(
-            #getCurrentPosition,
-            [],
-          ),
-        )),
-      ) as _i11.Future<_i10.Position>);
-
-  @override
-  _i11.Future<List<_i20.Placemark>> placemarkFromCoordinates(
-    double? lat,
-    double? lng,
-  ) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #placemarkFromCoordinates,
-          [
-            lat,
-            lng,
-          ],
-        ),
-        returnValue:
-            _i11.Future<List<_i20.Placemark>>.value(<_i20.Placemark>[]),
-      ) as _i11.Future<List<_i20.Placemark>>);
+        returnValue: _i8.Future<bool>.value(false),
+      ) as _i8.Future<bool>);
 }
 
 /// A class which mocks [IDatePickerService].
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockIDatePickerService extends _i1.Mock
-    implements _i21.IDatePickerService {
+    implements _i17.IDatePickerService {
   MockIDatePickerService() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
-  _i11.Future<DateTime?> pickDate(
-    _i5.BuildContext? context, {
+  _i8.Future<DateTime?> pickDate(
+    _i16.BuildContext? context, {
     DateTime? initialDate,
     DateTime? firstDate,
     DateTime? lastDate,
@@ -1153,20 +666,20 @@ class MockIDatePickerService extends _i1.Mock
             #lastDate: lastDate,
           },
         ),
-        returnValue: _i11.Future<DateTime?>.value(),
-      ) as _i11.Future<DateTime?>);
+        returnValue: _i8.Future<DateTime?>.value(),
+      ) as _i8.Future<DateTime?>);
 }
 
 /// A class which mocks [IEventBus].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockIEventBus extends _i1.Mock implements _i22.IEventBus {
+class MockIEventBus extends _i1.Mock implements _i18.IEventBus {
   MockIEventBus() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
-  void publish(_i22.Event? event) => super.noSuchMethod(
+  void publish(_i18.Event? event) => super.noSuchMethod(
         Invocation.method(
           #publish,
           [event],
@@ -1191,9 +704,9 @@ class MockIEventBus extends _i1.Mock implements _i22.IEventBus {
       );
 
   @override
-  _i11.StreamSubscription<_i22.Event> on<T>(
+  _i8.StreamSubscription<_i18.Event> on<T>(
     String? eventType,
-    void Function(_i22.Event)? onData,
+    void Function(_i18.Event)? onData,
   ) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -1203,7 +716,7 @@ class MockIEventBus extends _i1.Mock implements _i22.IEventBus {
             onData,
           ],
         ),
-        returnValue: _FakeStreamSubscription_9<_i22.Event>(
+        returnValue: _FakeStreamSubscription_6<_i18.Event>(
           this,
           Invocation.method(
             #on,
@@ -1213,22 +726,22 @@ class MockIEventBus extends _i1.Mock implements _i22.IEventBus {
             ],
           ),
         ),
-      ) as _i11.StreamSubscription<_i22.Event>);
+      ) as _i8.StreamSubscription<_i18.Event>);
 }
 
 /// A class which mocks [IDeviceConnectionFactory].
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockIDeviceConnectionFactory extends _i1.Mock
-    implements _i23.IDeviceConnectionFactory {
+    implements _i19.IDeviceConnectionFactory {
   MockIDeviceConnectionFactory() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
-  _i12.DevicesManager createDevices(
-    _i24.DeviceName? deviceName,
-    _i24.DeviceType? deviceType, {
+  _i9.DevicesManager createDevices(
+    _i20.DeviceName? deviceName,
+    _i20.DeviceType? deviceType, {
     String? data,
     bool? toSpectator,
   }) =>
@@ -1244,7 +757,7 @@ class MockIDeviceConnectionFactory extends _i1.Mock
             #toSpectator: toSpectator,
           },
         ),
-        returnValue: _FakeDevicesManager_10(
+        returnValue: _FakeDevicesManager_7(
           this,
           Invocation.method(
             #createDevices,
@@ -1258,5 +771,100 @@ class MockIDeviceConnectionFactory extends _i1.Mock
             },
           ),
         ),
-      ) as _i12.DevicesManager);
+      ) as _i9.DevicesManager);
+}
+
+/// A class which mocks [RaceGeoController].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockRaceGeoController extends _i1.Mock implements _i21.RaceGeoController {
+  MockRaceGeoController() {
+    _i1.throwOnMissingStub(this);
+  }
+
+  @override
+  bool get isLocationButtonVisible => (super.noSuchMethod(
+        Invocation.getter(#isLocationButtonVisible),
+        returnValue: false,
+      ) as bool);
+
+  @override
+  _i10.RaceFormState get form => (super.noSuchMethod(
+        Invocation.getter(#form),
+        returnValue: _FakeRaceFormState_8(
+          this,
+          Invocation.getter(#form),
+        ),
+      ) as _i10.RaceFormState);
+
+  @override
+  set isLocationButtonVisible(bool? value) => super.noSuchMethod(
+        Invocation.setter(
+          #isLocationButtonVisible,
+          value,
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  bool get hasListeners => (super.noSuchMethod(
+        Invocation.getter(#hasListeners),
+        returnValue: false,
+      ) as bool);
+
+  @override
+  _i8.Future<void> getCurrentLocation(_i16.BuildContext? context) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getCurrentLocation,
+          [context],
+        ),
+        returnValue: _i8.Future<void>.value(),
+        returnValueForMissingStub: _i8.Future<void>.value(),
+      ) as _i8.Future<void>);
+
+  @override
+  void updateLocationButtonVisibility() => super.noSuchMethod(
+        Invocation.method(
+          #updateLocationButtonVisibility,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void addListener(_i13.VoidCallback? listener) => super.noSuchMethod(
+        Invocation.method(
+          #addListener,
+          [listener],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void removeListener(_i13.VoidCallback? listener) => super.noSuchMethod(
+        Invocation.method(
+          #removeListener,
+          [listener],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void dispose() => super.noSuchMethod(
+        Invocation.method(
+          #dispose,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void notifyListeners() => super.noSuchMethod(
+        Invocation.method(
+          #notifyListeners,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
 }

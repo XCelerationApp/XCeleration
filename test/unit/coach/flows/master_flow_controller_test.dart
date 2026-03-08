@@ -5,8 +5,8 @@ import 'package:mockito/mockito.dart';
 import 'package:xceleration/coach/flows/PostRaceFlow/controller/post_race_controller.dart';
 import 'package:xceleration/coach/flows/PreRaceFlow/controller/pre_race_controller.dart';
 import 'package:xceleration/coach/flows/controller/flow_controller.dart';
+import 'package:xceleration/coach/race_screen/controller/race_form_state.dart';
 import 'package:xceleration/coach/race_screen/controller/race_screen_controller.dart';
-import 'package:xceleration/core/services/event_bus.dart';
 import 'package:xceleration/shared/models/database/master_race.dart';
 import 'package:xceleration/shared/models/database/race.dart';
 
@@ -14,7 +14,6 @@ import 'package:xceleration/shared/models/database/race.dart';
   RaceController,
   PreRaceController,
   PostRaceController,
-  EventBus,
   MasterRace,
 ])
 import 'master_flow_controller_test.mocks.dart';
@@ -35,7 +34,8 @@ Future<BuildContext> _buildContext(WidgetTester tester) async {
   return ctx!;
 }
 
-final _testRace = Race(raceId: 1, raceName: 'Test Race', flowState: Race.FLOW_PRE_RACE);
+final _testRace =
+    Race(raceId: 1, raceName: 'Test Race', flowState: Race.FLOW_PRE_RACE);
 
 // ---------------------------------------------------------------------------
 
@@ -45,31 +45,123 @@ void main() {
   late MockRaceController mockRaceController;
   late MockPreRaceController mockPreRaceController;
   late MockPostRaceController mockPostRaceController;
-  late MockEventBus mockEventBus;
   late MockMasterRace mockMasterRace;
+  late RaceFormState fakeForm;
   late MasterFlowController controller;
 
   setUp(() {
     mockRaceController = MockRaceController();
     mockPreRaceController = MockPreRaceController();
     mockPostRaceController = MockPostRaceController();
-    mockEventBus = MockEventBus();
     mockMasterRace = MockMasterRace();
+    fakeForm = RaceFormState();
 
     when(mockRaceController.masterRace).thenReturn(mockMasterRace);
     when(mockMasterRace.raceId).thenReturn(1);
     when(mockMasterRace.race).thenAnswer((_) async => _testRace);
+    when(mockMasterRace.teams).thenAnswer((_) async => []);
+    when(mockMasterRace.teamtoRaceRunnersMap).thenAnswer((_) async => {});
+    when(mockRaceController.form).thenReturn(fakeForm);
+    when(mockRaceController.teamsOrNull).thenReturn(null);
+    when(mockRaceController.updateRaceFlowState(any, any))
+        .thenAnswer((_) async {});
 
     controller = MasterFlowController(
       raceController: mockRaceController,
-      eventBus: mockEventBus,
       preRaceController: mockPreRaceController,
       postRaceController: mockPostRaceController,
     );
   });
 
+  tearDown(() {
+    fakeForm.dispose();
+  });
+
   // =========================================================================
   group('MasterFlowController', () {
+    // -----------------------------------------------------------------------
+    group('updateRaceFlowState', () {
+      testWidgets('delegates to raceController.updateRaceFlowState',
+          (tester) async {
+        final context = await _buildContext(tester);
+
+        await controller.updateRaceFlowState(
+            context, Race.FLOW_PRE_RACE_COMPLETED);
+
+        verify(mockRaceController.updateRaceFlowState(
+                any, Race.FLOW_PRE_RACE_COMPLETED))
+            .called(1);
+      });
+    });
+
+    // -----------------------------------------------------------------------
+    group('markCurrentFlowCompleted', () {
+      testWidgets(
+          'calls raceController.updateRaceFlowState with the completed state',
+          (tester) async {
+        final context = await _buildContext(tester);
+        // _testRace.flowState = FLOW_PRE_RACE → completedFlowState = FLOW_PRE_RACE_COMPLETED
+        when(mockMasterRace.race).thenAnswer((_) async => _testRace);
+
+        await controller.markCurrentFlowCompleted(context);
+
+        verify(mockRaceController.updateRaceFlowState(
+                any, Race.FLOW_PRE_RACE_COMPLETED))
+            .called(1);
+      });
+
+      testWidgets('is a no-op when context is not mounted', (tester) async {
+        BuildContext? capturedCtx;
+        await tester.pumpWidget(MaterialApp(
+          home: Builder(builder: (ctx) {
+            capturedCtx = ctx;
+            return const SizedBox();
+          }),
+        ));
+        await tester.pumpWidget(const SizedBox());
+
+        await controller.markCurrentFlowCompleted(capturedCtx!);
+
+        verifyNever(mockRaceController.updateRaceFlowState(any, any));
+      });
+    });
+
+    // -----------------------------------------------------------------------
+    group('beginNextFlow', () {
+      testWidgets('advances from FLOW_SETUP_COMPLETED to FLOW_PRE_RACE',
+          (tester) async {
+        final context = await _buildContext(tester);
+        final setupCompletedRace = Race(
+          raceId: 1,
+          raceName: 'Test Race',
+          flowState: Race.FLOW_SETUP_COMPLETED,
+        );
+        when(mockMasterRace.race).thenAnswer((_) async => setupCompletedRace);
+        when(mockPreRaceController.showPreRaceFlow(any, any))
+            .thenAnswer((_) async => false);
+
+        await controller.beginNextFlow(context);
+
+        verify(mockRaceController.updateRaceFlowState(any, Race.FLOW_PRE_RACE))
+            .called(1);
+      });
+
+      testWidgets('is a no-op when context is not mounted', (tester) async {
+        BuildContext? capturedCtx;
+        await tester.pumpWidget(MaterialApp(
+          home: Builder(builder: (ctx) {
+            capturedCtx = ctx;
+            return const SizedBox();
+          }),
+        ));
+        await tester.pumpWidget(const SizedBox());
+
+        await controller.beginNextFlow(capturedCtx!);
+
+        verifyNever(mockRaceController.updateRaceFlowState(any, any));
+      });
+    });
+
     // -----------------------------------------------------------------------
     group('continueRaceFlow', () {
       testWidgets('is a no-op when context is not mounted', (tester) async {
@@ -80,7 +172,6 @@ void main() {
             return const SizedBox();
           }),
         ));
-        // Remove the widget tree so the captured context becomes unmounted
         await tester.pumpWidget(const SizedBox());
 
         await controller.continueRaceFlow(capturedCtx!);
@@ -89,10 +180,49 @@ void main() {
         verifyNever(mockPostRaceController.showPostRaceFlow(any, any));
       });
 
-      testWidgets('delegates to preRaceFlow when flowState is FLOW_PRE_RACE',
+      testWidgets(
+          'FLOW_SETUP with incomplete setup: shows dialog, does not advance',
           (tester) async {
         final context = await _buildContext(tester);
+        final setupRace = Race(
+            raceId: 1, raceName: 'Test Race', flowState: Race.FLOW_SETUP);
+        when(mockMasterRace.race).thenAnswer((_) async => setupRace);
+        // form fields are empty → canAdvance = false
+        fakeForm.nameController.text = '';
+
+        await controller.continueRaceFlow(context);
+        await tester.pumpAndSettle();
+
+        verifyNever(mockRaceController.updateRaceFlowState(any, any));
+        expect(find.text('Got it'), findsOneWidget);
+      });
+
+      testWidgets(
+          'FLOW_SETUP_COMPLETED: advances to FLOW_PRE_RACE and delegates nav',
+          (tester) async {
+        final context = await _buildContext(tester);
+        final completedRace = Race(
+          raceId: 1,
+          raceName: 'Test Race',
+          flowState: Race.FLOW_SETUP_COMPLETED,
+        );
+        when(mockMasterRace.race).thenAnswer((_) async => completedRace);
+        // handleFlowNavigation re-fetches race (still FLOW_SETUP_COMPLETED) →
+        // hits completed-suffix branch → needs tabController
+        final tabController = TabController(length: 2, vsync: tester);
+        when(mockRaceController.tabController).thenReturn(tabController);
+
+        await controller.continueRaceFlow(context);
+
+        verify(mockRaceController.updateRaceFlowState(any, Race.FLOW_PRE_RACE))
+            .called(1);
+        tabController.dispose();
+      });
+
+      testWidgets('FLOW_PRE_RACE: delegates to preRaceFlow', (tester) async {
+        final context = await _buildContext(tester);
         when(mockRaceController.flowState).thenReturn(Race.FLOW_PRE_RACE);
+        when(mockMasterRace.race).thenAnswer((_) async => _testRace);
         when(mockPreRaceController.showPreRaceFlow(any, any))
             .thenAnswer((_) async => false);
 
@@ -102,10 +232,11 @@ void main() {
         verifyNever(mockPostRaceController.showPostRaceFlow(any, any));
       });
 
-      testWidgets('delegates to postRaceFlow when flowState is FLOW_POST_RACE',
-          (tester) async {
+      testWidgets('FLOW_POST_RACE: delegates to postRaceFlow', (tester) async {
         final context = await _buildContext(tester);
-        when(mockRaceController.flowState).thenReturn(Race.FLOW_POST_RACE);
+        final postRaceRace = Race(
+            raceId: 1, raceName: 'Test Race', flowState: Race.FLOW_POST_RACE);
+        when(mockMasterRace.race).thenAnswer((_) async => postRaceRace);
         when(mockPostRaceController.showPostRaceFlow(any, any))
             .thenAnswer((_) async => false);
 
@@ -120,10 +251,9 @@ void main() {
           (tester) async {
         final context = await _buildContext(tester);
         when(mockRaceController.flowState).thenReturn(Race.FLOW_PRE_RACE);
+        when(mockMasterRace.race).thenAnswer((_) async => _testRace);
         when(mockPreRaceController.showPreRaceFlow(any, any))
             .thenAnswer((_) async => true);
-        when(mockRaceController.updateRaceFlowState(any, any))
-            .thenAnswer((_) async {});
 
         await controller.continueRaceFlow(context);
 
@@ -136,11 +266,11 @@ void main() {
           '_postRaceFlow complete → updateRaceFlowState called with FLOW_FINISHED',
           (tester) async {
         final context = await _buildContext(tester);
-        when(mockRaceController.flowState).thenReturn(Race.FLOW_POST_RACE);
+        final postRaceRace = Race(
+            raceId: 1, raceName: 'Test Race', flowState: Race.FLOW_POST_RACE);
+        when(mockMasterRace.race).thenAnswer((_) async => postRaceRace);
         when(mockPostRaceController.showPostRaceFlow(any, any))
             .thenAnswer((_) async => true);
-        when(mockRaceController.updateRaceFlowState(any, any))
-            .thenAnswer((_) async {});
         final tabController = TabController(length: 2, vsync: tester);
         when(mockRaceController.tabController).thenReturn(tabController);
 
@@ -157,11 +287,11 @@ void main() {
       testWidgets('_postRaceFlow complete → tabController.animateTo(1) called',
           (tester) async {
         final context = await _buildContext(tester);
-        when(mockRaceController.flowState).thenReturn(Race.FLOW_POST_RACE);
+        final postRaceRace = Race(
+            raceId: 1, raceName: 'Test Race', flowState: Race.FLOW_POST_RACE);
+        when(mockMasterRace.race).thenAnswer((_) async => postRaceRace);
         when(mockPostRaceController.showPostRaceFlow(any, any))
             .thenAnswer((_) async => true);
-        when(mockRaceController.updateRaceFlowState(any, any))
-            .thenAnswer((_) async {});
         final tabController =
             TabController(length: 2, vsync: tester, initialIndex: 0);
         when(mockRaceController.tabController).thenReturn(tabController);
@@ -203,8 +333,8 @@ void main() {
             TabController(length: 2, vsync: tester, initialIndex: 1);
         when(mockRaceController.tabController).thenReturn(tabController);
 
-        final result = await controller.handleFlowNavigation(
-            context, Race.FLOW_FINISHED);
+        final result =
+            await controller.handleFlowNavigation(context, Race.FLOW_FINISHED);
 
         expect(result, isTrue);
         await tester.pumpAndSettle();
@@ -242,34 +372,6 @@ void main() {
 
         verify(mockPostRaceController.showPostRaceFlow(any, any)).called(1);
         verifyNever(mockPreRaceController.showPreRaceFlow(any, any));
-      });
-    });
-
-    // -----------------------------------------------------------------------
-    group('updateRaceFlowState', () {
-      testWidgets('calls raceController.updateRaceFlowState with the new state',
-          (tester) async {
-        final context = await _buildContext(tester);
-        when(mockRaceController.updateRaceFlowState(any, any))
-            .thenAnswer((_) async {});
-
-        await controller.updateRaceFlowState(context, Race.FLOW_PRE_RACE_COMPLETED);
-
-        verify(mockRaceController.updateRaceFlowState(
-                any, Race.FLOW_PRE_RACE_COMPLETED))
-            .called(1);
-      });
-
-      testWidgets('fires raceFlowStateChanged event via the injected EventBus',
-          (tester) async {
-        final context = await _buildContext(tester);
-        when(mockRaceController.updateRaceFlowState(any, any))
-            .thenAnswer((_) async {});
-
-        await controller.updateRaceFlowState(context, Race.FLOW_PRE_RACE_COMPLETED);
-
-        verify(mockEventBus.fire(EventTypes.raceFlowStateChanged, any))
-            .called(1);
       });
     });
   });
