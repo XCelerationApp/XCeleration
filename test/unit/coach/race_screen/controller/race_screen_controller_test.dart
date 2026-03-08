@@ -8,12 +8,18 @@ import 'package:xceleration/coach/flows/controller/flow_controller.dart';
 import 'package:xceleration/coach/race_screen/controller/race_form_state.dart';
 import 'package:xceleration/coach/race_screen/controller/race_screen_controller.dart';
 import 'package:xceleration/coach/races_screen/controller/races_controller.dart';
+import 'package:xceleration/core/services/date_picker_service.dart';
 import 'package:xceleration/core/services/geo_location_service.dart';
 import 'package:xceleration/shared/models/database/master_race.dart';
 import 'package:xceleration/shared/models/database/race.dart';
 
-@GenerateMocks(
-    [MasterRace, RacesController, MasterFlowController, IGeoLocationService])
+@GenerateMocks([
+  MasterRace,
+  RacesController,
+  MasterFlowController,
+  IGeoLocationService,
+  IDatePickerService,
+])
 import 'race_screen_controller_test.mocks.dart';
 
 // ---------------------------------------------------------------------------
@@ -41,6 +47,7 @@ void main() {
   late MockRacesController mockRacesController;
   late MockMasterFlowController mockFlowController;
   late MockIGeoLocationService mockGeoService;
+  late MockIDatePickerService mockDatePickerService;
   late RaceController controller;
 
   // A fully-populated test race (flowState != FLOW_SETUP avoids the
@@ -60,6 +67,7 @@ void main() {
     mockRacesController = MockRacesController();
     mockFlowController = MockMasterFlowController();
     mockGeoService = MockIGeoLocationService();
+    mockDatePickerService = MockIDatePickerService();
 
     // Common stubs required on almost every code path
     when(mockMasterRace.raceId).thenReturn(1);
@@ -76,6 +84,7 @@ void main() {
       masterRace: mockMasterRace,
       parentController: mockRacesController,
       geoLocationService: mockGeoService,
+      datePickerService: mockDatePickerService,
       flowController: mockFlowController,
     );
   });
@@ -86,6 +95,38 @@ void main() {
 
   // =========================================================================
   group('RaceController', () {
+    // -------------------------------------------------------------------------
+    group('selectDate', () {
+      testWidgets('updates dateController when a date is picked',
+          (tester) async {
+        final ctx = await _buildContext(tester);
+        final picked = DateTime(2025, 8, 20);
+        when(mockDatePickerService.pickDate(any,
+                initialDate: anyNamed('initialDate'),
+                firstDate: anyNamed('firstDate'),
+                lastDate: anyNamed('lastDate')))
+            .thenAnswer((_) async => picked);
+
+        await controller.selectDate(ctx);
+
+        expect(controller.form.dateController.text, '2025-08-20');
+      });
+
+      testWidgets('does nothing when picker is cancelled', (tester) async {
+        final ctx = await _buildContext(tester);
+        when(mockDatePickerService.pickDate(any,
+                initialDate: anyNamed('initialDate'),
+                firstDate: anyNamed('firstDate'),
+                lastDate: anyNamed('lastDate')))
+            .thenAnswer((_) async => null);
+        controller.form.dateController.text = 'existing';
+
+        await controller.selectDate(ctx);
+
+        expect(controller.form.dateController.text, 'existing');
+      });
+    });
+
     // -------------------------------------------------------------------------
     group('validateName', () {
       test('sets name error when name is empty', () {

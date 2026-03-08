@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'package:xceleration/core/utils/sheet_utils.dart' show sheet;
 import 'package:xceleration/shared/models/database/master_race.dart';
 import '../controller/races_controller.dart';
 import '../../race_screen/controller/race_screen_controller.dart';
+import '../../race_screen/screen/race_screen.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_border_radius.dart';
@@ -58,8 +61,29 @@ class _RaceCardState extends State<RaceCard> {
             onTap: () async {
               final masterRace =
                   MasterRace.getInstance(widget.race.raceId ?? 0);
-              await RaceController.showRaceScreen(
-                  context, widget.controller, masterRace);
+              if (!context.mounted) return;
+              await sheet(
+                context: context,
+                body: ChangeNotifierProvider(
+                  create: (ctx) {
+                    final raceController = RaceController(
+                      masterRace: masterRace,
+                      parentController: widget.controller,
+                    );
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      raceController.loadAllData(ctx);
+                    });
+                    return raceController;
+                  },
+                  child: RaceScreen(
+                    masterRace: masterRace,
+                    parentController: widget.controller,
+                  ),
+                ),
+                takeUpScreen: false,
+                showHeader: true,
+              );
+              await widget.controller.loadRaces();
             },
             child: AnimatedContainer(
               duration: AppAnimations.fast,

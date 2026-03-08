@@ -3,8 +3,6 @@ import 'package:xceleration/core/utils/logger.dart';
 import 'race_form_state.dart';
 import '../../../shared/models/database/race_runner.dart';
 import '../../../shared/models/database/team.dart';
-import 'package:xceleration/coach/race_screen/screen/race_screen.dart';
-import 'package:xceleration/core/utils/sheet_utils.dart' show sheet;
 import '../../../core/components/dialog_utils.dart';
 import '../../../core/utils/enums.dart' hide EventTypes;
 import '../../../shared/models/database/race.dart';
@@ -17,8 +15,7 @@ import 'package:geolocator/geolocator.dart' show LocationPermission;
 import '../../races_screen/controller/races_controller.dart';
 import '../services/race_service.dart';
 import '../../../core/services/geo_location_service.dart';
-import 'package:provider/provider.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/services/date_picker_service.dart';
 
 /// Controller class for the RaceScreen that handles all business logic
 class RaceController with ChangeNotifier {
@@ -104,13 +101,16 @@ class RaceController with ChangeNotifier {
 
   RacesController parentController;
   final IGeoLocationService _geoLocationService;
+  final IDatePickerService _datePickerService;
 
   RaceController({
     required this.masterRace,
     required this.parentController,
     IGeoLocationService? geoLocationService,
+    IDatePickerService? datePickerService,
     MasterFlowController? flowController,
-  }) : _geoLocationService = geoLocationService ?? GeoLocationService() {
+  })  : _geoLocationService = geoLocationService ?? GeoLocationService(),
+        _datePickerService = datePickerService ?? DatePickerService() {
     this.flowController =
         flowController ?? MasterFlowController(raceController: this);
     form.addListener(notifyListeners);
@@ -121,48 +121,6 @@ class RaceController with ChangeNotifier {
     form.removeListener(notifyListeners);
     form.dispose();
     super.dispose();
-  }
-
-  // TODO(refactor): static factory couples callers to RaceController directly.
-  // Fix: move to a router, presenter, or factory class. Controller should not know how to show itself.
-  static Future<void> showRaceScreen(BuildContext context,
-      RacesController parentController, MasterRace masterRace,
-      {RaceScreenPage page = RaceScreenPage.main}) async {
-    if (!context.mounted) {
-      return;
-    }
-
-    try {
-      await sheet(
-        context: context,
-        body: ChangeNotifierProvider(
-          create: (context) {
-            final controller = RaceController(
-              masterRace: masterRace,
-              parentController: parentController,
-            );
-            // Start loading immediately with the context
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              controller.loadAllData(context);
-            });
-            return controller;
-          },
-          child: RaceScreen(
-            masterRace: masterRace,
-            parentController: parentController,
-            page: page,
-          ),
-        ),
-        takeUpScreen: false, // Allow sheet to size according to content
-        showHeader: true, // Keep the handle
-      );
-    } catch (e, stackTrace) {
-      Logger.e('RaceController: showRaceScreen() - Error: $e');
-      Logger.e('RaceController: showRaceScreen() - StackTrace: $stackTrace');
-      rethrow;
-    }
-
-    await parentController.loadRaces();
   }
 
   /// Load all required data in parallel - for initial load only
@@ -234,12 +192,6 @@ class RaceController with ChangeNotifier {
         rethrow; // Only rethrow on initial load
       }
     }
-  }
-
-  /// Backwards compatibility - calls loadAllData
-  // TODO(refactor): backwards-compat shim — remove once all callers use loadAllData() directly.
-  Future<void> init(BuildContext context) async {
-    return loadAllData(context);
   }
 
   Future<void> saveRaceDetails(BuildContext context) async {
@@ -593,50 +545,12 @@ class RaceController with ChangeNotifier {
 
   // Date picker method
   Future<void> selectDate(BuildContext context) async {
-    final DateTime now = DateTime.now();
-    final DateTime? picked = await showDatePicker(
-      context: context,
+    final now = DateTime.now();
+    final picked = await _datePickerService.pickDate(
+      context,
       initialDate: now,
       firstDate: DateTime(now.year - 1),
       lastDate: DateTime(now.year + 2),
-      builder: (context, child) {
-        return Theme(
-          data: ThemeData(
-            colorScheme: const ColorScheme.light(
-              primary: AppColors.primaryColor,
-              onPrimary: Colors.white,
-              surface: AppColors.backgroundColor,
-              onSurface: AppColors.darkColor,
-              onSurfaceVariant: AppColors.mediumColor,
-            ),
-            dialogTheme: DialogThemeData(
-              backgroundColor: AppColors.backgroundColor,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
-              ),
-            ),
-            textButtonTheme: TextButtonThemeData(
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.primaryColor,
-                backgroundColor: AppColors.selectedRoleColor,
-                textStyle: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                  letterSpacing: 0.5,
-                ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 10,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            ),
-          ),
-          child: child!,
-        );
-      },
     );
 
     if (picked != null) {

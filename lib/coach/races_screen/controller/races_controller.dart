@@ -16,7 +16,9 @@ import '../../../core/services/event_bus.dart';
 import 'dart:async';
 import '../../../shared/role_bar/models/role_enums.dart';
 import '../../../shared/role_bar/role_bar.dart';
+import 'package:provider/provider.dart';
 import '../../race_screen/controller/race_screen_controller.dart';
+import '../../race_screen/screen/race_screen.dart';
 import '../services/races_service.dart';
 
 class RacesController extends ChangeNotifier {
@@ -134,7 +136,28 @@ class RacesController extends ChangeNotifier {
       final masterRace = MasterRace.getInstance(newRaceId);
 
       if (context.mounted) {
-        await RaceController.showRaceScreen(context, this, masterRace);
+        await sheet(
+          context: context,
+          body: ChangeNotifierProvider(
+            create: (ctx) {
+              final raceController = RaceController(
+                masterRace: masterRace,
+                parentController: this,
+              );
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                raceController.loadAllData(ctx);
+              });
+              return raceController;
+            },
+            child: RaceScreen(
+              masterRace: masterRace,
+              parentController: this,
+            ),
+          ),
+          takeUpScreen: false,
+          showHeader: true,
+        );
+        await loadRaces();
       }
     }
   }
@@ -295,7 +318,29 @@ class RacesController extends ChangeNotifier {
       return;
     }
     final masterRace = MasterRace.getInstance(race.raceId!);
-    await RaceController.showRaceScreen(context, this, masterRace);
+    if (!context.mounted) return;
+    await sheet(
+      context: context,
+      body: ChangeNotifierProvider(
+        create: (ctx) {
+          final raceController = RaceController(
+            masterRace: masterRace,
+            parentController: this,
+          );
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            raceController.loadAllData(ctx);
+          });
+          return raceController;
+        },
+        child: RaceScreen(
+          masterRace: masterRace,
+          parentController: this,
+        ),
+      ),
+      takeUpScreen: false,
+      showHeader: true,
+    );
+    await loadRaces();
   }
 
   Future<void> deleteRace(Race race, BuildContext context) async {
