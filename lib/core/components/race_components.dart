@@ -5,6 +5,7 @@ import '../theme/app_opacity.dart';
 import '../theme/app_spacing.dart';
 import '../theme/typography.dart';
 import '../utils/color_utils.dart';
+import '../utils/date_format_utils.dart';
 
 /// Race-specific UI components
 /// This file contains widgets specifically related to race management and display
@@ -104,7 +105,7 @@ class RaceInfoHeaderWidget extends StatelessWidget {
                         icon: Icons.calendar_today,
                         iconSize: isCompact ? AppSpacing.md : AppSpacing.lg,
                         content: Text(
-                          _formatDate(raceDate!),
+                          DateFormatUtils.formatRelativeDate(raceDate!),
                           style: AppTypography.caption
                               .copyWith(color: AppColors.mediumColor),
                         ),
@@ -131,18 +132,7 @@ class RaceInfoHeaderWidget extends StatelessWidget {
     );
   }
 
-  String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final difference = date.difference(now).inDays;
 
-    if (difference == 0) return 'Today';
-    if (difference == 1) return 'Tomorrow';
-    if (difference == -1) return 'Yesterday';
-    if (difference > 0 && difference <= 7) return 'In $difference days';
-    if (difference < 0 && difference >= -7) return '${-difference} days ago';
-
-    return '${date.month}/${date.day}/${date.year}';
-  }
 }
 
 /// Reusable race controls widget with consistent styling

@@ -11,7 +11,7 @@ import '../../../core/theme/app_opacity.dart';
 import '../../../core/theme/app_animations.dart';
 import '../../../shared/models/database/race.dart';
 import '../../../core/theme/typography.dart';
-import 'race_status_badge.dart';
+import '../../../core/components/status_badge.dart';
 
 class RaceCard extends StatefulWidget {
   const RaceCard({
@@ -138,7 +138,7 @@ class _RaceCardState extends State<RaceCard> {
               child: Text(race.raceName ?? 'Unnamed Race',
                   style: AppTypography.headerSemibold),
             ),
-            RaceStatusBadge(flowState: widget.flowState),
+            StatusBadge(flowState: widget.flowState),
           ],
         ),
         if (race.location != null && race.location!.isNotEmpty) ...[
