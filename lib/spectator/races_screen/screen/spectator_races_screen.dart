@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/services/connectivity_sync_service.dart';
-import 'package:xceleration/shared/role_bar/role_bar.dart';
+import 'package:xceleration/core/components/app_header.dart';
 import 'package:xceleration/shared/role_bar/models/role_enums.dart'
     as role_enums;
 import 'package:xceleration/core/services/tutorial_manager.dart';
@@ -33,6 +33,7 @@ class SpectatorRacesScreen extends StatefulWidget {
 }
 
 class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
+  final TutorialManager _tutorialManager = TutorialManager();
   List<Map<String, dynamic>> _savedRaces = [];
   bool _isLoading = true;
 
@@ -180,15 +181,16 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.fromLTRB(24.0, 0, 24.0, 24.0),
-        child: Column(
-          children: [
-            RoleBar(
-              currentRole: role_enums.Role.spectator,
-              tutorialManager: TutorialManager(),
-            ),
-            Expanded(
+      body: Column(
+        children: [
+          AppHeader(
+            title: 'My Races',
+            currentRole: role_enums.Role.spectator,
+            tutorialManager: _tutorialManager,
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24.0, 0, 24.0, 24.0),
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _savedRaces.isEmpty
@@ -248,8 +250,8 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
                           ),
                         ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'receive_race',

@@ -75,11 +75,26 @@ class _FlowNotificationState extends State<FlowNotification> {
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
         child: Row(
           children: [
-            Text(
-              _getStatusText(),
-              style: AppTypography.bodySemibold.copyWith(
-                color: widget.color,
-              ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: AppSpacing.sm,
+                  height: AppSpacing.sm,
+                  decoration: BoxDecoration(
+                    color: widget.color,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Text(
+                  _getStatusText().toUpperCase(),
+                  style: AppTypography.smallBodySemibold.copyWith(
+                    color: widget.color,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
             ),
             const Spacer(),
             // Don't show action button for post-race completed or finished states
@@ -103,11 +118,22 @@ class _FlowNotificationState extends State<FlowNotification> {
                       width: 1,
                     ),
                   ),
-                  child: Text(
-                    _getButtonText(),
-                    style: AppTypography.smallBodySemibold.copyWith(
-                      color: widget.color,
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _getButtonText(),
+                        style: AppTypography.smallBodySemibold.copyWith(
+                          color: widget.color,
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.xs),
+                      Icon(
+                        Icons.chevron_right,
+                        color: widget.color,
+                        size: AppSpacing.lg,
+                      ),
+                    ],
                   ),
                 ),
               )

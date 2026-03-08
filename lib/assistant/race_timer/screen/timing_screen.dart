@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../core/components/dialog_utils.dart';
-import '../../../shared/role_bar/role_bar.dart';
+import '../../../core/components/app_header.dart';
 import '../../../core/services/tutorial_manager.dart';
+import '../../../shared/role_bar/widgets/instructions_banner.dart';
 import '../../../core/utils/enums.dart';
 import '../widgets/timer_display_widget.dart';
 import '../widgets/race_controls_widget.dart';
@@ -38,7 +39,7 @@ class _TimingScreenState extends State<TimingScreen>
     );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      RoleBar.showInstructionsSheet(context, Role.timer).then((_) {
+      InstructionsBanner.showInstructionsSheet(context, Role.timer).then((_) {
         if (context.mounted) _setupTutorials();
       });
     });
@@ -56,16 +57,20 @@ class _TimingScreenState extends State<TimingScreen>
     return TutorialRoot(
       tutorialManager: tutorialManager,
       child: Scaffold(
-        body: Padding(
-          padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              RoleBar(
-                currentRole: Role.timer,
-                tutorialManager: tutorialManager,
-              ),
-              const SizedBox(height: 16),
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AppHeader(
+              title: 'Race Timer',
+              currentRole: Role.timer,
+              tutorialManager: tutorialManager,
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
               // Only rebuild the parts that depend on controller state
               AnimatedBuilder(
                 animation: _controller,
@@ -134,8 +139,11 @@ class _TimingScreenState extends State<TimingScreen>
                   return const SizedBox.shrink();
                 },
               ),
-            ],
-          ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
