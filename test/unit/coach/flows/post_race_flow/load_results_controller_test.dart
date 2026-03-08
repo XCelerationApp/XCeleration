@@ -4,6 +4,7 @@ import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:xceleration/coach/flows/PostRaceFlow/steps/load_results/controller/load_results_controller.dart';
 import 'package:xceleration/core/services/device_connection_service.dart';
+import 'package:xceleration/core/services/post_frame_callback_scheduler.dart';
 import 'package:xceleration/core/utils/enums.dart';
 import 'package:xceleration/shared/models/database/base_models.dart';
 import 'package:xceleration/shared/models/database/master_race.dart';
@@ -11,7 +12,7 @@ import 'package:xceleration/shared/models/timing_records/conflict.dart';
 import 'package:xceleration/shared/models/timing_records/timing_chunk.dart';
 import 'package:xceleration/shared/models/timing_records/timing_datum.dart';
 
-@GenerateMocks([MasterRace])
+@GenerateMocks([MasterRace, IPostFrameCallbackScheduler])
 import 'load_results_controller_test.mocks.dart';
 
 // ---------------------------------------------------------------------------
@@ -31,11 +32,13 @@ LoadResultsController _buildController(
   MockMasterRace mockMasterRace,
   DevicesManager devices, {
   Future<String> Function(MasterRace)? encodeBibData,
+  IPostFrameCallbackScheduler? scheduler,
 }) {
   return LoadResultsController(
     masterRace: mockMasterRace,
     devices: devices,
     encodeBibData: encodeBibData,
+    scheduler: scheduler,
   );
 }
 
@@ -415,6 +418,134 @@ void main() {
         expect(controller.raceRunners!.length, 2);
         expect(controller.raceRunners![0], isA<RaceRunner>());
         expect(controller.raceRunners![1], isA<int>());
+      });
+    });
+
+    // -----------------------------------------------------------------------
+    group('initialize', () {
+      test('calls scheduler.addPostFrameCallback', () {
+        final mockScheduler = MockIPostFrameCallbackScheduler();
+        controller = _buildController(mockMasterRace, devices,
+            scheduler: mockScheduler);
+
+        controller.initialize();
+
+        verify(mockScheduler.addPostFrameCallback(any)).called(1);
+      });
+    });
+
+    // -----------------------------------------------------------------------
+    group('showBibConflictsSheet', () {
+      testWidgets('when raceRunners is null, shows error and returns early',
+          (tester) async {
+        late BuildContext capturedContext;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Builder(builder: (ctx) {
+              capturedContext = ctx;
+              return const SizedBox();
+            }),
+          ),
+        );
+
+        controller.raceRunners = null;
+
+        await controller.showBibConflictsSheet(capturedContext);
+        await tester.pump(const Duration(seconds: 4));
+
+        expect(controller.raceRunners, isNull);
+      });
+
+      testWidgets(
+          'when raceRunners has no int conflicts, shows error and returns early',
+          (tester) async {
+        late BuildContext capturedContext;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Builder(builder: (ctx) {
+              capturedContext = ctx;
+              return const SizedBox();
+            }),
+          ),
+        );
+
+        controller.raceRunners = [_runner(1), _runner(2)];
+
+        await controller.showBibConflictsSheet(capturedContext);
+        await tester.pump(const Duration(seconds: 4));
+
+        expect(controller.raceRunners!.length, 2);
+        expect(controller.raceRunners!.every((r) => r is RaceRunner), isTrue);
+      });
+    });
+
+    // -----------------------------------------------------------------------
+    group('showTimingConflictsSheet', () {
+      testWidgets('when timingChunks is null, shows error and returns early',
+          (tester) async {
+        late BuildContext capturedContext;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Builder(builder: (ctx) {
+              capturedContext = ctx;
+              return const SizedBox();
+            }),
+          ),
+        );
+
+        controller.timingChunks = null;
+
+        await controller.showTimingConflictsSheet(capturedContext);
+        await tester.pump(const Duration(seconds: 4));
+
+        expect(controller.timingChunks, isNull);
+      });
+
+      testWidgets('when raceRunners is null, shows error and returns early',
+          (tester) async {
+        late BuildContext capturedContext;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Builder(builder: (ctx) {
+              capturedContext = ctx;
+              return const SizedBox();
+            }),
+          ),
+        );
+
+        controller.timingChunks = [
+          TimingChunk(id: 0, timingData: [TimingDatum(time: '10:00.0')]),
+        ];
+        controller.raceRunners = null;
+
+        await controller.showTimingConflictsSheet(capturedContext);
+        await tester.pump(const Duration(seconds: 4));
+
+        expect(controller.raceRunners, isNull);
+      });
+
+      testWidgets(
+          'when no conflict chunks exist, shows error and returns early',
+          (tester) async {
+        late BuildContext capturedContext;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Builder(builder: (ctx) {
+              capturedContext = ctx;
+              return const SizedBox();
+            }),
+          ),
+        );
+
+        controller.timingChunks = [
+          TimingChunk(id: 0, timingData: [TimingDatum(time: '10:00.0')]),
+        ];
+        controller.raceRunners = [_runner(1)];
+
+        await controller.showTimingConflictsSheet(capturedContext);
+        await tester.pump(const Duration(seconds: 4));
+
+        expect(controller.timingChunks!.any((c) => c.hasConflict), isFalse);
       });
     });
 

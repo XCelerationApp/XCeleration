@@ -8,6 +8,8 @@ import 'dart:ui' as _i8;
 
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:xceleration/coach/race_results/model/team_record.dart' as _i7;
+import 'package:xceleration/core/services/post_frame_callback_scheduler.dart'
+    as _i9;
 import 'package:xceleration/core/utils/database_helper.dart' as _i2;
 import 'package:xceleration/shared/models/database/base_models.dart' as _i3;
 import 'package:xceleration/shared/models/database/master_race.dart' as _i5;
@@ -400,6 +402,25 @@ class MockMasterRace extends _i1.Mock implements _i5.MasterRace {
         Invocation.method(
           #notifyListeners,
           [],
+        ),
+        returnValueForMissingStub: null,
+      );
+}
+
+/// A class which mocks [IPostFrameCallbackScheduler].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockIPostFrameCallbackScheduler extends _i1.Mock
+    implements _i9.IPostFrameCallbackScheduler {
+  MockIPostFrameCallbackScheduler() {
+    _i1.throwOnMissingStub(this);
+  }
+
+  @override
+  void addPostFrameCallback(_i8.VoidCallback? callback) => super.noSuchMethod(
+        Invocation.method(
+          #addPostFrameCallback,
+          [callback],
         ),
         returnValueForMissingStub: null,
       );
