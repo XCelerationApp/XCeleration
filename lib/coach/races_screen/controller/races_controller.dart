@@ -123,14 +123,7 @@ class RacesController extends ChangeNotifier {
     final int? newRaceId = await sheet(
       context: context,
       title: 'Create New Race',
-      body: StatefulBuilder(
-        builder: (BuildContext context, StateSetter setSheetState) {
-          return RaceCreationSheet(
-            controller: this,
-            setSheetState: setSheetState,
-          );
-        },
-      ),
+      body: RaceCreationSheet(controller: this),
     );
 
     // If a valid race ID was returned and the context is still mounted,
@@ -146,28 +139,24 @@ class RacesController extends ChangeNotifier {
     }
   }
 
-  void validateName(name, StateSetter setSheetState) {
-    setSheetState(() {
-      nameError = _racesService.validateName(name);
-    });
+  void validateName(String name) {
+    nameError = _racesService.validateName(name);
+    notifyListeners();
   }
 
-  void validateLocation(String location, StateSetter setSheetState) {
-    setSheetState(() {
-      locationError = _racesService.validateLocation(location);
-    });
+  void validateLocation(String location) {
+    locationError = _racesService.validateLocation(location);
+    notifyListeners();
   }
 
-  void validateDate(String dateString, StateSetter setSheetState) {
-    setSheetState(() {
-      dateError = _racesService.validateDate(dateString);
-    });
+  void validateDate(String dateString) {
+    dateError = _racesService.validateDate(dateString);
+    notifyListeners();
   }
 
-  void validateDistance(String distanceString, StateSetter setSheetState) {
-    setSheetState(() {
-      distanceError = _racesService.validateDistance(distanceString);
-    });
+  void validateDistance(String distanceString) {
+    distanceError = _racesService.validateDistance(distanceString);
+    notifyListeners();
   }
 
   void resetControllers() {
