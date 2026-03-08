@@ -3,7 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:xceleration/coach/runners_management_screen/controller/runners_management_controller.dart';
+import 'package:xceleration/core/services/service_locator.dart';
 import 'package:xceleration/core/utils/database_helper.dart';
+import 'package:xceleration/core/utils/i_database_helper.dart';
 import 'package:xceleration/shared/models/database/master_race.dart';
 import 'package:xceleration/shared/models/database/base_models.dart';
 
@@ -51,7 +53,7 @@ void main() {
     mockDb = MockDatabaseHelper();
 
     when(mockMasterRace.raceId).thenReturn(1);
-    when(mockMasterRace.db).thenReturn(mockDb);
+    ServiceLocator.register<IDatabaseHelper>(mockDb);
     when(mockMasterRace.raceRunners).thenAnswer((_) async => [testRaceRunner]);
     when(mockMasterRace.searchRaceRunners(any, any)).thenAnswer((_) async {});
 
@@ -60,6 +62,7 @@ void main() {
 
   tearDown(() {
     controller.dispose();
+    ServiceLocator.reset();
   });
 
   group('RunnersManagementController', () {

@@ -3,18 +3,18 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:xceleration/coach/races_screen/services/races_service.dart';
-import 'package:xceleration/core/utils/i_database_helper.dart';
+import 'package:xceleration/core/repositories/i_race_repository.dart';
 import 'package:xceleration/shared/models/database/race.dart';
 
-@GenerateMocks([IDatabaseHelper])
+@GenerateMocks([IRaceRepository])
 import 'races_service_test.mocks.dart';
 
 void main() {
   late RacesService service;
-  late MockIDatabaseHelper mockDb;
+  late MockIRaceRepository mockDb;
 
   setUp(() {
-    mockDb = MockIDatabaseHelper();
+    mockDb = MockIRaceRepository();
     service = RacesService(db: mockDb, currentUserId: () => 'user-123');
   });
 

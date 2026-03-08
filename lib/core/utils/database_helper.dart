@@ -1,847 +1,326 @@
 import 'package:sqflite/sqflite.dart';
-import 'package:path/path.dart';
 import '../../shared/models/database/base_models.dart';
-import 'package:xceleration/core/utils/logger.dart';
+import '../repositories/database_connection_provider.dart';
+import '../repositories/i_database_connection_provider.dart';
+import '../repositories/i_race_repository.dart';
+import '../repositories/i_results_repository.dart';
+import '../repositories/i_runner_repository.dart';
+import '../repositories/i_team_repository.dart';
+import '../repositories/race_repository.dart';
+import '../repositories/results_repository.dart';
+import '../repositories/runner_repository.dart';
+import '../repositories/team_repository.dart';
 import 'i_database_helper.dart';
-import 'local_schema.dart';
 
+/// Thin backward-compatibility shim.
+///
+/// New code must inject the appropriate repository interface directly:
+/// - [IRunnerRepository] for runner and roster operations
+/// - [ITeamRepository] for team operations
+/// - [IRaceRepository] for race, participant, and flow-state operations
+/// - [IResultsRepository] for race results
+/// - [IDatabaseConnectionProvider] for raw connection access (e.g. SyncService)
+///
+/// This shim exists only to ease migration. Do not add new callers — inject
+/// the repository or connection provider instead.
 class DatabaseHelper implements IDatabaseHelper {
-  static final DatabaseHelper instance = DatabaseHelper._init();
-  static Database? _initializedDatabase;
+  final IDatabaseConnectionProvider _connProvider;
+  final IRunnerRepository _runners;
+  final ITeamRepository _teams;
+  final IRaceRepository _races;
+  final IResultsRepository _results;
 
-  DatabaseHelper._init();
+  DatabaseHelper({
+    IDatabaseConnectionProvider? connProvider,
+    IRunnerRepository? runnerRepo,
+    ITeamRepository? teamRepo,
+    IRaceRepository? raceRepo,
+    IResultsRepository? resultsRepo,
+  })  : _connProvider = connProvider ?? DatabaseConnectionProvider(),
+        _runners = runnerRepo ?? _defaultRunnerRepo(connProvider),
+        _teams = teamRepo ?? _defaultTeamRepo(connProvider),
+        _races = raceRepo ?? _defaultRaceRepo(connProvider, runnerRepo),
+        _results = resultsRepo ?? _defaultResultsRepo(connProvider);
 
-  Future<Database> get _database async {
-    if (_initializedDatabase != null) return _initializedDatabase!;
-    _initializedDatabase = await _initDB('races.db');
-    return _initializedDatabase!;
+  static IRunnerRepository _defaultRunnerRepo(
+      IDatabaseConnectionProvider? conn) {
+    final c = conn ?? DatabaseConnectionProvider();
+    return RunnerRepository(conn: c);
   }
 
-  // Expose a public connection getter for services like SyncService
-  @override
-  Future<Database> get databaseConn async => await _database;
-
-  Future<Database> _initDB(String fileName) async {
-    // await deleteDatabase(); // Commented out to prevent data loss
-    final dbPath = await getDatabasesPath();
-    final path = join(dbPath, fileName);
-
-    return await openDatabase(
-      path,
-      version: 15,
-      onCreate: _createDB,
-      onUpgrade: _onUpgrade,
-    );
+  static ITeamRepository _defaultTeamRepo(IDatabaseConnectionProvider? conn) {
+    final c = conn ?? DatabaseConnectionProvider();
+    return TeamRepository(conn: c);
   }
 
-  Future<void> _createDB(Database db, int version) async {
-    // Execute centralized schema
-    for (final stmt in splitSqlStatements(localSchemaSql)) {
-      await db.execute(stmt);
-    }
+  static IRaceRepository _defaultRaceRepo(
+      IDatabaseConnectionProvider? conn, IRunnerRepository? runnerRepo) {
+    final c = conn ?? DatabaseConnectionProvider();
+    final r = runnerRepo ?? RunnerRepository(conn: c);
+    return RaceRepository(conn: c, runnerRepo: r);
   }
 
-  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    // Add missing owner_user_id column to races table if it doesn't exist
-    if (oldVersion < 15) {
-      try {
-        await db.execute('ALTER TABLE races ADD COLUMN owner_user_id TEXT');
-        Logger.d('Added owner_user_id column to races table');
-      } catch (e) {
-        // Column might already exist, ignore error
-        Logger.d('owner_user_id column might already exist: $e');
-      }
-
-      // Create missing sync_state table if it doesn't exist
-      try {
-        await db.execute('''
-          CREATE TABLE IF NOT EXISTS sync_state (
-            key TEXT PRIMARY KEY,
-            value TEXT NOT NULL
-          )
-        ''');
-        Logger.d('Created sync_state table');
-      } catch (e) {
-        Logger.d('sync_state table might already exist: $e');
-      }
-    }
+  static IResultsRepository _defaultResultsRepo(
+      IDatabaseConnectionProvider? conn) {
+    final c = conn ?? DatabaseConnectionProvider();
+    return ResultsRepository(conn: c);
   }
 
   // ============================================================================
-  // CORE ENTITY OPERATIONS
+  // CONNECTION
   // ============================================================================
 
-  // --- RUNNERS ---
   @override
-  Future<int> createRunner(Runner runner) async {
-    if (!runner.isValid) {
-      throw Exception('Runner is not valid');
-    }
-    if (await getRunnerByBib(runner.bibNumber!) != null) {
-      throw Exception(
-          'Runner with bib number ${runner.bibNumber} already exists');
-    }
-    final db = await _database;
-    final result = await db.insert('runners', {
-      'name': runner.name,
-      'bib_number': runner.bibNumber,
-      'grade': runner.grade,
-      'is_dirty': 1,
-      'updated_at': DateTime.now().toIso8601String(),
-    });
-
-    return result;
-  }
-
-  @override
-  Future<Runner?> getRunner(int runnerId) async {
-    final db = await _database;
-    final results = await db.query(
-      'runners',
-      where: 'runner_id = ?',
-      whereArgs: [runnerId],
-    );
-    return results.isNotEmpty ? Runner.fromMap(results.first) : null;
-  }
-
-  @override
-  Future<Runner?> getRunnerByBib(String bibNumber) async {
-    final db = await _database;
-    final results = await db.query(
-      'runners',
-      where: 'bib_number = ?',
-      whereArgs: [bibNumber],
-    );
-    return results.isNotEmpty ? Runner.fromMap(results.first) : null;
-  }
-
-  @override
-  Future<List<Runner>> getAllRunners() async {
-    final db = await _database;
-    final results = await db.query('runners', orderBy: 'name');
-    return results.map((map) => Runner.fromMap(map)).toList();
-  }
-
-  @override
-  Future<List<Runner>> searchRunners(String query) async {
-    final db = await _database;
-    final results = await db.query(
-      'runners',
-      where: 'name LIKE ? OR bib_number LIKE ?',
-      whereArgs: ['%$query%', '%$query%'],
-      orderBy: 'name',
-    );
-    return results.map((map) => Runner.fromMap(map)).toList();
-  }
-
-  @override
-  Future<void> updateRunner(Runner runner) async {
-    if (runner.runnerId == null) {
-      throw Exception('Runner id is required');
-    }
-    if (!runner.isValid) {
-      throw Exception('Runner is not valid');
-    }
-    final db = await _database;
-    final map = runner.toMap();
-    map['is_dirty'] = 1;
-    await db.update('runners', map,
-        where: 'runner_id = ?', whereArgs: [runner.runnerId]);
-  }
-
-  @override
-  Future<void> removeRunner(int runnerId) async {
-    if (await getRunner(runnerId) == null) {
-      throw Exception('Runner with id $runnerId not found');
-    }
-    final db = await _database;
-    await db.delete('runners', where: 'runner_id = ?', whereArgs: [runnerId]);
-  }
-
-  // --- TEAMS ---
-  @override
-  Future<int> createTeam(Team team) async {
-    if (!team.isValid) {
-      throw Exception('Team is not valid');
-    }
-    if (await getTeamByName(team.name!) != null) {
-      throw Exception('Team with name ${team.name} already exists');
-    }
-    final db = await _database;
-    return await db.insert('teams', {
-      'name': team.name,
-      'abbreviation':
-          team.abbreviation ?? Team.generateAbbreviation(team.name!),
-      // Store color as ARGB int; avoid passing a MaterialColor/Color object
-      'color': team.color?.toARGB32() ?? 0,
-      'is_dirty': 1,
-      'updated_at': DateTime.now().toIso8601String(),
-    });
-  }
-
-  @override
-  Future<Team?> getTeam(int teamId) async {
-    final db = await _database;
-    final results =
-        await db.query('teams', where: 'team_id = ?', whereArgs: [teamId]);
-    return results.isNotEmpty ? Team.fromMap(results.first) : null;
-  }
-
-  @override
-  Future<Team?> getTeamByName(String name) async {
-    final db = await _database;
-    final results = await db.query(
-      'teams',
-      where: 'name = ?',
-      whereArgs: [name],
-      limit: 1,
-    );
-    return results.isNotEmpty ? Team.fromMap(results.first) : null;
-  }
-
-  @override
-  Future<List<Team>> getAllTeams() async {
-    final db = await _database;
-    final results = await db.query('teams', orderBy: 'name');
-    return results.map((map) => Team.fromMap(map)).toList();
-  }
-
-  @override
-  Future<List<Team>> searchTeams(String query) async {
-    final db = await _database;
-    final results = await db.query(
-      'teams',
-      where: 'name LIKE ? OR abbreviation LIKE ?',
-      whereArgs: ['%$query%', '%$query%'],
-      orderBy: 'name',
-    );
-    return results.map((map) => Team.fromMap(map)).toList();
-  }
-
-  @override
-  Future<void> updateTeam(Team team) async {
-    if (!team.isValid) {
-      throw Exception('Team is not valid');
-    }
-    if (await getTeam(team.teamId!) == null) {
-      throw Exception('Team with id ${team.teamId} not found');
-    }
-    final db = await _database;
-    final updates = <String, dynamic>{};
-    if (team.name != null) updates['name'] = team.name;
-    if (team.abbreviation != null) updates['abbreviation'] = team.abbreviation;
-    if (team.color != null) updates['color'] = team.color!.toARGB32();
-
-    if (updates.isNotEmpty) {
-      updates['updated_at'] = DateTime.now().toIso8601String();
-      updates['is_dirty'] = 1;
-      await db.update('teams', updates,
-          where: 'team_id = ?', whereArgs: [team.teamId]);
-    }
-  }
-
-  @override
-  Future<void> deleteTeam(int teamId) async {
-    if (await getTeam(teamId) == null) {
-      throw Exception('Team with id $teamId not found');
-    }
-    final db = await _database;
-    await db.delete('teams', where: 'team_id = ?', whereArgs: [teamId]);
-  }
-
-  // --- RACES ---
-  @override
-  Future<int> createRace(Race race) async {
-    if (!race.isValid) {
-      throw Exception('Race is not valid');
-    }
-    final db = await _database;
-    final map = race.toMap();
-    map['is_dirty'] = 1;
-    map['updated_at'] = DateTime.now().toIso8601String();
-    return await db.insert('races', map);
-  }
-
-  @override
-  Future<Race?> getRace(int raceId) async {
-    final db = await _database;
-    final results =
-        await db.query('races', where: 'race_id = ?', whereArgs: [raceId]);
-    return results.isNotEmpty ? Race.fromJson(results.first) : null;
-  }
-
-  @override
-  Future<List<Race>> getAllRaces() async {
-    final db = await _database;
-    final results = await db.query('races', orderBy: 'race_date DESC');
-    return results.map((map) => Race.fromJson(map)).toList();
-  }
-
-  @override
-  Future<void> updateRace(Race race) async {
-    if (race.raceId == null) {
-      throw Exception('Race id is required');
-    }
-    if (!race.isValid) {
-      throw Exception('Race is not valid');
-    }
-    if (await getRace(race.raceId!) == null) {
-      throw Exception('Race with id ${race.raceId} not found');
-    }
-    final db = await _database;
-    final rmap = race.toMap();
-    rmap['is_dirty'] = 1;
-    await db
-        .update('races', rmap, where: 'race_id = ?', whereArgs: [race.raceId]);
-  }
-
-  @override
-  Future<void> deleteRace(int raceId) async {
-    if (await getRace(raceId) == null) {
-      throw Exception('Race with id $raceId not found');
-    }
-    final db = await _database;
-    await db.delete('races', where: 'race_id = ?', whereArgs: [raceId]);
-  }
+  Future<Database> get databaseConn => _connProvider.database;
 
   // ============================================================================
-  // RELATIONSHIP OPERATIONS
+  // RUNNERS
   // ============================================================================
 
-  // --- TEAM ROSTERS ---
   @override
-  Future<void> addRunnerToTeam(int teamId, int runnerId) async {
-    // If already linked, do nothing
-    if (await getTeamRunner(teamId, runnerId) != null) {
-      return;
-    }
-    final db = await _database;
-    await db.insert(
-      'team_rosters',
-      {'team_id': teamId, 'runner_id': runnerId},
-      conflictAlgorithm: ConflictAlgorithm.ignore,
-    );
-  }
+  Future<int> createRunner(Runner runner) => _runners.createRunner(runner);
 
   @override
-  Future<void> removeRunnerFromTeam(int teamId, int runnerId) async {
-    if (await getTeamRunner(teamId, runnerId) == null) {
-      throw Exception('Runner $runnerId not in team $teamId');
-    }
-    final db = await _database;
-    await db.delete(
-      'team_rosters',
-      where: 'team_id = ? AND runner_id = ?',
-      whereArgs: [teamId, runnerId],
-    );
-  }
+  Future<Runner?> getRunner(int runnerId) => _runners.getRunner(runnerId);
 
-  /// Set a runner's team globally in team_rosters.
-  /// Removes any existing roster entries for the runner, then inserts the new team mapping.
   @override
-  Future<void> setRunnerTeam(int runnerId, int newTeamId) async {
-    if (await getRunner(runnerId) == null) {
-      throw Exception('Runner with id $runnerId not found');
-    }
-    if (await getTeam(newTeamId) == null) {
-      throw Exception('Team with id $newTeamId not found');
-    }
-    final db = await _database;
-    await db.transaction((txn) async {
-      await txn.delete('team_rosters',
-          where: 'runner_id = ?', whereArgs: [runnerId]);
-      await txn.insert(
-          'team_rosters',
-          {
-            'team_id': newTeamId,
-            'runner_id': runnerId,
-          },
-          conflictAlgorithm: ConflictAlgorithm.replace);
-    });
-  }
+  Future<Runner?> getRunnerByBib(String bibNumber) =>
+      _runners.getRunnerByBib(bibNumber);
 
-  /// Update a race participant's team mapping within a race.
+  @override
+  Future<List<Runner>> getAllRunners() => _runners.getAllRunners();
+
+  @override
+  Future<List<Runner>> searchRunners(String query) =>
+      _runners.searchRunners(query);
+
+  @override
+  Future<void> updateRunner(Runner runner) => _runners.updateRunner(runner);
+
+  @override
+  Future<void> removeRunner(int runnerId) => _runners.removeRunner(runnerId);
+
+  @override
+  Future<void> deleteRunnerEverywhere(int runnerId) =>
+      _runners.deleteRunnerEverywhere(runnerId);
+
+  @override
+  Future<List<Runner>> getRunnersByBibAll(String bib) =>
+      _runners.getRunnersByBibAll(bib);
+
+  // ============================================================================
+  // TEAM ROSTERS
+  // ============================================================================
+
+  @override
+  Future<void> addRunnerToTeam(int teamId, int runnerId) =>
+      _runners.addRunnerToTeam(teamId, runnerId);
+
+  @override
+  Future<void> removeRunnerFromTeam(int teamId, int runnerId) =>
+      _runners.removeRunnerFromTeam(teamId, runnerId);
+
+  @override
+  Future<void> setRunnerTeam(int runnerId, int newTeamId) =>
+      _runners.setRunnerTeam(runnerId, newTeamId);
+
+  @override
+  Future<Runner?> getTeamRunner(int teamId, int runnerId) =>
+      _runners.getTeamRunner(teamId, runnerId);
+
+  @override
+  Future<List<Runner>> getTeamRunners(int teamId) =>
+      _runners.getTeamRunners(teamId);
+
+  @override
+  Future<List<Team>> getRunnerTeams(int runnerId) =>
+      _runners.getRunnerTeams(runnerId);
+
+  // ============================================================================
+  // TEAMS
+  // ============================================================================
+
+  @override
+  Future<int> createTeam(Team team) => _teams.createTeam(team);
+
+  @override
+  Future<Team?> getTeam(int teamId) => _teams.getTeam(teamId);
+
+  @override
+  Future<Team?> getTeamByName(String name) => _teams.getTeamByName(name);
+
+  @override
+  Future<List<Team>> getAllTeams() => _teams.getAllTeams();
+
+  @override
+  Future<List<Team>> searchTeams(String query) => _teams.searchTeams(query);
+
+  @override
+  Future<void> updateTeam(Team team) => _teams.updateTeam(team);
+
+  @override
+  Future<void> deleteTeam(int teamId) => _teams.deleteTeam(teamId);
+
+  // ============================================================================
+  // RACES
+  // ============================================================================
+
+  @override
+  Future<int> createRace(Race race) => _races.createRace(race);
+
+  @override
+  Future<Race?> getRace(int raceId) => _races.getRace(raceId);
+
+  @override
+  Future<List<Race>> getAllRaces() => _races.getAllRaces();
+
+  @override
+  Future<void> updateRace(Race race) => _races.updateRace(race);
+
+  @override
+  Future<void> deleteRace(int raceId) => _races.deleteRace(raceId);
+
+  // ============================================================================
+  // RACE TEAM PARTICIPATION
+  // ============================================================================
+
+  @override
+  Future<void> addTeamParticipantToRace(TeamParticipant teamParticipant) =>
+      _races.addTeamParticipantToRace(teamParticipant);
+
+  @override
+  Future<void> removeTeamParticipantFromRace(
+          TeamParticipant teamParticipant) =>
+      _races.removeTeamParticipantFromRace(teamParticipant);
+
+  @override
+  Future<Team?> getRaceTeamParticipant(TeamParticipant teamParticipant) =>
+      _races.getRaceTeamParticipant(teamParticipant);
+
+  @override
+  Future<List<Team>> getRaceTeams(int raceId) => _races.getRaceTeams(raceId);
+
+  // ============================================================================
+  // RACE PARTICIPANTS
+  // ============================================================================
+
+  @override
+  Future<void> addRaceParticipant(RaceParticipant raceParticipant) =>
+      _races.addRaceParticipant(raceParticipant);
+
+  @override
+  Future<void> updateRaceParticipant(RaceParticipant raceParticipant) =>
+      _races.updateRaceParticipant(raceParticipant);
+
+  @override
+  Future<void> removeRaceParticipant(RaceParticipant raceParticipant) =>
+      _races.removeRaceParticipant(raceParticipant);
+
+  @override
+  Future<RaceParticipant?> getRaceParticipant(
+          RaceParticipant raceParticipant) =>
+      _races.getRaceParticipant(raceParticipant);
+
+  @override
+  Future<List<RaceParticipant>> getRaceParticipants(int raceId) =>
+      _races.getRaceParticipants(raceId);
+
+  @override
+  Future<RaceParticipant?> getRaceParticipantByBib(
+          int raceId, String bibNumber) =>
+      _races.getRaceParticipantByBib(raceId, bibNumber);
+
+  @override
+  Future<List<RaceParticipant>> getRaceParticipantsByBibs(
+          int raceId, List<String> bibNumbers) =>
+      _races.getRaceParticipantsByBibs(raceId, bibNumbers);
+
+  @override
+  Future<List<RaceParticipant>> searchRaceParticipants(int raceId, String query,
+          [String searchParameter = 'all']) =>
+      _races.searchRaceParticipants(raceId, query, searchParameter);
+
+  // ============================================================================
+  // RACE RESULTS
+  // ============================================================================
+
+  @override
+  Future<void> saveRaceResults(int raceId, List<RaceResult> results) =>
+      _results.saveRaceResults(raceId, results);
+
+  @override
+  Future<void> addRaceResult(RaceResult result) =>
+      _results.addRaceResult(result);
+
+  @override
+  Future<RaceResult?> getRaceResult(RaceResult raceResult) =>
+      _results.getRaceResult(raceResult);
+
+  @override
+  Future<List<RaceResult>> getRaceResults(int raceId) =>
+      _results.getRaceResults(raceId);
+
+  @override
+  Future<void> updateRaceResult(RaceResult raceResult) =>
+      _results.updateRaceResult(raceResult);
+
+  @override
+  Future<void> deleteRaceResult(RaceResult raceResult) =>
+      _results.deleteRaceResult(raceResult);
+
+  // ============================================================================
+  // CONVENIENCE
+  // ============================================================================
+
+  @override
+  Future<String> getRaceFlowState(int raceId) =>
+      _races.getRaceFlowState(raceId);
+
+  @override
+  Future<void> updateRaceFlowState(int raceId, String flowState) =>
+      _races.updateRaceFlowState(raceId, flowState);
+
   @override
   Future<void> updateRaceParticipantTeam({
     required int raceId,
     required int runnerId,
     required int newTeamId,
-  }) async {
-    if (await getRace(raceId) == null) {
-      throw Exception('Race with id $raceId not found');
-    }
-    if (await getRunner(runnerId) == null) {
-      throw Exception('Runner with id $runnerId not found');
-    }
-    if (await getTeam(newTeamId) == null) {
-      throw Exception('Team with id $newTeamId not found');
-    }
-    final db = await _database;
-    await db.update(
-      'race_participants',
-      {
-        'team_id': newTeamId,
-        'updated_at': DateTime.now().toIso8601String(),
-        'is_dirty': 1,
-      },
-      where: 'race_id = ? AND runner_id = ?',
-      whereArgs: [raceId, runnerId],
-    );
-  }
+  }) =>
+      _races.updateRaceParticipantTeam(
+          raceId: raceId, runnerId: runnerId, newTeamId: newTeamId);
 
-  /// Convenience: update runner core fields and optionally move to a new team
-  /// and/or update the runner's team within a specific race.
   @override
   Future<void> updateRunnerWithTeams({
     required Runner runner,
     int? newTeamId,
     int? raceIdForTeamUpdate,
-  }) async {
-    await updateRunner(runner);
-    if (newTeamId != null) {
-      await setRunnerTeam(runner.runnerId!, newTeamId);
-      if (raceIdForTeamUpdate != null) {
-        await updateRaceParticipantTeam(
-          raceId: raceIdForTeamUpdate,
-          runnerId: runner.runnerId!,
+  }) =>
+      _races.updateRunnerWithTeams(
+          runner: runner,
           newTeamId: newTeamId,
-        );
-      }
-    }
-  }
+          raceIdForTeamUpdate: raceIdForTeamUpdate);
 
-  @override
-  Future<Runner?> getTeamRunner(int teamId, int runnerId) async {
-    if (await getTeam(teamId) == null) {
-      throw Exception('Team with id $teamId not found');
-    }
-    if (await getRunner(runnerId) == null) {
-      throw Exception('Runner with id $runnerId not found');
-    }
-    final db = await _database;
-    final results = await db.rawQuery('''
-      SELECT r.* FROM runners r
-      JOIN team_rosters tr ON r.runner_id = tr.runner_id
-      WHERE tr.team_id = ? AND tr.runner_id = ?
-    ''', [teamId, runnerId]);
-    return results.isNotEmpty ? Runner.fromMap(results.first) : null;
-  }
-
-  @override
-  Future<List<Runner>> getTeamRunners(int teamId) async {
-    if (await getTeam(teamId) == null) {
-      throw Exception('Team with id $teamId not found');
-    }
-    final db = await _database;
-    final results = await db.rawQuery('''
-      SELECT r.* FROM runners r
-      JOIN team_rosters tr ON r.runner_id = tr.runner_id
-      WHERE tr.team_id = ?
-      ORDER BY r.name
-    ''', [teamId]);
-    return results.map((map) => Runner.fromMap(map)).toList();
-  }
-
-  @override
-  Future<List<Team>> getRunnerTeams(int runnerId) async {
-    if (await getRunner(runnerId) == null) {
-      throw Exception('Runner with id $runnerId not found');
-    }
-    final db = await _database;
-    final results = await db.rawQuery('''
-      SELECT t.* FROM teams t
-      JOIN team_rosters tr ON t.team_id = tr.team_id
-      WHERE tr.runner_id = ?
-      ORDER BY t.name
-    ''', [runnerId]);
-    return results.map((map) => Team.fromMap(map)).toList();
-  }
-
-  // --- RACE PARTICIPATION ---
-  @override
-  Future<void> addTeamParticipantToRace(TeamParticipant teamParticipant) async {
-    if (!teamParticipant.isValid) {
-      throw Exception('TeamParticipant is not valid');
-    }
-    if (await getRaceTeamParticipant(teamParticipant) != null) {
-      throw Exception(
-          'Team ${teamParticipant.teamId} already in race ${teamParticipant.raceId}');
-    }
-    final db = await _database;
-    await db.insert(
-      'race_team_participation',
-      {
-        'race_id': teamParticipant.raceId,
-        'team_id': teamParticipant.teamId,
-        'team_color_override': teamParticipant.colorOverride,
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
-  }
-
-  @override
-  Future<void> removeTeamParticipantFromRace(
-      TeamParticipant teamParticipant) async {
-    if (await getRaceTeamParticipant(teamParticipant) == null) {
-      throw Exception(
-          'Team ${teamParticipant.teamId} not in race ${teamParticipant.raceId}');
-    }
-    final db = await _database;
-    await db.delete(
-      'race_team_participation',
-      where: 'race_id = ? AND team_id = ?',
-      whereArgs: [teamParticipant.raceId!, teamParticipant.teamId!],
-    );
-  }
-
-  @override
-  Future<Team?> getRaceTeamParticipant(TeamParticipant teamParticipant) async {
-    if (await getRace(teamParticipant.raceId!) == null) {
-      throw Exception('Race with id ${teamParticipant.raceId} not found');
-    }
-    if (await getTeam(teamParticipant.teamId!) == null) {
-      throw Exception('Team with id ${teamParticipant.teamId} not found');
-    }
-    final db = await _database;
-    final results = await db.rawQuery('''
-      SELECT t.*, rtp.team_color_override 
-      FROM teams t
-      JOIN race_team_participation rtp ON t.team_id = rtp.team_id
-      WHERE rtp.race_id = ? AND rtp.team_id = ?
-    ''', [teamParticipant.raceId!, teamParticipant.teamId!]);
-    return results.isNotEmpty
-        ? Team.fromRaceParticipationMap(results.first)
-        : null;
-  }
-
-  @override
-  Future<List<Team>> getRaceTeams(int raceId) async {
-    if (await getRace(raceId) == null) {
-      throw Exception('Race with id $raceId not found');
-    }
-    final db = await _database;
-    final results = await db.rawQuery('''
-      SELECT t.*, rtp.team_color_override 
-      FROM teams t
-      JOIN race_team_participation rtp ON t.team_id = rtp.team_id
-      WHERE rtp.race_id = ?
-      ORDER BY t.name
-    ''', [raceId]);
-    return results.map((map) => Team.fromRaceParticipationMap(map)).toList();
-  }
-
-  @override
-  Future<void> addRaceParticipant(RaceParticipant raceParticipant) async {
-    if (!raceParticipant.isValid) {
-      throw Exception('RaceParticipant is not valid');
-    }
-    if (await getRaceParticipant(raceParticipant) != null) {
-      throw Exception(
-          'Runner ${raceParticipant.runnerId} already in race ${raceParticipant.raceId}');
-    }
-    final db = await _database;
-    await db.insert(
-      'race_participants',
-      {
-        'race_id': raceParticipant.raceId,
-        'runner_id': raceParticipant.runnerId,
-        'team_id': raceParticipant.teamId,
-        'is_dirty': 1,
-        'updated_at': DateTime.now().toIso8601String(),
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
-  }
-
-  @override
-  Future<void> updateRaceParticipant(RaceParticipant raceParticipant) async {
-    if (await getRaceParticipant(raceParticipant) == null) {
-      throw Exception('RaceParticipant not found');
-    }
-    final db = await _database;
-    final pmap = raceParticipant.toMap();
-    pmap['is_dirty'] = 1;
-    pmap['updated_at'] = DateTime.now().toIso8601String();
-    await db.update('race_participants', pmap,
-        where: 'race_id = ? AND runner_id = ?',
-        whereArgs: [raceParticipant.raceId!, raceParticipant.runnerId!]);
-  }
-
-  @override
-  Future<void> removeRaceParticipant(RaceParticipant raceParticipant) async {
-    if (await getRaceParticipant(raceParticipant) == null) {
-      throw Exception(
-          'Runner ${raceParticipant.runnerId} not in race ${raceParticipant.raceId}');
-    }
-    final db = await _database;
-    await db.delete(
-      'race_participants',
-      where: 'race_id = ? AND runner_id = ?',
-      whereArgs: [raceParticipant.raceId!, raceParticipant.runnerId!],
-    );
-  }
-
-  @override
-  Future<RaceParticipant?> getRaceParticipant(
-      RaceParticipant raceParticipant) async {
-    if (await getRace(raceParticipant.raceId!) == null) {
-      throw Exception('Race with id ${raceParticipant.raceId} not found');
-    }
-    if (await getRunner(raceParticipant.runnerId!) == null) {
-      throw Exception('Runner with id ${raceParticipant.runnerId} not found');
-    }
-    final db = await _database;
-    final results = await db.query(
-      'race_participants',
-      where: 'race_id = ? AND runner_id = ?',
-      whereArgs: [raceParticipant.raceId!, raceParticipant.runnerId!],
-    );
-    return results.isNotEmpty ? RaceParticipant.fromMap(results.first) : null;
-  }
-
-  @override
-  Future<List<RaceParticipant>> getRaceParticipants(int raceId) async {
-    if (await getRace(raceId) == null) {
-      throw Exception('Race with id $raceId not found');
-    }
-    final db = await _database;
-    final results = await db.query(
-      'race_participants',
-      where: 'race_id = ?',
-      whereArgs: [raceId],
-      orderBy: 'runner_id',
-    );
-    return results.map((map) => RaceParticipant.fromMap(map)).toList();
-  }
-
-  @override
-  Future<RaceParticipant?> getRaceParticipantByBib(
-      int raceId, String bibNumber) async {
-    final db = await _database;
-    final results = await db.rawQuery('''
-      SELECT rp.race_id, rp.runner_id, rp.team_id
-      FROM race_participants rp
-      JOIN runners r ON r.runner_id = rp.runner_id
-      WHERE rp.race_id = ? AND r.bib_number = ?
-      LIMIT 1
-    ''', [raceId, bibNumber]);
-    return results.isNotEmpty ? RaceParticipant.fromMap(results.first) : null;
-  }
-
-  @override
-  Future<List<RaceParticipant>> getRaceParticipantsByBibs(
-      int raceId, List<String> bibNumbers) async {
-    final results = <RaceParticipant>[];
-    for (final bibNumber in bibNumbers) {
-      final runner = await getRaceParticipantByBib(raceId, bibNumber);
-      if (runner != null) {
-        results.add(runner);
-      }
-    }
-    return results;
-  }
-
-  @override
-  Future<List<RaceParticipant>> searchRaceParticipants(int raceId, String query,
-      [String searchParameter = 'all']) async {
-    final db = await _database;
-
-    String whereClause;
-    List<dynamic> whereArgs = [raceId];
-
-    if (searchParameter == 'all') {
-      whereClause =
-          'rp.race_id = ? AND (r.name LIKE ? OR r.bib_number LIKE ? OR r.grade LIKE ? OR t.name LIKE ?)';
-      whereArgs.addAll(['%$query%', '%$query%', '%$query%', '%$query%']);
-    } else if (searchParameter == 'team_name') {
-      whereClause = 'rp.race_id = ? AND t.name LIKE ?';
-      whereArgs.add('%$query%');
-    } else {
-      whereClause = 'rp.race_id = ? AND r.$searchParameter LIKE ?';
-      whereArgs.add('%$query%');
-    }
-
-    final results = await db.rawQuery('''
-      SELECT rp.race_id, rp.runner_id, rp.team_id
-      FROM race_participants rp
-      JOIN runners r ON r.runner_id = rp.runner_id
-      JOIN teams t ON rp.team_id = t.team_id
-      WHERE $whereClause
-      ORDER BY r.bib_number
-    ''', whereArgs);
-
-    return results.map((map) => RaceParticipant.fromMap(map)).toList();
-  }
-
-  // ============================================================================
-  // RACE RESULTS OPERATIONS
-  // ============================================================================
-
-  @override
-  Future<void> saveRaceResults(int raceId, List<RaceResult> results) async {
-    // Validate all results before saving
-    for (final result in results) {
-      if (!result.isValid) {
-        throw Exception('RaceResult is not valid: ${result.toString()}');
-      }
-    }
-
-    final db = await _database;
-    await db.transaction((txn) async {
-      // Clear existing results
-      await txn
-          .delete('race_results', where: 'race_id = ?', whereArgs: [raceId]);
-
-      // Insert new results
-      for (final result in results) {
-        await txn.insert('race_results', result.toMap());
-      }
-    });
-  }
-
-  @override
-  Future<void> addRaceResult(RaceResult result) async {
-    // Check if result already exists using a simpler query that doesn't require full validation
-    if (result.raceId != null && result.runner?.runnerId != null) {
-      final db = await _database;
-      final existingResults = await db.query(
-        'race_results',
-        where: 'race_id = ? AND runner_id = ?',
-        whereArgs: [result.raceId, result.runner!.runnerId],
-      );
-      if (existingResults.isNotEmpty) {
-        throw Exception('RaceResult already exists');
-      }
-    }
-
-    final db = await _database;
-    final rr = result.toMap();
-    rr['is_dirty'] = 1;
-    rr['updated_at'] = DateTime.now().toIso8601String();
-    await db.insert('race_results', rr);
-  }
-
-  @override
-  Future<RaceResult?> getRaceResult(RaceResult raceResult) async {
-    // For existence checks, we only need raceId and runnerId to be set
-    if (raceResult.raceId == null || raceResult.runner?.runnerId == null) {
-      throw Exception(
-          'RaceResult must have raceId and runnerId to check existence');
-    }
-
-    final db = await _database;
-    final results = await db.query(
-      'race_results',
-      where: 'race_id = ? AND runner_id = ?',
-      whereArgs: [raceResult.raceId!, raceResult.runner!.runnerId!],
-    );
-    return results.isNotEmpty ? RaceResult.fromMap(results.first) : null;
-  }
-
-  @override
-  Future<List<RaceResult>> getRaceResults(int raceId) async {
-    final db = await _database;
-
-    final results = await db.rawQuery('''
-      SELECT
-        rr.runner_id,
-        r.bib_number,
-        r.name,
-        rr.team_id,
-        t.name as team_name,
-        t.abbreviation as team_abbreviation,
-        t.color as team_color,
-        r.grade,
-        rr.place,
-        rr.finish_time,
-        rr.race_id
-      FROM race_results rr
-      JOIN runners r ON rr.runner_id = r.runner_id
-      LEFT JOIN teams t ON rr.team_id = t.team_id
-      WHERE rr.race_id = ?
-      ORDER BY rr.place
-    ''', [raceId]);
-
-    return results.map((map) => RaceResult.fromMap(map)).toList();
-  }
-
-  @override
-  Future<void> updateRaceResult(RaceResult raceResult) async {
-    if (!raceResult.isValid) {
-      throw Exception('RaceResult is not valid');
-    }
-    if (await getRaceResult(raceResult) == null) {
-      throw Exception(
-          'Result for runner ${raceResult.runner?.runnerId} in race ${raceResult.raceId} not found');
-    }
-    final db = await _database;
-    final rrmap = raceResult.toMap();
-    rrmap['is_dirty'] = 1;
-    await db.update('race_results', rrmap,
-        where: 'race_id = ? AND runner_id = ?',
-        whereArgs: [raceResult.raceId!, raceResult.runner!.runnerId!]);
-  }
-
-  @override
-  Future<void> deleteRaceResult(RaceResult raceResult) async {
-    if (raceResult.raceId == null || raceResult.runner?.runnerId == null) {
-      throw Exception('Race or runner not given');
-    }
-    if (await getRaceResult(raceResult) == null) {
-      throw Exception(
-          'Result for runner ${raceResult.runner?.runnerId} in race ${raceResult.raceId} not found');
-    }
-    final db = await _database;
-    await db.delete(
-      'race_results',
-      where: 'race_id = ? AND runner_id = ?',
-      whereArgs: [raceResult.raceId!, raceResult.runner!.runnerId!],
-    );
-  }
-
-  // ============================================================================
-  // CONVENIENCE METHODS
-  // ============================================================================
-
-  /// Get race flow state
-  @override
-  Future<String> getRaceFlowState(int raceId) async {
-    final race = await getRace(raceId);
-    return race?.flowState ?? 'pre_race';
-  }
-
-  /// Update race flow state
-  @override
-  Future<void> updateRaceFlowState(int raceId, String flowState) async {
-    await updateRace(Race(raceId: raceId, flowState: flowState));
-  }
-
-  /// Quick search across all entities
   @override
   Future<Map<String, List<dynamic>>> quickSearch(String query) async {
-    final results = <String, List<dynamic>>{};
-
-    results['runners'] = await searchRunners(query);
-    results['teams'] = await searchTeams(query);
-
-    return results;
+    return {
+      'runners': await _runners.searchRunners(query),
+      'teams': await _teams.searchTeams(query),
+    };
   }
 
-  /// Get race state
   @override
   Future<String> getRaceState(int raceId) async {
-    final raceResults = await getRaceResults(raceId);
+    final raceResults = await _results.getRaceResults(raceId);
     return raceResults.isEmpty ? 'in_progress' : 'finished';
   }
 
   // ============================================================================
-  // UTILITY METHODS
+  // UTILITY
   // ============================================================================
 
-  /// Clear all data from _database
   @override
   Future<void> clearAllData() async {
-    final db = await _database;
+    final db = await _connProvider.database;
     await db.transaction((txn) async {
       await txn.delete('race_results');
       await txn.delete('race_participants');
@@ -853,10 +332,9 @@ class DatabaseHelper implements IDatabaseHelper {
     });
   }
 
-  /// Clear race-specific data
   @override
   Future<void> clearRaceData(int raceId) async {
-    final db = await _database;
+    final db = await _connProvider.database;
     await db.transaction((txn) async {
       await txn
           .delete('race_results', where: 'race_id = ?', whereArgs: [raceId]);
@@ -867,10 +345,9 @@ class DatabaseHelper implements IDatabaseHelper {
     });
   }
 
-  /// Delete all races and related data
   @override
   Future<void> deleteAllRaces() async {
-    final db = await _database;
+    final db = await _connProvider.database;
     await db.transaction((txn) async {
       await txn.delete('race_results');
       await txn.delete('race_participants');
@@ -879,62 +356,12 @@ class DatabaseHelper implements IDatabaseHelper {
     });
   }
 
-  /// Delete all race runners for a specific race
   @override
-  Future<void> deleteAllRaceRunners(int raceId) async {
-    await clearRaceData(raceId);
-  }
-
-  /// Delete the database file
-  @override
-  Future<void> deleteDatabase() async {
-    Logger.d('Deleting database');
-    final path = join(await getDatabasesPath(), 'races.db');
-    await databaseFactory.deleteDatabase(path);
-    _initializedDatabase = null;
-  }
-
-  /// Close the database connection
-  @override
-  Future<void> close() async {
-    final db = await _database;
-    await db.close();
-    _initializedDatabase = null;
-  }
+  Future<void> deleteAllRaceRunners(int raceId) => clearRaceData(raceId);
 
   @override
-  Future<void> deleteRunnerEverywhere(int runnerId) async {
-    if (await getRunner(runnerId) == null) {
-      return;
-    }
-    final db = await _database;
-    await db.transaction((txn) async {
-      await txn.delete(
-        'race_participants',
-        where: 'runner_id = ?',
-        whereArgs: [runnerId],
-      );
-      await txn.delete(
-        'team_rosters',
-        where: 'runner_id = ?',
-        whereArgs: [runnerId],
-      );
-      await txn.delete(
-        'runners',
-        where: 'runner_id = ?',
-        whereArgs: [runnerId],
-      );
-    });
-  }
+  Future<void> deleteDatabase() => _connProvider.deleteDatabase();
 
   @override
-  Future<List<Runner>> getRunnersByBibAll(String bib) async {
-    final db = await _database;
-    final results = await db.query(
-      'runners',
-      where: 'bib_number = ?',
-      whereArgs: [bib],
-    );
-    return results.map((m) => Runner.fromMap(m)).toList();
-  }
+  Future<void> close() => _connProvider.close();
 }

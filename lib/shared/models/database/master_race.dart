@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/repositories/i_race_repository.dart';
+import 'package:xceleration/core/repositories/i_results_repository.dart';
+import 'package:xceleration/core/repositories/i_runner_repository.dart';
+import 'package:xceleration/core/repositories/i_team_repository.dart';
 import 'package:xceleration/core/result.dart';
+import 'package:xceleration/core/services/service_locator.dart';
 import 'package:xceleration/core/utils/logger.dart';
-import '../../../core/utils/database_helper.dart';
 import '../../services/race_results_service.dart';
 import '../../../coach/race_results/model/team_record.dart';
 import 'base_models.dart';
@@ -21,8 +25,11 @@ class MasterRace with ChangeNotifier implements IMasterRaceResolver {
   List<Team>? _teams;
   List<RaceResult>? _results;
 
-  // Database helper
-  final DatabaseHelper db = DatabaseHelper.instance;
+  // Repository accessors (resolved via ServiceLocator)
+  IRaceRepository get _raceRepo => ServiceLocator.get<IRaceRepository>();
+  IRunnerRepository get _runnerRepo => ServiceLocator.get<IRunnerRepository>();
+  ITeamRepository get _teamRepo => ServiceLocator.get<ITeamRepository>();
+  IResultsRepository get _resultsRepo => ServiceLocator.get<IResultsRepository>();
 
   // Participation mapping (cached for performance)
   Map<Team, List<RaceRunner>>? _teamRaceRunnersMap; // team -> [runners]
@@ -58,7 +65,7 @@ class MasterRace with ChangeNotifier implements IMasterRaceResolver {
   /// Get race information (lazy loaded)
   Future<Race> get race async {
     if (_race == null) {
-      _race = await DatabaseHelper.instance.getRace(raceId);
+      _race = await _raceRepo.getRace(raceId);
       if (_race == null) {
         throw Exception('Race with ID $raceId not found');
       }
@@ -153,12 +160,12 @@ class MasterRace with ChangeNotifier implements IMasterRaceResolver {
     // Initialize cache if needed
     _raceParticipantToRaceRunnerMap ??= {};
 
-    final runner = await db.getRunner(raceParticipant.runnerId!);
+    final runner = await _runnerRepo.getRunner(raceParticipant.runnerId!);
     if (runner == null) {
       throw Exception(
           'Runner not found for race participant: ${raceParticipant.runnerId}');
     }
-    final team = await db.getTeam(raceParticipant.teamId!);
+    final team = await _teamRepo.getTeam(raceParticipant.teamId!);
     if (team == null) {
       throw Exception(
           'Team not found for race participant: ${raceParticipant.teamId}');
@@ -201,7 +208,7 @@ class MasterRace with ChangeNotifier implements IMasterRaceResolver {
   // ============================================================================
 
   Future<void> updateRaceParticipant(RaceParticipant raceParticipant) async {
-    await DatabaseHelper.instance.updateRaceParticipant(raceParticipant);
+    await _raceRepo.updateRaceParticipant(raceParticipant);
 
     _raceParticipants = null;
     _raceRunners = null;
@@ -218,7 +225,7 @@ class MasterRace with ChangeNotifier implements IMasterRaceResolver {
       throw Exception('Race participant race ID does not match race ID');
     }
 
-    await db.addRaceParticipant(raceParticipant);
+    await _raceRepo.addRaceParticipant(raceParticipant);
 
     _raceParticipants = null;
     _raceRunners = null;
@@ -238,7 +245,7 @@ class MasterRace with ChangeNotifier implements IMasterRaceResolver {
     }
 
     for (final rp in raceParticipants) {
-      await db.addRaceParticipant(rp);
+      await _raceRepo.addRaceParticipant(rp);
     }
 
     _raceParticipants = null;
@@ -255,7 +262,7 @@ class MasterRace with ChangeNotifier implements IMasterRaceResolver {
       throw Exception('Race participant race ID does not match race ID');
     }
 
-    await DatabaseHelper.instance.removeRaceParticipant(raceParticipant);
+    await _raceRepo.removeRaceParticipant(raceParticipant);
 
     _raceParticipants = null;
     _raceRunners = null;
@@ -271,7 +278,7 @@ class MasterRace with ChangeNotifier implements IMasterRaceResolver {
       throw Exception('Team participant race ID does not match race ID');
     }
 
-    await DatabaseHelper.instance.addTeamParticipantToRace(teamParticipant);
+    await _raceRepo.addTeamParticipantToRace(teamParticipant);
 
     _teams = null;
     _raceParticipants = null;
@@ -288,8 +295,7 @@ class MasterRace with ChangeNotifier implements IMasterRaceResolver {
       throw Exception('Team participant race ID does not match race ID');
     }
 
-    await DatabaseHelper.instance
-        .removeTeamParticipantFromRace(teamParticipant);
+    await _raceRepo.removeTeamParticipantFromRace(teamParticipant);
 
     _teams = null;
     _raceParticipants = null;
@@ -306,9 +312,7 @@ class MasterRace with ChangeNotifier implements IMasterRaceResolver {
     if (race.raceId != raceId) {
       throw Exception('Race ID does not match race ID');
     }
-    await DatabaseHelper.instance.updateRace(
-      race,
-    );
+    await _raceRepo.updateRace(race);
 
     _race = null;
     notifyListeners();
@@ -332,7 +336,7 @@ class MasterRace with ChangeNotifier implements IMasterRaceResolver {
       throw Exception('Race result race ID does not match race ID');
     }
 
-    await db.addRaceResult(result);
+    await _resultsRepo.addRaceResult(result);
     _results = null;
     notifyListeners();
   }
@@ -477,18 +481,18 @@ class MasterRace with ChangeNotifier implements IMasterRaceResolver {
 
   @override
   Future<Runner?> getRunnerByBib(String bibNumber) =>
-      db.getRunnerByBib(bibNumber);
+      _runnerRepo.getRunnerByBib(bibNumber);
 
   @override
-  Future<int> createRunner(Runner runner) => db.createRunner(runner);
+  Future<int> createRunner(Runner runner) => _runnerRepo.createRunner(runner);
 
   @override
   Future<void> addRunnerToTeam(int teamId, int runnerId) =>
-      db.addRunnerToTeam(teamId, runnerId);
+      _runnerRepo.addRunnerToTeam(teamId, runnerId);
 
   /// Get all available teams (from other races) that could be added to this race
   Future<List<Team>> getOtherTeams() async {
-    final allTeams = await DatabaseHelper.instance.getAllTeams();
+    final allTeams = await _teamRepo.getAllTeams();
     final currentTeams = await teams;
     final currentTeamIds = currentTeams.map((t) => t.teamId).toSet();
 
@@ -520,8 +524,7 @@ class MasterRace with ChangeNotifier implements IMasterRaceResolver {
   // ============================================================================
 
   Future<void> _loadRaceParticipants() async {
-    _raceParticipants =
-        await DatabaseHelper.instance.getRaceParticipants(raceId);
+    _raceParticipants = await _raceRepo.getRaceParticipants(raceId);
 
     notifyListeners();
   }
@@ -546,13 +549,13 @@ class MasterRace with ChangeNotifier implements IMasterRaceResolver {
   }
 
   Future<void> _loadTeams() async {
-    _teams = await DatabaseHelper.instance.getRaceTeams(raceId);
+    _teams = await _raceRepo.getRaceTeams(raceId);
 
     notifyListeners();
   }
 
   Future<void> _loadResults() async {
-    final resultsData = await DatabaseHelper.instance.getRaceResults(raceId);
+    final resultsData = await _resultsRepo.getRaceResults(raceId);
     // Store the results directly - they already have all the joined data
     _results = resultsData;
     notifyListeners();
