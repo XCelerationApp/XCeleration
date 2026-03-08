@@ -135,6 +135,13 @@ CREATE INDEX IF NOT EXISTS idx_races_date ON races(race_date);
 
 CREATE INDEX IF NOT EXISTS idx_race_results_race ON race_results(race_id);
 CREATE INDEX IF NOT EXISTS idx_race_results_place ON race_results(race_id, place);
+
+-- Partial indexes for soft-delete filtering (schema v16)
+CREATE INDEX IF NOT EXISTS idx_runners_active ON runners(name) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_teams_active ON teams(name) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_races_active ON races(race_date) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_race_participants_active ON race_participants(race_id) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_team_rosters_active ON team_rosters(team_id) WHERE deleted_at IS NULL;
 ''';
 
 /// Utility to split and execute the schema script safely

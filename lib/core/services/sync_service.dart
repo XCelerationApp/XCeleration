@@ -409,6 +409,33 @@ class SyncService {
             await db.query(table, where: 'uuid = ?', whereArgs: [uuid]);
         // Remove remote-only fields not present locally
         remote.remove('owner_user_id');
+
+        // Handle remote tombstones: apply soft delete regardless of LWW
+        if (remote['deleted_at'] != null) {
+          if (locals.isEmpty) {
+            // Insert tombstone so it is not re-fetched on the next pull
+            final insert = Map<String, dynamic>.from(remote);
+            insert['is_dirty'] = 0;
+            await db.insert(table, insert,
+                conflictAlgorithm: ConflictAlgorithm.replace);
+          } else if (locals.first['deleted_at'] == null) {
+            // Active local row — apply the remote tombstone
+            await db.update(
+              table,
+              {'deleted_at': remote['deleted_at'], 'is_dirty': 0},
+              where: 'uuid = ?',
+              whereArgs: [uuid],
+            );
+            Logger.d('Applied remote tombstone to $table UUID:$uuid');
+          }
+          final updatedAtStr = remote['updated_at']?.toString();
+          if (updatedAtStr != null &&
+              (newCursor == null || updatedAtStr.compareTo(newCursor) > 0)) {
+            newCursor = updatedAtStr;
+          }
+          continue;
+        }
+
         if (locals.isEmpty) {
           final insert = Map<String, dynamic>.from(remote);
           insert['is_dirty'] = 0;

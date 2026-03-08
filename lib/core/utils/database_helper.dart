@@ -28,7 +28,7 @@ class DatabaseHelper implements IDatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 15,
+      version: 16,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -65,6 +65,25 @@ class DatabaseHelper implements IDatabaseHelper {
         Logger.d('sync_state table might already exist: $e');
       }
     }
+
+    if (oldVersion < 16) {
+      // Add partial indexes for soft-delete filtering
+      const partialIndexes = [
+        'CREATE INDEX IF NOT EXISTS idx_runners_active ON runners(name) WHERE deleted_at IS NULL',
+        'CREATE INDEX IF NOT EXISTS idx_teams_active ON teams(name) WHERE deleted_at IS NULL',
+        'CREATE INDEX IF NOT EXISTS idx_races_active ON races(race_date) WHERE deleted_at IS NULL',
+        'CREATE INDEX IF NOT EXISTS idx_race_participants_active ON race_participants(race_id) WHERE deleted_at IS NULL',
+        'CREATE INDEX IF NOT EXISTS idx_team_rosters_active ON team_rosters(team_id) WHERE deleted_at IS NULL',
+      ];
+      for (final stmt in partialIndexes) {
+        try {
+          await db.execute(stmt);
+        } catch (e) {
+          Logger.d('Partial index might already exist: $e');
+        }
+      }
+      Logger.d('v16 migration: partial soft-delete indexes created');
+    }
   }
 
   // ============================================================================
@@ -98,7 +117,7 @@ class DatabaseHelper implements IDatabaseHelper {
     final db = await _database;
     final results = await db.query(
       'runners',
-      where: 'runner_id = ?',
+      where: 'runner_id = ? AND deleted_at IS NULL',
       whereArgs: [runnerId],
     );
     return results.isNotEmpty ? Runner.fromMap(results.first) : null;
@@ -109,7 +128,7 @@ class DatabaseHelper implements IDatabaseHelper {
     final db = await _database;
     final results = await db.query(
       'runners',
-      where: 'bib_number = ?',
+      where: 'bib_number = ? AND deleted_at IS NULL',
       whereArgs: [bibNumber],
     );
     return results.isNotEmpty ? Runner.fromMap(results.first) : null;
@@ -118,7 +137,8 @@ class DatabaseHelper implements IDatabaseHelper {
   @override
   Future<List<Runner>> getAllRunners() async {
     final db = await _database;
-    final results = await db.query('runners', orderBy: 'name');
+    final results =
+        await db.query('runners', where: 'deleted_at IS NULL', orderBy: 'name');
     return results.map((map) => Runner.fromMap(map)).toList();
   }
 
@@ -127,7 +147,7 @@ class DatabaseHelper implements IDatabaseHelper {
     final db = await _database;
     final results = await db.query(
       'runners',
-      where: 'name LIKE ? OR bib_number LIKE ?',
+      where: '(name LIKE ? OR bib_number LIKE ?) AND deleted_at IS NULL',
       whereArgs: ['%$query%', '%$query%'],
       orderBy: 'name',
     );
@@ -155,7 +175,12 @@ class DatabaseHelper implements IDatabaseHelper {
       throw Exception('Runner with id $runnerId not found');
     }
     final db = await _database;
-    await db.delete('runners', where: 'runner_id = ?', whereArgs: [runnerId]);
+    await db.update(
+      'runners',
+      {'deleted_at': DateTime.now().toIso8601String(), 'is_dirty': 1},
+      where: 'runner_id = ? AND deleted_at IS NULL',
+      whereArgs: [runnerId],
+    );
   }
 
   // --- TEAMS ---
@@ -182,8 +207,8 @@ class DatabaseHelper implements IDatabaseHelper {
   @override
   Future<Team?> getTeam(int teamId) async {
     final db = await _database;
-    final results =
-        await db.query('teams', where: 'team_id = ?', whereArgs: [teamId]);
+    final results = await db.query('teams',
+        where: 'team_id = ? AND deleted_at IS NULL', whereArgs: [teamId]);
     return results.isNotEmpty ? Team.fromMap(results.first) : null;
   }
 
@@ -192,7 +217,7 @@ class DatabaseHelper implements IDatabaseHelper {
     final db = await _database;
     final results = await db.query(
       'teams',
-      where: 'name = ?',
+      where: 'name = ? AND deleted_at IS NULL',
       whereArgs: [name],
       limit: 1,
     );
@@ -202,7 +227,8 @@ class DatabaseHelper implements IDatabaseHelper {
   @override
   Future<List<Team>> getAllTeams() async {
     final db = await _database;
-    final results = await db.query('teams', orderBy: 'name');
+    final results =
+        await db.query('teams', where: 'deleted_at IS NULL', orderBy: 'name');
     return results.map((map) => Team.fromMap(map)).toList();
   }
 
@@ -211,7 +237,7 @@ class DatabaseHelper implements IDatabaseHelper {
     final db = await _database;
     final results = await db.query(
       'teams',
-      where: 'name LIKE ? OR abbreviation LIKE ?',
+      where: '(name LIKE ? OR abbreviation LIKE ?) AND deleted_at IS NULL',
       whereArgs: ['%$query%', '%$query%'],
       orderBy: 'name',
     );
@@ -246,7 +272,12 @@ class DatabaseHelper implements IDatabaseHelper {
       throw Exception('Team with id $teamId not found');
     }
     final db = await _database;
-    await db.delete('teams', where: 'team_id = ?', whereArgs: [teamId]);
+    await db.update(
+      'teams',
+      {'deleted_at': DateTime.now().toIso8601String(), 'is_dirty': 1},
+      where: 'team_id = ? AND deleted_at IS NULL',
+      whereArgs: [teamId],
+    );
   }
 
   // --- RACES ---
@@ -265,15 +296,16 @@ class DatabaseHelper implements IDatabaseHelper {
   @override
   Future<Race?> getRace(int raceId) async {
     final db = await _database;
-    final results =
-        await db.query('races', where: 'race_id = ?', whereArgs: [raceId]);
+    final results = await db.query('races',
+        where: 'race_id = ? AND deleted_at IS NULL', whereArgs: [raceId]);
     return results.isNotEmpty ? Race.fromJson(results.first) : null;
   }
 
   @override
   Future<List<Race>> getAllRaces() async {
     final db = await _database;
-    final results = await db.query('races', orderBy: 'race_date DESC');
+    final results = await db.query('races',
+        where: 'deleted_at IS NULL', orderBy: 'race_date DESC');
     return results.map((map) => Race.fromJson(map)).toList();
   }
 
@@ -301,7 +333,12 @@ class DatabaseHelper implements IDatabaseHelper {
       throw Exception('Race with id $raceId not found');
     }
     final db = await _database;
-    await db.delete('races', where: 'race_id = ?', whereArgs: [raceId]);
+    await db.update(
+      'races',
+      {'deleted_at': DateTime.now().toIso8601String(), 'is_dirty': 1},
+      where: 'race_id = ? AND deleted_at IS NULL',
+      whereArgs: [raceId],
+    );
   }
 
   // ============================================================================
@@ -329,9 +366,10 @@ class DatabaseHelper implements IDatabaseHelper {
       throw Exception('Runner $runnerId not in team $teamId');
     }
     final db = await _database;
-    await db.delete(
+    await db.update(
       'team_rosters',
-      where: 'team_id = ? AND runner_id = ?',
+      {'deleted_at': DateTime.now().toIso8601String(), 'is_dirty': 1},
+      where: 'team_id = ? AND runner_id = ? AND deleted_at IS NULL',
       whereArgs: [teamId, runnerId],
     );
   }
@@ -423,6 +461,7 @@ class DatabaseHelper implements IDatabaseHelper {
       SELECT r.* FROM runners r
       JOIN team_rosters tr ON r.runner_id = tr.runner_id
       WHERE tr.team_id = ? AND tr.runner_id = ?
+        AND r.deleted_at IS NULL AND tr.deleted_at IS NULL
     ''', [teamId, runnerId]);
     return results.isNotEmpty ? Runner.fromMap(results.first) : null;
   }
@@ -436,7 +475,7 @@ class DatabaseHelper implements IDatabaseHelper {
     final results = await db.rawQuery('''
       SELECT r.* FROM runners r
       JOIN team_rosters tr ON r.runner_id = tr.runner_id
-      WHERE tr.team_id = ?
+      WHERE tr.team_id = ? AND r.deleted_at IS NULL AND tr.deleted_at IS NULL
       ORDER BY r.name
     ''', [teamId]);
     return results.map((map) => Runner.fromMap(map)).toList();
@@ -451,7 +490,7 @@ class DatabaseHelper implements IDatabaseHelper {
     final results = await db.rawQuery('''
       SELECT t.* FROM teams t
       JOIN team_rosters tr ON t.team_id = tr.team_id
-      WHERE tr.runner_id = ?
+      WHERE tr.runner_id = ? AND t.deleted_at IS NULL AND tr.deleted_at IS NULL
       ORDER BY t.name
     ''', [runnerId]);
     return results.map((map) => Team.fromMap(map)).toList();
@@ -487,9 +526,10 @@ class DatabaseHelper implements IDatabaseHelper {
           'Team ${teamParticipant.teamId} not in race ${teamParticipant.raceId}');
     }
     final db = await _database;
-    await db.delete(
+    await db.update(
       'race_team_participation',
-      where: 'race_id = ? AND team_id = ?',
+      {'deleted_at': DateTime.now().toIso8601String(), 'is_dirty': 1},
+      where: 'race_id = ? AND team_id = ? AND deleted_at IS NULL',
       whereArgs: [teamParticipant.raceId!, teamParticipant.teamId!],
     );
   }
@@ -504,10 +544,11 @@ class DatabaseHelper implements IDatabaseHelper {
     }
     final db = await _database;
     final results = await db.rawQuery('''
-      SELECT t.*, rtp.team_color_override 
+      SELECT t.*, rtp.team_color_override
       FROM teams t
       JOIN race_team_participation rtp ON t.team_id = rtp.team_id
       WHERE rtp.race_id = ? AND rtp.team_id = ?
+        AND t.deleted_at IS NULL AND rtp.deleted_at IS NULL
     ''', [teamParticipant.raceId!, teamParticipant.teamId!]);
     return results.isNotEmpty
         ? Team.fromRaceParticipationMap(results.first)
@@ -521,10 +562,10 @@ class DatabaseHelper implements IDatabaseHelper {
     }
     final db = await _database;
     final results = await db.rawQuery('''
-      SELECT t.*, rtp.team_color_override 
+      SELECT t.*, rtp.team_color_override
       FROM teams t
       JOIN race_team_participation rtp ON t.team_id = rtp.team_id
-      WHERE rtp.race_id = ?
+      WHERE rtp.race_id = ? AND t.deleted_at IS NULL AND rtp.deleted_at IS NULL
       ORDER BY t.name
     ''', [raceId]);
     return results.map((map) => Team.fromRaceParticipationMap(map)).toList();
@@ -574,9 +615,10 @@ class DatabaseHelper implements IDatabaseHelper {
           'Runner ${raceParticipant.runnerId} not in race ${raceParticipant.raceId}');
     }
     final db = await _database;
-    await db.delete(
+    await db.update(
       'race_participants',
-      where: 'race_id = ? AND runner_id = ?',
+      {'deleted_at': DateTime.now().toIso8601String(), 'is_dirty': 1},
+      where: 'race_id = ? AND runner_id = ? AND deleted_at IS NULL',
       whereArgs: [raceParticipant.raceId!, raceParticipant.runnerId!],
     );
   }
@@ -593,7 +635,7 @@ class DatabaseHelper implements IDatabaseHelper {
     final db = await _database;
     final results = await db.query(
       'race_participants',
-      where: 'race_id = ? AND runner_id = ?',
+      where: 'race_id = ? AND runner_id = ? AND deleted_at IS NULL',
       whereArgs: [raceParticipant.raceId!, raceParticipant.runnerId!],
     );
     return results.isNotEmpty ? RaceParticipant.fromMap(results.first) : null;
@@ -607,7 +649,7 @@ class DatabaseHelper implements IDatabaseHelper {
     final db = await _database;
     final results = await db.query(
       'race_participants',
-      where: 'race_id = ?',
+      where: 'race_id = ? AND deleted_at IS NULL',
       whereArgs: [raceId],
       orderBy: 'runner_id',
     );
@@ -623,6 +665,7 @@ class DatabaseHelper implements IDatabaseHelper {
       FROM race_participants rp
       JOIN runners r ON r.runner_id = rp.runner_id
       WHERE rp.race_id = ? AND r.bib_number = ?
+        AND rp.deleted_at IS NULL AND r.deleted_at IS NULL
       LIMIT 1
     ''', [raceId, bibNumber]);
     return results.isNotEmpty ? RaceParticipant.fromMap(results.first) : null;
@@ -651,13 +694,16 @@ class DatabaseHelper implements IDatabaseHelper {
 
     if (searchParameter == 'all') {
       whereClause =
-          'rp.race_id = ? AND (r.name LIKE ? OR r.bib_number LIKE ? OR r.grade LIKE ? OR t.name LIKE ?)';
+          'rp.race_id = ? AND (r.name LIKE ? OR r.bib_number LIKE ? OR r.grade LIKE ? OR t.name LIKE ?)'
+          ' AND rp.deleted_at IS NULL AND r.deleted_at IS NULL AND t.deleted_at IS NULL';
       whereArgs.addAll(['%$query%', '%$query%', '%$query%', '%$query%']);
     } else if (searchParameter == 'team_name') {
-      whereClause = 'rp.race_id = ? AND t.name LIKE ?';
+      whereClause =
+          'rp.race_id = ? AND t.name LIKE ? AND rp.deleted_at IS NULL AND r.deleted_at IS NULL AND t.deleted_at IS NULL';
       whereArgs.add('%$query%');
     } else {
-      whereClause = 'rp.race_id = ? AND r.$searchParameter LIKE ?';
+      whereClause =
+          'rp.race_id = ? AND r.$searchParameter LIKE ? AND rp.deleted_at IS NULL AND r.deleted_at IS NULL';
       whereArgs.add('%$query%');
     }
 
@@ -710,7 +756,7 @@ class DatabaseHelper implements IDatabaseHelper {
       final db = await _database;
       final existingResults = await db.query(
         'race_results',
-        where: 'race_id = ? AND runner_id = ?',
+        where: 'race_id = ? AND runner_id = ? AND deleted_at IS NULL',
         whereArgs: [result.raceId, result.runner!.runnerId],
       );
       if (existingResults.isNotEmpty) {
@@ -736,7 +782,7 @@ class DatabaseHelper implements IDatabaseHelper {
     final db = await _database;
     final results = await db.query(
       'race_results',
-      where: 'race_id = ? AND runner_id = ?',
+      where: 'race_id = ? AND runner_id = ? AND deleted_at IS NULL',
       whereArgs: [raceResult.raceId!, raceResult.runner!.runnerId!],
     );
     return results.isNotEmpty ? RaceResult.fromMap(results.first) : null;
@@ -762,7 +808,7 @@ class DatabaseHelper implements IDatabaseHelper {
       FROM race_results rr
       JOIN runners r ON rr.runner_id = r.runner_id
       LEFT JOIN teams t ON rr.team_id = t.team_id
-      WHERE rr.race_id = ?
+      WHERE rr.race_id = ? AND rr.deleted_at IS NULL AND r.deleted_at IS NULL
       ORDER BY rr.place
     ''', [raceId]);
 
@@ -912,20 +958,24 @@ class DatabaseHelper implements IDatabaseHelper {
       return;
     }
     final db = await _database;
+    final now = DateTime.now().toIso8601String();
     await db.transaction((txn) async {
-      await txn.delete(
+      await txn.update(
         'race_participants',
-        where: 'runner_id = ?',
+        {'deleted_at': now, 'is_dirty': 1},
+        where: 'runner_id = ? AND deleted_at IS NULL',
         whereArgs: [runnerId],
       );
-      await txn.delete(
+      await txn.update(
         'team_rosters',
-        where: 'runner_id = ?',
+        {'deleted_at': now, 'is_dirty': 1},
+        where: 'runner_id = ? AND deleted_at IS NULL',
         whereArgs: [runnerId],
       );
-      await txn.delete(
+      await txn.update(
         'runners',
-        where: 'runner_id = ?',
+        {'deleted_at': now, 'is_dirty': 1},
+        where: 'runner_id = ? AND deleted_at IS NULL',
         whereArgs: [runnerId],
       );
     });
@@ -936,7 +986,7 @@ class DatabaseHelper implements IDatabaseHelper {
     final db = await _database;
     final results = await db.query(
       'runners',
-      where: 'bib_number = ?',
+      where: 'bib_number = ? AND deleted_at IS NULL',
       whereArgs: [bib],
     );
     return results.map((m) => Runner.fromMap(m)).toList();
