@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:provider/provider.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/typography.dart';
 import '../core/components/dialog_utils.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
 import 'package:xceleration/core/services/auth_service.dart';
+import 'package:xceleration/core/services/i_sync_service.dart';
 import '../core/components/page_route_animations.dart';
 import 'role_screen.dart';
 
@@ -35,11 +37,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           ListView(
             children: [
-              // Development Tools Section (only in debug mode)
+                const SizedBox(height: 24),
+              _buildSectionHeader('Sync'),
+              _buildSyncNowButton(context),
               if (kDebugMode) ...[
-                // const SizedBox(height: 24),
-                // _buildSectionHeader('Development Tools'),
-                // _buildDevelopmentTools(context),
                 const SizedBox(height: 24),
                 _buildSectionHeader('Account Settings'),
                 _buildChangePasswordButton(context),
@@ -66,58 +67,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
   }
-
-  // Widget _buildDevelopmentTools(BuildContext context) {
-  //   return Column(
-  //     children: [
-  //       _buildSyncToggle(context),
-  //       const SizedBox(height: 8),
-  //       _buildRoleItem(
-  //         context,
-  //         'Sync Now',
-  //         'Push and pull data with the remote database',
-  //         Icons.sync,
-  //         isSelected: false,
-  //         onTap: () async {
-  //           await DialogUtils.executeWithLoadingDialog(context,
-  //               loadingMessage: 'Please wait...', operation: () async {
-  //             await SyncService.instance.syncAll();
-  //           });
-  //         },
-  //       ),
-  //       _buildRoleItem(
-  //         context,
-  //         'Delete Local Database',
-  //         'Remove the local SQLite DB. It will be recreated on next launch.',
-  //         Icons.delete_forever,
-  //         isSelected: false,
-  //         onTap: () async {
-  //           final confirmed = await DialogUtils.showConfirmationDialog(
-  //             context,
-  //             title: 'Delete local database?',
-  //             content:
-  //                 'This will permanently remove all local data on this device. Continue?',
-  //             confirmText: 'Delete',
-  //             cancelText: 'Cancel',
-  //           );
-  //           if (!confirmed || !context.mounted) return;
-
-  //           await DialogUtils.executeWithLoadingDialog(context,
-  //               loadingMessage: 'Deleting local database...',
-  //               operation: () async {
-  //             await DatabaseHelper.instance.deleteDatabase();
-  //           });
-
-  //           if (!context.mounted) return;
-  //           DialogUtils.showSuccessDialog(
-  //             context,
-  //             message: 'Local database deleted.',
-  //           );
-  //         },
-  //       ),
-  //     ],
-  //   );
-  // }
 
   Widget _buildRoleItem(
     BuildContext context,
@@ -189,6 +138,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildSyncNowButton(BuildContext context) {
+    return _buildRoleItem(
+      context,
+      'Sync Now',
+      'Push local changes and pull updates from the cloud',
+      Icons.sync,
+      isSelected: false,
+      onTap: () async {
+        final syncService = context.read<ISyncService>();
+        await DialogUtils.executeWithLoadingDialog(
+          context,
+          loadingMessage: 'Syncing...',
+          operation: () async {
+            await syncService.syncAll();
+          },
+        );
+      },
     );
   }
 
