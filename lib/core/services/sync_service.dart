@@ -196,9 +196,16 @@ class SyncService implements ISyncService {
         continue;
       }
 
-      // Handle different types that might represent the same value
-      if (localValue.toString() != remoteValue.toString()) {
-        differences.add('$field: local=$localValue, remote=$remoteValue');
+      // Handle different types that might represent the same value.
+      // Fall back to numeric comparison so 3.0 and 3 are not treated as a conflict.
+      final localStr = localValue.toString();
+      final remoteStr = remoteValue.toString();
+      if (localStr != remoteStr) {
+        final localNum = num.tryParse(localStr);
+        final remoteNum = num.tryParse(remoteStr);
+        if (localNum == null || remoteNum == null || localNum != remoteNum) {
+          differences.add('$field: local=$localValue, remote=$remoteValue');
+        }
       }
     }
 
