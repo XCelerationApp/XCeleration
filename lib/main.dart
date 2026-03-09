@@ -71,15 +71,16 @@ void _runApp() async {
   ]);
 
   // Wire up concrete service instances once at startup
+  final dbHelper = DatabaseHelper();
   final syncService = SyncService(
-    db: DatabaseHelper.instance,
+    db: dbHelper,
     remote: RemoteApiClient(),
     auth: AuthService.instance,
   );
   final connectivitySyncService = ConnectivitySyncService(
     sync: syncService,
     auth: AuthService.instance,
-    writeStream: DatabaseHelper.instance.writes,
+    writeStream: dbHelper.writes,
   );
   connectivitySyncService.start();
 

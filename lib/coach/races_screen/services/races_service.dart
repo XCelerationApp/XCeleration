@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/repositories/i_race_repository.dart';
 import 'package:xceleration/core/services/auth_service.dart';
-import 'package:xceleration/core/utils/database_helper.dart';
-import 'package:xceleration/core/utils/i_database_helper.dart';
+import 'package:xceleration/core/services/service_locator.dart';
 import '../../../shared/models/database/race.dart';
 
 abstract interface class IRacesService {
@@ -23,13 +23,13 @@ abstract interface class IRacesService {
 }
 
 class RacesService implements IRacesService {
-  final IDatabaseHelper _db;
+  final IRaceRepository _db;
   final String? Function() _currentUserId;
 
   RacesService({
-    IDatabaseHelper? db,
+    IRaceRepository? db,
     String? Function()? currentUserId,
-  })  : _db = db ?? DatabaseHelper.instance,
+  })  : _db = db ?? ServiceLocator.get<IRaceRepository>(),
         _currentUserId =
             currentUserId ?? (() => AuthService.instance.currentUserId);
 

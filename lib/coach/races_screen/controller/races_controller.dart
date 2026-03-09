@@ -21,8 +21,9 @@ import 'package:provider/provider.dart';
 import '../../race_screen/controller/race_screen_controller.dart';
 import '../../race_screen/screen/race_screen.dart';
 import '../services/races_service.dart';
+import 'i_parent_race_controller.dart';
 
-class RacesController extends ChangeNotifier {
+class RacesController extends ChangeNotifier implements IParentRaceController {
   // Subscription to event bus events
   StreamSubscription? _eventSubscription;
   StreamSubscription? _syncSubscription;
@@ -58,6 +59,7 @@ class RacesController extends ChangeNotifier {
   String? distanceError;
   String? teamsError;
 
+  @override
   final bool canEdit;
 
   RacesController({
@@ -395,6 +397,7 @@ class RacesController extends ChangeNotifier {
     await loadRaces(); // Refresh the races list
   }
 
+  @override
   Future<void> loadRaces() async {
     races = await _racesService.loadRaces();
     notifyListeners();
