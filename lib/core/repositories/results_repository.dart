@@ -1,13 +1,18 @@
 import 'package:sqflite/sqflite.dart';
 import '../../shared/models/database/base_models.dart';
+import '../services/database_write_bus.dart';
 import 'i_database_connection_provider.dart';
 import 'i_results_repository.dart';
 
 class ResultsRepository implements IResultsRepository {
   final IDatabaseConnectionProvider _conn;
+  final DatabaseWriteBus? _writeBus;
 
-  ResultsRepository({required IDatabaseConnectionProvider conn})
-      : _conn = conn;
+  ResultsRepository({
+    required IDatabaseConnectionProvider conn,
+    DatabaseWriteBus? writeBus,
+  })  : _conn = conn,
+        _writeBus = writeBus;
 
   Future<Database> get _db async => _conn.database;
 
@@ -25,6 +30,7 @@ class ResultsRepository implements IResultsRepository {
         await txn.insert('race_results', result.toMap());
       }
     });
+    _writeBus?.notify();
   }
 
   @override
@@ -43,6 +49,7 @@ class ResultsRepository implements IResultsRepository {
     map['is_dirty'] = 1;
     map['updated_at'] = DateTime.now().toIso8601String();
     await db.insert('race_results', map);
+    _writeBus?.notify();
   }
 
   @override
@@ -98,6 +105,7 @@ class ResultsRepository implements IResultsRepository {
     await db.update('race_results', map,
         where: 'race_id = ? AND runner_id = ?',
         whereArgs: [raceResult.raceId!, raceResult.runner!.runnerId!]);
+    _writeBus?.notify();
   }
 
   @override
@@ -115,5 +123,6 @@ class ResultsRepository implements IResultsRepository {
       where: 'race_id = ? AND runner_id = ?',
       whereArgs: [raceResult.raceId!, raceResult.runner!.runnerId!],
     );
+    _writeBus?.notify();
   }
 }

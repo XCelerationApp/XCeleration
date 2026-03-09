@@ -9,9 +9,8 @@ import '../repositories/race_repository.dart';
 import '../repositories/results_repository.dart';
 import '../repositories/runner_repository.dart';
 import '../repositories/team_repository.dart';
-import '../utils/database_helper.dart';
-import '../utils/i_database_helper.dart';
 import '../utils/logger.dart';
+import 'database_write_bus.dart';
 import 'event_bus.dart';
 import 'google_service.dart';
 
@@ -31,28 +30,23 @@ class ServiceLocator {
     final connProvider = DatabaseConnectionProvider();
     _services[IDatabaseConnectionProvider] = connProvider;
 
-    final runnerRepo = RunnerRepository(conn: connProvider);
+    // Write event bus — notified by repositories after every mutation
+    final writeBus = DatabaseWriteBus();
+    _services[DatabaseWriteBus] = writeBus;
+
+    final runnerRepo = RunnerRepository(conn: connProvider, writeBus: writeBus);
     _services[IRunnerRepository] = runnerRepo;
 
-    final teamRepo = TeamRepository(conn: connProvider);
+    final teamRepo = TeamRepository(conn: connProvider, writeBus: writeBus);
     _services[ITeamRepository] = teamRepo;
 
-    final raceRepo = RaceRepository(conn: connProvider, runnerRepo: runnerRepo);
+    final raceRepo = RaceRepository(
+        conn: connProvider, runnerRepo: runnerRepo, writeBus: writeBus);
     _services[IRaceRepository] = raceRepo;
 
-    final resultsRepo = ResultsRepository(conn: connProvider);
+    final resultsRepo =
+        ResultsRepository(conn: connProvider, writeBus: writeBus);
     _services[IResultsRepository] = resultsRepo;
-
-    // Backward-compat shim — prefer injecting specific repository interfaces
-    final dbHelper = DatabaseHelper(
-      connProvider: connProvider,
-      runnerRepo: runnerRepo,
-      teamRepo: teamRepo,
-      raceRepo: raceRepo,
-      resultsRepo: resultsRepo,
-    );
-    _services[IDatabaseHelper] = dbHelper;
-    _services[DatabaseHelper] = dbHelper;
 
     // Consolidated Google service
     _services[GoogleService] = GoogleService.instance;

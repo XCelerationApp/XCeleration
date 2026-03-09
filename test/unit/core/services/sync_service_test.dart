@@ -3,12 +3,12 @@ import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:xceleration/core/repositories/i_database_connection_provider.dart';
 import 'package:xceleration/core/services/i_auth_service.dart';
 import 'package:xceleration/core/services/i_remote_api_client.dart';
 import 'package:xceleration/core/services/sync_service.dart';
-import 'package:xceleration/core/utils/i_database_helper.dart';
 
-@GenerateMocks([IDatabaseHelper, IRemoteApiClient, IAuthService, Database, SupabaseClient])
+@GenerateMocks([IDatabaseConnectionProvider, IRemoteApiClient, IAuthService, Database, SupabaseClient])
 import 'sync_service_test.mocks.dart';
 
 /// Stubs the schema check so all five normalized tables appear to exist.
@@ -31,22 +31,22 @@ void _stubSchemaMissing(MockDatabase db) {
 
 void main() {
   late SyncService service;
-  late MockIDatabaseHelper mockDbHelper;
+  late MockIDatabaseConnectionProvider mockConnProvider;
   late MockIRemoteApiClient mockRemote;
   late MockIAuthService mockAuth;
   late MockDatabase mockDatabase;
   late MockSupabaseClient mockSupabaseClient;
 
   setUp(() {
-    mockDbHelper = MockIDatabaseHelper();
+    mockConnProvider = MockIDatabaseConnectionProvider();
     mockRemote = MockIRemoteApiClient();
     mockAuth = MockIAuthService();
     mockDatabase = MockDatabase();
     mockSupabaseClient = MockSupabaseClient();
 
-    service = SyncService(db: mockDbHelper, remote: mockRemote, auth: mockAuth);
+    service = SyncService(db: mockConnProvider, remote: mockRemote, auth: mockAuth);
 
-    when(mockDbHelper.databaseConn).thenAnswer((_) async => mockDatabase);
+    when(mockConnProvider.database).thenAnswer((_) async => mockDatabase);
     when(mockRemote.init()).thenAnswer((_) async {});
     when(mockRemote.isInitialized).thenReturn(false);
     when(mockRemote.client).thenReturn(mockSupabaseClient);
@@ -65,7 +65,7 @@ void main() {
         await service.syncAll();
 
         verify(mockRemote.init()).called(1);
-        verifyNever(mockDbHelper.databaseConn);
+        verifyNever(mockConnProvider.database);
       });
 
       test('skips push and pull when user is not authenticated', () async {
@@ -74,7 +74,7 @@ void main() {
 
         await service.syncAll();
 
-        verifyNever(mockDbHelper.databaseConn);
+        verifyNever(mockConnProvider.database);
         verifyNever(mockDatabase.rawQuery(any, any));
       });
 
@@ -82,7 +82,7 @@ void main() {
         when(mockRemote.isInitialized).thenReturn(true);
         when(mockAuth.isSignedIn).thenReturn(true);
         when(mockAuth.currentUserId).thenReturn('user-1');
-        when(mockDbHelper.databaseConn).thenThrow(Exception('db failure'));
+        when(mockConnProvider.database).thenThrow(Exception('db failure'));
 
         await expectLater(service.syncAll(), throwsA(isA<Exception>()));
       });

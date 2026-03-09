@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/repositories/i_race_repository.dart';
+import 'package:xceleration/core/repositories/i_runner_repository.dart';
+import 'package:xceleration/core/repositories/i_team_repository.dart';
 import 'package:xceleration/core/services/service_locator.dart';
 import 'package:xceleration/core/services/sync_service.dart';
-import 'package:xceleration/core/utils/i_database_helper.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/shared/models/database/race_runner.dart';
 import 'package:xceleration/shared/models/database/team_participant.dart';
@@ -30,8 +32,10 @@ class RunnersManagementController with ChangeNotifier {
   // Use MasterRace for all data management
   final MasterRace masterRace;
 
-  // Database Helper
-  late final IDatabaseHelper db;
+  // Repository interfaces
+  late final IRunnerRepository _runners;
+  late final ITeamRepository _teams;
+  late final IRaceRepository _races;
 
   // Store the listener function to properly remove it later
   late final VoidCallback _masterRaceListener;
@@ -54,7 +58,9 @@ class RunnersManagementController with ChangeNotifier {
     this.isViewMode = false,
     Stream<SyncEvent>? syncStream,
   }) {
-    db = ServiceLocator.get<IDatabaseHelper>();
+    _runners = ServiceLocator.get<IRunnerRepository>();
+    _teams = ServiceLocator.get<ITeamRepository>();
+    _races = ServiceLocator.get<IRaceRepository>();
     // Create and store the listener function
     _masterRaceListener = () {
       // The listener's only job is to tell the UI to rebuild.
@@ -186,7 +192,7 @@ class RunnersManagementController with ChangeNotifier {
           initialRaceRunner: raceRunner,
           // For create, must pass runnerTeam; for edit, selection is allowed within options
           runnerTeam: isEditing ? null : team,
-          getRunnerByBib: db.getRunnerByBib,
+          getRunnerByBib: _runners.getRunnerByBib,
           onSubmit: (RaceRunner raceRunner) async {
             await handleRunnerSubmission(context, raceRunner);
           },
@@ -206,7 +212,7 @@ class RunnersManagementController with ChangeNotifier {
     try {
       final int targetTeamId = raceRunner.team.teamId!;
       final existingRunner =
-          await db.getRunnerByBib(raceRunner.runner.bibNumber!);
+          await _runners.getRunnerByBib(raceRunner.runner.bibNumber!);
       if (!context.mounted) {
         return;
       }
@@ -249,7 +255,7 @@ class RunnersManagementController with ChangeNotifier {
 
     // Remove current runner's race mapping if it exists
     if (oldRunnerId != null) {
-      final currentRp = await db.getRaceParticipant(
+      final currentRp = await _races.getRaceParticipant(
         RaceParticipant(
           raceId: masterRace.raceId,
           runnerId: oldRunnerId,
@@ -267,14 +273,14 @@ class RunnersManagementController with ChangeNotifier {
       bibNumber: raceRunner.runner.bibNumber,
       grade: raceRunner.runner.grade,
     );
-    await db.updateRunner(updatedExisting);
+    await _runners.updateRunner(updatedExisting);
 
     // Update team mappings for the existing runner
     await _updateRunnerTeamMappings(existingRunner.runnerId!, targetTeamId);
 
     // If there was an old distinct runner, delete it globally so only one remains
     if (oldRunnerId != null && oldRunnerId != existingRunner.runnerId) {
-      await db.deleteRunnerEverywhere(oldRunnerId);
+      await _runners.deleteRunnerEverywhere(oldRunnerId);
     }
 
     // Force refresh and close
@@ -286,10 +292,10 @@ class RunnersManagementController with ChangeNotifier {
 
   Future<void> _createNewRunner(RaceRunner raceRunner, int targetTeamId) async {
     // Create new runner
-    final newRunnerId = await db.createRunner(raceRunner.runner);
+    final newRunnerId = await _runners.createRunner(raceRunner.runner);
 
     // Add to team roster
-    await db.addRunnerToTeam(targetTeamId, newRunnerId);
+    await _runners.addRunnerToTeam(targetTeamId, newRunnerId);
 
     // Add to race
     await masterRace.addRaceParticipant(RaceParticipant(
@@ -302,7 +308,7 @@ class RunnersManagementController with ChangeNotifier {
   Future<void> _updateExistingRunner(
       RaceRunner raceRunner, int targetTeamId) async {
     // Update runner details and team mappings
-    await db.updateRunnerWithTeams(
+    await _races.updateRunnerWithTeams(
       runner: raceRunner.runner,
       newTeamId: targetTeamId,
       raceIdForTeamUpdate: masterRace.raceId,
@@ -311,10 +317,10 @@ class RunnersManagementController with ChangeNotifier {
     // Ensure no duplicates by bib remain after an update
     final currentId = raceRunner.runner.runnerId!;
     final bib = raceRunner.runner.bibNumber!;
-    final allWithBib = await db.getRunnersByBibAll(bib);
+    final allWithBib = await _runners.getRunnersByBibAll(bib);
     for (final r in allWithBib) {
       if (r.runnerId != null && r.runnerId != currentId) {
-        await db.deleteRunnerEverywhere(r.runnerId!);
+        await _runners.deleteRunnerEverywhere(r.runnerId!);
       }
     }
 
@@ -328,10 +334,10 @@ class RunnersManagementController with ChangeNotifier {
 
   Future<void> _updateRunnerTeamMappings(int runnerId, int newTeamId) async {
     // Update global team roster
-    await db.setRunnerTeam(runnerId, newTeamId);
+    await _runners.setRunnerTeam(runnerId, newTeamId);
 
     // Check if runner is already in this race
-    final existingRp = await db.getRaceParticipant(
+    final existingRp = await _races.getRaceParticipant(
       RaceParticipant(
         raceId: masterRace.raceId,
         runnerId: runnerId,
@@ -347,7 +353,7 @@ class RunnersManagementController with ChangeNotifier {
       ));
     } else if (existingRp.teamId != newTeamId) {
       // Update team in race
-      await db.updateRaceParticipantTeam(
+      await _races.updateRaceParticipantTeam(
         raceId: masterRace.raceId,
         runnerId: runnerId,
         newTeamId: newTeamId,
@@ -376,7 +382,7 @@ class RunnersManagementController with ChangeNotifier {
       }
 
       // Persist team and capture newly assigned id
-      final newTeamId = await db.createTeam(team);
+      final newTeamId = await _teams.createTeam(team);
 
       await masterRace.addTeamParticipant(TeamParticipant(
         raceId: masterRace.raceId,
@@ -460,7 +466,7 @@ class RunnersManagementController with ChangeNotifier {
         team: team,
         onSave: (updatedTeam) async {
           try {
-            await db.updateTeam(updatedTeam);
+            await _teams.updateTeam(updatedTeam);
             // If color/name changed, ensure race team participation reflects color override when shown
             onContentChanged?.call();
             await loadData();
@@ -495,7 +501,7 @@ class RunnersManagementController with ChangeNotifier {
       // Build Team -> Runners map for the sheet
       final Map<Team, List<Runner>> available = {};
       for (final team in otherTeams) {
-        final runners = await db.getTeamRunners(team.teamId!);
+        final runners = await _runners.getTeamRunners(team.teamId!);
         available[team] = runners;
       }
       if (!context.mounted) return;
@@ -524,7 +530,7 @@ class RunnersManagementController with ChangeNotifier {
           // Persist global roster mappings first
           for (final runner in runners) {
             if (runner.runnerId == null) continue;
-            await db.addRunnerToTeam(team.teamId!, runner.runnerId!);
+            await _runners.addRunnerToTeam(team.teamId!, runner.runnerId!);
           }
 
           // Then add all race participants in a single bulk update
@@ -666,17 +672,17 @@ class RunnersManagementController with ChangeNotifier {
           continue;
         }
 
-        final existingRunner = await db.getRunnerByBib(bib);
+        final existingRunner = await _runners.getRunnerByBib(bib);
         if (existingRunner != null) {
           final bool sameDetails = (existingRunner.name == name) &&
               ((existingRunner.grade ?? 0) == grade);
 
           // Ensure global roster mapping so team->runners queries work
-          await db.addRunnerToTeam(team.teamId!, existingRunner.runnerId!);
+          await _runners.addRunnerToTeam(team.teamId!, existingRunner.runnerId!);
 
           // If already in this race, update team if needed; otherwise add to race
           final existingRaceParticipant =
-              await db.getRaceParticipantByBib(masterRace.raceId, bib);
+              await _races.getRaceParticipantByBib(masterRace.raceId, bib);
           if (existingRaceParticipant == null) {
             await masterRace.addRaceParticipant(RaceParticipant(
               raceId: masterRace.raceId,
@@ -684,7 +690,7 @@ class RunnersManagementController with ChangeNotifier {
               teamId: team.teamId!,
             ));
           } else if (existingRaceParticipant.teamId != team.teamId) {
-            await db.updateRaceParticipantTeam(
+            await _races.updateRaceParticipantTeam(
               raceId: masterRace.raceId,
               runnerId: existingRunner.runnerId!,
               newTeamId: team.teamId!,
@@ -708,8 +714,8 @@ class RunnersManagementController with ChangeNotifier {
 
         // Create brand-new runner
         final newRunner = Runner(name: name, bibNumber: bib, grade: grade);
-        final newRunnerId = await db.createRunner(newRunner);
-        await db.addRunnerToTeam(team.teamId!, newRunnerId);
+        final newRunnerId = await _runners.createRunner(newRunner);
+        await _runners.addRunnerToTeam(team.teamId!, newRunnerId);
         await masterRace.addRaceParticipant(RaceParticipant(
           raceId: masterRace.raceId,
           runnerId: newRunnerId,
@@ -736,7 +742,7 @@ class RunnersManagementController with ChangeNotifier {
 
           if (overwrite) {
             // Update existing runner in place (keeps FKs intact)
-            await db.updateRunner(Runner(
+            await _runners.updateRunner(Runner(
               runnerId: existing.runnerId!,
               name: replacement.name,
               bibNumber: replacement.bibNumber,
@@ -744,8 +750,8 @@ class RunnersManagementController with ChangeNotifier {
             ));
 
             // Ensure team roster and race participation are correct
-            await db.addRunnerToTeam(team.teamId!, existing.runnerId!);
-            final existingRp = await db.getRaceParticipant(
+            await _runners.addRunnerToTeam(team.teamId!, existing.runnerId!);
+            final existingRp = await _races.getRaceParticipant(
               RaceParticipant(
                   raceId: masterRace.raceId, runnerId: existing.runnerId!),
             );
@@ -756,7 +762,7 @@ class RunnersManagementController with ChangeNotifier {
                 teamId: team.teamId!,
               ));
             } else if (existingRp.teamId != team.teamId) {
-              await db.updateRaceParticipantTeam(
+              await _races.updateRaceParticipantTeam(
                 raceId: masterRace.raceId,
                 runnerId: existing.runnerId!,
                 newTeamId: team.teamId!,
@@ -769,8 +775,8 @@ class RunnersManagementController with ChangeNotifier {
             }
           } else {
             // Keep existing details but ensure proper mapping/team in this race
-            await db.addRunnerToTeam(team.teamId!, existing.runnerId!);
-            final rp = await db.getRaceParticipantByBib(
+            await _runners.addRunnerToTeam(team.teamId!, existing.runnerId!);
+            final rp = await _races.getRaceParticipantByBib(
                 masterRace.raceId, existing.bibNumber!);
             if (rp == null) {
               await masterRace.addRaceParticipant(RaceParticipant(
@@ -779,7 +785,7 @@ class RunnersManagementController with ChangeNotifier {
                 teamId: team.teamId!,
               ));
             } else if (rp.teamId != team.teamId) {
-              await db.updateRaceParticipantTeam(
+              await _races.updateRaceParticipantTeam(
                 raceId: masterRace.raceId,
                 runnerId: existing.runnerId!,
                 newTeamId: team.teamId!,

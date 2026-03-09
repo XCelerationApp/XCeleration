@@ -2,15 +2,29 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/result.dart';
-import 'package:xceleration/core/utils/i_database_helper.dart';
+import 'package:xceleration/core/repositories/i_race_repository.dart';
+import 'package:xceleration/core/repositories/i_results_repository.dart';
+import 'package:xceleration/core/repositories/i_runner_repository.dart';
+import 'package:xceleration/core/repositories/i_team_repository.dart';
 import 'package:xceleration/shared/models/database/base_models.dart';
 import 'package:xceleration/core/utils/logger.dart';
 
 /// Imports a shared race payload into local DB (read-only tag via naming)
 class RaceShareImporter {
-  final IDatabaseHelper _db;
+  final IRunnerRepository _runners;
+  final ITeamRepository _teams;
+  final IRaceRepository _races;
+  final IResultsRepository _results;
 
-  RaceShareImporter({required IDatabaseHelper db}) : _db = db;
+  RaceShareImporter({
+    required IRunnerRepository runners,
+    required ITeamRepository teams,
+    required IRaceRepository races,
+    required IResultsRepository results,
+  })  : _runners = runners,
+        _teams = teams,
+        _races = races,
+        _results = results;
 
   Future<Result<void>> importFromJson(String jsonStr) async {
     try {
@@ -37,7 +51,7 @@ class RaceShareImporter {
         distanceUnit: raceMap['distance_unit']?.toString() ?? 'mi',
         flowState: Race.FLOW_FINISHED,
       );
-      final raceId = await _db.createRace(race);
+      final raceId = await _races.createRace(race);
 
       // Teams (create if missing)
       final Map<String, int> teamKeyToId = {};
@@ -45,20 +59,19 @@ class RaceShareImporter {
         final tm = t as Map<String, dynamic>;
         final name = tm['name']?.toString() ?? '';
         if (name.isEmpty) continue;
-        final existing = await _db.getTeamByName(name);
+        final existing = await _teams.getTeamByName(name);
         int teamId;
         if (existing != null) {
           teamId = existing.teamId!;
         } else {
-          final created = await _db.createTeam(Team(
+          teamId = await _teams.createTeam(Team(
             name: name,
             abbreviation: tm['abbreviation']?.toString(),
             color: Color((tm['color'] as int?) ?? 0),
           ));
-          teamId = created;
         }
         teamKeyToId[name] = teamId;
-        await _db.addTeamParticipantToRace(
+        await _races.addTeamParticipantToRace(
             TeamParticipant(raceId: raceId, teamId: teamId));
       }
 
@@ -70,11 +83,11 @@ class RaceShareImporter {
         if (name.isEmpty || bib.isEmpty) continue;
 
         // Runner
-        var runner = await _db.getRunnerByBib(bib);
+        var runner = await _runners.getRunnerByBib(bib);
         if (runner == null) {
-          final newId = await _db.createRunner(Runner(
+          final newId = await _runners.createRunner(Runner(
               name: name, bibNumber: bib, grade: rm['grade'] as int? ?? 0));
-          runner = await _db.getRunner(newId);
+          runner = await _runners.getRunner(newId);
         }
         if (runner == null) continue;
 
@@ -84,16 +97,16 @@ class RaceShareImporter {
         if (teamName.isNotEmpty) {
           teamId = teamKeyToId[teamName];
           if (teamId != null) {
-            await _db.addRunnerToTeam(teamId, runner.runnerId!);
+            await _runners.addRunnerToTeam(teamId, runner.runnerId!);
           }
         }
 
         // Participant in this race
-        await _db.addRaceParticipant(RaceParticipant(
+        await _races.addRaceParticipant(RaceParticipant(
           raceId: raceId,
           runnerId: runner.runnerId!,
           teamId: teamId ??
-              (await _db.getRunnerTeams(runner.runnerId!))
+              (await _runners.getRunnerTeams(runner.runnerId!))
                   .firstOrNull
                   ?.teamId ??
               0,
@@ -103,7 +116,7 @@ class RaceShareImporter {
         final finishMs = rm['finish_time_ms'] as int?;
         final finish =
             finishMs != null ? Duration(milliseconds: finishMs) : null;
-        await _db.addRaceResult(RaceResult(
+        await _results.addRaceResult(RaceResult(
           raceId: raceId,
           runner: runner,
           team: teamId != null ? Team(teamId: teamId, name: teamName) : null,

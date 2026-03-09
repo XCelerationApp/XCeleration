@@ -6,13 +6,13 @@
 import 'dart:async' as _i4;
 
 import 'package:mockito/mockito.dart' as _i1;
-import 'package:mockito/src/dummies.dart' as _i7;
+import 'package:mockito/src/dummies.dart' as _i8;
 import 'package:sqflite/sqflite.dart' as _i2;
 import 'package:supabase_flutter/supabase_flutter.dart' as _i3;
-import 'package:xceleration/core/services/i_auth_service.dart' as _i9;
-import 'package:xceleration/core/services/i_remote_api_client.dart' as _i8;
-import 'package:xceleration/core/utils/i_database_helper.dart' as _i5;
-import 'package:xceleration/shared/models/database/base_models.dart' as _i6;
+import 'package:xceleration/core/repositories/i_database_connection_provider.dart'
+    as _i5;
+import 'package:xceleration/core/services/i_auth_service.dart' as _i7;
+import 'package:xceleration/core/services/i_remote_api_client.dart' as _i6;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -178,644 +178,29 @@ class _FakeRealtimeChannel_13 extends _i1.SmartFake
         );
 }
 
-/// A class which mocks [IDatabaseHelper].
+/// A class which mocks [IDatabaseConnectionProvider].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockIDatabaseHelper extends _i1.Mock implements _i5.IDatabaseHelper {
-  MockIDatabaseHelper() {
+class MockIDatabaseConnectionProvider extends _i1.Mock
+    implements _i5.IDatabaseConnectionProvider {
+  MockIDatabaseConnectionProvider() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
-  _i4.Future<_i2.Database> get databaseConn => (super.noSuchMethod(
-        Invocation.getter(#databaseConn),
+  _i4.Future<_i2.Database> get database => (super.noSuchMethod(
+        Invocation.getter(#database),
         returnValue: _i4.Future<_i2.Database>.value(_FakeDatabase_0(
           this,
-          Invocation.getter(#databaseConn),
+          Invocation.getter(#database),
         )),
       ) as _i4.Future<_i2.Database>);
 
   @override
-  _i4.Future<int> createRunner(_i6.Runner? runner) => (super.noSuchMethod(
+  _i4.Future<void> close() => (super.noSuchMethod(
         Invocation.method(
-          #createRunner,
-          [runner],
-        ),
-        returnValue: _i4.Future<int>.value(0),
-      ) as _i4.Future<int>);
-
-  @override
-  _i4.Future<_i6.Runner?> getRunner(int? runnerId) => (super.noSuchMethod(
-        Invocation.method(
-          #getRunner,
-          [runnerId],
-        ),
-        returnValue: _i4.Future<_i6.Runner?>.value(),
-      ) as _i4.Future<_i6.Runner?>);
-
-  @override
-  _i4.Future<_i6.Runner?> getRunnerByBib(String? bibNumber) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #getRunnerByBib,
-          [bibNumber],
-        ),
-        returnValue: _i4.Future<_i6.Runner?>.value(),
-      ) as _i4.Future<_i6.Runner?>);
-
-  @override
-  _i4.Future<List<_i6.Runner>> getAllRunners() => (super.noSuchMethod(
-        Invocation.method(
-          #getAllRunners,
+          #close,
           [],
-        ),
-        returnValue: _i4.Future<List<_i6.Runner>>.value(<_i6.Runner>[]),
-      ) as _i4.Future<List<_i6.Runner>>);
-
-  @override
-  _i4.Future<List<_i6.Runner>> searchRunners(String? query) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #searchRunners,
-          [query],
-        ),
-        returnValue: _i4.Future<List<_i6.Runner>>.value(<_i6.Runner>[]),
-      ) as _i4.Future<List<_i6.Runner>>);
-
-  @override
-  _i4.Future<void> updateRunner(_i6.Runner? runner) => (super.noSuchMethod(
-        Invocation.method(
-          #updateRunner,
-          [runner],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
-
-  @override
-  _i4.Future<void> removeRunner(int? runnerId) => (super.noSuchMethod(
-        Invocation.method(
-          #removeRunner,
-          [runnerId],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
-
-  @override
-  _i4.Future<int> createTeam(_i6.Team? team) => (super.noSuchMethod(
-        Invocation.method(
-          #createTeam,
-          [team],
-        ),
-        returnValue: _i4.Future<int>.value(0),
-      ) as _i4.Future<int>);
-
-  @override
-  _i4.Future<_i6.Team?> getTeam(int? teamId) => (super.noSuchMethod(
-        Invocation.method(
-          #getTeam,
-          [teamId],
-        ),
-        returnValue: _i4.Future<_i6.Team?>.value(),
-      ) as _i4.Future<_i6.Team?>);
-
-  @override
-  _i4.Future<_i6.Team?> getTeamByName(String? name) => (super.noSuchMethod(
-        Invocation.method(
-          #getTeamByName,
-          [name],
-        ),
-        returnValue: _i4.Future<_i6.Team?>.value(),
-      ) as _i4.Future<_i6.Team?>);
-
-  @override
-  _i4.Future<List<_i6.Team>> getAllTeams() => (super.noSuchMethod(
-        Invocation.method(
-          #getAllTeams,
-          [],
-        ),
-        returnValue: _i4.Future<List<_i6.Team>>.value(<_i6.Team>[]),
-      ) as _i4.Future<List<_i6.Team>>);
-
-  @override
-  _i4.Future<List<_i6.Team>> searchTeams(String? query) => (super.noSuchMethod(
-        Invocation.method(
-          #searchTeams,
-          [query],
-        ),
-        returnValue: _i4.Future<List<_i6.Team>>.value(<_i6.Team>[]),
-      ) as _i4.Future<List<_i6.Team>>);
-
-  @override
-  _i4.Future<void> updateTeam(_i6.Team? team) => (super.noSuchMethod(
-        Invocation.method(
-          #updateTeam,
-          [team],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
-
-  @override
-  _i4.Future<void> deleteTeam(int? teamId) => (super.noSuchMethod(
-        Invocation.method(
-          #deleteTeam,
-          [teamId],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
-
-  @override
-  _i4.Future<int> createRace(_i6.Race? race) => (super.noSuchMethod(
-        Invocation.method(
-          #createRace,
-          [race],
-        ),
-        returnValue: _i4.Future<int>.value(0),
-      ) as _i4.Future<int>);
-
-  @override
-  _i4.Future<_i6.Race?> getRace(int? raceId) => (super.noSuchMethod(
-        Invocation.method(
-          #getRace,
-          [raceId],
-        ),
-        returnValue: _i4.Future<_i6.Race?>.value(),
-      ) as _i4.Future<_i6.Race?>);
-
-  @override
-  _i4.Future<List<_i6.Race>> getAllRaces() => (super.noSuchMethod(
-        Invocation.method(
-          #getAllRaces,
-          [],
-        ),
-        returnValue: _i4.Future<List<_i6.Race>>.value(<_i6.Race>[]),
-      ) as _i4.Future<List<_i6.Race>>);
-
-  @override
-  _i4.Future<void> updateRace(_i6.Race? race) => (super.noSuchMethod(
-        Invocation.method(
-          #updateRace,
-          [race],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
-
-  @override
-  _i4.Future<void> deleteRace(int? raceId) => (super.noSuchMethod(
-        Invocation.method(
-          #deleteRace,
-          [raceId],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
-
-  @override
-  _i4.Future<void> addRunnerToTeam(
-    int? teamId,
-    int? runnerId,
-  ) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #addRunnerToTeam,
-          [
-            teamId,
-            runnerId,
-          ],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
-
-  @override
-  _i4.Future<void> removeRunnerFromTeam(
-    int? teamId,
-    int? runnerId,
-  ) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #removeRunnerFromTeam,
-          [
-            teamId,
-            runnerId,
-          ],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
-
-  @override
-  _i4.Future<void> setRunnerTeam(
-    int? runnerId,
-    int? newTeamId,
-  ) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #setRunnerTeam,
-          [
-            runnerId,
-            newTeamId,
-          ],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
-
-  @override
-  _i4.Future<void> updateRaceParticipantTeam({
-    required int? raceId,
-    required int? runnerId,
-    required int? newTeamId,
-  }) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #updateRaceParticipantTeam,
-          [],
-          {
-            #raceId: raceId,
-            #runnerId: runnerId,
-            #newTeamId: newTeamId,
-          },
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
-
-  @override
-  _i4.Future<void> updateRunnerWithTeams({
-    required _i6.Runner? runner,
-    int? newTeamId,
-    int? raceIdForTeamUpdate,
-  }) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #updateRunnerWithTeams,
-          [],
-          {
-            #runner: runner,
-            #newTeamId: newTeamId,
-            #raceIdForTeamUpdate: raceIdForTeamUpdate,
-          },
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
-
-  @override
-  _i4.Future<_i6.Runner?> getTeamRunner(
-    int? teamId,
-    int? runnerId,
-  ) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #getTeamRunner,
-          [
-            teamId,
-            runnerId,
-          ],
-        ),
-        returnValue: _i4.Future<_i6.Runner?>.value(),
-      ) as _i4.Future<_i6.Runner?>);
-
-  @override
-  _i4.Future<List<_i6.Runner>> getTeamRunners(int? teamId) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #getTeamRunners,
-          [teamId],
-        ),
-        returnValue: _i4.Future<List<_i6.Runner>>.value(<_i6.Runner>[]),
-      ) as _i4.Future<List<_i6.Runner>>);
-
-  @override
-  _i4.Future<List<_i6.Team>> getRunnerTeams(int? runnerId) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #getRunnerTeams,
-          [runnerId],
-        ),
-        returnValue: _i4.Future<List<_i6.Team>>.value(<_i6.Team>[]),
-      ) as _i4.Future<List<_i6.Team>>);
-
-  @override
-  _i4.Future<void> addTeamParticipantToRace(
-          _i6.TeamParticipant? teamParticipant) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #addTeamParticipantToRace,
-          [teamParticipant],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
-
-  @override
-  _i4.Future<void> removeTeamParticipantFromRace(
-          _i6.TeamParticipant? teamParticipant) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #removeTeamParticipantFromRace,
-          [teamParticipant],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
-
-  @override
-  _i4.Future<_i6.Team?> getRaceTeamParticipant(
-          _i6.TeamParticipant? teamParticipant) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #getRaceTeamParticipant,
-          [teamParticipant],
-        ),
-        returnValue: _i4.Future<_i6.Team?>.value(),
-      ) as _i4.Future<_i6.Team?>);
-
-  @override
-  _i4.Future<List<_i6.Team>> getRaceTeams(int? raceId) => (super.noSuchMethod(
-        Invocation.method(
-          #getRaceTeams,
-          [raceId],
-        ),
-        returnValue: _i4.Future<List<_i6.Team>>.value(<_i6.Team>[]),
-      ) as _i4.Future<List<_i6.Team>>);
-
-  @override
-  _i4.Future<void> addRaceParticipant(_i6.RaceParticipant? raceParticipant) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #addRaceParticipant,
-          [raceParticipant],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
-
-  @override
-  _i4.Future<void> updateRaceParticipant(
-          _i6.RaceParticipant? raceParticipant) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #updateRaceParticipant,
-          [raceParticipant],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
-
-  @override
-  _i4.Future<void> removeRaceParticipant(
-          _i6.RaceParticipant? raceParticipant) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #removeRaceParticipant,
-          [raceParticipant],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
-
-  @override
-  _i4.Future<_i6.RaceParticipant?> getRaceParticipant(
-          _i6.RaceParticipant? raceParticipant) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #getRaceParticipant,
-          [raceParticipant],
-        ),
-        returnValue: _i4.Future<_i6.RaceParticipant?>.value(),
-      ) as _i4.Future<_i6.RaceParticipant?>);
-
-  @override
-  _i4.Future<List<_i6.RaceParticipant>> getRaceParticipants(int? raceId) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #getRaceParticipants,
-          [raceId],
-        ),
-        returnValue: _i4.Future<List<_i6.RaceParticipant>>.value(
-            <_i6.RaceParticipant>[]),
-      ) as _i4.Future<List<_i6.RaceParticipant>>);
-
-  @override
-  _i4.Future<_i6.RaceParticipant?> getRaceParticipantByBib(
-    int? raceId,
-    String? bibNumber,
-  ) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #getRaceParticipantByBib,
-          [
-            raceId,
-            bibNumber,
-          ],
-        ),
-        returnValue: _i4.Future<_i6.RaceParticipant?>.value(),
-      ) as _i4.Future<_i6.RaceParticipant?>);
-
-  @override
-  _i4.Future<List<_i6.RaceParticipant>> getRaceParticipantsByBibs(
-    int? raceId,
-    List<String>? bibNumbers,
-  ) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #getRaceParticipantsByBibs,
-          [
-            raceId,
-            bibNumbers,
-          ],
-        ),
-        returnValue: _i4.Future<List<_i6.RaceParticipant>>.value(
-            <_i6.RaceParticipant>[]),
-      ) as _i4.Future<List<_i6.RaceParticipant>>);
-
-  @override
-  _i4.Future<List<_i6.RaceParticipant>> searchRaceParticipants(
-    int? raceId,
-    String? query, [
-    String? searchParameter = 'all',
-  ]) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #searchRaceParticipants,
-          [
-            raceId,
-            query,
-            searchParameter,
-          ],
-        ),
-        returnValue: _i4.Future<List<_i6.RaceParticipant>>.value(
-            <_i6.RaceParticipant>[]),
-      ) as _i4.Future<List<_i6.RaceParticipant>>);
-
-  @override
-  _i4.Future<void> saveRaceResults(
-    int? raceId,
-    List<_i6.RaceResult>? results,
-  ) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #saveRaceResults,
-          [
-            raceId,
-            results,
-          ],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
-
-  @override
-  _i4.Future<void> addRaceResult(_i6.RaceResult? result) => (super.noSuchMethod(
-        Invocation.method(
-          #addRaceResult,
-          [result],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
-
-  @override
-  _i4.Future<_i6.RaceResult?> getRaceResult(_i6.RaceResult? raceResult) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #getRaceResult,
-          [raceResult],
-        ),
-        returnValue: _i4.Future<_i6.RaceResult?>.value(),
-      ) as _i4.Future<_i6.RaceResult?>);
-
-  @override
-  _i4.Future<List<_i6.RaceResult>> getRaceResults(int? raceId) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #getRaceResults,
-          [raceId],
-        ),
-        returnValue: _i4.Future<List<_i6.RaceResult>>.value(<_i6.RaceResult>[]),
-      ) as _i4.Future<List<_i6.RaceResult>>);
-
-  @override
-  _i4.Future<void> updateRaceResult(_i6.RaceResult? raceResult) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #updateRaceResult,
-          [raceResult],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
-
-  @override
-  _i4.Future<void> deleteRaceResult(_i6.RaceResult? raceResult) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #deleteRaceResult,
-          [raceResult],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
-
-  @override
-  _i4.Future<String> getRaceFlowState(int? raceId) => (super.noSuchMethod(
-        Invocation.method(
-          #getRaceFlowState,
-          [raceId],
-        ),
-        returnValue: _i4.Future<String>.value(_i7.dummyValue<String>(
-          this,
-          Invocation.method(
-            #getRaceFlowState,
-            [raceId],
-          ),
-        )),
-      ) as _i4.Future<String>);
-
-  @override
-  _i4.Future<void> updateRaceFlowState(
-    int? raceId,
-    String? flowState,
-  ) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #updateRaceFlowState,
-          [
-            raceId,
-            flowState,
-          ],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
-
-  @override
-  _i4.Future<Map<String, List<dynamic>>> quickSearch(String? query) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #quickSearch,
-          [query],
-        ),
-        returnValue: _i4.Future<Map<String, List<dynamic>>>.value(
-            <String, List<dynamic>>{}),
-      ) as _i4.Future<Map<String, List<dynamic>>>);
-
-  @override
-  _i4.Future<String> getRaceState(int? raceId) => (super.noSuchMethod(
-        Invocation.method(
-          #getRaceState,
-          [raceId],
-        ),
-        returnValue: _i4.Future<String>.value(_i7.dummyValue<String>(
-          this,
-          Invocation.method(
-            #getRaceState,
-            [raceId],
-          ),
-        )),
-      ) as _i4.Future<String>);
-
-  @override
-  _i4.Future<void> clearAllData() => (super.noSuchMethod(
-        Invocation.method(
-          #clearAllData,
-          [],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
-
-  @override
-  _i4.Future<void> clearRaceData(int? raceId) => (super.noSuchMethod(
-        Invocation.method(
-          #clearRaceData,
-          [raceId],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
-
-  @override
-  _i4.Future<void> deleteAllRaces() => (super.noSuchMethod(
-        Invocation.method(
-          #deleteAllRaces,
-          [],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
-
-  @override
-  _i4.Future<void> deleteAllRaceRunners(int? raceId) => (super.noSuchMethod(
-        Invocation.method(
-          #deleteAllRaceRunners,
-          [raceId],
         ),
         returnValue: _i4.Future<void>.value(),
         returnValueForMissingStub: _i4.Future<void>.value(),
@@ -830,42 +215,12 @@ class MockIDatabaseHelper extends _i1.Mock implements _i5.IDatabaseHelper {
         returnValue: _i4.Future<void>.value(),
         returnValueForMissingStub: _i4.Future<void>.value(),
       ) as _i4.Future<void>);
-
-  @override
-  _i4.Future<void> close() => (super.noSuchMethod(
-        Invocation.method(
-          #close,
-          [],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
-
-  @override
-  _i4.Future<void> deleteRunnerEverywhere(int? runnerId) => (super.noSuchMethod(
-        Invocation.method(
-          #deleteRunnerEverywhere,
-          [runnerId],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
-
-  @override
-  _i4.Future<List<_i6.Runner>> getRunnersByBibAll(String? bib) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #getRunnersByBibAll,
-          [bib],
-        ),
-        returnValue: _i4.Future<List<_i6.Runner>>.value(<_i6.Runner>[]),
-      ) as _i4.Future<List<_i6.Runner>>);
 }
 
 /// A class which mocks [IRemoteApiClient].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockIRemoteApiClient extends _i1.Mock implements _i8.IRemoteApiClient {
+class MockIRemoteApiClient extends _i1.Mock implements _i6.IRemoteApiClient {
   MockIRemoteApiClient() {
     _i1.throwOnMissingStub(this);
   }
@@ -899,7 +254,7 @@ class MockIRemoteApiClient extends _i1.Mock implements _i8.IRemoteApiClient {
 /// A class which mocks [IAuthService].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockIAuthService extends _i1.Mock implements _i9.IAuthService {
+class MockIAuthService extends _i1.Mock implements _i7.IAuthService {
   MockIAuthService() {
     _i1.throwOnMissingStub(this);
   }
@@ -922,7 +277,7 @@ class MockDatabase extends _i1.Mock implements _i2.Database {
   @override
   String get path => (super.noSuchMethod(
         Invocation.getter(#path),
-        returnValue: _i7.dummyValue<String>(
+        returnValue: _i8.dummyValue<String>(
           this,
           Invocation.getter(#path),
         ),
@@ -964,8 +319,8 @@ class MockDatabase extends _i1.Mock implements _i2.Database {
           [action],
           {#exclusive: exclusive},
         ),
-        returnValue: _i7.ifNotNull(
-              _i7.dummyValueOrNull<T>(
+        returnValue: _i8.ifNotNull(
+              _i8.dummyValueOrNull<T>(
                 this,
                 Invocation.method(
                   #transaction,
@@ -993,8 +348,8 @@ class MockDatabase extends _i1.Mock implements _i2.Database {
           #readTransaction,
           [action],
         ),
-        returnValue: _i7.ifNotNull(
-              _i7.dummyValueOrNull<T>(
+        returnValue: _i8.ifNotNull(
+              _i8.dummyValueOrNull<T>(
                 this,
                 Invocation.method(
                   #readTransaction,
@@ -1025,8 +380,8 @@ class MockDatabase extends _i1.Mock implements _i2.Database {
             arguments,
           ],
         ),
-        returnValue: _i7.ifNotNull(
-              _i7.dummyValueOrNull<T>(
+        returnValue: _i8.ifNotNull(
+              _i8.dummyValueOrNull<T>(
                 this,
                 Invocation.method(
                   #devInvokeMethod,
@@ -1065,8 +420,8 @@ class MockDatabase extends _i1.Mock implements _i2.Database {
             arguments,
           ],
         ),
-        returnValue: _i7.ifNotNull(
-              _i7.dummyValueOrNull<T>(
+        returnValue: _i8.ifNotNull(
+              _i8.dummyValueOrNull<T>(
                 this,
                 Invocation.method(
                   #devInvokeSqlMethod,
@@ -1566,7 +921,7 @@ class MockSupabaseClient extends _i1.Mock implements _i3.SupabaseClient {
           #removeChannel,
           [channel],
         ),
-        returnValue: _i4.Future<String>.value(_i7.dummyValue<String>(
+        returnValue: _i4.Future<String>.value(_i8.dummyValue<String>(
           this,
           Invocation.method(
             #removeChannel,

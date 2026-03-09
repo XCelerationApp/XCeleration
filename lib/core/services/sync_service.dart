@@ -3,10 +3,10 @@ import 'dart:async';
 import 'package:uuid/uuid.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:xceleration/core/utils/logger.dart';
+import 'package:xceleration/core/repositories/i_database_connection_provider.dart';
 import 'package:xceleration/core/services/i_auth_service.dart';
 import 'package:xceleration/core/services/i_remote_api_client.dart';
 import 'package:xceleration/core/services/i_sync_service.dart';
-import 'package:xceleration/core/utils/i_database_helper.dart';
 
 /// Emitted by [SyncService.syncEvents] after each successful [SyncService.pullAll].
 class SyncEvent {
@@ -43,12 +43,12 @@ class _PushConflictResult {
 /// - Push dirty rows to remote (requires authentication)
 /// - Pull changed rows from remote since last cursor and apply LWW
 class SyncService implements ISyncService {
-  final IDatabaseHelper _db;
+  final IDatabaseConnectionProvider _db;
   final IRemoteApiClient _remote;
   final IAuthService _auth;
 
   SyncService({
-    required IDatabaseHelper db,
+    required IDatabaseConnectionProvider db,
     required IRemoteApiClient remote,
     required IAuthService auth,
   })  : _db = db,
@@ -93,7 +93,7 @@ class SyncService implements ISyncService {
   }
 
   Future<void> ensureLocalUuids() async {
-    final db = await _db.databaseConn;
+    final db = await _db.database;
     if (!await _hasNormalizedSchema(db)) {
       Logger.d('Sync skipped: normalized schema not found yet.');
       return;
@@ -152,13 +152,13 @@ class SyncService implements ISyncService {
 
   // Placeholder: persist cursors in sync_state
   Future<void> setCursor(String key, String value) async {
-    final db = await _db.databaseConn;
+    final db = await _db.database;
     await db.insert('sync_state', {'key': key, 'value': value},
         conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<String?> getCursor(String key) async {
-    final db = await _db.databaseConn;
+    final db = await _db.database;
     final rows =
         await db.query('sync_state', where: 'key = ?', whereArgs: [key]);
     return rows.isNotEmpty ? rows.first['value'] as String : null;
@@ -286,7 +286,7 @@ class SyncService implements ISyncService {
     }
 
     final client = _remote.client;
-    final db = await _db.databaseConn;
+    final db = await _db.database;
     if (!await _hasNormalizedSchema(db)) {
       Logger.d('Push skipped: normalized schema not found yet.');
       return;
@@ -361,7 +361,7 @@ class SyncService implements ISyncService {
   /// requires runner_uuid/race_uuid to be present.
   Future<void> _pushRaceResults() async {
     final client = _remote.client;
-    final db = await _db.databaseConn;
+    final db = await _db.database;
 
     // Auth guard: defensive check in case _pushRaceResults is called outside
     // syncAll(). In the normal flow the top-level guard in syncAll() ensures
@@ -443,7 +443,7 @@ class SyncService implements ISyncService {
   /// requires race_uuid/runner_uuid to be present.
   Future<void> _pushRaceParticipants() async {
     final client = _remote.client;
-    final db = await _db.databaseConn;
+    final db = await _db.database;
 
     // Auth guard: defensive check in case _pushRaceParticipants is called
     // outside syncAll(). In the normal flow the top-level guard in syncAll()
@@ -525,7 +525,7 @@ class SyncService implements ISyncService {
   // Pull changed rows (scaffold only)
   Future<void> pullAll() async {
     final client = _remote.client;
-    final db = await _db.databaseConn;
+    final db = await _db.database;
     if (!await _hasNormalizedSchema(db)) {
       Logger.d('Pull skipped: normalized schema not found yet.');
       return;
@@ -686,7 +686,7 @@ class SyncService implements ISyncService {
   /// runner_uuid or race_uuid cannot be resolved locally (will retry next sync).
   Future<void> _pullRaceResults(List<String> accessibleOwnerIds, Set<String> changedTables) async {
     final client = _remote.client;
-    final db = await _db.databaseConn;
+    final db = await _db.database;
 
     const table = 'race_results';
     const cursorKey = 'cursor.$table';
@@ -871,7 +871,7 @@ class SyncService implements ISyncService {
   /// cannot be resolved locally (will retry next sync).
   Future<void> _pullRaceParticipants(List<String> accessibleOwnerIds, Set<String> changedTables) async {
     final client = _remote.client;
-    final db = await _db.databaseConn;
+    final db = await _db.database;
 
     const table = 'race_participants';
     const cursorKey = cursorRaceParticipants;

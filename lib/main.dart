@@ -19,11 +19,13 @@ import 'coach/races_screen/services/races_service.dart';
 import 'core/services/auth_service.dart';
 import 'core/services/tutorial_manager.dart';
 import 'shared/models/database/master_race.dart';
+import 'core/repositories/i_database_connection_provider.dart';
+import 'core/services/database_write_bus.dart';
 import 'core/services/sync_service.dart';
 import 'core/services/remote_api_client.dart';
 import 'core/services/connectivity_sync_service.dart';
 import 'core/services/i_sync_service.dart';
-import 'core/utils/database_helper.dart';
+import 'core/services/service_locator.dart';
 
 /// EventBus provider wrapper for global event management
 class EventBusProvider extends ChangeNotifier {
@@ -70,17 +72,19 @@ void _runApp() async {
     DeviceOrientation.portraitDown,
   ]);
 
+  // Initialize the service locator (registers repos, write bus, etc.)
+  await ServiceLocator.initialize();
+
   // Wire up concrete service instances once at startup
-  final dbHelper = DatabaseHelper();
   final syncService = SyncService(
-    db: dbHelper,
+    db: ServiceLocator.get<IDatabaseConnectionProvider>(),
     remote: RemoteApiClient(),
     auth: AuthService.instance,
   );
   final connectivitySyncService = ConnectivitySyncService(
     sync: syncService,
     auth: AuthService.instance,
-    writeStream: dbHelper.writes,
+    writeStream: ServiceLocator.get<DatabaseWriteBus>().writes,
   );
   connectivitySyncService.start();
 
