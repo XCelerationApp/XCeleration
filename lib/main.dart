@@ -79,7 +79,9 @@ void _runApp() async {
   final connectivitySyncService = ConnectivitySyncService(
     sync: syncService,
     auth: AuthService.instance,
+    writeStream: DatabaseHelper.instance.writes,
   );
+  connectivitySyncService.start();
 
   runApp(
     MultiProvider(

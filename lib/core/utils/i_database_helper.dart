@@ -8,6 +8,10 @@ abstract class IDatabaseHelper {
 
   Future<Database> get databaseConn;
 
+  /// Emits a void event after every local write (create, update, delete).
+  /// Subscribers can use this to trigger a debounced sync without polling.
+  Stream<void> get writes;
+
   // ============================================================================
   // CORE ENTITY OPERATIONS
   // ============================================================================

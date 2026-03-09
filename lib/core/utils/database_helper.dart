@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../../shared/models/database/base_models.dart';
@@ -10,6 +11,17 @@ class DatabaseHelper implements IDatabaseHelper {
   static Database? _initializedDatabase;
 
   DatabaseHelper._init();
+
+  final _writesController = StreamController<void>.broadcast();
+
+  /// Emits a void event after every local write so listeners can react
+  /// (e.g. debounce-trigger a sync) without polling.
+  @override
+  Stream<void> get writes => _writesController.stream;
+
+  void _notifyWrite() {
+    if (!_writesController.isClosed) _writesController.add(null);
+  }
 
   Future<Database> get _database async {
     if (_initializedDatabase != null) return _initializedDatabase!;
@@ -139,7 +151,7 @@ class DatabaseHelper implements IDatabaseHelper {
       'is_dirty': 1,
       'updated_at': DateTime.now().toIso8601String(),
     });
-
+    _notifyWrite();
     return result;
   }
 
@@ -198,6 +210,7 @@ class DatabaseHelper implements IDatabaseHelper {
     map['is_dirty'] = 1;
     await db.update('runners', map,
         where: 'runner_id = ?', whereArgs: [runner.runnerId]);
+    _notifyWrite();
   }
 
   @override
@@ -212,6 +225,7 @@ class DatabaseHelper implements IDatabaseHelper {
       where: 'runner_id = ? AND deleted_at IS NULL',
       whereArgs: [runnerId],
     );
+    _notifyWrite();
   }
 
   // --- TEAMS ---
@@ -224,7 +238,7 @@ class DatabaseHelper implements IDatabaseHelper {
       throw Exception('Team with name ${team.name} already exists');
     }
     final db = await _database;
-    return await db.insert('teams', {
+    final result = await db.insert('teams', {
       'name': team.name,
       'abbreviation':
           team.abbreviation ?? Team.generateAbbreviation(team.name!),
@@ -233,6 +247,8 @@ class DatabaseHelper implements IDatabaseHelper {
       'is_dirty': 1,
       'updated_at': DateTime.now().toIso8601String(),
     });
+    _notifyWrite();
+    return result;
   }
 
   @override
@@ -294,6 +310,7 @@ class DatabaseHelper implements IDatabaseHelper {
       updates['is_dirty'] = 1;
       await db.update('teams', updates,
           where: 'team_id = ?', whereArgs: [team.teamId]);
+      _notifyWrite();
     }
   }
 
@@ -309,6 +326,7 @@ class DatabaseHelper implements IDatabaseHelper {
       where: 'team_id = ? AND deleted_at IS NULL',
       whereArgs: [teamId],
     );
+    _notifyWrite();
   }
 
   // --- RACES ---
@@ -321,7 +339,9 @@ class DatabaseHelper implements IDatabaseHelper {
     final map = race.toMap();
     map['is_dirty'] = 1;
     map['updated_at'] = DateTime.now().toIso8601String();
-    return await db.insert('races', map);
+    final result = await db.insert('races', map);
+    _notifyWrite();
+    return result;
   }
 
   @override
@@ -356,6 +376,7 @@ class DatabaseHelper implements IDatabaseHelper {
     rmap['is_dirty'] = 1;
     await db
         .update('races', rmap, where: 'race_id = ?', whereArgs: [race.raceId]);
+    _notifyWrite();
   }
 
   @override
@@ -370,6 +391,7 @@ class DatabaseHelper implements IDatabaseHelper {
       where: 'race_id = ? AND deleted_at IS NULL',
       whereArgs: [raceId],
     );
+    _notifyWrite();
   }
 
   // ============================================================================
@@ -403,6 +425,7 @@ class DatabaseHelper implements IDatabaseHelper {
       where: 'team_id = ? AND runner_id = ? AND deleted_at IS NULL',
       whereArgs: [teamId, runnerId],
     );
+    _notifyWrite();
   }
 
   /// Set a runner's team globally in team_rosters.
@@ -456,6 +479,7 @@ class DatabaseHelper implements IDatabaseHelper {
       where: 'race_id = ? AND runner_id = ?',
       whereArgs: [raceId, runnerId],
     );
+    _notifyWrite();
   }
 
   /// Convenience: update runner core fields and optionally move to a new team
@@ -563,6 +587,7 @@ class DatabaseHelper implements IDatabaseHelper {
       where: 'race_id = ? AND team_id = ? AND deleted_at IS NULL',
       whereArgs: [teamParticipant.raceId!, teamParticipant.teamId!],
     );
+    _notifyWrite();
   }
 
   @override
@@ -623,6 +648,7 @@ class DatabaseHelper implements IDatabaseHelper {
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
+    _notifyWrite();
   }
 
   @override
@@ -637,6 +663,7 @@ class DatabaseHelper implements IDatabaseHelper {
     await db.update('race_participants', pmap,
         where: 'race_id = ? AND runner_id = ?',
         whereArgs: [raceParticipant.raceId!, raceParticipant.runnerId!]);
+    _notifyWrite();
   }
 
   @override
@@ -652,6 +679,7 @@ class DatabaseHelper implements IDatabaseHelper {
       where: 'race_id = ? AND runner_id = ? AND deleted_at IS NULL',
       whereArgs: [raceParticipant.raceId!, raceParticipant.runnerId!],
     );
+    _notifyWrite();
   }
 
   @override
@@ -783,6 +811,7 @@ class DatabaseHelper implements IDatabaseHelper {
         await txn.insert('race_results', map);
       }
     });
+    _notifyWrite();
   }
 
   @override
@@ -810,6 +839,7 @@ class DatabaseHelper implements IDatabaseHelper {
       rr['race_uuid'] = race?.uuid;
     }
     await db.insert('race_results', rr);
+    _notifyWrite();
   }
 
   @override
@@ -880,6 +910,7 @@ class DatabaseHelper implements IDatabaseHelper {
     await db.update('race_results', rrmap,
         where: 'race_id = ? AND runner_id = ?',
         whereArgs: [raceResult.raceId!, raceResult.runner!.runnerId!]);
+    _notifyWrite();
   }
 
   @override
@@ -1029,6 +1060,7 @@ class DatabaseHelper implements IDatabaseHelper {
         whereArgs: [runnerId],
       );
     });
+    _notifyWrite();
   }
 
   @override
