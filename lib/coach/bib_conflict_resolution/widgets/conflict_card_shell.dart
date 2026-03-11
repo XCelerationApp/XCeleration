@@ -8,22 +8,10 @@ import '../../../core/theme/app_border_radius.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/typography.dart';
-import './race_context_panel.dart';
 import './duplicate_conflict_card.dart';
 import './unknown_bib_card.dart';
 
-List<ConflictEntry> _conflictEntries(MockBibConflict conflict) =>
-    switch (conflict) {
-      MockDuplicateConflict(:final bibNumber, :final entry1, :final entry2) => [
-          (position: entry1.position, formattedTime: entry1.formattedTime, label: 'Bib #$bibNumber'),
-          (position: entry2.position, formattedTime: entry2.formattedTime, label: 'Bib #$bibNumber'),
-        ],
-      MockUnknownConflict(:final enteredBib, :final position, :final formattedTime) => [
-          (position: position, formattedTime: formattedTime, label: 'Bib #$enteredBib'),
-        ],
-    };
-
-/// Wraps every conflict card with the shared progress header and race context panel.
+/// Wraps every conflict card with the shared progress header.
 /// Manages the inner AnimatedSwitcher that transitions between card bodies.
 class ConflictCardShell extends StatelessWidget {
   const ConflictCardShell({super.key});
@@ -53,14 +41,6 @@ class ConflictCardShell extends StatelessWidget {
                     key: ValueKey(controller.stepKey),
                     child: _buildCardBody(controller),
                   ),
-                ),
-                const SizedBox(height: AppSpacing.md),
-                RaceContextPanel(
-                  key: ValueKey('ctx_${controller.currentConflictIndex}'),
-                  surroundingFinishers:
-                      controller.currentConflict.surroundingFinishers,
-                  contextPosition: controller.currentConflict.finishPosition,
-                  conflictEntries: _conflictEntries(controller.currentConflict),
                 ),
               ],
             ),
