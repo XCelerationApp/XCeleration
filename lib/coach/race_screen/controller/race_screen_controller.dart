@@ -94,6 +94,8 @@ class RaceController with ChangeNotifier {
 
   late final MasterFlowController flowController;
 
+  late final VoidCallback _masterRaceListener;
+
   // Flow state — safe getter that works during loading
   String get flowState {
     if (_isInitialLoading) return 'setup';
@@ -128,10 +130,16 @@ class RaceController with ChangeNotifier {
         );
     _geoController.addListener(notifyListeners);
     form.addListener(notifyListeners);
+    _masterRaceListener = () {
+      if (_isRefreshing || _isInitialLoading) return;
+      _loadData(isInitial: false);
+    };
+    masterRace.addListener(_masterRaceListener);
   }
 
   @override
   void dispose() {
+    masterRace.removeListener(_masterRaceListener);
     _geoController.removeListener(notifyListeners);
     _geoController.dispose();
     form.removeListener(notifyListeners);
@@ -148,7 +156,7 @@ class RaceController with ChangeNotifier {
   }
 
   Future<void> _loadData(
-      {required bool isInitial, required BuildContext context}) async {
+      {required bool isInitial, BuildContext? context}) async {
     try {
       if (isInitial) {
         _isInitialLoading = true;
@@ -179,7 +187,7 @@ class RaceController with ChangeNotifier {
         form.initializeFrom(_race!);
 
         if ((_race!.flowState == null || _race!.flowState!.isEmpty) &&
-            context.mounted) {
+            context != null && context.mounted) {
           await updateRaceFlowState(context, Race.FLOW_SETUP);
         }
 
