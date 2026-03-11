@@ -2,22 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../controller/conflict_resolution_controller.dart';
 import '../mock/conflict_mock_data.dart';
-import '../../../core/components/button_components.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_animations.dart';
 import '../../../core/theme/app_border_radius.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_opacity.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/typography.dart';
-import '../../../core/utils/sheet_utils.dart';
-import './mock_create_runner_sheet.dart';
 
 /// Shared resolution list used by both DuplicateStep2Card and UnknownBibCard.
-/// Shows unassigned runners with search, plus a "Create New Runner" option.
+/// Shows unassigned runners with school filter pills, team-grouped rows,
+/// and an expand-then-confirm interaction.
 class RunnerAssignmentList extends StatefulWidget {
   const RunnerAssignmentList({
     super.key,
     required this.targetBib,
-
-    /// For the duplicate case: the bib that cannot be reused for a new runner.
     this.forbiddenBib,
   });
 
@@ -29,30 +27,20 @@ class RunnerAssignmentList extends StatefulWidget {
 }
 
 class _RunnerAssignmentListState extends State<RunnerAssignmentList> {
-  final _searchController = TextEditingController();
-  String _query = '';
-
-  @override
-  void initState() {
-    super.initState();
-    _searchController.addListener(() {
-      setState(() => _query = _searchController.text.trim().toLowerCase());
-    });
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
+  String? _activeTeam; // null = "All"
+  MockRunner? _selectedRunner;
 
   List<MockRunner> _filter(List<MockRunner> runners) {
-    if (_query.isEmpty) return runners;
-    return runners.where((r) {
-      return r.name.toLowerCase().contains(_query) ||
-          r.bibNumber.toString().contains(_query) ||
-          r.team.toLowerCase().contains(_query);
-    }).toList();
+    if (_activeTeam == null) return runners;
+    return runners.where((r) => r.team == _activeTeam).toList();
+  }
+
+  Map<String, List<MockRunner>> _groupByTeam(List<MockRunner> runners) {
+    final map = <String, List<MockRunner>>{};
+    for (final r in runners) {
+      map.putIfAbsent(r.team, () => []).add(r);
+    }
+    return map;
   }
 
   @override
@@ -60,129 +48,162 @@ class _RunnerAssignmentListState extends State<RunnerAssignmentList> {
     final controller = context.watch<ConflictResolutionController>();
     final nearbyRunners = controller.runnersNearBib(widget.targetBib);
     final filtered = _filter(nearbyRunners);
+    final grouped = _groupByTeam(filtered);
+
+    var rowIndex = 0;
+    final rows = <Widget>[];
+    for (final team in grouped.keys) {
+      rows.add(_TeamSection(team: team, count: grouped[team]!.length));
+      for (final runner in grouped[team]!) {
+        final idx = rowIndex++;
+        rows.add(_AnimatedRunnerRow(
+          key: ValueKey(runner.bibNumber),
+          index: idx,
+          runner: runner,
+          isSelected: _selectedRunner?.bibNumber == runner.bibNumber,
+          onSelect: () => setState(() => _selectedRunner = runner),
+        ));
+      }
+    }
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _SearchField(controller: _searchController),
-        const SizedBox(height: AppSpacing.sm),
+        _SchoolFilterPills(
+          teams: ConflictMockData.teams,
+          activeTeam: _activeTeam,
+          onChanged: (t) => setState(() {
+            _activeTeam = t;
+            _selectedRunner = null;
+          }),
+        ),
+        const SizedBox(height: AppSpacing.md),
         if (nearbyRunners.isEmpty)
-          _EmptyRunnerList(hasRunners: false)
+          _EmptyState(message: 'No unassigned runners — create a new one.')
         else if (filtered.isEmpty)
-          _EmptyRunnerList(hasRunners: true)
+          const _EmptyState(message: 'No runners from this school.')
         else
-          ...filtered.asMap().entries.map(
-                (e) => _AnimatedRunnerRow(
-                  index: e.key,
-                  runner: e.value,
-                  onTap: () => controller.assignRunner(e.value),
+          ...rows,
+        const SizedBox(height: AppSpacing.sm),
+        AnimatedSwitcher(
+          duration: AppAnimations.standard,
+          child: _selectedRunner == null
+              ? const SizedBox.shrink()
+              : _AssignCta(
+                  key: ValueKey(_selectedRunner!.bibNumber),
+                  runnerName: _selectedRunner!.name,
+                  onAssign: () => controller.prepareAssign(
+                    _selectedRunner!,
+                    'Bib #${widget.targetBib}',
+                  ),
                 ),
-              ),
-        const SizedBox(height: AppSpacing.lg),
-        _OrDivider(),
-        const SizedBox(height: AppSpacing.lg),
-        SecondaryButton(
-          text: 'Create New Runner',
-          icon: Icons.person_add_outlined,
-          size: ButtonSize.fullWidth,
-          onPressed: () => _openCreateSheet(context, controller),
         ),
       ],
     );
   }
-
-  Future<void> _openCreateSheet(
-    BuildContext context,
-    ConflictResolutionController controller,
-  ) async {
-    await sheet(
-      context: context,
-      title: 'Add New Runner',
-      body: MockCreateRunnerSheet(
-        forbiddenBib: widget.forbiddenBib,
-        allKnownBibs: controller.allKnownBibs,
-        onCreated: (name, bib, team, grade) {
-          controller.createNewRunner(name, bib, team: team, grade: grade);
-          Navigator.of(context).pop();
-        },
-      ),
-    );
-  }
 }
 
-class _SearchField extends StatelessWidget {
-  const _SearchField({required this.controller});
+// ---------------------------------------------------------------------------
 
-  final TextEditingController controller;
+class _SchoolFilterPills extends StatelessWidget {
+  const _SchoolFilterPills({
+    required this.teams,
+    required this.activeTeam,
+    required this.onChanged,
+  });
+
+  final List<String> teams;
+  final String? activeTeam;
+  final ValueChanged<String?> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      style: AppTypography.bodyRegular,
-      decoration: InputDecoration(
-        hintText: 'Search by name, bib, or team…',
-        hintStyle: AppTypography.bodyRegular.copyWith(color: AppColors.mediumColor),
-        prefixIcon: const Icon(Icons.search, color: AppColors.mediumColor, size: 20),
-        suffixIcon: ValueListenableBuilder<TextEditingValue>(
-          valueListenable: controller,
-          builder: (_, value, __) => value.text.isEmpty
-              ? const SizedBox.shrink()
-              : IconButton(
-                  icon: const Icon(Icons.clear, size: 18),
-                  color: AppColors.mediumColor,
-                  onPressed: controller.clear,
+    final allOptions = <String?>[null, ...teams];
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: allOptions.map((team) {
+          final isActive = activeTeam == team;
+          return Padding(
+            padding: const EdgeInsets.only(right: AppSpacing.xs),
+            child: GestureDetector(
+              onTap: () => onChanged(team),
+              child: AnimatedContainer(
+                duration: AppAnimations.fast,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md,
+                  vertical: AppSpacing.xs,
                 ),
-        ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.lg,
-          vertical: AppSpacing.sm,
-        ),
-        filled: true,
-        fillColor: AppColors.lightColor.withValues(alpha: 0.5),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppBorderRadius.md),
-          borderSide: BorderSide.none,
-        ),
+                decoration: BoxDecoration(
+                  color: isActive ? AppColors.selectedRoleColor : Colors.white,
+                  borderRadius: BorderRadius.circular(AppBorderRadius.full),
+                  border: Border.all(
+                    color: isActive ? AppColors.primaryColor : AppColors.lightColor,
+                  ),
+                ),
+                child: Text(
+                  team ?? 'All',
+                  style: AppTypography.smallBodyRegular.copyWith(
+                    color: isActive ? AppColors.primaryColor : AppColors.mediumColor,
+                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
 }
 
-class _EmptyRunnerList extends StatelessWidget {
-  const _EmptyRunnerList({required this.hasRunners});
+// ---------------------------------------------------------------------------
 
-  final bool hasRunners;
+class _TeamSection extends StatelessWidget {
+  const _TeamSection({required this.team, required this.count});
+
+  final String team;
+  final int count;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
-      child: Center(
-        child: Text(
-          hasRunners
-              ? 'No runners match your search.'
-              : 'No unassigned runners left — create a new one below.',
-          style: AppTypography.smallBodyRegular.copyWith(
-            color: AppColors.mediumColor,
+      padding: const EdgeInsets.only(top: AppSpacing.md, bottom: AppSpacing.xs),
+      child: Row(
+        children: [
+          Text(
+            team.toUpperCase(),
+            style: AppTypography.smallCaption.copyWith(
+              fontWeight: FontWeight.w700,
+              color: AppColors.mediumColor,
+            ),
           ),
-          textAlign: TextAlign.center,
-        ),
+          const SizedBox(width: AppSpacing.xs),
+          Text(
+            '· $count',
+            style: AppTypography.smallCaption.copyWith(color: AppColors.mediumColor),
+          ),
+        ],
       ),
     );
   }
 }
 
+// ---------------------------------------------------------------------------
+
 class _AnimatedRunnerRow extends StatefulWidget {
   const _AnimatedRunnerRow({
+    super.key,
     required this.index,
     required this.runner,
-    required this.onTap,
+    required this.isSelected,
+    required this.onSelect,
   });
 
   final int index;
   final MockRunner runner;
-  final VoidCallback onTap;
+  final bool isSelected;
+  final VoidCallback onSelect;
 
   @override
   State<_AnimatedRunnerRow> createState() => _AnimatedRunnerRowState();
@@ -190,6 +211,7 @@ class _AnimatedRunnerRow extends StatefulWidget {
 
 class _AnimatedRunnerRowState extends State<_AnimatedRunnerRow> {
   double _opacity = 0;
+  bool _expanded = false;
 
   @override
   void initState() {
@@ -203,42 +225,83 @@ class _AnimatedRunnerRowState extends State<_AnimatedRunnerRow> {
   Widget build(BuildContext context) {
     return AnimatedOpacity(
       opacity: _opacity,
-      duration: const Duration(milliseconds: 350),
-      child: Card(
-        margin: const EdgeInsets.only(bottom: AppSpacing.xs),
-        elevation: 1,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppBorderRadius.md),
-        ),
-        child: InkWell(
-          onTap: widget.onTap,
-          borderRadius: BorderRadius.circular(AppBorderRadius.md),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.lg,
-              vertical: AppSpacing.md,
+      duration: AppAnimations.reveal,
+      child: GestureDetector(
+        onTap: () {
+          if (_expanded && !widget.isSelected) {
+            widget.onSelect();
+          } else {
+            setState(() => _expanded = !_expanded);
+          }
+        },
+        child: AnimatedContainer(
+          duration: AppAnimations.standard,
+          margin: const EdgeInsets.only(bottom: AppSpacing.xs),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg,
+            vertical: AppSpacing.md,
+          ),
+          decoration: BoxDecoration(
+            color: widget.isSelected ? AppColors.selectedRoleColor : Colors.white,
+            borderRadius: BorderRadius.circular(AppBorderRadius.md),
+            border: Border.all(
+              color: widget.isSelected ? AppColors.primaryColor : AppColors.lightColor,
             ),
-            child: Row(
-              children: [
-                _BibChip(bibNumber: widget.runner.bibNumber),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(widget.runner.name, style: AppTypography.bodyRegular),
-                      const SizedBox(height: 2),
-                      Text(
-                        widget.runner.team,
-                        style: AppTypography.caption.copyWith(
-                          color: AppColors.mediumColor,
-                        ),
-                      ),
-                    ],
+          ),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  _BibAvatar(
+                    bibNumber: widget.runner.bibNumber,
+                    isSelected: widget.isSelected,
                   ),
-                ),
-              ],
-            ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(widget.runner.name, style: AppTypography.smallBodySemibold),
+                        Text(
+                          widget.runner.team,
+                          style: AppTypography.caption.copyWith(
+                            color: AppColors.mediumColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (widget.isSelected)
+                    Container(
+                      width: 20,
+                      height: 20,
+                      decoration: const BoxDecoration(
+                        // TODO(ui): replace with AppColors.statusFinished once added
+                        color: Color(0xFF4CAF50),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.check, color: Colors.white, size: 14),
+                    )
+                  else
+                    AnimatedRotation(
+                      turns: _expanded ? 0.5 : 0,
+                      duration: AppAnimations.fast,
+                      child: const Icon(
+                        Icons.keyboard_arrow_down,
+                        color: AppColors.mediumColor,
+                        size: 20,
+                      ),
+                    ),
+                ],
+              ),
+              AnimatedSize(
+                duration: AppAnimations.standard,
+                curve: AppAnimations.spring,
+                child: _expanded
+                    ? _ExpandedDetail(runner: widget.runner, onSelect: widget.onSelect)
+                    : const SizedBox.shrink(),
+              ),
+            ],
           ),
         ),
       ),
@@ -246,49 +309,146 @@ class _AnimatedRunnerRowState extends State<_AnimatedRunnerRow> {
   }
 }
 
-class _BibChip extends StatelessWidget {
-  const _BibChip({required this.bibNumber});
+// ---------------------------------------------------------------------------
 
-  final int bibNumber;
+class _ExpandedDetail extends StatelessWidget {
+  const _ExpandedDetail({required this.runner, required this.onSelect});
+
+  final MockRunner runner;
+  final VoidCallback onSelect;
 
   @override
   Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.sm),
+      child: Row(
+        children: [
+          _chip('Grade ${runner.grade}'),
+          const SizedBox(width: AppSpacing.xs),
+          _chip('Bib #${runner.bibNumber}'),
+          const Spacer(),
+          ElevatedButton(
+            onPressed: onSelect,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryColor,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.lg,
+                vertical: AppSpacing.xs,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppBorderRadius.sm),
+              ),
+            ),
+            child: Text(
+              'Select',
+              style: AppTypography.smallBodySemibold.copyWith(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _chip(String label) {
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.sm,
         vertical: AppSpacing.xs,
       ),
       decoration: BoxDecoration(
-        color: AppColors.primaryColor.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(AppBorderRadius.sm),
+        color: AppColors.lightColor.withValues(alpha: AppOpacity.medium),
+        borderRadius: BorderRadius.circular(AppBorderRadius.xs),
       ),
       child: Text(
+        label,
+        style: AppTypography.caption.copyWith(color: AppColors.mediumColor),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+
+class _BibAvatar extends StatelessWidget {
+  const _BibAvatar({required this.bibNumber, required this.isSelected});
+
+  final int bibNumber;
+  final bool isSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: AppAnimations.fast,
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        color: isSelected
+            ? AppColors.primaryColor
+            : AppColors.primaryColor.withValues(alpha: AppOpacity.light),
+        shape: BoxShape.circle,
+      ),
+      alignment: Alignment.center,
+      child: Text(
         '#$bibNumber',
-        style: AppTypography.captionBold.copyWith(
-          color: AppColors.primaryColor,
+        style: AppTypography.caption.copyWith(
+          color: isSelected ? Colors.white : AppColors.primaryColor,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );
   }
 }
 
-class _OrDivider extends StatelessWidget {
+// ---------------------------------------------------------------------------
+
+class _AssignCta extends StatelessWidget {
+  const _AssignCta({super.key, required this.runnerName, required this.onAssign});
+
+  final String runnerName;
+  final VoidCallback onAssign;
+
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const Expanded(child: Divider()),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-          child: Text(
-            'or',
-            style: AppTypography.caption.copyWith(
-              color: AppColors.mediumColor,
-            ),
+    return GestureDetector(
+      onTap: onAssign,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [AppColors.primaryColor, Color(0xFFFF7043)],
           ),
+          borderRadius: BorderRadius.circular(AppBorderRadius.lg),
         ),
-        const Expanded(child: Divider()),
-      ],
+        alignment: Alignment.center,
+        child: Text(
+          'Assign $runnerName →',
+          style: AppTypography.bodySemibold.copyWith(color: Colors.white),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+      child: Center(
+        child: Text(
+          message,
+          style: AppTypography.smallBodyRegular.copyWith(color: AppColors.mediumColor),
+          textAlign: TextAlign.center,
+        ),
+      ),
     );
   }
 }
