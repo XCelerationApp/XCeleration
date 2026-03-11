@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../shared/role_bar/models/role_enums.dart';
@@ -8,6 +9,7 @@ import '../../../core/services/auth_service.dart';
 import '../../../core/services/event_bus.dart';
 import '../../../core/services/geo_location_service.dart';
 import '../../../core/services/post_frame_callback_scheduler.dart';
+import '../../../core/services/i_sync_service.dart';
 import '../controller/races_controller.dart';
 import '../services/races_service.dart';
 import '../widgets/race_tutorial_coach_mark.dart';
@@ -37,6 +39,7 @@ class RacesScreenState extends State<RacesScreen> {
       geoLocationService: GeoLocationService(),
       postFrameCallbackScheduler: WidgetsBindingAdapter(),
       tutorialManager: TutorialManager(),
+      syncStream: context.read<ISyncService>().syncEvents,
       canEdit: widget.canEdit,
     );
     _controller.initState(context);

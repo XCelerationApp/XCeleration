@@ -12,6 +12,7 @@ import 'package:xceleration/core/services/color_picker_dialog_service.dart';
 import 'package:xceleration/core/services/date_picker_service.dart';
 import 'package:xceleration/core/services/event_bus.dart';
 import 'package:xceleration/core/services/geo_location_service.dart';
+import 'package:xceleration/core/services/sync_service.dart';
 import 'package:xceleration/core/services/post_frame_callback_scheduler.dart';
 import 'package:xceleration/core/services/tutorial_manager.dart';
 import 'package:xceleration/shared/models/database/race.dart';
@@ -568,6 +569,86 @@ void main() {
         expect(controller.locationController.text,
             '100 Main St, San Francisco, CA 94102');
         expect(controller.locationError, isNull);
+      });
+    });
+
+    group('sync stream', () {
+      testWidgets('reloads races when syncEvents emits an event containing races',
+          (tester) async {
+        final syncController = StreamController<SyncEvent>.broadcast();
+        controller.dispose();
+        controller = RacesController(
+          racesService: mockRacesService,
+          authService: mockAuthService,
+          eventBus: mockEventBus,
+          geoLocationService: mockGeoService,
+          postFrameCallbackScheduler: mockPostFrameScheduler,
+          tutorialManager: mockTutorialManager,
+          datePickerService: mockDatePickerService,
+          colorPickerDialogService: mockColorPickerService,
+          syncStream: syncController.stream,
+        );
+        when(mockPostFrameScheduler.addPostFrameCallback(any)).thenAnswer((_) {});
+        when(mockEventBus.on(any, any))
+            .thenAnswer((_) => Stream<Event>.empty().listen((_) {}));
+
+        await tester.pumpWidget(MaterialApp(home: Builder(builder: (ctx) {
+          controller.initState(ctx);
+          return const SizedBox();
+        })));
+
+        clearInteractions(mockRacesService);
+        final reloaded = [Race(raceName: 'Synced Race')];
+        when(mockRacesService.loadRaces()).thenAnswer((_) async => reloaded);
+
+        syncController.add(SyncEvent(
+          timestamp: DateTime.now(),
+          changedTables: {'races'},
+        ));
+        await tester.pump();
+
+        verify(mockRacesService.loadRaces()).called(1);
+        expect(controller.races, equals(reloaded));
+
+        await syncController.close();
+      });
+
+      testWidgets(
+          'does not reload races when syncEvents emits without races table',
+          (tester) async {
+        final syncController = StreamController<SyncEvent>.broadcast();
+        controller.dispose();
+        controller = RacesController(
+          racesService: mockRacesService,
+          authService: mockAuthService,
+          eventBus: mockEventBus,
+          geoLocationService: mockGeoService,
+          postFrameCallbackScheduler: mockPostFrameScheduler,
+          tutorialManager: mockTutorialManager,
+          datePickerService: mockDatePickerService,
+          colorPickerDialogService: mockColorPickerService,
+          syncStream: syncController.stream,
+        );
+        when(mockPostFrameScheduler.addPostFrameCallback(any)).thenAnswer((_) {});
+        when(mockEventBus.on(any, any))
+            .thenAnswer((_) => Stream<Event>.empty().listen((_) {}));
+
+        await tester.pumpWidget(MaterialApp(home: Builder(builder: (ctx) {
+          controller.initState(ctx);
+          return const SizedBox();
+        })));
+
+        clearInteractions(mockRacesService);
+
+        syncController.add(SyncEvent(
+          timestamp: DateTime.now(),
+          changedTables: {'runners', 'teams'},
+        ));
+        await tester.pump();
+
+        verifyNever(mockRacesService.loadRaces());
+
+        await syncController.close();
       });
     });
 

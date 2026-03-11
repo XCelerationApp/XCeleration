@@ -1,12 +1,18 @@
 import 'package:sqflite/sqflite.dart';
 import '../../shared/models/database/base_models.dart';
+import '../services/database_write_bus.dart';
 import 'i_database_connection_provider.dart';
 import 'i_runner_repository.dart';
 
 class RunnerRepository implements IRunnerRepository {
   final IDatabaseConnectionProvider _conn;
+  final DatabaseWriteBus? _writeBus;
 
-  RunnerRepository({required IDatabaseConnectionProvider conn}) : _conn = conn;
+  RunnerRepository({
+    required IDatabaseConnectionProvider conn,
+    DatabaseWriteBus? writeBus,
+  })  : _conn = conn,
+        _writeBus = writeBus;
 
   Future<Database> get _db async => _conn.database;
 
@@ -22,13 +28,15 @@ class RunnerRepository implements IRunnerRepository {
           'Runner with bib number ${runner.bibNumber} already exists');
     }
     final db = await _db;
-    return await db.insert('runners', {
+    final id = await db.insert('runners', {
       'name': runner.name,
       'bib_number': runner.bibNumber,
       'grade': runner.grade,
       'is_dirty': 1,
       'updated_at': DateTime.now().toIso8601String(),
     });
+    _writeBus?.notify();
+    return id;
   }
 
   @override
@@ -81,6 +89,7 @@ class RunnerRepository implements IRunnerRepository {
     map['is_dirty'] = 1;
     await db.update('runners', map,
         where: 'runner_id = ?', whereArgs: [runner.runnerId]);
+    _writeBus?.notify();
   }
 
   @override
@@ -90,6 +99,7 @@ class RunnerRepository implements IRunnerRepository {
     }
     final db = await _db;
     await db.delete('runners', where: 'runner_id = ?', whereArgs: [runnerId]);
+    _writeBus?.notify();
   }
 
   @override
@@ -104,6 +114,7 @@ class RunnerRepository implements IRunnerRepository {
       await txn
           .delete('runners', where: 'runner_id = ?', whereArgs: [runnerId]);
     });
+    _writeBus?.notify();
   }
 
   @override
@@ -130,6 +141,7 @@ class RunnerRepository implements IRunnerRepository {
       {'team_id': teamId, 'runner_id': runnerId},
       conflictAlgorithm: ConflictAlgorithm.ignore,
     );
+    _writeBus?.notify();
   }
 
   @override
@@ -143,6 +155,7 @@ class RunnerRepository implements IRunnerRepository {
       where: 'team_id = ? AND runner_id = ?',
       whereArgs: [teamId, runnerId],
     );
+    _writeBus?.notify();
   }
 
   @override
@@ -164,6 +177,7 @@ class RunnerRepository implements IRunnerRepository {
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
     });
+    _writeBus?.notify();
   }
 
   @override

@@ -2,9 +2,6 @@
 /// This provides clean imports for all utility functions and services
 library;
 
-// Database & Storage
-export 'database_helper.dart';
-
 // File Operations
 export 'file_utils.dart';
 export 'file_processing.dart';

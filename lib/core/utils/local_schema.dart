@@ -62,6 +62,9 @@ CREATE TABLE IF NOT EXISTS race_participants (
   race_id INTEGER NOT NULL,
   runner_id INTEGER NOT NULL,
   team_id INTEGER NOT NULL,
+  race_uuid TEXT,
+  runner_uuid TEXT,
+  team_uuid TEXT,
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
   deleted_at TEXT,
@@ -95,6 +98,8 @@ CREATE TABLE IF NOT EXISTS race_results (
   uuid TEXT UNIQUE,
   race_id INTEGER NOT NULL,
   runner_id INTEGER NOT NULL,
+  runner_uuid TEXT,
+  race_uuid TEXT,
   team_id INTEGER,  -- Added team_id column
   place INTEGER,
   finish_time INTEGER,
@@ -135,6 +140,13 @@ CREATE INDEX IF NOT EXISTS idx_races_date ON races(race_date);
 
 CREATE INDEX IF NOT EXISTS idx_race_results_race ON race_results(race_id);
 CREATE INDEX IF NOT EXISTS idx_race_results_place ON race_results(race_id, place);
+
+-- Partial indexes for soft-delete filtering (schema v16)
+CREATE INDEX IF NOT EXISTS idx_runners_active ON runners(name) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_teams_active ON teams(name) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_races_active ON races(race_date) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_race_participants_active ON race_participants(race_id) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_team_rosters_active ON team_rosters(team_id) WHERE deleted_at IS NULL;
 ''';
 
 /// Utility to split and execute the schema script safely

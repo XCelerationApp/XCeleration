@@ -1,5 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 import '../../shared/models/database/base_models.dart';
+import '../services/database_write_bus.dart';
 import 'i_database_connection_provider.dart';
 import 'i_race_repository.dart';
 import 'i_runner_repository.dart';
@@ -7,12 +8,15 @@ import 'i_runner_repository.dart';
 class RaceRepository implements IRaceRepository {
   final IDatabaseConnectionProvider _conn;
   final IRunnerRepository _runnerRepo;
+  final DatabaseWriteBus? _writeBus;
 
   RaceRepository({
     required IDatabaseConnectionProvider conn,
     required IRunnerRepository runnerRepo,
+    DatabaseWriteBus? writeBus,
   })  : _conn = conn,
-        _runnerRepo = runnerRepo;
+        _runnerRepo = runnerRepo,
+        _writeBus = writeBus;
 
   Future<Database> get _db async => _conn.database;
 
@@ -27,7 +31,9 @@ class RaceRepository implements IRaceRepository {
     final map = race.toMap();
     map['is_dirty'] = 1;
     map['updated_at'] = DateTime.now().toIso8601String();
-    return await db.insert('races', map);
+    final id = await db.insert('races', map);
+    _writeBus?.notify();
+    return id;
   }
 
   @override
@@ -57,6 +63,7 @@ class RaceRepository implements IRaceRepository {
     map['is_dirty'] = 1;
     await db
         .update('races', map, where: 'race_id = ?', whereArgs: [race.raceId]);
+    _writeBus?.notify();
   }
 
   @override
@@ -66,6 +73,7 @@ class RaceRepository implements IRaceRepository {
     }
     final db = await _db;
     await db.delete('races', where: 'race_id = ?', whereArgs: [raceId]);
+    _writeBus?.notify();
   }
 
   // ============================================================================
@@ -91,6 +99,7 @@ class RaceRepository implements IRaceRepository {
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
+    _writeBus?.notify();
   }
 
   @override
@@ -106,6 +115,7 @@ class RaceRepository implements IRaceRepository {
       where: 'race_id = ? AND team_id = ?',
       whereArgs: [teamParticipant.raceId!, teamParticipant.teamId!],
     );
+    _writeBus?.notify();
   }
 
   @override
@@ -161,6 +171,7 @@ class RaceRepository implements IRaceRepository {
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
+    _writeBus?.notify();
   }
 
   @override
@@ -175,6 +186,7 @@ class RaceRepository implements IRaceRepository {
     await db.update('race_participants', map,
         where: 'race_id = ? AND runner_id = ?',
         whereArgs: [raceParticipant.raceId!, raceParticipant.runnerId!]);
+    _writeBus?.notify();
   }
 
   @override
@@ -189,6 +201,7 @@ class RaceRepository implements IRaceRepository {
       where: 'race_id = ? AND runner_id = ?',
       whereArgs: [raceParticipant.raceId!, raceParticipant.runnerId!],
     );
+    _writeBus?.notify();
   }
 
   @override
@@ -310,6 +323,7 @@ class RaceRepository implements IRaceRepository {
       where: 'race_id = ? AND runner_id = ?',
       whereArgs: [raceId, runnerId],
     );
+    _writeBus?.notify();
   }
 
   @override

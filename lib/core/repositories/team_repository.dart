@@ -1,12 +1,18 @@
 import 'package:sqflite/sqflite.dart';
 import '../../shared/models/database/base_models.dart';
+import '../services/database_write_bus.dart';
 import 'i_database_connection_provider.dart';
 import 'i_team_repository.dart';
 
 class TeamRepository implements ITeamRepository {
   final IDatabaseConnectionProvider _conn;
+  final DatabaseWriteBus? _writeBus;
 
-  TeamRepository({required IDatabaseConnectionProvider conn}) : _conn = conn;
+  TeamRepository({
+    required IDatabaseConnectionProvider conn,
+    DatabaseWriteBus? writeBus,
+  })  : _conn = conn,
+        _writeBus = writeBus;
 
   Future<Database> get _db async => _conn.database;
 
@@ -17,7 +23,7 @@ class TeamRepository implements ITeamRepository {
       throw Exception('Team with name ${team.name} already exists');
     }
     final db = await _db;
-    return await db.insert('teams', {
+    final id = await db.insert('teams', {
       'name': team.name,
       'abbreviation':
           team.abbreviation ?? Team.generateAbbreviation(team.name!),
@@ -25,6 +31,8 @@ class TeamRepository implements ITeamRepository {
       'is_dirty': 1,
       'updated_at': DateTime.now().toIso8601String(),
     });
+    _writeBus?.notify();
+    return id;
   }
 
   @override
@@ -82,6 +90,7 @@ class TeamRepository implements ITeamRepository {
       updates['is_dirty'] = 1;
       await db.update('teams', updates,
           where: 'team_id = ?', whereArgs: [team.teamId]);
+      _writeBus?.notify();
     }
   }
 
@@ -92,5 +101,6 @@ class TeamRepository implements ITeamRepository {
     }
     final db = await _db;
     await db.delete('teams', where: 'team_id = ?', whereArgs: [teamId]);
+    _writeBus?.notify();
   }
 }
