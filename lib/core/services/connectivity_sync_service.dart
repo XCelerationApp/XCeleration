@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:xceleration/core/services/i_auth_service.dart';
 import 'package:xceleration/core/services/i_sync_service.dart';
+import 'package:xceleration/core/utils/connectivity_utils.dart';
 
 /// Listens to connectivity changes and local DB writes, triggering sync on
 /// Wi‑Fi. A 2-second debounce prevents hammering the remote after rapid writes.
@@ -50,8 +51,7 @@ class ConnectivitySyncService {
 
   Future<void> _syncIfOnWifi() async {
     try {
-      final results = await Connectivity().checkConnectivity();
-      if (_auth.isSignedIn && results.contains(ConnectivityResult.wifi)) {
+      if (_auth.isSignedIn && await ConnectivityUtils.isOnline()) {
         await _sync.syncAll();
       }
     } catch (_) {}
