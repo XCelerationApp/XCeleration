@@ -147,7 +147,13 @@ class _SignInScreenState extends State<SignInScreen>
       }
     }
     if (error is gotrue.AuthException) {
-      return error.message;
+      final msg = error.message;
+      if (msg.contains('SocketException') ||
+          msg.contains('ClientException') ||
+          msg.contains('Failed host lookup')) {
+        return 'No internet connection. Please check your connection and try again.';
+      }
+      return msg;
     }
 
     // Unknown
