@@ -6,13 +6,14 @@
 import 'dart:async' as _i4;
 
 import 'package:mockito/mockito.dart' as _i1;
-import 'package:mockito/src/dummies.dart' as _i8;
+import 'package:mockito/src/dummies.dart' as _i9;
 import 'package:sqflite/sqflite.dart' as _i2;
 import 'package:supabase_flutter/supabase_flutter.dart' as _i3;
 import 'package:xceleration/core/repositories/i_database_connection_provider.dart'
     as _i5;
-import 'package:xceleration/core/services/i_auth_service.dart' as _i7;
+import 'package:xceleration/core/services/i_auth_service.dart' as _i8;
 import 'package:xceleration/core/services/i_remote_api_client.dart' as _i6;
+import 'package:xceleration/core/services/i_remote_sync_client.dart' as _i7;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -251,10 +252,84 @@ class MockIRemoteApiClient extends _i1.Mock implements _i6.IRemoteApiClient {
       ) as _i4.Future<void>);
 }
 
+/// A class which mocks [IRemoteSyncClient].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockIRemoteSyncClient extends _i1.Mock implements _i7.IRemoteSyncClient {
+  MockIRemoteSyncClient() {
+    _i1.throwOnMissingStub(this);
+  }
+
+  @override
+  _i4.Future<List<String>> fetchAccessibleOwnerIds(String? userId) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #fetchAccessibleOwnerIds,
+          [userId],
+        ),
+        returnValue: _i4.Future<List<String>>.value(<String>[]),
+      ) as _i4.Future<List<String>>);
+
+  @override
+  _i4.Future<List<Map<String, dynamic>>> fetchTableRows(
+    String? table,
+    List<String>? ownerIds, {
+    String? cursor,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #fetchTableRows,
+          [
+            table,
+            ownerIds,
+          ],
+          {#cursor: cursor},
+        ),
+        returnValue: _i4.Future<List<Map<String, dynamic>>>.value(
+            <Map<String, dynamic>>[]),
+      ) as _i4.Future<List<Map<String, dynamic>>>);
+
+  @override
+  _i4.Future<List<Map<String, dynamic>>> fetchByUuids(
+    String? table,
+    List<String>? uuids,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #fetchByUuids,
+          [
+            table,
+            uuids,
+          ],
+        ),
+        returnValue: _i4.Future<List<Map<String, dynamic>>>.value(
+            <Map<String, dynamic>>[]),
+      ) as _i4.Future<List<Map<String, dynamic>>>);
+
+  @override
+  _i4.Future<void> upsertRows(
+    String? table,
+    List<Map<String, dynamic>>? rows, {
+    required String? onConflict,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #upsertRows,
+          [
+            table,
+            rows,
+          ],
+          {#onConflict: onConflict},
+        ),
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
+}
+
 /// A class which mocks [IAuthService].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockIAuthService extends _i1.Mock implements _i7.IAuthService {
+class MockIAuthService extends _i1.Mock implements _i8.IAuthService {
   MockIAuthService() {
     _i1.throwOnMissingStub(this);
   }
@@ -277,7 +352,7 @@ class MockDatabase extends _i1.Mock implements _i2.Database {
   @override
   String get path => (super.noSuchMethod(
         Invocation.getter(#path),
-        returnValue: _i8.dummyValue<String>(
+        returnValue: _i9.dummyValue<String>(
           this,
           Invocation.getter(#path),
         ),
@@ -319,8 +394,8 @@ class MockDatabase extends _i1.Mock implements _i2.Database {
           [action],
           {#exclusive: exclusive},
         ),
-        returnValue: _i8.ifNotNull(
-              _i8.dummyValueOrNull<T>(
+        returnValue: _i9.ifNotNull(
+              _i9.dummyValueOrNull<T>(
                 this,
                 Invocation.method(
                   #transaction,
@@ -348,8 +423,8 @@ class MockDatabase extends _i1.Mock implements _i2.Database {
           #readTransaction,
           [action],
         ),
-        returnValue: _i8.ifNotNull(
-              _i8.dummyValueOrNull<T>(
+        returnValue: _i9.ifNotNull(
+              _i9.dummyValueOrNull<T>(
                 this,
                 Invocation.method(
                   #readTransaction,
@@ -380,8 +455,8 @@ class MockDatabase extends _i1.Mock implements _i2.Database {
             arguments,
           ],
         ),
-        returnValue: _i8.ifNotNull(
-              _i8.dummyValueOrNull<T>(
+        returnValue: _i9.ifNotNull(
+              _i9.dummyValueOrNull<T>(
                 this,
                 Invocation.method(
                   #devInvokeMethod,
@@ -420,8 +495,8 @@ class MockDatabase extends _i1.Mock implements _i2.Database {
             arguments,
           ],
         ),
-        returnValue: _i8.ifNotNull(
-              _i8.dummyValueOrNull<T>(
+        returnValue: _i9.ifNotNull(
+              _i9.dummyValueOrNull<T>(
                 this,
                 Invocation.method(
                   #devInvokeSqlMethod,
@@ -921,7 +996,7 @@ class MockSupabaseClient extends _i1.Mock implements _i3.SupabaseClient {
           #removeChannel,
           [channel],
         ),
-        returnValue: _i4.Future<String>.value(_i8.dummyValue<String>(
+        returnValue: _i4.Future<String>.value(_i9.dummyValue<String>(
           this,
           Invocation.method(
             #removeChannel,

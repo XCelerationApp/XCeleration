@@ -23,6 +23,7 @@ import 'core/repositories/i_database_connection_provider.dart';
 import 'core/services/database_write_bus.dart';
 import 'core/services/sync_service.dart';
 import 'core/services/remote_api_client.dart';
+import 'core/services/supabase_remote_sync_client.dart';
 import 'core/services/connectivity_sync_service.dart';
 import 'core/services/i_sync_service.dart';
 import 'core/services/service_locator.dart';
@@ -82,6 +83,7 @@ void _runApp() async {
   final syncService = SyncService(
     db: ServiceLocator.get<IDatabaseConnectionProvider>(),
     remote: RemoteApiClient.instance,
+    syncClient: SupabaseRemoteSyncClient(remote: RemoteApiClient.instance),
     auth: AuthService.instance,
   );
   final connectivitySyncService = ConnectivitySyncService(
