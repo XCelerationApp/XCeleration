@@ -76,12 +76,14 @@ void _runApp() async {
   // Initialize the service locator (registers repos, write bus, etc.)
   await ServiceLocator.initialize();
 
+  // Initialize Supabase eagerly so it is ready before any screen is reached.
+  await RemoteApiClient.instance.init();
+
   // Wire up concrete service instances once at startup
-  final remoteApiClient = RemoteApiClient();
   final syncService = SyncService(
     db: ServiceLocator.get<IDatabaseConnectionProvider>(),
-    remote: remoteApiClient,
-    syncClient: SupabaseRemoteSyncClient(remote: remoteApiClient),
+    remote: RemoteApiClient.instance,
+    syncClient: SupabaseRemoteSyncClient(remote: RemoteApiClient.instance),
     auth: AuthService.instance,
   );
   final connectivitySyncService = ConnectivitySyncService(
