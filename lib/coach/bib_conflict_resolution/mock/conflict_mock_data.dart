@@ -47,15 +47,14 @@ sealed class MockBibConflict {
   int get finishPosition;
 }
 
-/// A bib number that appears at two different finish positions.
+/// A bib number that appears at multiple different finish positions.
 class MockDuplicateConflict extends MockBibConflict {
   const MockDuplicateConflict({
     required this.bibNumber,
     required this.runnerName,
     required this.team,
     required this.grade,
-    required this.entry1,
-    required this.entry2,
+    required this.occurrences,
     required super.surroundingFinishers,
   });
 
@@ -66,14 +65,11 @@ class MockDuplicateConflict extends MockBibConflict {
   /// Grade year, e.g. 9, 10, 11, 12.
   final int grade;
 
-  /// The first (earlier) occurrence.
-  final ({int position, String formattedTime}) entry1;
-
-  /// The second (later) occurrence.
-  final ({int position, String formattedTime}) entry2;
+  /// All recorded occurrences of this bib, sorted ascending by finish position.
+  final List<({int position, String formattedTime})> occurrences;
 
   @override
-  int get finishPosition => entry1.position;
+  int get finishPosition => occurrences.first.position;
 }
 
 /// A bib number that was entered but matches no runner in the database.
@@ -118,7 +114,7 @@ abstract final class ConflictMockData {
     'Northgate HS',
   ];
 
-  /// All conflicts ordered: duplicates first (by position), then unknowns.
+  /// All conflicts ordered: duplicates first (by earliest position), then unknowns.
   static final List<MockBibConflict> conflicts = [
     // --- Duplicate 1: Bib 412 at positions 8 and 12 ---
     const MockDuplicateConflict(
@@ -126,8 +122,10 @@ abstract final class ConflictMockData {
       runnerName: 'Marcus Webb',
       team: 'Northgate HS',
       grade: 11,
-      entry1: (position: 8, formattedTime: '16:43'),
-      entry2: (position: 12, formattedTime: '17:20'),
+      occurrences: [
+        (position: 8, formattedTime: '16:43'),
+        (position: 12, formattedTime: '17:20'),
+      ],
       surroundingFinishers: [
         MockFinishEntry(position: 3, bibNumber: 314, formattedTime: '15:52', runnerName: 'Noah Garcia', team: 'Riverside Prep'),
         MockFinishEntry(position: 4, bibNumber: 178, formattedTime: '16:01', runnerName: 'Ethan Martinez', team: 'Lincoln HS'),
@@ -142,14 +140,40 @@ abstract final class ConflictMockData {
         MockFinishEntry(position: 15, bibNumber: 255, formattedTime: '17:58', runnerName: 'Owen Harris', team: 'Westview Academy'),
       ],
     ),
-    // --- Duplicate 2: Bib 203 at positions 19 and 22 ---
+    // --- Duplicate 2: Bib 410 at positions 10, 14, and 16 (3 occurrences) ---
+    const MockDuplicateConflict(
+      bibNumber: 410,
+      runnerName: 'Jordan Scott',
+      team: 'Northgate HS',
+      grade: 9,
+      occurrences: [
+        (position: 10, formattedTime: '17:02'),
+        (position: 14, formattedTime: '17:45'),
+        (position: 16, formattedTime: '18:09'),
+      ],
+      surroundingFinishers: [
+        MockFinishEntry(position: 6, bibNumber: 205, formattedTime: '16:22', runnerName: 'Henry Brown', team: 'Westview Academy'),
+        MockFinishEntry(position: 7, bibNumber: 312, formattedTime: '16:31', runnerName: 'Mason Davis', team: 'Riverside Prep'),
+        MockFinishEntry(position: 8, bibNumber: 412, formattedTime: '16:43', runnerName: 'Marcus Webb', team: 'Northgate HS'),
+        MockFinishEntry(position: 9, bibNumber: 117, formattedTime: '16:55', runnerName: 'Oliver Wilson', team: 'Lincoln HS'),
+        MockFinishEntry(position: 11, bibNumber: 289, formattedTime: '17:11', runnerName: 'Benjamin Anderson', team: 'Westview Academy'),
+        MockFinishEntry(position: 12, bibNumber: 367, formattedTime: '17:24', runnerName: 'James Nguyen', team: 'Riverside Prep'),
+        MockFinishEntry(position: 13, bibNumber: 445, formattedTime: '17:36', runnerName: 'Tyler Brooks', team: 'Westview Academy'),
+        MockFinishEntry(position: 15, bibNumber: 255, formattedTime: '17:58', runnerName: 'Owen Harris', team: 'Westview Academy'),
+        MockFinishEntry(position: 17, bibNumber: 190, formattedTime: '18:21', runnerName: 'Carter Thompson', team: 'Lincoln HS'),
+        MockFinishEntry(position: 18, bibNumber: 327, formattedTime: '18:33', runnerName: 'Dylan Garcia', team: 'Riverside Prep'),
+      ],
+    ),
+    // --- Duplicate 3: Bib 203 at positions 19 and 22 ---
     const MockDuplicateConflict(
       bibNumber: 203,
       runnerName: 'Finn Holloway',
       team: 'Riverside Prep',
       grade: 10,
-      entry1: (position: 19, formattedTime: '18:44'),
-      entry2: (position: 22, formattedTime: '19:17'),
+      occurrences: [
+        (position: 19, formattedTime: '18:44'),
+        (position: 22, formattedTime: '19:17'),
+      ],
       surroundingFinishers: [
         MockFinishEntry(position: 14, bibNumber: 388, formattedTime: '17:45', runnerName: 'Logan White', team: 'Riverside Prep'),
         MockFinishEntry(position: 15, bibNumber: 255, formattedTime: '17:58', runnerName: 'Owen Harris', team: 'Westview Academy'),
