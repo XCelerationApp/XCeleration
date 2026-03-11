@@ -6,6 +6,7 @@ import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/core/repositories/i_database_connection_provider.dart';
 import 'package:xceleration/core/services/i_auth_service.dart';
 import 'package:xceleration/core/services/i_remote_api_client.dart';
+import 'package:xceleration/core/services/i_remote_sync_client.dart';
 import 'package:xceleration/core/services/i_sync_service.dart';
 
 /// Emitted by [SyncService.syncEvents] after each successful [SyncService.pullAll].
@@ -45,14 +46,17 @@ class _PushConflictResult {
 class SyncService implements ISyncService {
   final IDatabaseConnectionProvider _db;
   final IRemoteApiClient _remote;
+  final IRemoteSyncClient _syncClient;
   final IAuthService _auth;
 
   SyncService({
     required IDatabaseConnectionProvider db,
     required IRemoteApiClient remote,
+    required IRemoteSyncClient syncClient,
     required IAuthService auth,
   })  : _db = db,
         _remote = remote,
+        _syncClient = syncClient,
         _auth = auth;
 
   final _syncEventController = StreamController<SyncEvent>.broadcast();
@@ -274,7 +278,7 @@ class SyncService implements ISyncService {
     }
   }
 
-  // Push dirty rows (scaffold only; integrate with remote client later)
+  // Push dirty rows
   Future<void> pushAll() async {
     // Auth guard: every pushed row must carry an owner_user_id. Check once
     // here rather than per-row to avoid unnecessary DB and network work before
@@ -285,7 +289,6 @@ class SyncService implements ISyncService {
       return;
     }
 
-    final client = _remote.client;
     final db = await _db.database;
     if (!await _hasNormalizedSchema(db)) {
       Logger.d('Push skipped: normalized schema not found yet.');
@@ -300,17 +303,11 @@ class SyncService implements ISyncService {
       final uuids = rows.map((r) => r['uuid']).whereType<String>().toList();
 
       // Fetch all matching remote rows in one round-trip
+      final remoteRows = await _syncClient.fetchByUuids(table, uuids);
       final remoteMap = <String, Map<String, dynamic>>{};
-      if (uuids.isNotEmpty) {
-        final remoteRows = await client
-            .from(table)
-            .select()
-            .inFilter('uuid', uuids);
-        for (final r in remoteRows) {
-          final m = Map<String, dynamic>.from(r as Map);
-          final u = m['uuid'] as String?;
-          if (u != null) remoteMap[u] = m;
-        }
+      for (final r in remoteRows) {
+        final u = r['uuid'] as String?;
+        if (u != null) remoteMap[u] = r;
       }
 
       final payload = <Map<String, dynamic>>[];
@@ -336,7 +333,7 @@ class SyncService implements ISyncService {
       }
 
       if (payload.isNotEmpty) {
-        await client.from(table).upsert(payload, onConflict: onConflict);
+        await _syncClient.upsertRows(table, payload, onConflict: onConflict);
         final pushedUuids =
             payload.map((r) => r['uuid']).whereType<String>().toList();
         if (pushedUuids.isNotEmpty) {
@@ -360,7 +357,6 @@ class SyncService implements ISyncService {
   /// Strips local integer runner_id/race_id from the remote payload and
   /// requires runner_uuid/race_uuid to be present.
   Future<void> _pushRaceResults() async {
-    final client = _remote.client;
     final db = await _db.database;
 
     // Auth guard: defensive check in case _pushRaceResults is called outside
@@ -379,17 +375,11 @@ class SyncService implements ISyncService {
     final uuids = rows.map((r) => r['uuid']).whereType<String>().toList();
 
     // Fetch all matching remote rows in one round-trip
+    final remoteRows = await _syncClient.fetchByUuids('race_results', uuids);
     final remoteMap = <String, Map<String, dynamic>>{};
-    if (uuids.isNotEmpty) {
-      final remoteRows = await client
-          .from('race_results')
-          .select()
-          .inFilter('uuid', uuids);
-      for (final r in remoteRows) {
-        final m = Map<String, dynamic>.from(r as Map);
-        final u = m['uuid'] as String?;
-        if (u != null) remoteMap[u] = m;
-      }
+    for (final r in remoteRows) {
+      final u = r['uuid'] as String?;
+      if (u != null) remoteMap[u] = r;
     }
 
     final payload = <Map<String, dynamic>>[];
@@ -425,14 +415,14 @@ class SyncService implements ISyncService {
     }
 
     if (payload.isNotEmpty) {
-      await client.from('race_results').upsert(payload, onConflict: 'uuid');
-      final uuids =
+      await _syncClient.upsertRows('race_results', payload, onConflict: 'uuid');
+      final pushedUuids =
           payload.map((r) => r['uuid']).whereType<String>().toList();
-      if (uuids.isNotEmpty) {
-        final qMarks = List.filled(uuids.length, '?').join(',');
+      if (pushedUuids.isNotEmpty) {
+        final qMarks = List.filled(pushedUuids.length, '?').join(',');
         await db.rawUpdate(
             'UPDATE race_results SET is_dirty = 0 WHERE uuid IN ($qMarks)',
-            uuids);
+            pushedUuids);
       }
       Logger.d('Pushed ${payload.length} dirty records for race_results');
     }
@@ -442,7 +432,6 @@ class SyncService implements ISyncService {
   /// Strips local integer race_id/runner_id/team_id from the remote payload and
   /// requires race_uuid/runner_uuid to be present.
   Future<void> _pushRaceParticipants() async {
-    final client = _remote.client;
     final db = await _db.database;
 
     // Auth guard: defensive check in case _pushRaceParticipants is called
@@ -483,9 +472,9 @@ class SyncService implements ISyncService {
     }
 
     if (payload.isNotEmpty) {
-      await client
-          .from('race_participants')
-          .upsert(payload, onConflict: 'race_uuid,runner_uuid');
+      await _syncClient.upsertRows(
+          'race_participants', payload,
+          onConflict: 'race_uuid,runner_uuid');
       for (final (raceUuid, runnerUuid) in pushedKeys) {
         await db.rawUpdate(
           'UPDATE race_participants SET is_dirty = 0 WHERE race_uuid = ? AND runner_uuid = ?',
@@ -496,65 +485,34 @@ class SyncService implements ISyncService {
     }
   }
 
-  /// Returns the list of owner user IDs the current user can read:
-  /// themselves plus any coaches who have shared access.
-  Future<List<String>> _getAccessibleOwnerIds() async {
-    final client = _remote.client;
-    final uid = _auth.currentUserId;
-    if (uid == null) {
-      Logger.d('User not authenticated; cannot determine accessible owners');
-      return [];
-    }
-    try {
-      // Optional table `coach_links(coach_user_id, viewer_user_id)`
-      final List links = await client
-          .from('coach_links')
-          .select('coach_user_id')
-          .eq('viewer_user_id', uid);
-      final coachIds = links
-          .map((e) => (e as Map)['coach_user_id']?.toString())
-          .whereType<String>()
-          .toList();
-      return [uid, ...coachIds];
-    } catch (_) {
-      // If table doesn't exist yet, just return self
-      return [uid];
-    }
-  }
-
-  // Pull changed rows (scaffold only)
+  // Pull changed rows
   Future<void> pullAll() async {
-    final client = _remote.client;
     final db = await _db.database;
     if (!await _hasNormalizedSchema(db)) {
       Logger.d('Pull skipped: normalized schema not found yet.');
       return;
     }
 
-    final accessibleOwnerIds = await _getAccessibleOwnerIds();
+    final uid = _auth.currentUserId;
+    final accessibleOwnerIds = uid != null
+        ? await _syncClient.fetchAccessibleOwnerIds(uid)
+        : <String>[];
+
     final changedTables = <String>{};
 
     Future<void> pullTable(String table, String idCol) async {
       final cursorKey = 'cursor.$table';
       final cursor = await getCursor(cursorKey);
-      final query = client.from(table).select();
-      if (accessibleOwnerIds.isNotEmpty) {
-        if (accessibleOwnerIds.length == 1) {
-          query.eq('owner_user_id', accessibleOwnerIds.first);
-        } else {
-          final orExpr =
-              accessibleOwnerIds.map((id) => 'owner_user_id.eq.$id').join(',');
-          query.or(orExpr);
-        }
-      }
-      if (cursor != null && cursor.isNotEmpty) {
-        query.gt('updated_at', cursor);
-      }
-      final List data = await query.order('updated_at').limit(1000);
+      final data = await _syncClient.fetchTableRows(
+        table,
+        accessibleOwnerIds,
+        cursor: cursor,
+      );
+
       String? newCursor = cursor;
       bool hadWrites = false;
       for (final row in data) {
-        final remote = Map<String, dynamic>.from(row as Map);
+        final remote = Map<String, dynamic>.from(row);
         final uuid = remote['uuid'] as String?;
         if (uuid == null) continue;
         final locals =
@@ -684,35 +642,26 @@ class SyncService implements ISyncService {
   /// Pull race_results from remote and resolve UUID-based foreign keys to
   /// local integer IDs before inserting or updating. Skips any row whose
   /// runner_uuid or race_uuid cannot be resolved locally (will retry next sync).
-  Future<void> _pullRaceResults(List<String> accessibleOwnerIds, Set<String> changedTables) async {
-    final client = _remote.client;
+  Future<void> _pullRaceResults(
+      List<String> accessibleOwnerIds, Set<String> changedTables) async {
     final db = await _db.database;
 
     const table = 'race_results';
     const cursorKey = 'cursor.$table';
     final cursor = await getCursor(cursorKey);
 
-    final query = client.from(table).select();
-    if (accessibleOwnerIds.isNotEmpty) {
-      if (accessibleOwnerIds.length == 1) {
-        query.eq('owner_user_id', accessibleOwnerIds.first);
-      } else {
-        final orExpr =
-            accessibleOwnerIds.map((id) => 'owner_user_id.eq.$id').join(',');
-        query.or(orExpr);
-      }
-    }
-    if (cursor != null && cursor.isNotEmpty) {
-      query.gt('updated_at', cursor);
-    }
-    final List data = await query.order('updated_at').limit(1000);
+    final data = await _syncClient.fetchTableRows(
+      table,
+      accessibleOwnerIds,
+      cursor: cursor,
+    );
     if (data.isEmpty) return;
 
     // Batch-resolve all runner_uuids and race_uuids to local integer IDs
     final runnerUuids =
-        data.map((r) => (r as Map)['runner_uuid']).whereType<String>().toSet().toList();
+        data.map((r) => r['runner_uuid']).whereType<String>().toSet().toList();
     final raceUuids =
-        data.map((r) => (r as Map)['race_uuid']).whereType<String>().toSet().toList();
+        data.map((r) => r['race_uuid']).whereType<String>().toSet().toList();
 
     final runnerUuidToId = <String, int>{};
     final raceUuidToId = <String, int>{};
@@ -739,7 +688,7 @@ class SyncService implements ISyncService {
     bool hadWrites = false;
 
     for (final row in data) {
-      final remote = Map<String, dynamic>.from(row as Map);
+      final remote = Map<String, dynamic>.from(row);
       final uuid = remote['uuid'] as String?;
       if (uuid == null) continue;
 
@@ -869,37 +818,28 @@ class SyncService implements ISyncService {
   /// Pull race_participants from remote and resolve UUID-based foreign keys to
   /// local integer IDs before inserting or updating. Skips rows where any UUID
   /// cannot be resolved locally (will retry next sync).
-  Future<void> _pullRaceParticipants(List<String> accessibleOwnerIds, Set<String> changedTables) async {
-    final client = _remote.client;
+  Future<void> _pullRaceParticipants(
+      List<String> accessibleOwnerIds, Set<String> changedTables) async {
     final db = await _db.database;
 
     const table = 'race_participants';
     const cursorKey = cursorRaceParticipants;
     final cursor = await getCursor(cursorKey);
 
-    final query = client.from(table).select();
-    if (accessibleOwnerIds.isNotEmpty) {
-      if (accessibleOwnerIds.length == 1) {
-        query.eq('owner_user_id', accessibleOwnerIds.first);
-      } else {
-        final orExpr =
-            accessibleOwnerIds.map((id) => 'owner_user_id.eq.$id').join(',');
-        query.or(orExpr);
-      }
-    }
-    if (cursor != null && cursor.isNotEmpty) {
-      query.gt('updated_at', cursor);
-    }
-    final List data = await query.order('updated_at').limit(1000);
+    final data = await _syncClient.fetchTableRows(
+      table,
+      accessibleOwnerIds,
+      cursor: cursor,
+    );
     if (data.isEmpty) return;
 
     // Batch-resolve all UUIDs to local integer IDs
     final raceUuids =
-        data.map((r) => (r as Map)['race_uuid']).whereType<String>().toSet().toList();
+        data.map((r) => r['race_uuid']).whereType<String>().toSet().toList();
     final runnerUuids =
-        data.map((r) => (r as Map)['runner_uuid']).whereType<String>().toSet().toList();
+        data.map((r) => r['runner_uuid']).whereType<String>().toSet().toList();
     final teamUuids =
-        data.map((r) => (r as Map)['team_uuid']).whereType<String>().toSet().toList();
+        data.map((r) => r['team_uuid']).whereType<String>().toSet().toList();
 
     final raceUuidToId = <String, int>{};
     final runnerUuidToId = <String, int>{};
@@ -935,7 +875,7 @@ class SyncService implements ISyncService {
     bool hadWrites = false;
 
     for (final row in data) {
-      final remote = Map<String, dynamic>.from(row as Map);
+      final remote = Map<String, dynamic>.from(row);
       remote.remove('owner_user_id');
 
       final raceUuid = remote['race_uuid'] as String?;
