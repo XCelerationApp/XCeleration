@@ -2,25 +2,55 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../controller/conflict_resolution_controller.dart';
 import '../mock/conflict_mock_data.dart';
+import '../../../core/components/button_components.dart';
+import '../../../core/theme/app_animations.dart';
 import '../../../core/theme/app_border_radius.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_animations.dart';
+import '../../../core/theme/app_opacity.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/typography.dart';
+import '../../../core/utils/sheet_utils.dart';
+import './inline_context_panel.dart';
+import './mock_create_runner_sheet.dart';
 import './runner_assignment_list.dart';
+
+part 'duplicate_conflict_card_step1.dart';
+part 'duplicate_conflict_card_multi.dart';
 
 String _ordinal(int n) {
   if (n >= 11 && n <= 13) return '${n}th';
   switch (n % 10) {
-    case 1: return '${n}st';
-    case 2: return '${n}nd';
-    case 3: return '${n}rd';
-    default: return '${n}th';
+    case 1:
+      return '${n}st';
+    case 2:
+      return '${n}nd';
+    case 3:
+      return '${n}rd';
+    default:
+      return '${n}th';
   }
 }
 
-/// Step 1: Shows both duplicate occurrences side by side.
-/// The recorder picks which finish position actually had this bib.
+void _showNearbySheet(
+  BuildContext context,
+  List<MockFinishEntry> entries,
+  int conflictPosition,
+  int conflictBib,
+  String conflictTime,
+) {
+  sheet(
+    context: context,
+    title: 'Nearby Finishers',
+    body: _NearbyFinishersSheet(
+      entries: entries,
+      conflictPosition: conflictPosition,
+      conflictBib: conflictBib,
+      conflictTime: conflictTime,
+    ),
+  );
+}
+
+/// Step 1: Coach picks which occurrence is the correct finish position.
 class DuplicateStep1Card extends StatelessWidget {
   const DuplicateStep1Card({super.key, required this.conflict});
 
@@ -28,136 +58,24 @@ class DuplicateStep1Card extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = context.read<ConflictResolutionController>();
-
+    final isMulti = conflict.occurrences.length > 2;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Duplicate Bib', style: AppTypography.titleMedium),
-        const SizedBox(height: AppSpacing.xs),
-        Text(
-          conflict.runnerName,
-          style: AppTypography.titleSemibold,
-        ),
-        const SizedBox(height: AppSpacing.xs),
-        Text(
-          '${conflict.team} · Grade ${conflict.grade}',
-          style: AppTypography.caption.copyWith(color: AppColors.mediumColor),
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        Text(
-          'Bib #${conflict.bibNumber} was recorded at two finish places. '
-          'Which one is correct?',
-          style: AppTypography.bodyRegular.copyWith(color: AppColors.mediumColor),
-        ),
-        const SizedBox(height: AppSpacing.xl),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: _OccurrenceTile(
-                label: _ordinal(conflict.entry1.position),
-                time: conflict.entry1.formattedTime,
-                onCorrect: () => controller.chooseDuplicateOccurrence(1),
-              ),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: _OccurrenceTile(
-                label: _ordinal(conflict.entry2.position),
-                time: conflict.entry2.formattedTime,
-                onCorrect: () => controller.chooseDuplicateOccurrence(2),
-              ),
-            ),
-          ],
-        ),
+        _DupBadgeRow(conflict: conflict),
+        const SizedBox(height: AppSpacing.md),
+        _KnownRunnerCard(conflict: conflict),
+        const SizedBox(height: AppSpacing.lg),
+        isMulti
+            ? _MultiOccurrenceStep1(conflict: conflict)
+            : _TwoOccurrenceStep1(conflict: conflict),
       ],
     );
   }
 }
 
-class _OccurrenceTile extends StatefulWidget {
-  const _OccurrenceTile({
-    required this.label,
-    required this.time,
-    required this.onCorrect,
-  });
-
-  final String label;
-  final String time;
-  final VoidCallback onCorrect;
-
-  @override
-  State<_OccurrenceTile> createState() => _OccurrenceTileState();
-}
-
-class _OccurrenceTileState extends State<_OccurrenceTile> {
-  bool _confirmed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: AppAnimations.standard,
-      curve: AppAnimations.spring,
-      decoration: BoxDecoration(
-        color: _confirmed
-            ? AppColors.primaryColor.withValues(alpha: 0.08)
-            : Colors.white,
-        border: Border.all(
-          color: _confirmed ? AppColors.primaryColor : AppColors.lightColor,
-          width: _confirmed ? 2 : 1,
-        ),
-        borderRadius: BorderRadius.circular(AppBorderRadius.lg),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Text(widget.label, style: AppTypography.titleSemibold),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            widget.time,
-            style: AppTypography.bodyRegular.copyWith(
-              color: AppColors.mediumColor,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          if (_confirmed)
-            Icon(Icons.check_circle, color: AppColors.primaryColor, size: 28)
-          else
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  setState(() => _confirmed = true);
-                  Future.delayed(AppAnimations.standard, widget.onCorrect);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryColor,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppBorderRadius.md),
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-                ),
-                child: Text('This one', style: AppTypography.smallBodySemibold),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Step 2 (inline): The "wrong" entry now needs a real runner assigned.
-class DuplicateStep2Card extends StatelessWidget {
+/// Step 2: Assign a runner to the confirmed correct finish position.
+class DuplicateStep2Card extends StatefulWidget {
   const DuplicateStep2Card({
     super.key,
     required this.conflict,
@@ -166,28 +84,189 @@ class DuplicateStep2Card extends StatelessWidget {
 
   final MockDuplicateConflict conflict;
 
-  /// 1 = entry1 was correct (entry2 needs fixing), 2 = entry2 was correct.
+  /// The confirmed finish position (e.g. 8 for 8th place).
   final int correctOccurrence;
 
   @override
-  Widget build(BuildContext context) {
-    final wrongEntry =
-        correctOccurrence == 1 ? conflict.entry2 : conflict.entry1;
+  State<DuplicateStep2Card> createState() => _DuplicateStep2CardState();
+}
 
+class _DuplicateStep2CardState extends State<DuplicateStep2Card> {
+  bool _assignMode = false;
+
+  ({int position, String formattedTime}) get _correctEntry =>
+      widget.conflict.occurrences
+          .firstWhere((o) => o.position == widget.correctOccurrence);
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = context.watch<ConflictResolutionController>();
+    final entry = _correctEntry;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Fix the other entry', style: AppTypography.titleMedium),
+        _ConfirmationBanner(position: entry.position),
+        const SizedBox(height: AppSpacing.md),
+        Text(
+          'Who finished ${_ordinal(entry.position)}?',
+          style: AppTypography.titleSemibold,
+        ),
         const SizedBox(height: AppSpacing.xs),
         Text(
-          '${_ordinal(wrongEntry.position)} place (${wrongEntry.formattedTime}) '
-          'needs a different runner — Bib #${conflict.bibNumber} is already taken.',
+          '${entry.formattedTime} · Bib #${widget.conflict.bibNumber}',
           style: AppTypography.bodyRegular.copyWith(color: AppColors.mediumColor),
         ),
-        const SizedBox(height: AppSpacing.xl),
-        RunnerAssignmentList(
-          targetBib: conflict.bibNumber,
-          forbiddenBib: conflict.bibNumber,
+        const SizedBox(height: AppSpacing.md),
+        InlineContextPanel(
+          surroundingFinishers: widget.conflict.surroundingFinishers,
+          contextPosition: entry.position,
+        ),
+        TextButton(
+          onPressed: () => _showNearbySheet(
+            context,
+            widget.conflict.surroundingFinishers,
+            entry.position,
+            widget.conflict.bibNumber,
+            entry.formattedTime,
+          ),
+          child: const Text('See nearby finishers ↓'),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        AnimatedSize(
+          duration: AppAnimations.standard,
+          curve: AppAnimations.spring,
+          child: _assignMode
+              ? _AssignModePanel(
+                  targetBib: widget.conflict.bibNumber,
+                  onDismiss: () => setState(() => _assignMode = false),
+                )
+              : _Step2ActionButtons(
+                  onAssign: () => setState(() => _assignMode = true),
+                  onCreate: () => _openCreateSheet(context, controller, entry),
+                ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _openCreateSheet(
+    BuildContext context,
+    ConflictResolutionController controller,
+    ({int position, String formattedTime}) entry,
+  ) async {
+    await sheet(
+      context: context,
+      title: 'Add New Runner',
+      body: MockCreateRunnerSheet(
+        allKnownBibs: controller.allKnownBibs,
+        forbiddenBib: widget.conflict.bibNumber,
+        onCreated: (name, bib, team, grade) {
+          controller.prepareCreate(
+            name,
+            bib,
+            team,
+            grade,
+            '${_ordinal(entry.position)} place',
+          );
+          Navigator.of(context).pop();
+        },
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Step 2 sub-widgets
+// ---------------------------------------------------------------------------
+
+class _ConfirmationBanner extends StatelessWidget {
+  const _ConfirmationBanner({required this.position});
+
+  final int position;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.statusFinished.withValues(alpha: AppOpacity.faint),
+        border: Border.all(
+          color: AppColors.statusFinished.withValues(alpha: AppOpacity.medium),
+        ),
+        borderRadius: BorderRadius.circular(AppBorderRadius.sm),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.check_circle, color: AppColors.statusFinished, size: 16),
+          const SizedBox(width: AppSpacing.xs),
+          Text(
+            '${_ordinal(position)} place is correct',
+            style: AppTypography.smallBodySemibold.copyWith(
+              color: AppColors.statusFinished,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AssignModePanel extends StatelessWidget {
+  const _AssignModePanel({
+    required this.targetBib,
+    required this.onDismiss,
+  });
+
+  final int targetBib;
+  final VoidCallback onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text('Assign Existing Runner', style: AppTypography.smallBodySemibold),
+            const Spacer(),
+            GestureDetector(
+              onTap: onDismiss,
+              child: const Icon(Icons.close, size: 20, color: AppColors.mediumColor),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        RunnerAssignmentList(targetBib: targetBib),
+      ],
+    );
+  }
+}
+
+class _Step2ActionButtons extends StatelessWidget {
+  const _Step2ActionButtons({required this.onAssign, required this.onCreate});
+
+  final VoidCallback onAssign;
+  final VoidCallback onCreate;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SecondaryButton(
+          text: 'Assign Existing Runner',
+          size: ButtonSize.fullWidth,
+          onPressed: onAssign,
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        PrimaryButton(
+          text: 'Create New Runner',
+          icon: Icons.person_add_outlined,
+          size: ButtonSize.fullWidth,
+          onPressed: onCreate,
         ),
       ],
     );
