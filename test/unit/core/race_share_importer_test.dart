@@ -2,19 +2,25 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
+import 'package:xceleration/core/repositories/i_race_repository.dart';
+import 'package:xceleration/core/repositories/i_results_repository.dart';
+import 'package:xceleration/core/repositories/i_runner_repository.dart';
+import 'package:xceleration/core/repositories/i_team_repository.dart';
 import 'package:xceleration/core/result.dart';
-import 'package:xceleration/core/utils/database_helper.dart';
 import 'package:xceleration/core/utils/race_share_importer.dart';
 import 'package:xceleration/shared/models/database/base_models.dart';
 
-@GenerateMocks([DatabaseHelper])
+@GenerateMocks([IRunnerRepository, ITeamRepository, IRaceRepository, IResultsRepository])
 import 'race_share_importer_test.mocks.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late RaceShareImporter importer;
-  late MockDatabaseHelper mockDb;
+  late MockIRunnerRepository mockRunners;
+  late MockITeamRepository mockTeams;
+  late MockIRaceRepository mockRaces;
+  late MockIResultsRepository mockResults;
 
   const int kRaceId = 1;
   const int kTeamId = 10;
@@ -28,8 +34,16 @@ void main() {
   );
 
   setUp(() {
-    mockDb = MockDatabaseHelper();
-    importer = RaceShareImporter(db: mockDb);
+    mockRunners = MockIRunnerRepository();
+    mockTeams = MockITeamRepository();
+    mockRaces = MockIRaceRepository();
+    mockResults = MockIResultsRepository();
+    importer = RaceShareImporter(
+      runners: mockRunners,
+      teams: mockTeams,
+      races: mockRaces,
+      results: mockResults,
+    );
   });
 
   String buildPayload({
@@ -56,7 +70,7 @@ void main() {
   group('RaceShareImporter', () {
     group('importFromJson', () {
       test('returns Success when import completes', () async {
-        when(mockDb.createRace(any)).thenAnswer((_) async => kRaceId);
+        when(mockRaces.createRace(any)).thenAnswer((_) async => kRaceId);
 
         final result = await importer.importFromJson(buildPayload());
 
@@ -70,24 +84,25 @@ void main() {
         expect(result, isA<Failure<void>>());
         final error = (result as Failure).error;
         expect(error.userMessage, contains('not supported'));
-        verifyNever(mockDb.createRace(any));
+        verifyNever(mockRaces.createRace(any));
       });
 
       test('creates race with (shared) suffix', () async {
-        when(mockDb.createRace(any)).thenAnswer((_) async => kRaceId);
+        when(mockRaces.createRace(any)).thenAnswer((_) async => kRaceId);
 
         await importer.importFromJson(buildPayload());
 
         final captured =
-            verify(mockDb.createRace(captureAny)).captured.single as Race;
+            verify(mockRaces.createRace(captureAny)).captured.single as Race;
         expect(captured.raceName, 'Test Race (shared)');
         expect(captured.flowState, Race.FLOW_FINISHED);
       });
 
       test('creates new team when team does not exist', () async {
-        when(mockDb.createRace(any)).thenAnswer((_) async => kRaceId);
-        when(mockDb.getTeamByName(any)).thenAnswer((_) async => null);
-        when(mockDb.createTeam(any)).thenAnswer((_) async => kTeamId);
+        when(mockRaces.createRace(any)).thenAnswer((_) async => kRaceId);
+        when(mockTeams.getTeamByName(any)).thenAnswer((_) async => null);
+        when(mockTeams.createTeam(any)).thenAnswer((_) async => kTeamId);
+        when(mockRaces.addTeamParticipantToRace(any)).thenAnswer((_) async {});
 
         final payload = buildPayload(teams: [
           {'name': 'Tigers', 'abbreviation': 'TIG', 'color': 0xFF0000},
@@ -96,16 +111,17 @@ void main() {
         final result = await importer.importFromJson(payload);
 
         expect(result, isA<Success<void>>());
-        verify(mockDb.getTeamByName('Tigers')).called(1);
-        verify(mockDb.createTeam(any)).called(1);
-        verify(mockDb.addTeamParticipantToRace(any)).called(1);
+        verify(mockTeams.getTeamByName('Tigers')).called(1);
+        verify(mockTeams.createTeam(any)).called(1);
+        verify(mockRaces.addTeamParticipantToRace(any)).called(1);
       });
 
       test('reuses existing team without creating duplicate', () async {
         final existingTeam = Team(teamId: kTeamId, name: 'Tigers');
-        when(mockDb.createRace(any)).thenAnswer((_) async => kRaceId);
-        when(mockDb.getTeamByName('Tigers'))
+        when(mockRaces.createRace(any)).thenAnswer((_) async => kRaceId);
+        when(mockTeams.getTeamByName('Tigers'))
             .thenAnswer((_) async => existingTeam);
+        when(mockRaces.addTeamParticipantToRace(any)).thenAnswer((_) async {});
 
         final payload = buildPayload(teams: [
           {'name': 'Tigers'},
@@ -113,15 +129,17 @@ void main() {
 
         await importer.importFromJson(payload);
 
-        verifyNever(mockDb.createTeam(any));
+        verifyNever(mockTeams.createTeam(any));
       });
 
       test('creates runner and result for individual result entry', () async {
-        when(mockDb.createRace(any)).thenAnswer((_) async => kRaceId);
-        when(mockDb.getRunnerByBib('100')).thenAnswer((_) async => null);
-        when(mockDb.createRunner(any)).thenAnswer((_) async => kRunnerId);
-        when(mockDb.getRunner(kRunnerId)).thenAnswer((_) async => fakeRunner);
-        when(mockDb.getRunnerTeams(kRunnerId)).thenAnswer((_) async => []);
+        when(mockRaces.createRace(any)).thenAnswer((_) async => kRaceId);
+        when(mockRunners.getRunnerByBib('100')).thenAnswer((_) async => null);
+        when(mockRunners.createRunner(any)).thenAnswer((_) async => kRunnerId);
+        when(mockRunners.getRunner(kRunnerId)).thenAnswer((_) async => fakeRunner);
+        when(mockRunners.getRunnerTeams(kRunnerId)).thenAnswer((_) async => []);
+        when(mockRaces.addRaceParticipant(any)).thenAnswer((_) async {});
+        when(mockResults.addRaceResult(any)).thenAnswer((_) async {});
 
         final payload = buildPayload(individualResults: [
           {
@@ -136,15 +154,17 @@ void main() {
         final result = await importer.importFromJson(payload);
 
         expect(result, isA<Success<void>>());
-        verify(mockDb.createRunner(any)).called(1);
-        verify(mockDb.addRaceParticipant(any)).called(1);
-        verify(mockDb.addRaceResult(any)).called(1);
+        verify(mockRunners.createRunner(any)).called(1);
+        verify(mockRaces.addRaceParticipant(any)).called(1);
+        verify(mockResults.addRaceResult(any)).called(1);
       });
 
       test('reuses existing runner without creating duplicate', () async {
-        when(mockDb.createRace(any)).thenAnswer((_) async => kRaceId);
-        when(mockDb.getRunnerByBib('100')).thenAnswer((_) async => fakeRunner);
-        when(mockDb.getRunnerTeams(kRunnerId)).thenAnswer((_) async => []);
+        when(mockRaces.createRace(any)).thenAnswer((_) async => kRaceId);
+        when(mockRunners.getRunnerByBib('100')).thenAnswer((_) async => fakeRunner);
+        when(mockRunners.getRunnerTeams(kRunnerId)).thenAnswer((_) async => []);
+        when(mockRaces.addRaceParticipant(any)).thenAnswer((_) async {});
+        when(mockResults.addRaceResult(any)).thenAnswer((_) async {});
 
         final payload = buildPayload(individualResults: [
           {
@@ -157,11 +177,11 @@ void main() {
 
         await importer.importFromJson(payload);
 
-        verifyNever(mockDb.createRunner(any));
+        verifyNever(mockRunners.createRunner(any));
       });
 
       test('skips individual result entry with empty name or bib', () async {
-        when(mockDb.createRace(any)).thenAnswer((_) async => kRaceId);
+        when(mockRaces.createRace(any)).thenAnswer((_) async => kRaceId);
 
         final payload = buildPayload(individualResults: [
           {'name': '', 'bib_number': '100'},
@@ -171,11 +191,11 @@ void main() {
         final result = await importer.importFromJson(payload);
 
         expect(result, isA<Success<void>>());
-        verifyNever(mockDb.getRunnerByBib(any));
+        verifyNever(mockRunners.getRunnerByBib(any));
       });
 
       test('returns Failure when database throws', () async {
-        when(mockDb.createRace(any)).thenThrow(Exception('db error'));
+        when(mockRaces.createRace(any)).thenThrow(Exception('db error'));
 
         final result = await importer.importFromJson(buildPayload());
 

@@ -1,14 +1,11 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:xceleration/core/services/i_auth_service.dart';
 import 'package:xceleration/core/services/remote_api_client.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/shared/constants/app_constants.dart';
 import 'package:http/http.dart' as http;
 
-abstract interface class IAuthService {
-  String? get currentUserId;
-  String? get currentEmail;
-  bool get isSignedIn;
-}
+export 'i_auth_service.dart';
 
 class AuthService implements IAuthService {
   AuthService._();

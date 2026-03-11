@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:xceleration/core/services/connectivity_sync_service.dart';
 import 'package:xceleration/core/components/app_header.dart';
 import 'package:xceleration/shared/role_bar/models/role_enums.dart'
@@ -38,17 +39,19 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
   final TutorialManager _tutorialManager = TutorialManager();
   List<Map<String, dynamic>> _savedRaces = [];
   bool _isLoading = true;
+  late final ConnectivitySyncService _connectivitySync;
 
   @override
   void initState() {
     super.initState();
-    ConnectivitySyncService.instance.start();
+    _connectivitySync = context.read<ConnectivitySyncService>();
+    _connectivitySync.start();
     _loadSavedRaces();
   }
 
   @override
   void dispose() {
-    ConnectivitySyncService.instance.stop();
+    _connectivitySync.stop();
     super.dispose();
   }
 

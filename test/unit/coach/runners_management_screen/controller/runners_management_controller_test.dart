@@ -3,13 +3,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:xceleration/coach/runners_management_screen/controller/runners_management_controller.dart';
+import 'package:xceleration/core/repositories/i_race_repository.dart';
+import 'package:xceleration/core/repositories/i_runner_repository.dart';
+import 'package:xceleration/core/repositories/i_team_repository.dart';
 import 'package:xceleration/core/services/service_locator.dart';
-import 'package:xceleration/core/utils/database_helper.dart';
-import 'package:xceleration/core/utils/i_database_helper.dart';
 import 'package:xceleration/shared/models/database/master_race.dart';
 import 'package:xceleration/shared/models/database/base_models.dart';
 
-@GenerateMocks([MasterRace, DatabaseHelper])
+@GenerateMocks([MasterRace, IRunnerRepository, ITeamRepository, IRaceRepository])
 import 'runners_management_controller_test.mocks.dart';
 
 Future<BuildContext> _buildContext(WidgetTester tester) async {
@@ -25,7 +26,9 @@ Future<BuildContext> _buildContext(WidgetTester tester) async {
 
 void main() {
   late MockMasterRace mockMasterRace;
-  late MockDatabaseHelper mockDb;
+  late MockIRunnerRepository mockRunners;
+  late MockITeamRepository mockTeams;
+  late MockIRaceRepository mockRaces;
   late RunnersManagementController controller;
 
   const testTeam = Team(
@@ -50,10 +53,14 @@ void main() {
 
   setUp(() {
     mockMasterRace = MockMasterRace();
-    mockDb = MockDatabaseHelper();
+    mockRunners = MockIRunnerRepository();
+    mockTeams = MockITeamRepository();
+    mockRaces = MockIRaceRepository();
 
     when(mockMasterRace.raceId).thenReturn(1);
-    ServiceLocator.register<IDatabaseHelper>(mockDb);
+    ServiceLocator.register<IRunnerRepository>(mockRunners);
+    ServiceLocator.register<ITeamRepository>(mockTeams);
+    ServiceLocator.register<IRaceRepository>(mockRaces);
     when(mockMasterRace.raceRunners).thenAnswer((_) async => [testRaceRunner]);
     when(mockMasterRace.searchRaceRunners(any, any)).thenAnswer((_) async {});
 
@@ -189,13 +196,13 @@ void main() {
       test('does nothing when team name is null', () async {
         await controller.createTeam(const Team());
 
-        verifyNever(mockDb.createTeam(any));
+        verifyNever(mockTeams.createTeam(any));
       });
 
       test('does nothing when team name is empty', () async {
         await controller.createTeam(const Team(name: '  '));
 
-        verifyNever(mockDb.createTeam(any));
+        verifyNever(mockTeams.createTeam(any));
       });
 
       test('does nothing when team already exists', () async {
@@ -204,12 +211,12 @@ void main() {
 
         await controller.createTeam(const Team(name: 'Team A', abbreviation: 'TA'));
 
-        verifyNever(mockDb.createTeam(any));
+        verifyNever(mockTeams.createTeam(any));
       });
 
       test('creates team and adds team participant when team does not exist', () async {
         when(mockMasterRace.getTeamByName('New Team')).thenAnswer((_) async => null);
-        when(mockDb.createTeam(any)).thenAnswer((_) async => 2);
+        when(mockTeams.createTeam(any)).thenAnswer((_) async => 2);
         when(mockMasterRace.addTeamParticipant(any)).thenAnswer((_) async {});
 
         await controller.createTeam(const Team(
@@ -219,7 +226,7 @@ void main() {
           color: Color(0xFF2196F3),
         ));
 
-        verify(mockDb.createTeam(any)).called(1);
+        verify(mockTeams.createTeam(any)).called(1);
         verify(mockMasterRace.addTeamParticipant(any)).called(1);
 
         // Allow the unawaited loadData() fired inside createTeam to complete
@@ -239,16 +246,16 @@ void main() {
             team: testTeam,
           );
 
-          when(mockDb.getRunnerByBib('202')).thenAnswer((_) async => null);
-          when(mockDb.createRunner(any)).thenAnswer((_) async => 5);
-          when(mockDb.addRunnerToTeam(any, any)).thenAnswer((_) async {});
+          when(mockRunners.getRunnerByBib('202')).thenAnswer((_) async => null);
+          when(mockRunners.createRunner(any)).thenAnswer((_) async => 5);
+          when(mockRunners.addRunnerToTeam(any, any)).thenAnswer((_) async {});
           when(mockMasterRace.addRaceParticipant(any)).thenAnswer((_) async {});
           when(mockMasterRace.searchRaceRunners(any, any)).thenAnswer((_) async {});
 
           await controller.handleRunnerSubmission(ctx, newRaceRunner);
 
-          verify(mockDb.createRunner(any)).called(1);
-          verify(mockDb.addRunnerToTeam(1, 5)).called(1);
+          verify(mockRunners.createRunner(any)).called(1);
+          verify(mockRunners.addRunnerToTeam(1, 5)).called(1);
           verify(mockMasterRace.addRaceParticipant(any)).called(1);
         });
       });
@@ -262,20 +269,20 @@ void main() {
             team: testTeam,
           );
           // Same runner (runnerId matches) → no bib conflict
-          when(mockDb.getRunnerByBib('303')).thenAnswer((_) async =>
+          when(mockRunners.getRunnerByBib('303')).thenAnswer((_) async =>
               Runner(runnerId: 3, name: 'Carol', bibNumber: '303', grade: 12));
-          when(mockDb.updateRunnerWithTeams(
+          when(mockRaces.updateRunnerWithTeams(
             runner: anyNamed('runner'),
             newTeamId: anyNamed('newTeamId'),
             raceIdForTeamUpdate: anyNamed('raceIdForTeamUpdate'),
           )).thenAnswer((_) async {});
-          when(mockDb.getRunnersByBibAll('303')).thenAnswer((_) async => []);
+          when(mockRunners.getRunnersByBibAll('303')).thenAnswer((_) async => []);
           when(mockMasterRace.updateRaceParticipant(any)).thenAnswer((_) async {});
           when(mockMasterRace.searchRaceRunners(any, any)).thenAnswer((_) async {});
 
           await controller.handleRunnerSubmission(ctx, existingRaceRunner);
 
-          verify(mockDb.updateRunnerWithTeams(
+          verify(mockRaces.updateRunnerWithTeams(
             runner: anyNamed('runner'),
             newTeamId: anyNamed('newTeamId'),
             raceIdForTeamUpdate: anyNamed('raceIdForTeamUpdate'),
@@ -295,21 +302,21 @@ void main() {
           );
           final conflictRunner = Runner(runnerId: 9, name: 'Eve', bibNumber: '404', grade: 11);
 
-          when(mockDb.getRunnerByBib('404')).thenAnswer((_) async => conflictRunner);
+          when(mockRunners.getRunnerByBib('404')).thenAnswer((_) async => conflictRunner);
           // Race participant lookup for old runner (runnerId=1)
-          when(mockDb.getRaceParticipant(any)).thenAnswer((_) async => null);
-          when(mockDb.updateRunner(any)).thenAnswer((_) async {});
-          when(mockDb.setRunnerTeam(any, any)).thenAnswer((_) async {});
+          when(mockRaces.getRaceParticipant(any)).thenAnswer((_) async => null);
+          when(mockRunners.updateRunner(any)).thenAnswer((_) async {});
+          when(mockRunners.setRunnerTeam(any, any)).thenAnswer((_) async {});
           when(mockMasterRace.addRaceParticipant(any)).thenAnswer((_) async {});
-          when(mockDb.deleteRunnerEverywhere(any)).thenAnswer((_) async {});
+          when(mockRunners.deleteRunnerEverywhere(any)).thenAnswer((_) async {});
           when(mockMasterRace.searchRaceRunners(any, any)).thenAnswer((_) async {});
 
           await controller.handleRunnerSubmission(ctx, conflictingRaceRunner);
 
           // Existing conflict runner (9) was updated with submitted details
-          verify(mockDb.updateRunner(any)).called(1);
+          verify(mockRunners.updateRunner(any)).called(1);
           // Old distinct runner (1) was deleted globally
-          verify(mockDb.deleteRunnerEverywhere(1)).called(1);
+          verify(mockRunners.deleteRunnerEverywhere(1)).called(1);
         });
       });
     });

@@ -3,7 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/components/dialog_utils.dart';
 import 'package:xceleration/core/services/auth_service.dart';
-import 'package:xceleration/core/services/sync_service.dart';
+import 'package:provider/provider.dart';
+import 'package:xceleration/core/services/i_sync_service.dart';
 import 'package:xceleration/core/services/profile_service.dart';
 import 'package:xceleration/core/components/page_route_animations.dart';
 import 'package:xceleration/coach/races_screen/screen/races_screen.dart';
@@ -52,6 +53,7 @@ class _SignInScreenState extends State<SignInScreen>
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _busy = true);
+    final syncService = context.read<ISyncService>();
     try {
       if (_isLogin) {
         final resp = await AuthService.instance.signInWithEmailPassword(
@@ -62,7 +64,7 @@ class _SignInScreenState extends State<SignInScreen>
           // Run a sync after sign-in and navigate to coach screen
           try {
             await ProfileService.instance.ensureProfileUpsert();
-            await SyncService.instance.syncAll();
+            await syncService.syncAll();
           } catch (_) {}
           if (!mounted) return;
           Navigator.of(context).pushAndRemoveUntil(
@@ -85,7 +87,7 @@ class _SignInScreenState extends State<SignInScreen>
         if (mounted) {
           try {
             await ProfileService.instance.ensureProfileUpsert();
-            await SyncService.instance.syncAll();
+            await syncService.syncAll();
           } catch (_) {}
           if (!mounted) return;
           Navigator.of(context).pushAndRemoveUntil(

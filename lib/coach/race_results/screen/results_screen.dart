@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:xceleration/coach/share_race/controller/share_race_controller.dart';
 import 'package:xceleration/shared/models/database/master_race.dart';
+import 'package:xceleration/core/services/i_sync_service.dart';
 import 'package:xceleration/shared/services/race_results_service.dart';
 import '../controller/race_results_controller.dart';
 import '../../../core/theme/app_colors.dart';
@@ -28,7 +29,10 @@ class _ResultsScreenState extends State<ResultsScreen> {
   @override
   void initState() {
     super.initState();
-    _controller = RaceResultsController(service: RaceResultsService());
+    _controller = RaceResultsController(
+      service: RaceResultsService(),
+      syncStream: context.read<ISyncService>().syncEvents,
+    );
     _controller.loadRaceResults(widget.masterRace);
   }
 
