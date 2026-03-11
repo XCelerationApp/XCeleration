@@ -3,27 +3,13 @@ import '../mock/conflict_mock_data.dart';
 
 enum _FlowStep { summary, duplicateStep1, duplicateStep2, unknown, completion }
 
-class _HistoryEntry {
-  const _HistoryEntry({
-    required this.step,
-    required this.conflictIndex,
-    this.chosenOccurrence,
-    this.restoredRunner,
-    this.undoNewRunner = false,
-  });
-
-  final _FlowStep step;
-  final int conflictIndex;
-
-  /// Which duplicate occurrence was marked correct (1 or 2). Null for non-duplicates.
-  final int? chosenOccurrence;
-
-  /// Runner to restore to the unassigned list when going back.
-  final MockRunner? restoredRunner;
-
-  /// Whether to decrement newRunnersCreated when going back.
-  final bool undoNewRunner;
-}
+typedef ResolutionEntry = ({
+  String conflictLabel,
+  bool wasCreate,
+  String runnerName,
+  int bib,
+  String team,
+});
 
 class ConflictResolutionController extends ChangeNotifier {
   ConflictResolutionController()
@@ -31,12 +17,17 @@ class ConflictResolutionController extends ChangeNotifier {
 
   final List<MockBibConflict> _conflicts = ConflictMockData.conflicts;
   final List<MockRunner> _unassignedRunners;
-  final List<_HistoryEntry> _history = [];
+  final List<ResolutionEntry> _resolutionLog = [];
 
   _FlowStep _currentStep = _FlowStep.summary;
   int _currentConflictIndex = 0;
   int? _chosenDuplicateOccurrence;
   bool _isGoingBack = false;
+
+  bool _hasPending = false;
+  String _pendingLabel = '';
+  VoidCallback? _pendingCommitAction;
+  MockRunner? _pendingAssignedRunner;
 
   int _duplicatesResolved = 0;
   int _runnersAssigned = 0;
@@ -49,7 +40,9 @@ class ConflictResolutionController extends ChangeNotifier {
   bool get isOnUnknown => _currentStep == _FlowStep.unknown;
   bool get isOnCompletion => _currentStep == _FlowStep.completion;
   bool get isGoingBack => _isGoingBack;
-  bool get canGoBack => _history.isNotEmpty;
+  bool get canGoBack => _hasPending;
+  bool get hasPending => _hasPending;
+  String get pendingLabel => _pendingLabel;
 
   // --- Data ---
   MockBibConflict get currentConflict => _conflicts[_currentConflictIndex];
@@ -57,12 +50,16 @@ class ConflictResolutionController extends ChangeNotifier {
   int get totalConflicts => _conflicts.length;
   int? get chosenDuplicateOccurrence => _chosenDuplicateOccurrence;
 
-  int get resolvedCount =>
-      _currentStep == _FlowStep.completion ? _conflicts.length : _currentConflictIndex;
+  int get resolvedCount {
+    if (_currentStep == _FlowStep.completion) return _conflicts.length;
+    if (_hasPending) return _currentConflictIndex + 1;
+    return _currentConflictIndex;
+  }
 
   int get duplicatesResolved => _duplicatesResolved;
   int get runnersAssigned => _runnersAssigned;
   int get newRunnersCreated => _newRunnersCreated;
+  List<ResolutionEntry> get resolutionLog => List.unmodifiable(_resolutionLog);
 
   /// Key that changes on every step/conflict transition, used by the inner AnimatedSwitcher.
   String get stepKey => '${_currentStep.name}_$_currentConflictIndex';
@@ -109,11 +106,13 @@ class ConflictResolutionController extends ChangeNotifier {
     _unassignedRunners
       ..clear()
       ..addAll(ConflictMockData.allUnassignedRunners);
-    _history
-      ..clear()
-      ..add(const _HistoryEntry(step: _FlowStep.summary, conflictIndex: 0));
     _currentConflictIndex = 0;
     _chosenDuplicateOccurrence = null;
+    _hasPending = false;
+    _pendingLabel = '';
+    _pendingCommitAction = null;
+    _pendingAssignedRunner = null;
+    _resolutionLog.clear();
     _duplicatesResolved = 0;
     _runnersAssigned = 0;
     _newRunnersCreated = 0;
@@ -123,65 +122,85 @@ class ConflictResolutionController extends ChangeNotifier {
 
   void chooseDuplicateOccurrence(int occurrence) {
     _isGoingBack = false;
-    _history.add(_HistoryEntry(
-      step: _FlowStep.duplicateStep1,
-      conflictIndex: _currentConflictIndex,
-    ));
     _chosenDuplicateOccurrence = occurrence;
     _currentStep = _FlowStep.duplicateStep2;
     notifyListeners();
   }
 
-  void assignRunner(MockRunner runner) {
+  /// Stages an existing runner as the resolution. Removes from unassigned list
+  /// immediately; call [commitPending] to finalise or [undoPending] to revert.
+  void prepareAssign(MockRunner runner, String label) {
     _isGoingBack = false;
-    _history.add(_HistoryEntry(
-      step: _currentStep,
-      conflictIndex: _currentConflictIndex,
-      chosenOccurrence: _chosenDuplicateOccurrence,
-      restoredRunner: runner,
-    ));
     _unassignedRunners.remove(runner);
-    _runnersAssigned++;
-    if (_currentStep == _FlowStep.duplicateStep2) _duplicatesResolved++;
+    _pendingAssignedRunner = runner;
+    _pendingLabel = label;
+    _pendingCommitAction = () {
+      _runnersAssigned++;
+      if (_currentStep == _FlowStep.duplicateStep2) _duplicatesResolved++;
+      _resolutionLog.add((
+        conflictLabel: label,
+        wasCreate: false,
+        runnerName: runner.name,
+        bib: runner.bibNumber,
+        team: runner.team,
+      ));
+    };
+    _hasPending = true;
+    notifyListeners();
+  }
+
+  /// Stages a newly created runner as the resolution. Call [commitPending] to
+  /// finalise or [undoPending] to revert.
+  void prepareCreate(
+      String name, int bib, String team, int? grade, String label) {
+    _isGoingBack = false;
+    _pendingAssignedRunner = null;
+    _pendingLabel = label;
+    _pendingCommitAction = () {
+      _newRunnersCreated++;
+      if (_currentStep == _FlowStep.duplicateStep2) _duplicatesResolved++;
+      _resolutionLog.add((
+        conflictLabel: label,
+        wasCreate: true,
+        runnerName: name,
+        bib: bib,
+        team: team,
+      ));
+    };
+    _hasPending = true;
+    notifyListeners();
+  }
+
+  /// Commits the pending resolution, appends to the log, and advances to the
+  /// next conflict.
+  void commitPending() {
+    if (!_hasPending) return;
+    _pendingCommitAction?.call();
+    _clearPending();
     _advance();
   }
 
-  void createNewRunner(String name, int bibNumber, {String? team, int? grade}) {
-    _isGoingBack = false;
-    _history.add(_HistoryEntry(
-      step: _currentStep,
-      conflictIndex: _currentConflictIndex,
-      chosenOccurrence: _chosenDuplicateOccurrence,
-      undoNewRunner: true,
-    ));
-    _newRunnersCreated++;
-    if (_currentStep == _FlowStep.duplicateStep2) _duplicatesResolved++;
-    _advance();
+  /// Reverts the pending resolution. If an assign was staged, the runner is
+  /// restored to the unassigned list.
+  void undoPending() {
+    if (!_hasPending) return;
+    _isGoingBack = true;
+    if (_pendingAssignedRunner != null) {
+      _unassignedRunners.add(_pendingAssignedRunner!);
+    }
+    _clearPending();
+    notifyListeners();
   }
 
   void goBack() {
-    if (_history.isEmpty) return;
-    _isGoingBack = true;
-    final prev = _history.removeLast();
+    if (_hasPending) undoPending();
+  }
 
-    if (prev.restoredRunner != null) {
-      _unassignedRunners.add(prev.restoredRunner!);
-      _runnersAssigned = (_runnersAssigned - 1).clamp(0, _runnersAssigned);
-      if (prev.step == _FlowStep.duplicateStep2) {
-        _duplicatesResolved = (_duplicatesResolved - 1).clamp(0, _duplicatesResolved);
-      }
-    }
-    if (prev.undoNewRunner) {
-      _newRunnersCreated = (_newRunnersCreated - 1).clamp(0, _newRunnersCreated);
-      if (prev.step == _FlowStep.duplicateStep2) {
-        _duplicatesResolved = (_duplicatesResolved - 1).clamp(0, _duplicatesResolved);
-      }
-    }
-
-    _currentStep = prev.step;
-    _currentConflictIndex = prev.conflictIndex;
-    _chosenDuplicateOccurrence = prev.chosenOccurrence;
-    notifyListeners();
+  void _clearPending() {
+    _hasPending = false;
+    _pendingLabel = '';
+    _pendingCommitAction = null;
+    _pendingAssignedRunner = null;
   }
 
   void _advance() {
