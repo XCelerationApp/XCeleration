@@ -12,6 +12,7 @@ import 'package:xceleration/core/theme/app_colors.dart';
 import 'package:xceleration/core/theme/typography.dart';
 import 'package:xceleration/core/components/animated_primary_button.dart';
 import 'package:xceleration/core/components/glass_card.dart';
+import 'package:xceleration/core/utils/connectivity_utils.dart';
 import 'package:gotrue/gotrue.dart' as gotrue;
 
 class SignInScreen extends StatefulWidget {
@@ -52,8 +53,17 @@ class _SignInScreenState extends State<SignInScreen>
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() => _busy = true);
     final syncService = context.read<ISyncService>();
+    if (!await ConnectivityUtils.isOnline()) {
+      if (!mounted) return;
+      DialogUtils.showMessageDialog(
+        context,
+        title: 'No internet connection',
+        message: 'Please check your connection and try again.',
+      );
+      return;
+    }
+    setState(() => _busy = true);
     try {
       if (_isLogin) {
         final resp = await AuthService.instance.signInWithEmailPassword(
