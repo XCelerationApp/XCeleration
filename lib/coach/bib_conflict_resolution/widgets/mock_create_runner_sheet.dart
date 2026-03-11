@@ -15,6 +15,7 @@ class MockCreateRunnerSheet extends StatefulWidget {
     required this.allKnownBibs,
     required this.onCreated,
     this.forbiddenBib,
+    this.autoBib,
   });
 
   /// All bib numbers already in use — new bib must not be in this set.
@@ -25,6 +26,9 @@ class MockCreateRunnerSheet extends StatefulWidget {
 
   /// Bib that cannot be reused (set for duplicate step2).
   final int? forbiddenBib;
+
+  /// When set, locks the bib field to this value and skips bib validation.
+  final int? autoBib;
 
   @override
   State<MockCreateRunnerSheet> createState() => _MockCreateRunnerSheetState();
@@ -77,21 +81,21 @@ class _MockCreateRunnerSheetState extends State<MockCreateRunnerSheet> {
     setState(() => _bibError = null);
   }
 
-  bool get _canSubmit =>
-      _nameController.text.trim().isNotEmpty &&
-      _bibController.text.trim().isNotEmpty &&
-      _nameError == null &&
-      _bibError == null &&
-      _selectedTeam != null &&
-      _selectedGrade != null;
+  bool get _canSubmit {
+    final nameOk = _nameController.text.trim().isNotEmpty && _nameError == null;
+    final bibOk = widget.autoBib != null
+        ? true
+        : _bibController.text.trim().isNotEmpty && _bibError == null;
+    return nameOk && bibOk && _selectedTeam != null && _selectedGrade != null;
+  }
 
   void _submit() {
     _validateName(_nameController.text);
-    _validateBib(_bibController.text);
+    if (widget.autoBib == null) _validateBib(_bibController.text);
     if (!_canSubmit) return;
     widget.onCreated(
       _nameController.text.trim(),
-      int.parse(_bibController.text.trim()),
+      widget.autoBib ?? int.parse(_bibController.text.trim()),
       _selectedTeam!,
       _selectedGrade!,
     );
@@ -112,16 +116,19 @@ class _MockCreateRunnerSheetState extends State<MockCreateRunnerSheet> {
           keyboardType: TextInputType.name,
         ),
         const SizedBox(height: AppSpacing.lg),
-        _FormField(
-          label: 'Bib number',
-          hint: widget.forbiddenBib != null
-              ? 'Not #${widget.forbiddenBib} — that bib is taken'
-              : 'e.g. 421',
-          controller: _bibController,
-          error: _bibError,
-          onChanged: _validateBib,
-          keyboardType: TextInputType.number,
-        ),
+        if (widget.autoBib != null)
+          _AutoBibDisplay(bibNumber: widget.autoBib!)
+        else
+          _FormField(
+            label: 'Bib number',
+            hint: widget.forbiddenBib != null
+                ? 'Not #${widget.forbiddenBib} — that bib is taken'
+                : 'e.g. 421',
+            controller: _bibController,
+            error: _bibError,
+            onChanged: _validateBib,
+            keyboardType: TextInputType.number,
+          ),
         const SizedBox(height: AppSpacing.lg),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -214,6 +221,45 @@ class _FormField extends StatelessWidget {
               horizontal: AppSpacing.lg,
               vertical: AppSpacing.md,
             ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AutoBibDisplay extends StatelessWidget {
+  const _AutoBibDisplay({required this.bibNumber});
+
+  final int bibNumber;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Bib number', style: AppTypography.smallBodySemibold),
+        const SizedBox(height: AppSpacing.xs),
+        Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg,
+            vertical: AppSpacing.md,
+          ),
+          decoration: BoxDecoration(
+            color: AppColors.lightColor.withValues(alpha: AppOpacity.medium),
+            borderRadius: BorderRadius.circular(AppBorderRadius.md),
+          ),
+          child: Row(
+            children: [
+              Text('#$bibNumber', style: AppTypography.bodySemibold),
+              const Spacer(),
+              Text(
+                'auto-assigned',
+                style: AppTypography.caption.copyWith(
+                  color: AppColors.mediumColor,
+                ),
+              ),
+            ],
           ),
         ),
       ],
