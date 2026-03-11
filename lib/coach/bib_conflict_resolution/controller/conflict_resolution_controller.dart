@@ -13,9 +13,10 @@ typedef ResolutionEntry = ({
 
 class ConflictResolutionController extends ChangeNotifier {
   ConflictResolutionController()
-      : _unassignedRunners = List.from(ConflictMockData.allUnassignedRunners);
+      : _unassignedRunners = List.from(ConflictMockData.allUnassignedRunners),
+        _conflicts = List.from(ConflictMockData.conflicts);
 
-  final List<MockBibConflict> _conflicts = ConflictMockData.conflicts;
+  final List<MockBibConflict> _conflicts;
   final List<MockRunner> _unassignedRunners;
   final List<ResolutionEntry> _resolutionLog = [];
 
@@ -106,6 +107,9 @@ class ConflictResolutionController extends ChangeNotifier {
     _unassignedRunners
       ..clear()
       ..addAll(ConflictMockData.allUnassignedRunners);
+    _conflicts
+      ..clear()
+      ..addAll(ConflictMockData.conflicts);
     _currentConflictIndex = 0;
     _chosenDuplicateOccurrence = null;
     _hasPending = false;
@@ -120,9 +124,31 @@ class ConflictResolutionController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void chooseDuplicateOccurrence(int occurrence) {
+  /// Splices [unknowns] into the conflict queue immediately after the current
+  /// conflict index, then notifies. Used to inject leftover duplicate entries.
+  void injectConflicts(List<MockUnknownConflict> unknowns) {
+    _conflicts.insertAll(_currentConflictIndex + 1, unknowns);
+    notifyListeners();
+  }
+
+  /// Records the correct occurrence position for a duplicate conflict, injects
+  /// every other occurrence as an unknown into the queue, then advances to step 2.
+  void chooseDuplicateOccurrence(int correctPosition) {
     _isGoingBack = false;
-    _chosenDuplicateOccurrence = occurrence;
+    _chosenDuplicateOccurrence = correctPosition;
+
+    final conflict = _conflicts[_currentConflictIndex] as MockDuplicateConflict;
+    final leftovers = conflict.occurrences
+        .where((o) => o.position != correctPosition)
+        .map((o) => MockUnknownConflict(
+              enteredBib: conflict.bibNumber,
+              position: o.position,
+              formattedTime: o.formattedTime,
+              surroundingFinishers: conflict.surroundingFinishers,
+            ))
+        .toList();
+
+    injectConflicts(leftovers);
     _currentStep = _FlowStep.duplicateStep2;
     notifyListeners();
   }
