@@ -30,6 +30,7 @@ export 'logger.dart';
 // Connections & Network
 export 'connection_utils.dart';
 export 'connection_interfaces.dart';
+export 'connectivity_utils.dart';
 
 // Permissions & Device
 export 'permissions_utils.dart';
