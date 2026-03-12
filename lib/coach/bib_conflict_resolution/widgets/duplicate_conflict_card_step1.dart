@@ -4,41 +4,64 @@ part of 'duplicate_conflict_card.dart';
 // Step 1 — 2-occurrence path
 // ---------------------------------------------------------------------------
 
-class _TwoOccurrenceStep1 extends StatelessWidget {
+class _TwoOccurrenceStep1 extends StatefulWidget {
   const _TwoOccurrenceStep1({required this.conflict});
 
   final MockDuplicateConflict conflict;
 
   @override
+  State<_TwoOccurrenceStep1> createState() => _TwoOccurrenceStep1State();
+}
+
+class _TwoOccurrenceStep1State extends State<_TwoOccurrenceStep1> {
+  int? _confirmedPosition;
+
+  @override
   Widget build(BuildContext context) {
-    final controller = context.read<ConflictResolutionController>();
+    if (_confirmedPosition != null) {
+      final leftover = widget.conflict.occurrences
+          .firstWhere((o) => o.position != _confirmedPosition);
+      return _InlineLeftoverAssignment(
+        confirmedPosition: _confirmedPosition!,
+        leftoverOccurrence: leftover,
+        conflict: widget.conflict,
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _TipBanner(),
-        const SizedBox(height: AppSpacing.lg),
+        Text(
+          'Which finish is correct?',
+          style: AppTypography.bodyRegular.copyWith(color: AppColors.mediumColor),
+        ),
+        const SizedBox(height: AppSpacing.md),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
               child: _OccurrenceTile(
-                occurrence: conflict.occurrences[0],
-                conflict: conflict,
-                onConfirm: () => controller
-                    .chooseDuplicateOccurrence(conflict.occurrences[0].position),
+                occurrence: widget.conflict.occurrences[0],
+                conflict: widget.conflict,
+                onConfirm: () => setState(
+                  () => _confirmedPosition = widget.conflict.occurrences[0].position,
+                ),
               ),
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: _OccurrenceTile(
-                occurrence: conflict.occurrences[1],
-                conflict: conflict,
-                onConfirm: () => controller
-                    .chooseDuplicateOccurrence(conflict.occurrences[1].position),
+                occurrence: widget.conflict.occurrences[1],
+                conflict: widget.conflict,
+                onConfirm: () => setState(
+                  () => _confirmedPosition = widget.conflict.occurrences[1].position,
+                ),
               ),
             ),
           ],
         ),
+        const SizedBox(height: AppSpacing.md),
+        _TipBanner(),
       ],
     );
   }
@@ -56,7 +79,7 @@ class _TipBanner extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppBorderRadius.sm),
         ),
         child: Text(
-          'Tap the position where this runner actually finished.',
+          '💡 Tap a finish to mark it correct. The other will need a runner assigned.',
           style: AppTypography.caption.copyWith(color: AppColors.mediumColor),
         ),
       );
@@ -82,217 +105,291 @@ class _OccurrenceTileState extends State<_OccurrenceTile> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: AppAnimations.standard,
-      curve: AppAnimations.spring,
-      decoration: BoxDecoration(
-        color: _confirmed
-            ? AppColors.primaryColor.withValues(alpha: AppOpacity.faint)
-            : Colors.white,
-        border: Border.all(
-          color: _confirmed ? AppColors.primaryColor : AppColors.lightColor,
-          width: _confirmed ? 2 : 1,
+    return GestureDetector(
+      onTap: _confirmed
+          ? null
+          : () {
+              setState(() => _confirmed = true);
+              Future.delayed(AppAnimations.standard, widget.onConfirm);
+            },
+      child: AnimatedContainer(
+        duration: AppAnimations.standard,
+        curve: AppAnimations.spring,
+        decoration: BoxDecoration(
+          color: _confirmed
+              ? AppColors.primaryColor.withValues(alpha: AppOpacity.faint)
+              : Colors.white,
+          border: Border.all(
+            color: _confirmed ? AppColors.primaryColor : AppColors.lightColor,
+            width: _confirmed ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(AppBorderRadius.lg),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
-        borderRadius: BorderRadius.circular(AppBorderRadius.lg),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Text(
-            _ordinal(widget.occurrence.position),
-            style: AppTypography.titleSemibold,
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            widget.occurrence.formattedTime,
-            style: AppTypography.bodyRegular.copyWith(color: AppColors.mediumColor),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          TextButton(
-            style: TextButton.styleFrom(
-              padding: EdgeInsets.zero,
-              minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            onPressed: () => _showNearbySheet(
-              context,
-              widget.conflict.surroundingFinishers,
-              widget.occurrence.position,
-              widget.conflict.bibNumber,
-              widget.occurrence.formattedTime,
-            ),
-            child: Text(
-              'See more ↓',
-              style: AppTypography.caption.copyWith(color: AppColors.mediumColor),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          if (_confirmed)
-            const Icon(Icons.check_circle, color: AppColors.primaryColor, size: 28)
-          else
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  setState(() => _confirmed = true);
-                  Future.delayed(AppAnimations.standard, widget.onConfirm);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryColor,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppBorderRadius.md),
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-                ),
-                child: Text('This one', style: AppTypography.smallBodySemibold),
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text(
+              '${_ordinal(widget.occurrence.position)} place',
+              style: AppTypography.smallBodyRegular.copyWith(
+                color: AppColors.mediumColor,
               ),
             ),
-        ],
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              widget.occurrence.formattedTime,
+              style: AppTypography.displaySmall,
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            TextButton(
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              onPressed: () => showNearbySheet(
+                context,
+                entries: widget.conflict.surroundingFinishers,
+                conflictPosition: widget.occurrence.position,
+                conflictBib: widget.conflict.bibNumber,
+                conflictTime: widget.occurrence.formattedTime,
+              ),
+              child: Text(
+                'See more ↓',
+                style: AppTypography.caption.copyWith(
+                  color: AppColors.primaryColor,
+                ),
+              ),
+            ),
+            if (_confirmed) ...[
+              const SizedBox(height: AppSpacing.sm),
+              const Icon(Icons.check_circle, color: AppColors.primaryColor, size: 28),
+            ],
+          ],
+        ),
       ),
     );
   }
 }
 
 // ---------------------------------------------------------------------------
-// Nearby Finishers sheet (used by both step 1 "See more ↓" and step 2 link)
+// Step 2 — inline leftover assignment (2-occ path only)
 // ---------------------------------------------------------------------------
 
-class _NearbyFinishersSheet extends StatelessWidget {
-  const _NearbyFinishersSheet({
-    required this.entries,
-    required this.conflictPosition,
-    required this.conflictBib,
-    required this.conflictTime,
+class _InlineLeftoverAssignment extends StatefulWidget {
+  const _InlineLeftoverAssignment({
+    required this.confirmedPosition,
+    required this.leftoverOccurrence,
+    required this.conflict,
   });
 
-  final List<MockFinishEntry> entries;
-  final int conflictPosition;
-  final int conflictBib;
-  final String conflictTime;
+  final int confirmedPosition;
+  final ({int position, String formattedTime}) leftoverOccurrence;
+  final MockDuplicateConflict conflict;
+
+  @override
+  State<_InlineLeftoverAssignment> createState() =>
+      _InlineLeftoverAssignmentState();
+}
+
+class _InlineLeftoverAssignmentState extends State<_InlineLeftoverAssignment> {
+  bool _assignMode = false;
+
+  String get _conflictLabel =>
+      '${_ordinal(widget.leftoverOccurrence.position)} place '
+      '(Bib #${widget.conflict.bibNumber})';
 
   @override
   Widget build(BuildContext context) {
-    final allRows = <(int, Widget)>[
-      for (final e in entries) (e.position, _FinisherRow(entry: e)),
-      (
-        conflictPosition,
-        _ConflictFinisherRow(
-          position: conflictPosition,
-          bib: conflictBib,
-          time: conflictTime,
-        ),
-      ),
-    ]..sort((a, b) => a.$1.compareTo(b.$1));
+    final leftover = widget.leftoverOccurrence;
 
     return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: allRows.map((r) => r.$2).toList(),
-    );
-  }
-}
-
-class _FinisherRow extends StatelessWidget {
-  const _FinisherRow({required this.entry});
-
-  final MockFinishEntry entry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 36,
-            child: Text(
-              _ordinal(entry.position),
-              style: AppTypography.caption.copyWith(
-                color: AppColors.mediumColor,
-                fontWeight: FontWeight.w600,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Confirmation banner
+        Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.sm,
+          ),
+          decoration: BoxDecoration(
+            color: const Color(0xFF4CAF50).withValues(alpha: AppOpacity.faint),
+            borderRadius: BorderRadius.circular(AppBorderRadius.sm),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.check, color: Color(0xFF4CAF50), size: 16),
+              const SizedBox(width: AppSpacing.xs),
+              Text(
+                '${_ordinal(widget.confirmedPosition)} place is correct',
+                style: AppTypography.smallBodySemibold.copyWith(
+                  color: const Color(0xFF4CAF50),
+                ),
               ),
-            ),
+            ],
           ),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Text(
-              entry.runnerName,
-              style: AppTypography.smallBodyRegular,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          Text(
-            entry.formattedTime,
-            style: AppTypography.caption.copyWith(color: AppColors.mediumColor),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ConflictFinisherRow extends StatelessWidget {
-  const _ConflictFinisherRow({
-    required this.position,
-    required this.bib,
-    required this.time,
-  });
-
-  final int position;
-  final int bib;
-  final String time;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.xs,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.primaryColor.withValues(alpha: AppOpacity.faint),
-        borderRadius: BorderRadius.circular(AppBorderRadius.sm),
-        border: const Border(
-          left: BorderSide(color: AppColors.primaryColor, width: 2),
         ),
-      ),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 36,
-            child: Text(
-              _ordinal(position),
-              style: AppTypography.caption.copyWith(
-                color: AppColors.primaryColor,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+        const SizedBox(height: AppSpacing.lg),
+        // Section header
+        Text(
+          'Who finished ${_ordinal(leftover.position)}?',
+          style: AppTypography.titleSemibold,
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          '${leftover.formattedTime} · Bib #${widget.conflict.bibNumber} was a typo here',
+          style: AppTypography.caption.copyWith(color: AppColors.mediumColor),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        // Nearby context
+        InlineContextPanel(
+          surroundingFinishers: widget.conflict.surroundingFinishers,
+          contextPosition: leftover.position,
+        ),
+        TextButton(
+          onPressed: () => showNearbySheet(
+            context,
+            entries: widget.conflict.surroundingFinishers,
+            conflictPosition: leftover.position,
+            conflictBib: widget.conflict.bibNumber,
+            conflictTime: leftover.formattedTime,
           ),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Text(
-              'Bib #$bib',
-              style: AppTypography.smallBodyRegular.copyWith(
-                color: AppColors.primaryColor,
-              ),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          Text(
-            time,
+          style: TextButton.styleFrom(padding: EdgeInsets.zero),
+          child: Text(
+            'See nearby finishers ↓',
             style: AppTypography.caption.copyWith(color: AppColors.primaryColor),
           ),
-        ],
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        AnimatedSize(
+          duration: AppAnimations.standard,
+          curve: AppAnimations.spring,
+          child: _assignMode
+              ? _DupAssignPanel(
+                  targetBib: widget.conflict.bibNumber,
+                  conflictLabel: _conflictLabel,
+                  onDismiss: () => setState(() => _assignMode = false),
+                )
+              : _DupActionButtons(
+                  onAssign: () => setState(() => _assignMode = true),
+                  onCreate: () => _openCreateSheet(context),
+                ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _openCreateSheet(BuildContext context) async {
+    final controller = context.read<ConflictResolutionController>();
+    await sheet(
+      context: context,
+      title: 'Add New Runner',
+      body: MockCreateRunnerSheet(
+        allKnownBibs: controller.allKnownBibs,
+        forbiddenBib: widget.conflict.bibNumber,
+        onCreated: (name, bib, team, grade) {
+          controller.prepareCreateForDuplicate(
+            name,
+            bib,
+            team,
+            grade,
+            _conflictLabel,
+          );
+          Navigator.of(context).pop();
+        },
       ),
     );
   }
 }
+
+class _DupAssignPanel extends StatelessWidget {
+  const _DupAssignPanel({
+    required this.targetBib,
+    required this.conflictLabel,
+    required this.onDismiss,
+  });
+
+  final int targetBib;
+  final String conflictLabel;
+  final VoidCallback onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = context.read<ConflictResolutionController>();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text('Assign Existing Runner', style: AppTypography.smallBodySemibold),
+            const Spacer(),
+            GestureDetector(
+              onTap: onDismiss,
+              child: const Icon(Icons.close, size: 20, color: AppColors.mediumColor),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        RunnerAssignmentList(
+          targetBib: targetBib,
+          forbiddenBib: targetBib,
+          onAssign: (runner, _) =>
+              controller.prepareAssignForDuplicate(runner, conflictLabel),
+        ),
+      ],
+    );
+  }
+}
+
+class _DupActionButtons extends StatelessWidget {
+  const _DupActionButtons({required this.onAssign, required this.onCreate});
+
+  final VoidCallback onAssign;
+  final VoidCallback onCreate;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        OutlinedButton.icon(
+          onPressed: onAssign,
+          icon: const Icon(Icons.person_outline, size: 18),
+          label: const Text('Assign Existing Runner'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppColors.primaryColor,
+            backgroundColor: AppColors.selectedRoleColor,
+            side: const BorderSide(color: AppColors.primaryColor),
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppBorderRadius.lg),
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        ElevatedButton.icon(
+          onPressed: onCreate,
+          icon: const Icon(Icons.add, size: 18),
+          label: const Text('Create New Runner'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.primaryColor,
+            foregroundColor: Colors.white,
+            elevation: 0,
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppBorderRadius.lg),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+

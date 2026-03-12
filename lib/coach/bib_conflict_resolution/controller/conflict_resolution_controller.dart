@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../mock/conflict_mock_data.dart';
 
-enum _FlowStep { summary, duplicateStep1, duplicateStep2, unknown, completion }
+enum _FlowStep { summary, duplicateStep1, unknown, completion }
 
 typedef ResolutionEntry = ({
   String conflictLabel,
@@ -22,7 +22,6 @@ class ConflictResolutionController extends ChangeNotifier {
 
   _FlowStep _currentStep = _FlowStep.summary;
   int _currentConflictIndex = 0;
-  int? _chosenDuplicateOccurrence;
   bool _isGoingBack = false;
 
   bool _hasPending = false;
@@ -37,11 +36,16 @@ class ConflictResolutionController extends ChangeNotifier {
   // --- State checks ---
   bool get isOnSummary => _currentStep == _FlowStep.summary;
   bool get isOnDuplicateStep1 => _currentStep == _FlowStep.duplicateStep1;
-  bool get isOnDuplicateStep2 => _currentStep == _FlowStep.duplicateStep2;
   bool get isOnUnknown => _currentStep == _FlowStep.unknown;
   bool get isOnCompletion => _currentStep == _FlowStep.completion;
   bool get isGoingBack => _isGoingBack;
-  bool get canGoBack => _hasPending;
+
+  /// True whenever the back button should be active.
+  bool get canGoBack =>
+      _hasPending ||
+      _currentConflictIndex > 0 ||
+      _currentStep == _FlowStep.completion;
+
   bool get hasPending => _hasPending;
   String get pendingLabel => _pendingLabel;
 
@@ -49,7 +53,6 @@ class ConflictResolutionController extends ChangeNotifier {
   MockBibConflict get currentConflict => _conflicts[_currentConflictIndex];
   int get currentConflictIndex => _currentConflictIndex;
   int get totalConflicts => _conflicts.length;
-  int? get chosenDuplicateOccurrence => _chosenDuplicateOccurrence;
 
   int get resolvedCount {
     if (_currentStep == _FlowStep.completion) return _conflicts.length;
@@ -111,7 +114,6 @@ class ConflictResolutionController extends ChangeNotifier {
       ..clear()
       ..addAll(ConflictMockData.conflicts);
     _currentConflictIndex = 0;
-    _chosenDuplicateOccurrence = null;
     _hasPending = false;
     _pendingLabel = '';
     _pendingCommitAction = null;
@@ -132,11 +134,11 @@ class ConflictResolutionController extends ChangeNotifier {
   }
 
   /// Records the correct occurrence position for a duplicate conflict, injects
-  /// every other occurrence as an unknown into the queue, then advances to step 2.
+  /// every other occurrence as an unknown into the queue, then advances directly
+  /// to the first injected unknown. The known runner is implicitly confirmed at
+  /// the correct position — no step-2 card is shown.
   void chooseDuplicateOccurrence(int correctPosition) {
     _isGoingBack = false;
-    _chosenDuplicateOccurrence = correctPosition;
-
     final conflict = _conflicts[_currentConflictIndex] as MockDuplicateConflict;
     final leftovers = conflict.occurrences
         .where((o) => o.position != correctPosition)
@@ -149,7 +151,52 @@ class ConflictResolutionController extends ChangeNotifier {
         .toList();
 
     injectConflicts(leftovers);
-    _currentStep = _FlowStep.duplicateStep2;
+    _duplicatesResolved++;
+    _advance();
+  }
+
+  /// Resolves a 2-occurrence duplicate inline: stages the runner assigned to the
+  /// leftover occurrence, and also records the duplicate as resolved on commit.
+  /// Use this instead of [prepareAssign] when the leftover is handled within
+  /// the duplicate card itself (no separate UnknownBibCard is shown).
+  void prepareAssignForDuplicate(MockRunner runner, String label) {
+    _isGoingBack = false;
+    _unassignedRunners.remove(runner);
+    _pendingAssignedRunner = runner;
+    _pendingLabel = label;
+    _pendingCommitAction = () {
+      _duplicatesResolved++;
+      _runnersAssigned++;
+      _resolutionLog.add((
+        conflictLabel: label,
+        wasCreate: false,
+        runnerName: runner.name,
+        bib: runner.bibNumber,
+        team: runner.team,
+      ));
+    };
+    _hasPending = true;
+    notifyListeners();
+  }
+
+  /// Like [prepareAssignForDuplicate] but for a newly created runner.
+  void prepareCreateForDuplicate(
+      String name, int bib, String team, int? grade, String label) {
+    _isGoingBack = false;
+    _pendingAssignedRunner = null;
+    _pendingLabel = label;
+    _pendingCommitAction = () {
+      _duplicatesResolved++;
+      _newRunnersCreated++;
+      _resolutionLog.add((
+        conflictLabel: label,
+        wasCreate: true,
+        runnerName: name,
+        bib: bib,
+        team: team,
+      ));
+    };
+    _hasPending = true;
     notifyListeners();
   }
 
@@ -162,7 +209,6 @@ class ConflictResolutionController extends ChangeNotifier {
     _pendingLabel = label;
     _pendingCommitAction = () {
       _runnersAssigned++;
-      if (_currentStep == _FlowStep.duplicateStep2) _duplicatesResolved++;
       _resolutionLog.add((
         conflictLabel: label,
         wasCreate: false,
@@ -184,7 +230,6 @@ class ConflictResolutionController extends ChangeNotifier {
     _pendingLabel = label;
     _pendingCommitAction = () {
       _newRunnersCreated++;
-      if (_currentStep == _FlowStep.duplicateStep2) _duplicatesResolved++;
       _resolutionLog.add((
         conflictLabel: label,
         wasCreate: true,
@@ -218,8 +263,28 @@ class ConflictResolutionController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Navigates backward:
+  /// 1. If a resolution is pending, undoes it (undo-toast path).
+  /// 2. If on the completion screen, unresolves the last conflict and returns to it.
+  /// 3. Otherwise, steps back one conflict and removes its log entry.
   void goBack() {
-    if (_hasPending) undoPending();
+    if (_hasPending) {
+      undoPending();
+      return;
+    }
+    _isGoingBack = true;
+    if (_currentStep == _FlowStep.completion) {
+      if (_resolutionLog.isNotEmpty) _resolutionLog.removeLast();
+      _currentStep = _stepForConflict(_conflicts[_currentConflictIndex]);
+      notifyListeners();
+      return;
+    }
+    if (_currentConflictIndex > 0) {
+      if (_resolutionLog.isNotEmpty) _resolutionLog.removeLast();
+      _currentConflictIndex--;
+      _currentStep = _stepForConflict(_conflicts[_currentConflictIndex]);
+      notifyListeners();
+    }
   }
 
   void _clearPending() {
@@ -235,7 +300,6 @@ class ConflictResolutionController extends ChangeNotifier {
       _currentStep = _FlowStep.completion;
     } else {
       _currentConflictIndex = nextIndex;
-      _chosenDuplicateOccurrence = null;
       _currentStep = _stepForConflict(_conflicts[nextIndex]);
     }
     notifyListeners();

@@ -17,10 +17,16 @@ class RunnerAssignmentList extends StatefulWidget {
     super.key,
     required this.targetBib,
     this.forbiddenBib,
+    this.onAssign,
   });
 
   final int targetBib;
   final int? forbiddenBib;
+
+  /// Optional override for the assign action. When set, called instead of
+  /// [ConflictResolutionController.prepareAssign] so callers can use a
+  /// different controller method (e.g. [prepareAssignForDuplicate]).
+  final void Function(MockRunner runner, String label)? onAssign;
 
   @override
   State<RunnerAssignmentList> createState() => _RunnerAssignmentListState();
@@ -69,22 +75,34 @@ class _RunnerAssignmentListState extends State<RunnerAssignmentList> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _SchoolFilterPills(
-          teams: ConflictMockData.teams,
-          activeTeam: _activeTeam,
-          onChanged: (t) => setState(() {
-            _activeTeam = t;
-            _selectedRunner = null;
-          }),
+        // Scrollable runner list — bounded so the CTA below stays visible.
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 320),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _SchoolFilterPills(
+                  teams: ConflictMockData.teams,
+                  activeTeam: _activeTeam,
+                  onChanged: (t) => setState(() {
+                    _activeTeam = t;
+                    _selectedRunner = null;
+                  }),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                if (nearbyRunners.isEmpty)
+                  _EmptyState(message: 'No unassigned runners — create a new one.')
+                else if (filtered.isEmpty)
+                  const _EmptyState(message: 'No runners from this school.')
+                else
+                  ...rows,
+              ],
+            ),
+          ),
         ),
-        const SizedBox(height: AppSpacing.md),
-        if (nearbyRunners.isEmpty)
-          _EmptyState(message: 'No unassigned runners — create a new one.')
-        else if (filtered.isEmpty)
-          const _EmptyState(message: 'No runners from this school.')
-        else
-          ...rows,
         const SizedBox(height: AppSpacing.sm),
+        // CTA lives outside the scroll so it stays visible when a runner is selected.
         AnimatedSwitcher(
           duration: AppAnimations.standard,
           child: _selectedRunner == null
@@ -92,10 +110,14 @@ class _RunnerAssignmentListState extends State<RunnerAssignmentList> {
               : _AssignCta(
                   key: ValueKey(_selectedRunner!.bibNumber),
                   runnerName: _selectedRunner!.name,
-                  onAssign: () => controller.prepareAssign(
-                    _selectedRunner!,
-                    'Bib #${widget.targetBib}',
-                  ),
+                  onAssign: () {
+                    final label = 'Bib #${widget.targetBib}';
+                    if (widget.onAssign != null) {
+                      widget.onAssign!(_selectedRunner!, label);
+                    } else {
+                      controller.prepareAssign(_selectedRunner!, label);
+                    }
+                  },
                 ),
         ),
       ],

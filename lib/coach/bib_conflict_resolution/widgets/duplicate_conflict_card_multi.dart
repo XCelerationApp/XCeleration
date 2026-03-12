@@ -81,19 +81,16 @@ class _KnownRunnerCard extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: AppColors.primaryColor.withValues(alpha: AppOpacity.light),
-              borderRadius: BorderRadius.circular(AppBorderRadius.xs),
+            width: 40,
+            height: 40,
+            decoration: const BoxDecoration(
+              color: AppColors.selectedRoleColor,
+              shape: BoxShape.circle,
             ),
-            alignment: Alignment.center,
-            child: Text(
-              '#${conflict.bibNumber}',
-              style: AppTypography.caption.copyWith(
-                color: AppColors.primaryColor,
-                fontWeight: FontWeight.w700,
-              ),
+            child: const Icon(
+              Icons.person,
+              color: AppColors.primaryColor,
+              size: 22,
             ),
           ),
           const SizedBox(width: AppSpacing.md),
@@ -142,12 +139,12 @@ class _MultiOccurrenceStep1State extends State<_MultiOccurrenceStep1> {
               occurrence: o,
               isSelected: _selectedPosition == o.position,
               onSelect: () => setState(() => _selectedPosition = o.position),
-              onSeeMore: () => _showNearbySheet(
+              onSeeMore: () => showNearbySheet(
                 context,
-                widget.conflict.surroundingFinishers,
-                o.position,
-                widget.conflict.bibNumber,
-                o.formattedTime,
+                entries: widget.conflict.surroundingFinishers,
+                conflictPosition: o.position,
+                conflictBib: widget.conflict.bibNumber,
+                conflictTime: o.formattedTime,
               ),
             )),
         if (_selectedPosition != null) ...[

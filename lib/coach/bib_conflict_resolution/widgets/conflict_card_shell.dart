@@ -84,12 +84,6 @@ class _ConflictCardShellState extends State<ConflictCardShell> {
         conflict: controller.currentConflict as MockDuplicateConflict,
       );
     }
-    if (controller.isOnDuplicateStep2) {
-      return DuplicateStep2Card(
-        conflict: controller.currentConflict as MockDuplicateConflict,
-        correctOccurrence: controller.chosenDuplicateOccurrence!,
-      );
-    }
     return UnknownBibCard(
       conflict: controller.currentConflict as MockUnknownConflict,
     );
