@@ -64,12 +64,14 @@ class AuthService implements IAuthService {
   }
 
   /// Email + Password sign up
+  @override
   Future<AuthResponse> signUpWithEmailPassword(
       String email, String password) async {
     return await _client.auth.signUp(email: email, password: password);
   }
 
   /// Email + Password sign in
+  @override
   Future<AuthResponse> signInWithEmailPassword(
       String email, String password) async {
     return await _client.auth
@@ -77,6 +79,7 @@ class AuthService implements IAuthService {
   }
 
   /// Sends a password reset email. Configure Redirect URLs in Supabase Auth.
+  @override
   Future<void> sendPasswordResetEmail(String email) async {
     await _client.auth.resetPasswordForEmail(email);
   }
