@@ -16,7 +16,16 @@ import 'package:xceleration/core/utils/connectivity_utils.dart';
 import 'package:gotrue/gotrue.dart' as gotrue;
 
 class SignInScreen extends StatefulWidget {
-  const SignInScreen({super.key});
+  const SignInScreen({
+    super.key,
+    IAuthService? authService,
+    Future<bool> Function()? connectivityCheck,
+  })  : _authService = authService,
+        _connectivityCheck = connectivityCheck;
+
+  final IAuthService? _authService;
+  final Future<bool> Function()? _connectivityCheck;
+
   @override
   State<SignInScreen> createState() => _SignInScreenState();
 }
@@ -32,6 +41,10 @@ class _SignInScreenState extends State<SignInScreen>
   late final AnimationController _floatController;
   final FocusNode _emailFocusNode = FocusNode();
   final FocusNode _passwordFocusNode = FocusNode();
+
+  IAuthService get _authService => widget._authService ?? AuthService.instance;
+  Future<bool> Function() get _connectivityCheck =>
+      widget._connectivityCheck ?? ConnectivityUtils.isOnline;
 
   @override
   void initState() {
@@ -54,7 +67,7 @@ class _SignInScreenState extends State<SignInScreen>
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     final syncService = context.read<ISyncService>();
-    if (!await ConnectivityUtils.isOnline()) {
+    if (!await _connectivityCheck()) {
       if (!mounted) return;
       DialogUtils.showMessageDialog(
         context,
@@ -66,7 +79,7 @@ class _SignInScreenState extends State<SignInScreen>
     setState(() => _busy = true);
     try {
       if (_isLogin) {
-        final resp = await AuthService.instance.signInWithEmailPassword(
+        final resp = await _authService.signInWithEmailPassword(
           _emailController.text.trim(),
           _passwordController.text,
         );
@@ -83,13 +96,13 @@ class _SignInScreenState extends State<SignInScreen>
           );
         }
       } else {
-        final resp = await AuthService.instance.signUpWithEmailPassword(
+        final resp = await _authService.signUpWithEmailPassword(
           _emailController.text.trim(),
           _passwordController.text,
         );
         // If confirmation is disabled, session should be returned. If not, fallback: sign in immediately.
         if (resp.session == null) {
-          await AuthService.instance.signInWithEmailPassword(
+          await _authService.signInWithEmailPassword(
             _emailController.text.trim(),
             _passwordController.text,
           );
@@ -320,9 +333,8 @@ class _SignInScreenState extends State<SignInScreen>
                                                 'Enter email to reset password');
                                         return;
                                       }
-                                      await AuthService.instance
-                                          .sendPasswordResetEmail(
-                                              _emailController.text.trim());
+                                      await _authService.sendPasswordResetEmail(
+                                          _emailController.text.trim());
                                       if (context.mounted) {
                                         DialogUtils.showMessageDialog(context,
                                             title: 'Info',

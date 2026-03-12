@@ -51,8 +51,8 @@ class _FakeSupabaseClient_1 extends _i1.SmartFake
         );
 }
 
-class _FakeFuture_2<T1> extends _i1.SmartFake implements _i4.Future<T1> {
-  _FakeFuture_2(
+class _FakeAuthResponse_2 extends _i1.SmartFake implements _i3.AuthResponse {
+  _FakeAuthResponse_2(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -61,8 +61,8 @@ class _FakeFuture_2<T1> extends _i1.SmartFake implements _i4.Future<T1> {
         );
 }
 
-class _FakeQueryCursor_3 extends _i1.SmartFake implements _i2.QueryCursor {
-  _FakeQueryCursor_3(
+class _FakeFuture_3<T1> extends _i1.SmartFake implements _i4.Future<T1> {
+  _FakeFuture_3(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -71,8 +71,8 @@ class _FakeQueryCursor_3 extends _i1.SmartFake implements _i2.QueryCursor {
         );
 }
 
-class _FakeBatch_4 extends _i1.SmartFake implements _i2.Batch {
-  _FakeBatch_4(
+class _FakeQueryCursor_4 extends _i1.SmartFake implements _i2.QueryCursor {
+  _FakeQueryCursor_4(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -81,9 +81,19 @@ class _FakeBatch_4 extends _i1.SmartFake implements _i2.Batch {
         );
 }
 
-class _FakeFunctionsClient_5 extends _i1.SmartFake
+class _FakeBatch_5 extends _i1.SmartFake implements _i2.Batch {
+  _FakeBatch_5(
+    Object parent,
+    Invocation parentInvocation,
+  ) : super(
+          parent,
+          parentInvocation,
+        );
+}
+
+class _FakeFunctionsClient_6 extends _i1.SmartFake
     implements _i3.FunctionsClient {
-  _FakeFunctionsClient_5(
+  _FakeFunctionsClient_6(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -92,9 +102,9 @@ class _FakeFunctionsClient_5 extends _i1.SmartFake
         );
 }
 
-class _FakeSupabaseStorageClient_6 extends _i1.SmartFake
+class _FakeSupabaseStorageClient_7 extends _i1.SmartFake
     implements _i3.SupabaseStorageClient {
-  _FakeSupabaseStorageClient_6(
+  _FakeSupabaseStorageClient_7(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -103,9 +113,9 @@ class _FakeSupabaseStorageClient_6 extends _i1.SmartFake
         );
 }
 
-class _FakeRealtimeClient_7 extends _i1.SmartFake
+class _FakeRealtimeClient_8 extends _i1.SmartFake
     implements _i3.RealtimeClient {
-  _FakeRealtimeClient_7(
+  _FakeRealtimeClient_8(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -114,9 +124,9 @@ class _FakeRealtimeClient_7 extends _i1.SmartFake
         );
 }
 
-class _FakePostgrestClient_8 extends _i1.SmartFake
+class _FakePostgrestClient_9 extends _i1.SmartFake
     implements _i3.PostgrestClient {
-  _FakePostgrestClient_8(
+  _FakePostgrestClient_9(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -125,8 +135,8 @@ class _FakePostgrestClient_8 extends _i1.SmartFake
         );
 }
 
-class _FakeGoTrueClient_9 extends _i1.SmartFake implements _i3.GoTrueClient {
-  _FakeGoTrueClient_9(
+class _FakeGoTrueClient_10 extends _i1.SmartFake implements _i3.GoTrueClient {
+  _FakeGoTrueClient_10(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -135,9 +145,9 @@ class _FakeGoTrueClient_9 extends _i1.SmartFake implements _i3.GoTrueClient {
         );
 }
 
-class _FakeSupabaseQueryBuilder_10 extends _i1.SmartFake
+class _FakeSupabaseQueryBuilder_11 extends _i1.SmartFake
     implements _i3.SupabaseQueryBuilder {
-  _FakeSupabaseQueryBuilder_10(
+  _FakeSupabaseQueryBuilder_11(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -146,9 +156,9 @@ class _FakeSupabaseQueryBuilder_10 extends _i1.SmartFake
         );
 }
 
-class _FakeSupabaseQuerySchema_11 extends _i1.SmartFake
+class _FakeSupabaseQuerySchema_12 extends _i1.SmartFake
     implements _i3.SupabaseQuerySchema {
-  _FakeSupabaseQuerySchema_11(
+  _FakeSupabaseQuerySchema_12(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -157,9 +167,9 @@ class _FakeSupabaseQuerySchema_11 extends _i1.SmartFake
         );
 }
 
-class _FakePostgrestFilterBuilder_12<T1> extends _i1.SmartFake
+class _FakePostgrestFilterBuilder_13<T1> extends _i1.SmartFake
     implements _i3.PostgrestFilterBuilder<T1> {
-  _FakePostgrestFilterBuilder_12(
+  _FakePostgrestFilterBuilder_13(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -168,9 +178,9 @@ class _FakePostgrestFilterBuilder_12<T1> extends _i1.SmartFake
         );
 }
 
-class _FakeRealtimeChannel_13 extends _i1.SmartFake
+class _FakeRealtimeChannel_14 extends _i1.SmartFake
     implements _i3.RealtimeChannel {
-  _FakeRealtimeChannel_13(
+  _FakeRealtimeChannel_14(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -339,6 +349,66 @@ class MockIAuthService extends _i1.Mock implements _i8.IAuthService {
         Invocation.getter(#isSignedIn),
         returnValue: false,
       ) as bool);
+
+  @override
+  _i4.Future<_i3.AuthResponse> signInWithEmailPassword(
+    String? email,
+    String? password,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #signInWithEmailPassword,
+          [
+            email,
+            password,
+          ],
+        ),
+        returnValue: _i4.Future<_i3.AuthResponse>.value(_FakeAuthResponse_2(
+          this,
+          Invocation.method(
+            #signInWithEmailPassword,
+            [
+              email,
+              password,
+            ],
+          ),
+        )),
+      ) as _i4.Future<_i3.AuthResponse>);
+
+  @override
+  _i4.Future<_i3.AuthResponse> signUpWithEmailPassword(
+    String? email,
+    String? password,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #signUpWithEmailPassword,
+          [
+            email,
+            password,
+          ],
+        ),
+        returnValue: _i4.Future<_i3.AuthResponse>.value(_FakeAuthResponse_2(
+          this,
+          Invocation.method(
+            #signUpWithEmailPassword,
+            [
+              email,
+              password,
+            ],
+          ),
+        )),
+      ) as _i4.Future<_i3.AuthResponse>);
+
+  @override
+  _i4.Future<void> sendPasswordResetEmail(String? email) => (super.noSuchMethod(
+        Invocation.method(
+          #sendPasswordResetEmail,
+          [email],
+        ),
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 }
 
 /// A class which mocks [Database].
@@ -405,7 +475,7 @@ class MockDatabase extends _i1.Mock implements _i2.Database {
               ),
               (T v) => _i4.Future<T>.value(v),
             ) ??
-            _FakeFuture_2<T>(
+            _FakeFuture_3<T>(
               this,
               Invocation.method(
                 #transaction,
@@ -433,7 +503,7 @@ class MockDatabase extends _i1.Mock implements _i2.Database {
               ),
               (T v) => _i4.Future<T>.value(v),
             ) ??
-            _FakeFuture_2<T>(
+            _FakeFuture_3<T>(
               this,
               Invocation.method(
                 #readTransaction,
@@ -468,7 +538,7 @@ class MockDatabase extends _i1.Mock implements _i2.Database {
               ),
               (T v) => _i4.Future<T>.value(v),
             ) ??
-            _FakeFuture_2<T>(
+            _FakeFuture_3<T>(
               this,
               Invocation.method(
                 #devInvokeMethod,
@@ -509,7 +579,7 @@ class MockDatabase extends _i1.Mock implements _i2.Database {
               ),
               (T v) => _i4.Future<T>.value(v),
             ) ??
-            _FakeFuture_2<T>(
+            _FakeFuture_3<T>(
               this,
               Invocation.method(
                 #devInvokeSqlMethod,
@@ -642,7 +712,7 @@ class MockDatabase extends _i1.Mock implements _i2.Database {
           ],
           {#bufferSize: bufferSize},
         ),
-        returnValue: _i4.Future<_i2.QueryCursor>.value(_FakeQueryCursor_3(
+        returnValue: _i4.Future<_i2.QueryCursor>.value(_FakeQueryCursor_4(
           this,
           Invocation.method(
             #rawQueryCursor,
@@ -686,7 +756,7 @@ class MockDatabase extends _i1.Mock implements _i2.Database {
             #bufferSize: bufferSize,
           },
         ),
-        returnValue: _i4.Future<_i2.QueryCursor>.value(_FakeQueryCursor_3(
+        returnValue: _i4.Future<_i2.QueryCursor>.value(_FakeQueryCursor_4(
           this,
           Invocation.method(
             #queryCursor,
@@ -787,7 +857,7 @@ class MockDatabase extends _i1.Mock implements _i2.Database {
           #batch,
           [],
         ),
-        returnValue: _FakeBatch_4(
+        returnValue: _FakeBatch_5(
           this,
           Invocation.method(
             #batch,
@@ -808,7 +878,7 @@ class MockSupabaseClient extends _i1.Mock implements _i3.SupabaseClient {
   @override
   _i3.FunctionsClient get functions => (super.noSuchMethod(
         Invocation.getter(#functions),
-        returnValue: _FakeFunctionsClient_5(
+        returnValue: _FakeFunctionsClient_6(
           this,
           Invocation.getter(#functions),
         ),
@@ -817,7 +887,7 @@ class MockSupabaseClient extends _i1.Mock implements _i3.SupabaseClient {
   @override
   _i3.SupabaseStorageClient get storage => (super.noSuchMethod(
         Invocation.getter(#storage),
-        returnValue: _FakeSupabaseStorageClient_6(
+        returnValue: _FakeSupabaseStorageClient_7(
           this,
           Invocation.getter(#storage),
         ),
@@ -826,7 +896,7 @@ class MockSupabaseClient extends _i1.Mock implements _i3.SupabaseClient {
   @override
   _i3.RealtimeClient get realtime => (super.noSuchMethod(
         Invocation.getter(#realtime),
-        returnValue: _FakeRealtimeClient_7(
+        returnValue: _FakeRealtimeClient_8(
           this,
           Invocation.getter(#realtime),
         ),
@@ -835,7 +905,7 @@ class MockSupabaseClient extends _i1.Mock implements _i3.SupabaseClient {
   @override
   _i3.PostgrestClient get rest => (super.noSuchMethod(
         Invocation.getter(#rest),
-        returnValue: _FakePostgrestClient_8(
+        returnValue: _FakePostgrestClient_9(
           this,
           Invocation.getter(#rest),
         ),
@@ -850,7 +920,7 @@ class MockSupabaseClient extends _i1.Mock implements _i3.SupabaseClient {
   @override
   _i3.GoTrueClient get auth => (super.noSuchMethod(
         Invocation.getter(#auth),
-        returnValue: _FakeGoTrueClient_9(
+        returnValue: _FakeGoTrueClient_10(
           this,
           Invocation.getter(#auth),
         ),
@@ -907,7 +977,7 @@ class MockSupabaseClient extends _i1.Mock implements _i3.SupabaseClient {
           #from,
           [table],
         ),
-        returnValue: _FakeSupabaseQueryBuilder_10(
+        returnValue: _FakeSupabaseQueryBuilder_11(
           this,
           Invocation.method(
             #from,
@@ -922,7 +992,7 @@ class MockSupabaseClient extends _i1.Mock implements _i3.SupabaseClient {
           #schema,
           [schema],
         ),
-        returnValue: _FakeSupabaseQuerySchema_11(
+        returnValue: _FakeSupabaseQuerySchema_12(
           this,
           Invocation.method(
             #schema,
@@ -946,7 +1016,7 @@ class MockSupabaseClient extends _i1.Mock implements _i3.SupabaseClient {
             #get: get,
           },
         ),
-        returnValue: _FakePostgrestFilterBuilder_12<T>(
+        returnValue: _FakePostgrestFilterBuilder_13<T>(
           this,
           Invocation.method(
             #rpc,
@@ -970,7 +1040,7 @@ class MockSupabaseClient extends _i1.Mock implements _i3.SupabaseClient {
           [name],
           {#opts: opts},
         ),
-        returnValue: _FakeRealtimeChannel_13(
+        returnValue: _FakeRealtimeChannel_14(
           this,
           Invocation.method(
             #channel,
