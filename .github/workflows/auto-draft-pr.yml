@@ -100,7 +100,7 @@ jobs:
               core.setOutput('has_pr', 'false');
             }
 
-      - name: Generate PR content
+      - name: Generate content and create PR
         id: generate-content
         if: needs.determine-pr-type.outputs.should-create-pr == 'true' && steps.check-pr.outputs.has_pr == 'false'
         uses: actions/github-script@v7
@@ -116,9 +116,9 @@ jobs:
             const sourceBranch = process.env.SOURCE_BRANCH;
             const targetBranch = process.env.TARGET_BRANCH;
             const triggerInfo = process.env.TRIGGER_INFO;
-            
+
             let title, body, commentBody;
-            
+
             if (prType === 'feature') {
               // Feature branch PR content
               const { data: commit } = await github.rest.repos.getCommit({
@@ -126,10 +126,10 @@ jobs:
                 repo,
                 ref: context.sha
               });
-              
+
               const commitMessage = commit.commit.message;
               const firstLine = commitMessage.split('\n')[0];
-              
+
               let result = '';
               for (let i = 0; i < sourceBranch.length; i++) {
                 const char = sourceBranch[i];
@@ -144,103 +144,58 @@ jobs:
                   result += ' ';
                 }
               }
-              
+
               // Clean up multiple spaces and capitalize
               const branchTitle = result
                 .replace(/\s+/g, ' ')                   // multiple spaces become single space
                 .trim()                                 // remove leading/trailing spaces
                 .replace(/\b\w/g, l => l.toUpperCase()); // capitalize first letter of each word
-              
+
               title = firstLine.length > 50 ? branchTitle : branchTitle + ': ' + firstLine;
-              
-              body = `Auto-created draft PR from \`${sourceBranch}\` → \`${targetBranch}\``;
-              
+
+              body = 'Auto-created draft PR from `' + sourceBranch + '` to `' + targetBranch + '`';
+
               commentBody = "**Next steps:**\n" +
                 "1. Update description\n" +
                 "2. Mark ready for review when complete";
-            
+
             } else if (prType === 'release') {
               // Enhanced Release PR content - Full sync from dev to main
-              console.log('🔄 Generating full sync PR content for dev → main');
-              
+              console.log('Generating full sync PR content for dev to main');
+
               const { data: comparison } = await github.rest.repos.compareCommits({
                 owner,
                 repo,
                 base: targetBranch,
                 head: sourceBranch
               });
-              
-              const commitCount = comparison.commits.length;
-              
-                             // Safety check - prevent unnecessary PRs and warn about large syncs
-               if (commitCount === 0) {
-                 console.log('✅ Branches are already in sync - no PR needed');
-                 core.setOutput('skip_pr', 'true');
-                 return;
-               } else if (commitCount > 50) {
-                 console.log(`⚠️ Warning: Large sync detected (${commitCount} commits) - this indicates significant accumulated changes`);
-               } else {
-                 console.log(`✅ Found ${commitCount} commit${commitCount === 1 ? '' : 's'} to sync from dev to main`);
-               }
-              
-              // Analyze commits by type
-              const commitAnalysis = {
-                features: [],
-                fixes: [],
-                conflicts: [],
-                deployments: [],
-                other: []
-              };
-              
-              comparison.commits.forEach(commit => {
-                const message = commit.commit.message.toLowerCase();
-                if (message.includes('resolve') && (message.includes('conflict') || message.includes('merge'))) {
-                  commitAnalysis.conflicts.push(commit);
-                } else if (message.includes('fix') || message.includes('bug')) {
-                  commitAnalysis.fixes.push(commit);
-                } else if (message.includes('feature') || message.includes('add') || message.includes('implement')) {
-                  commitAnalysis.features.push(commit);
-                } else if (message.includes('deploy') || message.includes('production')) {
-                  commitAnalysis.deployments.push(commit);
-                } else {
-                  commitAnalysis.other.push(commit);
-                }
-              });
-              
-              // Generate title and content
-              title = `Production Deployment (${commitCount} ${commitCount === 1 ? 'commit' : 'commits'})`;
-              
-              body = `Auto-created release PR: \`${sourceBranch}\` → \`${targetBranch}\`\n\nSyncs ${commitCount} commit${commitCount === 1 ? '' : 's'} from dev to main for production deployment.`;
-              
-              commentBody = `Ready for production deployment\n\n` +
-                           `Review changes and mark ready for review when safe to deploy.`;
-            }
-            
-            core.setOutput('title', title);
-            core.setOutput('body', body);
-            core.setOutput('comment_body', commentBody);
 
-      - name: Create PR
-        if: needs.determine-pr-type.outputs.should-create-pr == 'true' && steps.check-pr.outputs.has_pr == 'false' && steps.generate-content.outputs.skip_pr != 'true'
-        uses: actions/github-script@v7
-        env:
-          SOURCE_BRANCH: ${{ needs.determine-pr-type.outputs.source-branch }}
-          TARGET_BRANCH: ${{ needs.determine-pr-type.outputs.target-branch }}
-          PR_TITLE: ${{ steps.generate-content.outputs.title }}
-          PR_BODY: ${{ steps.generate-content.outputs.body }}
-          PR_COMMENT_BODY: ${{ steps.generate-content.outputs.comment_body }}
-        with:
-          script: |
-            const { owner, repo } = context.repo;
-            const sourceBranch = process.env.SOURCE_BRANCH;
-            const targetBranch = process.env.TARGET_BRANCH;
-            
-            const title = process.env.PR_TITLE;
-            const body = process.env.PR_BODY;
-            const commentBody = process.env.PR_COMMENT_BODY;
-            
-            console.log(`🚀 Creating draft PR: ${sourceBranch} → ${targetBranch}`);
-            
+              const commitCount = comparison.commits.length;
+
+              // Safety check - prevent unnecessary PRs and warn about large syncs
+              if (commitCount === 0) {
+                console.log('Branches are already in sync - no PR needed');
+                core.setOutput('skip_pr', 'true');
+                return;
+              } else if (commitCount > 50) {
+                console.log('Warning: Large sync detected (' + commitCount + ' commits) - this indicates significant accumulated changes');
+              } else {
+                console.log('Found ' + commitCount + ' commit' + (commitCount === 1 ? '' : 's') + ' to sync from dev to main');
+              }
+
+              // Generate title and content
+              title = 'Production Deployment (' + commitCount + ' ' + (commitCount === 1 ? 'commit' : 'commits') + ')';
+
+              body = 'Auto-created release PR: `' + sourceBranch + '` to `' + targetBranch + '`\n\n' +
+                     'Syncs ' + commitCount + ' commit' + (commitCount === 1 ? '' : 's') + ' from dev to main for production deployment.';
+
+              commentBody = 'Ready for production deployment\n\n' +
+                            'Review changes and mark ready for review when safe to deploy.';
+            }
+
+            // Create the PR directly — avoids inter-step output passing of multi-line/special-character content
+            console.log('Creating draft PR: ' + sourceBranch + ' to ' + targetBranch);
+
             try {
               const { data: pr } = await github.rest.pulls.create({
                 owner,
@@ -251,9 +206,9 @@ jobs:
                 body,
                 draft: true
               });
-              
-              console.log(`✅ Created draft PR #${pr.number}: ${title}`);
-              
+
+              console.log('Created draft PR #' + pr.number + ': ' + title);
+
               // Add initial comment
               await github.rest.issues.createComment({
                 owner,
@@ -261,12 +216,12 @@ jobs:
                 issue_number: pr.number,
                 body: commentBody
               });
-              
+
             } catch (error) {
-              console.error('❌ Failed to create PR: ' + error.message);
-              
+              console.error('Failed to create PR: ' + error.message);
+
               if (error.message.includes('No commits between')) {
-                console.log(`ℹ️ ${sourceBranch} has no new commits compared to ${targetBranch}`);
+                console.log(sourceBranch + ' has no new commits compared to ' + targetBranch);
               } else {
                 throw error;
               }
