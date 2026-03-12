@@ -11,6 +11,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/utils/sheet_utils.dart';
 import './inline_context_panel.dart';
+import './nearby_finishers_sheet.dart';
 import './mock_create_runner_sheet.dart';
 import './runner_assignment_list.dart';
 
@@ -81,15 +82,12 @@ class _UnknownBibCardState extends State<UnknownBibCard> {
   }
 
   void _openContextSheet(BuildContext context) {
-    sheet(
-      context: context,
-      title: 'Nearby Finishers',
-      body: _NearbyFinishersSheet(
-        entries: widget.conflict.surroundingFinishers,
-        conflictPosition: widget.conflict.position,
-        conflictBib: widget.conflict.enteredBib,
-        conflictTime: widget.conflict.formattedTime,
-      ),
+    showNearbySheet(
+      context,
+      entries: widget.conflict.surroundingFinishers,
+      conflictPosition: widget.conflict.position,
+      conflictBib: widget.conflict.enteredBib,
+      conflictTime: widget.conflict.formattedTime,
     );
   }
 
@@ -97,12 +95,12 @@ class _UnknownBibCardState extends State<UnknownBibCard> {
     BuildContext context,
     ConflictResolutionController controller,
   ) async {
-    // TODO(xce-181): pass autoBib: conflict.enteredBib once XCE-181 adds that parameter.
     await sheet(
       context: context,
       title: 'Add New Runner',
       body: MockCreateRunnerSheet(
         allKnownBibs: controller.allKnownBibs,
+        autoBib: widget.conflict.enteredBib,
         onCreated: (name, bib, team, grade) {
           controller.prepareCreate(
             name,
@@ -287,133 +285,3 @@ class _ActionButtons extends StatelessWidget {
   }
 }
 
-class _NearbyFinishersSheet extends StatelessWidget {
-  const _NearbyFinishersSheet({
-    required this.entries,
-    required this.conflictPosition,
-    required this.conflictBib,
-    required this.conflictTime,
-  });
-
-  final List<MockFinishEntry> entries;
-  final int conflictPosition;
-  final int conflictBib;
-  final String conflictTime;
-
-  @override
-  Widget build(BuildContext context) {
-    final allRows = <(int, Widget)>[
-      for (final e in entries) (e.position, _FinisherRow(entry: e)),
-      (
-        conflictPosition,
-        _ConflictFinisherRow(
-          position: conflictPosition,
-          bib: conflictBib,
-          time: conflictTime,
-        ),
-      ),
-    ]..sort((a, b) => a.$1.compareTo(b.$1));
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: allRows.map((r) => r.$2).toList(),
-    );
-  }
-}
-
-class _FinisherRow extends StatelessWidget {
-  const _FinisherRow({required this.entry});
-
-  final MockFinishEntry entry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 36,
-            child: Text(
-              _ordinal(entry.position),
-              style: AppTypography.caption.copyWith(
-                color: AppColors.mediumColor,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Text(
-              entry.runnerName,
-              style: AppTypography.smallBodyRegular,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          Text(
-            entry.formattedTime,
-            style: AppTypography.caption.copyWith(color: AppColors.mediumColor),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ConflictFinisherRow extends StatelessWidget {
-  const _ConflictFinisherRow({
-    required this.position,
-    required this.bib,
-    required this.time,
-  });
-
-  final int position;
-  final int bib;
-  final String time;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.xs,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.primaryColor.withValues(alpha: AppOpacity.faint),
-        borderRadius: BorderRadius.circular(AppBorderRadius.sm),
-        border: const Border(
-          left: BorderSide(color: AppColors.primaryColor, width: 2),
-        ),
-      ),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 36,
-            child: Text(
-              _ordinal(position),
-              style: AppTypography.caption.copyWith(
-                color: AppColors.primaryColor,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Text(
-              'Bib #$bib',
-              style: AppTypography.smallBodyRegular.copyWith(
-                color: AppColors.primaryColor,
-              ),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          Text(
-            time,
-            style: AppTypography.caption.copyWith(color: AppColors.primaryColor),
-          ),
-        ],
-      ),
-    );
-  }
-}
