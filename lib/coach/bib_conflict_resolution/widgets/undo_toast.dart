@@ -119,37 +119,48 @@ class _ToastBody extends StatelessWidget {
               // Extra 3 px bottom padding reserves space for the draining bar.
               padding: const EdgeInsets.fromLTRB(
                 AppSpacing.md,
-                AppSpacing.sm,
                 AppSpacing.md,
-                AppSpacing.sm + 3,
+                AppSpacing.md,
+                AppSpacing.md + 3,
               ),
               child: Row(
                 children: [
-                  const Icon(
-                    Icons.check_circle,
-                    color: Colors.green,
-                    size: AppTypography.smallBodySize,
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Text(
-                    'Conflict resolved',
-                    style: AppTypography.smallBodySemibold.copyWith(
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF4CAF50),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.check,
                       color: Colors.white,
+                      size: 18,
                     ),
                   ),
-                  const SizedBox(width: AppSpacing.xs),
+                  const SizedBox(width: AppSpacing.md),
                   Expanded(
-                    child: Text(
-                      label,
-                      style: AppTypography.smallCaption.copyWith(
-                        color: Colors.white.withValues(
-                          alpha: AppOpacity.solid,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Conflict resolved',
+                          style: AppTypography.smallBodySemibold.copyWith(
+                            color: Colors.white,
+                          ),
                         ),
-                      ),
-                      overflow: TextOverflow.ellipsis,
+                        Text(
+                          label,
+                          style: AppTypography.caption.copyWith(
+                            color: Colors.white.withValues(alpha: AppOpacity.solid),
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: AppSpacing.sm),
+                  const SizedBox(width: AppSpacing.md),
                   _UndoButton(onUndo: onUndo),
                 ],
               ),
@@ -209,16 +220,16 @@ class _UndoButton extends StatelessWidget {
       onTap: onUndo,
       child: Container(
         padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.sm,
-          vertical: AppSpacing.xs,
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.sm,
         ),
         decoration: BoxDecoration(
-          border: Border.all(color: Colors.white),
-          borderRadius: BorderRadius.circular(AppBorderRadius.sm),
+          color: Colors.white.withValues(alpha: AppOpacity.medium),
+          borderRadius: BorderRadius.circular(AppBorderRadius.md),
         ),
         child: Text(
           'Undo',
-          style: AppTypography.smallCaption.copyWith(color: Colors.white),
+          style: AppTypography.smallBodySemibold.copyWith(color: Colors.white),
         ),
       ),
     );
