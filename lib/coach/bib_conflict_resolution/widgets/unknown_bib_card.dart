@@ -10,24 +10,11 @@ import '../../../core/theme/app_opacity.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/utils/sheet_utils.dart';
+import '../utils/ordinal.dart';
 import './inline_context_panel.dart';
 import './nearby_finishers_sheet.dart';
 import './mock_create_runner_sheet.dart';
 import './runner_assignment_list.dart';
-
-String _ordinal(int n) {
-  if (n >= 11 && n <= 13) return '${n}th';
-  switch (n % 10) {
-    case 1:
-      return '${n}st';
-    case 2:
-      return '${n}nd';
-    case 3:
-      return '${n}rd';
-    default:
-      return '${n}th';
-  }
-}
 
 /// Card for a standalone unknown bib — bib was entered but not found in the database.
 /// v2 layout: header with badge + finish position, time pill, inline context panel,
@@ -46,8 +33,6 @@ class _UnknownBibCardState extends State<UnknownBibCard> {
 
   @override
   Widget build(BuildContext context) {
-    final controller = context.watch<ConflictResolutionController>();
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -74,7 +59,7 @@ class _UnknownBibCardState extends State<UnknownBibCard> {
                 )
               : _ActionButtons(
                   onAssign: () => setState(() => _assignMode = true),
-                  onCreate: () => _openCreateSheet(context, controller),
+                  onCreate: () => _openCreateSheet(context),
                 ),
         ),
       ],
@@ -91,10 +76,8 @@ class _UnknownBibCardState extends State<UnknownBibCard> {
     );
   }
 
-  Future<void> _openCreateSheet(
-    BuildContext context,
-    ConflictResolutionController controller,
-  ) async {
+  Future<void> _openCreateSheet(BuildContext context) async {
+    final controller = context.read<ConflictResolutionController>();
     await sheet(
       context: context,
       title: 'Add New Runner',
@@ -170,7 +153,7 @@ class _HeaderRow extends StatelessWidget {
               ),
             ),
             Text(
-              _ordinal(conflict.position),
+              ordinal(conflict.position),
               style: AppTypography.titleSemibold.copyWith(
                 fontWeight: FontWeight.w800,
               ),

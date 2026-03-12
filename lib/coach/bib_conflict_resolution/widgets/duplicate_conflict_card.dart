@@ -10,26 +10,13 @@ import '../../../core/theme/app_opacity.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/utils/sheet_utils.dart';
+import '../utils/ordinal.dart';
 import './inline_context_panel.dart';
 import './mock_create_runner_sheet.dart';
 import './nearby_finishers_sheet.dart';
 import './runner_assignment_list.dart';
 part 'duplicate_conflict_card_step1.dart';
 part 'duplicate_conflict_card_multi.dart';
-
-String _ordinal(int n) {
-  if (n >= 11 && n <= 13) return '${n}th';
-  switch (n % 10) {
-    case 1:
-      return '${n}st';
-    case 2:
-      return '${n}nd';
-    case 3:
-      return '${n}rd';
-    default:
-      return '${n}th';
-  }
-}
 
 /// Step 1: Coach picks which occurrence is the correct finish position.
 /// After confirming, the known runner is implicitly placed at that position

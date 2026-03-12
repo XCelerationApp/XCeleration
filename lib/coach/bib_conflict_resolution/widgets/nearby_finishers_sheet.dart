@@ -5,20 +5,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_animations.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/utils/sheet_utils.dart';
-
-String _ordinal(int n) {
-  if (n >= 11 && n <= 13) return '${n}th';
-  switch (n % 10) {
-    case 1:
-      return '${n}st';
-    case 2:
-      return '${n}nd';
-    case 3:
-      return '${n}rd';
-    default:
-      return '${n}th';
-  }
-}
+import '../utils/ordinal.dart';
 
 /// Opens the "Around Nth place" bottom sheet showing nearby finishers
 /// alongside the highlighted conflict row.
@@ -58,7 +45,7 @@ void showNearbySheet(
                 padding:
                     const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
                 child: createSheetHeader(
-                  'Around ${_ordinal(conflictPosition)} place',
+                  'Around ${ordinal(conflictPosition)} place',
                 ),
               ),
               Flexible(
@@ -205,7 +192,7 @@ class _FinisherRow extends StatelessWidget {
           SizedBox(
             width: 36,
             child: Text(
-              _ordinal(entry.position),
+              ordinal(entry.position),
               style: AppTypography.caption.copyWith(color: AppColors.mediumColor),
             ),
           ),
@@ -267,7 +254,7 @@ class _ConflictFinisherRow extends StatelessWidget {
           SizedBox(
             width: 36,
             child: Text(
-              _ordinal(position),
+              ordinal(position),
               style: AppTypography.captionBold.copyWith(
                 color: AppColors.primaryColor,
               ),
