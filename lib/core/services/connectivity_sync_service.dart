@@ -10,14 +10,17 @@ class ConnectivitySyncService {
   final ISyncService _sync;
   final IAuthService _auth;
   final Stream<void>? _writeStream;
+  final Connectivity _connectivity;
 
   ConnectivitySyncService({
     required ISyncService sync,
     required IAuthService auth,
     Stream<void>? writeStream,
+    Connectivity? connectivity,
   })  : _sync = sync,
         _auth = auth,
-        _writeStream = writeStream;
+        _writeStream = writeStream,
+        _connectivity = connectivity ?? Connectivity();
 
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
   StreamSubscription<void>? _writeSub;
@@ -26,7 +29,7 @@ class ConnectivitySyncService {
   void start() {
     // Sync whenever the device connects to Wi‑Fi.
     _connectivitySub ??=
-        Connectivity().onConnectivityChanged.listen((results) async {
+        _connectivity.onConnectivityChanged.listen((results) async {
       if (_auth.isSignedIn && results.contains(ConnectivityResult.wifi)) {
         try {
           await _sync.syncAll();
@@ -51,7 +54,8 @@ class ConnectivitySyncService {
 
   Future<void> _syncIfOnWifi() async {
     try {
-      if (_auth.isSignedIn && await ConnectivityUtils.isOnline()) {
+      if (_auth.isSignedIn &&
+          await ConnectivityUtils.isOnline(connectivity: _connectivity)) {
         await _sync.syncAll();
       }
     } catch (_) {}
