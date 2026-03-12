@@ -4,6 +4,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xceleration/core/utils/logger.dart';
+import 'package:xceleration/core/utils/connectivity_utils.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 /// Authentication client for Google APIs
@@ -267,6 +268,10 @@ class GoogleAuthService {
 
   Future<String?> _exchangeServerAuthCodeForAccessToken(String authCode) async {
     Logger.d('Exchanging auth code for token with client ID: $_webClientId');
+    if (!await ConnectivityUtils.isOnline()) {
+      Logger.d('No internet connection — skipping token exchange');
+      return null;
+    }
     final url = dotenv.env['WEB_ACCESS_TOKEN_API_ENDPOINT'];
     if (url == null) {
       Logger.e('WEB_ACCESS_TOKEN_API_ENDPOINT is not set');
@@ -301,6 +306,10 @@ class GoogleAuthService {
       if (_currentUser != null && hasValidIosToken && hasValidWebToken) {
         Logger.d('Already signed in with valid iOS and Web tokens');
         return true;
+      }
+      if (!await ConnectivityUtils.isOnline()) {
+        Logger.d('No internet connection — skipping Google sign-in');
+        return false;
       }
       // If we need a web token but don't have a valid one, force interactive sign-in
       if (!hasValidWebToken) {

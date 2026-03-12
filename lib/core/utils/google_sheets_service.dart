@@ -5,6 +5,7 @@ import 'package:googleapis/sheets/v4.dart' as sheets;
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:xceleration/core/utils/logger.dart';
+import 'package:xceleration/core/utils/connectivity_utils.dart';
 import 'google_auth_service.dart';
 import 'google_drive_service.dart';
 import 'i_google_sheets_service.dart';
@@ -47,6 +48,11 @@ class GoogleSheetsService implements IGoogleSheetsService {
     required String title,
   }) async {
     try {
+      if (!await ConnectivityUtils.isOnline()) {
+        Logger.d('No internet connection — skipping spreadsheet creation');
+        return null;
+      }
+
       // Get the auth client
       final client = await _authService.getAuthClient();
       if (client == null) {
@@ -87,6 +93,11 @@ class GoogleSheetsService implements IGoogleSheetsService {
     required List<List<dynamic>> data,
   }) async {
     try {
+      if (!await ConnectivityUtils.isOnline()) {
+        Logger.d('No internet connection — skipping spreadsheet update');
+        return false;
+      }
+
       // Get the auth client
       final client = await _authService.getAuthClient();
       if (client == null) {
@@ -185,6 +196,11 @@ class GoogleSheetsService implements IGoogleSheetsService {
     Logger.d('Downloading Google Sheet: $fileId');
 
     try {
+      if (!await ConnectivityUtils.isOnline()) {
+        Logger.d('No internet connection — skipping sheet download');
+        return null;
+      }
+
       // Ensure we're signed in
       if (!await _authService.signIn()) {
         Logger.d('Failed to sign in to download sheet');

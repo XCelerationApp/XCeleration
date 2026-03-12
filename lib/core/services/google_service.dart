@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../utils/logger.dart';
+import '../utils/connectivity_utils.dart';
 import '../components/dialog_utils.dart';
 
 /// Consolidated Google service that handles authentication, Drive, and Sheets operations
@@ -61,6 +62,11 @@ class GoogleService {
       if (_currentUser != null && _hasValidToken) {
         Logger.d('Already signed in with valid token');
         return true;
+      }
+
+      if (!await ConnectivityUtils.isOnline()) {
+        Logger.d('No internet connection — skipping Google sign-in');
+        return false;
       }
 
       // Try silent sign-in first
@@ -128,6 +134,15 @@ class GoogleService {
 
   /// Pick a file from Google Drive
   Future<File?> pickDriveFile(BuildContext context) async {
+    if (!await ConnectivityUtils.isOnline()) {
+      if (context.mounted) {
+        DialogUtils.showErrorDialog(context,
+            message:
+                'No internet connection. Please check your connection and try again.');
+      }
+      return null;
+    }
+
     if (!await signIn()) {
       if (context.mounted) {
         DialogUtils.showErrorDialog(context,
@@ -145,6 +160,7 @@ class GoogleService {
   /// Get file metadata
   Future<drive.File?> getFileInfo(String fileId) async {
     if (_driveApi == null) return null;
+    if (!await ConnectivityUtils.isOnline()) return null;
 
     try {
       return await _driveApi!.files.get(fileId) as drive.File;
@@ -157,6 +173,7 @@ class GoogleService {
   /// Download a file from Drive
   Future<File?> downloadFile(String fileId, String fileName) async {
     if (!isSignedIn) return null;
+    if (!await ConnectivityUtils.isOnline()) return null;
 
     try {
       final response = await http.get(
@@ -189,6 +206,15 @@ class GoogleService {
     required String title,
     required List<List<dynamic>> data,
   }) async {
+    if (!await ConnectivityUtils.isOnline()) {
+      if (context.mounted) {
+        DialogUtils.showErrorDialog(context,
+            message:
+                'No internet connection. Please check your connection and try again.');
+      }
+      return null;
+    }
+
     if (!await signIn()) {
       if (context.mounted) {
         DialogUtils.showErrorDialog(context,
@@ -252,6 +278,7 @@ class GoogleService {
   Future<File?> downloadSheetAsCsv(
       String spreadsheetId, String fileName) async {
     if (!isSignedIn) return null;
+    if (!await ConnectivityUtils.isOnline()) return null;
 
     try {
       final response = await http.get(
