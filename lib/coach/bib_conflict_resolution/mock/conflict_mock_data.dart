@@ -164,7 +164,32 @@ abstract final class ConflictMockData {
         MockFinishEntry(position: 18, bibNumber: 327, formattedTime: '18:33', runnerName: 'Dylan Garcia', team: 'Riverside Prep'),
       ],
     ),
-    // --- Duplicate 3: Bib 203 at positions 19 and 22 ---
+    // --- Duplicate 3: Bib 415 at positions 31, 35, and 39 (3 occurrences) ---
+    const MockDuplicateConflict(
+      bibNumber: 415,
+      runnerName: 'Tyler Ross',
+      team: 'Northgate HS',
+      grade: 12,
+      occurrences: [
+        (position: 31, formattedTime: '21:07'),
+        (position: 35, formattedTime: '21:44'),
+        (position: 39, formattedTime: '22:18'),
+      ],
+      surroundingFinishers: [
+        MockFinishEntry(position: 27, bibNumber: 247, formattedTime: '20:12', runnerName: 'Gabriel Walker', team: 'Westview Academy'),
+        MockFinishEntry(position: 28, bibNumber: 308, formattedTime: '20:34', runnerName: 'Christian Hall', team: 'Riverside Prep'),
+        MockFinishEntry(position: 29, bibNumber: 371, formattedTime: '20:45', runnerName: 'Eli Allen', team: 'Lincoln HS'),
+        MockFinishEntry(position: 30, bibNumber: 192, formattedTime: '20:56', runnerName: 'Aaron Young', team: 'Riverside Prep'),
+        MockFinishEntry(position: 32, bibNumber: 263, formattedTime: '21:18', runnerName: 'Caleb Moore', team: 'Westview Academy'),
+        MockFinishEntry(position: 33, bibNumber: 347, formattedTime: '21:27', runnerName: 'Isaiah Thomas', team: 'Lincoln HS'),
+        MockFinishEntry(position: 34, bibNumber: 408, formattedTime: '21:36', runnerName: 'Dominic Hall', team: 'Northgate HS'),
+        MockFinishEntry(position: 36, bibNumber: 181, formattedTime: '21:52', runnerName: 'Zachary Turner', team: 'Riverside Prep'),
+        MockFinishEntry(position: 37, bibNumber: 319, formattedTime: '22:01', runnerName: 'Miles King', team: 'Westview Academy'),
+        MockFinishEntry(position: 38, bibNumber: 452, formattedTime: '22:09', runnerName: 'Nolan Green', team: 'Lincoln HS'),
+        MockFinishEntry(position: 40, bibNumber: 176, formattedTime: '22:27', runnerName: 'Preston Scott', team: 'Northgate HS'),
+      ],
+    ),
+    // --- Duplicate 4: Bib 203 at positions 19 and 22 ---
     const MockDuplicateConflict(
       bibNumber: 203,
       runnerName: 'Finn Holloway',
