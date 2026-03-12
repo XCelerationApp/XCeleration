@@ -68,7 +68,10 @@ class _TwoOccurrenceStep1State extends State<_TwoOccurrenceStep1> {
 }
 
 class _TipBanner extends StatelessWidget {
-  const _TipBanner();
+  const _TipBanner({this.message});
+
+  /// Defaults to the 2-occurrence copy. Pass a custom string for other contexts.
+  final String? message;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -79,7 +82,8 @@ class _TipBanner extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppBorderRadius.sm),
         ),
         child: Text(
-          '💡 Tap a finish to mark it correct. The other will need a runner assigned.',
+          message ??
+              '💡 Tap a finish to mark it correct. The other will need a runner assigned.',
           style: AppTypography.caption.copyWith(color: AppColors.mediumColor),
         ),
       );
@@ -137,7 +141,7 @@ class _OccurrenceTileState extends State<_OccurrenceTile> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Text(
-              '${_ordinal(widget.occurrence.position)} place',
+              '${ordinal(widget.occurrence.position)} place',
               style: AppTypography.smallBodyRegular.copyWith(
                 color: AppColors.mediumColor,
               ),
@@ -203,7 +207,7 @@ class _InlineLeftoverAssignmentState extends State<_InlineLeftoverAssignment> {
   bool _assignMode = false;
 
   String get _conflictLabel =>
-      '${_ordinal(widget.leftoverOccurrence.position)} place '
+      '${ordinal(widget.leftoverOccurrence.position)} place '
       '(Bib #${widget.conflict.bibNumber})';
 
   @override
@@ -228,7 +232,7 @@ class _InlineLeftoverAssignmentState extends State<_InlineLeftoverAssignment> {
               const Icon(Icons.check, color: Color(0xFF4CAF50), size: 16),
               const SizedBox(width: AppSpacing.xs),
               Text(
-                '${_ordinal(widget.confirmedPosition)} place is correct',
+                '${ordinal(widget.confirmedPosition)} place is correct',
                 style: AppTypography.smallBodySemibold.copyWith(
                   color: const Color(0xFF4CAF50),
                 ),
@@ -239,7 +243,7 @@ class _InlineLeftoverAssignmentState extends State<_InlineLeftoverAssignment> {
         const SizedBox(height: AppSpacing.lg),
         // Section header
         Text(
-          'Who finished ${_ordinal(leftover.position)}?',
+          'Who finished ${ordinal(leftover.position)}?',
           style: AppTypography.titleSemibold,
         ),
         const SizedBox(height: AppSpacing.xs),
