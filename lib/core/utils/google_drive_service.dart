@@ -4,6 +4,7 @@ import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:googleapis/sheets/v4.dart' as sheets;
 import 'package:xceleration/core/components/dialog_utils.dart';
 import 'package:xceleration/core/utils/logger.dart';
+import 'package:xceleration/core/utils/connectivity_utils.dart';
 import 'google_auth_service.dart';
 import 'google_picker_service.dart';
 import 'package:path_provider/path_provider.dart';
@@ -83,6 +84,8 @@ class GoogleDriveService {
 
   /// Get file metadata by ID
   Future<drive.File?> getFileInfo(String fileId) async {
+    if (!await ConnectivityUtils.isOnline()) return null;
+
     final api = await _getDriveApi();
     if (api == null) return null;
 
@@ -99,6 +102,15 @@ class GoogleDriveService {
   /// Returns a local file downloaded from Google Drive
   Future<File?> pickSpreadsheetFile(BuildContext context) async {
     try {
+      if (!await ConnectivityUtils.isOnline()) {
+        if (context.mounted) {
+          DialogUtils.showErrorDialog(context,
+              message:
+                  'No internet connection. Please check your connection and try again.');
+        }
+        return null;
+      }
+
       // Make sure we're signed in first
       final signedIn = await _authService.signIn();
       if (!signedIn) {
@@ -138,6 +150,15 @@ class GoogleDriveService {
   Future<Map<String, String>?> createGoogleSheet(
       BuildContext context, String title) async {
     try {
+      if (!await ConnectivityUtils.isOnline()) {
+        if (context.mounted) {
+          DialogUtils.showErrorDialog(context,
+              message:
+                  'No internet connection. Please check your connection and try again.');
+        }
+        return null;
+      }
+
       // Make sure we're signed in and have Sheets API
       final sheetsApi = await _getSheetsApi();
       final driveApi = await _getDriveApi();
@@ -193,6 +214,8 @@ class GoogleDriveService {
 
   /// Get the web view link for a file
   Future<String?> getWebViewLink(String fileId) async {
+    if (!await ConnectivityUtils.isOnline()) return null;
+
     final api = await _getDriveApi();
     if (api == null) return null;
 
@@ -211,6 +234,8 @@ class GoogleDriveService {
 
   /// Set a file to be accessible to anyone with the link
   Future<bool> setFilePublicPermission(String fileId) async {
+    if (!await ConnectivityUtils.isOnline()) return false;
+
     final api = await _getDriveApi();
     if (api == null) return false;
 
@@ -237,6 +262,11 @@ class GoogleDriveService {
     Logger.d('Downloading file: $fileId, fileName: $fileName');
 
     try {
+      if (!await ConnectivityUtils.isOnline()) {
+        Logger.d('No internet connection — skipping file download');
+        return null;
+      }
+
       // Regular file download using API and auth
       final accessToken = await _authService.iosAccessToken;
       if (accessToken == null) {
