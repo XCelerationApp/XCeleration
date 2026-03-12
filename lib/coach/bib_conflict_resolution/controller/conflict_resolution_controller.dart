@@ -12,9 +12,19 @@ typedef ResolutionEntry = ({
 });
 
 class ConflictResolutionController extends ChangeNotifier {
-  ConflictResolutionController()
-      : _unassignedRunners = List.from(ConflictMockData.allUnassignedRunners),
-        _conflicts = List.from(ConflictMockData.conflicts);
+  ConflictResolutionController({
+    List<MockBibConflict>? conflicts,
+    List<MockRunner>? unassignedRunners,
+  })  : _initialConflicts =
+            List.unmodifiable(conflicts ?? ConflictMockData.conflicts),
+        _initialUnassignedRunners = List.unmodifiable(
+            unassignedRunners ?? ConflictMockData.allUnassignedRunners),
+        _conflicts = List.from(conflicts ?? ConflictMockData.conflicts),
+        _unassignedRunners = List.from(
+            unassignedRunners ?? ConflictMockData.allUnassignedRunners);
+
+  final List<MockBibConflict> _initialConflicts;
+  final List<MockRunner> _initialUnassignedRunners;
 
   final List<MockBibConflict> _conflicts;
   final List<MockRunner> _unassignedRunners;
@@ -75,6 +85,14 @@ class ConflictResolutionController extends ChangeNotifier {
     return 'conflicts';
   }
 
+  /// Unique team names derived from the initial runner list, sorted alphabetically.
+  /// Widgets use this instead of accessing ConflictMockData directly.
+  List<String> get teams {
+    final names = _initialUnassignedRunners.map((r) => r.team).toSet().toList()
+      ..sort();
+    return names;
+  }
+
   /// All unassigned runners sorted by proximity to [targetBib].
   List<MockRunner> runnersNearBib(int targetBib) {
     final sorted = List<MockRunner>.from(_unassignedRunners);
@@ -109,10 +127,10 @@ class ConflictResolutionController extends ChangeNotifier {
     _isGoingBack = false;
     _unassignedRunners
       ..clear()
-      ..addAll(ConflictMockData.allUnassignedRunners);
+      ..addAll(_initialUnassignedRunners);
     _conflicts
       ..clear()
-      ..addAll(ConflictMockData.conflicts);
+      ..addAll(_initialConflicts);
     _currentConflictIndex = 0;
     _hasPending = false;
     _pendingLabel = '';

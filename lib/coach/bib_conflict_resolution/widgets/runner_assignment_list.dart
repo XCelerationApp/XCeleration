@@ -53,6 +53,7 @@ class _RunnerAssignmentListState extends State<RunnerAssignmentList> {
   Widget build(BuildContext context) {
     final controller = context.watch<ConflictResolutionController>();
     final nearbyRunners = controller.runnersNearBib(widget.targetBib);
+    final teams = controller.teams;
     final filtered = _filter(nearbyRunners);
     final grouped = _groupByTeam(filtered);
 
@@ -83,7 +84,7 @@ class _RunnerAssignmentListState extends State<RunnerAssignmentList> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _SchoolFilterPills(
-                  teams: ConflictMockData.teams,
+                  teams: teams,
                   activeTeam: _activeTeam,
                   onChanged: (t) => setState(() {
                     _activeTeam = t;
