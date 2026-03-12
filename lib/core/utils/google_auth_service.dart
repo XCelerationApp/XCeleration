@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -35,6 +37,9 @@ class GoogleAuthService {
   static String get _webClientId =>
       dotenv.env['GOOGLE_WEB_OAUTH_CLIENT_ID'] ?? '';
 
+  final Connectivity _connectivity;
+  final GoogleSignIn? _googleSignInOverride;
+
   GoogleSignIn? _googleSignIn;
   GoogleSignInAccount? _currentUser;
   String? _iosAccessToken;
@@ -60,10 +65,19 @@ class GoogleAuthService {
     return _instance!;
   }
 
-  GoogleAuthService._() {
-    // Don't initialize anything in constructor
-    // Will be done lazily when needed
-  }
+  GoogleAuthService._({
+    Connectivity? connectivity,
+    GoogleSignIn? googleSignIn,
+  })  : _connectivity = connectivity ?? Connectivity(),
+        _googleSignInOverride = googleSignIn;
+
+  /// Constructor for testing — bypasses the singleton and allows dependency injection.
+  @visibleForTesting
+  GoogleAuthService.forTesting({
+    Connectivity? connectivity,
+    GoogleSignIn? googleSignIn,
+  })  : _connectivity = connectivity ?? Connectivity(),
+        _googleSignInOverride = googleSignIn;
 
   /// Asynchronously load preferences but don't block instance creation
   Future<void> _loadPrefsAsync() async {
@@ -154,7 +168,12 @@ class GoogleAuthService {
 
   /// Initialize Google Sign In
   void _initGoogleSignIn() {
-    _googleSignIn ??= GoogleSignIn(
+    if (_googleSignIn != null) return;
+    if (_googleSignInOverride != null) {
+      _googleSignIn = _googleSignInOverride;
+      return;
+    }
+    _googleSignIn = GoogleSignIn(
       scopes: [
         'https://www.googleapis.com/auth/drive.file',
       ],
@@ -268,7 +287,7 @@ class GoogleAuthService {
 
   Future<String?> _exchangeServerAuthCodeForAccessToken(String authCode) async {
     Logger.d('Exchanging auth code for token with client ID: $_webClientId');
-    if (!await ConnectivityUtils.isOnline()) {
+    if (!await ConnectivityUtils.isOnline(connectivity: _connectivity)) {
       Logger.d('No internet connection — skipping token exchange');
       return null;
     }
@@ -307,7 +326,7 @@ class GoogleAuthService {
         Logger.d('Already signed in with valid iOS and Web tokens');
         return true;
       }
-      if (!await ConnectivityUtils.isOnline()) {
+      if (!await ConnectivityUtils.isOnline(connectivity: _connectivity)) {
         Logger.d('No internet connection — skipping Google sign-in');
         return false;
       }

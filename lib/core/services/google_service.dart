@@ -1,6 +1,7 @@
 import 'dart:async';
 // import 'dart:convert'; // Unused
 import 'dart:io';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
@@ -34,10 +35,27 @@ class GoogleService {
       dotenv.env['GOOGLE_WEB_OAUTH_CLIENT_ID'] ?? '';
   // API key not currently used - OAuth flow handles authentication
 
+  // Dependencies
+  final Connectivity _connectivity;
+
   // State
   bool _initialized = false;
 
-  GoogleService._();
+  GoogleService._({Connectivity? connectivity})
+      : _connectivity = connectivity ?? Connectivity();
+
+  /// Constructor for testing — bypasses the singleton and allows dependency injection.
+  /// If [googleSignIn] is provided, the service skips [initialize()] and uses it directly.
+  @visibleForTesting
+  GoogleService.forTesting({
+    Connectivity? connectivity,
+    GoogleSignIn? googleSignIn,
+  }) : _connectivity = connectivity ?? Connectivity() {
+    if (googleSignIn != null) {
+      _googleSignIn = googleSignIn;
+      _initialized = true;
+    }
+  }
 
   /// Initialize the Google service
   Future<void> initialize() async {
@@ -64,7 +82,7 @@ class GoogleService {
         return true;
       }
 
-      if (!await ConnectivityUtils.isOnline()) {
+      if (!await ConnectivityUtils.isOnline(connectivity: _connectivity)) {
         Logger.d('No internet connection — skipping Google sign-in');
         return false;
       }
@@ -134,7 +152,7 @@ class GoogleService {
 
   /// Pick a file from Google Drive
   Future<File?> pickDriveFile(BuildContext context) async {
-    if (!await ConnectivityUtils.isOnline()) {
+    if (!await ConnectivityUtils.isOnline(connectivity: _connectivity)) {
       if (context.mounted) {
         DialogUtils.showErrorDialog(context,
             message:
@@ -160,7 +178,9 @@ class GoogleService {
   /// Get file metadata
   Future<drive.File?> getFileInfo(String fileId) async {
     if (_driveApi == null) return null;
-    if (!await ConnectivityUtils.isOnline()) return null;
+    if (!await ConnectivityUtils.isOnline(connectivity: _connectivity)) {
+      return null;
+    }
 
     try {
       return await _driveApi!.files.get(fileId) as drive.File;
@@ -173,7 +193,9 @@ class GoogleService {
   /// Download a file from Drive
   Future<File?> downloadFile(String fileId, String fileName) async {
     if (!isSignedIn) return null;
-    if (!await ConnectivityUtils.isOnline()) return null;
+    if (!await ConnectivityUtils.isOnline(connectivity: _connectivity)) {
+      return null;
+    }
 
     try {
       final response = await http.get(
@@ -206,7 +228,7 @@ class GoogleService {
     required String title,
     required List<List<dynamic>> data,
   }) async {
-    if (!await ConnectivityUtils.isOnline()) {
+    if (!await ConnectivityUtils.isOnline(connectivity: _connectivity)) {
       if (context.mounted) {
         DialogUtils.showErrorDialog(context,
             message:
@@ -278,7 +300,9 @@ class GoogleService {
   Future<File?> downloadSheetAsCsv(
       String spreadsheetId, String fileName) async {
     if (!isSignedIn) return null;
-    if (!await ConnectivityUtils.isOnline()) return null;
+    if (!await ConnectivityUtils.isOnline(connectivity: _connectivity)) {
+      return null;
+    }
 
     try {
       final response = await http.get(
