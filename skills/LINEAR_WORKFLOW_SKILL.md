@@ -7,44 +7,42 @@ description: >
 
 # Linear Workflow
 
-Keep it simple. The most important rule is: **mark issues Done when work is complete.**
-
 Read this file fully before taking any action on a Linear issue.
 
 ---
 
 ## Tools
 
-Use the `mcp__linear__*` tools (e.g. `mcp__linear__get_issue`, `mcp__linear__save_issue`,
-`mcp__linear__create_comment`). Always search before creating.
+Use the `mcp__linear__*` tools (e.g. `mcp__linear__get_issue`, `mcp__linear__save_issue`). Always search before creating.
+
+---
+
+## The Agent's Role
+
+The agent reads the issue, implements the work, commits, pushes, and updates the PR description. That's it.
+
+**The agent never marks issues Done.** That is the user's step, triggered via `/done` after reviewing the work.
 
 ---
 
 ## When to Act on Linear
 
-- A Linear issue ID is mentioned (e.g. XCE-123) → reference it in your work
+- A Linear issue ID is mentioned → read the issue fully before starting any work
 - The user asks to create an issue → follow the creation rules below
-- Work on a task is finished → mark the issue Done
 - A significant unexpected blocker is hit → add a comment before stopping
 
-For trivial tasks, don't move through every status. A small fix doesn't need
-In Progress → In Review → Done. Just mark it Done when it's done.
+Do not move issues through statuses (In Progress, In Review, etc.). The only status change that matters is Done, and that belongs to the user.
 
 ---
 
-## Marking Issues Done
+## Starting Work on an Issue
 
-This is the most important step and the easiest to forget.
+Read the issue carefully using `mcp__linear__get_issue`. Check whether it has a parent issue.
 
-Done means:
+- **If it has a parent** — it is a subissue. The worktree already exists for the parent. Work within the current worktree; do not create a new one.
+- **If it has no parent** — it is a top-level issue. The worktree was created by `start_issue.py` and the branch name is the issue ID.
 
-- Code committed and pushed to the feature branch
-- Tests passing
-- No known regressions
-- The user has not flagged unresolved concerns
-
-For multi-phase issues, merging is not required — committed and pushed is sufficient.
-Mark Done as soon as the acceptance criteria are met, even if the branch is not yet merged.
+Look for the `**Developer Comments:**` section before deciding on an approach. If there are notes asking for clarification, ask the user before proceeding.
 
 ---
 
@@ -52,16 +50,13 @@ Mark Done as soon as the acceptance criteria are met, even if the branch is not 
 
 One meaningful change → one issue.
 
-Do not split small, tightly related work into multiple issues, and do not create
-follow-up issues unless the work is truly separate. If it's covered by the same
-acceptance criteria, keep it in the same issue.
+Do not split small, tightly related work into multiple issues, and do not create follow-up issues unless the work is truly separate. If it's covered by the same acceptance criteria, keep it in the same issue.
 
 ---
 
 ## Creating Issues
 
-Only create an issue if one clearly doesn't exist yet. **Search first.** If it's
-unclear whether an issue already exists, ask before creating.
+Only create an issue if one clearly doesn't exist yet. **Search first.**
 
 ### Title
 
@@ -72,7 +67,6 @@ unclear whether an issue already exists, ask before creating.
 ### Description
 
 ```markdown
-
 **What:** [one sentence on what this is]
 
 **Why:** [why it's needed]
@@ -129,27 +123,15 @@ Use subissues when a large or complex problem requires multiple distinct steps o
 
 ### Completing Subissues
 
-- Mark each subissue Done as its work is finished (same Done criteria as above)
-- Once **all** subissues are marked Done, mark the parent issue Done as well
-- Do not mark the parent Done while any subissue is still open
+All subissues share the parent's worktree and branch. When finished with a subissue, push the commits and update the PR description as normal, then remind the user to run `/done XCE-101` (with the subissue ID) to mark it Done. The worktree stays open.
 
----
-
-## Acting on Issues
-
-### Before working with a Linear issue
-
-Read the issue carefully and in-depth. Especially look for the `**Developer Comments:**` section and read any notes before deciding on an approach. If the notes say to ask the user for clarification, be sure to do this when instructed.
-
-### Working on the Issue
-
-Use skills/REFACTORING_SKILL.md to refactor the code as described in the issue.
+Once the user has marked all subissues Done, they run `/done` (no argument, or with the parent issue ID) to mark the parent Done and close the worktree.
 
 ---
 
 ## What Not to Do
 
 - Don't create issues for things already in scope of the current issue
-- Don't move issues through every status for simple tasks
+- Don't move issues through statuses — the agent doesn't touch status
 - Don't post comments just to say work is in progress
-- Don't mark Done if tests are failing
+- Don't mark any issue Done — that is always the user's step via `/done`
