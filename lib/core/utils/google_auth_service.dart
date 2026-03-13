@@ -5,7 +5,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xceleration/core/utils/logger.dart';
-import 'package:xceleration/core/utils/connectivity_utils.dart';
+import 'package:xceleration/core/services/connectivity_service.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 /// Authentication client for Google APIs
@@ -36,7 +36,7 @@ class GoogleAuthService {
   static String get _webClientId =>
       dotenv.env['GOOGLE_WEB_OAUTH_CLIENT_ID'] ?? '';
 
-  final Future<bool> Function() _isOnline;
+  final ConnectivityService _connectivity;
   final GoogleSignIn? _googleSignInOverride;
 
   GoogleSignIn? _googleSignIn;
@@ -65,17 +65,17 @@ class GoogleAuthService {
   }
 
   GoogleAuthService._({
-    Future<bool> Function()? isOnline,
+    ConnectivityService? connectivity,
     GoogleSignIn? googleSignIn,
-  })  : _isOnline = isOnline ?? ConnectivityUtils.isOnline,
+  })  : _connectivity = connectivity ?? const ConnectivityService(),
         _googleSignInOverride = googleSignIn;
 
   /// Constructor for testing — bypasses the singleton and allows dependency injection.
   @visibleForTesting
   GoogleAuthService.forTesting({
-    Future<bool> Function()? isOnline,
+    ConnectivityService? connectivity,
     GoogleSignIn? googleSignIn,
-  })  : _isOnline = isOnline ?? ConnectivityUtils.isOnline,
+  })  : _connectivity = connectivity ?? const ConnectivityService(),
         _googleSignInOverride = googleSignIn;
 
   /// Asynchronously load preferences but don't block instance creation
@@ -286,7 +286,7 @@ class GoogleAuthService {
 
   Future<String?> _exchangeServerAuthCodeForAccessToken(String authCode) async {
     Logger.d('Exchanging auth code for token with client ID: $_webClientId');
-    if (!await _isOnline()) {
+    if (!await _connectivity.isOnline()) {
       Logger.d('No internet connection — skipping token exchange');
       return null;
     }
@@ -325,7 +325,7 @@ class GoogleAuthService {
         Logger.d('Already signed in with valid iOS and Web tokens');
         return true;
       }
-      if (!await _isOnline()) {
+      if (!await _connectivity.isOnline()) {
         Logger.d('No internet connection — skipping Google sign-in');
         return false;
       }

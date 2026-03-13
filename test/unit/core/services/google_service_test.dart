@@ -3,25 +3,31 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:xceleration/core/services/connectivity_service.dart';
 import 'package:xceleration/core/services/google_service.dart';
 
-@GenerateMocks([GoogleSignIn, GoogleSignInAccount, GoogleSignInAuthentication])
+@GenerateMocks([ConnectivityService, GoogleSignIn, GoogleSignInAccount, GoogleSignInAuthentication])
 import 'google_service_test.mocks.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  late MockConnectivityService mockConnectivity;
   late MockGoogleSignIn mockGoogleSignIn;
 
   setUp(() {
+    mockConnectivity = MockConnectivityService();
     mockGoogleSignIn = MockGoogleSignIn();
     SharedPreferences.setMockInitialValues({});
   });
 
-  GoogleService buildService({bool online = true}) => GoogleService.forTesting(
-        isOnline: () async => online,
-        googleSignIn: mockGoogleSignIn,
-      );
+  GoogleService buildService({bool online = true}) {
+    when(mockConnectivity.isOnline()).thenAnswer((_) async => online);
+    return GoogleService.forTesting(
+      connectivity: mockConnectivity,
+      googleSignIn: mockGoogleSignIn,
+    );
+  }
 
   group('GoogleService', () {
     group('isSignedIn', () {
@@ -181,21 +187,17 @@ void main() {
       });
 
       test('returns null when offline and signed in', () async {
-        var online = true;
         final mockAccount = MockGoogleSignInAccount();
         final mockAuth = MockGoogleSignInAuthentication();
         when(mockGoogleSignIn.signInSilently())
             .thenAnswer((_) async => mockAccount);
         when(mockAccount.authentication).thenAnswer((_) async => mockAuth);
         when(mockAuth.accessToken).thenReturn('test-token');
-        final service = GoogleService.forTesting(
-          isOnline: () async => online,
-          googleSignIn: mockGoogleSignIn,
-        );
+        final service = buildService();
         await service.signIn();
 
         // Now go offline
-        online = false;
+        when(mockConnectivity.isOnline()).thenAnswer((_) async => false);
         final result = await service.downloadFile('file-id', 'file.csv');
 
         expect(result, isNull);
@@ -213,21 +215,17 @@ void main() {
       });
 
       test('returns null when offline and signed in', () async {
-        var online = true;
         final mockAccount = MockGoogleSignInAccount();
         final mockAuth = MockGoogleSignInAuthentication();
         when(mockGoogleSignIn.signInSilently())
             .thenAnswer((_) async => mockAccount);
         when(mockAccount.authentication).thenAnswer((_) async => mockAuth);
         when(mockAuth.accessToken).thenReturn('test-token');
-        final service = GoogleService.forTesting(
-          isOnline: () async => online,
-          googleSignIn: mockGoogleSignIn,
-        );
+        final service = buildService();
         await service.signIn();
 
         // Now go offline
-        online = false;
+        when(mockConnectivity.isOnline()).thenAnswer((_) async => false);
         final result =
             await service.downloadSheetAsCsv('spreadsheet-id', 'results');
 

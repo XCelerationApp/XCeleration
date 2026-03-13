@@ -3,26 +3,31 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:xceleration/core/services/connectivity_service.dart';
 import 'package:xceleration/core/utils/google_auth_service.dart';
 
-@GenerateMocks([GoogleSignIn, GoogleSignInAccount, GoogleSignInAuthentication])
+@GenerateMocks([ConnectivityService, GoogleSignIn, GoogleSignInAccount, GoogleSignInAuthentication])
 import 'google_auth_service_test.mocks.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  late MockConnectivityService mockConnectivity;
   late MockGoogleSignIn mockGoogleSignIn;
 
   setUp(() {
+    mockConnectivity = MockConnectivityService();
     mockGoogleSignIn = MockGoogleSignIn();
     SharedPreferences.setMockInitialValues({});
   });
 
-  GoogleAuthService buildService({bool online = true}) =>
-      GoogleAuthService.forTesting(
-        isOnline: () async => online,
-        googleSignIn: mockGoogleSignIn,
-      );
+  GoogleAuthService buildService({bool online = true}) {
+    when(mockConnectivity.isOnline()).thenAnswer((_) async => online);
+    return GoogleAuthService.forTesting(
+      connectivity: mockConnectivity,
+      googleSignIn: mockGoogleSignIn,
+    );
+  }
 
   group('GoogleAuthService', () {
     group('hasValidIosToken', () {

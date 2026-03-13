@@ -2,31 +2,36 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:xceleration/core/services/connectivity_service.dart';
 import 'package:xceleration/core/utils/google_auth_service.dart';
 import 'package:xceleration/core/utils/google_drive_service.dart';
 import 'package:xceleration/core/utils/google_sheets_service.dart';
 
-@GenerateMocks([GoogleAuthService, GoogleDriveService])
+@GenerateMocks([ConnectivityService, GoogleAuthService, GoogleDriveService])
 import 'google_sheets_service_test.mocks.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  late MockConnectivityService mockConnectivity;
   late MockGoogleAuthService mockAuthService;
   late MockGoogleDriveService mockDriveService;
 
   setUp(() {
+    mockConnectivity = MockConnectivityService();
     mockAuthService = MockGoogleAuthService();
     mockDriveService = MockGoogleDriveService();
     SharedPreferences.setMockInitialValues({});
   });
 
-  GoogleSheetsService buildService({bool online = true}) =>
-      GoogleSheetsService.forTesting(
-        authService: mockAuthService,
-        driveService: mockDriveService,
-        isOnline: () async => online,
-      );
+  GoogleSheetsService buildService({bool online = true}) {
+    when(mockConnectivity.isOnline()).thenAnswer((_) async => online);
+    return GoogleSheetsService.forTesting(
+      authService: mockAuthService,
+      driveService: mockDriveService,
+      connectivity: mockConnectivity,
+    );
+  }
 
   group('GoogleSheetsService', () {
     group('signIn', () {

@@ -5,9 +5,10 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i3;
 
-import 'package:http/http.dart' as _i4;
+import 'package:http/http.dart' as _i5;
 import 'package:mockito/mockito.dart' as _i1;
-import 'package:xceleration/core/utils/google_auth_service.dart' as _i2;
+import 'package:xceleration/core/services/connectivity_service.dart' as _i2;
+import 'package:xceleration/core/utils/google_auth_service.dart' as _i4;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -24,10 +25,29 @@ import 'package:xceleration/core/utils/google_auth_service.dart' as _i2;
 // ignore_for_file: subtype_of_sealed_class
 // ignore_for_file: invalid_use_of_internal_member
 
+/// A class which mocks [ConnectivityService].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockConnectivityService extends _i1.Mock
+    implements _i2.ConnectivityService {
+  MockConnectivityService() {
+    _i1.throwOnMissingStub(this);
+  }
+
+  @override
+  _i3.Future<bool> isOnline() => (super.noSuchMethod(
+        Invocation.method(
+          #isOnline,
+          [],
+        ),
+        returnValue: _i3.Future<bool>.value(false),
+      ) as _i3.Future<bool>);
+}
+
 /// A class which mocks [GoogleAuthService].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockGoogleAuthService extends _i1.Mock implements _i2.GoogleAuthService {
+class MockGoogleAuthService extends _i1.Mock implements _i4.GoogleAuthService {
   MockGoogleAuthService() {
     _i1.throwOnMissingStub(this);
   }
@@ -57,13 +77,13 @@ class MockGoogleAuthService extends _i1.Mock implements _i2.GoogleAuthService {
       ) as _i3.Future<String?>);
 
   @override
-  _i3.Future<_i4.Client?> getAuthClient() => (super.noSuchMethod(
+  _i3.Future<_i5.Client?> getAuthClient() => (super.noSuchMethod(
         Invocation.method(
           #getAuthClient,
           [],
         ),
-        returnValue: _i3.Future<_i4.Client?>.value(),
-      ) as _i3.Future<_i4.Client?>);
+        returnValue: _i3.Future<_i5.Client?>.value(),
+      ) as _i3.Future<_i5.Client?>);
 
   @override
   _i3.Future<bool> signIn() => (super.noSuchMethod(
