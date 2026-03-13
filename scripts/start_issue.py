@@ -6,6 +6,7 @@ Creates a git worktree branched from dev and opens it in Cursor.
 Usage: python3 scripts/start_issue.py 123
 """
 import os
+import shutil
 import subprocess
 import sys
 
@@ -67,6 +68,12 @@ def main():
             print("Error: failed to create worktree")
             sys.exit(1)
 
+    # Copy .env from main repo (gitignored, required for flutter test)
+    env_src = os.path.join(repo_root, ".env")
+    env_dst = os.path.join(worktree_path, ".env")
+    if os.path.isfile(env_src) and not os.path.exists(env_dst):
+        shutil.copy2(env_src, env_dst)
+
     # Write .linear-issue marker so /done can find the issue ID
     marker_path = os.path.join(worktree_path, ".linear-issue")
     with open(marker_path, "w") as f:
@@ -75,13 +82,14 @@ def main():
     print(f"Worktree : {worktree_path}")
     print(f"Branch   : {branch}")
 
-    # Open in Cursor
-    result = subprocess.run(["cursor", worktree_path], capture_output=True)
-    if result.returncode != 0:
-        print("\nCursor not found in PATH. Open manually:")
-        print(f"  cursor {worktree_path}")
-    else:
+    # Open in a new Cursor window
+    cursor_bin = "/usr/local/bin/cursor"
+    if os.path.isfile(cursor_bin):
+        subprocess.Popen([cursor_bin, "-n", worktree_path])
         print("Opened in Cursor.")
+    else:
+        print("\nCould not find Cursor at /usr/local/bin/cursor. Open manually:")
+        print(f"  cursor -n {worktree_path}")
 
 
 if __name__ == "__main__":
