@@ -75,13 +75,14 @@ def main():
     print(f"Worktree : {worktree_path}")
     print(f"Branch   : {branch}")
 
-    # Open in Cursor
-    result = subprocess.run(["cursor", worktree_path], capture_output=True)
-    if result.returncode != 0:
-        print("\nCursor not found in PATH. Open manually:")
-        print(f"  cursor {worktree_path}")
-    else:
+    # Open in a new Cursor window
+    cursor_bin = "/usr/local/bin/cursor"
+    if os.path.isfile(cursor_bin):
+        subprocess.Popen([cursor_bin, "-n", worktree_path])
         print("Opened in Cursor.")
+    else:
+        print("\nCould not find Cursor at /usr/local/bin/cursor. Open manually:")
+        print(f"  cursor -n {worktree_path}")
 
 
 if __name__ == "__main__":
