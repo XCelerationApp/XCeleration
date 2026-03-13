@@ -1,4 +1,3 @@
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
@@ -7,38 +6,27 @@ import 'package:xceleration/core/utils/google_auth_service.dart';
 import 'package:xceleration/core/utils/google_drive_service.dart';
 import 'package:xceleration/core/utils/google_sheets_service.dart';
 
-@GenerateMocks([Connectivity, GoogleAuthService, GoogleDriveService])
+@GenerateMocks([GoogleAuthService, GoogleDriveService])
 import 'google_sheets_service_test.mocks.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  late MockConnectivity mockConnectivity;
   late MockGoogleAuthService mockAuthService;
   late MockGoogleDriveService mockDriveService;
 
   setUp(() {
-    mockConnectivity = MockConnectivity();
     mockAuthService = MockGoogleAuthService();
     mockDriveService = MockGoogleDriveService();
     SharedPreferences.setMockInitialValues({});
   });
 
-  GoogleSheetsService buildService() => GoogleSheetsService.forTesting(
+  GoogleSheetsService buildService({bool online = true}) =>
+      GoogleSheetsService.forTesting(
         authService: mockAuthService,
         driveService: mockDriveService,
-        connectivity: mockConnectivity,
+        isOnline: () async => online,
       );
-
-  void stubOnline() {
-    when(mockConnectivity.checkConnectivity())
-        .thenAnswer((_) async => [ConnectivityResult.wifi]);
-  }
-
-  void stubOffline() {
-    when(mockConnectivity.checkConnectivity())
-        .thenAnswer((_) async => [ConnectivityResult.none]);
-  }
 
   group('GoogleSheetsService', () {
     group('signIn', () {
@@ -64,8 +52,7 @@ void main() {
 
     group('createSheet', () {
       test('returns null when offline', () async {
-        stubOffline();
-        final service = buildService();
+        final service = buildService(online: false);
 
         final result = await service.createSheet(title: 'Test Sheet');
 
@@ -73,8 +60,7 @@ void main() {
       });
 
       test('does not call auth service when offline', () async {
-        stubOffline();
-        final service = buildService();
+        final service = buildService(online: false);
 
         await service.createSheet(title: 'Test Sheet');
 
@@ -82,7 +68,6 @@ void main() {
       });
 
       test('returns null when auth client is null (online)', () async {
-        stubOnline();
         when(mockAuthService.getAuthClient()).thenAnswer((_) async => null);
         final service = buildService();
 
@@ -94,8 +79,7 @@ void main() {
 
     group('updateSheet', () {
       test('returns false when offline', () async {
-        stubOffline();
-        final service = buildService();
+        final service = buildService(online: false);
 
         final result = await service.updateSheet(
           spreadsheetId: 'sheet-id',
@@ -108,8 +92,7 @@ void main() {
       });
 
       test('does not call auth service when offline', () async {
-        stubOffline();
-        final service = buildService();
+        final service = buildService(online: false);
 
         await service.updateSheet(
           spreadsheetId: 'sheet-id',
@@ -122,7 +105,6 @@ void main() {
       });
 
       test('returns false when auth client is null (online)', () async {
-        stubOnline();
         when(mockAuthService.getAuthClient()).thenAnswer((_) async => null);
         final service = buildService();
 
@@ -185,8 +167,7 @@ void main() {
 
     group('downloadGoogleSheet', () {
       test('returns null when offline', () async {
-        stubOffline();
-        final service = buildService();
+        final service = buildService(online: false);
 
         final result = await service.downloadGoogleSheet(
           fileId: 'file-id',
@@ -197,8 +178,7 @@ void main() {
       });
 
       test('does not call auth service signIn when offline', () async {
-        stubOffline();
-        final service = buildService();
+        final service = buildService(online: false);
 
         await service.downloadGoogleSheet(
           fileId: 'file-id',
@@ -209,7 +189,6 @@ void main() {
       });
 
       test('returns null when signIn fails (online)', () async {
-        stubOnline();
         when(mockAuthService.signIn()).thenAnswer((_) async => false);
         final service = buildService();
 
@@ -222,7 +201,6 @@ void main() {
       });
 
       test('returns null when access token is null after sign-in', () async {
-        stubOnline();
         when(mockAuthService.signIn()).thenAnswer((_) async => true);
         when(mockAuthService.iosAccessToken).thenAnswer((_) async => null);
         final service = buildService();

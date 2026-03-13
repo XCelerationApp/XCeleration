@@ -1,4 +1,3 @@
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:mockito/annotations.dart';
@@ -6,35 +5,24 @@ import 'package:mockito/mockito.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xceleration/core/utils/google_auth_service.dart';
 
-@GenerateMocks([Connectivity, GoogleSignIn, GoogleSignInAccount, GoogleSignInAuthentication])
+@GenerateMocks([GoogleSignIn, GoogleSignInAccount, GoogleSignInAuthentication])
 import 'google_auth_service_test.mocks.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  late MockConnectivity mockConnectivity;
   late MockGoogleSignIn mockGoogleSignIn;
 
   setUp(() {
-    mockConnectivity = MockConnectivity();
     mockGoogleSignIn = MockGoogleSignIn();
     SharedPreferences.setMockInitialValues({});
   });
 
-  GoogleAuthService buildService() => GoogleAuthService.forTesting(
-        connectivity: mockConnectivity,
+  GoogleAuthService buildService({bool online = true}) =>
+      GoogleAuthService.forTesting(
+        isOnline: () async => online,
         googleSignIn: mockGoogleSignIn,
       );
-
-  void stubOnline() {
-    when(mockConnectivity.checkConnectivity())
-        .thenAnswer((_) async => [ConnectivityResult.wifi]);
-  }
-
-  void stubOffline() {
-    when(mockConnectivity.checkConnectivity())
-        .thenAnswer((_) async => [ConnectivityResult.none]);
-  }
 
   group('GoogleAuthService', () {
     group('hasValidIosToken', () {
@@ -68,8 +56,7 @@ void main() {
 
     group('signIn', () {
       test('returns false when offline', () async {
-        stubOffline();
-        final service = buildService();
+        final service = buildService(online: false);
 
         final result = await service.signIn();
 
@@ -77,8 +64,7 @@ void main() {
       });
 
       test('does not call GoogleSignIn.signIn when offline', () async {
-        stubOffline();
-        final service = buildService();
+        final service = buildService(online: false);
 
         await service.signIn();
 
@@ -87,7 +73,6 @@ void main() {
       });
 
       test('returns false when GoogleSignIn.signIn returns null', () async {
-        stubOnline();
         when(mockGoogleSignIn.signOut()).thenAnswer((_) async => null);
         when(mockGoogleSignIn.signIn()).thenAnswer((_) async => null);
         final service = buildService();
@@ -112,8 +97,7 @@ void main() {
         // but here we simulate already-signed-in state by checking that:
         // When hasValidIosToken and hasValidWebToken are both true but _currentUser is null,
         // it would attempt sign-in. We test the offline guard first.
-        stubOffline();
-        final service = buildService();
+        final service = buildService(online: false);
 
         final result = await service.signIn();
 
@@ -123,7 +107,6 @@ void main() {
 
       test('calls signOut before interactive sign-in when web token missing',
           () async {
-        stubOnline();
         when(mockGoogleSignIn.signOut()).thenAnswer((_) async => null);
         when(mockGoogleSignIn.signIn()).thenAnswer((_) async => null);
         final service = buildService();
@@ -135,7 +118,6 @@ void main() {
       });
 
       test('returns false when sign-in throws', () async {
-        stubOnline();
         when(mockGoogleSignIn.signOut()).thenAnswer((_) async => null);
         when(mockGoogleSignIn.signIn()).thenThrow(Exception('sign-in error'));
         final service = buildService();
@@ -185,7 +167,6 @@ void main() {
 
     group('_exchangeServerAuthCodeForAccessToken (via webAccessToken)', () {
       test('skips token exchange when offline', () async {
-        stubOffline();
         final mockAccount = MockGoogleSignInAccount();
         when(mockGoogleSignIn.signOut()).thenAnswer((_) async => null);
         when(mockGoogleSignIn.signIn())
@@ -196,7 +177,7 @@ void main() {
         // but the offline guard in _exchangeServerAuthCodeForAccessToken
         // is exercised indirectly when webAccessToken is requested.
         // Here we just verify signIn() returns false offline.
-        final service = buildService();
+        final service = buildService(online: false);
         final result = await service.signIn();
 
         expect(result, isFalse);

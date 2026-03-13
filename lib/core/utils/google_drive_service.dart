@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:googleapis/sheets/v4.dart' as sheets;
@@ -16,7 +15,7 @@ import 'package:path_provider/path_provider.dart';
 class GoogleDriveService {
   static GoogleDriveService? _instance;
   final GoogleAuthService _authService;
-  final Connectivity _connectivity;
+  final Future<bool> Function() _isOnline;
   GooglePickerService? _pickerService;
 
   drive.DriveApi? _driveApi;
@@ -26,17 +25,17 @@ class GoogleDriveService {
 
   GoogleDriveService._({
     GoogleAuthService? authService,
-    Connectivity? connectivity,
+    Future<bool> Function()? isOnline,
   })  : _authService = authService ?? GoogleAuthService.instance,
-        _connectivity = connectivity ?? Connectivity();
+        _isOnline = isOnline ?? ConnectivityUtils.isOnline;
 
   /// Constructor for testing — bypasses the singleton and allows dependency injection.
   @visibleForTesting
   GoogleDriveService.forTesting({
     required GoogleAuthService authService,
-    Connectivity? connectivity,
+    Future<bool> Function()? isOnline,
   })  : _authService = authService,
-        _connectivity = connectivity ?? Connectivity();
+        _isOnline = isOnline ?? ConnectivityUtils.isOnline;
 
   /// Get GooglePickerService instance lazily to avoid circular dependency
   GooglePickerService get pickerService {
@@ -95,7 +94,7 @@ class GoogleDriveService {
 
   /// Get file metadata by ID
   Future<drive.File?> getFileInfo(String fileId) async {
-    if (!await ConnectivityUtils.isOnline(connectivity: _connectivity)) {
+    if (!await _isOnline()) {
       return null;
     }
 
@@ -115,7 +114,7 @@ class GoogleDriveService {
   /// Returns a local file downloaded from Google Drive
   Future<File?> pickSpreadsheetFile(BuildContext context) async {
     try {
-      if (!await ConnectivityUtils.isOnline(connectivity: _connectivity)) {
+      if (!await _isOnline()) {
         if (context.mounted) {
           DialogUtils.showErrorDialog(context,
               message:
@@ -163,7 +162,7 @@ class GoogleDriveService {
   Future<Map<String, String>?> createGoogleSheet(
       BuildContext context, String title) async {
     try {
-      if (!await ConnectivityUtils.isOnline(connectivity: _connectivity)) {
+      if (!await _isOnline()) {
         if (context.mounted) {
           DialogUtils.showErrorDialog(context,
               message:
@@ -227,7 +226,7 @@ class GoogleDriveService {
 
   /// Get the web view link for a file
   Future<String?> getWebViewLink(String fileId) async {
-    if (!await ConnectivityUtils.isOnline(connectivity: _connectivity)) {
+    if (!await _isOnline()) {
       return null;
     }
 
@@ -249,7 +248,7 @@ class GoogleDriveService {
 
   /// Set a file to be accessible to anyone with the link
   Future<bool> setFilePublicPermission(String fileId) async {
-    if (!await ConnectivityUtils.isOnline(connectivity: _connectivity)) {
+    if (!await _isOnline()) {
       return false;
     }
 
@@ -279,7 +278,7 @@ class GoogleDriveService {
     Logger.d('Downloading file: $fileId, fileName: $fileName');
 
     try {
-      if (!await ConnectivityUtils.isOnline(connectivity: _connectivity)) {
+      if (!await _isOnline()) {
         Logger.d('No internet connection — skipping file download');
         return null;
       }

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
@@ -37,7 +36,7 @@ class GoogleAuthService {
   static String get _webClientId =>
       dotenv.env['GOOGLE_WEB_OAUTH_CLIENT_ID'] ?? '';
 
-  final Connectivity _connectivity;
+  final Future<bool> Function() _isOnline;
   final GoogleSignIn? _googleSignInOverride;
 
   GoogleSignIn? _googleSignIn;
@@ -66,17 +65,17 @@ class GoogleAuthService {
   }
 
   GoogleAuthService._({
-    Connectivity? connectivity,
+    Future<bool> Function()? isOnline,
     GoogleSignIn? googleSignIn,
-  })  : _connectivity = connectivity ?? Connectivity(),
+  })  : _isOnline = isOnline ?? ConnectivityUtils.isOnline,
         _googleSignInOverride = googleSignIn;
 
   /// Constructor for testing — bypasses the singleton and allows dependency injection.
   @visibleForTesting
   GoogleAuthService.forTesting({
-    Connectivity? connectivity,
+    Future<bool> Function()? isOnline,
     GoogleSignIn? googleSignIn,
-  })  : _connectivity = connectivity ?? Connectivity(),
+  })  : _isOnline = isOnline ?? ConnectivityUtils.isOnline,
         _googleSignInOverride = googleSignIn;
 
   /// Asynchronously load preferences but don't block instance creation
@@ -287,7 +286,7 @@ class GoogleAuthService {
 
   Future<String?> _exchangeServerAuthCodeForAccessToken(String authCode) async {
     Logger.d('Exchanging auth code for token with client ID: $_webClientId');
-    if (!await ConnectivityUtils.isOnline(connectivity: _connectivity)) {
+    if (!await _isOnline()) {
       Logger.d('No internet connection — skipping token exchange');
       return null;
     }
@@ -326,7 +325,7 @@ class GoogleAuthService {
         Logger.d('Already signed in with valid iOS and Web tokens');
         return true;
       }
-      if (!await ConnectivityUtils.isOnline(connectivity: _connectivity)) {
+      if (!await _isOnline()) {
         Logger.d('No internet connection — skipping Google sign-in');
         return false;
       }

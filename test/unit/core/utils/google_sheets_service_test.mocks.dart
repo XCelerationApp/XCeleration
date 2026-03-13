@@ -4,17 +4,14 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i4;
-import 'dart:io' as _i10;
+import 'dart:io' as _i8;
 
-import 'package:connectivity_plus/connectivity_plus.dart' as _i3;
-import 'package:connectivity_plus_platform_interface/connectivity_plus_platform_interface.dart'
-    as _i5;
-import 'package:flutter/material.dart' as _i11;
-import 'package:googleapis/drive/v3.dart' as _i9;
-import 'package:http/http.dart' as _i7;
+import 'package:flutter/material.dart' as _i9;
+import 'package:googleapis/drive/v3.dart' as _i7;
+import 'package:http/http.dart' as _i5;
 import 'package:mockito/mockito.dart' as _i1;
-import 'package:xceleration/core/utils/google_auth_service.dart' as _i6;
-import 'package:xceleration/core/utils/google_drive_service.dart' as _i8;
+import 'package:xceleration/core/utils/google_auth_service.dart' as _i3;
+import 'package:xceleration/core/utils/google_drive_service.dart' as _i6;
 import 'package:xceleration/core/utils/google_picker_service.dart' as _i2;
 
 // ignore_for_file: type=lint
@@ -43,37 +40,10 @@ class _FakeGooglePickerService_0 extends _i1.SmartFake
         );
 }
 
-/// A class which mocks [Connectivity].
-///
-/// See the documentation for Mockito's code generation for more information.
-class MockConnectivity extends _i1.Mock implements _i3.Connectivity {
-  MockConnectivity() {
-    _i1.throwOnMissingStub(this);
-  }
-
-  @override
-  _i4.Stream<List<_i5.ConnectivityResult>> get onConnectivityChanged =>
-      (super.noSuchMethod(
-        Invocation.getter(#onConnectivityChanged),
-        returnValue: _i4.Stream<List<_i5.ConnectivityResult>>.empty(),
-      ) as _i4.Stream<List<_i5.ConnectivityResult>>);
-
-  @override
-  _i4.Future<List<_i5.ConnectivityResult>> checkConnectivity() =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #checkConnectivity,
-          [],
-        ),
-        returnValue: _i4.Future<List<_i5.ConnectivityResult>>.value(
-            <_i5.ConnectivityResult>[]),
-      ) as _i4.Future<List<_i5.ConnectivityResult>>);
-}
-
 /// A class which mocks [GoogleAuthService].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockGoogleAuthService extends _i1.Mock implements _i6.GoogleAuthService {
+class MockGoogleAuthService extends _i1.Mock implements _i3.GoogleAuthService {
   MockGoogleAuthService() {
     _i1.throwOnMissingStub(this);
   }
@@ -103,13 +73,13 @@ class MockGoogleAuthService extends _i1.Mock implements _i6.GoogleAuthService {
       ) as _i4.Future<String?>);
 
   @override
-  _i4.Future<_i7.Client?> getAuthClient() => (super.noSuchMethod(
+  _i4.Future<_i5.Client?> getAuthClient() => (super.noSuchMethod(
         Invocation.method(
           #getAuthClient,
           [],
         ),
-        returnValue: _i4.Future<_i7.Client?>.value(),
-      ) as _i4.Future<_i7.Client?>);
+        returnValue: _i4.Future<_i5.Client?>.value(),
+      ) as _i4.Future<_i5.Client?>);
 
   @override
   _i4.Future<bool> signIn() => (super.noSuchMethod(
@@ -135,7 +105,7 @@ class MockGoogleAuthService extends _i1.Mock implements _i6.GoogleAuthService {
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockGoogleDriveService extends _i1.Mock
-    implements _i8.GoogleDriveService {
+    implements _i6.GoogleDriveService {
   MockGoogleDriveService() {
     _i1.throwOnMissingStub(this);
   }
@@ -169,27 +139,27 @@ class MockGoogleDriveService extends _i1.Mock
       ) as _i4.Future<void>);
 
   @override
-  _i4.Future<_i9.File?> getFileInfo(String? fileId) => (super.noSuchMethod(
+  _i4.Future<_i7.File?> getFileInfo(String? fileId) => (super.noSuchMethod(
         Invocation.method(
           #getFileInfo,
           [fileId],
         ),
-        returnValue: _i4.Future<_i9.File?>.value(),
-      ) as _i4.Future<_i9.File?>);
+        returnValue: _i4.Future<_i7.File?>.value(),
+      ) as _i4.Future<_i7.File?>);
 
   @override
-  _i4.Future<_i10.File?> pickSpreadsheetFile(_i11.BuildContext? context) =>
+  _i4.Future<_i8.File?> pickSpreadsheetFile(_i9.BuildContext? context) =>
       (super.noSuchMethod(
         Invocation.method(
           #pickSpreadsheetFile,
           [context],
         ),
-        returnValue: _i4.Future<_i10.File?>.value(),
-      ) as _i4.Future<_i10.File?>);
+        returnValue: _i4.Future<_i8.File?>.value(),
+      ) as _i4.Future<_i8.File?>);
 
   @override
   _i4.Future<Map<String, String>?> createGoogleSheet(
-    _i11.BuildContext? context,
+    _i9.BuildContext? context,
     String? title,
   ) =>
       (super.noSuchMethod(
@@ -223,7 +193,7 @@ class MockGoogleDriveService extends _i1.Mock
       ) as _i4.Future<bool>);
 
   @override
-  _i4.Future<_i10.File?> downloadFile(
+  _i4.Future<_i8.File?> downloadFile(
     String? fileId,
     String? fileName,
   ) =>
@@ -235,6 +205,6 @@ class MockGoogleDriveService extends _i1.Mock
             fileName,
           ],
         ),
-        returnValue: _i4.Future<_i10.File?>.value(),
-      ) as _i4.Future<_i10.File?>);
+        returnValue: _i4.Future<_i8.File?>.value(),
+      ) as _i4.Future<_i8.File?>);
 }

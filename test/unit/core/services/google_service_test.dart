@@ -1,4 +1,3 @@
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:mockito/annotations.dart';
@@ -6,35 +5,23 @@ import 'package:mockito/mockito.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xceleration/core/services/google_service.dart';
 
-@GenerateMocks([Connectivity, GoogleSignIn, GoogleSignInAccount, GoogleSignInAuthentication])
+@GenerateMocks([GoogleSignIn, GoogleSignInAccount, GoogleSignInAuthentication])
 import 'google_service_test.mocks.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  late MockConnectivity mockConnectivity;
   late MockGoogleSignIn mockGoogleSignIn;
 
   setUp(() {
-    mockConnectivity = MockConnectivity();
     mockGoogleSignIn = MockGoogleSignIn();
     SharedPreferences.setMockInitialValues({});
   });
 
-  GoogleService buildService() => GoogleService.forTesting(
-        connectivity: mockConnectivity,
+  GoogleService buildService({bool online = true}) => GoogleService.forTesting(
+        isOnline: () async => online,
         googleSignIn: mockGoogleSignIn,
       );
-
-  void stubOnline() {
-    when(mockConnectivity.checkConnectivity())
-        .thenAnswer((_) async => [ConnectivityResult.wifi]);
-  }
-
-  void stubOffline() {
-    when(mockConnectivity.checkConnectivity())
-        .thenAnswer((_) async => [ConnectivityResult.none]);
-  }
 
   group('GoogleService', () {
     group('isSignedIn', () {
@@ -46,8 +33,7 @@ void main() {
 
     group('signIn', () {
       test('returns false when offline', () async {
-        stubOffline();
-        final service = buildService();
+        final service = buildService(online: false);
 
         final result = await service.signIn();
 
@@ -55,8 +41,7 @@ void main() {
       });
 
       test('does not call GoogleSignIn when offline', () async {
-        stubOffline();
-        final service = buildService();
+        final service = buildService(online: false);
 
         await service.signIn();
 
@@ -65,7 +50,6 @@ void main() {
       });
 
       test('returns false when GoogleSignIn.signIn returns null', () async {
-        stubOnline();
         when(mockGoogleSignIn.signInSilently()).thenAnswer((_) async => null);
         when(mockGoogleSignIn.signIn()).thenAnswer((_) async => null);
         final service = buildService();
@@ -76,7 +60,6 @@ void main() {
       });
 
       test('returns false when GoogleSignIn throws', () async {
-        stubOnline();
         when(mockGoogleSignIn.signInSilently())
             .thenThrow(Exception('sign-in error'));
         final service = buildService();
@@ -87,7 +70,6 @@ void main() {
       });
 
       test('attempts silent sign-in before interactive sign-in', () async {
-        stubOnline();
         final mockAccount = MockGoogleSignInAccount();
         final mockAuth = MockGoogleSignInAuthentication();
         when(mockGoogleSignIn.signInSilently())
@@ -103,7 +85,6 @@ void main() {
       });
 
       test('falls back to interactive sign-in when silent fails', () async {
-        stubOnline();
         when(mockGoogleSignIn.signInSilently()).thenAnswer((_) async => null);
         when(mockGoogleSignIn.signIn()).thenAnswer((_) async => null);
         final service = buildService();
@@ -115,7 +96,6 @@ void main() {
       });
 
       test('isSignedIn returns true after successful sign-in', () async {
-        stubOnline();
         final mockAccount = MockGoogleSignInAccount();
         final mockAuth = MockGoogleSignInAuthentication();
         when(mockGoogleSignIn.signInSilently())
@@ -141,7 +121,6 @@ void main() {
       });
 
       test('isSignedIn returns false after sign-out', () async {
-        stubOnline();
         final mockAccount = MockGoogleSignInAccount();
         final mockAuth = MockGoogleSignInAuthentication();
         when(mockGoogleSignIn.signInSilently())
@@ -184,8 +163,7 @@ void main() {
       });
 
       test('returns null when offline (driveApi set via sign-in)', () async {
-        stubOffline();
-        final service = buildService();
+        final service = buildService(online: false);
 
         final result = await service.getFileInfo('file-id');
 
@@ -203,18 +181,21 @@ void main() {
       });
 
       test('returns null when offline and signed in', () async {
-        stubOnline();
+        var online = true;
         final mockAccount = MockGoogleSignInAccount();
         final mockAuth = MockGoogleSignInAuthentication();
         when(mockGoogleSignIn.signInSilently())
             .thenAnswer((_) async => mockAccount);
         when(mockAccount.authentication).thenAnswer((_) async => mockAuth);
         when(mockAuth.accessToken).thenReturn('test-token');
-        final service = buildService();
+        final service = GoogleService.forTesting(
+          isOnline: () async => online,
+          googleSignIn: mockGoogleSignIn,
+        );
         await service.signIn();
 
         // Now go offline
-        stubOffline();
+        online = false;
         final result = await service.downloadFile('file-id', 'file.csv');
 
         expect(result, isNull);
@@ -232,18 +213,21 @@ void main() {
       });
 
       test('returns null when offline and signed in', () async {
-        stubOnline();
+        var online = true;
         final mockAccount = MockGoogleSignInAccount();
         final mockAuth = MockGoogleSignInAuthentication();
         when(mockGoogleSignIn.signInSilently())
             .thenAnswer((_) async => mockAccount);
         when(mockAccount.authentication).thenAnswer((_) async => mockAuth);
         when(mockAuth.accessToken).thenReturn('test-token');
-        final service = buildService();
+        final service = GoogleService.forTesting(
+          isOnline: () async => online,
+          googleSignIn: mockGoogleSignIn,
+        );
         await service.signIn();
 
         // Now go offline
-        stubOffline();
+        online = false;
         final result =
             await service.downloadSheetAsCsv('spreadsheet-id', 'results');
 

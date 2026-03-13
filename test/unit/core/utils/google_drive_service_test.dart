@@ -1,4 +1,3 @@
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
@@ -6,35 +5,24 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xceleration/core/utils/google_auth_service.dart';
 import 'package:xceleration/core/utils/google_drive_service.dart';
 
-@GenerateMocks([Connectivity, GoogleAuthService])
+@GenerateMocks([GoogleAuthService])
 import 'google_drive_service_test.mocks.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  late MockConnectivity mockConnectivity;
   late MockGoogleAuthService mockAuthService;
 
   setUp(() {
-    mockConnectivity = MockConnectivity();
     mockAuthService = MockGoogleAuthService();
     SharedPreferences.setMockInitialValues({});
   });
 
-  GoogleDriveService buildService() => GoogleDriveService.forTesting(
+  GoogleDriveService buildService({bool online = true}) =>
+      GoogleDriveService.forTesting(
         authService: mockAuthService,
-        connectivity: mockConnectivity,
+        isOnline: () async => online,
       );
-
-  void stubOnline() {
-    when(mockConnectivity.checkConnectivity())
-        .thenAnswer((_) async => [ConnectivityResult.wifi]);
-  }
-
-  void stubOffline() {
-    when(mockConnectivity.checkConnectivity())
-        .thenAnswer((_) async => [ConnectivityResult.none]);
-  }
 
   group('GoogleDriveService', () {
     group('signInAndSetup', () {
@@ -80,8 +68,7 @@ void main() {
 
     group('getFileInfo', () {
       test('returns null when offline', () async {
-        stubOffline();
-        final service = buildService();
+        final service = buildService(online: false);
 
         final result = await service.getFileInfo('file-id');
 
@@ -89,8 +76,7 @@ void main() {
       });
 
       test('does not call auth service when offline', () async {
-        stubOffline();
-        final service = buildService();
+        final service = buildService(online: false);
 
         await service.getFileInfo('file-id');
 
@@ -98,7 +84,6 @@ void main() {
       });
 
       test('returns null when auth client is null (online)', () async {
-        stubOnline();
         when(mockAuthService.getAuthClient()).thenAnswer((_) async => null);
         final service = buildService();
 
@@ -110,8 +95,7 @@ void main() {
 
     group('getWebViewLink', () {
       test('returns null when offline', () async {
-        stubOffline();
-        final service = buildService();
+        final service = buildService(online: false);
 
         final result = await service.getWebViewLink('file-id');
 
@@ -119,7 +103,6 @@ void main() {
       });
 
       test('returns null when auth client is null (online)', () async {
-        stubOnline();
         when(mockAuthService.getAuthClient()).thenAnswer((_) async => null);
         final service = buildService();
 
@@ -131,8 +114,7 @@ void main() {
 
     group('setFilePublicPermission', () {
       test('returns false when offline', () async {
-        stubOffline();
-        final service = buildService();
+        final service = buildService(online: false);
 
         final result = await service.setFilePublicPermission('file-id');
 
@@ -140,8 +122,7 @@ void main() {
       });
 
       test('does not call auth service when offline', () async {
-        stubOffline();
-        final service = buildService();
+        final service = buildService(online: false);
 
         await service.setFilePublicPermission('file-id');
 
@@ -149,7 +130,6 @@ void main() {
       });
 
       test('returns false when auth client is null (online)', () async {
-        stubOnline();
         when(mockAuthService.getAuthClient()).thenAnswer((_) async => null);
         final service = buildService();
 
@@ -161,9 +141,8 @@ void main() {
 
     group('downloadFile', () {
       test('returns null when offline', () async {
-        stubOffline();
         when(mockAuthService.iosAccessToken).thenAnswer((_) async => null);
-        final service = buildService();
+        final service = buildService(online: false);
 
         final result = await service.downloadFile('file-id', 'file.csv');
 
@@ -171,8 +150,7 @@ void main() {
       });
 
       test('does not call auth service for token when offline', () async {
-        stubOffline();
-        final service = buildService();
+        final service = buildService(online: false);
 
         await service.downloadFile('file-id', 'file.csv');
 
@@ -180,7 +158,6 @@ void main() {
       });
 
       test('returns null when access token is null (online)', () async {
-        stubOnline();
         when(mockAuthService.iosAccessToken).thenAnswer((_) async => null);
         final service = buildService();
 
