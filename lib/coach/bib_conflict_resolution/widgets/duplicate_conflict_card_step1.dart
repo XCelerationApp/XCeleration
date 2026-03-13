@@ -32,7 +32,7 @@ class _TwoOccurrenceStep1State extends State<_TwoOccurrenceStep1> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Which finish is correct?',
+          'Bib #${widget.conflict.bibNumber} was recorded ${widget.conflict.occurrences.length} times. Select the finish time that belongs to this runner.',
           style: AppTypography.bodyRegular.copyWith(color: AppColors.mediumColor),
         ),
         const SizedBox(height: AppSpacing.md),

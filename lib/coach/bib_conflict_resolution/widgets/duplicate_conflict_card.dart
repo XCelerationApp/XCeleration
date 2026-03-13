@@ -32,8 +32,6 @@ class DuplicateStep1Card extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _DupBadgeRow(conflict: conflict),
-        const SizedBox(height: AppSpacing.md),
         _KnownRunnerCard(conflict: conflict),
         const SizedBox(height: AppSpacing.lg),
         isMulti

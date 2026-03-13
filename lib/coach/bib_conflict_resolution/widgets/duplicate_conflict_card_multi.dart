@@ -1,69 +1,5 @@
 part of 'duplicate_conflict_card.dart';
 
-// ---------------------------------------------------------------------------
-// Step 1 header sub-widgets (used by both 2-occ and N-occ paths)
-// ---------------------------------------------------------------------------
-
-class _DupBadgeRow extends StatelessWidget {
-  const _DupBadgeRow({required this.conflict});
-
-  final MockDuplicateConflict conflict;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: AppColors.statusSetup.withValues(alpha: AppOpacity.light),
-            borderRadius: BorderRadius.circular(AppBorderRadius.sm),
-          ),
-          child: const Icon(Icons.bolt, color: AppColors.statusSetup, size: 22),
-        ),
-        const SizedBox(width: AppSpacing.md),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'DUPLICATE BIB',
-              style: AppTypography.extraSmall.copyWith(
-                letterSpacing: 0.5,
-                color: AppColors.statusSetup,
-              ),
-            ),
-            Text(
-              '#${conflict.bibNumber}',
-              style: AppTypography.titleSemibold.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ],
-        ),
-        const Spacer(),
-        Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.sm,
-            vertical: AppSpacing.xs,
-          ),
-          decoration: BoxDecoration(
-            color: AppColors.statusSetup.withValues(alpha: AppOpacity.light),
-            borderRadius: BorderRadius.circular(AppBorderRadius.full),
-          ),
-          child: Text(
-            '${conflict.occurrences.length}×',
-            style: AppTypography.smallBodySemibold.copyWith(
-              color: AppColors.statusSetup,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 class _KnownRunnerCard extends StatelessWidget {
   const _KnownRunnerCard({required this.conflict});
 
@@ -78,29 +14,58 @@ class _KnownRunnerCard extends StatelessWidget {
         border: Border.all(color: const Color(0xFFF5C6B8)),
         borderRadius: BorderRadius.circular(AppBorderRadius.md),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: const BoxDecoration(
-              color: AppColors.selectedRoleColor,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.person,
-              color: AppColors.primaryColor,
-              size: 22,
-            ),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text(conflict.runnerName, style: AppTypography.smallBodySemibold),
-              Text(
-                '${conflict.team} · Grade ${conflict.grade}',
-                style: AppTypography.caption.copyWith(color: AppColors.mediumColor),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'DUPLICATE BIB',
+                    style: AppTypography.extraSmall.copyWith(
+                      letterSpacing: 0.5,
+                      color: AppColors.primaryColor,
+                    ),
+                  ),
+                  Text(
+                    '#${conflict.bibNumber}',
+                    style: AppTypography.titleSemibold.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: const BoxDecoration(
+                  color: AppColors.selectedRoleColor,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.person,
+                  color: AppColors.primaryColor,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(conflict.runnerName, style: AppTypography.smallBodySemibold),
+                  Text(
+                    '${conflict.team} · Grade ${conflict.grade}',
+                    style: AppTypography.caption.copyWith(color: AppColors.mediumColor),
+                  ),
+                ],
               ),
             ],
           ),
@@ -136,7 +101,7 @@ class _MultiOccurrenceStep1State extends State<_MultiOccurrenceStep1> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'Which finish is correct?',
+          'Bib #${widget.conflict.bibNumber} was recorded ${widget.conflict.occurrences.length} times. Select the finish time that belongs to this runner.',
           style: AppTypography.bodyRegular.copyWith(color: AppColors.mediumColor),
         ),
         const SizedBox(height: AppSpacing.md),
@@ -171,16 +136,16 @@ class _MultiOccurrenceStep1State extends State<_MultiOccurrenceStep1> {
           Container(
             padding: const EdgeInsets.all(AppSpacing.md),
             decoration: BoxDecoration(
-              color: AppColors.statusSetup.withValues(alpha: AppOpacity.faint),
+              color: AppColors.primaryColor.withValues(alpha: AppOpacity.faint),
               border: Border.all(
-                color: AppColors.statusSetup.withValues(alpha: AppOpacity.medium),
+                color: AppColors.primaryColor.withValues(alpha: AppOpacity.medium),
               ),
               borderRadius: BorderRadius.circular(AppBorderRadius.sm),
             ),
             child: Text(
               'This will add $leftoverCount unknown conflict'
               '${leftoverCount == 1 ? '' : 's'} to resolve next.',
-              style: AppTypography.caption.copyWith(color: AppColors.statusSetup),
+              style: AppTypography.caption.copyWith(color: AppColors.primaryColor),
             ),
           ),
           const SizedBox(height: AppSpacing.md),

@@ -262,21 +262,10 @@ class _ConflictFinisherRow extends StatelessWidget {
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(
-                  Icons.help_outline_rounded,
-                  size: 14,
-                  color: AppColors.mediumColor,
-                ),
-                const SizedBox(width: AppSpacing.xs),
-                Text(
-                  'Unknown runner',
-                  style: AppTypography.smallBodySemibold.copyWith(
-                    fontStyle: FontStyle.italic,
-                    color: AppColors.mediumColor,
-                  ),
-                ),
+                Text('Unknown runner', style: AppTypography.smallBodySemibold),
               ],
             ),
           ),
