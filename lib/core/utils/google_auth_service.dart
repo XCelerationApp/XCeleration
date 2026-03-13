@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -57,22 +56,14 @@ class GoogleAuthService {
   /// Get the singleton instance of GoogleAuthService
   static GoogleAuthService get instance {
     if (_instance == null) {
-      _instance = GoogleAuthService._();
+      _instance = GoogleAuthService();
       // Start loading preferences in the background but don't block
       _instance!._loadPrefsAsync();
     }
     return _instance!;
   }
 
-  GoogleAuthService._({
-    ConnectivityService? connectivity,
-    GoogleSignIn? googleSignIn,
-  })  : _connectivity = connectivity ?? const ConnectivityService(),
-        _googleSignInOverride = googleSignIn;
-
-  /// Constructor for testing — bypasses the singleton and allows dependency injection.
-  @visibleForTesting
-  GoogleAuthService.forTesting({
+  GoogleAuthService({
     ConnectivityService? connectivity,
     GoogleSignIn? googleSignIn,
   })  : _connectivity = connectivity ?? const ConnectivityService(),

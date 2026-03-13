@@ -23,7 +23,7 @@ void main() {
 
   GoogleAuthService buildService({bool online = true}) {
     when(mockConnectivity.isOnline()).thenAnswer((_) async => online);
-    return GoogleAuthService.forTesting(
+    return GoogleAuthService(
       connectivity: mockConnectivity,
       googleSignIn: mockGoogleSignIn,
     );
