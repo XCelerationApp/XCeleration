@@ -7,6 +7,7 @@ export 'service_locator.dart';
 export 'event_bus.dart';
 
 // Device & Connection Services
+export 'connectivity_service.dart';
 export 'device_connection_service.dart';
 export 'nearby_connections.dart';
 export 'permissions_service.dart';

@@ -4,7 +4,7 @@ import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:googleapis/sheets/v4.dart' as sheets;
 import 'package:xceleration/core/components/dialog_utils.dart';
 import 'package:xceleration/core/utils/logger.dart';
-import 'package:xceleration/core/utils/connectivity_utils.dart';
+import 'package:xceleration/core/services/connectivity_service.dart';
 import 'google_auth_service.dart';
 import 'google_picker_service.dart';
 import 'package:path_provider/path_provider.dart';
@@ -14,7 +14,8 @@ import 'package:path_provider/path_provider.dart';
 /// and only accesses files that the user has explicitly chosen
 class GoogleDriveService {
   static GoogleDriveService? _instance;
-  final GoogleAuthService _authService = GoogleAuthService.instance;
+  final GoogleAuthService _authService;
+  final ConnectivityService _connectivity;
   GooglePickerService? _pickerService;
 
   drive.DriveApi? _driveApi;
@@ -22,10 +23,11 @@ class GoogleDriveService {
 
   // Note: We don't specify scopes here as GoogleAuthService now handles this centrally
 
-  GoogleDriveService._() {
-    // No need to initialize scopes here - GoogleAuthService handles scopes centrally
-    // Picker service is lazily initialized to avoid circular dependency
-  }
+  GoogleDriveService({
+    GoogleAuthService? authService,
+    ConnectivityService? connectivity,
+  })  : _authService = authService ?? GoogleAuthService.instance,
+        _connectivity = connectivity ?? const ConnectivityService();
 
   /// Get GooglePickerService instance lazily to avoid circular dependency
   GooglePickerService get pickerService {
@@ -34,7 +36,7 @@ class GoogleDriveService {
   }
 
   static GoogleDriveService get instance {
-    _instance ??= GoogleDriveService._();
+    _instance ??= GoogleDriveService();
     return _instance!;
   }
 
@@ -84,7 +86,9 @@ class GoogleDriveService {
 
   /// Get file metadata by ID
   Future<drive.File?> getFileInfo(String fileId) async {
-    if (!await ConnectivityUtils.isOnline()) return null;
+    if (!await _connectivity.isOnline()) {
+      return null;
+    }
 
     final api = await _getDriveApi();
     if (api == null) return null;
@@ -102,7 +106,7 @@ class GoogleDriveService {
   /// Returns a local file downloaded from Google Drive
   Future<File?> pickSpreadsheetFile(BuildContext context) async {
     try {
-      if (!await ConnectivityUtils.isOnline()) {
+      if (!await _connectivity.isOnline()) {
         if (context.mounted) {
           DialogUtils.showErrorDialog(context,
               message:
@@ -150,7 +154,7 @@ class GoogleDriveService {
   Future<Map<String, String>?> createGoogleSheet(
       BuildContext context, String title) async {
     try {
-      if (!await ConnectivityUtils.isOnline()) {
+      if (!await _connectivity.isOnline()) {
         if (context.mounted) {
           DialogUtils.showErrorDialog(context,
               message:
@@ -214,7 +218,9 @@ class GoogleDriveService {
 
   /// Get the web view link for a file
   Future<String?> getWebViewLink(String fileId) async {
-    if (!await ConnectivityUtils.isOnline()) return null;
+    if (!await _connectivity.isOnline()) {
+      return null;
+    }
 
     final api = await _getDriveApi();
     if (api == null) return null;
@@ -234,7 +240,9 @@ class GoogleDriveService {
 
   /// Set a file to be accessible to anyone with the link
   Future<bool> setFilePublicPermission(String fileId) async {
-    if (!await ConnectivityUtils.isOnline()) return false;
+    if (!await _connectivity.isOnline()) {
+      return false;
+    }
 
     final api = await _getDriveApi();
     if (api == null) return false;
@@ -262,7 +270,7 @@ class GoogleDriveService {
     Logger.d('Downloading file: $fileId, fileName: $fileName');
 
     try {
-      if (!await ConnectivityUtils.isOnline()) {
+      if (!await _connectivity.isOnline()) {
         Logger.d('No internet connection — skipping file download');
         return null;
       }

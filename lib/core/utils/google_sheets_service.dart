@@ -5,7 +5,7 @@ import 'package:googleapis/sheets/v4.dart' as sheets;
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:xceleration/core/utils/logger.dart';
-import 'package:xceleration/core/utils/connectivity_utils.dart';
+import 'package:xceleration/core/services/connectivity_service.dart';
 import 'google_auth_service.dart';
 import 'google_drive_service.dart';
 import 'i_google_sheets_service.dart';
@@ -13,25 +13,28 @@ import 'i_google_sheets_service.dart';
 /// Service for interacting with Google Sheets API
 class GoogleSheetsService implements IGoogleSheetsService {
   static GoogleSheetsService? _instance;
-  final GoogleAuthService _authService = GoogleAuthService.instance;
+  final GoogleAuthService _authService;
+  final ConnectivityService _connectivity;
   GoogleDriveService? _driveService;
 
-  // Private constructor for singleton pattern
-  GoogleSheetsService._() {
-    // GoogleAuthService is already initialized with proper scopes in its constructor
-    // We don't immediately initialize GoogleDriveService to avoid circular dependency
+  GoogleSheetsService({
+    GoogleAuthService? authService,
+    GoogleDriveService? driveService,
+    ConnectivityService? connectivity,
+  })  : _authService = authService ?? GoogleAuthService.instance,
+        _connectivity = connectivity ?? const ConnectivityService() {
+    _driveService = driveService;
   }
 
   /// Get GoogleDriveService instance, lazily initializing it when needed
   /// This breaks the circular dependency between services
   GoogleDriveService get driveService {
-    // Only import and initialize when actually needed
     _driveService ??= GoogleDriveService.instance;
     return _driveService!;
   }
 
   static GoogleSheetsService get instance {
-    _instance ??= GoogleSheetsService._();
+    _instance ??= GoogleSheetsService();
     return _instance!;
   }
 
@@ -48,7 +51,7 @@ class GoogleSheetsService implements IGoogleSheetsService {
     required String title,
   }) async {
     try {
-      if (!await ConnectivityUtils.isOnline()) {
+      if (!await _connectivity.isOnline()) {
         Logger.d('No internet connection — skipping spreadsheet creation');
         return null;
       }
@@ -93,7 +96,7 @@ class GoogleSheetsService implements IGoogleSheetsService {
     required List<List<dynamic>> data,
   }) async {
     try {
-      if (!await ConnectivityUtils.isOnline()) {
+      if (!await _connectivity.isOnline()) {
         Logger.d('No internet connection — skipping spreadsheet update');
         return false;
       }
@@ -196,7 +199,7 @@ class GoogleSheetsService implements IGoogleSheetsService {
     Logger.d('Downloading Google Sheet: $fileId');
 
     try {
-      if (!await ConnectivityUtils.isOnline()) {
+      if (!await _connectivity.isOnline()) {
         Logger.d('No internet connection — skipping sheet download');
         return null;
       }

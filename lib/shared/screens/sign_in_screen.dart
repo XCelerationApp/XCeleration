@@ -12,19 +12,19 @@ import 'package:xceleration/core/theme/app_colors.dart';
 import 'package:xceleration/core/theme/typography.dart';
 import 'package:xceleration/core/components/animated_primary_button.dart';
 import 'package:xceleration/core/components/glass_card.dart';
-import 'package:xceleration/core/utils/connectivity_utils.dart';
+import 'package:xceleration/core/services/connectivity_service.dart';
 import 'package:gotrue/gotrue.dart' as gotrue;
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({
     super.key,
     IAuthService? authService,
-    Future<bool> Function()? connectivityCheck,
+    ConnectivityService? connectivityService,
   })  : _authService = authService,
-        _connectivityCheck = connectivityCheck;
+        _connectivityService = connectivityService;
 
   final IAuthService? _authService;
-  final Future<bool> Function()? _connectivityCheck;
+  final ConnectivityService? _connectivityService;
 
   @override
   State<SignInScreen> createState() => _SignInScreenState();
@@ -43,8 +43,8 @@ class _SignInScreenState extends State<SignInScreen>
   final FocusNode _passwordFocusNode = FocusNode();
 
   IAuthService get _authService => widget._authService ?? AuthService.instance;
-  Future<bool> Function() get _connectivityCheck =>
-      widget._connectivityCheck ?? ConnectivityUtils.isOnline;
+  ConnectivityService get _connectivity =>
+      widget._connectivityService ?? const ConnectivityService();
 
   @override
   void initState() {
@@ -67,7 +67,7 @@ class _SignInScreenState extends State<SignInScreen>
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     final syncService = context.read<ISyncService>();
-    if (!await _connectivityCheck()) {
+    if (!await _connectivity.isOnline()) {
       if (!mounted) return;
       DialogUtils.showMessageDialog(
         context,
