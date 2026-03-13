@@ -17,7 +17,7 @@ import 'connectivity_service.dart';
 /// This replaces the separate GoogleAuthService, GoogleDriveService, and GoogleSheetsService
 class GoogleService {
   static GoogleService? _instance;
-  static GoogleService get instance => _instance ??= GoogleService._();
+  static GoogleService get instance => _instance ??= GoogleService();
 
   // Authentication
   GoogleSignIn? _googleSignIn;
@@ -40,13 +40,7 @@ class GoogleService {
   // State
   bool _initialized = false;
 
-  GoogleService._({ConnectivityService? connectivity})
-      : _connectivity = connectivity ?? const ConnectivityService();
-
-  /// Constructor for testing — bypasses the singleton and allows dependency injection.
-  /// If [googleSignIn] is provided, the service skips [initialize()] and uses it directly.
-  @visibleForTesting
-  GoogleService.forTesting({
+  GoogleService({
     ConnectivityService? connectivity,
     GoogleSignIn? googleSignIn,
   }) : _connectivity = connectivity ?? const ConnectivityService() {
