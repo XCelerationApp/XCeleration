@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:xceleration/shared/models/database/race_runner.dart';
 import '../controller/conflict_resolution_controller.dart';
-import '../mock/conflict_mock_data.dart';
 import '../../../core/theme/app_animations.dart';
 import '../../../core/theme/app_border_radius.dart';
 import '../../../core/theme/app_colors.dart';
@@ -26,7 +26,7 @@ class RunnerAssignmentList extends StatefulWidget {
   /// Optional override for the assign action. When set, called instead of
   /// [ConflictResolutionController.prepareAssign] so callers can use a
   /// different controller method (e.g. [prepareAssignForDuplicate]).
-  final void Function(MockRunner runner, String label)? onAssign;
+  final void Function(RaceRunner runner, String label)? onAssign;
 
   @override
   State<RunnerAssignmentList> createState() => _RunnerAssignmentListState();
@@ -34,17 +34,17 @@ class RunnerAssignmentList extends StatefulWidget {
 
 class _RunnerAssignmentListState extends State<RunnerAssignmentList> {
   String? _activeTeam; // null = "All"
-  MockRunner? _selectedRunner;
+  RaceRunner? _selectedRunner;
 
-  List<MockRunner> _filter(List<MockRunner> runners) {
+  List<RaceRunner> _filter(List<RaceRunner> runners) {
     if (_activeTeam == null) return runners;
-    return runners.where((r) => r.team == _activeTeam).toList();
+    return runners.where((r) => r.team.name == _activeTeam).toList();
   }
 
-  Map<String, List<MockRunner>> _groupByTeam(List<MockRunner> runners) {
-    final map = <String, List<MockRunner>>{};
+  Map<String, List<RaceRunner>> _groupByTeam(List<RaceRunner> runners) {
+    final map = <String, List<RaceRunner>>{};
     for (final r in runners) {
-      map.putIfAbsent(r.team, () => []).add(r);
+      map.putIfAbsent(r.team.name ?? '', () => []).add(r);
     }
     return map;
   }
@@ -64,10 +64,10 @@ class _RunnerAssignmentListState extends State<RunnerAssignmentList> {
       for (final runner in grouped[team]!) {
         final idx = rowIndex++;
         rows.add(_AnimatedRunnerRow(
-          key: ValueKey(runner.bibNumber),
+          key: ValueKey(runner.runner.bibNumber),
           index: idx,
           runner: runner,
-          isSelected: _selectedRunner?.bibNumber == runner.bibNumber,
+          isSelected: _selectedRunner?.runner.bibNumber == runner.runner.bibNumber,
           onSelect: () => setState(() => _selectedRunner = runner),
         ));
       }
@@ -109,8 +109,8 @@ class _RunnerAssignmentListState extends State<RunnerAssignmentList> {
           child: _selectedRunner == null
               ? const SizedBox.shrink()
               : _AssignCta(
-                  key: ValueKey(_selectedRunner!.bibNumber),
-                  runnerName: _selectedRunner!.name,
+                  key: ValueKey(_selectedRunner!.runner.bibNumber),
+                  runnerName: _selectedRunner!.runner.name ?? '',
                   onAssign: () {
                     final label = 'Bib #${widget.targetBib}';
                     if (widget.onAssign != null) {
@@ -224,7 +224,7 @@ class _AnimatedRunnerRow extends StatefulWidget {
   });
 
   final int index;
-  final MockRunner runner;
+  final RaceRunner runner;
   final bool isSelected;
   final VoidCallback onSelect;
 
@@ -246,6 +246,7 @@ class _AnimatedRunnerRowState extends State<_AnimatedRunnerRow> {
 
   @override
   Widget build(BuildContext context) {
+    final bibInt = int.parse(widget.runner.runner.bibNumber ?? '0');
     return AnimatedOpacity(
       opacity: _opacity,
       duration: AppAnimations.reveal,
@@ -276,7 +277,7 @@ class _AnimatedRunnerRowState extends State<_AnimatedRunnerRow> {
               Row(
                 children: [
                   _BibAvatar(
-                    bibNumber: widget.runner.bibNumber,
+                    bibNumber: bibInt,
                     isSelected: widget.isSelected,
                   ),
                   const SizedBox(width: AppSpacing.md),
@@ -284,9 +285,9 @@ class _AnimatedRunnerRowState extends State<_AnimatedRunnerRow> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(widget.runner.name, style: AppTypography.smallBodySemibold),
+                        Text(widget.runner.runner.name ?? '', style: AppTypography.smallBodySemibold),
                         Text(
-                          widget.runner.team,
+                          widget.runner.team.name ?? '',
                           style: AppTypography.caption.copyWith(
                             color: AppColors.mediumColor,
                           ),
@@ -337,7 +338,7 @@ class _AnimatedRunnerRowState extends State<_AnimatedRunnerRow> {
 class _ExpandedDetail extends StatelessWidget {
   const _ExpandedDetail({required this.runner, required this.onSelect});
 
-  final MockRunner runner;
+  final RaceRunner runner;
   final VoidCallback onSelect;
 
   @override
@@ -346,9 +347,9 @@ class _ExpandedDetail extends StatelessWidget {
       padding: const EdgeInsets.only(top: AppSpacing.sm),
       child: Row(
         children: [
-          _chip('Grade ${runner.grade}'),
+          _chip('Grade ${runner.runner.grade ?? '—'}'),
           const SizedBox(width: AppSpacing.xs),
-          _chip('Bib #${runner.bibNumber}'),
+          _chip('Bib #${runner.runner.bibNumber ?? '—'}'),
           const Spacer(),
           ElevatedButton(
             onPressed: onSelect,

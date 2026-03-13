@@ -83,6 +83,7 @@ class _UnknownBibCardState extends State<UnknownBibCard> {
       title: 'Add New Runner',
       body: MockCreateRunnerSheet(
         allKnownBibs: controller.allKnownBibs,
+        teams: controller.teams,
         autoBib: widget.conflict.enteredBib,
         onCreated: (name, bib, team, grade) {
           controller.prepareCreate(

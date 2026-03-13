@@ -1,47 +1,52 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:xceleration/coach/bib_conflict_resolution/controller/conflict_resolution_controller.dart';
 import 'package:xceleration/coach/bib_conflict_resolution/mock/conflict_mock_data.dart';
+import 'package:xceleration/shared/models/database/runner.dart';
+import 'package:xceleration/shared/models/database/team.dart';
 
 // ---------------------------------------------------------------------------
 // Minimal test fixtures — independent of ConflictMockData
 // ---------------------------------------------------------------------------
 
-const _runnerA = MockRunner(
-  bibNumber: 10,
-  name: 'Alice',
-  team: 'Team A',
-  grade: 11,
+final _teamA = Team(name: 'Team A');
+final _teamB = Team(name: 'Team B');
+
+final _runnerA = RaceRunner(
+  raceId: 1,
+  runner: Runner(bibNumber: '10', name: 'Alice', grade: 11),
+  team: _teamA,
 );
-const _runnerB = MockRunner(
-  bibNumber: 20,
-  name: 'Bob',
-  team: 'Team B',
-  grade: 12,
+final _runnerB = RaceRunner(
+  raceId: 1,
+  runner: Runner(bibNumber: '20', name: 'Bob', grade: 12),
+  team: _teamB,
 );
 
-const _duplicateConflict = MockDuplicateConflict(
-  bibNumber: 10,
-  runnerName: 'Alice',
-  team: 'Team A',
-  grade: 11,
-  occurrences: [
+final _duplicateConflict = MockDuplicateConflict(
+  raceRunner: RaceRunner(
+    raceId: 1,
+    runner: Runner(bibNumber: '10', name: 'Alice', grade: 11),
+    team: _teamA,
+  ),
+  occurrences: const [
     (position: 1, formattedTime: '15:00'),
     (position: 3, formattedTime: '15:30'),
   ],
-  surroundingFinishers: [],
+  surroundingFinishers: const [],
 );
 
-const _tripleConflict = MockDuplicateConflict(
-  bibNumber: 20,
-  runnerName: 'Bob',
-  team: 'Team B',
-  grade: 12,
-  occurrences: [
+final _tripleConflict = MockDuplicateConflict(
+  raceRunner: RaceRunner(
+    raceId: 1,
+    runner: Runner(bibNumber: '20', name: 'Bob', grade: 12),
+    team: _teamB,
+  ),
+  occurrences: const [
     (position: 2, formattedTime: '15:10'),
     (position: 4, formattedTime: '15:40'),
     (position: 6, formattedTime: '16:00'),
   ],
-  surroundingFinishers: [],
+  surroundingFinishers: const [],
 );
 
 const _unknownConflict = MockUnknownConflict(
@@ -53,7 +58,7 @@ const _unknownConflict = MockUnknownConflict(
 
 ConflictResolutionController _makeController({
   List<MockBibConflict>? conflicts,
-  List<MockRunner>? runners,
+  List<RaceRunner>? runners,
 }) {
   final controller = ConflictResolutionController(
     conflicts: conflicts ?? [_duplicateConflict],
@@ -115,7 +120,11 @@ void main() {
       });
 
       test('deduplicates team names', () {
-        const dup = MockRunner(bibNumber: 30, name: 'Carol', team: 'Team A', grade: 10);
+        final dup = RaceRunner(
+          raceId: 1,
+          runner: Runner(bibNumber: '30', name: 'Carol', grade: 10),
+          team: _teamA,
+        );
         final controller = _makeController(runners: [_runnerA, dup]);
         expect(controller.teams, ['Team A']);
       });
@@ -127,7 +136,7 @@ void main() {
       test('returns runners sorted by proximity to target bib', () {
         final controller = _makeController();
         final runners = controller.runnersNearBib(12);
-        expect(runners.first.bibNumber, 10); // |10-12|=2, |20-12|=8
+        expect(int.parse(runners.first.runner.bibNumber ?? '0'), 10); // |10-12|=2, |20-12|=8
       });
 
       test('returns empty list when no unassigned runners remain', () {
@@ -175,7 +184,12 @@ void main() {
       test('removes the runner from the unassigned list immediately', () {
         final controller = _makeController();
         controller.prepareAssign(_runnerA, 'Bib #10');
-        expect(controller.runnersNearBib(10).any((r) => r.bibNumber == 10), isFalse);
+        expect(
+          controller.runnersNearBib(10).any(
+            (r) => int.parse(r.runner.bibNumber ?? '0') == 10,
+          ),
+          isFalse,
+        );
       });
     });
 
@@ -232,6 +246,23 @@ void main() {
         expect(controller.resolutionLog.first.runnerName, 'New Guy');
       });
 
+      test('resolvedRunners contains a RaceRunner for each committed resolution', () {
+        final controller = _makeController();
+        controller.prepareAssign(_runnerA, 'Bib #10');
+        controller.commitPending();
+        expect(controller.resolvedRunners.length, 1);
+        expect(controller.resolvedRunners.first.runner.name, 'Alice');
+      });
+
+      test('resolvedRunners includes RaceRunner for created runner', () {
+        final controller = _makeController();
+        controller.prepareCreate('New Guy', 99, 'Team A', 11, 'Bib #99');
+        controller.commitPending();
+        expect(controller.resolvedRunners.length, 1);
+        expect(controller.resolvedRunners.first.runner.bibNumber, '99');
+        expect(controller.resolvedRunners.first.runner.name, 'New Guy');
+      });
+
       test('transitions to completion after last conflict', () {
         final controller = _makeController(conflicts: [_duplicateConflict]);
         controller.prepareAssign(_runnerA, 'Bib #10');
@@ -274,7 +305,12 @@ void main() {
         final controller = _makeController();
         controller.prepareAssign(_runnerA, 'Bib #10');
         controller.undoPending();
-        expect(controller.runnersNearBib(10).any((r) => r.bibNumber == 10), isTrue);
+        expect(
+          controller.runnersNearBib(10).any(
+            (r) => int.parse(r.runner.bibNumber ?? '0') == 10,
+          ),
+          isTrue,
+        );
       });
 
       test('does not change conflict index', () {

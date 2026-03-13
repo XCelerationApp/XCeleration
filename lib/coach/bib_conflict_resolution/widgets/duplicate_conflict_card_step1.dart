@@ -297,6 +297,7 @@ class _InlineLeftoverAssignmentState extends State<_InlineLeftoverAssignment> {
       title: 'Add New Runner',
       body: MockCreateRunnerSheet(
         allKnownBibs: controller.allKnownBibs,
+        teams: controller.teams,
         forbiddenBib: widget.conflict.bibNumber,
         onCreated: (name, bib, team, grade) {
           controller.prepareCreateForDuplicate(

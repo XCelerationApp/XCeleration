@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../mock/conflict_mock_data.dart';
 import '../../../core/components/button_components.dart';
 import '../../../core/theme/app_border_radius.dart';
 import '../../../core/theme/app_colors.dart';
@@ -13,6 +12,7 @@ class MockCreateRunnerSheet extends StatefulWidget {
   const MockCreateRunnerSheet({
     super.key,
     required this.allKnownBibs,
+    required this.teams,
     required this.onCreated,
     this.forbiddenBib,
     this.autoBib,
@@ -20,6 +20,9 @@ class MockCreateRunnerSheet extends StatefulWidget {
 
   /// All bib numbers already in use — new bib must not be in this set.
   final Set<int> allKnownBibs;
+
+  /// Team names available for selection.
+  final List<String> teams;
 
   /// Called with confirmed data when the form is submitted.
   final void Function(String name, int bibNumber, String team, int grade) onCreated;
@@ -139,7 +142,7 @@ class _MockCreateRunnerSheetState extends State<MockCreateRunnerSheet> {
                 label: 'Team',
                 hint: 'Select team',
                 value: _selectedTeam,
-                items: ConflictMockData.teams,
+                items: widget.teams,
                 itemLabel: (t) => t,
                 onChanged: (t) => setState(() => _selectedTeam = t),
               ),

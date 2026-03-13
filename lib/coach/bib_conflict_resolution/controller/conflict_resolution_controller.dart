@@ -1,4 +1,6 @@
 import 'package:flutter/foundation.dart';
+import 'package:xceleration/shared/models/database/runner.dart';
+import 'package:xceleration/shared/models/database/team.dart';
 import '../mock/conflict_mock_data.dart';
 
 enum _FlowStep { summary, duplicateStep1, unknown, completion }
@@ -9,12 +11,15 @@ typedef ResolutionEntry = ({
   String runnerName,
   int bib,
   String team,
+  /// The resolved [RaceRunner] for this conflict position — matches the type
+  /// that [BibConflictsOverview.onResolved] expects in the real system.
+  RaceRunner raceRunner,
 });
 
 class ConflictResolutionController extends ChangeNotifier {
   ConflictResolutionController({
     List<MockBibConflict>? conflicts,
-    List<MockRunner>? unassignedRunners,
+    List<RaceRunner>? unassignedRunners,
   })  : _initialConflicts =
             List.unmodifiable(conflicts ?? ConflictMockData.conflicts),
         _initialUnassignedRunners = List.unmodifiable(
@@ -24,10 +29,10 @@ class ConflictResolutionController extends ChangeNotifier {
             unassignedRunners ?? ConflictMockData.allUnassignedRunners);
 
   final List<MockBibConflict> _initialConflicts;
-  final List<MockRunner> _initialUnassignedRunners;
+  final List<RaceRunner> _initialUnassignedRunners;
 
   final List<MockBibConflict> _conflicts;
-  final List<MockRunner> _unassignedRunners;
+  final List<RaceRunner> _unassignedRunners;
   final List<ResolutionEntry> _resolutionLog = [];
 
   _FlowStep _currentStep = _FlowStep.summary;
@@ -37,7 +42,7 @@ class ConflictResolutionController extends ChangeNotifier {
   bool _hasPending = false;
   String _pendingLabel = '';
   VoidCallback? _pendingCommitAction;
-  MockRunner? _pendingAssignedRunner;
+  RaceRunner? _pendingAssignedRunner;
 
   int _duplicatesResolved = 0;
   int _runnersAssigned = 0;
@@ -75,6 +80,15 @@ class ConflictResolutionController extends ChangeNotifier {
   int get newRunnersCreated => _newRunnersCreated;
   List<ResolutionEntry> get resolutionLog => List.unmodifiable(_resolutionLog);
 
+  /// Resolved runners in resolution order — the real output type.
+  ///
+  /// In production this list would be merged back into the full [raceRunners]
+  /// list (replacing the conflict int sentinels) and passed to
+  /// [BibConflictsOverview.onResolved]. Here each entry corresponds to one
+  /// resolved conflict in the order they were completed.
+  List<RaceRunner> get resolvedRunners =>
+      _resolutionLog.map((e) => e.raceRunner).toList();
+
   /// Key that changes on every step/conflict transition, used by the inner AnimatedSwitcher.
   String get stepKey => '${_currentStep.name}_$_currentConflictIndex';
 
@@ -88,16 +102,23 @@ class ConflictResolutionController extends ChangeNotifier {
   /// Unique team names derived from the initial runner list, sorted alphabetically.
   /// Widgets use this instead of accessing ConflictMockData directly.
   List<String> get teams {
-    final names = _initialUnassignedRunners.map((r) => r.team).toSet().toList()
+    final names = _initialUnassignedRunners
+        .map((r) => r.team.name ?? '')
+        .where((n) => n.isNotEmpty)
+        .toSet()
+        .toList()
       ..sort();
     return names;
   }
 
   /// All unassigned runners sorted by proximity to [targetBib].
-  List<MockRunner> runnersNearBib(int targetBib) {
-    final sorted = List<MockRunner>.from(_unassignedRunners);
-    sorted.sort((a, b) =>
-        (a.bibNumber - targetBib).abs().compareTo((b.bibNumber - targetBib).abs()));
+  List<RaceRunner> runnersNearBib(int targetBib) {
+    final sorted = List<RaceRunner>.from(_unassignedRunners);
+    sorted.sort((a, b) {
+      final aBib = int.parse(a.runner.bibNumber ?? '0');
+      final bBib = int.parse(b.runner.bibNumber ?? '0');
+      return (aBib - targetBib).abs().compareTo((bBib - targetBib).abs());
+    });
     return sorted;
   }
 
@@ -106,8 +127,8 @@ class ConflictResolutionController extends ChangeNotifier {
     final bibs = <int>{};
     for (final conflict in _conflicts) {
       switch (conflict) {
-        case MockDuplicateConflict(:final bibNumber):
-          bibs.add(bibNumber);
+        case MockDuplicateConflict(:final raceRunner):
+          bibs.add(int.parse(raceRunner.runner.bibNumber ?? '0'));
         case MockUnknownConflict(:final enteredBib):
           bibs.add(enteredBib);
       }
@@ -116,7 +137,7 @@ class ConflictResolutionController extends ChangeNotifier {
       }
     }
     for (final runner in _unassignedRunners) {
-      bibs.add(runner.bibNumber);
+      bibs.add(int.parse(runner.runner.bibNumber ?? '0'));
     }
     return bibs;
   }
@@ -177,7 +198,7 @@ class ConflictResolutionController extends ChangeNotifier {
   /// leftover occurrence, and also records the duplicate as resolved on commit.
   /// Use this instead of [prepareAssign] when the leftover is handled within
   /// the duplicate card itself (no separate UnknownBibCard is shown).
-  void prepareAssignForDuplicate(MockRunner runner, String label) {
+  void prepareAssignForDuplicate(RaceRunner runner, String label) {
     _isGoingBack = false;
     _unassignedRunners.remove(runner);
     _pendingAssignedRunner = runner;
@@ -188,9 +209,10 @@ class ConflictResolutionController extends ChangeNotifier {
       _resolutionLog.add((
         conflictLabel: label,
         wasCreate: false,
-        runnerName: runner.name,
-        bib: runner.bibNumber,
-        team: runner.team,
+        runnerName: runner.runner.name ?? '',
+        bib: int.parse(runner.runner.bibNumber ?? '0'),
+        team: runner.team.name ?? '',
+        raceRunner: runner,
       ));
     };
     _hasPending = true;
@@ -203,6 +225,7 @@ class ConflictResolutionController extends ChangeNotifier {
     _isGoingBack = false;
     _pendingAssignedRunner = null;
     _pendingLabel = label;
+    final raceRunner = _buildRaceRunner(name, bib, team, grade);
     _pendingCommitAction = () {
       _duplicatesResolved++;
       _newRunnersCreated++;
@@ -212,6 +235,7 @@ class ConflictResolutionController extends ChangeNotifier {
         runnerName: name,
         bib: bib,
         team: team,
+        raceRunner: raceRunner,
       ));
     };
     _hasPending = true;
@@ -220,7 +244,7 @@ class ConflictResolutionController extends ChangeNotifier {
 
   /// Stages an existing runner as the resolution. Removes from unassigned list
   /// immediately; call [commitPending] to finalise or [undoPending] to revert.
-  void prepareAssign(MockRunner runner, String label) {
+  void prepareAssign(RaceRunner runner, String label) {
     _isGoingBack = false;
     _unassignedRunners.remove(runner);
     _pendingAssignedRunner = runner;
@@ -230,9 +254,10 @@ class ConflictResolutionController extends ChangeNotifier {
       _resolutionLog.add((
         conflictLabel: label,
         wasCreate: false,
-        runnerName: runner.name,
-        bib: runner.bibNumber,
-        team: runner.team,
+        runnerName: runner.runner.name ?? '',
+        bib: int.parse(runner.runner.bibNumber ?? '0'),
+        team: runner.team.name ?? '',
+        raceRunner: runner,
       ));
     };
     _hasPending = true;
@@ -246,6 +271,7 @@ class ConflictResolutionController extends ChangeNotifier {
     _isGoingBack = false;
     _pendingAssignedRunner = null;
     _pendingLabel = label;
+    final raceRunner = _buildRaceRunner(name, bib, team, grade);
     _pendingCommitAction = () {
       _newRunnersCreated++;
       _resolutionLog.add((
@@ -254,6 +280,7 @@ class ConflictResolutionController extends ChangeNotifier {
         runnerName: name,
         bib: bib,
         team: team,
+        raceRunner: raceRunner,
       ));
     };
     _hasPending = true;
@@ -327,4 +354,18 @@ class ConflictResolutionController extends ChangeNotifier {
         MockDuplicateConflict() => _FlowStep.duplicateStep1,
         MockUnknownConflict() => _FlowStep.unknown,
       };
+
+  /// Builds a minimal [RaceRunner] from create-form primitives so that
+  /// [resolvedRunners] always returns the real type regardless of create vs assign.
+  RaceRunner _buildRaceRunner(String name, int bib, String team, int? grade) {
+    // Reuse the Team object from the existing runners list when possible.
+    final teamObj = _initialUnassignedRunners
+        .map((r) => r.team)
+        .firstWhere((t) => t.name == team, orElse: () => Team(name: team));
+    return RaceRunner(
+      raceId: ConflictMockData.raceId,
+      runner: Runner(bibNumber: bib.toString(), name: name, grade: grade),
+      team: teamObj,
+    );
+  }
 }
