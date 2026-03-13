@@ -3,10 +3,8 @@ import 'package:provider/provider.dart';
 import '../controller/conflict_resolution_controller.dart';
 import '../mock/conflict_mock_data.dart';
 import '../../../core/components/button_components.dart';
-import '../../../core/theme/app_animations.dart';
 import '../../../core/theme/app_border_radius.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_opacity.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/utils/sheet_utils.dart';
@@ -29,16 +27,12 @@ class UnknownBibCard extends StatefulWidget {
 }
 
 class _UnknownBibCardState extends State<UnknownBibCard> {
-  bool _assignMode = false;
-
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _HeaderRow(conflict: widget.conflict),
-        const SizedBox(height: AppSpacing.md),
-        _TimePill(formattedTime: widget.conflict.formattedTime),
+        _HeaderCard(conflict: widget.conflict),
         const SizedBox(height: AppSpacing.md),
         InlineContextPanel(
           surroundingFinishers: widget.conflict.surroundingFinishers,
@@ -49,18 +43,9 @@ class _UnknownBibCardState extends State<UnknownBibCard> {
           child: const Text('See more nearby finishers ↓'),
         ),
         const SizedBox(height: AppSpacing.sm),
-        AnimatedSize(
-          duration: AppAnimations.standard,
-          curve: AppAnimations.spring,
-          child: _assignMode
-              ? _AssignModePanel(
-                  targetBib: widget.conflict.enteredBib,
-                  onDismiss: () => setState(() => _assignMode = false),
-                )
-              : _ActionButtons(
-                  onAssign: () => setState(() => _assignMode = true),
-                  onCreate: () => _openCreateSheet(context),
-                ),
+        _ActionButtons(
+          onAssign: () => _openAssignSheet(context),
+          onCreate: () => _openCreateSheet(context),
         ),
       ],
     );
@@ -74,6 +59,32 @@ class _UnknownBibCardState extends State<UnknownBibCard> {
       conflictBib: widget.conflict.enteredBib,
       conflictTime: widget.conflict.formattedTime,
     );
+  }
+
+  Future<void> _openAssignSheet(BuildContext context) async {
+    final controller = context.read<ConflictResolutionController>();
+    RaceRunner? pendingRunner;
+    String? pendingLabel;
+
+    await sheet(
+      context: context,
+      title: 'Assign Existing Runner',
+      body: ChangeNotifierProvider.value(
+        value: controller,
+        child: RunnerAssignmentList(
+          targetBib: widget.conflict.enteredBib,
+          onAssign: (runner, label) {
+            pendingRunner = runner;
+            pendingLabel = label;
+            Navigator.of(context).pop();
+          },
+        ),
+      ),
+    );
+
+    if (pendingRunner != null) {
+      controller.prepareAssign(pendingRunner!, pendingLabel!);
+    }
   }
 
   Future<void> _openCreateSheet(BuildContext context) async {
@@ -100,102 +111,81 @@ class _UnknownBibCardState extends State<UnknownBibCard> {
   }
 }
 
-class _HeaderRow extends StatelessWidget {
-  const _HeaderRow({required this.conflict});
+class _HeaderCard extends StatelessWidget {
+  const _HeaderCard({required this.conflict});
 
   final MockUnknownConflict conflict;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: AppColors.redColor.withValues(alpha: AppOpacity.light),
-            borderRadius: BorderRadius.circular(AppBorderRadius.sm),
-          ),
-          child: const Icon(
-            Icons.help_outline,
-            color: AppColors.redColor,
-            size: 22,
-          ),
-        ),
-        const SizedBox(width: AppSpacing.md),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'UNKNOWN BIB',
-              style: AppTypography.extraSmall.copyWith(
-                letterSpacing: 0.5,
-                color: AppColors.redColor,
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.redColor.withValues(alpha: 0.04),
+        border: Border.all(color: AppColors.redColor.withValues(alpha: 0.2)),
+        borderRadius: BorderRadius.circular(AppBorderRadius.md),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'UNKNOWN BIB',
+                    style: AppTypography.extraSmall.copyWith(
+                      letterSpacing: 0.5,
+                      color: AppColors.redColor,
+                    ),
+                  ),
+                  Text(
+                    '#${conflict.enteredBib}',
+                    style: AppTypography.titleSemibold.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
               ),
-            ),
-            Text(
-              '#${conflict.enteredBib}',
-              style: AppTypography.titleSemibold.copyWith(
-                fontWeight: FontWeight.w800,
+              const Spacer(),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    'Finished',
+                    style: AppTypography.extraSmall.copyWith(
+                      letterSpacing: 0.5,
+                      color: AppColors.mediumColor,
+                    ),
+                  ),
+                  Text(
+                    ordinal(conflict.position),
+                    style: AppTypography.titleSemibold.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
-        const Spacer(),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              'Finished',
-              style: AppTypography.extraSmall.copyWith(
-                letterSpacing: 0.5,
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Row(
+            children: [
+              const Icon(
+                Icons.timer_outlined,
+                size: 14,
                 color: AppColors.mediumColor,
               ),
-            ),
-            Text(
-              ordinal(conflict.position),
-              style: AppTypography.titleSemibold.copyWith(
-                fontWeight: FontWeight.w800,
+              const SizedBox(width: AppSpacing.xs),
+              Text(
+                conflict.formattedTime,
+                style: AppTypography.bodySemibold.copyWith(
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
               ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _TimePill extends StatelessWidget {
-  const _TimePill({required this.formattedTime});
-
-  final String formattedTime;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.lightColor.withValues(alpha: AppOpacity.solid),
-        borderRadius: BorderRadius.circular(AppBorderRadius.full),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(
-            Icons.timer_outlined,
-            size: 14,
-            color: AppColors.mediumColor,
-          ),
-          const SizedBox(width: AppSpacing.xs),
-          Text(
-            formattedTime,
-            style: AppTypography.bodySemibold.copyWith(
-              fontFeatures: const [FontFeature.tabularFigures()],
-            ),
+            ],
           ),
         ],
       ),
@@ -203,43 +193,6 @@ class _TimePill extends StatelessWidget {
   }
 }
 
-class _AssignModePanel extends StatelessWidget {
-  const _AssignModePanel({
-    required this.targetBib,
-    required this.onDismiss,
-  });
-
-  final int targetBib;
-  final VoidCallback onDismiss;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(
-              'Assign Existing Runner',
-              style: AppTypography.smallBodySemibold,
-            ),
-            const Spacer(),
-            GestureDetector(
-              onTap: onDismiss,
-              child: const Icon(
-                Icons.close,
-                size: 20,
-                color: AppColors.mediumColor,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        RunnerAssignmentList(targetBib: targetBib),
-      ],
-    );
-  }
-}
 
 class _ActionButtons extends StatelessWidget {
   const _ActionButtons({required this.onAssign, required this.onCreate});
