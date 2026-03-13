@@ -84,7 +84,7 @@ class _SpectatorBroadcastSheetState extends State<SpectatorBroadcastSheet> {
         ),
         const SizedBox(height: 12),
         // Underlying wireless connection UI modeled after coach↔assistant
-        deviceConnectionWidget(context, widget.devices),
+        DeviceConnectionWidget(devices: widget.devices),
       ],
     );
   }

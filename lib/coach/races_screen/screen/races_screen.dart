@@ -1,11 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:xceleration/shared/role_bar/role_bar.dart';
+import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_spacing.dart';
 import '../../../shared/role_bar/models/role_enums.dart';
 import '../../../core/services/tutorial_manager.dart';
 import '../../../core/components/coach_mark.dart';
+import '../../../core/services/auth_service.dart';
+import '../../../core/services/event_bus.dart';
+import '../../../core/services/geo_location_service.dart';
+import '../../../core/services/post_frame_callback_scheduler.dart';
+import '../../../core/services/i_sync_service.dart';
 import '../controller/races_controller.dart';
+import '../services/races_service.dart';
 import '../widgets/race_tutorial_coach_mark.dart';
+import '../../../core/components/app_header.dart';
+import '../../../shared/role_bar/widgets/role_selector_sheet.dart';
+import '../../../shared/settings_screen.dart';
 import '../widgets/races_list.dart';
 
 class RacesScreen extends StatefulWidget {
@@ -22,9 +32,17 @@ class RacesScreenState extends State<RacesScreen> {
   @override
   void initState() {
     super.initState();
-    _controller = RacesController(canEdit: widget.canEdit);
-    _controller.setContext(context);
-    _controller.initState();
+    _controller = RacesController(
+      racesService: RacesService(),
+      authService: AuthService.instance,
+      eventBus: EventBus.instance,
+      geoLocationService: GeoLocationService(),
+      postFrameCallbackScheduler: WidgetsBindingAdapter(),
+      tutorialManager: TutorialManager(),
+      syncStream: context.read<ISyncService>().syncEvents,
+      canEdit: widget.canEdit,
+    );
+    _controller.initState(context);
   }
 
   @override
@@ -56,7 +74,7 @@ class RacesScreenState extends State<RacesScreen> {
                               description: 'Click here to create a new race',
                               icon: Icons.add,
                               type: CoachMarkType.targeted,
-                              backgroundColor: Color(0xFF1976D2),
+                              backgroundColor: AppColors.statusPreRace,
                               elevation: 12,
                             ),
                             child: FloatingActionButton(
@@ -73,17 +91,29 @@ class RacesScreenState extends State<RacesScreen> {
                 body: Column(
                   children: [
                     // Sticky header
-                    Padding(
-                      padding: EdgeInsets.fromLTRB(24.0, 0, 24.0, 0),
-                      child: RoleBar(
-                          currentRole:
-                              widget.canEdit ? Role.coach : Role.spectator,
-                          tutorialManager: _controller.tutorialManager),
+                    AppHeader(
+                      title: 'My Races',
+                      currentRole:
+                          widget.canEdit ? Role.coach : Role.spectator,
+                      tutorialManager: _controller.tutorialManager,
+                      onRoleTap: () => RoleSelectorSheet.showRoleSelection(
+                          context,
+                          widget.canEdit ? Role.coach : Role.spectator),
+                      onSettingsTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => SettingsScreen(
+                            currentRole: (widget.canEdit
+                                    ? Role.coach
+                                    : Role.spectator)
+                                .toValueString(),
+                          ),
+                        ),
+                      ),
                     ),
                     // Scrollable content
                     Expanded(
                       child: Padding(
-                        padding: EdgeInsets.fromLTRB(24.0, 0, 24.0, 24.0),
+                        padding: EdgeInsets.fromLTRB(AppSpacing.xl, 0, AppSpacing.xl, AppSpacing.xl),
                         child: SingleChildScrollView(
                           child: RaceCoachMark(
                             controller: _controller,

@@ -13,8 +13,20 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'coach/race_screen/controller/race_screen_controller.dart';
 import 'coach/races_screen/controller/races_controller.dart';
+import 'core/services/geo_location_service.dart';
+import 'core/services/post_frame_callback_scheduler.dart';
+import 'coach/races_screen/services/races_service.dart';
+import 'core/services/auth_service.dart';
+import 'core/services/tutorial_manager.dart';
 import 'shared/models/database/master_race.dart';
+import 'core/repositories/i_database_connection_provider.dart';
+import 'core/services/database_write_bus.dart';
 import 'core/services/sync_service.dart';
+import 'core/services/remote_api_client.dart';
+import 'core/services/supabase_remote_sync_client.dart';
+import 'core/services/connectivity_sync_service.dart';
+import 'core/services/i_sync_service.dart';
+import 'core/services/service_locator.dart';
 
 /// EventBus provider wrapper for global event management
 class EventBusProvider extends ChangeNotifier {
@@ -61,16 +73,39 @@ void _runApp() async {
     DeviceOrientation.portraitDown,
   ]);
 
+  // Initialize the service locator (registers repos, write bus, etc.)
+  await ServiceLocator.initialize();
+
+  // Initialize Supabase eagerly so it is ready before any screen is reached.
+  await RemoteApiClient.instance.init();
+
+  // Wire up concrete service instances once at startup
+  final syncService = SyncService(
+    db: ServiceLocator.get<IDatabaseConnectionProvider>(),
+    remote: RemoteApiClient.instance,
+    syncClient: SupabaseRemoteSyncClient(remote: RemoteApiClient.instance),
+    auth: AuthService.instance,
+  );
+  final connectivitySyncService = ConnectivitySyncService(
+    sync: syncService,
+    auth: AuthService.instance,
+    writeStream: ServiceLocator.get<DatabaseWriteBus>().writes,
+  );
+  connectivitySyncService.start();
+
   runApp(
     MultiProvider(
       providers: [
+        Provider<ISyncService>.value(value: syncService),
+        Provider<ConnectivitySyncService>.value(value: connectivitySyncService),
         ChangeNotifierProvider(create: (context) => EventBusProvider()),
         ChangeNotifierProvider(
           create: (context) => RaceController(
               masterRace: MasterRace.getInstance(0),
-              parentController: RacesController()),
+              parentController: RacesController(racesService: RacesService(), authService: AuthService.instance, eventBus: EventBus.instance, geoLocationService: GeoLocationService(), postFrameCallbackScheduler: WidgetsBindingAdapter(), tutorialManager: TutorialManager(), syncStream: syncService.syncEvents)),
         ),
-        ChangeNotifierProvider(create: (context) => RacesController()),
+        ChangeNotifierProvider(
+            create: (context) => RacesController(racesService: RacesService(), authService: AuthService.instance, eventBus: EventBus.instance, geoLocationService: GeoLocationService(), postFrameCallbackScheduler: WidgetsBindingAdapter(), tutorialManager: TutorialManager(), syncStream: syncService.syncEvents)),
       ],
       child: const MyApp(),
     ),
@@ -79,7 +114,7 @@ void _runApp() async {
   // Kick off a background sync shortly after startup
   WidgetsBinding.instance.addPostFrameCallback((_) async {
     try {
-      await SyncService.instance.syncAll();
+      await syncService.syncAll();
     } catch (_) {}
   });
 }

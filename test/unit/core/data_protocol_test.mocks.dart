@@ -6,11 +6,12 @@
 import 'dart:async' as _i3;
 
 import 'package:flutter_nearby_connections/flutter_nearby_connections.dart'
-    as _i4;
+    as _i6;
 import 'package:mockito/mockito.dart' as _i1;
-import 'package:xceleration/core/services/device_connection_service.dart'
-    as _i2;
-import 'package:xceleration/core/utils/data_package.dart' as _i5;
+import 'package:mockito/src/dummies.dart' as _i5;
+import 'package:xceleration/core/result.dart' as _i4;
+import 'package:xceleration/core/utils/connection_interfaces.dart' as _i2;
+import 'package:xceleration/core/utils/data_package.dart' as _i7;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -25,46 +26,16 @@ import 'package:xceleration/core/utils/data_package.dart' as _i5;
 // ignore_for_file: unnecessary_parenthesis
 // ignore_for_file: camel_case_types
 // ignore_for_file: subtype_of_sealed_class
+// ignore_for_file: invalid_use_of_internal_member
 
-class _FakeDuration_0 extends _i1.SmartFake implements Duration {
-  _FakeDuration_0(
-    Object parent,
-    Invocation parentInvocation,
-  ) : super(
-          parent,
-          parentInvocation,
-        );
-}
-
-/// A class which mocks [DeviceConnectionService].
+/// A class which mocks [DeviceConnectionServiceInterface].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockDeviceConnectionService extends _i1.Mock
-    implements _i2.DeviceConnectionService {
-  MockDeviceConnectionService() {
+class MockDeviceConnectionServiceInterface extends _i1.Mock
+    implements _i2.DeviceConnectionServiceInterface {
+  MockDeviceConnectionServiceInterface() {
     _i1.throwOnMissingStub(this);
   }
-
-  @override
-  int get maxReconnectionAttempts => (super.noSuchMethod(
-        Invocation.getter(#maxReconnectionAttempts),
-        returnValue: 0,
-      ) as int);
-
-  @override
-  Duration get rescanBackoff => (super.noSuchMethod(
-        Invocation.getter(#rescanBackoff),
-        returnValue: _FakeDuration_0(
-          this,
-          Invocation.getter(#rescanBackoff),
-        ),
-      ) as Duration);
-
-  @override
-  bool get nearbyConnectionsInitialized => (super.noSuchMethod(
-        Invocation.getter(#nearbyConnectionsInitialized),
-        returnValue: false,
-      ) as bool);
 
   @override
   bool get isActive => (super.noSuchMethod(
@@ -73,72 +44,26 @@ class MockDeviceConnectionService extends _i1.Mock
       ) as bool);
 
   @override
-  set rescanBackoff(Duration? _rescanBackoff) => super.noSuchMethod(
-        Invocation.setter(
-          #rescanBackoff,
-          _rescanBackoff,
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
-  set nearbyConnectionsInitialized(bool? _nearbyConnectionsInitialized) =>
-      super.noSuchMethod(
-        Invocation.setter(
-          #nearbyConnectionsInitialized,
-          _nearbyConnectionsInitialized,
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
-  set receivedDataSubscription(
-          _i3.StreamSubscription<dynamic>? _receivedDataSubscription) =>
-      super.noSuchMethod(
-        Invocation.setter(
-          #receivedDataSubscription,
-          _receivedDataSubscription,
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
-  set deviceMonitorSubscription(
-          _i3.StreamSubscription<dynamic>? _deviceMonitorSubscription) =>
-      super.noSuchMethod(
-        Invocation.setter(
-          #deviceMonitorSubscription,
-          _deviceMonitorSubscription,
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
-  _i3.Future<bool> checkIfNearbyConnectionsWorks(
-          {Duration? timeout = const Duration(seconds: 5)}) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #checkIfNearbyConnectionsWorks,
-          [],
-          {#timeout: timeout},
-        ),
-        returnValue: _i3.Future<bool>.value(false),
-      ) as _i3.Future<bool>);
-
-  @override
-  _i3.Future<bool> init() => (super.noSuchMethod(
+  _i3.Future<_i4.Result<bool>> init() => (super.noSuchMethod(
         Invocation.method(
           #init,
           [],
         ),
-        returnValue: _i3.Future<bool>.value(false),
-      ) as _i3.Future<bool>);
+        returnValue:
+            _i3.Future<_i4.Result<bool>>.value(_i5.dummyValue<_i4.Result<bool>>(
+          this,
+          Invocation.method(
+            #init,
+            [],
+          ),
+        )),
+      ) as _i3.Future<_i4.Result<bool>>);
 
   @override
   _i3.Future<void> monitorDevicesConnectionStatus({
-    _i3.Future<void> Function(_i4.Device)? deviceFoundCallback,
-    _i3.Future<void> Function(_i4.Device)? deviceConnectingCallback,
-    _i3.Future<void> Function(_i4.Device)? deviceConnectedCallback,
+    _i3.Future<void> Function(_i6.Device)? deviceFoundCallback,
+    _i3.Future<void> Function(_i6.Device)? deviceConnectingCallback,
+    _i3.Future<void> Function(_i6.Device)? deviceConnectedCallback,
     Duration? timeout = const Duration(seconds: 60),
     _i3.Future<void> Function()? timeoutCallback,
   }) =>
@@ -159,37 +84,9 @@ class MockDeviceConnectionService extends _i1.Mock
       ) as _i3.Future<void>);
 
   @override
-  _i3.Future<bool> inviteDevice(_i4.Device? device) => (super.noSuchMethod(
-        Invocation.method(
-          #inviteDevice,
-          [device],
-        ),
-        returnValue: _i3.Future<bool>.value(false),
-      ) as _i3.Future<bool>);
-
-  @override
-  _i3.Future<bool> attemptReconnection(_i4.Device? device) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #attemptReconnection,
-          [device],
-        ),
-        returnValue: _i3.Future<bool>.value(false),
-      ) as _i3.Future<bool>);
-
-  @override
-  _i3.Future<bool> disconnectDevice(_i4.Device? device) => (super.noSuchMethod(
-        Invocation.method(
-          #disconnectDevice,
-          [device],
-        ),
-        returnValue: _i3.Future<bool>.value(false),
-      ) as _i3.Future<bool>);
-
-  @override
   _i3.Future<bool> sendMessageToDevice(
-    _i4.Device? device,
-    _i5.Package? package,
+    _i6.Device? device,
+    _i7.Package? package,
   ) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -204,9 +101,9 @@ class MockDeviceConnectionService extends _i1.Mock
 
   @override
   _i3.Future<String?> monitorMessageReceives(
-    _i4.Device? device, {
+    _i6.Device? device, {
     required dynamic Function(
-      _i5.Package,
+      _i7.Package,
       String,
     )? messageReceivedCallback,
   }) =>
@@ -227,6 +124,35 @@ class MockDeviceConnectionService extends _i1.Mock
         ),
         returnValueForMissingStub: null,
       );
+
+  @override
+  _i3.Future<bool> inviteDevice(_i6.Device? device) => (super.noSuchMethod(
+        Invocation.method(
+          #inviteDevice,
+          [device],
+        ),
+        returnValue: _i3.Future<bool>.value(false),
+      ) as _i3.Future<bool>);
+
+  @override
+  _i3.Future<_i4.Result<bool>> checkIfNearbyConnectionsWorks(
+          {Duration? timeout = const Duration(seconds: 5)}) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #checkIfNearbyConnectionsWorks,
+          [],
+          {#timeout: timeout},
+        ),
+        returnValue:
+            _i3.Future<_i4.Result<bool>>.value(_i5.dummyValue<_i4.Result<bool>>(
+          this,
+          Invocation.method(
+            #checkIfNearbyConnectionsWorks,
+            [],
+            {#timeout: timeout},
+          ),
+        )),
+      ) as _i3.Future<_i4.Result<bool>>);
 
   @override
   void dispose() => super.noSuchMethod(

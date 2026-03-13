@@ -1,9 +1,10 @@
 import 'dart:async';
 import 'dart:math';
-import '../services/device_connection_service.dart';
 import 'package:flutter_nearby_connections/flutter_nearby_connections.dart';
 import 'data_package.dart';
 import 'package:xceleration/core/utils/logger.dart';
+import 'package:xceleration/core/result.dart';
+import 'package:xceleration/core/app_error.dart';
 import 'connection_interfaces.dart';
 
 class _TransmissionState {
@@ -25,10 +26,13 @@ class ProtocolTerminatedException implements Exception {
 
 class Protocol implements ProtocolInterface {
   static const int maxSendAttempts = 4;
-  static const int retryTimeoutSeconds = 5;
   static const int chunkSize = 1000;
 
-  final DeviceConnectionService deviceConnectionService;
+  final DeviceConnectionServiceInterface deviceConnectionService;
+  final Duration retryTimeout;
+  final Duration sendStabilizationDelay;
+  final Duration transferAbortTimeout;
+
   final Map<String, Device> connectedDevices =
       {}; // Map of device IDs to devices
 
@@ -43,7 +47,12 @@ class Protocol implements ProtocolInterface {
   bool _isTerminated = false;
   final Map<String, int> _finishSequenceNumbers = {};
 
-  Protocol({required this.deviceConnectionService});
+  Protocol({
+    required this.deviceConnectionService,
+    this.retryTimeout = const Duration(seconds: 5),
+    this.sendStabilizationDelay = const Duration(milliseconds: 500),
+    this.transferAbortTimeout = const Duration(seconds: 3),
+  });
 
   @override
   void addDevice(Device device) {
@@ -194,7 +203,7 @@ class Protocol implements ProtocolInterface {
 
     void scheduleRetry() {
       state.retryTimer = Timer(
-        Duration(seconds: retryTimeoutSeconds),
+        retryTimeout,
         () async {
           if (state.isCancelled || state.completer.isCompleted) return;
 
@@ -251,33 +260,40 @@ class Protocol implements ProtocolInterface {
   }
 
   @override
-  Future<void> sendData(String? data, String senderId) async {
+  Future<Result<void>> sendData(String? data, String senderId) async {
     if (_isTerminated) {
-      throw ProtocolTerminatedException(
-          'Cannot send data - protocol is terminated');
+      return Failure(AppError(
+        userMessage: 'Data transfer failed. Please try again.',
+        originalException: ProtocolTerminatedException(
+            'Cannot send data - protocol is terminated'),
+      ));
     }
 
     if (!connectedDevices.containsKey(senderId)) {
-      throw Exception('Device $senderId not connected');
+      return Failure(AppError(
+        userMessage: 'Data transfer failed. Device not connected.',
+        originalException: Exception('Device $senderId not connected'),
+      ));
     }
 
-    // Check if we have data to send
     if (data == null || data.isEmpty) {
       Logger.e('No data to send to device $senderId');
-      throw ProtocolTerminatedException('No data to send to device $senderId');
+      return Failure(AppError(
+        userMessage: 'Data transfer failed. No data to send.',
+        originalException:
+            ProtocolTerminatedException('No data to send to device $senderId'),
+      ));
     }
 
     try {
       Logger.d(
           'Starting to send data to device $senderId (length: ${data.length})');
-      // Split data into chunks
       final chunks = <String>[];
       for (var i = 0; i < data.length; i += chunkSize) {
         chunks.add(data.substring(i, min(i + chunkSize, data.length)));
       }
       Logger.d('Split data into ${chunks.length} chunks');
 
-      // Send each chunk as a DATA package
       for (var i = 0; i < chunks.length; i++) {
         _sequenceNumber++;
         final package = Package(
@@ -289,7 +305,6 @@ class Protocol implements ProtocolInterface {
         await _sendPackageWithRetry(package, senderId);
       }
 
-      // Send FIN package to mark end of transmission
       _finishSequenceNumbers[senderId] = _sequenceNumber + 1;
       final finPackage = Package(
         number: _finishSequenceNumbers[senderId]!,
@@ -299,12 +314,13 @@ class Protocol implements ProtocolInterface {
       await _sendPackageWithRetry(finPackage, senderId);
 
       Logger.d('Successfully sent ${chunks.length} chunks to device $senderId');
+      return const Success(null);
     } catch (e) {
-      if (_isTerminated) {
-        rethrow;
-      }
       Logger.e('Error sending data to device $senderId: $e');
-      rethrow;
+      return Failure(AppError(
+        userMessage: 'Data transfer failed. Please try again.',
+        originalException: e,
+      ));
     }
   }
 
@@ -314,24 +330,31 @@ class Protocol implements ProtocolInterface {
   ///
   /// The statusChecker parameter allows the caller to abort the transfer if device status changes
   @override
-  Future<String?> handleDataTransfer({
+  Future<Result<String?>> handleDataTransfer({
     required String deviceId,
     String? dataToSend,
     bool isReceiving = false,
     required bool Function() shouldContinueTransfer,
   }) async {
     if (_isTerminated) {
-      throw ProtocolTerminatedException('Protocol is terminated');
+      return Failure(AppError(
+        userMessage: 'Data transfer failed. Please try again.',
+        originalException:
+            ProtocolTerminatedException('Protocol is terminated'),
+      ));
     }
 
     if (!connectedDevices.containsKey(deviceId)) {
-      throw Exception('Device $deviceId not connected');
+      return Failure(AppError(
+        userMessage: 'Data transfer failed. Device not connected.',
+        originalException: Exception('Device $deviceId not connected'),
+      ));
     }
 
     // Variables to track state changes and timer
     bool lastKnownState = true;
     Timer? stateChangeTimer;
-    final stateChangeTimeout = const Duration(seconds: 3);
+    final stateChangeTimeout = transferAbortTimeout;
 
     // Helper function to check if we should abort the transfer
     bool shouldAbort() {
@@ -400,15 +423,20 @@ class Protocol implements ProtocolInterface {
     try {
       // Handle sending data if we have data to send
       if (dataToSend != null && !isReceiving) {
-        // Before starting to send, check if we should proceed
-        await sendData(dataToSend, deviceId);
+        final sendResult = await sendData(dataToSend, deviceId);
+        if (sendResult case Failure(:final error)) {
+          return Failure(error);
+        }
         // Add a small delay to allow state stabilization after sending data
-        await Future.delayed(Duration(milliseconds: 500));
+        await Future.delayed(sendStabilizationDelay);
       }
 
       if (shouldAbort()) {
-        throw ProtocolTerminatedException(
-            'Transfer aborted: device status changed');
+        return Failure(AppError(
+          userMessage: 'Data transfer failed. Please try again.',
+          originalException: ProtocolTerminatedException(
+              'Transfer aborted: device status changed'),
+        ));
       }
 
       // Wait for either completion or termination with resilience to transient state changes
@@ -433,13 +461,20 @@ class Protocol implements ProtocolInterface {
 
       // Check again with our timer-based state checker
       if (shouldAbort()) {
-        throw ProtocolTerminatedException(
-            'Transfer aborted: persistent device status change');
+        return Failure(AppError(
+          userMessage: 'Data transfer failed. Please try again.',
+          originalException: ProtocolTerminatedException(
+              'Transfer aborted: persistent device status change'),
+        ));
       }
 
       if (_isTerminated) {
         Logger.d('Data reception terminated');
-        throw ProtocolTerminatedException('Data reception interrupted');
+        return Failure(AppError(
+          userMessage: 'Data transfer failed. Please try again.',
+          originalException:
+              ProtocolTerminatedException('Data reception interrupted'),
+        ));
       }
       Logger.d('Data transfer complete');
 
@@ -448,7 +483,10 @@ class Protocol implements ProtocolInterface {
         // Process received packages
         Map<int, Package> packages = _receivedPackages[deviceId] ?? {};
         if (packages.isEmpty) {
-          throw Exception('No packages received from $deviceId');
+          return Failure(AppError(
+            userMessage: 'Data transfer failed. Please try again.',
+            originalException: Exception('No packages received from $deviceId'),
+          ));
         }
 
         final List<Package> sortedPackages = packages.values.toList()
@@ -459,7 +497,11 @@ class Protocol implements ProtocolInterface {
             sortedPackages.where((p) => p.type == 'DATA').toList();
 
         if (dataPackages.isEmpty) {
-          throw Exception('No DATA packages received from $deviceId');
+          return Failure(AppError(
+            userMessage: 'Data transfer failed. Please try again.',
+            originalException:
+                Exception('No DATA packages received from $deviceId'),
+          ));
         }
 
         // Verify we have all packages in sequence
@@ -472,7 +514,11 @@ class Protocol implements ProtocolInterface {
         }
 
         if (!hasAllPackages) {
-          throw Exception('Missing packages in sequence from $deviceId');
+          return Failure(AppError(
+            userMessage: 'Data transfer failed. Please try again.',
+            originalException:
+                Exception('Missing packages in sequence from $deviceId'),
+          ));
         }
 
         // Combine data chunks
@@ -482,18 +528,22 @@ class Protocol implements ProtocolInterface {
             .toList();
 
         if (dataChunks.isEmpty) {
-          throw Exception('No valid DATA packages received from $deviceId');
+          return Failure(AppError(
+            userMessage: 'Data transfer failed. Please try again.',
+            originalException:
+                Exception('No valid DATA packages received from $deviceId'),
+          ));
         }
-        return dataChunks.join();
+        return Success(dataChunks.join());
       }
 
-      return null;
+      return const Success(null);
     } catch (e) {
-      if (_isTerminated) {
-        rethrow;
-      }
       Logger.e('Error in data transfer with device $deviceId: $e');
-      rethrow;
+      return Failure(AppError(
+        userMessage: 'Data transfer failed. Please try again.',
+        originalException: e,
+      ));
     } finally {
       // Always clean up the timer resource regardless of success or failure
       stateChangeTimer?.cancel();

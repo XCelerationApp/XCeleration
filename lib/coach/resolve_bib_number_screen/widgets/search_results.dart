@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/components/dialog_utils.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../widgets/info_chip.dart';
 import '../controller/resolve_bib_number_controller.dart';
@@ -61,7 +62,20 @@ class SearchResults extends StatelessWidget {
                   ),
                 ],
               ),
-              onTap: () => controller.assignExistingRaceRunner(raceRunner),
+              onTap: () async {
+                final confirmed = await DialogUtils.showConfirmationDialog(
+                  context,
+                  title: 'Assign Runner',
+                  content:
+                      'Are you sure this is the correct runner? \nName: ${raceRunner.runner.name} \nGrade: ${raceRunner.runner.grade ?? 'N/A'} \nTeam: ${raceRunner.team.name} \nBib Number: ${raceRunner.runner.bibNumber}',
+                );
+                if (!confirmed || !context.mounted) return;
+                final error = controller.assignExistingRaceRunner(raceRunner);
+                if (error != null && context.mounted) {
+                  DialogUtils.showErrorDialog(context,
+                      message: error.userMessage);
+                }
+              },
             ),
           ),
         );

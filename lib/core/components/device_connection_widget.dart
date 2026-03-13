@@ -1,15 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/utils/logger.dart';
+import 'package:xceleration/core/utils/connection_utils.dart';
 import 'connection_components.dart';
-import 'dart:async';
 import 'package:audioplayers/audioplayers.dart' as audio;
 import '../services/device_connection_service.dart';
+import '../services/nearby_connections.dart';
+import '../utils/data_protocol.dart';
+import '../connection/controller/wireless_connection_controller.dart';
 
-Widget deviceConnectionWidget(BuildContext context, DevicesManager devices,
-    {Function? callback, bool inSheet = true}) {
-  void handleCallback() async {
+/// A widget that renders both wireless and QR connection options.
+///
+/// Replaces the old [deviceConnectionWidget] factory function, keeping UI
+/// concerns inside a proper [StatelessWidget] class.
+class DeviceConnectionWidget extends StatelessWidget {
+  final DevicesManager devices;
+  final Function? callback;
+  final bool inSheet;
+
+  const DeviceConnectionWidget({
+    super.key,
+    required this.devices,
+    this.callback,
+    this.inSheet = true,
+  });
+
+  void _handleCallback(BuildContext context) async {
     if (callback != null) {
-      await callback();
+      await callback!();
     }
     try {
       final player = audio.AudioPlayer();
@@ -19,7 +36,6 @@ Widget deviceConnectionWidget(BuildContext context, DevicesManager devices,
     }
     if (inSheet) {
       Future.delayed(const Duration(seconds: 1), () {
-        // Check if the context is still valid before using Navigator
         if (context.mounted) {
           Navigator.pop(context);
         }
@@ -27,32 +43,48 @@ Widget deviceConnectionWidget(BuildContext context, DevicesManager devices,
     }
   }
 
-  return Column(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      WirelessConnectionWidget(
-        devices: devices,
-        callback: handleCallback,
-      ),
-
-      // Separator
-      const SizedBox(height: 16),
-      const Text(
-        'or',
-        style: TextStyle(
-          fontSize: 16,
-          color: Colors.black54,
-          height: 1.5,
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        WirelessConnectionWidget(
+          controller: () {
+            final svc = DeviceConnectionService(
+              devices,
+              'wirelessconn',
+              getDeviceNameString(devices.currentDeviceName),
+              devices.currentDeviceType,
+              NearbyConnections(),
+            );
+            return WirelessConnectionController(
+              deviceConnectionService: svc,
+              protocol: Protocol(deviceConnectionService: svc),
+              devices: devices,
+              callback: () => _handleCallback(context),
+            );
+          }(),
         ),
-      ),
 
-      const SizedBox(height: 16),
+        // Separator
+        const SizedBox(height: 16),
+        const Text(
+          'or',
+          style: TextStyle(
+            fontSize: 16,
+            color: Colors.black54,
+            height: 1.5,
+          ),
+        ),
 
-      // QR connection button
-      QRConnectionWidget(
-        devices: devices,
-        callback: handleCallback,
-      ),
-    ],
-  );
+        const SizedBox(height: 16),
+
+        // QR connection button
+        QRConnectionWidget(
+          devices: devices,
+          callback: () => _handleCallback(context),
+        ),
+      ],
+    );
+  }
 }

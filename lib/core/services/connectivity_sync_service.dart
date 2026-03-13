@@ -1,31 +1,72 @@
 import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:xceleration/core/services/sync_service.dart';
-import 'package:xceleration/core/services/auth_service.dart';
+import 'package:xceleration/core/services/i_auth_service.dart';
+import 'package:xceleration/core/services/i_sync_service.dart';
+import 'package:xceleration/core/utils/connectivity_utils.dart';
 
-/// Listens to connectivity and triggers sync on Wi‑Fi for spectator mode
+/// Listens to connectivity changes and local DB writes, triggering sync on
+/// Wi‑Fi. A 2-second debounce prevents hammering the remote after rapid writes.
 class ConnectivitySyncService {
-  ConnectivitySyncService._();
-  static final ConnectivitySyncService instance = ConnectivitySyncService._();
+  final ISyncService _sync;
+  final IAuthService _auth;
+  final Stream<void>? _writeStream;
+  final Connectivity _connectivity;
 
-  StreamSubscription<List<ConnectivityResult>>? _sub;
+  ConnectivitySyncService({
+    required ISyncService sync,
+    required IAuthService auth,
+    Stream<void>? writeStream,
+    Connectivity? connectivity,
+  })  : _sync = sync,
+        _auth = auth,
+        _writeStream = writeStream,
+        _connectivity = connectivity ?? Connectivity();
+
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  StreamSubscription<void>? _writeSub;
+  Timer? _debounceTimer;
 
   void start() {
-    _sub ??= Connectivity().onConnectivityChanged.listen((results) async {
-      // Wi‑Fi only
-      if (AuthService.instance.isSignedIn &&
-          results.contains(ConnectivityResult.wifi)) {
-        // We don't have global role state; just trigger sync when on Wi‑Fi.
-        // Spectator push is a no-op; coach pushes will succeed too.
+    // Sync whenever the device connects to Wi‑Fi.
+    _connectivitySub ??=
+        _connectivity.onConnectivityChanged.listen((results) async {
+      if (_auth.isSignedIn && results.contains(ConnectivityResult.wifi)) {
         try {
-          await SyncService.instance.syncAll();
+          await _sync.syncAll();
         } catch (_) {}
       }
     });
+
+    // Debounce-sync after any local write (handles the "already on Wi-Fi" case).
+    _writeSub ??= _writeStream?.listen((_) => _scheduleDebouncedSync());
+
+    // If the device is already on Wi‑Fi at launch, the connectivity listener
+    // won't fire — trigger an immediate sync.
+    _syncIfOnWifi();
+  }
+
+  /// Debounce: wait 2 s after the last write before syncing, so rapid batched
+  /// mutations (e.g. saving all race results) result in one round-trip.
+  void _scheduleDebouncedSync() {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(seconds: 2), _syncIfOnWifi);
+  }
+
+  Future<void> _syncIfOnWifi() async {
+    try {
+      if (_auth.isSignedIn &&
+          await ConnectivityUtils.isOnline(connectivity: _connectivity)) {
+        await _sync.syncAll();
+      }
+    } catch (_) {}
   }
 
   void stop() {
-    _sub?.cancel();
-    _sub = null;
+    _connectivitySub?.cancel();
+    _connectivitySub = null;
+    _writeSub?.cancel();
+    _writeSub = null;
+    _debounceTimer?.cancel();
+    _debounceTimer = null;
   }
 }

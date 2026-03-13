@@ -10,8 +10,9 @@ import '../PreRaceFlow/controller/pre_race_controller.dart';
 import '../PostRaceFlow/controller/post_race_controller.dart';
 import 'dart:async';
 import '../../../coach/race_screen/controller/race_screen_controller.dart';
-import '../../../core/services/event_bus.dart';
 import '../../../shared/models/database/race.dart';
+import '../../../core/components/dialog_utils.dart';
+import '../../../coach/race_screen/services/race_service.dart';
 
 /// Controller class for handling all flow-related operations
 class MasterFlowController {
@@ -19,41 +20,121 @@ class MasterFlowController {
   late PreRaceController preRaceController;
   late PostRaceController postRaceController;
 
-  MasterFlowController({required this.raceController}) {
-    preRaceController =
+  MasterFlowController({
+    required this.raceController,
+    PreRaceController? preRaceController,
+    PostRaceController? postRaceController,
+  }) {
+    this.preRaceController = preRaceController ??
         PreRaceController(masterRace: raceController.masterRace);
-    postRaceController =
+    this.postRaceController = postRaceController ??
         PostRaceController(masterRace: raceController.masterRace);
   }
 
-  /// Continue the race flow based on the current state
-  Future<void> continueRaceFlow(BuildContext context) async {
-    // Check if context is still mounted after async operation
-    if (!context.mounted) return;
-
-    switch (raceController.flowState) {
-      case Race.FLOW_PRE_RACE:
-        await _preRaceFlow(context);
-        break;
-      case Race.FLOW_POST_RACE:
-        await _postRaceFlow(context);
-        break;
-    }
-  }
-
-  /// Update the race flow state
+  /// Update the race flow state in the database, notify listeners, and fire
+  /// the raceFlowStateChanged event. This is the low-level persistence
+  /// operation — higher-level orchestration lives in the methods below.
   Future<void> updateRaceFlowState(
       BuildContext context, String newState) async {
     await raceController.updateRaceFlowState(context, newState);
+  }
 
-    // Master flow state change
+  /// Mark the current flow as completed by advancing to its completed state.
+  Future<void> markCurrentFlowCompleted(BuildContext context) async {
+    final race = await raceController.masterRace.race;
+    if (!context.mounted) return;
 
-    // Fire event (for components that use the event bus)
-    EventBus.instance.fire(EventTypes.raceFlowStateChanged, {
-      'raceId': raceController.masterRace.raceId,
-      'newState': newState,
-      'race': await raceController.masterRace.race,
-    });
+    final completedState = race.completedFlowState;
+    await raceController.updateRaceFlowState(context, completedState);
+
+    if (!context.mounted) return;
+  }
+
+  /// Advance to the next non-completed flow state and navigate to its screen.
+  Future<void> beginNextFlow(BuildContext context) async {
+    final race = await raceController.masterRace.race;
+    if (!context.mounted) return;
+
+    String nextState = race.nextFlowState;
+
+    // Skip completed states in the sequence
+    if (nextState.contains(Race.FLOW_COMPLETED_SUFFIX)) {
+      final nextIndex = Race.FLOW_SEQUENCE.indexOf(nextState) + 1;
+      if (nextIndex < Race.FLOW_SEQUENCE.length) {
+        nextState = Race.FLOW_SEQUENCE[nextIndex];
+      }
+    }
+
+    await raceController.updateRaceFlowState(context, nextState);
+
+    if (!context.mounted) return;
+
+    await handleFlowNavigation(context, nextState);
+  }
+
+  /// Full state-machine entry point called by the UI "Continue" button.
+  Future<void> continueRaceFlow(BuildContext context) async {
+    if (!context.mounted) return;
+
+    final race = await raceController.masterRace.race;
+    if (!context.mounted) return;
+
+    final currentState = race.flowState!;
+
+    // Setup state: validate completeness before advancing
+    if (currentState == Race.FLOW_SETUP) {
+      final canAdvance = await RaceService.checkSetupComplete(
+        masterRace: raceController.masterRace,
+        nameController: raceController.form.nameController,
+        locationController: raceController.form.locationController,
+        dateController: raceController.form.dateController,
+        distanceController: raceController.form.distanceController,
+      );
+
+      if (!context.mounted) return;
+
+      if (!canAdvance) {
+        final missing = _getMissingSetupItems();
+        DialogUtils.showMessageDialog(
+          context,
+          title: 'Setup Incomplete',
+          message: missing.isEmpty
+              ? 'Please complete all required fields before continuing.'
+              : 'Please fill in the following before continuing:\n\n${missing.map((item) => '• $item').join('\n')}',
+          doneText: 'Got it',
+        );
+        return;
+      }
+
+      if (!context.mounted) return;
+      await raceController.updateRaceFlowState(
+          context, Race.FLOW_SETUP_COMPLETED);
+      return;
+    }
+
+    // Completed states: advance to the next active state
+    if (currentState.contains(Race.FLOW_COMPLETED_SUFFIX)) {
+      String nextState;
+
+      if (currentState == Race.FLOW_SETUP_COMPLETED) {
+        nextState = Race.FLOW_PRE_RACE;
+      } else if (currentState == Race.FLOW_PRE_RACE_COMPLETED) {
+        nextState = Race.FLOW_POST_RACE;
+      } else {
+        return; // Unknown completed state
+      }
+
+      await raceController.updateRaceFlowState(context, nextState);
+
+      if (!context.mounted) return;
+    }
+
+    if (!context.mounted) return;
+
+    // Navigate to the current flow's screen
+    final currentRace = await raceController.masterRace.race;
+    if (!context.mounted) return;
+    await handleFlowNavigation(context, currentRace.flowState!);
   }
 
   /// Navigate to the appropriate screen based on flow state
@@ -132,6 +213,27 @@ class MasterFlowController {
     Logger.d('MasterFlowController: Navigating to results tab');
     raceController.tabController.animateTo(1);
     return true;
+  }
+
+  /// Returns human-readable missing setup items for the Continue dialog.
+  List<String> _getMissingSetupItems() {
+    final missing = <String>[];
+    if (raceController.form.nameController.text.trim().isEmpty) {
+      missing.add('Race name');
+    }
+    if (raceController.form.locationController.text.trim().isEmpty) {
+      missing.add('Location');
+    }
+    if (raceController.form.dateController.text.trim().isEmpty) {
+      missing.add('Race date');
+    }
+    if (raceController.form.distanceController.text.trim().isEmpty) {
+      missing.add('Distance');
+    }
+    if (raceController.teamsOrNull?.isEmpty ?? true) {
+      missing.add('Teams and runners');
+    }
+    return missing;
   }
 }
 

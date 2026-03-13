@@ -1,11 +1,13 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:xceleration/core/utils/database_helper.dart';
+import 'package:xceleration/core/repositories/i_race_repository.dart';
+import 'package:xceleration/core/repositories/i_runner_repository.dart';
+import 'package:xceleration/core/repositories/i_team_repository.dart';
+import 'package:xceleration/core/services/service_locator.dart';
+import 'package:xceleration/core/services/sync_service.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/shared/models/database/race_runner.dart';
 import 'package:xceleration/shared/models/database/team_participant.dart';
-import '../../../core/components/dropup_button.dart';
-import 'package:flutter/services.dart';
-import 'package:xceleration/core/theme/typography.dart';
 import '../../../core/components/dialog_utils.dart';
 import '../../../core/components/runner_input_form.dart';
 import '../../../core/utils/file_processing.dart';
@@ -19,6 +21,7 @@ import '../widgets/edit_team_sheet.dart';
 import '../../../shared/models/database/race_participant.dart';
 import '../widgets/add_runners_to_team_sheet.dart';
 import '../widgets/imported_runners_selection_sheet.dart';
+import '../widgets/spreadsheet_load_sheet.dart';
 
 class RunnersManagementController with ChangeNotifier {
   final VoidCallback? onBack;
@@ -29,11 +32,15 @@ class RunnersManagementController with ChangeNotifier {
   // Use MasterRace for all data management
   final MasterRace masterRace;
 
-  // Database Helper
-  late final DatabaseHelper db;
+  // Repository interfaces
+  late final IRunnerRepository _runners;
+  late final ITeamRepository _teams;
+  late final IRaceRepository _races;
 
   // Store the listener function to properly remove it later
   late final VoidCallback _masterRaceListener;
+
+  StreamSubscription? _syncSubscription;
 
   // UI state
   bool isLoading = true;
@@ -49,8 +56,11 @@ class RunnersManagementController with ChangeNotifier {
     this.onBack,
     this.onContentChanged,
     this.isViewMode = false,
+    Stream<SyncEvent>? syncStream,
   }) {
-    db = masterRace.db;
+    _runners = ServiceLocator.get<IRunnerRepository>();
+    _teams = ServiceLocator.get<ITeamRepository>();
+    _races = ServiceLocator.get<IRaceRepository>();
     // Create and store the listener function
     _masterRaceListener = () {
       // The listener's only job is to tell the UI to rebuild.
@@ -61,6 +71,12 @@ class RunnersManagementController with ChangeNotifier {
 
     // Listen to changes from MasterRace
     masterRace.addListener(_masterRaceListener);
+
+    // Refresh when a sync pull writes runner, team, or participant data
+    _syncSubscription = syncStream
+        ?.where((event) => event.changedTables
+            .any((t) => t == 'runners' || t == 'teams' || t == 'race_participants'))
+        .listen((_) => forceRefresh());
   }
 
   Future<void> init() async {
@@ -176,7 +192,7 @@ class RunnersManagementController with ChangeNotifier {
           initialRaceRunner: raceRunner,
           // For create, must pass runnerTeam; for edit, selection is allowed within options
           runnerTeam: isEditing ? null : team,
-          getRunnerByBib: masterRace.db.getRunnerByBib,
+          getRunnerByBib: _runners.getRunnerByBib,
           onSubmit: (RaceRunner raceRunner) async {
             await handleRunnerSubmission(context, raceRunner);
           },
@@ -196,7 +212,7 @@ class RunnersManagementController with ChangeNotifier {
     try {
       final int targetTeamId = raceRunner.team.teamId!;
       final existingRunner =
-          await masterRace.db.getRunnerByBib(raceRunner.runner.bibNumber!);
+          await _runners.getRunnerByBib(raceRunner.runner.bibNumber!);
       if (!context.mounted) {
         return;
       }
@@ -239,7 +255,7 @@ class RunnersManagementController with ChangeNotifier {
 
     // Remove current runner's race mapping if it exists
     if (oldRunnerId != null) {
-      final currentRp = await masterRace.db.getRaceParticipant(
+      final currentRp = await _races.getRaceParticipant(
         RaceParticipant(
           raceId: masterRace.raceId,
           runnerId: oldRunnerId,
@@ -257,14 +273,14 @@ class RunnersManagementController with ChangeNotifier {
       bibNumber: raceRunner.runner.bibNumber,
       grade: raceRunner.runner.grade,
     );
-    await masterRace.db.updateRunner(updatedExisting);
+    await _runners.updateRunner(updatedExisting);
 
     // Update team mappings for the existing runner
     await _updateRunnerTeamMappings(existingRunner.runnerId!, targetTeamId);
 
     // If there was an old distinct runner, delete it globally so only one remains
     if (oldRunnerId != null && oldRunnerId != existingRunner.runnerId) {
-      await masterRace.db.deleteRunnerEverywhere(oldRunnerId);
+      await _runners.deleteRunnerEverywhere(oldRunnerId);
     }
 
     // Force refresh and close
@@ -276,10 +292,10 @@ class RunnersManagementController with ChangeNotifier {
 
   Future<void> _createNewRunner(RaceRunner raceRunner, int targetTeamId) async {
     // Create new runner
-    final newRunnerId = await masterRace.db.createRunner(raceRunner.runner);
+    final newRunnerId = await _runners.createRunner(raceRunner.runner);
 
     // Add to team roster
-    await masterRace.db.addRunnerToTeam(targetTeamId, newRunnerId);
+    await _runners.addRunnerToTeam(targetTeamId, newRunnerId);
 
     // Add to race
     await masterRace.addRaceParticipant(RaceParticipant(
@@ -292,7 +308,7 @@ class RunnersManagementController with ChangeNotifier {
   Future<void> _updateExistingRunner(
       RaceRunner raceRunner, int targetTeamId) async {
     // Update runner details and team mappings
-    await masterRace.db.updateRunnerWithTeams(
+    await _races.updateRunnerWithTeams(
       runner: raceRunner.runner,
       newTeamId: targetTeamId,
       raceIdForTeamUpdate: masterRace.raceId,
@@ -301,10 +317,10 @@ class RunnersManagementController with ChangeNotifier {
     // Ensure no duplicates by bib remain after an update
     final currentId = raceRunner.runner.runnerId!;
     final bib = raceRunner.runner.bibNumber!;
-    final allWithBib = await masterRace.db.getRunnersByBibAll(bib);
+    final allWithBib = await _runners.getRunnersByBibAll(bib);
     for (final r in allWithBib) {
       if (r.runnerId != null && r.runnerId != currentId) {
-        await masterRace.db.deleteRunnerEverywhere(r.runnerId!);
+        await _runners.deleteRunnerEverywhere(r.runnerId!);
       }
     }
 
@@ -318,10 +334,10 @@ class RunnersManagementController with ChangeNotifier {
 
   Future<void> _updateRunnerTeamMappings(int runnerId, int newTeamId) async {
     // Update global team roster
-    await masterRace.db.setRunnerTeam(runnerId, newTeamId);
+    await _runners.setRunnerTeam(runnerId, newTeamId);
 
     // Check if runner is already in this race
-    final existingRp = await masterRace.db.getRaceParticipant(
+    final existingRp = await _races.getRaceParticipant(
       RaceParticipant(
         raceId: masterRace.raceId,
         runnerId: runnerId,
@@ -337,7 +353,7 @@ class RunnersManagementController with ChangeNotifier {
       ));
     } else if (existingRp.teamId != newTeamId) {
       // Update team in race
-      await masterRace.db.updateRaceParticipantTeam(
+      await _races.updateRaceParticipantTeam(
         raceId: masterRace.raceId,
         runnerId: runnerId,
         newTeamId: newTeamId,
@@ -366,7 +382,7 @@ class RunnersManagementController with ChangeNotifier {
       }
 
       // Persist team and capture newly assigned id
-      final newTeamId = await db.createTeam(team);
+      final newTeamId = await _teams.createTeam(team);
 
       await masterRace.addTeamParticipant(TeamParticipant(
         raceId: masterRace.raceId,
@@ -450,7 +466,7 @@ class RunnersManagementController with ChangeNotifier {
         team: team,
         onSave: (updatedTeam) async {
           try {
-            await db.updateTeam(updatedTeam);
+            await _teams.updateTeam(updatedTeam);
             // If color/name changed, ensure race team participation reflects color override when shown
             onContentChanged?.call();
             await loadData();
@@ -485,7 +501,7 @@ class RunnersManagementController with ChangeNotifier {
       // Build Team -> Runners map for the sheet
       final Map<Team, List<Runner>> available = {};
       for (final team in otherTeams) {
-        final runners = await db.getTeamRunners(team.teamId!);
+        final runners = await _runners.getTeamRunners(team.teamId!);
         available[team] = runners;
       }
       if (!context.mounted) return;
@@ -514,7 +530,7 @@ class RunnersManagementController with ChangeNotifier {
           // Persist global roster mappings first
           for (final runner in runners) {
             if (runner.runnerId == null) continue;
-            await db.addRunnerToTeam(team.teamId!, runner.runnerId!);
+            await _runners.addRunnerToTeam(team.teamId!, runner.runnerId!);
           }
 
           // Then add all race participants in a single bulk update
@@ -656,17 +672,17 @@ class RunnersManagementController with ChangeNotifier {
           continue;
         }
 
-        final existingRunner = await db.getRunnerByBib(bib);
+        final existingRunner = await _runners.getRunnerByBib(bib);
         if (existingRunner != null) {
           final bool sameDetails = (existingRunner.name == name) &&
               ((existingRunner.grade ?? 0) == grade);
 
           // Ensure global roster mapping so team->runners queries work
-          await db.addRunnerToTeam(team.teamId!, existingRunner.runnerId!);
+          await _runners.addRunnerToTeam(team.teamId!, existingRunner.runnerId!);
 
           // If already in this race, update team if needed; otherwise add to race
           final existingRaceParticipant =
-              await db.getRaceParticipantByBib(masterRace.raceId, bib);
+              await _races.getRaceParticipantByBib(masterRace.raceId, bib);
           if (existingRaceParticipant == null) {
             await masterRace.addRaceParticipant(RaceParticipant(
               raceId: masterRace.raceId,
@@ -674,7 +690,7 @@ class RunnersManagementController with ChangeNotifier {
               teamId: team.teamId!,
             ));
           } else if (existingRaceParticipant.teamId != team.teamId) {
-            await db.updateRaceParticipantTeam(
+            await _races.updateRaceParticipantTeam(
               raceId: masterRace.raceId,
               runnerId: existingRunner.runnerId!,
               newTeamId: team.teamId!,
@@ -698,8 +714,8 @@ class RunnersManagementController with ChangeNotifier {
 
         // Create brand-new runner
         final newRunner = Runner(name: name, bibNumber: bib, grade: grade);
-        final newRunnerId = await db.createRunner(newRunner);
-        await db.addRunnerToTeam(team.teamId!, newRunnerId);
+        final newRunnerId = await _runners.createRunner(newRunner);
+        await _runners.addRunnerToTeam(team.teamId!, newRunnerId);
         await masterRace.addRaceParticipant(RaceParticipant(
           raceId: masterRace.raceId,
           runnerId: newRunnerId,
@@ -726,7 +742,7 @@ class RunnersManagementController with ChangeNotifier {
 
           if (overwrite) {
             // Update existing runner in place (keeps FKs intact)
-            await db.updateRunner(Runner(
+            await _runners.updateRunner(Runner(
               runnerId: existing.runnerId!,
               name: replacement.name,
               bibNumber: replacement.bibNumber,
@@ -734,8 +750,8 @@ class RunnersManagementController with ChangeNotifier {
             ));
 
             // Ensure team roster and race participation are correct
-            await db.addRunnerToTeam(team.teamId!, existing.runnerId!);
-            final existingRp = await db.getRaceParticipant(
+            await _runners.addRunnerToTeam(team.teamId!, existing.runnerId!);
+            final existingRp = await _races.getRaceParticipant(
               RaceParticipant(
                   raceId: masterRace.raceId, runnerId: existing.runnerId!),
             );
@@ -746,7 +762,7 @@ class RunnersManagementController with ChangeNotifier {
                 teamId: team.teamId!,
               ));
             } else if (existingRp.teamId != team.teamId) {
-              await db.updateRaceParticipantTeam(
+              await _races.updateRaceParticipantTeam(
                 raceId: masterRace.raceId,
                 runnerId: existing.runnerId!,
                 newTeamId: team.teamId!,
@@ -759,8 +775,8 @@ class RunnersManagementController with ChangeNotifier {
             }
           } else {
             // Keep existing details but ensure proper mapping/team in this race
-            await db.addRunnerToTeam(team.teamId!, existing.runnerId!);
-            final rp = await db.getRaceParticipantByBib(
+            await _runners.addRunnerToTeam(team.teamId!, existing.runnerId!);
+            final rp = await _races.getRaceParticipantByBib(
                 masterRace.raceId, existing.bibNumber!);
             if (rp == null) {
               await masterRace.addRaceParticipant(RaceParticipant(
@@ -769,7 +785,7 @@ class RunnersManagementController with ChangeNotifier {
                 teamId: team.teamId!,
               ));
             } else if (rp.teamId != team.teamId) {
-              await db.updateRaceParticipantTeam(
+              await _races.updateRaceParticipantTeam(
                 raceId: masterRace.raceId,
                 runnerId: existing.runnerId!,
                 newTeamId: team.teamId!,
@@ -823,161 +839,16 @@ class RunnersManagementController with ChangeNotifier {
       context: context,
       title: 'Import Runners',
       titleSize: 24,
-      body: StatefulBuilder(
-        builder: (BuildContext context, StateSetter setState) {
-          return Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // Icon
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF2F2F2),
-                    borderRadius: BorderRadius.circular(40),
-                  ),
-                  child: const Icon(
-                    Icons.insert_drive_file_outlined,
-                    color: Color(0xFFE2572B),
-                    size: 40,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  'Import Runners from Spreadsheet',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Import your runners from a CSV or Excel spreadsheet. Recommended header: "Athlete #, First, Last, Year, M/F".',
-                  style: AppTypography.bodyMedium,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 20),
-                TextButton(
-                  onPressed: () => showSampleSpreadsheet(context),
-                  style: TextButton.styleFrom(
-                    foregroundColor: const Color(0xFFE2572B),
-                  ),
-                  child: const Text(
-                    'View Sample Spreadsheet',
-                    style: AppTypography.bodyMedium,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: DropupButton<Map<String, dynamic>>(
-                    onSelected: (result) {
-                      if (result != null) {
-                        Navigator.pop(context, result);
-                      }
-                    },
-                    verticalOffset: 0,
-                    elevation: 8,
-                    menuShape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    menuColor: Colors.white,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFE2572B),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    items: [
-                      PopupMenuItem<Map<String, dynamic>>(
-                        value: {'useGoogleDrive': true},
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('Select Google Sheet',
-                                style: TextStyle(fontWeight: FontWeight.w500)),
-                            Icon(Icons.arrow_forward_ios,
-                                color: Color(0xFFE2572B), size: 20),
-                          ],
-                        ),
-                      ),
-                      PopupMenuItem<Map<String, dynamic>>(
-                        value: {'useGoogleDrive': false},
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('Select Local File',
-                                style: TextStyle(fontWeight: FontWeight.w500)),
-                            Icon(Icons.arrow_forward_ios,
-                                color: Color(0xFFE2572B), size: 20),
-                          ],
-                        ),
-                      ),
-                    ],
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.file_upload, size: 20, color: Colors.white),
-                        SizedBox(width: 8),
-                        Text('Import Spreadsheet',
-                            style: AppTypography.bodyMedium),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
+      body: const SpreadsheetLoadSheet(),
     );
     return result['useGoogleDrive'] ?? false;
-  }
-
-  Future<void> showSampleSpreadsheet(BuildContext context) async {
-    final file = await rootBundle
-        .loadString('assets/sample_sheets/sample_spreadsheet.csv');
-
-    if (!context.mounted) return;
-
-    final lines = file.split('\n');
-    final table = Table(
-      border: TableBorder.all(color: Colors.grey),
-      children: lines.map((line) {
-        final cells = line.split(',');
-        return TableRow(
-          children: cells.map((cell) {
-            return TableCell(
-              verticalAlignment: TableCellVerticalAlignment.middle,
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Text(cell),
-              ),
-            );
-          }).toList(),
-        );
-      }).toList(),
-    );
-
-    await sheet(
-      context: context,
-      title: 'Sample Spreadsheet',
-      body: SingleChildScrollView(child: table),
-    );
   }
 
   @override
   void dispose() {
     searchController.dispose();
     masterRace.removeListener(_masterRaceListener);
+    _syncSubscription?.cancel();
     super.dispose();
   }
 }

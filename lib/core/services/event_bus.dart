@@ -1,5 +1,18 @@
 import 'dart:async';
 
+/// Abstract interface for the event bus, allowing injection and testing.
+abstract interface class IEventBus {
+  /// Publish an event to the event bus
+  void publish(Event event);
+
+  /// Publish an event by type and optional data
+  void fire(String eventType, [dynamic data]);
+
+  /// Subscribe to a specific event type
+  StreamSubscription<Event> on<T>(
+      String eventType, void Function(Event event) onData);
+}
+
 /// A typed event that can be published on the [EventBus]
 class Event {
   /// The unique type name for this event
@@ -19,7 +32,7 @@ class Event {
 ///
 /// Allows components to communicate without having direct dependencies on each other.
 /// Components can publish events and subscribe to specific event types.
-class EventBus {
+class EventBus implements IEventBus {
   /// Singleton instance
   static final EventBus _instance = EventBus._internal();
 
@@ -37,11 +50,13 @@ class EventBus {
   Stream<Event> get stream => _eventController.stream;
 
   /// Publish an event to the event bus
+  @override
   void publish(Event event) {
     _eventController.add(event);
   }
 
   /// Publish an event by type and optional data
+  @override
   void fire(String eventType, [dynamic data]) {
     publish(Event(eventType, data));
   }
@@ -52,6 +67,7 @@ class EventBus {
   }
 
   /// Subscribe to a specific event type
+  @override
   StreamSubscription<Event> on<T>(
       String eventType, void Function(Event event) onData) {
     return stream.where((event) => event.type == eventType).listen(onData);

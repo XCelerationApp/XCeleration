@@ -1,19 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:xceleration/core/services/connectivity_sync_service.dart';
-import 'package:xceleration/shared/role_bar/role_bar.dart';
+import 'package:xceleration/core/components/app_header.dart';
 import 'package:xceleration/shared/role_bar/models/role_enums.dart'
     as role_enums;
+import 'package:xceleration/shared/role_bar/widgets/role_selector_sheet.dart';
+import 'package:xceleration/shared/settings_screen.dart';
 import 'package:xceleration/core/services/tutorial_manager.dart';
 import 'package:xceleration/spectator/receive_race/screen/receive_race_screen.dart';
 import 'package:xceleration/core/utils/sheet_utils.dart';
 import 'package:xceleration/spectator/services/spectator_storage_service.dart';
 import 'package:xceleration/core/utils/race_share_decoder.dart';
+import 'package:xceleration/core/result.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/core/components/dialog_utils.dart';
 import 'package:xceleration/spectator/races_screen/widgets/spectator_race_card.dart';
 import 'package:xceleration/core/services/device_connection_service.dart';
+import 'package:xceleration/core/services/nearby_connections.dart';
 import 'package:xceleration/core/utils/enums.dart';
+import 'package:xceleration/core/utils/connection_utils.dart';
+import 'package:xceleration/core/utils/data_protocol.dart';
 import 'package:xceleration/core/components/connection_components.dart';
+import 'package:xceleration/core/connection/controller/wireless_connection_controller.dart';
 import 'package:xceleration/shared/services/race_results_service.dart';
 import 'package:xceleration/coach/race_results/widgets/team_results_widget.dart';
 import 'package:xceleration/coach/race_results/widgets/individual_results_widget.dart';
@@ -28,19 +36,22 @@ class SpectatorRacesScreen extends StatefulWidget {
 }
 
 class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
+  final TutorialManager _tutorialManager = TutorialManager();
   List<Map<String, dynamic>> _savedRaces = [];
   bool _isLoading = true;
+  late final ConnectivitySyncService _connectivitySync;
 
   @override
   void initState() {
     super.initState();
-    ConnectivitySyncService.instance.start();
+    _connectivitySync = context.read<ConnectivitySyncService>();
+    _connectivitySync.start();
     _loadSavedRaces();
   }
 
   @override
   void dispose() {
-    ConnectivitySyncService.instance.stop();
+    _connectivitySync.stop();
     super.dispose();
   }
 
@@ -64,28 +75,31 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
   }
 
   Future<void> _viewRace(Map<String, dynamic> race) async {
-    try {
-      final encodedPayload = race['encoded_payload'] as String;
-      final decoded = RaceShareDecoder.decodeWithRaw(encodedPayload);
-      final raceName = race['race_name'] as String? ?? 'Race Results';
+    final encodedPayload = race['encoded_payload'] as String;
+    final result = RaceShareDecoder.decodeWithRaw(encodedPayload);
 
-      if (!mounted) return;
+    switch (result) {
+      case Failure(:final error):
+        Logger.e('[SpectatorRacesScreen._viewRace] ${error.originalException}');
+        if (mounted) {
+          DialogUtils.showErrorDialog(context, message: error.userMessage);
+        }
+        return;
+      case Success(:final value):
+        final raceName = race['race_name'] as String? ?? 'Race Results';
 
-      // Show in a sheet instead of navigating
-      await sheet(
-        context: context,
-        title: raceName,
-        body: _RaceResultsSheet(
-          data: decoded.results,
-          encodedPayload: decoded.rawEncoded,
-          onShare: () => _shareRace(race),
-        ),
-      );
-    } catch (e) {
-      Logger.e('Failed to view race: $e');
-      if (mounted) {
-        DialogUtils.showErrorDialog(context, message: 'Failed to load race');
-      }
+        if (!mounted) return;
+
+        // Show in a sheet instead of navigating
+        await sheet(
+          context: context,
+          title: raceName,
+          body: _RaceResultsSheet(
+            data: value.results,
+            encodedPayload: value.rawEncoded,
+            onShare: () => _shareRace(race),
+          ),
+        );
     }
   }
 
@@ -107,13 +121,25 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
         context: context,
         title: 'Share "$raceName"',
         body: WirelessConnectionWidget(
-          devices: devices,
-          callback: () {
-            // Share complete callback
-            if (context.mounted) {
-              Navigator.of(context).pop();
-            }
-          },
+          controller: () {
+            final svc = DeviceConnectionService(
+              devices,
+              'wirelessconn',
+              getDeviceNameString(devices.currentDeviceName),
+              devices.currentDeviceType,
+              NearbyConnections(),
+            );
+            return WirelessConnectionController(
+              deviceConnectionService: svc,
+              protocol: Protocol(deviceConnectionService: svc),
+              devices: devices,
+              callback: () {
+                if (context.mounted) {
+                  Navigator.of(context).pop();
+                }
+              },
+            );
+          }(),
         ),
       );
     } catch (e) {
@@ -160,15 +186,25 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.fromLTRB(24.0, 0, 24.0, 24.0),
-        child: Column(
-          children: [
-            RoleBar(
-              currentRole: role_enums.Role.spectator,
-              tutorialManager: TutorialManager(),
+      body: Column(
+        children: [
+          AppHeader(
+            title: 'My Races',
+            currentRole: role_enums.Role.spectator,
+            tutorialManager: _tutorialManager,
+            onRoleTap: () => RoleSelectorSheet.showRoleSelection(
+                context, role_enums.Role.spectator),
+            onSettingsTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => SettingsScreen(
+                  currentRole: role_enums.Role.spectator.toValueString(),
+                ),
+              ),
             ),
-            Expanded(
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24.0, 0, 24.0, 24.0),
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _savedRaces.isEmpty
@@ -228,8 +264,8 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
                           ),
                         ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'receive_race',

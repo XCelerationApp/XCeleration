@@ -3,7 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/components/dialog_utils.dart';
 import 'package:xceleration/core/services/auth_service.dart';
-import 'package:xceleration/core/services/sync_service.dart';
+import 'package:provider/provider.dart';
+import 'package:xceleration/core/services/i_sync_service.dart';
 import 'package:xceleration/core/services/profile_service.dart';
 import 'package:xceleration/core/components/page_route_animations.dart';
 import 'package:xceleration/coach/races_screen/screen/races_screen.dart';
@@ -11,10 +12,20 @@ import 'package:xceleration/core/theme/app_colors.dart';
 import 'package:xceleration/core/theme/typography.dart';
 import 'package:xceleration/core/components/animated_primary_button.dart';
 import 'package:xceleration/core/components/glass_card.dart';
+import 'package:xceleration/core/services/connectivity_service.dart';
 import 'package:gotrue/gotrue.dart' as gotrue;
 
 class SignInScreen extends StatefulWidget {
-  const SignInScreen({super.key});
+  const SignInScreen({
+    super.key,
+    IAuthService? authService,
+    ConnectivityService? connectivityService,
+  })  : _authService = authService,
+        _connectivityService = connectivityService;
+
+  final IAuthService? _authService;
+  final ConnectivityService? _connectivityService;
+
   @override
   State<SignInScreen> createState() => _SignInScreenState();
 }
@@ -30,6 +41,10 @@ class _SignInScreenState extends State<SignInScreen>
   late final AnimationController _floatController;
   final FocusNode _emailFocusNode = FocusNode();
   final FocusNode _passwordFocusNode = FocusNode();
+
+  IAuthService get _authService => widget._authService ?? AuthService.instance;
+  ConnectivityService get _connectivity =>
+      widget._connectivityService ?? const ConnectivityService();
 
   @override
   void initState() {
@@ -51,10 +66,20 @@ class _SignInScreenState extends State<SignInScreen>
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    final syncService = context.read<ISyncService>();
+    if (!await _connectivity.isOnline()) {
+      if (!mounted) return;
+      DialogUtils.showMessageDialog(
+        context,
+        title: 'No internet connection',
+        message: 'Please check your connection and try again.',
+      );
+      return;
+    }
     setState(() => _busy = true);
     try {
       if (_isLogin) {
-        final resp = await AuthService.instance.signInWithEmailPassword(
+        final resp = await _authService.signInWithEmailPassword(
           _emailController.text.trim(),
           _passwordController.text,
         );
@@ -62,7 +87,7 @@ class _SignInScreenState extends State<SignInScreen>
           // Run a sync after sign-in and navigate to coach screen
           try {
             await ProfileService.instance.ensureProfileUpsert();
-            await SyncService.instance.syncAll();
+            await syncService.syncAll();
           } catch (_) {}
           if (!mounted) return;
           Navigator.of(context).pushAndRemoveUntil(
@@ -71,13 +96,13 @@ class _SignInScreenState extends State<SignInScreen>
           );
         }
       } else {
-        final resp = await AuthService.instance.signUpWithEmailPassword(
+        final resp = await _authService.signUpWithEmailPassword(
           _emailController.text.trim(),
           _passwordController.text,
         );
         // If confirmation is disabled, session should be returned. If not, fallback: sign in immediately.
         if (resp.session == null) {
-          await AuthService.instance.signInWithEmailPassword(
+          await _authService.signInWithEmailPassword(
             _emailController.text.trim(),
             _passwordController.text,
           );
@@ -85,7 +110,7 @@ class _SignInScreenState extends State<SignInScreen>
         if (mounted) {
           try {
             await ProfileService.instance.ensureProfileUpsert();
-            await SyncService.instance.syncAll();
+            await syncService.syncAll();
           } catch (_) {}
           if (!mounted) return;
           Navigator.of(context).pushAndRemoveUntil(
@@ -145,7 +170,13 @@ class _SignInScreenState extends State<SignInScreen>
       }
     }
     if (error is gotrue.AuthException) {
-      return error.message;
+      final msg = error.message;
+      if (msg.contains('SocketException') ||
+          msg.contains('ClientException') ||
+          msg.contains('Failed host lookup')) {
+        return 'No internet connection. Please check your connection and try again.';
+      }
+      return msg;
     }
 
     // Unknown
@@ -302,9 +333,8 @@ class _SignInScreenState extends State<SignInScreen>
                                                 'Enter email to reset password');
                                         return;
                                       }
-                                      await AuthService.instance
-                                          .sendPasswordResetEmail(
-                                              _emailController.text.trim());
+                                      await _authService.sendPasswordResetEmail(
+                                          _emailController.text.trim());
                                       if (context.mounted) {
                                         DialogUtils.showMessageDialog(context,
                                             title: 'Info',

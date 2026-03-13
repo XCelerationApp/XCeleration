@@ -5,27 +5,28 @@ import '../controller/races_controller.dart';
 
 class RaceDateField extends StatelessWidget {
   final RacesController controller;
-  final StateSetter setSheetState;
 
-  const RaceDateField(
-      {required this.controller, required this.setSheetState, super.key});
+  const RaceDateField({required this.controller, super.key});
 
   @override
   Widget build(BuildContext context) {
-    return buildInputRow(
-      label: 'Date',
-      inputWidget: buildTextField(
-        context: context,
-        controller: controller.dateController,
-        hint: 'YYYY-MM-DD',
-        error: controller.dateError,
-        suffixIcon: IconButton(
-          icon: const Icon(Icons.calendar_today, color: AppColors.primaryColor),
-          onPressed: () => controller.selectDate(context),
+    return ListenableBuilder(
+      listenable: controller,
+      builder: (context, _) => buildInputRow(
+        label: 'Date',
+        inputWidget: buildTextField(
+          context: context,
+          controller: controller.dateController,
+          hint: 'YYYY-MM-DD',
+          error: controller.dateError,
+          suffixIcon: IconButton(
+            icon:
+                const Icon(Icons.calendar_today, color: AppColors.primaryColor),
+            onPressed: () => controller.selectDate(context),
+          ),
+          onChanged: (_) =>
+              controller.validateDate(controller.dateController.text),
         ),
-        setSheetState: setSheetState,
-        onChanged: (_) => controller.validateDate(
-            controller.dateController.text, setSheetState),
       ),
     );
   }

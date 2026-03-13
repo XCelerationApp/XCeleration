@@ -49,8 +49,19 @@ class RaceControlsWidget extends StatelessWidget {
           ? null
           : (controller.raceStopped
               ? controller.startRace
-              : controller.stopRace),
+              : () => _handleStopRace(context)),
     );
+  }
+
+  Future<void> _handleStopRace(BuildContext context) async {
+    final confirmed = await DialogUtils.showConfirmationDialog(
+      context,
+      title: 'Stop the Race',
+      content: 'Are you sure you want to stop the race?',
+    );
+    if (confirmed && context.mounted) {
+      controller.stopRace();
+    }
   }
 
   Widget _buildShareButton(BuildContext context) {
@@ -91,9 +102,8 @@ class RaceControlsWidget extends StatelessWidget {
                 sheet(
                   context: context,
                   title: 'Share Times',
-                  body: deviceConnectionWidget(
-                    context,
-                    DeviceConnectionService.createDevices(
+                  body: DeviceConnectionWidget(
+                    devices: DeviceConnectionService.createDevices(
                       DeviceName.raceTimer,
                       DeviceType.advertiserDevice,
                       data: encodedData,
@@ -128,8 +138,8 @@ class RaceControlsWidget extends StatelessWidget {
     // Determine button function
     final VoidCallback? buttonFunction = isEnabled
         ? (controller.raceStopped
-            ? controller.clearRaceTimes
-            : controller.handleLogButtonPress)
+            ? () => _handleClearRaceTimes(context)
+            : () => _handleLogButtonPress(context))
         : null;
 
     return CircularButton(
@@ -139,5 +149,23 @@ class RaceControlsWidget extends StatelessWidget {
       fontWeight: FontWeight.w600,
       onPressed: buttonFunction,
     );
+  }
+
+  Future<void> _handleClearRaceTimes(BuildContext context) async {
+    final confirmed = await DialogUtils.showConfirmationDialog(
+      context,
+      title: 'Clear Race Times',
+      content: 'Are you sure you want to clear all race times?',
+    );
+    if (confirmed && context.mounted) {
+      await controller.doClearRaceTimes();
+    }
+  }
+
+  Future<void> _handleLogButtonPress(BuildContext context) async {
+    final error = await controller.handleLogButtonPress();
+    if (error != null && context.mounted) {
+      DialogUtils.showErrorDialog(context, message: error.userMessage);
+    }
   }
 }

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import '../../../core/components/dialog_utils.dart';
 import '../../../core/utils/enums.dart';
 import '../controller/merge_conflicts_controller.dart';
-import 'package:xceleration/coach/merge_conflicts/utils/timing_data_converter.dart';
+import 'package:xceleration/coach/merge_conflicts/models/ui_chunk.dart';
+import 'package:xceleration/coach/merge_conflicts/models/ui_record.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/color_utils.dart';
 import 'runner_info_widgets.dart';
@@ -100,8 +102,19 @@ class RunnerTimeRecord extends StatelessWidget {
                           child: (chunk.conflict.type == ConflictType.extraTime
                               ? ExtraTimeCell(
                                   time: time,
-                                  onRemoveExtraTime: () =>
-                                      chunk.onRemoveExtraTime(chunkIndex),
+                                  onRemoveExtraTime: () async {
+                                    final confirmed = await DialogUtils
+                                        .showConfirmationDialog(
+                                      context,
+                                      title: 'Confirm Deletion',
+                                      content:
+                                          'Are you sure you want to delete the time $time?',
+                                    );
+                                    if (confirmed) {
+                                      controller.removeExtraTimeRecord(
+                                          chunk.chunkId, chunkIndex);
+                                    }
+                                  },
                                 )
                               : Builder(
                                   builder: (context) {
@@ -115,16 +128,21 @@ class RunnerTimeRecord extends StatelessWidget {
                                       controller: record.timeController,
                                       time: time,
                                       onSubmitted: (newValue) =>
-                                          chunk.onMissingTimeSubmitted(
-                                              context, chunkIndex, newValue),
+                                          controller.submitMissingTimeRecord(
+                                              chunk.chunkId,
+                                              chunkIndex,
+                                              newValue),
                                       onChanged: (newValue) =>
-                                          chunk.onMissingTimeChanged(
-                                              context, chunkIndex, newValue),
+                                          controller.updateMissingTimeRecord(
+                                              chunk.chunkId,
+                                              chunkIndex,
+                                              newValue),
                                       onAddTime: (chunk.conflict.type ==
                                                   ConflictType.missingTime &&
                                               chunk.shouldShowPlusButton(
                                                   chunkIndex))
-                                          ? () => chunk.insertTimeAt(chunkIndex)
+                                          ? () => controller.insertTbdAt(
+                                              chunk.chunkId, chunkIndex)
                                           : null,
                                       validationError:
                                           chunk.validateTimeOrder(chunkIndex),

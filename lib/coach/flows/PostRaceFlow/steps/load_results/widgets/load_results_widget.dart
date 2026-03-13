@@ -36,9 +36,8 @@ class LoadResultsWidget extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               // Display device connection widget
-              deviceConnectionWidget(
-                context,
-                controller.devices,
+              DeviceConnectionWidget(
+                devices: controller.devices,
                 callback: () => controller.processReceivedData(context),
                 inSheet: closeWhenDone,
               ),

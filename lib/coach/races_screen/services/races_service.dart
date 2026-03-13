@@ -1,43 +1,77 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/repositories/i_race_repository.dart';
 import 'package:xceleration/core/services/auth_service.dart';
-import 'package:xceleration/shared/models/database/master_race.dart';
+import 'package:xceleration/core/services/service_locator.dart';
 import '../../../shared/models/database/race.dart';
-import '../../../core/utils/database_helper.dart';
 
-class RacesService {
+abstract interface class IRacesService {
+  Future<List<Race>> loadRaces();
+  Future<int> createRace(Race race);
+  Future<void> updateRace(Race race);
+  Future<void> deleteRace(int raceId);
+  String? validateName(String name);
+  String? validateLocation(String location);
+  String? validateDate(String dateString);
+  String? validateDistance(String distanceString);
+  String? getFirstError({
+    required TextEditingController nameController,
+    required TextEditingController locationController,
+    required TextEditingController dateController,
+    required TextEditingController distanceController,
+    required List<TextEditingController> teamControllers,
+  });
+}
+
+class RacesService implements IRacesService {
+  final IRaceRepository _db;
+  final String? Function() _currentUserId;
+
+  RacesService({
+    IRaceRepository? db,
+    String? Function()? currentUserId,
+  })  : _db = db ?? ServiceLocator.get<IRaceRepository>(),
+        _currentUserId =
+            currentUserId ?? (() => AuthService.instance.currentUserId);
+
   /// Loads all races from the database.
-  static Future<List<Race>> loadRaces() async {
-    return await DatabaseHelper.instance.getAllRaces();
+  @override
+  Future<List<Race>> loadRaces() async {
+    return await _db.getAllRaces();
   }
 
   /// Creates a new race in the database.
-  static Future<int> createRace(Race race) async {
-    // Stamp owner on create
-    final ownerId = AuthService.instance.currentUserId;
+  @override
+  Future<int> createRace(Race race) async {
+    final ownerId = _currentUserId();
     final raceWithOwner = race.copyWith(ownerUserId: ownerId);
-    return await DatabaseHelper.instance.createRace(raceWithOwner);
+    return await _db.createRace(raceWithOwner);
   }
 
   /// Updates an existing race in the database.
-  static Future<void> updateRace(Race race) async {
-    await MasterRace.getInstance(race.raceId!).updateRace(race);
+  @override
+  Future<void> updateRace(Race race) async {
+    await _db.updateRace(race);
   }
 
   /// Deletes a race from the database.
-  static Future<void> deleteRace(int raceId) async {
-    await DatabaseHelper.instance.deleteRace(raceId);
+  @override
+  Future<void> deleteRace(int raceId) async {
+    await _db.deleteRace(raceId);
   }
 
   /// Validates race creation form fields.
-  static String? validateName(String name) {
+  @override
+  String? validateName(String name) {
     return name.isEmpty ? 'Please enter a race name' : null;
   }
 
-  static String? validateLocation(String location) {
+  @override
+  String? validateLocation(String location) {
     return location.isEmpty ? 'Please enter a location' : null;
   }
 
-  static String? validateDate(String dateString) {
+  @override
+  String? validateDate(String dateString) {
     if (dateString.isEmpty) return 'Please select a date';
     try {
       final date = DateTime.parse(dateString);
@@ -48,7 +82,8 @@ class RacesService {
     }
   }
 
-  static String? validateDistance(String distanceString) {
+  @override
+  String? validateDistance(String distanceString) {
     if (distanceString.isEmpty) return 'Please enter a race distance';
     try {
       final distance = double.parse(distanceString);
@@ -59,7 +94,8 @@ class RacesService {
     }
   }
 
-  static String? getFirstError({
+  @override
+  String? getFirstError({
     required TextEditingController nameController,
     required TextEditingController locationController,
     required TextEditingController dateController,

@@ -3,15 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:xceleration/core/components/textfield_utils.dart';
 import '../../../core/theme/app_colors.dart';
 import '../controller/race_screen_controller.dart';
+import '../controller/race_form_state.dart';
 
 class RaceLocationField extends StatelessWidget {
   final RaceController controller;
-  final StateSetter setSheetState;
   final ValueChanged<String>? onChanged;
 
   const RaceLocationField({
     required this.controller,
-    required this.setSheetState,
     this.onChanged,
     super.key,
   });
@@ -26,15 +25,14 @@ class RaceLocationField extends StatelessWidget {
             flex: 2,
             child: buildTextField(
               context: context,
-              controller: controller.locationController,
+              controller: controller.form.locationController,
               hint: (Platform.isIOS || Platform.isAndroid)
                   ? 'Other location'
                   : 'Enter race location',
-              error: controller.locationError,
-              setSheetState: setSheetState,
+              error: controller.form.errorFor(RaceField.location),
               onChanged: (value) {
                 controller.validateLocation(
-                    controller.locationController.text, setSheetState);
+                    controller.form.locationController.text);
                 if (onChanged != null) onChanged!(value);
               },
               keyboardType: TextInputType.text,

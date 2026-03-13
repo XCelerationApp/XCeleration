@@ -1,6 +1,16 @@
 import '../../coach/race_screen/services/race_service.dart';
+import '../repositories/database_connection_provider.dart';
+import '../repositories/i_database_connection_provider.dart';
+import '../repositories/i_race_repository.dart';
+import '../repositories/i_results_repository.dart';
+import '../repositories/i_runner_repository.dart';
+import '../repositories/i_team_repository.dart';
+import '../repositories/race_repository.dart';
+import '../repositories/results_repository.dart';
+import '../repositories/runner_repository.dart';
+import '../repositories/team_repository.dart';
 import '../utils/logger.dart';
-import '../utils/database_helper.dart';
+import 'database_write_bus.dart';
 import 'event_bus.dart';
 import 'google_service.dart';
 
@@ -15,7 +25,28 @@ class ServiceLocator {
 
     // Core services
     _services[EventBus] = EventBus.instance;
-    _services[DatabaseHelper] = DatabaseHelper.instance;
+
+    // Database layer — one connection provider shared across all repositories
+    final connProvider = DatabaseConnectionProvider();
+    _services[IDatabaseConnectionProvider] = connProvider;
+
+    // Write event bus — notified by repositories after every mutation
+    final writeBus = DatabaseWriteBus();
+    _services[DatabaseWriteBus] = writeBus;
+
+    final runnerRepo = RunnerRepository(conn: connProvider, writeBus: writeBus);
+    _services[IRunnerRepository] = runnerRepo;
+
+    final teamRepo = TeamRepository(conn: connProvider, writeBus: writeBus);
+    _services[ITeamRepository] = teamRepo;
+
+    final raceRepo = RaceRepository(
+        conn: connProvider, runnerRepo: runnerRepo, writeBus: writeBus);
+    _services[IRaceRepository] = raceRepo;
+
+    final resultsRepo =
+        ResultsRepository(conn: connProvider, writeBus: writeBus);
+    _services[IResultsRepository] = resultsRepo;
 
     // Consolidated Google service
     _services[GoogleService] = GoogleService.instance;

@@ -1,20 +1,66 @@
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:xceleration/core/components/dialog_utils.dart';
+import 'package:xceleration/core/theme/app_animations.dart';
+import 'package:xceleration/core/theme/app_border_radius.dart';
 import 'package:xceleration/core/theme/app_colors.dart';
+import 'package:xceleration/core/theme/app_opacity.dart';
+import 'package:xceleration/core/theme/app_spacing.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
 import '../services/permissions_service.dart';
 
+/// Consolidates all permission-status-to-UI mappings (color, label, action text)
+/// into one place, eliminating the parallel conditionals that previously appeared
+/// in [_PermissionsDialogState] and [_PermissionRequestButtonState].
+class PermissionStatusData {
+  final Color color;
+  final String label;
+  final String actionLabel;
+
+  const PermissionStatusData({
+    required this.color,
+    required this.label,
+    required this.actionLabel,
+  });
+
+  static PermissionStatusData from(PermissionStatus status) {
+    if (status.isGranted) {
+      return PermissionStatusData(
+          color: AppColors.statusFinished, label: 'Granted', actionLabel: 'Granted');
+    }
+    if (status.isPermanentlyDenied) {
+      return PermissionStatusData(
+          color: AppColors.redColor, label: 'Permanently Denied', actionLabel: 'Settings');
+    }
+    if (status.isDenied) {
+      return PermissionStatusData(
+          color: Colors.orange, label: 'Denied', actionLabel: 'Request');
+    }
+    if (status.isLimited) {
+      return PermissionStatusData(
+          color: Colors.orange, label: 'Limited', actionLabel: 'Request');
+    }
+    if (status.isRestricted) {
+      return PermissionStatusData(
+          color: Colors.grey, label: 'Restricted', actionLabel: 'Request');
+    }
+    return PermissionStatusData(
+        color: Colors.grey, label: 'Unknown', actionLabel: 'Request');
+  }
+}
+
 /// Dialog that shows the current status of all app permissions
 class PermissionsDialog extends StatefulWidget {
-  const PermissionsDialog({super.key});
+  final PermissionsService permissionsService;
+
+  const PermissionsDialog({super.key, required this.permissionsService});
 
   @override
   State<PermissionsDialog> createState() => _PermissionsDialogState();
 }
 
 class _PermissionsDialogState extends State<PermissionsDialog> {
-  final PermissionsService _permissionsService = PermissionsService();
+  PermissionsService get _permissionsService => widget.permissionsService;
   Map<Permission, PermissionStatus> _permissionStatuses = {};
   bool _isLoading = true;
 
@@ -43,25 +89,28 @@ class _PermissionsDialogState extends State<PermissionsDialog> {
     final String permissionName =
         _permissionsService.getPermissionName(permission);
     final IconData iconData = _getPermissionIcon(permission);
-    final Color statusColor = _getStatusColor(status);
-    final String statusText = _getStatusText(status);
+    final statusData = PermissionStatusData.from(status);
 
     return ListTile(
       leading: Icon(iconData, color: AppColors.primaryColor),
       title: Text(permissionName),
-      subtitle: Text(statusText),
+      subtitle: Text(statusData.label),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 12,
-            height: 12,
+          AnimatedContainer(
+            duration: AppAnimations.standard,
+            curve: AppAnimations.spring,
+            width: AppSpacing.md,
+            height: AppSpacing.md,
             decoration: BoxDecoration(
-              color: statusColor,
+              color: statusData.color,
               shape: BoxShape.circle,
+              border: Border.all(
+                  color: statusData.color.withValues(alpha: AppOpacity.border)),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.sm),
           if (status.isDenied || status.isPermanentlyDenied)
             ElevatedButton(
               onPressed: () => _requestPermission(permission),
@@ -69,10 +118,10 @@ class _PermissionsDialogState extends State<PermissionsDialog> {
                 backgroundColor: AppColors.primaryColor,
                 foregroundColor: Colors.white,
                 textStyle: const TextStyle(fontSize: 12),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md, vertical: AppSpacing.xs),
               ),
-              child: Text(status.isPermanentlyDenied ? 'Settings' : 'Request'),
+              child: Text(statusData.actionLabel),
             ),
         ],
       ),
@@ -97,34 +146,6 @@ class _PermissionsDialogState extends State<PermissionsDialog> {
         return Icons.sd_storage;
       default:
         return Icons.security;
-    }
-  }
-
-  Color _getStatusColor(PermissionStatus status) {
-    if (status.isGranted) {
-      return Colors.green;
-    } else if (status.isDenied) {
-      return Colors.orange;
-    } else if (status.isPermanentlyDenied) {
-      return Colors.red;
-    } else {
-      return Colors.grey;
-    }
-  }
-
-  String _getStatusText(PermissionStatus status) {
-    if (status.isGranted) {
-      return 'Granted';
-    } else if (status.isDenied) {
-      return 'Denied';
-    } else if (status.isPermanentlyDenied) {
-      return 'Permanently Denied';
-    } else if (status.isLimited) {
-      return 'Limited';
-    } else if (status.isRestricted) {
-      return 'Restricted';
-    } else {
-      return 'Unknown';
     }
   }
 
@@ -170,9 +191,10 @@ class _PermissionsDialogState extends State<PermissionsDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppBorderRadius.lg)),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -194,7 +216,7 @@ class _PermissionsDialogState extends State<PermissionsDialog> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.lg),
             _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _permissionStatuses.isEmpty
@@ -211,7 +233,7 @@ class _PermissionsDialogState extends State<PermissionsDialog> {
                               .toList(),
                         ),
                       ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.lg),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
@@ -236,12 +258,14 @@ class PermissionRequestButton extends StatefulWidget {
   final VoidCallback? onGranted;
   final VoidCallback? onDenied;
   final bool showStatus;
+  final PermissionsService permissionsService;
 
   const PermissionRequestButton({
     super.key,
     required this.permission,
     required this.label,
     required this.icon,
+    required this.permissionsService,
     this.onGranted,
     this.onDenied,
     this.showStatus = false,
@@ -253,7 +277,7 @@ class PermissionRequestButton extends StatefulWidget {
 }
 
 class _PermissionRequestButtonState extends State<PermissionRequestButton> {
-  final PermissionsService _permissionsService = PermissionsService();
+  PermissionsService get _permissionsService => widget.permissionsService;
   PermissionStatus? _status;
   bool _isLoading = false;
 
@@ -302,11 +326,11 @@ class _PermissionRequestButtonState extends State<PermissionRequestButton> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isGranted = _status?.isGranted ?? false;
-    final bool isPermanentlyDenied = _status?.isPermanentlyDenied ?? false;
+    final statusData =
+        _status != null ? PermissionStatusData.from(_status!) : null;
 
     return ElevatedButton.icon(
-      onPressed: isGranted ? null : _requestPermission,
+      onPressed: (_status?.isGranted ?? false) ? null : _requestPermission,
       icon: _isLoading
           ? const SizedBox(
               width: 20,
@@ -321,31 +345,20 @@ class _PermissionRequestButtonState extends State<PermissionRequestButton> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(widget.label),
-          if (widget.showStatus && _status != null) ...[
+          if (widget.showStatus && statusData != null) ...[
             const SizedBox(width: 8),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.sm, vertical: 2),
               decoration: BoxDecoration(
-                color: isGranted
-                    ? ColorUtils.withOpacity(Colors.green, 0.2)
-                    : isPermanentlyDenied
-                        ? ColorUtils.withOpacity(Colors.red, 0.2)
-                        : ColorUtils.withOpacity(Colors.orange, 0.2),
-                borderRadius: BorderRadius.circular(12),
+                color: ColorUtils.withOpacity(statusData.color, AppOpacity.medium),
+                borderRadius: BorderRadius.circular(AppBorderRadius.md),
               ),
               child: Text(
-                isGranted
-                    ? 'Granted'
-                    : isPermanentlyDenied
-                        ? 'Settings'
-                        : 'Request',
+                statusData.actionLabel,
                 style: TextStyle(
                   fontSize: 10,
-                  color: isGranted
-                      ? Colors.green
-                      : isPermanentlyDenied
-                          ? Colors.red
-                          : Colors.orange,
+                  color: statusData.color,
                 ),
               ),
             ),
@@ -355,7 +368,8 @@ class _PermissionRequestButtonState extends State<PermissionRequestButton> {
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.primaryColor,
         foregroundColor: Colors.white,
-        disabledBackgroundColor: ColorUtils.withOpacity(Colors.green, 0.5),
+        disabledBackgroundColor:
+            ColorUtils.withOpacity(Colors.green, AppOpacity.solid),
         disabledForegroundColor: Colors.white,
       ),
     );
@@ -363,10 +377,13 @@ class _PermissionRequestButtonState extends State<PermissionRequestButton> {
 }
 
 /// Show the permissions management dialog
-void showPermissionsManager(BuildContext context) {
+void showPermissionsManager(BuildContext context,
+    {PermissionsService? permissionsService}) {
   showDialog(
     context: context,
-    builder: (context) => const PermissionsDialog(),
+    builder: (context) => PermissionsDialog(
+      permissionsService: permissionsService ?? PermissionsService(),
+    ),
   );
 }
 
@@ -375,10 +392,10 @@ Future<bool> requestPermission(
   BuildContext context,
   Permission permission, {
   String? message,
+  PermissionsService? permissionsService,
 }) async {
-  final PermissionsService permissionsService = PermissionsService();
-  final bool isGranted =
-      await permissionsService.isPermissionGranted(permission);
+  final PermissionsService service = permissionsService ?? PermissionsService();
+  final bool isGranted = await service.isPermissionGranted(permission);
 
   if (isGranted) {
     return true;
@@ -398,5 +415,5 @@ Future<bool> requestPermission(
     }
   }
 
-  return await permissionsService.requestPermission(permission);
+  return await service.requestPermission(permission);
 }

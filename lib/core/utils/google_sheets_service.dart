@@ -5,45 +5,57 @@ import 'package:googleapis/sheets/v4.dart' as sheets;
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:xceleration/core/utils/logger.dart';
+import 'package:xceleration/core/services/connectivity_service.dart';
 import 'google_auth_service.dart';
 import 'google_drive_service.dart';
+import 'i_google_sheets_service.dart';
 
 /// Service for interacting with Google Sheets API
-class GoogleSheetsService {
+class GoogleSheetsService implements IGoogleSheetsService {
   static GoogleSheetsService? _instance;
-  final GoogleAuthService _authService = GoogleAuthService.instance;
+  final GoogleAuthService _authService;
+  final ConnectivityService _connectivity;
   GoogleDriveService? _driveService;
 
-  // Private constructor for singleton pattern
-  GoogleSheetsService._() {
-    // GoogleAuthService is already initialized with proper scopes in its constructor
-    // We don't immediately initialize GoogleDriveService to avoid circular dependency
+  GoogleSheetsService({
+    GoogleAuthService? authService,
+    GoogleDriveService? driveService,
+    ConnectivityService? connectivity,
+  })  : _authService = authService ?? GoogleAuthService.instance,
+        _connectivity = connectivity ?? const ConnectivityService() {
+    _driveService = driveService;
   }
 
   /// Get GoogleDriveService instance, lazily initializing it when needed
   /// This breaks the circular dependency between services
   GoogleDriveService get driveService {
-    // Only import and initialize when actually needed
     _driveService ??= GoogleDriveService.instance;
     return _driveService!;
   }
 
   static GoogleSheetsService get instance {
-    _instance ??= GoogleSheetsService._();
+    _instance ??= GoogleSheetsService();
     return _instance!;
   }
 
   /// Sign in to Google
+  @override
   Future<bool> signIn() async {
     return await _authService.signIn();
   }
 
   /// Create a Google Sheet with the given title.
   /// Returns the spreadsheet ID if successful.
+  @override
   Future<String?> createSheet({
     required String title,
   }) async {
     try {
+      if (!await _connectivity.isOnline()) {
+        Logger.d('No internet connection — skipping spreadsheet creation');
+        return null;
+      }
+
       // Get the auth client
       final client = await _authService.getAuthClient();
       if (client == null) {
@@ -78,11 +90,17 @@ class GoogleSheetsService {
   }
 
   /// Updates a Google Sheet with the given data
+  @override
   Future<bool> updateSheet({
     required String spreadsheetId,
     required List<List<dynamic>> data,
   }) async {
     try {
+      if (!await _connectivity.isOnline()) {
+        Logger.d('No internet connection — skipping spreadsheet update');
+        return false;
+      }
+
       // Get the auth client
       final client = await _authService.getAuthClient();
       if (client == null) {
@@ -139,6 +157,7 @@ class GoogleSheetsService {
   }
 
   /// Gets the shareable URI for a sheet
+  @override
   Future<Uri> getSheetUri(String spreadsheetId) async {
     try {
       // First try to get the URL via the Drive API
@@ -180,6 +199,11 @@ class GoogleSheetsService {
     Logger.d('Downloading Google Sheet: $fileId');
 
     try {
+      if (!await _connectivity.isOnline()) {
+        Logger.d('No internet connection — skipping sheet download');
+        return null;
+      }
+
       // Ensure we're signed in
       if (!await _authService.signIn()) {
         Logger.d('Failed to sign in to download sheet');

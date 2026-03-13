@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/typography.dart';
+import '../../../core/components/dialog_utils.dart';
 import '../controller/timing_controller.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
 
@@ -30,7 +31,7 @@ class BottomControlsWidget extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _buildMainControlButton(),
+          _buildMainControlButton(context),
           Container(
             height: 30,
             width: 1,
@@ -42,19 +43,19 @@ class BottomControlsWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildMainControlButton() {
+  Widget _buildMainControlButton(BuildContext context) {
     // Show undo button if last record is a conflict, otherwise show confirm button
     if (controller.isLastRecordUndoable) {
       return _buildControlButton(
         icon: Icons.undo,
         color: Colors.grey[700]!,
-        onTap: controller.undoLastConflict,
+        onTap: () => _handleUndoLastConflict(context),
       );
     } else {
       return _buildControlButton(
         icon: Icons.check,
         color: Colors.green,
-        onTap: controller.confirmTimes,
+        onTap: () => _handleConfirmTimes(context),
       );
     }
   }
@@ -88,14 +89,14 @@ class BottomControlsWidget extends StatelessWidget {
       child: PopupMenuButton<void>(
         itemBuilder: (BuildContext context) => <PopupMenuEntry<void>>[
           PopupMenuItem<void>(
-            onTap: controller.addMissingTime,
+            onTap: () => _handleAddMissingTime(context),
             child: Text(
               '+ (Add finish time)',
               style: AppTypography.bodySemibold,
             ),
           ),
           PopupMenuItem<void>(
-            onTap: controller.removeExtraTime,
+            onTap: () => _handleRemoveExtraTime(context),
             child: Text(
               '- (Remove finish time)',
               style: AppTypography.bodySemibold,
@@ -108,5 +109,51 @@ class BottomControlsWidget extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _handleUndoLastConflict(BuildContext context) async {
+    final confirmed = await DialogUtils.showConfirmationDialog(
+      context,
+      title: controller.undoDialogTitle,
+      content: controller.undoDialogContent,
+    );
+    if (confirmed && context.mounted) {
+      controller.doUndoLastConflict();
+    }
+  }
+
+  Future<void> _handleConfirmTimes(BuildContext context) async {
+    final error = controller.confirmTimes();
+    if (error != null && context.mounted) {
+      DialogUtils.showErrorDialog(context, message: error.userMessage);
+    }
+  }
+
+  Future<void> _handleAddMissingTime(BuildContext context) async {
+    final error = await controller.addMissingTime();
+    if (error != null && context.mounted) {
+      DialogUtils.showErrorDialog(context, message: error.userMessage);
+    }
+  }
+
+  Future<void> _handleRemoveExtraTime(BuildContext context) async {
+    final result = await controller.removeExtraTime();
+    if (!context.mounted) return;
+    switch (result) {
+      case RemoveExtraTimeOk():
+        return;
+      case RemoveExtraTimeError(:final error):
+        DialogUtils.showErrorDialog(context, message: error.userMessage);
+      case RemoveExtraTimeConfirmRequired(:final offBy):
+        final confirmed = await DialogUtils.showConfirmationDialog(
+          context,
+          title: 'Confirm Deletion',
+          content:
+              'This will delete the last $offBy finish times, are you sure you want to continue?',
+        );
+        if (confirmed && context.mounted) {
+          controller.executeRemoveExtraTimeDeletion();
+        }
+    }
   }
 }
