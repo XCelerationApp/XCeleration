@@ -10,20 +10,46 @@ import '../steps/review_runners/review_runners_step.dart';
 import '../steps/share_race/share_race_step.dart';
 import '../steps/flow_complete/pre_race_flow_complete.dart';
 
+/// Function type that matches the [showFlow] top-level function signature,
+/// used to allow injection in tests.
+typedef ShowFlowFn = Future<bool> Function({
+  required BuildContext context,
+  required List<FlowStep> steps,
+  bool showProgressIndicator,
+  int initialIndex,
+  StepChangedCallback? onStepChanged,
+  void Function(int lastIndex)? onDismiss,
+});
+
 class PreRaceController {
   final MasterRace masterRace;
+  final DevicesManager devices;
+  final Future<String> Function(MasterRace) encodeRaceData;
+  final Future<String> Function(MasterRace) encodeBibData;
+  final ShowFlowFn _showFlow;
+
   late ReviewRunnersStep _reviewRunnersStep;
   late ShareRaceStep _shareRaceStep;
   late PreRaceFlowCompleteStep _preRaceFlowCompleteStep;
   int? _lastStepIndex;
 
-  DevicesManager devices = DeviceConnectionService.createDevices(
-    DeviceName.coach,
-    DeviceType.advertiserDevice,
-    data: '',
-  );
-
-  PreRaceController({required this.masterRace}) {
+  PreRaceController({
+    required this.masterRace,
+    DevicesManager? devices,
+    Future<String> Function(MasterRace)? encodeRaceData,
+    Future<String> Function(MasterRace)? encodeBibData,
+    ShowFlowFn? showFlowFn,
+  })  : devices = devices ??
+            DeviceConnectionService.createDevices(
+              DeviceName.coach,
+              DeviceType.advertiserDevice,
+              data: '',
+            ),
+        encodeRaceData =
+            encodeRaceData ?? RaceEncodeUtils.getEncodedRaceData,
+        encodeBibData =
+            encodeBibData ?? BibEncodeUtils.getEncodedRunnersBibData,
+        _showFlow = showFlowFn ?? showFlow {
     _initializeSteps();
   }
 
@@ -31,15 +57,13 @@ class PreRaceController {
     _reviewRunnersStep = ReviewRunnersStep(
       masterRace: masterRace,
       onNext: () async {
-        final encodedRaceData =
-            await RaceEncodeUtils.getEncodedRaceData(masterRace);
+        final encodedRaceData = await encodeRaceData(masterRace);
         if (encodedRaceData == '') {
           Logger.e('Failed to encode race data');
           return;
         }
         devices.raceTimer!.data = encodedRaceData;
-        final encodedBibData =
-            await BibEncodeUtils.getEncodedRunnersBibData(masterRace);
+        final encodedBibData = await encodeBibData(masterRace);
         if (encodedBibData == '') {
           Logger.e('Failed to encode runners data');
           return;
@@ -61,10 +85,10 @@ class PreRaceController {
     if (!context.mounted) {
       return false;
     }
-    return await showFlow(
+    return await _showFlow(
       context: context,
       showProgressIndicator: showProgressIndicator,
-      steps: _getSteps(context),
+      steps: _getSteps(),
       initialIndex: startIndex,
       onDismiss: (lastIndex) {
         _lastStepIndex = lastIndex;
@@ -72,11 +96,14 @@ class PreRaceController {
     );
   }
 
-  List<FlowStep> _getSteps(BuildContext context) {
+  List<FlowStep> _getSteps() {
     return [
       _reviewRunnersStep,
       _shareRaceStep,
       _preRaceFlowCompleteStep,
     ];
   }
+
+  @visibleForTesting
+  List<FlowStep> buildSteps() => _getSteps();
 }

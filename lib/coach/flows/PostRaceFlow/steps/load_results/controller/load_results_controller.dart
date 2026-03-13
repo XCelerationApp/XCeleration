@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/app_error.dart';
+import 'package:xceleration/core/result.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/core/services/device_connection_service.dart';
+import 'package:xceleration/core/services/post_frame_callback_scheduler.dart';
 import 'package:xceleration/core/utils/decode_utils.dart';
 import 'package:xceleration/core/components/dialog_utils.dart';
 import 'package:xceleration/core/utils/enums.dart';
@@ -24,21 +27,26 @@ class LoadResultsController with ChangeNotifier {
   bool _resultsLoaded = false;
   bool _hasBibConflicts = false;
   bool _hasTimingConflicts = false;
+  AppError? _error;
   List<RaceResult> results = [];
   List<TimingChunk>? timingChunks;
   List<dynamic>? raceRunners;
-  late final DevicesManager devices;
+  final DevicesManager devices;
+
+  final Future<String> Function(MasterRace) _encodeBibData;
+  final IPostFrameCallbackScheduler _scheduler;
 
   LoadResultsController({
     required this.masterRace,
-  }) {
-    devices = DeviceConnectionService.createDevices(
-      DeviceName.coach,
-      DeviceType.browserDevice,
-    );
+    required this.devices,
+    Future<String> Function(MasterRace)? encodeBibData,
+    IPostFrameCallbackScheduler? scheduler,
+  })  : _encodeBibData =
+            encodeBibData ?? BibEncodeUtils.getEncodedRunnersBibData,
+        _scheduler = scheduler ?? WidgetsBindingAdapter();
 
-    // Load any existing results
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+  void initialize() {
+    _scheduler.addPostFrameCallback(() {
       loadResults();
     });
   }
@@ -46,6 +54,8 @@ class LoadResultsController with ChangeNotifier {
   bool get resultsLoaded => _resultsLoaded;
   bool get hasBibConflicts => _hasBibConflicts;
   bool get hasTimingConflicts => _hasTimingConflicts;
+  bool get hasError => _error != null;
+  AppError? get error => _error;
 
   set resultsLoaded(bool value) {
     _resultsLoaded = value;
@@ -66,7 +76,7 @@ class LoadResultsController with ChangeNotifier {
   Future<void> resetDevices() async {
     devices.reset();
     // Re-encode and assign runner data after reset
-    final encoded = await BibEncodeUtils.getEncodedRunnersBibData(masterRace);
+    final encoded = await _encodeBibData(masterRace);
     devices.bibRecorder?.data = encoded;
     Logger.d('POST-RESET: Encoded runners data length: ${encoded.length}');
     resultsLoaded = false;
@@ -130,29 +140,37 @@ class LoadResultsController with ChangeNotifier {
         'Finish times data: ${finishTimesData != null ? "Available" : "Null"}');
 
     if (bibRecordsData != null && finishTimesData != null) {
-      final List<BibDatum>? bibData =
-          await BibDecodeUtils.decodeEncodedRunners(bibRecordsData, context);
+      final bibResult =
+          await BibDecodeUtils.decodeEncodedRunners(bibRecordsData);
+      final List<BibDatum> bibData;
+      switch (bibResult) {
+        case Success(:final value):
+          bibData = value;
+        case Failure(:final error):
+          _error = error;
+          Logger.e(
+              '[LoadResultsController.processReceivedData] ${error.originalException}');
+          notifyListeners();
+          return;
+      }
 
-      Logger.d('Loaded bib data: ${bibData?.length ?? 'null'}');
+      Logger.d('Loaded bib data: ${bibData.length}');
 
-      raceRunners = bibData == null
-          ? []
-          : await Future.wait(
-              bibData.map((bibDatum) async {
-                Logger.d(
-                    'LoadResultsController: Processing bib: ${bibDatum.bib}');
-                final found = await masterRace.getRaceRunnerByBib(bibDatum.bib);
-                if (found != null) {
-                  Logger.d(
-                      'LoadResultsController: Found race runner for bib ${bibDatum.bib}: ${found.runner.name}');
-                  return found;
-                } else {
-                  Logger.d(
-                      'LoadResultsController: No race runner found for bib ${bibDatum.bib}, returning bib number as conflict');
-                  return int.tryParse(bibDatum.bib) ?? 0;
-                }
-              }),
-            );
+      raceRunners = await Future.wait(
+        bibData.map((bibDatum) async {
+          Logger.d('LoadResultsController: Processing bib: ${bibDatum.bib}');
+          final found = await masterRace.getRaceRunnerByBib(bibDatum.bib);
+          if (found != null) {
+            Logger.d(
+                'LoadResultsController: Found race runner for bib ${bibDatum.bib}: ${found.runner.name}');
+            return found;
+          } else {
+            Logger.d(
+                'LoadResultsController: No race runner found for bib ${bibDatum.bib}, returning bib number as conflict');
+            return int.tryParse(bibDatum.bib) ?? 0;
+          }
+        }),
+      );
 
       // Check for duplicate bibs and convert duplicates to integers
       if (raceRunners != null && raceRunners!.isNotEmpty) {

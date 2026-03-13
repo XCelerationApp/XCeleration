@@ -4,6 +4,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xceleration/core/utils/logger.dart';
+import 'package:xceleration/core/services/connectivity_service.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 /// Authentication client for Google APIs
@@ -34,6 +35,9 @@ class GoogleAuthService {
   static String get _webClientId =>
       dotenv.env['GOOGLE_WEB_OAUTH_CLIENT_ID'] ?? '';
 
+  final ConnectivityService _connectivity;
+  final GoogleSignIn? _googleSignInOverride;
+
   GoogleSignIn? _googleSignIn;
   GoogleSignInAccount? _currentUser;
   String? _iosAccessToken;
@@ -52,17 +56,18 @@ class GoogleAuthService {
   /// Get the singleton instance of GoogleAuthService
   static GoogleAuthService get instance {
     if (_instance == null) {
-      _instance = GoogleAuthService._();
+      _instance = GoogleAuthService();
       // Start loading preferences in the background but don't block
       _instance!._loadPrefsAsync();
     }
     return _instance!;
   }
 
-  GoogleAuthService._() {
-    // Don't initialize anything in constructor
-    // Will be done lazily when needed
-  }
+  GoogleAuthService({
+    ConnectivityService? connectivity,
+    GoogleSignIn? googleSignIn,
+  })  : _connectivity = connectivity ?? const ConnectivityService(),
+        _googleSignInOverride = googleSignIn;
 
   /// Asynchronously load preferences but don't block instance creation
   Future<void> _loadPrefsAsync() async {
@@ -153,7 +158,12 @@ class GoogleAuthService {
 
   /// Initialize Google Sign In
   void _initGoogleSignIn() {
-    _googleSignIn ??= GoogleSignIn(
+    if (_googleSignIn != null) return;
+    if (_googleSignInOverride != null) {
+      _googleSignIn = _googleSignInOverride;
+      return;
+    }
+    _googleSignIn = GoogleSignIn(
       scopes: [
         'https://www.googleapis.com/auth/drive.file',
       ],
@@ -267,6 +277,10 @@ class GoogleAuthService {
 
   Future<String?> _exchangeServerAuthCodeForAccessToken(String authCode) async {
     Logger.d('Exchanging auth code for token with client ID: $_webClientId');
+    if (!await _connectivity.isOnline()) {
+      Logger.d('No internet connection — skipping token exchange');
+      return null;
+    }
     final url = dotenv.env['WEB_ACCESS_TOKEN_API_ENDPOINT'];
     if (url == null) {
       Logger.e('WEB_ACCESS_TOKEN_API_ENDPOINT is not set');
@@ -301,6 +315,10 @@ class GoogleAuthService {
       if (_currentUser != null && hasValidIosToken && hasValidWebToken) {
         Logger.d('Already signed in with valid iOS and Web tokens');
         return true;
+      }
+      if (!await _connectivity.isOnline()) {
+        Logger.d('No internet connection — skipping Google sign-in');
+        return false;
       }
       // If we need a web token but don't have a valid one, force interactive sign-in
       if (!hasValidWebToken) {

@@ -100,7 +100,7 @@ class _ReceiveRacePreviewScreenState extends State<ReceiveRacePreviewScreen> {
                 await sheet(
                   context: context,
                   title: 'Share Wirelessly',
-                  body: deviceConnectionWidget(context, devices),
+                  body: DeviceConnectionWidget(devices: devices),
                 );
               },
             ),

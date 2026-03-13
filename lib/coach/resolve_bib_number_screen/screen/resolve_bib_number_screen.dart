@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/components/button_components.dart';
+import '../../../core/components/dialog_utils.dart';
 import 'package:xceleration/core/components/textfield_utils.dart';
 import '../controller/resolve_bib_number_controller.dart';
 import '../widgets/search_results.dart';
@@ -45,7 +46,6 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
       onComplete: widget.onComplete,
       raceRunner: widget.raceRunner,
     );
-    _controller.setContext(context);
     _loadTeams();
 
     // Detect conflict type and set up form accordingly
@@ -119,8 +119,10 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
     _controller.teamController.text = raceRunner.team.name!;
     _controller.bibController.text = raceRunner.runner.bibNumber!;
 
-    // Now call the controller's method to create the runner
-    await _controller.createNewRunner();
+    final error = await _controller.createNewRunner();
+    if (error != null && mounted) {
+      DialogUtils.showErrorDialog(context, message: error.userMessage);
+    }
   }
 
   Widget _buildCreateNewForm() {
@@ -139,7 +141,7 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
           initialRaceRunner: _controller.raceRunner,
           teamOptions: _teams,
           onSubmit: _handleSubmit,
-          getRunnerByBib: _controller.masterRace.db.getRunnerByBib,
+          getRunnerByBib: _controller.masterRace.getRunnerByBib,
           submitButtonText: 'Create New Runner',
           useSheetLayout: false,
           showBibField: true,
@@ -275,7 +277,6 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
                                   hint: 'Search runners',
                                   onChanged: (value) =>
                                       controller.searchRunners(value),
-                                  setSheetState: setState,
                                 ),
                                 const SizedBox(height: 16),
                                 Expanded(

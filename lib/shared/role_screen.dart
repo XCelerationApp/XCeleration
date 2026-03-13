@@ -3,6 +3,12 @@ import '../coach/races_screen/screen/races_screen.dart';
 import '../spectator/races_screen/screen/spectator_races_screen.dart';
 import '../assistant/race_timer/screen/timing_screen.dart';
 import '../assistant/bib_number_recorder/screen/bib_number_screen.dart';
+import '../assistant/bib_number_recorder/controller/bib_number_controller.dart';
+import '../assistant/shared/services/assistant_storage_service.dart';
+import '../assistant/shared/services/demo_race_generator_impl.dart';
+import '../core/services/device_connection_factory_impl.dart';
+import '../core/services/post_frame_scheduler.dart';
+import '../core/services/tutorial_manager.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/typography.dart';
 import '../core/components/page_route_animations.dart';
@@ -159,7 +165,17 @@ class AssistantRoleScreen extends StatelessWidget {
                     onPressed: () {
                       Navigator.of(context).push(
                         InitialPageRouteAnimation(
-                            child: const BibNumberScreen()),
+                          child: BibNumberScreen(
+                            controller: BibNumberController(
+                              storage: AssistantStorageService.instance,
+                              tutorialManager: TutorialManager(),
+                              demoRaceGenerator: const DemoRaceGeneratorImpl(),
+                              deviceConnectionFactory:
+                                  const DeviceConnectionFactoryImpl(),
+                              scheduler: const PostFrameScheduler(),
+                            ),
+                          ),
+                        ),
                       );
                     },
                   ),

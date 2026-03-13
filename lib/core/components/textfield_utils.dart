@@ -1,72 +1,95 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_border_radius.dart';
+import '../theme/app_opacity.dart';
+import '../theme/app_spacing.dart';
 
-Widget buildDropdown({
-  required TextEditingController controller,
-  required String hint,
-  String? error,
-  required Function(String) onChanged,
-  required StateSetter setSheetState,
-  required List<String> items,
-}) {
-  const double borderRadius = 12.0;
+/// A dropdown field that manages its own display state via [setState],
+/// so callers do not need to pass a [StateSetter].
+class AppDropdownField extends StatefulWidget {
+  final TextEditingController controller;
+  final String hint;
+  final String? error;
+  final Function(String) onChanged;
+  final List<String> items;
 
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      Focus(
-        onFocusChange: (hasFocus) {
-          if (!hasFocus) {
-            onChanged(controller.text);
-          }
-        },
-        child: Container(
-          decoration: BoxDecoration(
-            color: error != null
-                ? Colors.red.withAlpha((0.05 * 255).round())
-                : Colors.grey.withAlpha((0.05 * 255).round()),
-            border: Border.all(
-                color: error != null
-                    ? Colors.red.withAlpha((0.5 * 255).round())
-                    : Colors.grey.withAlpha((0.5 * 255).round())),
-            borderRadius: BorderRadius.circular(borderRadius),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: ButtonTheme(
-              alignedDropdown: true,
-              child: DropdownButton<String>(
-                value: (controller.text.isEmpty ? null : controller.text),
-                hint: Text(hint, style: const TextStyle(color: Colors.grey)),
-                isExpanded: true,
-                items: [
-                  ...items.map((item) => DropdownMenuItem(
-                        value: item,
-                        child: Text(item),
-                      )),
-                ],
-                onChanged: (value) {
-                  setSheetState(() => controller.text = value ?? '');
-                  onChanged(value ?? '');
-                },
+  const AppDropdownField({
+    super.key,
+    required this.controller,
+    required this.hint,
+    required this.onChanged,
+    required this.items,
+    this.error,
+  });
+
+  @override
+  State<AppDropdownField> createState() => _AppDropdownFieldState();
+}
+
+class _AppDropdownFieldState extends State<AppDropdownField> {
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Focus(
+          onFocusChange: (hasFocus) {
+            if (!hasFocus) {
+              widget.onChanged(widget.controller.text);
+            }
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              color: widget.error != null
+                  ? Colors.red.withValues(alpha: AppOpacity.faint)
+                  : Colors.grey.withValues(alpha: AppOpacity.faint),
+              border: Border.all(
+                  color: widget.error != null
+                      ? Colors.red.withValues(alpha: AppOpacity.solid)
+                      : Colors.grey.withValues(alpha: AppOpacity.solid)),
+              borderRadius: BorderRadius.circular(AppBorderRadius.md),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: ButtonTheme(
+                alignedDropdown: true,
+                child: DropdownButton<String>(
+                  value: widget.controller.text.isEmpty
+                      ? null
+                      : widget.controller.text,
+                  hint: Text(widget.hint,
+                      style: const TextStyle(color: Colors.grey)),
+                  isExpanded: true,
+                  items: widget.items
+                      .map((item) => DropdownMenuItem(
+                            value: item,
+                            child: Text(item),
+                          ))
+                      .toList(),
+                  onChanged: (value) {
+                    setState(() => widget.controller.text = value ?? '');
+                    widget.onChanged(value ?? '');
+                  },
+                ),
               ),
             ),
           ),
         ),
-      ),
-      if (error != null)
-        Padding(
-          padding: const EdgeInsets.only(top: 4, left: 12),
-          child: Text(
-            error,
-            style: const TextStyle(
-              color: Colors.red,
-              fontSize: 12,
+        if (widget.error != null)
+          Padding(
+            padding: const EdgeInsets.only(
+                top: AppSpacing.xs, left: AppSpacing.md),
+            child: Text(
+              widget.error!,
+              style: const TextStyle(
+                color: Colors.red,
+                fontSize: 12,
+              ),
             ),
           ),
-        ),
-    ],
-  );
+      ],
+    );
+  }
 }
 
 Widget buildTextField({
@@ -77,7 +100,6 @@ Widget buildTextField({
   String? warning,
   TextInputType? keyboardType,
   required Function(String) onChanged,
-  required StateSetter setSheetState,
   IconButton? prefixIcon,
   IconButton? suffixIcon,
   VoidCallback? onSuffixIconPressed,
@@ -87,8 +109,20 @@ Widget buildTextField({
   int? maxLength,
   bool autofocus = false,
 }) {
-  const double borderRadius = 12.0;
-  const double contentPadding = 16.0;
+  // Shared helpers for error/warning state styling — used by border, enabledBorder, and fillColor.
+  Color fieldFillColor() => error != null
+      ? Colors.red.withValues(alpha: AppOpacity.faint)
+      : (warning != null
+          ? Colors.orange.withValues(alpha: AppOpacity.light)
+          : Colors.grey.withValues(alpha: AppOpacity.faint));
+
+  BorderSide fieldBorderSide() => BorderSide(
+        color: error != null
+            ? Colors.red.withValues(alpha: AppOpacity.solid)
+            : (warning != null
+                ? Colors.orange.withValues(alpha: AppOpacity.border)
+                : Colors.grey.withValues(alpha: AppOpacity.solid)),
+      );
 
   return Focus(
     onFocusChange: (hasFocus) {
@@ -115,39 +149,23 @@ Widget buildTextField({
           fontSize: 16,
         ),
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: contentPadding,
-          vertical: contentPadding,
+          horizontal: AppSpacing.lg,
+          vertical: AppSpacing.lg,
         ),
         filled: true,
-        fillColor: error != null
-            ? Colors.red.withAlpha((0.05 * 255).round())
-            : (warning != null
-                ? Colors.orange.withAlpha((0.08 * 255).round())
-                : Colors.grey.withAlpha((0.05 * 255).round())),
+        fillColor: fieldFillColor(),
         prefixIcon: prefixIcon,
         suffixIcon: suffixIcon,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(borderRadius),
-          borderSide: BorderSide(
-            color: error != null
-                ? Colors.red.withAlpha((0.5 * 255).round())
-                : (warning != null
-                    ? Colors.orange.withAlpha((0.6 * 255).round())
-                    : Colors.grey.withAlpha((0.5 * 255).round())),
-          ),
+          borderRadius: BorderRadius.circular(AppBorderRadius.md),
+          borderSide: fieldBorderSide(),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(borderRadius),
-          borderSide: BorderSide(
-            color: error != null
-                ? Colors.red.withAlpha((0.5 * 255).round())
-                : (warning != null
-                    ? Colors.orange.withAlpha((0.6 * 255).round())
-                    : Colors.grey.withAlpha((0.5 * 255).round())),
-          ),
+          borderRadius: BorderRadius.circular(AppBorderRadius.md),
+          borderSide: fieldBorderSide(),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(borderRadius),
+          borderRadius: BorderRadius.circular(AppBorderRadius.md),
           borderSide: BorderSide(
             color: error != null
                 ? Colors.red
@@ -190,7 +208,7 @@ Widget buildInputRow({
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Padding(
-        padding: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
         child: Text(
           label,
           style: const TextStyle(

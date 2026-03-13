@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/utils/enums.dart';
+import '../../../core/components/dialog_utils.dart';
 import '../controller/timing_controller.dart';
 import '../model/ui_record.dart';
 import '../widgets/record_list_item.dart';
@@ -57,12 +58,43 @@ class RecordsListWidget extends StatelessWidget {
         child: const Icon(Icons.delete, color: Colors.white),
       ),
       direction: DismissDirection.endToStart,
-      confirmDismiss: (direction) => _confirmRecordDeletion(uiRecord),
+      confirmDismiss: (direction) => _confirmRecordDeletion(context, uiRecord),
       child: item,
     );
   }
 
-  Future<bool> _confirmRecordDeletion(UIRecord uiRecord) async {
-    return await controller.handleRecordDeletion(uiRecord);
+  Future<bool> _confirmRecordDeletion(
+      BuildContext context, UIRecord uiRecord) async {
+    final error = controller.validateDeleteRecord(uiRecord);
+    if (error != null) {
+      if (context.mounted) {
+        DialogUtils.showErrorDialog(context, message: error.userMessage);
+      }
+      return false;
+    }
+
+    final confirmed = await DialogUtils.showConfirmationDialog(
+      context,
+      title: 'Confirm Deletion',
+      content: _buildDeleteContent(uiRecord),
+    );
+    if (!confirmed) return false;
+
+    return controller.executeDeleteRecord(uiRecord);
+  }
+
+  String _buildDeleteContent(UIRecord uiRecord) {
+    if (uiRecord.textColor == Colors.black) {
+      return 'Are you sure you want to delete the time ${uiRecord.time}?';
+    }
+    return switch (uiRecord.type) {
+      RecordType.confirmRunner =>
+        'Are you sure you want to delete the confirmation ${uiRecord.time}?',
+      RecordType.missingTime =>
+        'Are you sure you want to delete the missing time ${uiRecord.time}?',
+      RecordType.extraTime =>
+        'Are you sure you want to delete the extra time ${uiRecord.time}?',
+      _ => 'Are you sure you want to delete the time ${uiRecord.time}?',
+    };
   }
 }

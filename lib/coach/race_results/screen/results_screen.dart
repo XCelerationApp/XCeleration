@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:xceleration/core/utils/logger.dart';
+import 'package:provider/provider.dart';
 import 'package:xceleration/coach/share_race/controller/share_race_controller.dart';
 import 'package:xceleration/shared/models/database/master_race.dart';
+import 'package:xceleration/core/services/i_sync_service.dart';
 import 'package:xceleration/shared/services/race_results_service.dart';
+import '../controller/race_results_controller.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
 import '../widgets/share_button.dart';
@@ -18,116 +20,108 @@ class ResultsScreen extends StatefulWidget {
   });
 
   @override
-  State<ResultsScreen> createState() => ResultsScreenState();
+  State<ResultsScreen> createState() => _ResultsScreenState();
 }
 
-class ResultsScreenState extends State<ResultsScreen> {
-  RaceResultsData? _raceResultsData;
-  bool _isLoading = true;
-  bool _hasLoaded = false;
+class _ResultsScreenState extends State<ResultsScreen> {
+  late final RaceResultsController _controller;
 
   @override
   void initState() {
     super.initState();
-    loadRaceResults();
+    _controller = RaceResultsController(
+      service: RaceResultsService(),
+      syncStream: context.read<ISyncService>().syncEvents,
+    );
+    _controller.loadRaceResults(widget.masterRace);
   }
 
-  Future<void> loadRaceResults() async {
-    // Prevent multiple loads
-    if (_hasLoaded) {
-      Logger.d('ResultsScreen: Already loaded, skipping');
-      return;
-    }
-
-    Logger.d(
-        'ResultsScreen: Starting to load race results for raceId: ${widget.masterRace.raceId}');
-    try {
-      _raceResultsData = await RaceResultsService.calculateCompleteRaceResults(
-          widget.masterRace);
-      Logger.d(
-          'ResultsScreen: Race results loaded successfully, results count: ${_raceResultsData?.individualResults.length ?? 0}');
-      _hasLoaded = true;
-      setState(() {
-        _isLoading = false;
-      });
-    } catch (e) {
-      Logger.e('ResultsScreen: Error loading race results: $e');
-      Logger.e(
-          'ResultsScreen: MasterRace instance: ${widget.masterRace.hashCode}');
-      _hasLoaded = true; // Mark as loaded even on error to prevent retries
-      setState(() {
-        _isLoading = false;
-      });
-    }
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.backgroundColor,
-      child: Stack(
-        children: [
-          if (_isLoading) ...[
-            const Center(
-              child: CircularProgressIndicator(),
-            ),
-          ] else ...[
-            Column(
+    return ChangeNotifierProvider.value(
+      value: _controller,
+      child: Consumer<RaceResultsController>(
+        builder: (context, controller, child) {
+          return Material(
+            color: AppColors.backgroundColor,
+            child: Stack(
               children: [
-                if (_raceResultsData == null ||
-                    _raceResultsData!.individualResults.isEmpty) ...[
-                  const Expanded(
-                    child: Center(
-                      child: Text(
-                        'No results available',
-                        style: AppTypography.titleSemibold,
-                      ),
+                if (controller.isLoading) ...[
+                  const Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                ] else if (controller.hasError) ...[
+                  Center(
+                    child: Text(
+                      controller.error!.userMessage,
+                      style: AppTypography.titleSemibold,
                     ),
                   ),
                 ] else ...[
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 0.0, vertical: 8.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Always show Team Results
-                            TeamResultsWidget(
-                              raceResultsData: _raceResultsData!,
+                  Column(
+                    children: [
+                      if (controller.raceResultsData == null ||
+                          controller
+                              .raceResultsData!.individualResults.isEmpty) ...[
+                        const Expanded(
+                          child: Center(
+                            child: Text(
+                              'No results available',
+                              style: AppTypography.titleSemibold,
                             ),
-                            // Individual Results Widget
-                            IndividualResultsWidget(
-                              raceResultsData: _raceResultsData!,
-                              initialVisibleCount: 5,
-                            ),
-                            // Add bottom padding for scrolling
-                            const SizedBox(height: 80),
-                          ],
+                          ),
                         ),
-                      ),
-                    ),
+                      ] else ...[
+                        Expanded(
+                          child: SingleChildScrollView(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 0.0, vertical: 8.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  TeamResultsWidget(
+                                    raceResultsData:
+                                        controller.raceResultsData!,
+                                  ),
+                                  IndividualResultsWidget(
+                                    raceResultsData:
+                                        controller.raceResultsData!,
+                                    initialVisibleCount: 5,
+                                  ),
+                                  const SizedBox(height: 80),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+                if (controller.raceResultsData != null) ...[
+                  Positioned(
+                    bottom: 16,
+                    right: 16,
+                    child: ShareButton(onPressed: () {
+                      ShareRaceController.showShareRaceSheet(
+                        context: context,
+                        raceResultsData: controller.raceResultsData!,
+                        masterRace: widget.masterRace,
+                      );
+                    }),
                   ),
                 ],
               ],
             ),
-          ],
-          // Share button
-          if (_raceResultsData != null) ...[
-            Positioned(
-              bottom: 16,
-              right: 16,
-              child: ShareButton(onPressed: () {
-                ShareRaceController.showShareRaceSheet(
-                  context: context,
-                  raceResultsData: _raceResultsData!,
-                  masterRace: widget.masterRace,
-                );
-              }),
-            ),
-          ],
-        ],
+          );
+        },
       ),
     );
   }

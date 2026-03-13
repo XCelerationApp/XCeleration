@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:xceleration/core/services/i_sync_service.dart';
 import '../controller/runners_management_controller.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/components/button_components.dart';
@@ -65,6 +66,7 @@ class _TeamsAndRunnersManagementWidgetState
       onBack: widget.onBack,
       onContentChanged: widget.onContentChanged,
       isViewMode: widget.isViewMode,
+      syncStream: context.read<ISyncService>().syncEvents,
     );
     _controller.init();
   }

@@ -29,12 +29,16 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>TO_BE_REPLACED_BY_SCRIPT</string>
+				<string>com.googleusercontent.apps.529053126812-57bnskrrh3n15j364ftmc4p9n6vtrcs3</string>
 			</array>
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>GIDClientID</key>
+	<string>529053126812-57bnskrrh3n15j364ftmc4p9n6vtrcs3.apps.googleusercontent.com</string>
+	<key>GIDServerClientID</key>
+	<string>529053126812-v1j9ro6lpfe4kd9anndqrno3ilfmu9ug.apps.googleusercontent.com</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
@@ -62,6 +66,27 @@
 	<string>This app needs access to play audio to let you know when buttons have been pressed or actions have been completed</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Access to photo library is needed to upload photos of runner bib numbers.</string>
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<false/>
+		<key>UISceneConfigurations</key>
+		<dict>
+			<key>UIWindowSceneSessionRoleApplication</key>
+			<array>
+				<dict>
+					<key>UISceneClassName</key>
+					<string>UIWindowScene</string>
+					<key>UISceneConfigurationName</key>
+					<string>flutter</string>
+					<key>UISceneDelegateClassName</key>
+					<string>FlutterSceneDelegate</string>
+					<key>UISceneStoryboardFile</key>
+					<string>Main</string>
+				</dict>
+			</array>
+		</dict>
+	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UIFileSharingEnabled</key>

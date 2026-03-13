@@ -1,17 +1,23 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:xceleration/core/services/i_auth_service.dart';
 import 'package:xceleration/core/services/remote_api_client.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/shared/constants/app_constants.dart';
 import 'package:http/http.dart' as http;
 
-class AuthService {
+export 'i_auth_service.dart';
+
+class AuthService implements IAuthService {
   AuthService._();
   static final AuthService instance = AuthService._();
 
   SupabaseClient get _client => Supabase.instance.client;
 
+  @override
   String? get currentUserId => _client.auth.currentUser?.id;
+  @override
   String? get currentEmail => _client.auth.currentUser?.email;
+  @override
   bool get isSignedIn => _client.auth.currentSession != null;
 
   Stream<AuthState> get onAuthStateChange => _client.auth.onAuthStateChange;
@@ -58,12 +64,14 @@ class AuthService {
   }
 
   /// Email + Password sign up
+  @override
   Future<AuthResponse> signUpWithEmailPassword(
       String email, String password) async {
     return await _client.auth.signUp(email: email, password: password);
   }
 
   /// Email + Password sign in
+  @override
   Future<AuthResponse> signInWithEmailPassword(
       String email, String password) async {
     return await _client.auth
@@ -71,6 +79,7 @@ class AuthService {
   }
 
   /// Sends a password reset email. Configure Redirect URLs in Supabase Auth.
+  @override
   Future<void> sendPasswordResetEmail(String email) async {
     await _client.auth.resetPasswordForEmail(email);
   }

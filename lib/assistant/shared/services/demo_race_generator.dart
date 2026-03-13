@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/result.dart';
 import 'package:xceleration/core/utils/logger.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/race_record.dart';
 import '../models/runner.dart';
 import 'assistant_storage_service.dart';
@@ -11,46 +11,24 @@ class DemoRaceGenerator {
   static const int _demoRaceId = -1; // Demo race ID
   static const String _demoRaceName = 'Demo Race';
 
-  // SharedPreferences keys for tracking first launch
-  static const String _firstLaunchKeyTimer = 'first_launch_timer';
-  static const String _firstLaunchKeyBibRecorder = 'first_launch_bib_recorder';
-
-  /// Checks if this is the first launch for the given device type
-  /// If it is, creates a demo race and marks as not first launch anymore
+  /// Creates a demo race if no races exist for the given device type.
   static Future<bool> ensureDemoRaceExists(String deviceType) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final String prefKey =
-          deviceType.contains('timer') || deviceType.contains('Timer')
-              ? _firstLaunchKeyTimer
-              : _firstLaunchKeyBibRecorder;
-
-      // Check if this is the first launch
-      final bool isFirstLaunch = prefs.getBool(prefKey) ?? true;
-
-      if (!isFirstLaunch) {
-        // Not first launch, don't create demo race
-        return false;
-      }
-
       final storage = AssistantStorageService.instance;
 
-      // Check if there are any existing races (in case they already used the app before this feature)
-      final races = await storage.getRaces(deviceType);
+      final racesResult = await storage.getRaces(deviceType);
+      final races = switch (racesResult) {
+        Success(:final value) => value,
+        Failure() => <RaceRecord>[],
+      };
 
       if (races.isNotEmpty) {
-        // User already has races, mark as not first launch and don't create demo
-        await prefs.setBool(prefKey, false);
         return false;
       }
 
-      // Create the demo race
       await _createDemoRace(deviceType);
 
-      // Mark as not first launch anymore
-      await prefs.setBool(prefKey, false);
-
-      Logger.d('Demo race created for $deviceType on first launch');
+      Logger.d('Demo race created for $deviceType');
       return true;
     } catch (e) {
       Logger.e('Failed to ensure demo race exists: $e');
@@ -183,7 +161,11 @@ class DemoRaceGenerator {
   static Future<void> deleteDemoRace(String deviceType) async {
     try {
       final storage = AssistantStorageService.instance;
-      final race = await storage.getRace(_demoRaceId, deviceType);
+      final raceResult = await storage.getRace(_demoRaceId, deviceType);
+      final race = switch (raceResult) {
+        Success(:final value) => value,
+        Failure() => null,
+      };
 
       if (race != null) {
         await storage.deleteRace(_demoRaceId, deviceType);
@@ -194,19 +176,4 @@ class DemoRaceGenerator {
     }
   }
 
-  /// Resets the first launch flag for a device type (useful for testing)
-  static Future<void> resetFirstLaunchFlag(String deviceType) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final String prefKey =
-          deviceType.contains('timer') || deviceType.contains('Timer')
-              ? _firstLaunchKeyTimer
-              : _firstLaunchKeyBibRecorder;
-
-      await prefs.setBool(prefKey, true);
-      Logger.d('First launch flag reset for $deviceType');
-    } catch (e) {
-      Logger.e('Failed to reset first launch flag: $e');
-    }
-  }
 }

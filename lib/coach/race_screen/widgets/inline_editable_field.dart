@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/components/textfield_utils.dart';
-import '../../../core/theme/typography.dart';
+import '../../../core/theme/app_border_radius.dart';
 import '../../../core/theme/app_colors.dart';
-import 'package:xceleration/core/utils/color_utils.dart';
+import '../../../core/theme/app_opacity.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/typography.dart';
 import '../controller/race_screen_controller.dart';
+import '../controller/race_form_state.dart';
 
 class InlineEditableField extends StatelessWidget {
   final RaceController controller;
-  final String fieldName;
+  final RaceField field;
   final String label;
   final IconData icon;
   final TextEditingController textController;
@@ -21,7 +24,7 @@ class InlineEditableField extends StatelessWidget {
   const InlineEditableField({
     super.key,
     required this.controller,
-    required this.fieldName,
+    required this.field,
     required this.label,
     required this.icon,
     required this.textController,
@@ -41,11 +44,12 @@ class InlineEditableField extends StatelessWidget {
         displayValue == '0 ';
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: AppSpacing.lg),
       child: Builder(
         builder: (context) {
           // Simple synchronous check - no async needed
-          final isEditable = controller.shouldShowAsEditable(fieldName);
+          final isEditable = controller.form
+              .shouldShowAsEditable(field, controller.race, controller.canEdit);
 
           return isEditable
               ? _buildEditableMode(context)
@@ -61,14 +65,14 @@ class InlineEditableField extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Container(
-          padding: const EdgeInsets.all(10),
+          padding: const EdgeInsets.all(AppSpacing.md),
           decoration: BoxDecoration(
-            color: ColorUtils.withOpacity(AppColors.primaryColor, 0.1),
-            borderRadius: BorderRadius.circular(10),
+            color: AppColors.primaryColor.withValues(alpha: AppOpacity.light),
+            borderRadius: BorderRadius.circular(AppBorderRadius.md),
           ),
           child: Icon(icon, color: AppColors.primaryColor, size: 22),
         ),
-        const SizedBox(width: 16),
+        const SizedBox(width: AppSpacing.lg),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -79,7 +83,7 @@ class InlineEditableField extends StatelessWidget {
                   color: AppColors.darkColor,
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: AppSpacing.xs),
               Text(
                 isEmpty ? 'Not set' : displayValue,
                 style: AppTypography.bodySemibold.copyWith(
@@ -97,12 +101,12 @@ class InlineEditableField extends StatelessWidget {
             if (canEdit) {
               return Row(
                 children: [
-                  const SizedBox(width: 8),
+                  const SizedBox(width: AppSpacing.sm),
                   InkWell(
-                    onTap: () => controller.startEditingField(fieldName),
-                    borderRadius: BorderRadius.circular(8),
+                    onTap: () => controller.form.startEditing(field),
+                    borderRadius: BorderRadius.circular(AppBorderRadius.sm),
                     child: Container(
-                      padding: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.all(AppSpacing.sm),
                       child: Icon(
                         Icons.edit,
                         color: AppColors.primaryColor,
@@ -127,14 +131,14 @@ class InlineEditableField extends StatelessWidget {
         Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(AppSpacing.md),
               decoration: BoxDecoration(
-                color: ColorUtils.withOpacity(AppColors.primaryColor, 0.1),
-                borderRadius: BorderRadius.circular(10),
+                color: AppColors.primaryColor.withValues(alpha: AppOpacity.light),
+                borderRadius: BorderRadius.circular(AppBorderRadius.md),
               ),
               child: Icon(icon, color: AppColors.primaryColor, size: 22),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: AppSpacing.lg),
             Expanded(
               child: Text(
                 label,
@@ -145,13 +149,13 @@ class InlineEditableField extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.md),
         customEditWidget ??
             Focus(
               onFocusChange: (hasFocus) {
                 if (!hasFocus) {
                   // Handle focus loss with potential autosave
-                  controller.handleFieldFocusLoss(context, fieldName);
+                  controller.handleFieldFocusLoss(context, field);
                 }
               },
               child: buildTextField(
@@ -161,9 +165,7 @@ class InlineEditableField extends StatelessWidget {
                 error: error,
                 keyboardType: keyboardType,
                 suffixIcon: suffixIcon as IconButton?,
-                setSheetState: (fn) =>
-                    fn(), // No-op since we don't use sheet state
-                onChanged: (value) => controller.trackFieldChange(fieldName),
+                onChanged: (value) => controller.trackFieldChange(field),
               ),
             ),
       ],

@@ -6,10 +6,12 @@ import '../controller/bib_number_controller.dart';
 
 class RaceControlsWidget extends StatelessWidget {
   final BibNumberController controller;
+  final VoidCallback onShare;
 
   const RaceControlsWidget({
     super.key,
     required this.controller,
+    required this.onShare,
   });
 
   @override
@@ -66,7 +68,7 @@ class RaceControlsWidget extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
               borderRadius: 30,
               isPrimary: false,
-              onPressed: () => controller.showShareBibNumbersPopup(context),
+              onPressed: onShare,
             );
           },
         ),

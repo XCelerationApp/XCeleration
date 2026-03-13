@@ -87,14 +87,14 @@ final cleanedRecords = SimpleConflictResolver.resolveExtraTimes(
 ### Run Simple Resolver Tests
 
 ```bash
-flutter test test/unit/coach/simple_conflict_resolver_test.dart
+python3 scripts/test_runner.py  test/unit/coach/simple_conflict_resolver_test.dart
 ```
 
 ### Run All Conflict Resolution Tests
 
 ```bash
-flutter test test/unit/coach/merge_conflicts_controller_test.dart
-flutter test test/unit/coach/simple_conflict_resolver_test.dart
+python3 scripts/test_runner.py test/unit/coach/merge_conflicts_controller_test.dart
+python3 scripts/test_runner.py test/unit/coach/simple_conflict_resolver_test.dart
 ```
 
 ## 🏗️ **Architecture**

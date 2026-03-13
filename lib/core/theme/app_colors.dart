@@ -18,4 +18,15 @@ class AppColors {
   static const Color selectedRoleTextColor = Color(0xFFE3582E);
   static const Color unselectedRoleTextColor = Color(0xFF010002);
   static Color confirmRunnerColor = Colors.green.shade500;
+
+  /// Subtle surface background (e.g. status header backgrounds)
+  static const Color surfaceColor = Color(0xFFF5F5F5);
+
+  /// Card/container border (e.g. connection button borders)
+  static const Color borderColor = Color(0xFFE0E0E0);
+
+  static const Color statusSetup = Color(0xFFFFC107); // amber
+  static const Color statusPreRace = Color(0xFF2196F3); // blue
+  static const Color statusPostRace = Color(0xFF9C27B0); // purple
+  static const Color statusFinished = Color(0xFF4CAF50); // green
 }

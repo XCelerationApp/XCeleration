@@ -8,12 +8,15 @@ import 'package:xceleration/core/utils/logger.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
+import '../services/i_share_service.dart';
+import '../services/share_service.dart';
 import 'package:path/path.dart' as p;
 import 'package:xceleration/shared/services/race_results_service.dart';
 import '../../../core/utils/enums.dart';
 import '../../race_results/model/team_record.dart';
 import '../../../core/utils/sheet_utils.dart';
 import '../../../core/utils/google_sheets_service.dart';
+import '../../../core/utils/i_google_sheets_service.dart';
 import '../../../../../core/components/dialog_utils.dart';
 import '../screen/share_race_screen.dart';
 import '../widgets/google_sheet_dialog_widgets.dart';
@@ -27,19 +30,13 @@ import '../widgets/spectator_broadcast_sheet.dart';
 class ShareRaceController extends ChangeNotifier {
   final RaceResultsData raceResultsData;
   final MasterRace masterRace;
-  final BuildContext rootContext;
-  late ShareResultsController _shareResultsController;
+  final ShareResultsController _shareResultsController;
 
   ShareRaceController({
     required this.raceResultsData,
     required this.masterRace,
-    required this.rootContext,
-  }) {
-    _shareResultsController = ShareResultsController(
-      raceResultsData: raceResultsData,
-      rootContext: rootContext,
-    );
-  }
+    required ShareResultsController shareResultsController,
+  }) : _shareResultsController = shareResultsController;
 
   /// Show the share race bottom sheet
   static Future<dynamic> showShareRaceSheet({
@@ -47,6 +44,14 @@ class ShareRaceController extends ChangeNotifier {
     required RaceResultsData raceResultsData,
     required MasterRace masterRace,
   }) {
+    final formattedResultsController =
+        FormattedResultsController(raceResultsData: raceResultsData);
+    final shareResultsController = ShareResultsController(
+      raceResultsData: raceResultsData,
+      googleSheetsService: GoogleSheetsService.instance,
+      formattedResultsController: formattedResultsController,
+      shareService: ShareService(),
+    );
     return sheet(
       context: context,
       title: 'Share Race',
@@ -54,7 +59,7 @@ class ShareRaceController extends ChangeNotifier {
         controller: ShareRaceController(
           raceResultsData: raceResultsData,
           masterRace: masterRace,
-          rootContext: context,
+          shareResultsController: shareResultsController,
         ),
       ),
     );
@@ -65,13 +70,13 @@ class ShareRaceController extends ChangeNotifier {
     switch (format) {
       case ResultFormat.plainText:
         // Plain text is typically only copied, not shared
-        await _shareResultsController._handlePlainTextCopy(context);
+        await _shareResultsController.handlePlainTextCopy(context);
         break;
       case ResultFormat.googleSheet:
-        await _shareResultsController._handleGoogleSheet(context);
+        await _shareResultsController.handleGoogleSheet(context);
         break;
       case ResultFormat.pdf:
-        await _shareResultsController._handlePdf(context);
+        await _shareResultsController.handlePdf(context);
         break;
     }
 
@@ -111,21 +116,22 @@ class ShareRaceController extends ChangeNotifier {
 }
 
 class ShareResultsController {
-  late FormattedResultsController _formattedResultsController;
-  final GoogleSheetsService _googleSheetsService = GoogleSheetsService.instance;
+  final FormattedResultsController _formattedResultsController;
+  final IGoogleSheetsService _googleSheetsService;
+  final IShareService _shareService;
   final RaceResultsData raceResultsData;
-  final BuildContext rootContext;
 
   ShareResultsController({
     required this.raceResultsData,
-    required this.rootContext,
-  }) {
-    _formattedResultsController =
-        FormattedResultsController(raceResultsData: raceResultsData);
-  }
+    required IGoogleSheetsService googleSheetsService,
+    required FormattedResultsController formattedResultsController,
+    required IShareService shareService,
+  })  : _googleSheetsService = googleSheetsService,
+        _formattedResultsController = formattedResultsController,
+        _shareService = shareService;
 
   /// Handle plain text format - copy to clipboard
-  Future<void> _handlePlainTextCopy(BuildContext context) async {
+  Future<void> handlePlainTextCopy(BuildContext context) async {
     // Grab a reference to the Navigator **not** the BuildContext so we don't
     // keep a `BuildContext` alive across the async gap.
     final navigator = Navigator.of(context, rootNavigator: true);
@@ -171,7 +177,7 @@ class ShareResultsController {
   }
 
   /// Handle Google Sheet creation and sharing
-  Future<void> _handleGoogleSheet(BuildContext context) async {
+  Future<void> handleGoogleSheet(BuildContext context) async {
     if (!context.mounted) return;
     final navigator = Navigator.of(context, rootNavigator: true);
 
@@ -345,7 +351,7 @@ class ShareResultsController {
   }
 
   /// Handle PDF - create and share immediately
-  Future<void> _handlePdf(BuildContext context) async {
+  Future<void> handlePdf(BuildContext context) async {
     try {
       // Execute PDF creation with loading dialog
       final xFile = await DialogUtils.executeWithLoadingDialog<XFile>(
@@ -378,24 +384,11 @@ class ShareResultsController {
 
       // Share PDF if creation was successful
       if (xFile != null) {
-        // Determine an active context: prefer the passed context, then rootContext.
-        BuildContext activeContext = context;
-        if (!activeContext.mounted) {
-          if (rootContext.mounted) {
-            activeContext = rootContext;
-          } else if (rootContext.mounted) {
-            final navigator = Navigator.of(rootContext, rootNavigator: true);
-            if (navigator.mounted) {
-              activeContext = navigator.context;
-            }
-          }
-        }
-
-        if (!activeContext.mounted) return;
+        if (!context.mounted) return;
 
         try {
           await _share(
-            activeContext,
+            context,
             ShareParams(
               files: [xFile],
               subject: raceResultsData.resultsTitle,
@@ -403,9 +396,8 @@ class ShareResultsController {
           );
         } catch (e) {
           Logger.d('Error sharing PDF: $e');
-          if (activeContext.mounted) {
-            DialogUtils.showErrorDialog(activeContext,
-                message: 'Failed to share');
+          if (context.mounted) {
+            DialogUtils.showErrorDialog(context, message: 'Failed to share');
           }
         }
       }
@@ -421,11 +413,8 @@ class ShareResultsController {
 
   /// Generic share function
   Future<void> _share(BuildContext context, ShareParams params) async {
-    SharePlus share = SharePlus.instance;
     try {
-      await share.share(
-        params,
-      );
+      await _shareService.share(params);
     } catch (e) {
       Logger.d('Error sharing: $e');
       if (context.mounted) {

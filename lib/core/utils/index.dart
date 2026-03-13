@@ -2,9 +2,6 @@
 /// This provides clean imports for all utility functions and services
 library;
 
-// Database & Storage
-export 'database_helper.dart';
-
 // File Operations
 export 'file_utils.dart';
 export 'file_processing.dart';
@@ -33,6 +30,8 @@ export 'logger.dart';
 // Connections & Network
 export 'connection_utils.dart';
 export 'connection_interfaces.dart';
+export 'connectivity_utils.dart';
 
 // Permissions & Device
 export 'permissions_utils.dart';
+export 'platform_checker.dart';

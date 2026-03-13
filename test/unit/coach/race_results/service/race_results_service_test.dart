@@ -1,8 +1,16 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:xceleration/shared/services/race_results_service.dart';
+import 'package:mockito/annotations.dart';
+import 'package:mockito/mockito.dart';
+import 'package:xceleration/core/result.dart';
+import 'package:xceleration/shared/models/database/master_race.dart';
+import 'package:xceleration/shared/models/database/race.dart';
 import 'package:xceleration/shared/models/database/race_result.dart' as db;
 import 'package:xceleration/shared/models/database/team.dart';
 import 'package:xceleration/shared/models/database/runner.dart';
+import 'package:xceleration/shared/services/race_results_service.dart';
+
+@GenerateMocks([MasterRace])
+import 'race_results_service_test.mocks.dart';
 
 db.RaceResult _result({
   required Team team,
@@ -82,9 +90,10 @@ void main() {
       final all = <db.RaceResult>[...resultsA, ...resultsB];
 
       // Full pipeline as used in app
-      final individual = RaceResultsService.calculateIndividualResults(all);
-      final teams = RaceResultsService.calculateTeamResults(individual);
-      RaceResultsService.sortAndPlaceTeams(teams);
+      const service = RaceResultsService();
+      final individual = service.calculateIndividualResults(all);
+      final teams = service.calculateTeamResults(individual);
+      service.sortAndPlaceTeams(teams);
 
       // Expect ordering: teamA first (eligible), teamB last (incomplete)
       expect(teams.length, 2);
@@ -192,9 +201,10 @@ void main() {
 
       final all = <db.RaceResult>[...resultsA, ...resultsB, ...resultsC];
 
-      final individual = RaceResultsService.calculateIndividualResults(all);
-      final teams = RaceResultsService.calculateTeamResults(individual);
-      RaceResultsService.sortAndPlaceTeams(teams);
+      const service = RaceResultsService();
+      final individual = service.calculateIndividualResults(all);
+      final teams = service.calculateTeamResults(individual);
+      service.sortAndPlaceTeams(teams);
 
       // Order: A then C (eligible), B (incomplete) last
       expect(teams.length, 3);
@@ -236,10 +246,10 @@ void main() {
             finish: const Duration(minutes: 19, seconds: 0)),
       ];
 
-      final individual =
-          RaceResultsService.calculateIndividualResults(resultsX);
-      final teams = RaceResultsService.calculateTeamResults(individual);
-      RaceResultsService.sortAndPlaceTeams(teams);
+      const service = RaceResultsService();
+      final individual = service.calculateIndividualResults(resultsX);
+      final teams = service.calculateTeamResults(individual);
+      service.sortAndPlaceTeams(teams);
 
       // Team incomplete 01 score should be 0
       expect(teams.single.score, 0);
@@ -247,6 +257,63 @@ void main() {
       // Deep copy should preserve score 0
       final cloned = teams.map((t) => t).toList();
       expect(cloned.single.score, 0);
+    });
+  });
+
+  group('RaceResultsService - calculateCompleteRaceResults', () {
+    late MockMasterRace mockMasterRace;
+
+    final testRace = Race(
+      raceId: 1,
+      raceName: 'State Meet',
+      raceDate: DateTime(2025, 6, 15),
+      distance: 3.1,
+      distanceUnit: 'mi',
+      flowState: Race.FLOW_FINISHED,
+    );
+
+    setUp(() {
+      mockMasterRace = MockMasterRace();
+      when(mockMasterRace.race).thenAnswer((_) async => testRace);
+    });
+
+    test('returns Success<RaceResultsData> with empty results', () async {
+      when(mockMasterRace.results).thenAnswer((_) async => []);
+
+      const service = RaceResultsService();
+      final result = await service.calculateCompleteRaceResults(mockMasterRace);
+
+      expect(result, isA<Success<RaceResultsData>>());
+      final data = (result as Success<RaceResultsData>).value;
+      expect(data.individualResults, isEmpty);
+      expect(data.overallTeamResults, isEmpty);
+      expect(data.headToHeadTeamResults, isEmpty);
+    });
+
+    test('returns Success<RaceResultsData> with populated results', () async {
+      final teamA = const Team(name: 'Alpha', abbreviation: 'ALP');
+      final results = <db.RaceResult>[
+        _result(
+            team: teamA,
+            name: 'A1',
+            bib: 'A1',
+            finish: const Duration(minutes: 18)),
+        _result(
+            team: teamA,
+            name: 'A2',
+            bib: 'A2',
+            finish: const Duration(minutes: 19)),
+      ];
+
+      when(mockMasterRace.results).thenAnswer((_) async => results);
+
+      const service = RaceResultsService();
+      final result = await service.calculateCompleteRaceResults(mockMasterRace);
+
+      expect(result, isA<Success<RaceResultsData>>());
+      final data = (result as Success<RaceResultsData>).value;
+      expect(data.individualResults.length, 2);
+      expect(data.individualResults.first.name, 'A1');
     });
   });
 }

@@ -45,7 +45,9 @@ class _TabBarViewWidgetState extends State<TabBarViewWidget> {
             showSecondPage: widget.controller.showingRunnersManagement,
             secondPageTitle: 'Runners',
             onBackToFirst: () {
-              widget.controller.navigateToRaceDetails().catchError((error) {
+              widget.controller
+                  .navigateToRaceDetails(context)
+                  .catchError((error) {
                 debugPrint('Error navigating to race details: $error');
               });
             },

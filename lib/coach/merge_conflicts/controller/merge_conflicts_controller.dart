@@ -1,4 +1,10 @@
+import 'package:xceleration/coach/merge_conflicts/models/conflict_time.dart';
+import 'package:xceleration/coach/merge_conflicts/models/ui_chunk.dart';
+import 'package:xceleration/coach/merge_conflicts/models/ui_record.dart';
+import 'package:xceleration/coach/merge_conflicts/utils/merge_conflicts_utils.dart';
 import 'package:xceleration/coach/merge_conflicts/utils/timing_data_converter.dart';
+import 'package:xceleration/core/app_error.dart';
+import 'package:xceleration/core/services/post_frame_callback_scheduler.dart';
 import 'package:xceleration/core/utils/index.dart';
 import 'package:xceleration/shared/models/database/master_race.dart';
 import 'package:xceleration/shared/models/database/race_runner.dart';
@@ -7,7 +13,6 @@ import 'package:xceleration/shared/models/timing_records/timing_chunk.dart';
 import 'package:xceleration/shared/models/timing_records/timing_datum.dart';
 
 import '../../../core/utils/enums.dart';
-import '../../../core/components/dialog_utils.dart';
 import 'package:flutter/material.dart';
 
 class MergeConflictsController with ChangeNotifier {
@@ -15,11 +20,15 @@ class MergeConflictsController with ChangeNotifier {
   late final List<TimingChunk> timingChunks;
   late List<RaceRunner> raceRunners;
   Map<int, dynamic> selectedTimes = {};
-  BuildContext? _context;
+
+  /// Widget registers this to handle auto-close navigation.
+  VoidCallback? onReadyToClose;
 
   // Cache UI chunks to preserve controller state across rebuilds
   List<UIChunk>? _cachedUIChunks;
   bool _needsUIRebuild = true;
+
+  late final IPostFrameCallbackScheduler _scheduler;
 
   /// Force UI rebuild (used by UIChunk when records change)
   void invalidateUICache() {
@@ -30,58 +39,39 @@ class MergeConflictsController with ChangeNotifier {
     required this.masterRace,
     required this.timingChunks,
     required this.raceRunners,
-  });
-
-  void setContext(BuildContext context) {
-    _context = context;
-  }
+    IPostFrameCallbackScheduler? scheduler,
+  }) : _scheduler = scheduler ?? WidgetsBindingAdapter();
 
   List<UIChunk> get uiChunks {
     // Cache the UI chunks to preserve controller state across rebuilds
     if (_cachedUIChunks == null ||
         _cachedUIChunks!.length != timingChunks.length ||
         _needsUIRebuild) {
-      _cachedUIChunks = TimingDataConverter.convertToUIChunks(
-          timingChunks, raceRunners, this);
+      _cachedUIChunks =
+          TimingDataConverter.convertToUIChunks(timingChunks, raceRunners);
       _needsUIRebuild = false;
     }
     return _cachedUIChunks!;
-  }
-
-  BuildContext get context {
-    assert(_context != null,
-        'Context not set in MergeConflictsController. Call setContext() first.');
-    return _context!;
   }
 
   void initState() {
     consolidateConfirmedTimes();
   }
 
-  Future<void> removeExtraTime(int chunkId, int recordIndex) async {
+  bool removeExtraTime(int chunkId, int recordIndex) {
     final chunkIndex = timingChunks.indexWhere((c) => c.id == chunkId);
     if (chunkIndex == -1) {
-      return;
+      return false;
     }
     final chunk = timingChunks[chunkIndex];
     if (!chunk.hasConflict ||
         chunk.conflictRecord == null ||
         chunk.conflictRecord!.conflict == null ||
         chunk.conflictRecord!.conflict!.type != ConflictType.extraTime) {
-      return;
+      return false;
     }
 
-    // Show confirmation dialog before removing
     if (recordIndex >= 0 && recordIndex < chunk.timingData.length) {
-      final timeToRemove = chunk.timingData[recordIndex].time;
-      final confirmed = await DialogUtils.showConfirmationDialog(
-        context,
-        title: 'Confirm Deletion',
-        content: 'Are you sure you want to delete the time $timeToRemove?',
-      );
-
-      if (!confirmed) return;
-
       chunk.timingData.removeAt(recordIndex);
 
       // Update the conflict's offBy count
@@ -93,18 +83,111 @@ class MergeConflictsController with ChangeNotifier {
         // User should explicitly click "Resolve Conflict" to resolve extra time conflicts
       }
 
-      // Only notify listeners if context is still mounted
-      if (context.mounted) {
-        _needsUIRebuild = true;
-        notifyListeners();
-      }
+      _needsUIRebuild = true;
+      notifyListeners();
+      return true;
     }
+    return false;
   }
 
   void notifyRegisteredListeners() {
-    if (context.mounted) {
-      super.notifyListeners();
+    super.notifyListeners();
+  }
+
+  /// Called by widget when user removes an extra time record from a UIChunk.
+  void removeExtraTimeRecord(int chunkId, int recordIndex) {
+    final uiChunk = _getUIChunk(chunkId);
+    if (uiChunk == null) return;
+    if (uiChunk.conflict.type != ConflictType.extraTime) return;
+    uiChunk.records.removeAt(recordIndex);
+    removeExtraTime(chunkId, recordIndex);
+  }
+
+  /// Called by widget when user submits a missing time.
+  Future<void> submitMissingTimeRecord(
+      int chunkId, int recordIndex, String newValue) async {
+    final uiChunk = _getUIChunk(chunkId);
+    if (uiChunk == null) return;
+    final record = uiChunk.records[recordIndex];
+    record.updateConflictTime(ConflictTime(
+      time: newValue,
+      isOriginallyTBD: record.isOriginallyTBD,
+      validationError: record.validationError,
+    ));
+    if (uiChunk.isResolvedLocally) {
+      await syncChunkToBackendAndCheckResolution(uiChunk);
+    } else {
+      notifyListeners();
     }
+  }
+
+  /// Called by widget on text change in a missing time field.
+  void updateMissingTimeRecord(int chunkId, int recordIndex, String newValue) {
+    final uiChunk = _getUIChunk(chunkId);
+    if (uiChunk == null) return;
+    final record = uiChunk.records[recordIndex];
+    record.timeController.text = newValue;
+    final validationError =
+        _validateTimeInChunk(uiChunk, recordIndex, newValue);
+    record.updateConflictTime(ConflictTime(
+      time: newValue,
+      isOriginallyTBD: record.isOriginallyTBD,
+      validationError: validationError,
+    ));
+    notifyListeners();
+  }
+
+  /// Called by widget when user taps the insert TBD button.
+  void insertTbdAt(int chunkId, int recordIndex) {
+    final uiChunk = _getUIChunk(chunkId);
+    if (uiChunk == null) return;
+    if (uiChunk.conflict.type == ConflictType.confirmRunner) {
+      uiChunk.records.insert(
+        recordIndex,
+        UIRecord(
+          place: null,
+          runner: null,
+          initialTime: 'TBD',
+          isOriginallyTBD: true,
+          validationError: null,
+        ),
+      );
+      notifyListeners();
+      return;
+    }
+    // For missing time conflicts, move the first existing TBD to the target position
+    int? tbdIndex;
+    for (int i = 0; i < uiChunk.records.length; i++) {
+      if (uiChunk.records[i].timeController.text == 'TBD') {
+        tbdIndex = i;
+        break;
+      }
+    }
+    if (tbdIndex == null) return;
+    final tbdRecord = uiChunk.records.removeAt(tbdIndex);
+    uiChunk.records.insert(recordIndex, tbdRecord);
+    notifyListeners();
+  }
+
+  UIChunk? _getUIChunk(int chunkId) {
+    try {
+      return uiChunks.firstWhere((c) => c.chunkId == chunkId);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  String? _validateTimeInChunk(
+      UIChunk uiChunk, int recordIndex, String newValue) {
+    if (newValue.isNotEmpty &&
+        newValue != 'TBD' &&
+        TimeFormatter.loadDurationFromString(newValue) == null) {
+      return 'Invalid Time';
+    }
+    final contextTimes =
+        uiChunk.records.map((r) => r.timeController.text).toList();
+    contextTimes[recordIndex] = newValue;
+    return validateTimeInContext(contextTimes, recordIndex, uiChunk.endTime);
   }
 
   /// Manually resolve an extra time conflict for a specific chunk
@@ -197,10 +280,7 @@ class MergeConflictsController with ChangeNotifier {
       }
     }
 
-    // Notify listeners for UI update
-    if (context.mounted) {
-      notifyListeners();
-    }
+    notifyListeners();
   }
 
   void submitMissingTime(int chunkIndex, int timeIndex, String newValue) {
@@ -243,15 +323,14 @@ class MergeConflictsController with ChangeNotifier {
 
         // Check if we now have one consolidated confirmed chunk and auto-close if so
         if (!hasConflicts) {
-          returnMergedData();
+          _scheduler.addPostFrameCallback(() {
+            onReadyToClose?.call();
+          });
           return; // Don't notify listeners since we're closing
         }
       }
 
-      // Only notify listeners if context is still mounted
-      if (context.mounted) {
-        notifyListeners();
-      }
+      notifyListeners();
     }
   }
 
@@ -274,13 +353,14 @@ class MergeConflictsController with ChangeNotifier {
     return uiChunks.every((chunk) => chunk.hasValidTimeOrder);
   }
 
-  Future<void> returnMergedData() async {
+  /// Returns an error if conflicts remain, or null if safe to close.
+  /// The widget is responsible for showing the error and handling navigation.
+  AppError? canClose() {
     if (hasConflicts) {
-      DialogUtils.showErrorDialog(context,
-          message: 'All conflicts must be resolved before proceeding.');
-      return;
+      return const AppError(
+          userMessage: 'All conflicts must be resolved before proceeding.');
     }
-    Navigator.of(context).pop(null);
+    return null;
   }
 
   /// Consolidates adjacent confirmRunner chunks into a single chunk,
@@ -350,12 +430,10 @@ class MergeConflictsController with ChangeNotifier {
   void _checkForAutoClose() {
     if (allConflictsResolved && hasValidTimeOrder && timingChunks.length == 1) {
       // Schedule auto-close for next frame to avoid dispose issues
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (context.mounted) {
-          returnMergedData();
-        }
+      _scheduler.addPostFrameCallback(() {
+        onReadyToClose?.call();
       });
-    } else {}
+    }
   }
 
   /// Merge consecutive confirmRunner chunks efficiently
@@ -386,7 +464,7 @@ class MergeConflictsController with ChangeNotifier {
 
   Future<TimingChunk?> createNewResolvedChunk(List<String> times) async {
     if (!_validateUserTimes(times)) {
-      _showError('All time fields must be filled with valid times');
+      Logger.e('All time fields must be filled with valid times');
       return null;
     }
     return TimingChunk(
@@ -402,11 +480,6 @@ class MergeConflictsController with ChangeNotifier {
     return times.isNotEmpty &&
         times.every((time) =>
             time.isNotEmpty && time != 'TBD' && TimeFormatter.isDuration(time));
-  }
-
-  void showSuccessMessage() {
-    DialogUtils.showSuccessDialog(context,
-        message: 'Successfully resolved conflict');
   }
 
   void updateSelectedTime(
@@ -426,14 +499,6 @@ class MergeConflictsController with ChangeNotifier {
     notifyListeners();
   }
 
-  /// Helper method to show error dialogs consistently
-  void _showError(String message) {
-    Logger.e(message);
-    if (context.mounted) {
-      DialogUtils.showErrorDialog(context, message: message);
-    }
-  }
-
   /// Clear all data for testing purposes
   Future<void> clearAllData() async {
     try {
@@ -448,17 +513,14 @@ class MergeConflictsController with ChangeNotifier {
       Logger.d('All data cleared successfully');
       notifyListeners();
     } catch (e, stackTrace) {
-      Logger.e('Error clearing data: $e',
-          context: context.mounted ? context : null,
-          error: e,
-          stackTrace: stackTrace);
+      Logger.e('Error clearing data: $e', error: e, stackTrace: stackTrace);
       rethrow;
     }
   }
 
   @override
   void dispose() {
-    _context = null;
+    onReadyToClose = null;
     super.dispose();
   }
 }

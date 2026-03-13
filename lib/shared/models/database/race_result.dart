@@ -7,6 +7,7 @@ class RaceResult {
   final int? resultId;
   final String? uuid;
   final int? raceId;
+  final String? raceUuid;
   final Runner? runner;
   final Team? team;
   int? place;
@@ -20,6 +21,7 @@ class RaceResult {
     this.resultId,
     this.uuid,
     this.raceId,
+    this.raceUuid,
     this.runner,
     this.team,
     this.place,
@@ -63,6 +65,7 @@ class RaceResult {
       resultId: map['result_id'],
       uuid: map['uuid'],
       raceId: map['race_id'],
+      raceUuid: map['race_uuid'] as String?,
       runner: runner,
       team: team,
       place: map['place'],
@@ -105,8 +108,10 @@ class RaceResult {
   Map<String, dynamic> toMap() {
     final Map<String, dynamic> map = {
       'race_id': raceId,
+      'race_uuid': raceUuid,
       'runner_id': runner?.runnerId,
-      'team_id': team?.teamId, // Added missing team_id
+      'runner_uuid': runner?.uuid,
+      'team_id': team?.teamId,
       'place': place,
       'finish_time': finishTime?.inMilliseconds,
       'created_at': createdAt?.toIso8601String(),
@@ -134,6 +139,7 @@ class RaceResult {
     int? resultId,
     String? uuid,
     int? raceId,
+    String? raceUuid,
     Runner? runner,
     Team? team,
     int? place,
@@ -147,6 +153,7 @@ class RaceResult {
       resultId: resultId ?? this.resultId,
       uuid: uuid ?? this.uuid,
       raceId: raceId ?? this.raceId,
+      raceUuid: raceUuid ?? this.raceUuid,
       runner: runner ?? this.runner,
       team: team ?? this.team,
       place: place ?? this.place,
@@ -163,6 +170,7 @@ class RaceResult {
       resultId: result.resultId,
       uuid: result.uuid,
       raceId: result.raceId,
+      raceUuid: result.raceUuid,
       runner: result.runner,
       team: result.team,
       place: result.place,

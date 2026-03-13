@@ -92,6 +92,8 @@ class TimingEncodeUtils {
       try {
         return timingDatum.encode();
       } catch (e) {
+        Logger.e(
+            '[TimingEncodeUtils.encodeTimeRecords] Failed to encode datum: $e');
         return '';
       }
     });

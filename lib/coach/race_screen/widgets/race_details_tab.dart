@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../../core/theme/app_animations.dart';
+import '../../../core/theme/app_border_radius.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_opacity.dart';
+import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/typography.dart';
-import 'package:xceleration/core/utils/color_utils.dart';
 import 'package:xceleration/core/components/textfield_utils.dart';
 import '../controller/race_screen_controller.dart';
+import '../controller/race_form_state.dart';
 import 'inline_editable_field.dart';
 import 'dart:io';
 import '../../../shared/models/database/race.dart';
@@ -25,25 +29,24 @@ class RaceDetailsTab extends StatelessWidget {
           child: Focus(
             onFocusChange: (hasFocus) {
               if (!hasFocus) {
-                controller.handleFieldFocusLoss(context, 'location');
+                controller.handleFieldFocusLoss(context, RaceField.location);
               }
             },
             child: buildTextField(
               context: context,
-              controller: controller.locationController,
+              controller: controller.form.locationController,
               hint: (Platform.isIOS || Platform.isAndroid)
                   ? 'Other location'
                   : 'Enter race location',
-              error: controller.locationError,
-              setSheetState: (fn) => fn(),
-              onChanged: (_) => controller.trackFieldChange('location'),
+              error: controller.form.errorFor(RaceField.location),
+              onChanged: (_) => controller.trackFieldChange(RaceField.location),
               keyboardType: TextInputType.text,
             ),
           ),
         ),
         if (controller.isLocationButtonVisible &&
             (Platform.isIOS || Platform.isAndroid)) ...[
-          const SizedBox(width: 12),
+          const SizedBox(width: AppSpacing.md),
           Expanded(
             flex: 1,
             child: IconButton(
@@ -65,38 +68,35 @@ class RaceDetailsTab extends StatelessWidget {
           child: Focus(
             onFocusChange: (hasFocus) {
               if (!hasFocus) {
-                controller.handleFieldFocusLoss(context, 'distance');
+                controller.handleFieldFocusLoss(context, RaceField.distance);
               }
             },
             child: buildTextField(
               context: context,
-              controller: controller.distanceController,
+              controller: controller.form.distanceController,
               hint: '0.0',
-              error: controller.distanceError,
-              setSheetState: (fn) => fn(),
-              onChanged: (_) => controller.trackFieldChange('distance'),
+              error: controller.form.errorFor(RaceField.distance),
+              onChanged: (_) => controller.trackFieldChange(RaceField.distance),
               keyboardType: TextInputType.numberWithOptions(decimal: true),
             ),
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: AppSpacing.md),
         Expanded(
           flex: 1,
           child: Focus(
             onFocusChange: (hasFocus) {
               if (!hasFocus) {
-                controller.handleFieldFocusLoss(context, 'unit');
+                controller.handleFieldFocusLoss(context, RaceField.unit);
               }
             },
-            child: buildDropdown(
-              controller: controller.unitController,
+            child: AppDropdownField(
+              controller: controller.form.unitController,
               hint: 'mi',
-              error: null,
-              setSheetState: (fn) => fn(),
               items: ['mi', 'km'],
               onChanged: (value) {
-                controller.unitController.text = value;
-                controller.trackFieldChange('unit');
+                controller.form.unitController.text = value;
+                controller.trackFieldChange(RaceField.unit);
               },
             ),
           ),
@@ -114,38 +114,33 @@ class RaceDetailsTab extends StatelessWidget {
     final runnerCount = raceRunners.length;
     final teamCount = teams.length;
 
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Column(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Race Details',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-          ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.lg),
           // Inline editable fields
           InlineEditableField(
             controller: controller,
-            fieldName: 'location',
+            field: RaceField.location,
             label: 'Location',
             icon: Icons.location_on,
-            textController: controller.locationController,
+            textController: controller.form.locationController,
             hint: (Platform.isIOS || Platform.isAndroid)
                 ? 'Other location'
                 : 'Enter race location',
-            error: controller.locationError,
+            error: controller.form.errorFor(RaceField.location),
             customEditWidget: _buildLocationEditWidget(context),
           ),
           InlineEditableField(
             controller: controller,
-            fieldName: 'date',
+            field: RaceField.date,
             label: 'Race Date',
             icon: Icons.calendar_today,
-            textController: controller.dateController,
+            textController: controller.form.dateController,
             hint: 'YYYY-MM-DD',
-            error: controller.dateError,
+            error: controller.form.errorFor(RaceField.date),
             suffixIcon: IconButton(
               icon: const Icon(Icons.calendar_today,
                   color: AppColors.primaryColor),
@@ -160,12 +155,12 @@ class RaceDetailsTab extends StatelessWidget {
           ),
           InlineEditableField(
             controller: controller,
-            fieldName: 'distance',
+            field: RaceField.distance,
             label: 'Distance',
             icon: Icons.straighten,
-            textController: controller.distanceController,
+            textController: controller.form.distanceController,
             hint: '0.0',
-            error: controller.distanceError,
+            error: controller.form.errorFor(RaceField.distance),
             keyboardType: TextInputType.numberWithOptions(decimal: true),
             customEditWidget: _buildDistanceEditWidget(context),
             getDisplayValue: () {
@@ -173,110 +168,113 @@ class RaceDetailsTab extends StatelessWidget {
             },
           ),
 
-          const SizedBox(height: 16),
-          runnerCount == 0
-              ? Container(
-                  margin: const EdgeInsets.only(bottom: 16),
-                  width: double.infinity,
-                  child: Builder(
-                    builder: (context) {
-                      final isViewMode = !canEdit ||
-                          race.flowState == Race.FLOW_FINISHED ||
-                          race.flowState == Race.FLOW_POST_RACE;
-                      return TextButton(
-                        onPressed: () {
-                          controller
-                              .loadRunnersManagementScreenWithConfirmation(
-                                  context,
-                                  isViewMode: isViewMode);
-                        },
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            side: BorderSide(color: AppColors.primaryColor),
-                          ),
-                        ),
-                        child: Text(
-                          'Load Teams and Runners',
-                          style: TextStyle(
-                            color: AppColors.primaryColor,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                )
-              : Builder(
+          const SizedBox(height: AppSpacing.lg),
+          if (runnerCount > 0)
+            Builder(
                   builder: (context) {
                     final isViewMode = !canEdit ||
                         race.flowState == Race.FLOW_FINISHED ||
                         race.flowState == Race.FLOW_POST_RACE;
-                    return InkWell(
-                      onTap: () {
-                        controller.loadRunnersManagementScreenWithConfirmation(
-                            context,
-                            isViewMode: isViewMode);
-                      },
-                      child: Container(
-                        margin: const EdgeInsets.only(bottom: 16),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: ColorUtils.withOpacity(
-                                    AppColors.primaryColor, 0.1),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Icon(Icons.group_rounded,
-                                  color: AppColors.primaryColor, size: 22),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Teams and Runners',
-                                    style: AppTypography.bodyRegular.copyWith(
-                                      color: ColorUtils.withOpacity(
-                                          AppColors.darkColor, 0.6),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    '$teamCount team${teamCount == 1 ? '' : 's'}, $runnerCount runner${runnerCount == 1 ? '' : 's'}',
-                                    style: AppTypography.bodySemibold.copyWith(
-                                      color: AppColors.darkColor,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const SizedBox(width: 8),
-                                Icon(
-                                  Icons.chevron_right,
-                                  color: AppColors.primaryColor,
-                                  size: 28,
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
+                    return _TeamsRow(
+                      teamCount: teamCount,
+                      runnerCount: runnerCount,
+                      onTap: () =>
+                          controller.loadRunnersManagementScreenWithConfirmation(
+                              context,
+                              isViewMode: isViewMode),
                     );
                   },
                 )
         ],
       ),
-    ]);
+    );
+  }
+}
+
+class _TeamsRow extends StatefulWidget {
+  const _TeamsRow({
+    required this.teamCount,
+    required this.runnerCount,
+    required this.onTap,
+  });
+
+  final int teamCount;
+  final int runnerCount;
+  final VoidCallback onTap;
+
+  @override
+  State<_TeamsRow> createState() => _TeamsRowState();
+}
+
+class _TeamsRowState extends State<_TeamsRow> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) => setState(() => _pressed = false),
+      onTapCancel: () => setState(() => _pressed = false),
+      onTap: widget.onTap,
+      child: AnimatedContainer(
+        duration: AppAnimations.fast,
+        curve: AppAnimations.spring,
+        margin: const EdgeInsets.only(bottom: AppSpacing.lg),
+        padding: const EdgeInsets.all(AppSpacing.xs),
+        decoration: BoxDecoration(
+          color: _pressed
+              ? AppColors.primaryColor.withValues(alpha: AppOpacity.faint)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(AppBorderRadius.md),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              decoration: BoxDecoration(
+                color: AppColors.primaryColor.withValues(alpha: AppOpacity.light),
+                borderRadius: BorderRadius.circular(AppBorderRadius.md),
+              ),
+              child: Icon(Icons.group_rounded,
+                  color: AppColors.primaryColor, size: 22),
+            ),
+            const SizedBox(width: AppSpacing.lg),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Teams and Runners',
+                    style: AppTypography.bodyRegular.copyWith(
+                      color: AppColors.mediumColor,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    '${widget.teamCount} team${widget.teamCount == 1 ? '' : 's'}, ${widget.runnerCount} runner${widget.runnerCount == 1 ? '' : 's'}',
+                    style: AppTypography.bodySemibold.copyWith(
+                      color: AppColors.darkColor,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(width: AppSpacing.sm),
+                Icon(
+                  Icons.chevron_right,
+                  color: AppColors.primaryColor,
+                  size: 28,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

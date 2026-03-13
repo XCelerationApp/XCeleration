@@ -159,7 +159,9 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
                       secondPageTitle: 'Runners',
                       onBackToFirst: () {
                         // Handle async navigation in a fire-and-forget manner
-                        controller.navigateToRaceDetails().catchError((error) {
+                        controller
+                            .navigateToRaceDetails(context)
+                            .catchError((error) {
                           // Log error but don't block UI
                           debugPrint(
                               'Error navigating to race details: $error');
