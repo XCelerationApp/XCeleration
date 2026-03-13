@@ -51,6 +51,9 @@ app.*.map.json
 # Worktree issue marker (created by scripts/start_issue.py)
 .linear-issue
 
+# Claude Code local settings (MCP config, machine-specific)
+.claude/settings.local.json
+
 # Node
 node_modules/
 # Test coverage output

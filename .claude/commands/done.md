@@ -38,19 +38,10 @@ Remove the worktree from the main repo:
 git -C "$MAIN" worktree remove "$WORKTREE" --force
 ```
 
-## 6. Close the Cursor window
-
-Close the Cursor window using the issue ID from the worktree folder name:
-```bash
-osascript -e "tell application \"Cursor\" to close (every window whose name contains \"$ISSUE_ID\")"
-```
-
-If the osascript command errors or no matching window is found, skip silently.
-
-## 7. Confirm to the user
+## 6. Confirm to the user
 
 Tell the user:
 - The issue has been marked Done
 - The local worktree has been removed
-- The Cursor window has been closed
+- Close the Cursor window for this issue manually
 - The branch and PR on GitHub remain open for review and merging
