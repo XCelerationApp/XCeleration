@@ -64,6 +64,15 @@ Use `-v` when the default output truncates the error and more context is needed.
 
 Do NOT use `flutter test` directly for reading results — its raw output exceeds the Bash tool's readable limit. Do NOT add `2>&1` to the runner command.
 
+## Issue Worktree Workflow
+
+Start an issue: `python3 scripts/start_issue.py 123` (from the main repo).
+Finish an issue: `/done` (from Claude Code inside the worktree).
+
+See `skills/GIT_WORKFLOW_SKILL.md` and `skills/LINEAR_WORKFLOW_SKILL.md` for full details.
+
+---
+
 ## When Unsure — Ask First
 
 If a request is unclear, ambiguous, or could be interpreted multiple ways, always ask (using the AskUserQuestion tool) for clarification before starting. Do not make assumptions and proceed. A short question upfront is better than work that needs to be redone.
