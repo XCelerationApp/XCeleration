@@ -23,7 +23,7 @@ void main() {
 
   GoogleDriveService buildService({bool online = true}) {
     when(mockConnectivity.isOnline()).thenAnswer((_) async => online);
-    return GoogleDriveService.forTesting(
+    return GoogleDriveService(
       authService: mockAuthService,
       connectivity: mockConnectivity,
     );

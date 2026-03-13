@@ -17,20 +17,11 @@ class GoogleSheetsService implements IGoogleSheetsService {
   final ConnectivityService _connectivity;
   GoogleDriveService? _driveService;
 
-  // Private constructor for singleton pattern
-  GoogleSheetsService._({
+  GoogleSheetsService({
     GoogleAuthService? authService,
-    ConnectivityService? connectivity,
-  })  : _authService = authService ?? GoogleAuthService.instance,
-        _connectivity = connectivity ?? const ConnectivityService();
-
-  /// Constructor for testing — bypasses the singleton and allows dependency injection.
-  @visibleForTesting
-  GoogleSheetsService.forTesting({
-    required GoogleAuthService authService,
     GoogleDriveService? driveService,
     ConnectivityService? connectivity,
-  })  : _authService = authService,
+  })  : _authService = authService ?? GoogleAuthService.instance,
         _connectivity = connectivity ?? const ConnectivityService() {
     _driveService = driveService;
   }
@@ -43,7 +34,7 @@ class GoogleSheetsService implements IGoogleSheetsService {
   }
 
   static GoogleSheetsService get instance {
-    _instance ??= GoogleSheetsService._();
+    _instance ??= GoogleSheetsService();
     return _instance!;
   }
 

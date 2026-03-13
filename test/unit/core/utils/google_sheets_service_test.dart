@@ -26,7 +26,7 @@ void main() {
 
   GoogleSheetsService buildService({bool online = true}) {
     when(mockConnectivity.isOnline()).thenAnswer((_) async => online);
-    return GoogleSheetsService.forTesting(
+    return GoogleSheetsService(
       authService: mockAuthService,
       driveService: mockDriveService,
       connectivity: mockConnectivity,

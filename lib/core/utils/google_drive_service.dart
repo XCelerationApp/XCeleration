@@ -23,18 +23,10 @@ class GoogleDriveService {
 
   // Note: We don't specify scopes here as GoogleAuthService now handles this centrally
 
-  GoogleDriveService._({
+  GoogleDriveService({
     GoogleAuthService? authService,
     ConnectivityService? connectivity,
   })  : _authService = authService ?? GoogleAuthService.instance,
-        _connectivity = connectivity ?? const ConnectivityService();
-
-  /// Constructor for testing — bypasses the singleton and allows dependency injection.
-  @visibleForTesting
-  GoogleDriveService.forTesting({
-    required GoogleAuthService authService,
-    ConnectivityService? connectivity,
-  })  : _authService = authService,
         _connectivity = connectivity ?? const ConnectivityService();
 
   /// Get GooglePickerService instance lazily to avoid circular dependency
@@ -44,7 +36,7 @@ class GoogleDriveService {
   }
 
   static GoogleDriveService get instance {
-    _instance ??= GoogleDriveService._();
+    _instance ??= GoogleDriveService();
     return _instance!;
   }
 
