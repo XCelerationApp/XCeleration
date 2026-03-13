@@ -6,6 +6,7 @@ Creates a git worktree branched from dev and opens it in Cursor.
 Usage: python3 scripts/start_issue.py 123
 """
 import os
+import shutil
 import subprocess
 import sys
 
@@ -66,6 +67,12 @@ def main():
         if result.returncode != 0:
             print("Error: failed to create worktree")
             sys.exit(1)
+
+    # Copy .env from main repo (gitignored, required for flutter test)
+    env_src = os.path.join(repo_root, ".env")
+    env_dst = os.path.join(worktree_path, ".env")
+    if os.path.isfile(env_src) and not os.path.exists(env_dst):
+        shutil.copy2(env_src, env_dst)
 
     # Write .linear-issue marker so /done can find the issue ID
     marker_path = os.path.join(worktree_path, ".linear-issue")
