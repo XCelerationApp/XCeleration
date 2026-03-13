@@ -33,9 +33,9 @@ class _UndoToastState extends State<UndoToast>
   late final Animation<Offset> _slideAnimation;
   late final Animation<double> _fadeAnimation;
 
-  // Entry takes AppAnimations.standard (250 ms) out of the 1800 ms total.
-  static const _totalMs = 1800;
-  // 250 / 1800 — Duration.inMilliseconds is not usable in a const expression.
+  // Entry takes AppAnimations.standard (250 ms) out of the 2550 ms total.
+  static const _totalMs = 2550;
+  // 250 / 2550 — Duration.inMilliseconds is not usable in a const expression.
   static const _entryFraction = 250 / _totalMs;
 
   @override

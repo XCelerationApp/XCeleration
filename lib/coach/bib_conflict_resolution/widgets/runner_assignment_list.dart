@@ -74,24 +74,25 @@ class _RunnerAssignmentListState extends State<RunnerAssignmentList> {
     }
 
     return Column(
+      mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        _SchoolFilterPills(
+          teams: teams,
+          activeTeam: _activeTeam,
+          onChanged: (t) => setState(() {
+            _activeTeam = t;
+            _selectedRunner = null;
+          }),
+        ),
+        const SizedBox(height: AppSpacing.md),
         // Scrollable runner list — bounded so the CTA below stays visible.
         ConstrainedBox(
-          constraints: const BoxConstraints(maxHeight: 320),
+          constraints: const BoxConstraints(maxHeight: 440),
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _SchoolFilterPills(
-                  teams: teams,
-                  activeTeam: _activeTeam,
-                  onChanged: (t) => setState(() {
-                    _activeTeam = t;
-                    _selectedRunner = null;
-                  }),
-                ),
-                const SizedBox(height: AppSpacing.md),
                 if (nearbyRunners.isEmpty)
                   _EmptyState(message: 'No unassigned runners — create a new one.')
                 else if (filtered.isEmpty)
@@ -295,27 +296,15 @@ class _AnimatedRunnerRowState extends State<_AnimatedRunnerRow> {
                       ],
                     ),
                   ),
-                  if (widget.isSelected)
-                    Container(
-                      width: 20,
-                      height: 20,
-                      decoration: const BoxDecoration(
-                        // TODO(ui): replace with AppColors.statusFinished once added
-                        color: Color(0xFF4CAF50),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.check, color: Colors.white, size: 14),
-                    )
-                  else
-                    AnimatedRotation(
-                      turns: _expanded ? 0.5 : 0,
-                      duration: AppAnimations.fast,
-                      child: const Icon(
-                        Icons.keyboard_arrow_down,
-                        color: AppColors.mediumColor,
-                        size: 20,
-                      ),
+                  AnimatedRotation(
+                    turns: _expanded ? 0.5 : 0,
+                    duration: AppAnimations.fast,
+                    child: const Icon(
+                      Icons.keyboard_arrow_down,
+                      color: AppColors.mediumColor,
+                      size: 20,
                     ),
+                  ),
                 ],
               ),
               AnimatedSize(
