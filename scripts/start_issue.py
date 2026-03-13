@@ -9,6 +9,7 @@ import os
 import shutil
 import subprocess
 import sys
+import time
 
 
 def get_repo_root() -> str:
@@ -79,17 +80,25 @@ def main():
     with open(marker_path, "w") as f:
         f.write(issue_id + "\n")
 
+    # Run flutter pub get in the new worktree
+    subprocess.run(["flutter", "pub", "get"], cwd=worktree_path)
+
     print(f"Worktree : {worktree_path}")
     print(f"Branch   : {branch}")
 
     # Open in a new Cursor window
     cursor_bin = "/usr/local/bin/cursor"
     if os.path.isfile(cursor_bin):
-        subprocess.Popen([cursor_bin, "-n", worktree_path])
+        subprocess.Popen([cursor_bin, "-n", worktree_path, "--command", "claude-vscode.editor.open"])
         print("Opened in Cursor.")
     else:
         print("\nCould not find Cursor at /usr/local/bin/cursor. Open manually:")
         print(f"  cursor -n {worktree_path}")
+
+    # Start Claude Code in this terminal, pointed at the worktree
+    time.sleep(2)
+    print(f"Starting Claude Code for {issue_id}...")
+    subprocess.run(["claude", f"Implement Linear issue {issue_id}."], cwd=worktree_path)
 
 
 if __name__ == "__main__":
