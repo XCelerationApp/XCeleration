@@ -48,6 +48,9 @@ app.*.map.json
 # Environment variables
 .env
 
+# Worktree issue marker (created by scripts/start_issue.py)
+.linear-issue
+
 # Node
 node_modules/
 # Test coverage output
