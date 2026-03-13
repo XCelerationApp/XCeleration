@@ -204,8 +204,6 @@ class _InlineLeftoverAssignment extends StatefulWidget {
 }
 
 class _InlineLeftoverAssignmentState extends State<_InlineLeftoverAssignment> {
-  bool _assignMode = false;
-
   String get _conflictLabel =>
       '${ordinal(widget.leftoverOccurrence.position)} place '
       '(Bib #${widget.conflict.bibNumber})';
@@ -272,22 +270,37 @@ class _InlineLeftoverAssignmentState extends State<_InlineLeftoverAssignment> {
           ),
         ),
         const SizedBox(height: AppSpacing.sm),
-        AnimatedSize(
-          duration: AppAnimations.standard,
-          curve: AppAnimations.spring,
-          child: _assignMode
-              ? _DupAssignPanel(
-                  targetBib: widget.conflict.bibNumber,
-                  conflictLabel: _conflictLabel,
-                  onDismiss: () => setState(() => _assignMode = false),
-                )
-              : _DupActionButtons(
-                  onAssign: () => setState(() => _assignMode = true),
-                  onCreate: () => _openCreateSheet(context),
-                ),
+        _DupActionButtons(
+          onAssign: () => _openAssignSheet(context),
+          onCreate: () => _openCreateSheet(context),
         ),
       ],
     );
+  }
+
+  Future<void> _openAssignSheet(BuildContext context) async {
+    final controller = context.read<ConflictResolutionController>();
+    RaceRunner? pendingRunner;
+
+    await sheet(
+      context: context,
+      title: 'Assign Existing Runner',
+      body: ChangeNotifierProvider.value(
+        value: controller,
+        child: RunnerAssignmentList(
+          targetBib: widget.conflict.bibNumber,
+          forbiddenBib: widget.conflict.bibNumber,
+          onAssign: (runner, _) {
+            pendingRunner = runner;
+            Navigator.of(context).pop();
+          },
+        ),
+      ),
+    );
+
+    if (pendingRunner != null) {
+      controller.prepareAssignForDuplicate(pendingRunner!, _conflictLabel);
+    }
   }
 
   Future<void> _openCreateSheet(BuildContext context) async {
@@ -314,44 +327,6 @@ class _InlineLeftoverAssignmentState extends State<_InlineLeftoverAssignment> {
   }
 }
 
-class _DupAssignPanel extends StatelessWidget {
-  const _DupAssignPanel({
-    required this.targetBib,
-    required this.conflictLabel,
-    required this.onDismiss,
-  });
-
-  final int targetBib;
-  final String conflictLabel;
-  final VoidCallback onDismiss;
-
-  @override
-  Widget build(BuildContext context) {
-    final controller = context.read<ConflictResolutionController>();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text('Assign Existing Runner', style: AppTypography.smallBodySemibold),
-            const Spacer(),
-            GestureDetector(
-              onTap: onDismiss,
-              child: const Icon(Icons.close, size: 20, color: AppColors.mediumColor),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        RunnerAssignmentList(
-          targetBib: targetBib,
-          forbiddenBib: targetBib,
-          onAssign: (runner, _) =>
-              controller.prepareAssignForDuplicate(runner, conflictLabel),
-        ),
-      ],
-    );
-  }
-}
 
 class _DupActionButtons extends StatelessWidget {
   const _DupActionButtons({required this.onAssign, required this.onCreate});
@@ -373,6 +348,7 @@ class _DupActionButtons extends StatelessWidget {
             backgroundColor: AppColors.selectedRoleColor,
             side: const BorderSide(color: AppColors.primaryColor),
             padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+            textStyle: AppTypography.bodySemibold,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppBorderRadius.lg),
             ),
@@ -388,6 +364,7 @@ class _DupActionButtons extends StatelessWidget {
             foregroundColor: Colors.white,
             elevation: 0,
             padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+            textStyle: AppTypography.bodySemibold,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppBorderRadius.lg),
             ),
