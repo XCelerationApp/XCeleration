@@ -27,18 +27,16 @@ void main() {
     });
 
     group('encode', () {
-      test('includes the offBy value in the encoded string', () {
-        final conflict = Conflict(type: ConflictType.missingTime, offBy: 4);
-        expect(conflict.encode(), contains('4'));
+      test('encodes confirmRunner as index 0', () {
+        expect(Conflict(type: ConflictType.confirmRunner, offBy: 1).encode(), '0,1');
       });
 
-      test('produces different output for different conflict types', () {
-        final a = Conflict(type: ConflictType.missingTime).encode();
-        final b = Conflict(type: ConflictType.extraTime).encode();
-        final c = Conflict(type: ConflictType.confirmRunner).encode();
-        expect(a, isNot(equals(b)));
-        expect(b, isNot(equals(c)));
-        expect(a, isNot(equals(c)));
+      test('encodes missingTime as index 1', () {
+        expect(Conflict(type: ConflictType.missingTime, offBy: 3).encode(), '1,3');
+      });
+
+      test('encodes extraTime as index 2', () {
+        expect(Conflict(type: ConflictType.extraTime, offBy: 5).encode(), '2,5');
       });
     });
 
@@ -60,6 +58,17 @@ void main() {
         expect(conflict.type, ConflictType.extraTime);
         expect(conflict.offBy, 5);
       });
+    });
+
+    group('encode / decode round-trip', () {
+      for (final type in ConflictType.values) {
+        test('round-trips ${type.name}', () {
+          final original = Conflict(type: type, offBy: 2);
+          final decoded = Conflict.decode(original.encode());
+          expect(decoded.type, original.type);
+          expect(decoded.offBy, original.offBy);
+        });
+      }
     });
   });
 }
