@@ -527,19 +527,18 @@ void main() {
       });
 
       group('updateChunkTimingData', () {
-        // Note: the production implementation passes an un-awaited Future<String>
-        // to db.update, causing SQLite to throw a type error. The method always
-        // returns Failure as a result of this bug.
-        test('returns Failure due to missing await on encodeTimeRecords',
-            () async {
+        test('replaces timing data in an existing chunk', () async {
           await AssistantStorageService.instance.saveChunk(
               kRaceId, TimingChunk(id: 8, timingData: [TimingDatum(time: '0:01.00')]));
 
           final result = await AssistantStorageService.instance
               .updateChunkTimingData(
-                  kRaceId, 8, [TimingDatum(time: '0:03.00')]);
+                  kRaceId, 8, [TimingDatum(time: '0:03.00'), TimingDatum(time: '0:04.00')]);
 
-          expect(result, isA<Failure<void>>());
+          expect(result, isA<Success<void>>());
+          final retrieved =
+              await AssistantStorageService.instance.getChunk(kRaceId, 8);
+          expect((retrieved as Success).value?.timingData.length, 2);
         });
       });
 
