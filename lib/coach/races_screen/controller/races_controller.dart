@@ -45,7 +45,7 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
   final TextEditingController dateController = TextEditingController();
   final TextEditingController distanceController = TextEditingController();
   final TextEditingController unitController = TextEditingController();
-  final TextEditingController userlocationController = TextEditingController();
+  final TextEditingController userLocationController = TextEditingController();
   final List<TextEditingController> teamControllers = [];
   final List<Color> teamColors = [];
   String unit = 'mi';
@@ -119,7 +119,7 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
 
   void updateLocationButtonVisibility() {
     isLocationButtonVisible =
-        locationController.text.trim() != userlocationController.text.trim();
+        locationController.text.trim() != userLocationController.text.trim();
     notifyListeners();
   }
 
@@ -199,7 +199,7 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
     locationController.text = '';
     dateController.text = '';
     distanceController.text = '';
-    userlocationController.text = '';
+    userLocationController.text = '';
     isLocationButtonVisible = true;
     teamControllers.clear();
     teamControllers.add(TextEditingController());
@@ -279,7 +279,7 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
       final placemark = placemarks.first;
       locationController.text =
           '${placemark.subThoroughfare} ${placemark.thoroughfare}, ${placemark.locality}, ${placemark.administrativeArea} ${placemark.postalCode}';
-      userlocationController.text = locationController.text;
+      userLocationController.text = locationController.text;
       locationError = null;
       notifyListeners();
       updateLocationButtonVisibility();
@@ -409,7 +409,7 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
     locationController.dispose();
     dateController.dispose();
     distanceController.dispose();
-    userlocationController.dispose();
+    userLocationController.dispose();
     unitController.dispose();
     for (var controller in teamControllers) {
       controller.dispose();
