@@ -100,7 +100,7 @@ void _runApp() async {
         Provider<ConnectivitySyncService>.value(value: connectivitySyncService),
         ChangeNotifierProvider(create: (context) => EventBusProvider()),
         ChangeNotifierProvider(
-          create: (context) => RaceController(
+          create: (context) => RaceScreenController(
               masterRace: MasterRace.getInstance(0),
               parentController: RacesController(racesService: RacesService(), authService: AuthService.instance, eventBus: EventBus.instance, geoLocationService: GeoLocationService(), postFrameCallbackScheduler: WidgetsBindingAdapter(), tutorialManager: TutorialManager(), syncStream: syncService.syncEvents)),
         ),

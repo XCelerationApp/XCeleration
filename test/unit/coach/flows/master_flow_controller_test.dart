@@ -11,7 +11,7 @@ import 'package:xceleration/shared/models/database/master_race.dart';
 import 'package:xceleration/shared/models/database/race.dart';
 
 @GenerateMocks([
-  RaceController,
+  RaceScreenController,
   PreRaceController,
   PostRaceController,
   MasterRace,

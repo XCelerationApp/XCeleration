@@ -16,7 +16,7 @@ import '../../../coach/race_screen/services/race_service.dart';
 
 /// Controller class for handling all flow-related operations
 class MasterFlowController {
-  final RaceController raceController;
+  final RaceScreenController raceController;
   late PreRaceController preRaceController;
   late PostRaceController postRaceController;
 

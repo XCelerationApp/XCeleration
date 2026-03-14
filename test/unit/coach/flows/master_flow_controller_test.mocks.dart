@@ -131,10 +131,10 @@ class _FakeRaceResultsData_7 extends _i1.SmartFake
         );
 }
 
-/// A class which mocks [RaceController].
+/// A class which mocks [RaceScreenController].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockRaceController extends _i1.Mock implements _i10.RaceController {
+class MockRaceController extends _i1.Mock implements _i10.RaceScreenController {
   MockRaceController() {
     _i1.throwOnMissingStub(this);
   }

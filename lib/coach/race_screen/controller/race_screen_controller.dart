@@ -18,11 +18,11 @@ import '../../../core/services/geo_location_service.dart';
 import '../../../core/services/date_picker_service.dart';
 import '../../../core/components/dialog_utils.dart';
 
-// RaceController coordinates data loading, form save orchestration, and
+// RaceScreenController coordinates data loading, form save orchestration, and
 // navigation state. These concerns share the MasterRace dependency tightly
 // enough that further decomposition would introduce circular dependencies.
 // The class is intentionally slightly over 300 lines as a justified exception.
-class RaceController with ChangeNotifier {
+class RaceScreenController with ChangeNotifier {
   // Race data
   bool isRaceSetup = false;
   late TabController tabController;
@@ -107,7 +107,7 @@ class RaceController with ChangeNotifier {
 
   late final RaceGeoController _geoController;
 
-  RaceController({
+  RaceScreenController({
     required this.masterRace,
     required this.parentController,
     IGeoLocationService? geoLocationService,

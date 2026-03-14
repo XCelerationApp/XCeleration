@@ -152,7 +152,7 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
           context: context,
           body: ChangeNotifierProvider(
             create: (ctx) {
-              final raceController = RaceController(
+              final raceController = RaceScreenController(
                 masterRace: masterRace,
                 parentController: this,
               );
@@ -335,7 +335,7 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
       context: context,
       body: ChangeNotifierProvider(
         create: (ctx) {
-          final raceController = RaceController(
+          final raceController = RaceScreenController(
             masterRace: masterRace,
             parentController: this,
           );
