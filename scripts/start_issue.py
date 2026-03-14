@@ -69,6 +69,11 @@ def main():
             print("Error: failed to create worktree")
             sys.exit(1)
 
+    # Remove settings.local.json if present — it can disable MCPs and override settings.json
+    settings_local = os.path.join(worktree_path, ".claude", "settings.local.json")
+    if os.path.exists(settings_local):
+        os.remove(settings_local)
+
     # Copy .env from main repo (gitignored, required for flutter test)
     env_src = os.path.join(repo_root, ".env")
     env_dst = os.path.join(worktree_path, ".env")
