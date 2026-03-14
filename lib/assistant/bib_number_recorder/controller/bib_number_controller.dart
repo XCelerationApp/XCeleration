@@ -19,7 +19,7 @@ import '../../shared/models/runner.dart' as db_models;
 import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/result.dart';
 import '../../shared/widgets/other_races_sheet.dart';
-import '../widget/runners_loaded_sheet.dart';
+import '../widgets/runners_loaded_sheet.dart';
 import 'bib_number_data_controller.dart';
 
 sealed class ShareDataResult {}
