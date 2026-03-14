@@ -70,7 +70,7 @@ dependencies:
 
   # Monitoring & Analytics
   sentry_flutter: ^8.14.2
-  package_info_plus: ^8.3.0
+  package_info_plus: ^9.0.0
 
   # Configuration
   flutter_dotenv: ^5.1.0
