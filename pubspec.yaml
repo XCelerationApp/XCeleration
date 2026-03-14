@@ -78,6 +78,16 @@ dependencies:
   # App Lifecycle
   flutter_native_splash: ^2.4.4
 
+  # Voice Recognition
+  vosk_flutter: any
+
+dependency_overrides:
+  # vosk_flutter pins permission_handler ^10.2.0 and http ^0.13.5.
+  # Override both to our project versions. The basic microphone permission
+  # API and core http GET API are stable across these version ranges.
+  permission_handler: ^11.1.0
+  http: ^1.2.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
