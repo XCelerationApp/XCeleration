@@ -3,11 +3,11 @@ import '../../../core/theme/typography.dart';
 import '../../../core/utils/enums.dart';
 import '../model/ui_record.dart';
 
-class UIRecordItem extends StatelessWidget {
+class RecordListItem extends StatelessWidget {
   final UIRecord uiRecord;
   final int index;
 
-  const UIRecordItem({
+  const RecordListItem({
     super.key,
     required this.uiRecord,
     required this.index,
