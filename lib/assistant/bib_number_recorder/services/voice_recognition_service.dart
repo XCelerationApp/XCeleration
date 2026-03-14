@@ -1,35 +1,32 @@
 import 'dart:async';
-import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
 
-import 'package:vosk_flutter/vosk_flutter.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
+import 'package:record/record.dart';
+import 'package:sherpa_onnx/sherpa_onnx.dart' as sherpa;
 import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/result.dart';
 import 'package:xceleration/core/utils/logger.dart';
 
-/// Number-word building blocks for the Vosk grammar.
-///
-/// Vosk will only recognise these words. The spoken sequence is then parsed
-/// into an integer by [parseNumberWords]. "hundred" and "thousand" extend the
-/// ~28 developer-specified words so that bib numbers can be spoken both as
-/// natural number words ("one hundred five" → 105) and as digit/chunk
-/// sequences ("one zero five" → 105, "ten five" → 105).
-const List<String> bibGrammar = [
-  'zero', 'one', 'two', 'three', 'four', 'five',
-  'six', 'seven', 'eight', 'nine', 'ten', 'eleven',
-  'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen',
-  'seventeen', 'eighteen', 'nineteen', 'twenty', 'thirty',
-  'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety',
-  'hundred', 'thousand',
-  '[unk]',
-];
+/// Base URL for model archives on Hugging Face.
+const String _modelBaseUrl =
+    'https://huggingface.co/csukuangfj/'
+    'sherpa-onnx-streaming-zipformer-en-20M-2023-02-17/resolve/main';
 
-/// URL for the small English Vosk model (~40 MB compressed).
+/// Number-word vocabulary used as hotwords for contextual biasing.
 ///
-/// On first [initialize], this is downloaded to the app's documents directory
-/// and cached. Subsequent calls reuse the cached version automatically via
-/// [ModelLoader.isModelAlreadyLoaded].
-const String _modelUrl =
-    'https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip';
+/// Sherpa-ONNX does not support hard grammar constraints; instead these words
+/// are passed as hotwords to boost their recognition probability.
+const List<String> bibHotwords = [
+  'ZERO', 'ONE', 'TWO', 'THREE', 'FOUR', 'FIVE',
+  'SIX', 'SEVEN', 'EIGHT', 'NINE', 'TEN', 'ELEVEN',
+  'TWELVE', 'THIRTEEN', 'FOURTEEN', 'FIFTEEN', 'SIXTEEN',
+  'SEVENTEEN', 'EIGHTEEN', 'NINETEEN', 'TWENTY', 'THIRTY',
+  'FORTY', 'FIFTY', 'SIXTY', 'SEVENTY', 'EIGHTY', 'NINETY',
+  'HUNDRED', 'THOUSAND',
+];
 
 /// Map of all recognised number words to their integer values.
 const Map<String, int> _wordValues = {
@@ -44,9 +41,9 @@ const Map<String, int> _wordValues = {
 
 /// Offline voice recognition service for bib numbers (1–9999).
 ///
-/// Integrates [vosk_flutter] to listen for spoken bib numbers and emit them
-/// as integers via [bibNumbers]. No UI is wired up — this is a service layer
-/// intended for manual smoke testing and future controller integration.
+/// Uses [sherpa_onnx] with a streaming zipformer model for cross-platform
+/// (iOS + Android) offline recognition. Hotwords bias recognition toward
+/// number words, then [parseNumberWords] converts the transcript to an int.
 ///
 /// ## Typical usage
 /// ```dart
@@ -60,13 +57,15 @@ const Map<String, int> _wordValues = {
 /// await service.dispose();
 /// ```
 class VoiceRecognitionService {
-  final _vosk = VoskFlutterPlugin.instance();
   final _bibController = StreamController<int?>.broadcast();
   final _partialController = StreamController<String>.broadcast();
+  final _recorder = AudioRecorder();
 
-  Model? _model;
-  Recognizer? _recognizer;
-  SpeechService? _speechService;
+  sherpa.OnlineRecognizer? _recognizer;
+  sherpa.OnlineStream? _stream;
+  StreamSubscription<Uint8List>? _audioSub;
+
+  String _lastText = '';
 
   /// Emits a recognised bib number (1–9999), or null when speech is detected
   /// but cannot be parsed as a valid bib number.
@@ -76,48 +75,42 @@ class VoiceRecognitionService {
   /// speaks. Useful for displaying live feedback in the UI.
   Stream<String> get partialResults => _partialController.stream;
 
-  /// Initialises the Vosk model, recogniser, and microphone speech service.
+  /// Initialises the sherpa-onnx model and recogniser.
   ///
-  /// Downloads the model on first use (~40 MB) to the app's documents
-  /// directory; subsequent calls reuse the cached version instantly.
-  ///
-  /// Throws [MicrophoneAccessDeniedException] internally — this method wraps
-  /// that into a [Failure] so callers never need to catch exceptions.
+  /// Downloads the model on first use (~44 MB) to the app's support directory;
+  /// subsequent calls reuse the cached version instantly.
   Future<Result<void>> initialize() async {
     try {
-      final modelPath = await ModelLoader().loadFromNetwork(_modelUrl);
+      sherpa.initBindings();
 
-      _model = await _vosk.createModel(modelPath);
-      _recognizer = await _vosk.createRecognizer(
-        model: _model!,
-        sampleRate: 16000,
-        grammar: bibGrammar,
+      final modelDir = await _ensureModelDownloaded();
+
+      final config = sherpa.OnlineRecognizerConfig(
+        feat: const sherpa.FeatureConfig(sampleRate: 16000, featureDim: 80),
+        model: sherpa.OnlineModelConfig(
+          transducer: sherpa.OnlineTransducerModelConfig(
+            encoder: p.join(modelDir, 'encoder-epoch-99-avg-1.int8.onnx'),
+            decoder: p.join(modelDir, 'decoder-epoch-99-avg-1.onnx'),
+            joiner: p.join(modelDir, 'joiner-epoch-99-avg-1.onnx'),
+          ),
+          tokens: p.join(modelDir, 'tokens.txt'),
+          modelType: 'zipformer',
+          numThreads: 1,
+          provider: 'cpu',
+          debug: false,
+        ),
+        decodingMethod: 'modified_beam_search',
+        maxActivePaths: 4,
+        enableEndpoint: true,
+        rule1MinTrailingSilence: 1.5,
+        rule2MinTrailingSilence: 0.8,
+        rule3MinUtteranceLength: 20.0,
       );
 
-      // initSpeechService requests microphone permission internally.
-      // Throws MicrophoneAccessDeniedException if denied.
-      _speechService = await _vosk.initSpeechService(_recognizer!);
-
-      _speechService!.onResult().listen((resultJson) {
-        final bib = _parseResult(resultJson);
-        _bibController.add(bib);
-      });
-
-      _speechService!.onPartial().listen((partialJson) {
-        try {
-          final map = jsonDecode(partialJson) as Map<String, dynamic>;
-          final partial = (map['partial'] as String?)?.trim() ?? '';
-          _partialController.add(partial);
-        } catch (e) {
-          Logger.e('[VoiceRecognitionService.onPartial] $e');
-        }
-      });
+      _recognizer = sherpa.OnlineRecognizer(config);
+      _stream = _recognizer!.createStream(hotwords: bibHotwords.join('\n'));
 
       return const Success(null);
-    } on MicrophoneAccessDeniedException {
-      return Failure(const AppError(
-        userMessage: 'Microphone permission is required for voice recognition.',
-      ));
     } catch (e, st) {
       Logger.e(
         '[VoiceRecognitionService.initialize] Failed to initialise',
@@ -132,34 +125,144 @@ class VoiceRecognitionService {
   }
 
   /// Starts microphone capture and recognition.
-  Future<void> start() async => _speechService?.start();
+  Future<void> start() async {
+    if (_recognizer == null || _stream == null) return;
 
-  /// Stops microphone capture. Any audio buffered since the last result will
-  /// be flushed, causing a final [bibNumbers] event to be emitted.
-  Future<void> stop() async => _speechService?.stop();
+    final hasPermission = await _recorder.hasPermission();
+    if (!hasPermission) {
+      _bibController.add(null);
+      return;
+    }
+
+    _lastText = '';
+
+    final audioStream = await _recorder.startStream(
+      const RecordConfig(
+        encoder: AudioEncoder.pcm16bits,
+        sampleRate: 16000,
+        numChannels: 1,
+      ),
+    );
+
+    _audioSub = audioStream.listen((Uint8List data) {
+      final samples = _pcm16ToFloat32(data);
+      _stream!.acceptWaveform(samples: samples, sampleRate: 16000);
+
+      while (_recognizer!.isReady(_stream!)) {
+        _recognizer!.decode(_stream!);
+      }
+
+      final result = _recognizer!.getResult(_stream!);
+      final text = result.text.trim().toLowerCase();
+
+      if (text != _lastText) {
+        _lastText = text;
+        _partialController.add(text);
+      }
+
+      if (_recognizer!.isEndpoint(_stream!)) {
+        _onEndpoint(text);
+        _recognizer!.reset(_stream!);
+        _lastText = '';
+      }
+    });
+  }
+
+  /// Stops microphone capture. The final in-progress text is flushed and a
+  /// [bibNumbers] event is emitted.
+  Future<void> stop() async {
+    await _audioSub?.cancel();
+    _audioSub = null;
+    await _recorder.stop();
+
+    // Flush any remaining audio and emit a final result
+    if (_recognizer != null && _stream != null) {
+      while (_recognizer!.isReady(_stream!)) {
+        _recognizer!.decode(_stream!);
+      }
+      final result = _recognizer!.getResult(_stream!);
+      final text = result.text.trim().toLowerCase();
+      _onEndpoint(text);
+      _recognizer!.reset(_stream!);
+      _lastText = '';
+    }
+  }
 
   /// Releases all resources. The service must not be used after this call.
   Future<void> dispose() async {
-    await _speechService?.dispose();
-    await _recognizer?.dispose();
-    _model?.dispose();
+    await _audioSub?.cancel();
+    await _recorder.dispose();
+    _stream?.free();
+    _recognizer?.free();
     await _bibController.close();
     await _partialController.close();
   }
 
-  /// Parses a Vosk final-result JSON string and returns a bib number integer,
-  /// or null if the text is absent or not a valid bib number.
-  ///
-  /// Vosk emits: `{"result": [...], "text": "twenty three"}`
-  int? _parseResult(String resultJson) {
-    try {
-      final map = jsonDecode(resultJson) as Map<String, dynamic>;
-      final text = (map['text'] as String?)?.trim() ?? '';
-      return parseNumberWords(text);
-    } catch (e) {
-      Logger.e('[VoiceRecognitionService._parseResult] $e');
-      return null;
+  // ---------------------------------------------------------------------------
+  // Private helpers
+  // ---------------------------------------------------------------------------
+
+  void _onEndpoint(String text) {
+    if (text.isEmpty) return;
+    final bib = parseNumberWords(text);
+    _bibController.add(bib);
+    _partialController.add('');
+  }
+
+  Float32List _pcm16ToFloat32(Uint8List bytes) {
+    final values = Float32List(bytes.length ~/ 2);
+    final data = ByteData.view(bytes.buffer);
+    for (var i = 0; i < bytes.length; i += 2) {
+      final short = data.getInt16(i, Endian.little);
+      values[i ~/ 2] = short / 32768.0;
     }
+    return values;
+  }
+
+  /// Downloads and extracts the model if not already cached.
+  /// Returns the local directory path containing the model files.
+  Future<String> _ensureModelDownloaded() async {
+    final support = await getApplicationSupportDirectory();
+    final modelDir = p.join(
+      support.path,
+      'sherpa_onnx',
+      'sherpa-onnx-streaming-zipformer-en-20M-2023-02-17',
+    );
+
+    final requiredFiles = [
+      'encoder-epoch-99-avg-1.int8.onnx',
+      'decoder-epoch-99-avg-1.onnx',
+      'joiner-epoch-99-avg-1.onnx',
+      'tokens.txt',
+    ];
+
+    // Check if all required files exist
+    final allExist = requiredFiles.every(
+      (f) => File(p.join(modelDir, f)).existsSync(),
+    );
+    if (allExist) return modelDir;
+
+    // Download each file individually
+    await Directory(modelDir).create(recursive: true);
+    final client = HttpClient();
+    try {
+      for (final filename in requiredFiles) {
+        final dest = File(p.join(modelDir, filename));
+        if (dest.existsSync()) continue;
+
+        final uri = Uri.parse('$_modelBaseUrl/$filename');
+        final request = await client.getUrl(uri);
+        final response = await request.close();
+        if (response.statusCode != 200) {
+          throw Exception('Failed to download $filename (${response.statusCode})');
+        }
+        await response.pipe(dest.openWrite());
+      }
+    } finally {
+      client.close();
+    }
+
+    return modelDir;
   }
 
   /// Converts a spoken number-word sequence into an integer in the range
@@ -183,15 +286,14 @@ class VoiceRecognitionService {
 
     final words = text
         .split(RegExp(r'\s+'))
-        .where((w) => w.isNotEmpty && w != '[unk]')
-        // "hundred" / "thousand" act only as separators — skip them
+        .where((w) => w.isNotEmpty)
         .where((w) => w != 'hundred' && w != 'thousand')
         .toList();
 
     if (words.isEmpty) return null;
 
     final chunks = <int>[];
-    String? pendingTens; // a tens word waiting for an optional following ones
+    String? pendingTens;
 
     for (final word in words) {
       final v = _wordValues[word];
