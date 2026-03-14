@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:xceleration/coach/flows/PreRaceFlow/steps/review_runners/review_runners_step.dart';
+import 'package:xceleration/coach/flows/pre_race_flow/steps/review_runners/review_runners_step.dart';
 import 'package:xceleration/shared/models/database/master_race.dart';
 
 void main() {
