@@ -46,7 +46,7 @@ dependencies:
   share_plus: ^11.0.0
   url_launcher: ^6.1.10
   geolocator: ^13.0.2
-  geocoding: ^2.1.1
+  geocoding: ^4.0.0
   permission_handler: ^11.1.0
 
   # UI Components & Widgets
