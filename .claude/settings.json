@@ -66,5 +66,11 @@
       "Edit(macos/Flutter/GeneratedPluginRegistrant.swift)",
       "Edit(ios/Flutter/GeneratedPluginRegistrant.*)"
     ]
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "github",
+    "supabase",
+    "linear"
+  ]
 }
