@@ -10,8 +10,9 @@ import 'package:xceleration/core/utils/logger.dart';
 ///
 /// Vosk will only recognise these words. The spoken sequence is then parsed
 /// into an integer by [parseNumberWords]. "hundred" and "thousand" extend the
-/// ~28 developer-specified words so that bib numbers up to 9999 can be spoken
-/// naturally (e.g. "one thousand two hundred thirty four").
+/// ~28 developer-specified words so that bib numbers can be spoken both as
+/// natural number words ("one hundred five" → 105) and as digit/chunk
+/// sequences ("one zero five" → 105, "ten five" → 105).
 const List<String> bibGrammar = [
   'zero', 'one', 'two', 'three', 'four', 'five',
   'six', 'seven', 'eight', 'nine', 'ten', 'eleven',
@@ -25,11 +26,12 @@ const List<String> bibGrammar = [
 /// URL for the small English Vosk model (~40 MB compressed).
 ///
 /// On first [initialize], this is downloaded to the app's documents directory
-/// and cached. Subsequent calls reuse the cached model automatically via
+/// and cached. Subsequent calls reuse the cached version automatically via
 /// [ModelLoader.isModelAlreadyLoaded].
 const String _modelUrl =
     'https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip';
 
+/// Map of all recognised number words to their integer values.
 const Map<String, int> _wordValues = {
   'zero': 0, 'one': 1, 'two': 2, 'three': 3, 'four': 4,
   'five': 5, 'six': 6, 'seven': 7, 'eight': 8, 'nine': 9,
@@ -51,6 +53,7 @@ const Map<String, int> _wordValues = {
 /// final service = VoiceRecognitionService();
 /// await service.initialize();
 /// service.bibNumbers.listen((bib) => print('Got bib: $bib'));
+/// service.partialResults.listen((text) => print('Partial: $text'));
 /// await service.start();
 /// // ... later ...
 /// await service.stop();
@@ -59,6 +62,7 @@ const Map<String, int> _wordValues = {
 class VoiceRecognitionService {
   final _vosk = VoskFlutterPlugin.instance();
   final _bibController = StreamController<int?>.broadcast();
+  final _partialController = StreamController<String>.broadcast();
 
   Model? _model;
   Recognizer? _recognizer;
@@ -67,6 +71,10 @@ class VoiceRecognitionService {
   /// Emits a recognised bib number (1–9999), or null when speech is detected
   /// but cannot be parsed as a valid bib number.
   Stream<int?> get bibNumbers => _bibController.stream;
+
+  /// Emits the real-time partial (in-progress) recognition text as the user
+  /// speaks. Useful for displaying live feedback in the UI.
+  Stream<String> get partialResults => _partialController.stream;
 
   /// Initialises the Vosk model, recogniser, and microphone speech service.
   ///
@@ -95,6 +103,16 @@ class VoiceRecognitionService {
         _bibController.add(bib);
       });
 
+      _speechService!.onPartial().listen((partialJson) {
+        try {
+          final map = jsonDecode(partialJson) as Map<String, dynamic>;
+          final partial = (map['partial'] as String?)?.trim() ?? '';
+          _partialController.add(partial);
+        } catch (e) {
+          Logger.e('[VoiceRecognitionService.onPartial] $e');
+        }
+      });
+
       return const Success(null);
     } on MicrophoneAccessDeniedException {
       return Failure(const AppError(
@@ -116,7 +134,8 @@ class VoiceRecognitionService {
   /// Starts microphone capture and recognition.
   Future<void> start() async => _speechService?.start();
 
-  /// Stops microphone capture.
+  /// Stops microphone capture. Any audio buffered since the last result will
+  /// be flushed, causing a final [bibNumbers] event to be emitted.
   Future<void> stop() async => _speechService?.stop();
 
   /// Releases all resources. The service must not be used after this call.
@@ -125,6 +144,7 @@ class VoiceRecognitionService {
     await _recognizer?.dispose();
     _model?.dispose();
     await _bibController.close();
+    await _partialController.close();
   }
 
   /// Parses a Vosk final-result JSON string and returns a bib number integer,
@@ -142,59 +162,68 @@ class VoiceRecognitionService {
     }
   }
 
-  /// Converts a space-separated English number-word sequence into an integer
-  /// in the range 1–9999, or returns null if parsing fails.
+  /// Converts a spoken number-word sequence into an integer in the range
+  /// 1–9999, or returns null if parsing fails.
+  ///
+  /// ## Algorithm — chunk concatenation
+  ///
+  /// "hundred" and "thousand" are treated as separators and ignored. The
+  /// remaining words are grouped into natural chunks (a tens word optionally
+  /// followed by a ones word), then each chunk's value is stringified and
+  /// concatenated.
   ///
   /// Examples:
-  /// - `"twenty three"` → 23
-  /// - `"one hundred twenty three"` → 123
-  /// - `"nine thousand nine hundred ninety nine"` → 9999
-  /// - `""` / `"[unk]"` / unrecognised words → null
+  /// - `"one two three four"` → [1][2][3][4] → "1234" → 1234
+  /// - `"twelve thirty four"` → [12][34]     → "1234" → 1234
+  /// - `"twenty three"`       → [23]         → "23"   → 23
+  /// - `"one hundred five"`   → [1][5]       → "15"   → 15  ← note: "hundred" skipped
+  /// - `"nine thousand nine hundred ninety nine"` → [9][9][99] → "9999" → 9999
   static int? parseNumberWords(String text) {
     if (text.isEmpty) return null;
+
     final words = text
         .split(RegExp(r'\s+'))
-        .where((w) => w.isNotEmpty)
+        .where((w) => w.isNotEmpty && w != '[unk]')
+        // "hundred" / "thousand" act only as separators — skip them
+        .where((w) => w != 'hundred' && w != 'thousand')
         .toList();
-    final value = _parseWordList(words);
-    if (value == null || value < 1 || value > 9999) return null;
-    return value;
-  }
 
-  /// Recursively reduces a word list to an integer value.
-  static int? _parseWordList(List<String> words) {
-    if (words.isEmpty) return 0;
+    if (words.isEmpty) return null;
 
-    // "X thousand [rest]"
-    final thousandIdx = words.indexOf('thousand');
-    if (thousandIdx > 0) {
-      final thousands = _parseWordList(words.sublist(0, thousandIdx));
-      final rest = thousandIdx + 1 < words.length
-          ? _parseWordList(words.sublist(thousandIdx + 1))
-          : 0;
-      if (thousands == null || rest == null) return null;
-      return thousands * 1000 + rest;
-    }
+    final chunks = <int>[];
+    String? pendingTens; // a tens word waiting for an optional following ones
 
-    // "X hundred [rest]"
-    final hundredIdx = words.indexOf('hundred');
-    if (hundredIdx > 0) {
-      final hundreds = _parseWordList(words.sublist(0, hundredIdx));
-      final rest = hundredIdx + 1 < words.length
-          ? _parseWordList(words.sublist(hundredIdx + 1))
-          : 0;
-      if (hundreds == null || rest == null) return null;
-      return hundreds * 100 + rest;
-    }
-
-    // Sum remaining words (handles tens + optional ones, e.g. "twenty three")
-    int sum = 0;
     for (final word in words) {
-      if (word == '[unk]') return null;
       final v = _wordValues[word];
-      if (v == null) return null;
-      sum += v;
+      if (v == null) return null; // unrecognised word
+
+      if (v >= 20 && v % 10 == 0) {
+        // Tens word (twenty … ninety): flush any previous lone tens
+        if (pendingTens != null) {
+          chunks.add(_wordValues[pendingTens]!);
+        }
+        pendingTens = word;
+      } else if (pendingTens != null) {
+        // Ones word (1–9) following a tens word: combine into one chunk
+        chunks.add(_wordValues[pendingTens]! + v);
+        pendingTens = null;
+      } else {
+        // Standalone digit (0–9) or teen (10–19): own chunk
+        chunks.add(v);
+      }
     }
-    return sum;
+
+    // Flush any trailing lone tens word (e.g. "forty" spoken alone → 40)
+    if (pendingTens != null) {
+      chunks.add(_wordValues[pendingTens]!);
+    }
+
+    if (chunks.isEmpty) return null;
+
+    // Concatenate chunk values as digit strings → parse as integer
+    final joined = chunks.map((c) => c.toString()).join();
+    final result = int.tryParse(joined);
+    if (result == null || result < 1 || result > 9999) return null;
+    return result;
   }
 }
