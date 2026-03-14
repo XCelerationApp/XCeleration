@@ -563,7 +563,7 @@ class AssistantStorageService implements IAssistantStorageService {
       final db = await database;
       await db.update(
         'timing_chunks',
-        {'timing_data': TimingEncodeUtils.encodeTimeRecords(timingData)},
+        {'timing_data': await TimingEncodeUtils.encodeTimeRecords(timingData)},
         where: 'race_id = ? AND chunk_id = ?',
         whereArgs: [raceId, chunkId],
       );
