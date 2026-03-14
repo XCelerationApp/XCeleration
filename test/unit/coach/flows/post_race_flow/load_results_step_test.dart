@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
-import 'package:xceleration/coach/flows/PostRaceFlow/steps/load_results/controller/load_results_controller.dart';
-import 'package:xceleration/coach/flows/PostRaceFlow/steps/load_results/load_results_step.dart';
+import 'package:xceleration/coach/flows/post_race_flow/steps/load_results/controller/load_results_controller.dart';
+import 'package:xceleration/coach/flows/post_race_flow/steps/load_results/load_results_step.dart';
 
 @GenerateMocks([LoadResultsController])
 import 'load_results_step_test.mocks.dart';

@@ -41,7 +41,7 @@ class RecordsListWidget extends StatelessWidget {
   }
 
   Widget _buildRecordItem(UIRecord uiRecord, int index, BuildContext context) {
-    final item = UIRecordItem(uiRecord: uiRecord, index: index);
+    final item = RecordListItem(uiRecord: uiRecord, index: index);
 
     final bool canSwipe = (uiRecord.textColor == Colors.black) || // unconfirmed
         (uiRecord.type != RecordType.runnerTime &&

@@ -7,8 +7,8 @@ import '../theme/typography.dart';
 
 /// A per-section empty state with a circular icon container, bold title,
 /// and a gray subtitle. Fades in on first render.
-class EmptySectionState extends StatefulWidget {
-  const EmptySectionState({
+class EmptySection extends StatefulWidget {
+  const EmptySection({
     super.key,
     required this.icon,
     required this.title,
@@ -20,10 +20,10 @@ class EmptySectionState extends StatefulWidget {
   final String subtitle;
 
   @override
-  State<EmptySectionState> createState() => _EmptySectionStateState();
+  State<EmptySection> createState() => _EmptySectionState();
 }
 
-class _EmptySectionStateState extends State<EmptySectionState> {
+class _EmptySectionState extends State<EmptySection> {
   double _opacity = 0;
 
   @override

@@ -33,7 +33,7 @@ class RaceScreen extends StatefulWidget {
 
 class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
   StreamSubscription? _flowStateSubscription;
-  RaceController? _controller; // Store a reference to the controller
+  RaceScreenController? _controller; // Store a reference to the controller
 
   @override
   void initState() {
@@ -47,7 +47,7 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
   void didChangeDependencies() {
     super.didChangeDependencies();
     // Safely store a reference to the controller
-    _controller = Provider.of<RaceController>(context, listen: false);
+    _controller = Provider.of<RaceScreenController>(context, listen: false);
   }
 
   @override
@@ -62,7 +62,7 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
 
   Future<void> _initializeRaceScreen() async {
     try {
-      final controller = Provider.of<RaceController>(context, listen: false);
+      final controller = Provider.of<RaceScreenController>(context, listen: false);
       controller.tabController = TabController(length: 2, vsync: this);
       // Navigate to results page if specified
       if (widget.page == RaceScreenPage.results) {
@@ -90,14 +90,14 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
 
   // Refresh race data when flow state changes
   Future<void> _refreshRaceData() async {
-    final controller = Provider.of<RaceController>(context, listen: false);
+    final controller = Provider.of<RaceScreenController>(context, listen: false);
     // Controller handles its own refresh state
     await controller.refreshRaceData(context);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<RaceController>(
+    return Consumer<RaceScreenController>(
       builder: (context, controller, _) {
         // Handle loading state
         if (controller.isLoading) {

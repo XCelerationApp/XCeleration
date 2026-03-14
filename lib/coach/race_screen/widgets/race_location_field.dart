@@ -6,7 +6,7 @@ import '../controller/race_screen_controller.dart';
 import '../controller/race_form_state.dart';
 
 class RaceLocationField extends StatelessWidget {
-  final RaceController controller;
+  final RaceScreenController controller;
   final ValueChanged<String>? onChanged;
 
   const RaceLocationField({

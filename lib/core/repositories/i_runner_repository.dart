@@ -1,6 +1,6 @@
 import '../../shared/models/database/base_models.dart';
 
-abstract class IRunnerRepository {
+abstract interface class IRunnerRepository {
   // --- CRUD ---
   Future<int> createRunner(Runner runner);
   Future<Runner?> getRunner(int runnerId);

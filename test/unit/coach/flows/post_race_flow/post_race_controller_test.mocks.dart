@@ -8,7 +8,7 @@ import 'dart:ui' as _i8;
 
 import 'package:flutter/material.dart' as _i11;
 import 'package:mockito/mockito.dart' as _i1;
-import 'package:xceleration/coach/flows/PostRaceFlow/steps/load_results/controller/load_results_controller.dart'
+import 'package:xceleration/coach/flows/post_race_flow/steps/load_results/controller/load_results_controller.dart'
     as _i9;
 import 'package:xceleration/coach/race_results/model/team_record.dart' as _i7;
 import 'package:xceleration/core/services/device_connection_service.dart'
