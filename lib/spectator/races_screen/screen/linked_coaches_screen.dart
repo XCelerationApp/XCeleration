@@ -4,7 +4,12 @@ import 'package:xceleration/core/theme/app_colors.dart';
 import 'package:xceleration/core/theme/typography.dart';
 
 class LinkedCoachesScreen extends StatefulWidget {
-  const LinkedCoachesScreen({super.key});
+  const LinkedCoachesScreen({
+    super.key,
+    required ParentLinkService parentLinkService,
+  }) : _parentLinkService = parentLinkService;
+
+  final ParentLinkService _parentLinkService;
 
   @override
   State<LinkedCoachesScreen> createState() => _LinkedCoachesScreenState();
@@ -22,8 +27,7 @@ class _LinkedCoachesScreenState extends State<LinkedCoachesScreen> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final rows =
-        await ParentLinkService.instance.listLinkedCoachesWithProfiles();
+    final rows = await widget._parentLinkService.listLinkedCoachesWithProfiles();
     if (!mounted) return;
     setState(() {
       _coaches = rows;
@@ -32,7 +36,7 @@ class _LinkedCoachesScreenState extends State<LinkedCoachesScreen> {
   }
 
   Future<void> _unlink(String coachUserId) async {
-    await ParentLinkService.instance.unlinkCoach(coachUserId);
+    await widget._parentLinkService.unlinkCoach(coachUserId);
     await _load();
   }
 

@@ -46,6 +46,8 @@ When adding or changing mocks (e.g. after `@GenerateMocks` changes):
 /Users/finiandonnelley/Programming_project/flutter/bin/dart run build_runner build --delete-conflicting-outputs
 ```
 
+After regenerating mocks, scan every `.mocks.dart` file for redundant per-line ignores. If the file header already has `// ignore_for_file: <diagnostic>`, remove any matching `// ignore: <diagnostic>` lines elsewhere in the file — they cause a `duplicate_ignore` lint error in CI.
+
 ## Running Tests
 
 Always use the custom test runner — it parses `flutter test --reporter=json` and prints a concise summary that fits in a single Bash tool read:

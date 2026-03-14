@@ -18,13 +18,16 @@ import 'package:gotrue/gotrue.dart' as gotrue;
 class SignInScreen extends StatefulWidget {
   const SignInScreen({
     super.key,
-    IAuthService? authService,
+    required IAuthService authService,
     ConnectivityService? connectivityService,
+    required ProfileService profileService,
   })  : _authService = authService,
-        _connectivityService = connectivityService;
+        _connectivityService = connectivityService,
+        _profileService = profileService;
 
-  final IAuthService? _authService;
+  final IAuthService _authService;
   final ConnectivityService? _connectivityService;
+  final ProfileService _profileService;
 
   @override
   State<SignInScreen> createState() => _SignInScreenState();
@@ -42,7 +45,6 @@ class _SignInScreenState extends State<SignInScreen>
   final FocusNode _emailFocusNode = FocusNode();
   final FocusNode _passwordFocusNode = FocusNode();
 
-  IAuthService get _authService => widget._authService ?? AuthService.instance;
   ConnectivityService get _connectivity =>
       widget._connectivityService ?? const ConnectivityService();
 
@@ -79,14 +81,14 @@ class _SignInScreenState extends State<SignInScreen>
     setState(() => _busy = true);
     try {
       if (_isLogin) {
-        final resp = await _authService.signInWithEmailPassword(
+        final resp = await widget._authService.signInWithEmailPassword(
           _emailController.text.trim(),
           _passwordController.text,
         );
         if (mounted && resp.session != null) {
           // Run a sync after sign-in and navigate to coach screen
           try {
-            await ProfileService.instance.ensureProfileUpsert();
+            await widget._profileService.ensureProfileUpsert();
             await syncService.syncAll();
           } catch (_) {}
           if (!mounted) return;
@@ -96,20 +98,20 @@ class _SignInScreenState extends State<SignInScreen>
           );
         }
       } else {
-        final resp = await _authService.signUpWithEmailPassword(
+        final resp = await widget._authService.signUpWithEmailPassword(
           _emailController.text.trim(),
           _passwordController.text,
         );
         // If confirmation is disabled, session should be returned. If not, fallback: sign in immediately.
         if (resp.session == null) {
-          await _authService.signInWithEmailPassword(
+          await widget._authService.signInWithEmailPassword(
             _emailController.text.trim(),
             _passwordController.text,
           );
         }
         if (mounted) {
           try {
-            await ProfileService.instance.ensureProfileUpsert();
+            await widget._profileService.ensureProfileUpsert();
             await syncService.syncAll();
           } catch (_) {}
           if (!mounted) return;
@@ -333,7 +335,7 @@ class _SignInScreenState extends State<SignInScreen>
                                                 'Enter email to reset password');
                                         return;
                                       }
-                                      await _authService.sendPasswordResetEmail(
+                                      await widget._authService.sendPasswordResetEmail(
                                           _emailController.text.trim());
                                       if (context.mounted) {
                                         DialogUtils.showMessageDialog(context,

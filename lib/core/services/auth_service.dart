@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:xceleration/core/services/i_auth_service.dart';
+import 'package:xceleration/core/services/i_remote_api_client.dart';
 import 'package:xceleration/core/services/remote_api_client.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/shared/constants/app_constants.dart';
@@ -8,10 +9,12 @@ import 'package:http/http.dart' as http;
 export 'i_auth_service.dart';
 
 class AuthService implements IAuthService {
-  AuthService._();
-  static final AuthService instance = AuthService._();
+  AuthService({IRemoteApiClient? remoteApi})
+      : _remoteApi = remoteApi ?? RemoteApiClient();
+  static final AuthService instance = AuthService();
 
-  SupabaseClient get _client => Supabase.instance.client;
+  final IRemoteApiClient _remoteApi;
+  SupabaseClient get _client => _remoteApi.client;
 
   @override
   String? get currentUserId => _client.auth.currentUser?.id;
@@ -30,8 +33,8 @@ class AuthService implements IAuthService {
   /// This expects a Supabase Edge Function named 'delete-user' to exist on the backend.
   /// The function should validate the user's auth and perform deletion using service role.
   Future<void> deleteCurrentUserAccount() async {
-    await RemoteApiClient.instance.init();
-    if (!RemoteApiClient.instance.isInitialized) {
+    await _remoteApi.init();
+    if (!_remoteApi.isInitialized) {
       throw Exception('Remote service not configured');
     }
     final uid = currentUserId;
