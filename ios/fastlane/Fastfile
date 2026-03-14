@@ -79,7 +79,7 @@ platform :ios do
       # Step 2: Handle splash screen (non-blocking)
       UI.message("Step 2: Configuring splash screen...")
       begin
-        sh "dart run flutter_native_splash:create > /dev/null"  # Hide stdout but show errors
+        sh "cd .. && dart run flutter_native_splash:create > /dev/null"  # Hide stdout but show errors
         UI.success("✅ Splash screen regenerated")
       rescue => e
         UI.important("⚠️ Splash screen generation failed: #{e.message}")

@@ -11,30 +11,11 @@ Read this file fully before taking any git or PR action.
 
 ---
 
-## Branch Naming
+## Branches
 
-| Type | Format | Example |
-| --- | --- | --- |
-| Feature | `feat/<short-description>` | `feat/add-logout-button` |
-| Bug fix | `fix/<short-description>` | `fix/timer-overflow` |
-| Refactor | `refactor/<short-description>` | `refactor/timing-data-di` |
-| Docs / skills | `docs/<short-description>` | `docs/update-skill-files` |
-| Chore | `chore/<short-description>` | `chore/update-dependencies` |
+Each issue gets its own git worktree, created by running `python3 scripts/start_issue.py XCE-123` from the main repo. The branch name is the Linear issue ID (e.g. `XCE-123`), branched from `dev`.
 
-- Use lowercase kebab-case
-- Be specific — `fix/race-result-sort-order` not `fix/bug`
-- Branch off `dev` unless told otherwise
-
-### When Starting a New Issue
-
-Before creating a new branch, check the current branch:
-
-1. **On `dev` or an unrelated branch** → create a new branch using the naming format above.
-2. **On a closely related branch** (same file/module, sequential issues) → do **not** create a new branch. Instead:
-   - If the current branch name still accurately describes the work, keep it.
-   - If the scope has grown, **ask the user** whether to rename the branch before doing so.
-   - Use `git branch -m <old> <new>` to rename; update the remote with `git push origin :<old> && git push -u origin <new>` if already pushed.
-3. **Never silently create a new branch** when already on a related one — always confirm with the user first.
+Do not create branches manually. If no worktree exists yet, ask the user to run the start script first.
 
 ---
 
@@ -80,8 +61,6 @@ EOF
 
 ### GitHub Tool Reference
 
-Use the right tool for the job:
-
 | Operation | Tool |
 | --- | --- |
 | List PRs / find PR number | `gh pr list --head <branch>` (Bash) |
@@ -91,17 +70,22 @@ Use the right tool for the job:
 
 ### Flow
 
-1. Create a branch from `dev`
-2. Make commits (one concern per commit)
-3. Push: `git push -u origin <branch-name>`
-4. A PR is **automatically created** — never create one manually unless the user explicitly asks you to
+1. Make commits (one concern per commit)
+2. Push: `git push -u origin <branch-name>`
+3. A PR is **automatically created** — never create one manually unless the user explicitly asks
    - Wait a few seconds, then run `gh pr list --head <branch-name>` to confirm it exists and get the PR number
-   - If the auto-created PR does not appear after waiting, check again before considering any other action
-5. **Only update the PR description after all commits are pushed.** GitHub replaces the PR description with auto-generated text whenever a new commit is pushed, wiping any custom description set earlier. Set it once, at the end.
-6. Update the PR description using: `mcp__github__update_pull_request`
-7. **Verify** the description was applied: `gh pr view <number> --json body -q .body`
-   - If the body still shows the auto-generated text, re-run step 6
-8. If this PR was related to a linear issue, mark the linear issue as completed, as said in the @LINEAR_WORKFLOW_SKILL.md
+   - If the auto-created PR does not appear after waiting, check again before considering any other action (this could take up to 30s)
+4. **Only update the PR title and description after all commits are pushed.** GitHub wipes any custom description on each push — set it once, at the very end.
+5. Fetch the Linear issue title using `mcp__linear__get_issue`, then update the PR title and description together using `mcp__github__update_pull_request`:
+   - **Title:** `Type - <Linear issue title>` (e.g. `Feat - Add logout button to profile screen`)
+   - **Body:** see PR Description Format below
+6. **Verify** both were applied: `gh pr view <number> --json title,body -q '{title:.title,body:.body}'`
+   - If either still shows auto-generated content, re-run step 5
+
+**This is where the agent's job ends.** Tell the user the PR is ready for review, and remind them:
+
+- For a subissue: run `/done XCE-101` to mark it Done (worktree stays open for remaining subissues)
+- For a top-level issue: run `/done` to mark it Done and clean up the worktree
 
 ### PR Description Format
 
@@ -130,6 +114,7 @@ Use the right tool for the job:
 
 - Don't `git add .` — stage files explicitly
 - Don't skip `Co-Authored-By` in commit messages
-- Don't create PRs manually unless the user explicitly asks — they are auto-created on push
+- Don't create branches or PRs manually — branches come from the start script, PRs are auto-created on push
 - Don't amend published commits
 - Don't push to `main`
+- Don't mark Linear issues Done — that is always the user's step via `/done`
