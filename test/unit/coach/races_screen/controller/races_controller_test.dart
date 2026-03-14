@@ -299,7 +299,7 @@ void main() {
     group('updateLocationButtonVisibility', () {
       test('is false when location matches userlocation', () {
         controller.locationController.text = '123 Main St';
-        controller.userlocationController.text = '123 Main St';
+        controller.userLocationController.text = '123 Main St';
 
         controller.updateLocationButtonVisibility();
 
@@ -308,7 +308,7 @@ void main() {
 
       test('is true when location differs from userlocation', () {
         controller.locationController.text = 'Custom Location';
-        controller.userlocationController.text = '123 Main St';
+        controller.userLocationController.text = '123 Main St';
 
         controller.updateLocationButtonVisibility();
 

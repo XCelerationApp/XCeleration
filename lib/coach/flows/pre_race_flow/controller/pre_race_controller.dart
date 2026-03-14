@@ -8,7 +8,7 @@ import '../../../../core/services/device_connection_service.dart';
 import '../../../../core/utils/encode_utils.dart';
 import '../steps/review_runners/review_runners_step.dart';
 import '../steps/share_race/share_race_step.dart';
-import '../steps/flow_complete/pre_race_flow_complete.dart';
+import '../steps/flow_complete/pre_race_flow_complete_step.dart';
 
 /// Function type that matches the [showFlow] top-level function signature,
 /// used to allow injection in tests.

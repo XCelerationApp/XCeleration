@@ -55,7 +55,7 @@ class ShareRaceController extends ChangeNotifier {
     return sheet(
       context: context,
       title: 'Share Race',
-      body: ShareSheetScreen(
+      body: ShareRaceScreen(
         controller: ShareRaceController(
           raceResultsData: raceResultsData,
           masterRace: masterRace,

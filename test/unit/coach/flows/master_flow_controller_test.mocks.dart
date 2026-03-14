@@ -11,9 +11,9 @@ import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i11;
 import 'package:xceleration/coach/flows/controller/flow_controller.dart' as _i6;
 import 'package:xceleration/coach/flows/model/flow_model.dart' as _i18;
-import 'package:xceleration/coach/flows/PostRaceFlow/controller/post_race_controller.dart'
+import 'package:xceleration/coach/flows/post_race_flow/controller/post_race_controller.dart'
     as _i19;
-import 'package:xceleration/coach/flows/PreRaceFlow/controller/pre_race_controller.dart'
+import 'package:xceleration/coach/flows/pre_race_flow/controller/pre_race_controller.dart'
     as _i17;
 import 'package:xceleration/coach/race_results/model/team_record.dart' as _i21;
 import 'package:xceleration/coach/race_screen/controller/race_form_state.dart'
@@ -131,10 +131,10 @@ class _FakeRaceResultsData_7 extends _i1.SmartFake
         );
 }
 
-/// A class which mocks [RaceController].
+/// A class which mocks [RaceScreenController].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockRaceController extends _i1.Mock implements _i10.RaceController {
+class MockRaceController extends _i1.Mock implements _i10.RaceScreenController {
   MockRaceController() {
     _i1.throwOnMissingStub(this);
   }

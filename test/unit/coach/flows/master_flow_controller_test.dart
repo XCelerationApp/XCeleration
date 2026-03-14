@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
-import 'package:xceleration/coach/flows/PostRaceFlow/controller/post_race_controller.dart';
-import 'package:xceleration/coach/flows/PreRaceFlow/controller/pre_race_controller.dart';
+import 'package:xceleration/coach/flows/post_race_flow/controller/post_race_controller.dart';
+import 'package:xceleration/coach/flows/pre_race_flow/controller/pre_race_controller.dart';
 import 'package:xceleration/coach/flows/controller/flow_controller.dart';
 import 'package:xceleration/coach/race_screen/controller/race_form_state.dart';
 import 'package:xceleration/coach/race_screen/controller/race_screen_controller.dart';
@@ -11,7 +11,7 @@ import 'package:xceleration/shared/models/database/master_race.dart';
 import 'package:xceleration/shared/models/database/race.dart';
 
 @GenerateMocks([
-  RaceController,
+  RaceScreenController,
   PreRaceController,
   PostRaceController,
   MasterRace,

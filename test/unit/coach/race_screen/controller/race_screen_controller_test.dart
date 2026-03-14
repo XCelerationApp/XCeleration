@@ -54,7 +54,7 @@ void main() {
   late MockIEventBus mockEventBus;
   late MockIDeviceConnectionFactory mockDevicesFactory;
   late MockRaceGeoController mockGeoController;
-  late RaceController controller;
+  late RaceScreenController controller;
 
   // A fully-populated test race (flowState != FLOW_SETUP avoids the
   // checkSetupComplete→TeamsAndRunnersWidget code path in loadAllData)
@@ -93,7 +93,7 @@ void main() {
     when(mockFlowController.beginNextFlow(any)).thenAnswer((_) async {});
     when(mockGeoController.isLocationButtonVisible).thenReturn(true);
 
-    controller = RaceController(
+    controller = RaceScreenController(
       masterRace: mockMasterRace,
       parentController: mockParentController,
       datePickerService: mockDatePickerService,
@@ -109,7 +109,7 @@ void main() {
   });
 
   // =========================================================================
-  group('RaceController', () {
+  group('RaceScreenController', () {
     // -------------------------------------------------------------------------
     group('selectDate', () {
       testWidgets('updates dateController when a date is picked',

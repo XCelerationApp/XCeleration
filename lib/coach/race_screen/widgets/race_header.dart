@@ -52,7 +52,7 @@ String _getActionButtonText(String flowState) {
 }
 
 class RaceHeader extends StatefulWidget {
-  final RaceController controller;
+  final RaceScreenController controller;
 
   const RaceHeader({
     super.key,
