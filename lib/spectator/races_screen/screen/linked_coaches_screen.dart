@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:xceleration/core/services/auth_service.dart';
 import 'package:xceleration/core/services/parent_link_service.dart';
-import 'package:xceleration/core/services/remote_api_client.dart';
 import 'package:xceleration/core/theme/app_colors.dart';
 import 'package:xceleration/core/theme/typography.dart';
 
 class LinkedCoachesScreen extends StatefulWidget {
-  const LinkedCoachesScreen({super.key, ParentLinkService? parentLinkService})
-      : _parentLinkService = parentLinkService;
+  const LinkedCoachesScreen({
+    super.key,
+    required ParentLinkService parentLinkService,
+  }) : _parentLinkService = parentLinkService;
 
-  final ParentLinkService? _parentLinkService;
+  final ParentLinkService _parentLinkService;
 
   @override
   State<LinkedCoachesScreen> createState() => _LinkedCoachesScreenState();
@@ -19,11 +19,6 @@ class _LinkedCoachesScreenState extends State<LinkedCoachesScreen> {
   bool _loading = true;
   List<Map<String, dynamic>> _coaches = const [];
 
-  ParentLinkService get _parentLinkService =>
-      widget._parentLinkService ??
-      ParentLinkService(
-          remoteApi: RemoteApiClient(), auth: AuthService.instance);
-
   @override
   void initState() {
     super.initState();
@@ -32,7 +27,7 @@ class _LinkedCoachesScreenState extends State<LinkedCoachesScreen> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final rows = await _parentLinkService.listLinkedCoachesWithProfiles();
+    final rows = await widget._parentLinkService.listLinkedCoachesWithProfiles();
     if (!mounted) return;
     setState(() {
       _coaches = rows;
@@ -41,7 +36,7 @@ class _LinkedCoachesScreenState extends State<LinkedCoachesScreen> {
   }
 
   Future<void> _unlink(String coachUserId) async {
-    await _parentLinkService.unlinkCoach(coachUserId);
+    await widget._parentLinkService.unlinkCoach(coachUserId);
     await _load();
   }
 

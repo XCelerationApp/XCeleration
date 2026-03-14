@@ -6,7 +6,6 @@ import 'package:xceleration/core/services/auth_service.dart';
 import 'package:provider/provider.dart';
 import 'package:xceleration/core/services/i_sync_service.dart';
 import 'package:xceleration/core/services/profile_service.dart';
-import 'package:xceleration/core/services/remote_api_client.dart';
 import 'package:xceleration/core/components/page_route_animations.dart';
 import 'package:xceleration/coach/races_screen/screen/races_screen.dart';
 import 'package:xceleration/core/theme/app_colors.dart';
@@ -19,16 +18,16 @@ import 'package:gotrue/gotrue.dart' as gotrue;
 class SignInScreen extends StatefulWidget {
   const SignInScreen({
     super.key,
-    IAuthService? authService,
+    required IAuthService authService,
     ConnectivityService? connectivityService,
-    ProfileService? profileService,
+    required ProfileService profileService,
   })  : _authService = authService,
         _connectivityService = connectivityService,
         _profileService = profileService;
 
-  final IAuthService? _authService;
+  final IAuthService _authService;
   final ConnectivityService? _connectivityService;
-  final ProfileService? _profileService;
+  final ProfileService _profileService;
 
   @override
   State<SignInScreen> createState() => _SignInScreenState();
@@ -46,12 +45,10 @@ class _SignInScreenState extends State<SignInScreen>
   final FocusNode _emailFocusNode = FocusNode();
   final FocusNode _passwordFocusNode = FocusNode();
 
-  IAuthService get _authService => widget._authService ?? AuthService.instance;
+  IAuthService get _authService => widget._authService;
   ConnectivityService get _connectivity =>
       widget._connectivityService ?? const ConnectivityService();
-  ProfileService get _profileService =>
-      widget._profileService ??
-      ProfileService(remoteApi: RemoteApiClient(), auth: AuthService.instance);
+  ProfileService get _profileService => widget._profileService;
 
   @override
   void initState() {

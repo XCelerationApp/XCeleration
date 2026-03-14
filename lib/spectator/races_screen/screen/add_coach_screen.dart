@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:xceleration/core/services/auth_service.dart';
 import 'package:xceleration/core/services/parent_link_service.dart';
-import 'package:xceleration/core/services/remote_api_client.dart';
 import 'package:xceleration/core/theme/app_colors.dart';
 import 'package:xceleration/core/theme/typography.dart';
 
 class AddCoachScreen extends StatefulWidget {
-  const AddCoachScreen({super.key, ParentLinkService? parentLinkService})
-      : _parentLinkService = parentLinkService;
+  const AddCoachScreen({
+    super.key,
+    required ParentLinkService parentLinkService,
+  }) : _parentLinkService = parentLinkService;
 
-  final ParentLinkService? _parentLinkService;
+  final ParentLinkService _parentLinkService;
 
   @override
   State<AddCoachScreen> createState() => _AddCoachScreenState();
@@ -19,11 +19,6 @@ class _AddCoachScreenState extends State<AddCoachScreen> {
   final _emailController = TextEditingController();
   bool _busy = false;
   String? _message;
-
-  ParentLinkService get _parentLinkService =>
-      widget._parentLinkService ??
-      ParentLinkService(
-          remoteApi: RemoteApiClient(), auth: AuthService.instance);
 
   @override
   void dispose() {
@@ -44,7 +39,7 @@ class _AddCoachScreenState extends State<AddCoachScreen> {
       });
       return;
     }
-    final ok = await _parentLinkService.linkCoachByEmail(email);
+    final ok = await widget._parentLinkService.linkCoachByEmail(email);
     if (!mounted) return;
     setState(() {
       _busy = false;

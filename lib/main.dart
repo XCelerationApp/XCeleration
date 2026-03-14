@@ -79,17 +79,18 @@ void _runApp() async {
   // Initialize Supabase eagerly so it is ready before any screen is reached.
   final remoteApi = RemoteApiClient();
   await remoteApi.init();
+  final authService = AuthService(remoteApi: remoteApi);
 
   // Wire up concrete service instances once at startup
   final syncService = SyncService(
     db: ServiceLocator.get<IDatabaseConnectionProvider>(),
     remote: remoteApi,
     syncClient: SupabaseRemoteSyncClient(remote: remoteApi),
-    auth: AuthService.instance,
+    auth: authService,
   );
   final connectivitySyncService = ConnectivitySyncService(
     sync: syncService,
-    auth: AuthService.instance,
+    auth: authService,
     writeStream: ServiceLocator.get<DatabaseWriteBus>().writes,
   );
   connectivitySyncService.start();
@@ -103,10 +104,10 @@ void _runApp() async {
         ChangeNotifierProvider(
           create: (context) => RaceScreenController(
               masterRace: MasterRace.getInstance(0),
-              parentController: RacesController(racesService: RacesService(), authService: AuthService.instance, eventBus: EventBus.instance, geoLocationService: GeoLocationService(), postFrameCallbackScheduler: WidgetsBindingAdapter(), tutorialManager: TutorialManager(), syncStream: syncService.syncEvents)),
+              parentController: RacesController(racesService: RacesService(), authService: authService, eventBus: EventBus.instance, geoLocationService: GeoLocationService(), postFrameCallbackScheduler: WidgetsBindingAdapter(), tutorialManager: TutorialManager(), syncStream: syncService.syncEvents)),
         ),
         ChangeNotifierProvider(
-            create: (context) => RacesController(racesService: RacesService(), authService: AuthService.instance, eventBus: EventBus.instance, geoLocationService: GeoLocationService(), postFrameCallbackScheduler: WidgetsBindingAdapter(), tutorialManager: TutorialManager(), syncStream: syncService.syncEvents)),
+            create: (context) => RacesController(racesService: RacesService(), authService: authService, eventBus: EventBus.instance, geoLocationService: GeoLocationService(), postFrameCallbackScheduler: WidgetsBindingAdapter(), tutorialManager: TutorialManager(), syncStream: syncService.syncEvents)),
       ],
       child: const MyApp(),
     ),

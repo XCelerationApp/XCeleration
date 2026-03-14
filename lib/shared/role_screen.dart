@@ -13,6 +13,8 @@ import '../core/theme/app_colors.dart';
 import '../core/theme/typography.dart';
 import '../core/components/page_route_animations.dart';
 import '../core/services/auth_service.dart';
+import '../core/services/profile_service.dart';
+import '../core/services/remote_api_client.dart';
 import 'screens/sign_in_screen.dart';
 
 Widget buildRoleButton({
@@ -78,7 +80,13 @@ class RoleScreen extends StatelessWidget {
                 onPressed: () async {
                   if (!AuthService.instance.isSignedIn) {
                     Navigator.of(context).push(
-                      InitialPageRouteAnimation(child: const SignInScreen()),
+                      InitialPageRouteAnimation(child: SignInScreen(
+                    authService: AuthService.instance,
+                    profileService: ProfileService(
+                      remoteApi: RemoteApiClient(),
+                      auth: AuthService.instance,
+                    ),
+                  )),
                     );
                     return;
                   }
