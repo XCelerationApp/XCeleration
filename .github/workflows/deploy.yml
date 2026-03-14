@@ -74,19 +74,20 @@ jobs:
         run: |
           echo "Available Xcode versions:"
           ls /Applications/Xcode*.app 2>/dev/null || echo "No Xcode apps found in /Applications/"
-          
-          # Try to select the latest Xcode 16+ version
-          if [ -d "/Applications/Xcode_16.2.app" ]; then
-            sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
-          elif [ -d "/Applications/Xcode_16.1.app" ]; then
-            sudo xcode-select -s /Applications/Xcode_16.1.app/Contents/Developer
-          elif [ -d "/Applications/Xcode_16.0.app" ]; then
-            sudo xcode-select -s /Applications/Xcode_16.0.app/Contents/Developer
+
+          # Dynamically select the latest available Xcode version.
+          # Using sort -V (version sort) ensures correct ordering across major versions
+          # (e.g. Xcode_16.4 < Xcode_26.0.1). This avoids hard-coding version numbers
+          # that break when the runner image ships a newer Xcode with updated SDK components.
+          LATEST_XCODE=$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -1)
+          if [ -n "$LATEST_XCODE" ]; then
+            echo "Selecting latest Xcode: $LATEST_XCODE"
+            sudo xcode-select -s "$LATEST_XCODE/Contents/Developer"
           else
             echo "Using default Xcode installation"
             sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
           fi
-          
+
           echo "Selected Xcode version:"
           xcodebuild -version
           echo "✅ Xcode version configured"
