@@ -27,7 +27,7 @@ class ChunkCacher {
     final int chunkStartingPlace = startingPlace == 0 ? 1 : startingPlace;
     _encodedChunks[hashCode] = chunk.encode();
     UIChunk uiChunk =
-        TimingDataConverter.convertToUIChunk(chunk, chunkStartingPlace);
+        RaceTimerDataConverter.convertToUIChunk(chunk, chunkStartingPlace);
     _cachedChunks[hashCode] = uiChunk;
     _hashedChunks.add(hashCode);
     startingPlace = uiChunk.endingPlace;
