@@ -422,5 +422,51 @@ void main() {
         expect(called, isTrue);
       });
     });
+
+    // -------------------------------------------------------------------------
+    group('init', () {
+      test('calls loadData (isLoading transitions true then false)', () async {
+        final loadingStates = <bool>[];
+        controller.addListener(() => loadingStates.add(controller.isLoading));
+
+        await controller.init();
+
+        expect(loadingStates, containsAllInOrder([true, false]));
+        expect(controller.isLoading, isFalse);
+      });
+    });
+
+    // -------------------------------------------------------------------------
+    group('MasterRace listener', () {
+      test('notifies controller listeners when MasterRace notifies', () {
+        // Stub addListener before constructing so the callback can be captured.
+        VoidCallback? capturedListener;
+        when(mockMasterRace.addListener(any)).thenAnswer((invocation) {
+          capturedListener = invocation.positionalArguments[0] as VoidCallback;
+        });
+
+        final ctrl = RunnersManagementController(masterRace: mockMasterRace);
+        addTearDown(ctrl.dispose);
+
+        var notifyCount = 0;
+        ctrl.addListener(() => notifyCount++);
+
+        // Simulate MasterRace calling notifyListeners()
+        capturedListener?.call();
+
+        expect(notifyCount, greaterThanOrEqualTo(1));
+      });
+    });
+
+    // -------------------------------------------------------------------------
+    group('dispose', () {
+      test('removes MasterRace listener on dispose', () {
+        final ctrl = RunnersManagementController(masterRace: mockMasterRace);
+
+        ctrl.dispose();
+
+        verify(mockMasterRace.removeListener(any)).called(1);
+      });
+    });
   });
 }

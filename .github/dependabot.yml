@@ -1,0 +1,40 @@
+version: 2
+updates:
+  # Flutter/Dart packages
+  - package-ecosystem: "pub"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    target-branch: "dev"
+    groups:
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    target-branch: "dev"
+    groups:
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  # Ruby gems (fastlane)
+  - package-ecosystem: "bundler"
+    directory: "/ios"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    target-branch: "dev"
+    groups:
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
