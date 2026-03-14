@@ -23,14 +23,14 @@ jobs:
 
       - name: Get changed Dart files
         id: dart-changes
-        uses: tj-actions/changed-files@v46
+        uses: tj-actions/changed-files@v47
         with:
           files: |
             **/*.dart
 
       - name: Get changed build-relevant files
         id: build-changes
-        uses: tj-actions/changed-files@v46
+        uses: tj-actions/changed-files@v47
         with:
           files: |
             lib/**
