@@ -16,7 +16,7 @@ jobs:
       code-changed: ${{ steps.changes.outputs.code-changed }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: main
           fetch-depth: 0
@@ -54,7 +54,7 @@ jobs:
     if: needs.detect-deployment-changes.outputs.should-deploy == 'true'
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: main
           fetch-depth: 0
