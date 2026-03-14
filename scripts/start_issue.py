@@ -89,7 +89,7 @@ def main():
     # Open in a new Cursor window
     cursor_bin = "/usr/local/bin/cursor"
     if os.path.isfile(cursor_bin):
-        subprocess.Popen([cursor_bin, "-n", worktree_path, "--command", "claude-vscode.editor.open"])
+        subprocess.Popen([cursor_bin, "-n", worktree_path])
         print("Opened in Cursor.")
     else:
         print("\nCould not find Cursor at /usr/local/bin/cursor. Open manually:")
