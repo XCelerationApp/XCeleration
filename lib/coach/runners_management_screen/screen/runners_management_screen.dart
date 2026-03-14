@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:xceleration/core/services/i_sync_service.dart';
 import '../controller/runners_management_controller.dart';
+import '../../../core/theme/app_border_radius.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/components/button_components.dart';
+import '../../../core/theme/app_opacity.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/typography.dart';
 import '../../../core/utils/sheet_utils.dart';
 import '../../../shared/models/database/master_race.dart';
 import '../widgets/list_titles.dart';
@@ -24,18 +27,15 @@ class TeamsAndRunnersManagementWidget extends StatefulWidget {
 
     // If there are no teams yet, we cannot proceed
     if (teamToRaceRunnersMap.isEmpty) {
-      // No teams -> cannot proceed
       return false;
     }
 
     for (final entry in teamToRaceRunnersMap.entries) {
       if (entry.value.isEmpty) {
-        // Team with zero runners -> cannot proceed
         return false;
       }
     }
 
-    // All teams have at least one runner
     return true;
   }
 
@@ -88,29 +88,16 @@ class _TeamsAndRunnersManagementWidgetState
             child: LayoutBuilder(
               builder: (context, constraints) {
                 return Column(
-                  // Make the column take up the full available height
                   mainAxisSize: MainAxisSize.max,
                   children: [
-                    if (controller.showHeader) ...[
-                      createSheetHeader(
-                        'Teams and Runners',
-                        backArrow: true,
-                        context: context,
-                        onBack: widget.onBack,
-                      ),
-                    ],
-
-                    if (!controller.isViewMode) ...[
-                      _buildActionButtons(),
-                      const SizedBox(height: 12),
-                    ],
+                    if (controller.showHeader)
+                      _buildHeader(controller),
                     if (!controller.isLoading) ...[
                       _buildSearchSection(),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: AppSpacing.sm),
                       const ListTitles(),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: AppSpacing.xs),
                     ],
-                    // Use Expanded to fill remaining space with top-aligned content
                     Expanded(
                       child: RunnersList(controller: controller),
                     ),
@@ -124,26 +111,36 @@ class _TeamsAndRunnersManagementWidgetState
     );
   }
 
-  // UI Building Methods
-  Widget _buildActionButtons() {
+  Widget _buildHeader(RunnersManagementController controller) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8.0),
-      child: Row(
+      padding: const EdgeInsets.only(
+        top: AppSpacing.sm,
+        left: AppSpacing.xl,
+        right: AppSpacing.sm,
+        bottom: AppSpacing.lg,
+      ),
+      child: Column(
         children: [
-          Expanded(
-            child: SharedActionButton(
-              text: 'Create Team',
-              icon: Icons.group_add,
-              onPressed: () => _controller.showCreateTeamSheet(context),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: SharedActionButton(
-              text: 'Import Teams',
-              icon: Icons.download,
-              onPressed: () => _controller.showExistingTeamsBrowser(context),
-            ),
+          createSheetHandle(height: 5, width: 50),
+          const SizedBox(height: AppSpacing.sm),
+          Row(
+            children: [
+              if (widget.onBack != null)
+                createBackArrow(context, onBack: widget.onBack),
+              Expanded(
+                child: Text(
+                  'Teams and Runners',
+                  style: AppTypography.titleLarge.copyWith(
+                    color: AppColors.darkColor,
+                  ),
+                ),
+              ),
+              if (!controller.isViewMode)
+                _AddTeamButton(
+                  onTap: () =>
+                      _controller.showAddTeamChoiceSheet(context),
+                ),
+            ],
           ),
         ],
       ),
@@ -163,10 +160,47 @@ class _TeamsAndRunnersManagementWidgetState
               .filterRaceRunners(_controller.searchController.text.trim());
         });
       },
-      onDeleteAll: _controller.isViewMode
-          ? null
-          : () => _controller.confirmDeleteAllRunners(context),
       isViewMode: _controller.isViewMode,
+    );
+  }
+}
+
+class _AddTeamButton extends StatelessWidget {
+  const _AddTeamButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.sm,
+        ),
+        decoration: BoxDecoration(
+          color: AppColors.primaryColor.withValues(alpha: AppOpacity.faint),
+          borderRadius: BorderRadius.circular(AppBorderRadius.full),
+          border: Border.all(
+            color: AppColors.primaryColor.withValues(alpha: AppOpacity.medium),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.add, size: 16, color: AppColors.primaryColor),
+            const SizedBox(width: AppSpacing.xs),
+            Text(
+              'Add Team',
+              style: AppTypography.smallBodySemibold.copyWith(
+                color: AppColors.primaryColor,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

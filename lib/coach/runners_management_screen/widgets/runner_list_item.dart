@@ -1,16 +1,17 @@
-import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
+import '../../../core/theme/app_animations.dart';
+import '../../../core/theme/app_border_radius.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_opacity.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/typography.dart';
+import '../../../core/utils/grade_utils.dart';
 import '../../../shared/models/database/runner.dart';
 import '../../../shared/models/database/team.dart';
 import '../controller/runners_management_controller.dart';
 
-class RunnerListItem extends StatelessWidget {
-  final Runner runner;
-  final Team team;
-  final Function(String) onAction;
-  final RunnersManagementController controller;
-  final bool isViewMode;
-
+class RunnerListItem extends StatefulWidget {
   const RunnerListItem({
     super.key,
     required this.runner,
@@ -20,70 +21,92 @@ class RunnerListItem extends StatelessWidget {
     this.isViewMode = false,
   });
 
+  final Runner runner;
+  final Team team;
+  final Function(String) onAction;
+  final RunnersManagementController controller;
+  final bool isViewMode;
+
+  @override
+  State<RunnerListItem> createState() => _RunnerListItemState();
+}
+
+class _RunnerListItemState extends State<RunnerListItem> {
+  bool _pressed = false;
+
   @override
   Widget build(BuildContext context) {
-    final bibColor = team.color;
+    final teamColor = widget.team.color ?? AppColors.primaryColor;
+    final label = gradeLabel(widget.runner.grade);
 
-    Widget runnerRow = Container(
-      decoration: BoxDecoration(
-        color: bibColor!.withAlpha((0.1 * 255).round()),
-      ),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 0.0, vertical: 8.0),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+    Widget row = GestureDetector(
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) => setState(() => _pressed = false),
+      onTapCancel: () => setState(() => _pressed = false),
+      onTap: widget.isViewMode ? null : () => widget.onAction('Edit'),
+      child: AnimatedContainer(
+        duration: AppAnimations.fast,
+        curve: AppAnimations.spring,
+        color: _pressed
+            ? AppColors.primaryColor.withValues(alpha: AppOpacity.faint)
+            : AppColors.backgroundColor,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.sm,
+                vertical: AppSpacing.xs,
+              ),
               child: Row(
                 children: [
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(
-                      minWidth: 60,
-                      maxWidth: 200,
+                  // Color dot + name
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Container(
+                          width: AppSpacing.sm,
+                          height: AppSpacing.sm,
+                          decoration: BoxDecoration(
+                            color: teamColor,
+                            borderRadius: BorderRadius.circular(
+                              AppBorderRadius.full,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(
+                          child: Text(
+                            widget.runner.name ?? '-',
+                            style: AppTypography.smallBodyRegular.copyWith(
+                              color: AppColors.darkColor,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                        ),
+                      ],
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: 16.0),
+                  ),
+                  // Grade label
+                  SizedBox(
+                    width: 40,
+                    child: Center(
                       child: Text(
-                        runner.name!,
-                        style: const TextStyle(fontSize: 16),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
+                        label,
+                        style: AppTypography.smallBodyRegular.copyWith(
+                          color: AppColors.mediumColor,
+                        ),
                       ),
                     ),
                   ),
-                  Expanded(
-                    flex: 2,
+                  // Bib number
+                  SizedBox(
+                    width: 60,
                     child: Center(
                       child: Text(
-                        team.abbreviation ??
-                            team.name!.substring(0, 1).toUpperCase(),
-                        style:
-                            const TextStyle(fontSize: 16, color: Colors.black),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 2,
-                    child: Center(
-                      child: Text(
-                        runner.grade?.toString() ?? '-',
-                        style:
-                            const TextStyle(fontSize: 16, color: Colors.black),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 2,
-                    child: Center(
-                      child: Text(
-                        runner.bibNumber!,
-                        style: TextStyle(
-                          color: bibColor,
-                          fontSize: 16,
+                        widget.runner.bibNumber ?? '-',
+                        style: AppTypography.smallBodySemibold.copyWith(
+                          color: teamColor,
                         ),
                         overflow: TextOverflow.ellipsis,
                         maxLines: 1,
@@ -93,36 +116,38 @@ class RunnerListItem extends StatelessWidget {
                 ],
               ),
             ),
-          ),
-          const Divider(height: 1, thickness: 1, color: Colors.grey),
-        ],
+            Divider(
+              height: 1,
+              thickness: 1,
+              color: AppColors.lightColor,
+            ),
+          ],
+        ),
       ),
     );
 
-    if (isViewMode) {
-      return runnerRow;
-    }
+    if (widget.isViewMode) return row;
 
     return Slidable(
-      key: Key(runner.bibNumber!),
+      key: Key(widget.runner.bibNumber ?? ''),
       endActionPane: ActionPane(
         motion: const ScrollMotion(),
         children: [
           SlidableAction(
-            onPressed: (_) => onAction('Edit'),
-            backgroundColor: Colors.blue,
-            foregroundColor: Colors.white,
+            onPressed: (_) => widget.onAction('Edit'),
+            backgroundColor: AppColors.statusPreRace,
+            foregroundColor: AppColors.backgroundColor,
             icon: Icons.edit,
           ),
           SlidableAction(
-            onPressed: (_) => onAction('Delete'),
-            backgroundColor: Colors.red,
-            foregroundColor: Colors.white,
+            onPressed: (_) => widget.onAction('Delete'),
+            backgroundColor: AppColors.redColor,
+            foregroundColor: AppColors.backgroundColor,
             icon: Icons.delete,
           ),
         ],
       ),
-      child: runnerRow,
+      child: row,
     );
   }
 }

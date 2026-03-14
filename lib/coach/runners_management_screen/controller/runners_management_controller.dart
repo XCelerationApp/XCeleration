@@ -20,6 +20,7 @@ import '../widgets/existing_teams_browser_sheet.dart';
 import '../widgets/edit_team_sheet.dart';
 import '../../../shared/models/database/race_participant.dart';
 import '../widgets/add_runners_to_team_sheet.dart';
+import '../widgets/add_team_choice_sheet.dart';
 import '../widgets/imported_runners_selection_sheet.dart';
 import '../widgets/spreadsheet_load_sheet.dart';
 
@@ -405,6 +406,25 @@ class RunnersManagementController with ChangeNotifier {
     await loadSpreadsheet(context, team);
   }
 
+  Future<void> showAddTeamChoiceSheet(BuildContext context) async {
+    await sheet(
+      context: context,
+      title: 'Add Team',
+      body: AddTeamChoiceSheet(
+        onCreateTeam: () async {
+          Navigator.of(context).pop();
+          if (!context.mounted) return;
+          await showCreateTeamSheet(context);
+        },
+        onImportTeams: () async {
+          Navigator.of(context).pop();
+          if (!context.mounted) return;
+          await showExistingTeamsBrowser(context);
+        },
+      ),
+    );
+  }
+
   Future<void> showCreateTeamSheet(BuildContext context) async {
     final createdTeam = await sheet(
       context: context,
@@ -431,27 +451,14 @@ class RunnersManagementController with ChangeNotifier {
       BuildContext context, Team team) async {
     await sheet(
       context: context,
-      title: 'Add Runners to ${team.abbreviation}',
+      title: 'Add Runner to ${team.abbreviation ?? team.name ?? "Team"}',
       body: AddRunnersToTeamSheet(
-        masterRace: masterRace,
         team: team,
-        onComplete: (selectedRunnerIds) async {
-          // Add selected existing runners in bulk to avoid repeated rebuilds
-          final participants = selectedRunnerIds
-              .map((runnerId) => RaceParticipant(
-                    raceId: masterRace.raceId,
-                    runnerId: runnerId,
-                    teamId: team.teamId!,
-                  ))
-              .toList();
-          if (participants.isNotEmpty) {
-            await masterRace.addRaceParticipantsBulk(participants);
-          }
+        raceId: masterRace.raceId,
+        getRunnerByBib: _runners.getRunnerByBib,
+        onSubmit: (raceRunner) async {
+          await handleRunnerSubmission(context, raceRunner);
           onContentChanged?.call();
-          await loadData();
-        },
-        onRequestManualAdd: () async {
-          await showAddRunnerToTeam(context, team);
           await loadData();
         },
       ),
