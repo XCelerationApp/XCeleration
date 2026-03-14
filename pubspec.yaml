@@ -73,7 +73,7 @@ dependencies:
   package_info_plus: ^8.3.0
 
   # Configuration
-  flutter_dotenv: ^5.1.0
+  flutter_dotenv: ^6.0.0
 
   # App Lifecycle
   flutter_native_splash: ^2.4.4
