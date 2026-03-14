@@ -4,7 +4,12 @@ import 'package:xceleration/core/theme/app_colors.dart';
 import 'package:xceleration/core/theme/typography.dart';
 
 class AddCoachScreen extends StatefulWidget {
-  const AddCoachScreen({super.key});
+  const AddCoachScreen({
+    super.key,
+    required ParentLinkService parentLinkService,
+  }) : _parentLinkService = parentLinkService;
+
+  final ParentLinkService _parentLinkService;
 
   @override
   State<AddCoachScreen> createState() => _AddCoachScreenState();
@@ -34,7 +39,7 @@ class _AddCoachScreenState extends State<AddCoachScreen> {
       });
       return;
     }
-    final ok = await ParentLinkService.instance.linkCoachByEmail(email);
+    final ok = await widget._parentLinkService.linkCoachByEmail(email);
     if (!mounted) return;
     setState(() {
       _busy = false;
