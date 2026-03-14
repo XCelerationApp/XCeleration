@@ -6,6 +6,7 @@ import 'package:xceleration/core/services/auth_service.dart';
 import 'package:provider/provider.dart';
 import 'package:xceleration/core/services/i_sync_service.dart';
 import 'package:xceleration/core/services/profile_service.dart';
+import 'package:xceleration/core/services/remote_api_client.dart';
 import 'package:xceleration/core/components/page_route_animations.dart';
 import 'package:xceleration/coach/races_screen/screen/races_screen.dart';
 import 'package:xceleration/core/theme/app_colors.dart';
@@ -20,11 +21,14 @@ class SignInScreen extends StatefulWidget {
     super.key,
     IAuthService? authService,
     ConnectivityService? connectivityService,
+    ProfileService? profileService,
   })  : _authService = authService,
-        _connectivityService = connectivityService;
+        _connectivityService = connectivityService,
+        _profileService = profileService;
 
   final IAuthService? _authService;
   final ConnectivityService? _connectivityService;
+  final ProfileService? _profileService;
 
   @override
   State<SignInScreen> createState() => _SignInScreenState();
@@ -45,6 +49,9 @@ class _SignInScreenState extends State<SignInScreen>
   IAuthService get _authService => widget._authService ?? AuthService.instance;
   ConnectivityService get _connectivity =>
       widget._connectivityService ?? const ConnectivityService();
+  ProfileService get _profileService =>
+      widget._profileService ??
+      ProfileService(remoteApi: RemoteApiClient(), auth: AuthService.instance);
 
   @override
   void initState() {
@@ -86,7 +93,7 @@ class _SignInScreenState extends State<SignInScreen>
         if (mounted && resp.session != null) {
           // Run a sync after sign-in and navigate to coach screen
           try {
-            await ProfileService.instance.ensureProfileUpsert();
+            await _profileService.ensureProfileUpsert();
             await syncService.syncAll();
           } catch (_) {}
           if (!mounted) return;
@@ -109,7 +116,7 @@ class _SignInScreenState extends State<SignInScreen>
         }
         if (mounted) {
           try {
-            await ProfileService.instance.ensureProfileUpsert();
+            await _profileService.ensureProfileUpsert();
             await syncService.syncAll();
           } catch (_) {}
           if (!mounted) return;
