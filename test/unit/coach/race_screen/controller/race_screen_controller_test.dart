@@ -726,5 +726,93 @@ void main() {
         verify(mockGeoController.isLocationButtonVisible).called(1);
       });
     });
+
+    // -------------------------------------------------------------------------
+    group('_masterRaceListener', () {
+      test('registers listener on masterRace during construction', () {
+        verify(mockMasterRace.addListener(any)).called(1);
+      });
+
+      test('removes listener on masterRace during dispose', () {
+        controller.dispose();
+
+        verify(mockMasterRace.removeListener(any)).called(1);
+        // Re-create so tearDown dispose() doesn't throw on a disposed controller
+        controller = RaceController(
+          masterRace: mockMasterRace,
+          parentController: mockParentController,
+          datePickerService: mockDatePickerService,
+          flowController: mockFlowController,
+          eventBus: mockEventBus,
+          devicesFactory: mockDevicesFactory,
+          geoController: mockGeoController,
+        );
+      });
+
+      testWidgets(
+          'listener triggers a data refresh when not already loading',
+          (tester) async {
+        final ctx = await _buildContext(tester);
+        await controller.loadAllData(ctx);
+
+        // Capture the listener registered with masterRace
+        final captured =
+            verify(mockMasterRace.addListener(captureAny)).captured;
+        final VoidCallback listener = captured.last as VoidCallback;
+
+        final refreshingStates = <bool>[];
+        controller
+            .addListener(() => refreshingStates.add(controller.isRefreshing));
+
+        listener();
+        await tester.pump();
+
+        expect(refreshingStates, contains(true));
+        expect(controller.isRefreshing, isFalse);
+      });
+
+      testWidgets(
+          'listener is a no-op while initial load is in progress',
+          (tester) async {
+        // Capture listener before any load
+        final captured =
+            verify(mockMasterRace.addListener(captureAny)).captured;
+        final VoidCallback listener = captured.last as VoidCallback;
+
+        // isInitialLoading is true before loadAllData completes
+        expect(controller.isLoading, isTrue);
+
+        int notifyCount = 0;
+        controller.addListener(() => notifyCount++);
+
+        // Firing the listener while initial load is pending must not trigger
+        // another refresh (isInitialLoading guard).
+        listener();
+
+        expect(notifyCount, 0);
+      });
+
+      testWidgets(
+          'listener is a no-op while a refresh is already in progress',
+          (tester) async {
+        final ctx = await _buildContext(tester);
+        await controller.loadAllData(ctx);
+
+        final captured =
+            verify(mockMasterRace.addListener(captureAny)).captured;
+        final VoidCallback listener = captured.last as VoidCallback;
+
+        // Manually set refreshing to simulate an in-progress refresh
+        listener(); // starts a refresh (_isRefreshing becomes true)
+
+        int notifyCount = 0;
+        controller.addListener(() => notifyCount++);
+
+        // Second call while refresh is in flight must be a no-op
+        listener();
+
+        expect(notifyCount, 0);
+      });
+    });
   });
 }
