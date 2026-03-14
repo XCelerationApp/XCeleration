@@ -58,14 +58,14 @@ jobs:
     if: needs.determine-pr-type.outputs.should-create-pr == 'true'
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ needs.determine-pr-type.outputs.source-branch }}
           fetch-depth: 0
 
       - name: Check for existing PR
         id: check-pr
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         env:
           SOURCE_BRANCH: ${{ needs.determine-pr-type.outputs.source-branch }}
           TARGET_BRANCH: ${{ needs.determine-pr-type.outputs.target-branch }}
@@ -103,7 +103,7 @@ jobs:
       - name: Generate content and create PR
         id: generate-content
         if: needs.determine-pr-type.outputs.should-create-pr == 'true' && steps.check-pr.outputs.has_pr == 'false'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         env:
           PR_TYPE: ${{ needs.determine-pr-type.outputs.pr-type }}
           SOURCE_BRANCH: ${{ needs.determine-pr-type.outputs.source-branch }}
@@ -229,7 +229,7 @@ jobs:
 
       - name: Update existing PR
         if: needs.determine-pr-type.outputs.should-create-pr == 'true' && steps.check-pr.outputs.has_pr == 'true'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         env:
           SOURCE_BRANCH: ${{ needs.determine-pr-type.outputs.source-branch }}
           TARGET_BRANCH: ${{ needs.determine-pr-type.outputs.target-branch }}
