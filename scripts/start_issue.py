@@ -95,11 +95,6 @@ def main():
         print("\nCould not find Cursor at /usr/local/bin/cursor. Open manually:")
         print(f"  cursor -n {worktree_path}")
 
-    # Start Claude Code in this terminal, pointed at the worktree
-    time.sleep(2)
-    print(f"Starting Claude Code for {issue_id}...")
-    subprocess.run(["claude", f"Implement Linear issue {issue_id}."], cwd=worktree_path)
-
 
 if __name__ == "__main__":
     main()
