@@ -20,6 +20,7 @@ import '../widgets/existing_teams_browser_sheet.dart';
 import '../widgets/edit_team_sheet.dart';
 import '../../../shared/models/database/race_participant.dart';
 import '../widgets/add_runners_to_team_sheet.dart';
+import '../widgets/add_team_choice_sheet.dart';
 import '../widgets/imported_runners_selection_sheet.dart';
 import '../widgets/spreadsheet_load_sheet.dart';
 
@@ -44,6 +45,7 @@ class RunnersManagementController with ChangeNotifier {
 
   // UI state
   bool isLoading = true;
+  int totalRunnerCount = 0;
   String searchAttribute = 'All';
   final TextEditingController searchController = TextEditingController();
 
@@ -96,6 +98,7 @@ class RunnersManagementController with ChangeNotifier {
         _initialRaceRunners = List.from(raceRunners);
       }
 
+      totalRunnerCount = raceRunners.length;
       _updateFilteredRaceRunners();
       isLoading = false;
       notifyListeners();
@@ -405,6 +408,50 @@ class RunnersManagementController with ChangeNotifier {
     await loadSpreadsheet(context, team);
   }
 
+  Future<void> showAddTeamChoiceSheet(BuildContext context) async {
+    await sheet(
+      context: context,
+      title: 'Add Team',
+      body: AddTeamChoiceSheet(
+        onImportFromPreviousRace: () async {
+          Navigator.of(context).pop();
+          if (!context.mounted) return;
+          await showExistingTeamsBrowser(context);
+        },
+        onImportFromSpreadsheet: () async {
+          Navigator.of(context).pop();
+          if (!context.mounted) return;
+          await showImportTeamFromSpreadsheet(context);
+        },
+        onCreateTeam: () async {
+          Navigator.of(context).pop();
+          if (!context.mounted) return;
+          await showCreateTeamSheet(context);
+        },
+      ),
+    );
+  }
+
+  Future<void> showImportTeamFromSpreadsheet(BuildContext context) async {
+    final createdTeam = await sheet(
+      context: context,
+      title: 'Create New Team',
+      body: CreateTeamSheet(
+        masterRace: masterRace,
+        createTeam: createTeam,
+      ),
+    );
+
+    if (createdTeam is Team) {
+      Team? persisted = await masterRace.getTeamByName(createdTeam.name ?? '');
+      persisted ??= (await masterRace.teams).firstWhere(
+          (t) => t.name == createdTeam.name,
+          orElse: () => createdTeam);
+      if (!context.mounted) return;
+      await loadSpreadsheet(context, persisted);
+    }
+  }
+
   Future<void> showCreateTeamSheet(BuildContext context) async {
     final createdTeam = await sheet(
       context: context,
@@ -431,27 +478,14 @@ class RunnersManagementController with ChangeNotifier {
       BuildContext context, Team team) async {
     await sheet(
       context: context,
-      title: 'Add Runners to ${team.abbreviation}',
+      title: 'Add Runner to ${team.abbreviation ?? team.name ?? "Team"}',
       body: AddRunnersToTeamSheet(
-        masterRace: masterRace,
         team: team,
-        onComplete: (selectedRunnerIds) async {
-          // Add selected existing runners in bulk to avoid repeated rebuilds
-          final participants = selectedRunnerIds
-              .map((runnerId) => RaceParticipant(
-                    raceId: masterRace.raceId,
-                    runnerId: runnerId,
-                    teamId: team.teamId!,
-                  ))
-              .toList();
-          if (participants.isNotEmpty) {
-            await masterRace.addRaceParticipantsBulk(participants);
-          }
+        raceId: masterRace.raceId,
+        getRunnerByBib: _runners.getRunnerByBib,
+        onSubmit: (raceRunner) async {
+          await handleRunnerSubmission(context, raceRunner);
           onContentChanged?.call();
-          await loadData();
-        },
-        onRequestManualAdd: () async {
-          await showAddRunnerToTeam(context, team);
           await loadData();
         },
       ),

@@ -33,13 +33,11 @@ final _online = _FakeConnectivityService(online: true);
 final _offline = _FakeConnectivityService(online: false);
 
 /// Pumps through async work without calling pumpAndSettle.
-/// pumpAndSettle hangs forever because _floatController.repeat() is an
-/// infinite animation inside SignInScreen.
 Future<void> _settle(WidgetTester tester) async {
-  await tester.pump(); // process gesture / microtask queue
-  await tester.pump(Duration.zero); // drain resolved futures
-  await tester.pump(Duration.zero); // process setState calls
-  await tester.pump(Duration.zero); // render dialog / new frame
+  await tester.pump();
+  await tester.pump(Duration.zero);
+  await tester.pump(Duration.zero);
+  await tester.pump(Duration.zero);
 }
 
 Widget _wrap(Widget child, {required MockISyncService syncService}) {
@@ -57,7 +55,6 @@ MockISyncService _stubSyncService() {
 
 MockIAuthService _stubAuthService() {
   final mock = MockIAuthService();
-  // Default: sign-in returns null session (no navigation), all others succeed.
   when(mock.signInWithEmailPassword(any, any))
       .thenAnswer((_) async => gotrue.AuthResponse());
   when(mock.signUpWithEmailPassword(any, any))
@@ -66,16 +63,16 @@ MockIAuthService _stubAuthService() {
   return mock;
 }
 
-/// Enters valid credentials and taps the primary submit button.
+/// Enters valid credentials and taps the submit button.
 Future<void> _fillAndSubmit(
   WidgetTester tester, {
   String email = 'test@test.com',
   String password = 'password123',
   bool isLogin = true,
 }) async {
-  await tester.enterText(find.byType(TextFormField).first, email);
-  await tester.enterText(find.byType(TextFormField).last, password);
-  await tester.tap(find.byType(ElevatedButton));
+  await tester.enterText(find.byType(TextField).first, email);
+  await tester.enterText(find.byType(TextField).last, password);
+  await tester.tap(find.text(isLogin ? 'Sign In' : 'Create Account'));
   await _settle(tester);
 }
 
@@ -106,17 +103,17 @@ void main() {
       ));
       await tester.pump();
 
-      expect(find.text('Sign in'), findsWidgets);
+      expect(find.textContaining('Sign in'), findsWidgets);
     });
 
-    testWidgets('shows email and password TextFormFields', (tester) async {
+    testWidgets('shows email and password TextFields', (tester) async {
       await tester.pumpWidget(_wrap(
         SignInScreen(authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
         syncService: mockSync,
       ));
       await tester.pump();
 
-      expect(find.byType(TextFormField), findsNWidgets(2));
+      expect(find.byType(TextField), findsNWidgets(2));
     });
 
     testWidgets('shows Forgot password button in sign-in mode', (tester) async {
@@ -129,14 +126,14 @@ void main() {
       expect(find.text('Forgot password?'), findsOneWidget);
     });
 
-    testWidgets('shows submit ElevatedButton', (tester) async {
+    testWidgets('shows submit button', (tester) async {
       await tester.pumpWidget(_wrap(
         SignInScreen(authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
         syncService: mockSync,
       ));
       await tester.pump();
 
-      expect(find.byType(ElevatedButton), findsOneWidget);
+      expect(find.text('Sign In'), findsOneWidget);
     });
   });
 
@@ -153,10 +150,10 @@ void main() {
       ));
       await tester.pump();
 
-      await tester.tap(find.text("Don't have an account? Sign up"));
+      await tester.tap(find.text('Create one'));
       await tester.pump();
 
-      expect(find.text('Create account'), findsWidgets);
+      expect(find.text('Create Account'), findsOneWidget);
       expect(find.text('Forgot password?'), findsNothing);
     });
 
@@ -167,12 +164,12 @@ void main() {
       ));
       await tester.pump();
 
-      await tester.tap(find.text("Don't have an account? Sign up"));
+      await tester.tap(find.text('Create one'));
       await tester.pump();
-      await tester.tap(find.text('Have an account? Sign in'));
+      await tester.tap(find.text('Sign in'));
       await tester.pump();
 
-      expect(find.text('Sign in'), findsWidgets);
+      expect(find.textContaining('Sign in'), findsWidgets);
       expect(find.text('Forgot password?'), findsOneWidget);
     });
   });
@@ -190,8 +187,8 @@ void main() {
       await tester.pump();
 
       // Only fill password, leave email empty
-      await tester.enterText(find.byType(TextFormField).last, 'password123');
-      await tester.tap(find.byType(ElevatedButton));
+      await tester.enterText(find.byType(TextField).last, 'password123');
+      await tester.tap(find.text('Sign In'));
       await tester.pump();
 
       expect(find.text('Email is required'), findsOneWidget);
@@ -206,15 +203,12 @@ void main() {
       ));
       await tester.pump();
 
-      await tester.enterText(find.byType(TextFormField).first, 'test@test.com');
-      await tester.enterText(find.byType(TextFormField).last, 'abc');
-      await tester.tap(find.byType(ElevatedButton));
+      await tester.enterText(find.byType(TextField).first, 'test@test.com');
+      await tester.enterText(find.byType(TextField).last, 'abc');
+      await tester.tap(find.text('Sign In'));
       await tester.pump();
 
-      // The hint is always shown below the field; the validator also
-      // returns the same string, so we expect at least 2 instances after
-      // an invalid submission.
-      expect(find.text('Use at least 6 characters'), findsAtLeastNWidgets(2));
+      expect(find.text('Use at least 6 characters'), findsOneWidget);
       verifyNever(mockAuth.signInWithEmailPassword(any, any));
     });
   });
@@ -270,7 +264,7 @@ void main() {
       ));
       await tester.pump();
 
-      await tester.tap(find.text("Don't have an account? Sign up"));
+      await tester.tap(find.text('Create one'));
       await tester.pump();
 
       await _fillAndSubmit(tester, isLogin: false);
@@ -373,7 +367,7 @@ void main() {
       await tester.pump();
 
       // Switch to create account mode
-      await tester.tap(find.text("Don't have an account? Sign up"));
+      await tester.tap(find.text('Create one'));
       await tester.pump();
 
       await _fillAndSubmit(tester, isLogin: false);
@@ -409,7 +403,7 @@ void main() {
       ));
       await tester.pump();
 
-      await tester.tap(find.text("Don't have an account? Sign up"));
+      await tester.tap(find.text('Create one'));
       await tester.pump();
 
       await _fillAndSubmit(tester, isLogin: false);
@@ -458,8 +452,8 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      expect(find.text('Info'), findsOneWidget);
-      expect(find.text('Enter email to reset password'), findsOneWidget);
+      expect(find.text('Email required'), findsOneWidget);
+      expect(find.text('Enter your email address above, then tap Forgot Password.'), findsOneWidget);
       verifyNever(mockAuth.sendPasswordResetEmail(any));
     });
 
@@ -472,12 +466,12 @@ void main() {
       await tester.pump();
 
       await tester.enterText(
-          find.byType(TextFormField).first, 'reset@test.com');
+          find.byType(TextField).first, 'reset@test.com');
       await tester.tap(find.text('Forgot password?'));
       await _settle(tester);
 
       verify(mockAuth.sendPasswordResetEmail('reset@test.com')).called(1);
-      expect(find.text('Password reset email sent'), findsOneWidget);
+      expect(find.text('Reset email sent'), findsOneWidget);
     });
   });
 }
