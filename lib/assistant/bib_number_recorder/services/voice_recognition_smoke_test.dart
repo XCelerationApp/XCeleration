@@ -9,6 +9,7 @@
 // Hold the button to speak a bib number, release to recognise.
 
 import 'package:flutter/material.dart';
+import 'package:xceleration/assistant/bib_number_recorder/services/voice_recognition_service.dart';
 import 'package:xceleration/assistant/bib_number_recorder/services/voice_recognition_test_screen.dart';
 
 void main() {
@@ -20,9 +21,11 @@ class _SmokeTestApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: VoiceRecognitionTestScreen(),
+      home: VoiceRecognitionTestScreen(
+        service: VoiceRecognitionService.create(),
+      ),
     );
   }
 }

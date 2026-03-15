@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:xceleration/assistant/bib_number_recorder/services/voice_recognition_service.dart';
+import 'package:xceleration/assistant/bib_number_recorder/services/i_voice_recognition_service.dart';
 import 'package:xceleration/core/result.dart';
 import 'package:xceleration/core/theme/app_animations.dart';
 import 'package:xceleration/core/theme/app_border_radius.dart';
@@ -20,7 +20,9 @@ import 'package:xceleration/core/theme/typography.dart';
 /// flutter run -t lib/assistant/bib_number_recorder/services/voice_recognition_smoke_test.dart
 /// ```
 class VoiceRecognitionTestScreen extends StatefulWidget {
-  const VoiceRecognitionTestScreen({super.key});
+  const VoiceRecognitionTestScreen({required this.service, super.key});
+
+  final IVoiceRecognitionService service;
 
   @override
   State<VoiceRecognitionTestScreen> createState() =>
@@ -31,7 +33,7 @@ enum _Status { initialising, ready, recording, recognising, error }
 
 class _VoiceRecognitionTestScreenState
     extends State<VoiceRecognitionTestScreen> {
-  final _service = VoiceRecognitionService();
+  IVoiceRecognitionService get _service => widget.service;
 
   _Status _status = _Status.initialising;
   String _statusMessage = 'Initialising…';
