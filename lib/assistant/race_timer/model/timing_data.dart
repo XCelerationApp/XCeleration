@@ -15,16 +15,16 @@ class TimingData with ChangeNotifier {
   TimingChunk currentChunk = TimingChunk(id: 0, timingData: []);
   final IAssistantStorageService _storage;
   final ChunkCacher _chunkCacher;
-  final TimingDataConverter _timingDataConverter;
+  final RaceTimerDataConverter _timingDataConverter;
   DateTime? _startTime;
 
   TimingData({
     required IAssistantStorageService storage,
     ChunkCacher? chunkCacher,
-    TimingDataConverter? timingDataConverter,
+    RaceTimerDataConverter? timingDataConverter,
   })  : _storage = storage,
         _chunkCacher = chunkCacher ?? ChunkCacher(),
-        _timingDataConverter = timingDataConverter ?? TimingDataConverter();
+        _timingDataConverter = timingDataConverter ?? RaceTimerDataConverter();
   Duration? _raceDuration;
   bool _raceStopped = true;
   RaceRecord? _currentRace;
@@ -281,7 +281,7 @@ class TimingData with ChangeNotifier {
 
     // add current chunk
     final currentChunkRecords =
-        TimingDataConverter.convertToUIChunk(currentChunk, startingPlace)
+        RaceTimerDataConverter.convertToUIChunk(currentChunk, startingPlace)
             .records;
     records.addAll(currentChunkRecords);
     return records;

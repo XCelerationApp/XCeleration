@@ -11,7 +11,7 @@ import '../../../core/components/device_connection_widget.dart';
 import '../../../core/services/i_device_connection_factory.dart';
 import '../../../core/utils/decode_utils.dart';
 import 'package:xceleration/shared/models/timing_records/bib_datum.dart';
-import '../model/bib_record.dart';
+import '../model/bib_datum_record.dart';
 import '../../shared/models/race_record.dart';
 import '../../shared/services/i_demo_race_generator.dart';
 import '../../shared/models/bib_record.dart' as db_models;

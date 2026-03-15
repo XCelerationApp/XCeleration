@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:xceleration/coach/merge_conflicts/controller/merge_conflicts_controller.dart';
-import 'package:xceleration/coach/merge_conflicts/utils/timing_data_converter.dart';
+import 'package:xceleration/coach/merge_conflicts/utils/timing_data_converter.dart' show CoachTimingDataConverter;
 import 'package:xceleration/shared/models/database/master_race.dart';
 import 'package:xceleration/shared/models/database/race_runner.dart';
 import 'package:xceleration/shared/models/database/runner.dart';
@@ -192,7 +192,7 @@ void main() {
       ];
 
       final uiChunks =
-          TimingDataConverter.convertToUIChunks(timingChunks, runners);
+          CoachTimingDataConverter.convertToUIChunks(timingChunks, runners);
 
       expect(uiChunks.length, equals(1));
       expect(uiChunks.first.chunkId, equals(10));

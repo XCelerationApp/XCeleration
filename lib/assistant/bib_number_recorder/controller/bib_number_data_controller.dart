@@ -3,7 +3,7 @@ import 'package:xceleration/core/utils/encode_utils.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/core/result.dart';
 import 'package:xceleration/core/services/i_text_input_factory.dart';
-import '../model/bib_record.dart';
+import '../model/bib_datum_record.dart';
 import '../../shared/models/race_record.dart';
 import '../../shared/services/i_assistant_storage_service.dart';
 import '../../shared/models/bib_record.dart' as db_models;
