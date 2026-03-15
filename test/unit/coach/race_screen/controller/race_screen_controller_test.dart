@@ -738,7 +738,7 @@ void main() {
 
         verify(mockMasterRace.removeListener(any)).called(1);
         // Re-create so tearDown dispose() doesn't throw on a disposed controller
-        controller = RaceController(
+        controller = RaceScreenController(
           masterRace: mockMasterRace,
           parentController: mockParentController,
           datePickerService: mockDatePickerService,
