@@ -7,10 +7,16 @@ import 'package:provider/provider.dart';
 import 'package:xceleration/core/services/connectivity_service.dart';
 import 'package:xceleration/core/services/i_auth_service.dart';
 import 'package:xceleration/core/services/i_sync_service.dart';
+import 'package:xceleration/core/services/profile_service.dart';
 import 'package:xceleration/shared/screens/sign_in_screen.dart';
 
 @GenerateMocks([IAuthService, ISyncService])
 import 'sign_in_screen_test.mocks.dart';
+
+class _FakeProfileService extends Fake implements ProfileService {
+  @override
+  Future<void> ensureProfileUpsert() async {}
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -95,7 +101,7 @@ void main() {
   group('initial UI state', () {
     testWidgets('shows Sign in title by default', (tester) async {
       await tester.pumpWidget(_wrap(
-        SignInScreen(authService: mockAuth, connectivityService: _online),
+        SignInScreen(authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
         syncService: mockSync,
       ));
       await tester.pump();
@@ -105,7 +111,7 @@ void main() {
 
     testWidgets('shows email and password TextFormFields', (tester) async {
       await tester.pumpWidget(_wrap(
-        SignInScreen(authService: mockAuth, connectivityService: _online),
+        SignInScreen(authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
         syncService: mockSync,
       ));
       await tester.pump();
@@ -115,7 +121,7 @@ void main() {
 
     testWidgets('shows Forgot password button in sign-in mode', (tester) async {
       await tester.pumpWidget(_wrap(
-        SignInScreen(authService: mockAuth, connectivityService: _online),
+        SignInScreen(authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
         syncService: mockSync,
       ));
       await tester.pump();
@@ -125,7 +131,7 @@ void main() {
 
     testWidgets('shows submit ElevatedButton', (tester) async {
       await tester.pumpWidget(_wrap(
-        SignInScreen(authService: mockAuth, connectivityService: _online),
+        SignInScreen(authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
         syncService: mockSync,
       ));
       await tester.pump();
@@ -142,7 +148,7 @@ void main() {
     testWidgets('tapping toggle switches to Create account mode',
         (tester) async {
       await tester.pumpWidget(_wrap(
-        SignInScreen(authService: mockAuth, connectivityService: _online),
+        SignInScreen(authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
         syncService: mockSync,
       ));
       await tester.pump();
@@ -156,7 +162,7 @@ void main() {
 
     testWidgets('tapping toggle back returns to Sign in mode', (tester) async {
       await tester.pumpWidget(_wrap(
-        SignInScreen(authService: mockAuth, connectivityService: _online),
+        SignInScreen(authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
         syncService: mockSync,
       ));
       await tester.pump();
@@ -178,7 +184,7 @@ void main() {
   group('form validation', () {
     testWidgets('shows error when email is empty on submit', (tester) async {
       await tester.pumpWidget(_wrap(
-        SignInScreen(authService: mockAuth, connectivityService: _online),
+        SignInScreen(authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
         syncService: mockSync,
       ));
       await tester.pump();
@@ -195,7 +201,7 @@ void main() {
     testWidgets('shows error when password is shorter than 6 characters',
         (tester) async {
       await tester.pumpWidget(_wrap(
-        SignInScreen(authService: mockAuth, connectivityService: _online),
+        SignInScreen(authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
         syncService: mockSync,
       ));
       await tester.pump();
@@ -223,7 +229,7 @@ void main() {
         (tester) async {
       await tester.pumpWidget(_wrap(
         SignInScreen(
-            authService: mockAuth, connectivityService: _offline),
+            authService: mockAuth, connectivityService: _offline, profileService: _FakeProfileService()),
         syncService: mockSync,
       ));
       await tester.pump();
@@ -242,7 +248,7 @@ void main() {
         (tester) async {
       await tester.pumpWidget(_wrap(
         SignInScreen(
-            authService: mockAuth, connectivityService: _online),
+            authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
         syncService: mockSync,
       ));
       await tester.pump();
@@ -259,7 +265,7 @@ void main() {
         (tester) async {
       await tester.pumpWidget(_wrap(
         SignInScreen(
-            authService: mockAuth, connectivityService: _offline),
+            authService: mockAuth, connectivityService: _offline, profileService: _FakeProfileService()),
         syncService: mockSync,
       ));
       await tester.pump();
@@ -289,7 +295,7 @@ void main() {
 
       await tester.pumpWidget(_wrap(
         SignInScreen(
-            authService: mockAuth, connectivityService: _online),
+            authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
         syncService: mockSync,
       ));
       await tester.pump();
@@ -313,7 +319,7 @@ void main() {
 
       await tester.pumpWidget(_wrap(
         SignInScreen(
-            authService: mockAuth, connectivityService: _online),
+            authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
         syncService: mockSync,
       ));
       await tester.pump();
@@ -337,7 +343,7 @@ void main() {
 
       await tester.pumpWidget(_wrap(
         SignInScreen(
-            authService: mockAuth, connectivityService: _online),
+            authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
         syncService: mockSync,
       ));
       await tester.pump();
@@ -361,7 +367,7 @@ void main() {
 
       await tester.pumpWidget(_wrap(
         SignInScreen(
-            authService: mockAuth, connectivityService: _online),
+            authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
         syncService: mockSync,
       ));
       await tester.pump();
@@ -398,7 +404,7 @@ void main() {
 
       await tester.pumpWidget(_wrap(
         SignInScreen(
-            authService: mockAuth, connectivityService: _online),
+            authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
         syncService: mockSync,
       ));
       await tester.pump();
@@ -421,7 +427,7 @@ void main() {
 
       await tester.pumpWidget(_wrap(
         SignInScreen(
-            authService: mockAuth, connectivityService: _online),
+            authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
         syncService: mockSync,
       ));
       await tester.pump();
@@ -443,7 +449,7 @@ void main() {
   group('forgot password', () {
     testWidgets('tapping with empty email shows info dialog', (tester) async {
       await tester.pumpWidget(_wrap(
-        SignInScreen(authService: mockAuth, connectivityService: _online),
+        SignInScreen(authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
         syncService: mockSync,
       ));
       await tester.pump();
@@ -460,7 +466,7 @@ void main() {
     testWidgets('tapping with filled email calls sendPasswordResetEmail',
         (tester) async {
       await tester.pumpWidget(_wrap(
-        SignInScreen(authService: mockAuth, connectivityService: _online),
+        SignInScreen(authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
         syncService: mockSync,
       ));
       await tester.pump();

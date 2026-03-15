@@ -1,6 +1,6 @@
 import '../../shared/models/database/base_models.dart';
 
-abstract class ITeamRepository {
+abstract interface class ITeamRepository {
   Future<int> createTeam(Team team);
   Future<Team?> getTeam(int teamId);
   Future<Team?> getTeamByName(String name);

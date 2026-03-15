@@ -9,7 +9,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/typography.dart';
 
 class UnsavedChangesBar extends StatelessWidget {
-  final RaceController controller;
+  final RaceScreenController controller;
 
   const UnsavedChangesBar({
     super.key,
@@ -19,7 +19,7 @@ class UnsavedChangesBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // controller.flowState and controller.form are synchronous — no FutureBuilder needed.
-    // The parent Consumer<RaceController> already rebuilds this widget on every notifyListeners().
+    // The parent Consumer<RaceScreenController> already rebuilds this widget on every notifyListeners().
     final flowState = controller.flowState;
     final bool isSetupFlow = flowState == Race.FLOW_SETUP ||
         flowState == Race.FLOW_SETUP_COMPLETED;

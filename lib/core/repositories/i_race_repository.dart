@@ -1,6 +1,6 @@
 import '../../shared/models/database/base_models.dart';
 
-abstract class IRaceRepository {
+abstract interface class IRaceRepository {
   // --- Race CRUD ---
   Future<int> createRace(Race race);
   Future<Race?> getRace(int raceId);

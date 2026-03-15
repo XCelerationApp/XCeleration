@@ -23,13 +23,16 @@ import 'package:gotrue/gotrue.dart' as gotrue;
 class SignInScreen extends StatefulWidget {
   const SignInScreen({
     super.key,
-    IAuthService? authService,
+    required IAuthService authService,
     ConnectivityService? connectivityService,
+    required ProfileService profileService,
   })  : _authService = authService,
-        _connectivityService = connectivityService;
+        _connectivityService = connectivityService,
+        _profileService = profileService;
 
-  final IAuthService? _authService;
+  final IAuthService _authService;
   final ConnectivityService? _connectivityService;
+  final ProfileService _profileService;
 
   @override
   State<SignInScreen> createState() => _SignInScreenState();
@@ -51,7 +54,6 @@ class _SignInScreenState extends State<SignInScreen>
   late final AnimationController _shakeController;
   late final Animation<Offset> _shakeAnimation;
 
-  IAuthService get _authService => widget._authService ?? AuthService.instance;
   ConnectivityService get _connectivity =>
       widget._connectivityService ?? const ConnectivityService();
 
@@ -138,11 +140,11 @@ class _SignInScreenState extends State<SignInScreen>
     setState(() => _busy = true);
     try {
       if (_isLogin) {
-        final resp = await _authService.signInWithEmailPassword(
+        final resp = await widget._authService.signInWithEmailPassword(
             _emailController.text.trim(), _passwordController.text);
         if (mounted && resp.session != null) {
           try {
-            await ProfileService.instance.ensureProfileUpsert();
+            await widget._profileService.ensureProfileUpsert();
             await syncService.syncAll();
           } catch (_) {}
           if (!mounted) return;
@@ -151,15 +153,15 @@ class _SignInScreenState extends State<SignInScreen>
               (route) => false);
         }
       } else {
-        final resp = await _authService.signUpWithEmailPassword(
+        final resp = await widget._authService.signUpWithEmailPassword(
             _emailController.text.trim(), _passwordController.text);
         if (resp.session == null) {
-          await _authService.signInWithEmailPassword(
+          await widget._authService.signInWithEmailPassword(
               _emailController.text.trim(), _passwordController.text);
         }
         if (mounted) {
           try {
-            await ProfileService.instance.ensureProfileUpsert();
+            await widget._profileService.ensureProfileUpsert();
             await syncService.syncAll();
           } catch (_) {}
           if (!mounted) return;
@@ -230,7 +232,7 @@ class _SignInScreenState extends State<SignInScreen>
     }
     setState(() => _busy = true);
     try {
-      await _authService
+      await widget._authService
           .sendPasswordResetEmail(_emailController.text.trim());
       if (mounted) {
         DialogUtils.showMessageDialog(context,
