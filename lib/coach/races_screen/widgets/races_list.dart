@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../coach/races_screen/controller/races_controller.dart';
 import '../../../shared/models/database/race.dart';
 import '../../../core/theme/app_animations.dart';
-import '../../../core/components/empty_section_state.dart';
+import '../../../core/components/empty_section.dart';
 import 'race_card.dart';
 import '../../flows/widgets/flow_section_header.dart';
 
@@ -65,7 +65,7 @@ class RacesList extends StatelessWidget {
         _CollapsibleSection(
           title: 'In Progress',
           count: raceInProgress.length,
-          emptyState: const EmptySectionState(
+          emptyState: const EmptySection(
             icon: Icons.timer_outlined,
             title: 'No races in progress',
             subtitle: 'Active races will appear here',
@@ -75,7 +75,7 @@ class RacesList extends StatelessWidget {
         _CollapsibleSection(
           title: 'Upcoming',
           count: upcomingRaces.length,
-          emptyState: const EmptySectionState(
+          emptyState: const EmptySection(
             icon: Icons.calendar_today_outlined,
             title: 'No upcoming races',
             subtitle: 'Races you\'re setting up will appear here',
@@ -85,7 +85,7 @@ class RacesList extends StatelessWidget {
         _CollapsibleSection(
           title: 'Finished',
           count: finishedRaces.length,
-          emptyState: const EmptySectionState(
+          emptyState: const EmptySection(
             icon: Icons.history,
             title: 'No finished races yet',
             subtitle: 'Completed races will appear here',

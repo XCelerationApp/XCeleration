@@ -2,19 +2,19 @@ import 'package:flutter/material.dart';
 import '../controller/share_race_controller.dart';
 import '../widgets/share_format_selection_widget.dart';
 
-class ShareSheetScreen extends StatefulWidget {
+class ShareRaceScreen extends StatefulWidget {
   final ShareRaceController controller;
 
-  const ShareSheetScreen({
+  const ShareRaceScreen({
     super.key,
     required this.controller,
   });
 
   @override
-  State<ShareSheetScreen> createState() => _ShareSheetScreenState();
+  State<ShareRaceScreen> createState() => _ShareRaceScreenState();
 }
 
-class _ShareSheetScreenState extends State<ShareSheetScreen> {
+class _ShareRaceScreenState extends State<ShareRaceScreen> {
   @override
   void initState() {
     super.initState();

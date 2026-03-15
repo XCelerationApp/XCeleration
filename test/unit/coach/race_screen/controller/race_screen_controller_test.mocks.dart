@@ -10,9 +10,9 @@ import 'package:flutter/material.dart' as _i15;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:xceleration/coach/flows/controller/flow_controller.dart'
     as _i14;
-import 'package:xceleration/coach/flows/PostRaceFlow/controller/post_race_controller.dart'
+import 'package:xceleration/coach/flows/post_race_flow/controller/post_race_controller.dart'
     as _i6;
-import 'package:xceleration/coach/flows/PreRaceFlow/controller/pre_race_controller.dart'
+import 'package:xceleration/coach/flows/pre_race_flow/controller/pre_race_controller.dart'
     as _i5;
 import 'package:xceleration/coach/race_results/model/team_record.dart' as _i11;
 import 'package:xceleration/coach/race_screen/controller/race_form_state.dart'
@@ -71,7 +71,7 @@ class _FakeRaceResultsData_1 extends _i1.SmartFake
 }
 
 class _FakeRaceController_2 extends _i1.SmartFake
-    implements _i4.RaceController {
+    implements _i4.RaceScreenController {
   _FakeRaceController_2(
     Object parent,
     Invocation parentInvocation,
@@ -508,13 +508,13 @@ class MockMasterFlowController extends _i1.Mock
   }
 
   @override
-  _i4.RaceController get raceController => (super.noSuchMethod(
+  _i4.RaceScreenController get raceController => (super.noSuchMethod(
         Invocation.getter(#raceController),
         returnValue: _FakeRaceController_2(
           this,
           Invocation.getter(#raceController),
         ),
-      ) as _i4.RaceController);
+      ) as _i4.RaceScreenController);
 
   @override
   _i5.PreRaceController get preRaceController => (super.noSuchMethod(

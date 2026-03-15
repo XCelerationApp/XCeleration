@@ -14,7 +14,7 @@ import 'dart:io';
 import '../../../shared/models/database/race.dart';
 
 class RaceDetailsTab extends StatelessWidget {
-  final RaceController controller;
+  final RaceScreenController controller;
 
   const RaceDetailsTab({
     super.key,

@@ -33,7 +33,7 @@ export 'textfield_utils.dart';
 // Feedback & state
 export 'app_loading.dart';
 export 'ui_state_components.dart';
-export 'empty_section_state.dart';
+export 'empty_section.dart';
 export 'status_badge.dart';
 export 'dialog_utils.dart';
 

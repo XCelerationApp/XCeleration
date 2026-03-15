@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
-import 'package:xceleration/coach/flows/PostRaceFlow/controller/post_race_controller.dart';
-import 'package:xceleration/coach/flows/PostRaceFlow/steps/load_results/controller/load_results_controller.dart';
-import 'package:xceleration/coach/flows/PostRaceFlow/steps/load_results/load_results_step.dart';
-import 'package:xceleration/coach/flows/PostRaceFlow/steps/reconnect/reconnect_step.dart';
+import 'package:xceleration/coach/flows/post_race_flow/controller/post_race_controller.dart';
+import 'package:xceleration/coach/flows/post_race_flow/steps/load_results/controller/load_results_controller.dart';
+import 'package:xceleration/coach/flows/post_race_flow/steps/load_results/load_results_step.dart';
+import 'package:xceleration/coach/flows/post_race_flow/steps/reconnect/reconnect_step.dart';
 import 'package:xceleration/coach/flows/model/flow_model.dart';
 import 'package:xceleration/shared/models/database/master_race.dart';
 
