@@ -33,7 +33,7 @@ jobs:
     needs: check-branch
     steps:
       - name: Auto-merge dev→main PR
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           github-token: ${{ secrets.PERSONAL_ACCESS_TOKEN || github.token }}
           script: |
