@@ -80,8 +80,9 @@ class _SearchField extends StatelessWidget {
     return Container(
       height: 44,
       decoration: BoxDecoration(
-        color: AppColors.lightColor,
-        borderRadius: BorderRadius.circular(AppBorderRadius.full),
+        color: AppColors.surfaceColor,
+        borderRadius: BorderRadius.circular(AppBorderRadius.md),
+        border: Border.all(color: AppColors.borderColor),
       ),
       child: Row(
         children: [
@@ -89,7 +90,7 @@ class _SearchField extends StatelessWidget {
           Icon(
             Icons.search,
             size: 18,
-            color: AppColors.primaryColor.withValues(alpha: 0.8),
+            color: AppColors.mediumColor,
           ),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
@@ -149,8 +150,9 @@ class _AttributeDropdown extends StatelessWidget {
       height: 44,
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
       decoration: BoxDecoration(
-        color: AppColors.lightColor,
-        borderRadius: BorderRadius.circular(AppBorderRadius.full),
+        color: AppColors.surfaceColor,
+        borderRadius: BorderRadius.circular(AppBorderRadius.md),
+        border: Border.all(color: AppColors.borderColor),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(

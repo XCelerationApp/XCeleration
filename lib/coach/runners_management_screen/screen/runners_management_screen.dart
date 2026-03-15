@@ -4,6 +4,7 @@ import 'package:xceleration/core/services/i_sync_service.dart';
 import '../controller/runners_management_controller.dart';
 import '../../../core/theme/app_border_radius.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_opacity.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/utils/sheet_utils.dart';
@@ -82,30 +83,32 @@ class _TeamsAndRunnersManagementWidgetState
       child: Consumer<RunnersManagementController>(
         builder: (context, controller, child) {
           return Material(
-            color: AppColors.surfaceColor,
+            color: AppColors.backgroundColor,
             child: LayoutBuilder(
               builder: (context, constraints) {
                 return Column(
                   mainAxisSize: MainAxisSize.max,
                   children: [
                     if (controller.showHeader)
-                      _buildHeader(controller),
-                    if (!controller.isLoading) ...[
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.lg,
-                        ),
-                        child: _buildSearchSection(),
+                      ColoredBox(
+                        color: AppColors.backgroundColor,
+                        child: _buildHeader(controller),
                       ),
-                      const SizedBox(height: AppSpacing.sm),
-                    ],
+                    if (!controller.isLoading)
+                      ColoredBox(
+                        color: AppColors.backgroundColor,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                            AppSpacing.lg,
+                            AppSpacing.sm,
+                            AppSpacing.lg,
+                            AppSpacing.md,
+                          ),
+                          child: _buildSearchSection(),
+                        ),
+                      ),
                     Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.lg,
-                        ),
-                        child: RunnersList(controller: controller),
-                      ),
+                      child: RunnersList(controller: controller),
                     ),
                   ],
                 );
@@ -119,16 +122,14 @@ class _TeamsAndRunnersManagementWidgetState
 
   Widget _buildHeader(RunnersManagementController controller) {
     return Padding(
-      padding: const EdgeInsets.only(
-        top: AppSpacing.sm,
-        left: AppSpacing.lg,
-        right: AppSpacing.lg,
-        bottom: AppSpacing.md,
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.sm,
+        AppSpacing.lg,
+        AppSpacing.md,
       ),
       child: Column(
         children: [
-          createSheetHandle(height: 5, width: 50),
-          const SizedBox(height: AppSpacing.sm),
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -136,7 +137,7 @@ class _TeamsAndRunnersManagementWidgetState
                 createBackArrow(context, onBack: widget.onBack),
               Text(
                 'Runners',
-                style: AppTypography.titleLarge.copyWith(
+                style: AppTypography.titleMedium.copyWith(
                   color: AppColors.darkColor,
                 ),
               ),
@@ -144,7 +145,7 @@ class _TeamsAndRunnersManagementWidgetState
                 const SizedBox(width: AppSpacing.sm),
                 Text(
                   '${controller.totalRunnerCount}',
-                  style: AppTypography.titleLarge.copyWith(
+                  style: AppTypography.captionBold.copyWith(
                     color: AppColors.mediumColor,
                   ),
                 ),
@@ -195,7 +196,7 @@ class _AddTeamButton extends StatelessWidget {
           vertical: AppSpacing.sm,
         ),
         decoration: BoxDecoration(
-          color: Colors.transparent,
+          color: AppColors.primaryColor.withValues(alpha: AppOpacity.light),
           borderRadius: BorderRadius.circular(AppBorderRadius.lg),
           border: Border.all(
             color: AppColors.primaryColor,

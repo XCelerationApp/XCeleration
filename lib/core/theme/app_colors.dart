@@ -12,6 +12,9 @@ class AppColors {
   static const Color navBarColor = Color(0xFFE2572B);
   // static const Color primaryColor = Color(0xFF4CAF50);
   static const Color primaryColor = Color(0xFFE2572B);
+
+  /// Darker shade of primary — used as the gradient end colour.
+  static const Color darkPrimaryColor = Color(0xFFC0421E);
   static const Color redColor = Color(0xFFA81F15);
   static const Color selectedRoleColor = Color(0xFFFBE5E1);
   static const Color unselectedRoleColor = Color(0xFFF5F3FB);

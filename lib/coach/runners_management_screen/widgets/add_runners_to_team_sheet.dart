@@ -53,7 +53,7 @@ class _AddRunnersToTeamSheetState extends State<AddRunnersToTeamSheet> {
     _bibDebounce?.cancel();
     final formatError = RunnerFormValidator.validateBibFormat(value);
     if (formatError != null) {
-      setState(() => _bibError = null); // clear async error on format change
+      setState(() => _bibError = null);
       return;
     }
     _bibDebounce = Timer(const Duration(milliseconds: 400), () async {
@@ -102,33 +102,52 @@ class _AddRunnersToTeamSheetState extends State<AddRunnersToTeamSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final teamColor = widget.team.color ?? AppColors.primaryColor;
-
     return Form(
       key: _formKey,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          const _FieldLabel('Name'),
+          const SizedBox(height: AppSpacing.xs),
           _NameField(controller: _nameController),
           const SizedBox(height: AppSpacing.md),
+          const _FieldLabel('Bib #'),
+          const SizedBox(height: AppSpacing.xs),
           _BibField(
             controller: _bibController,
             asyncError: _bibError,
             onChanged: _onBibChanged,
           ),
           const SizedBox(height: AppSpacing.md),
+          const _FieldLabel('Grade'),
+          const SizedBox(height: AppSpacing.xs),
           _GradeSelector(
             selected: _selectedGrade,
             onSelected: (grade) => setState(() => _selectedGrade = grade),
           ),
           const SizedBox(height: AppSpacing.xl),
           _SubmitButton(
-            teamColor: teamColor,
             isSubmitting: _isSubmitting,
             onPressed: _submit,
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _FieldLabel extends StatelessWidget {
+  const _FieldLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: AppTypography.captionBold.copyWith(
+        color: AppColors.mediumColor,
       ),
     );
   }
@@ -145,21 +164,35 @@ class _NameField extends StatelessWidget {
       controller: controller,
       textCapitalization: TextCapitalization.words,
       decoration: InputDecoration(
-        labelText: 'Runner name',
-        labelStyle: AppTypography.smallBodyRegular.copyWith(
-          color: AppColors.mediumColor,
+        hintText: "Runner's full name",
+        hintStyle: AppTypography.smallBodyRegular.copyWith(
+          color: AppColors.mediumColor.withValues(alpha: AppOpacity.solid),
         ),
+        filled: true,
+        fillColor: AppColors.surfaceColor,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppBorderRadius.md),
-          borderSide: BorderSide(color: AppColors.lightColor),
+          borderSide: const BorderSide(color: AppColors.borderColor, width: 1.5),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppBorderRadius.md),
-          borderSide: BorderSide(color: AppColors.lightColor),
+          borderSide: const BorderSide(color: AppColors.borderColor, width: 1.5),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppBorderRadius.md),
+          borderSide: const BorderSide(color: AppColors.primaryColor, width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppBorderRadius.md),
+          borderSide: const BorderSide(color: AppColors.redColor, width: 1.5),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppBorderRadius.md),
+          borderSide: const BorderSide(color: AppColors.redColor, width: 1.5),
         ),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.md,
-          vertical: AppSpacing.sm,
+          vertical: AppSpacing.md,
         ),
       ),
       style: AppTypography.smallBodyRegular.copyWith(
@@ -188,22 +221,36 @@ class _BibField extends StatelessWidget {
       keyboardType: TextInputType.number,
       onChanged: onChanged,
       decoration: InputDecoration(
-        labelText: 'Bib number',
-        labelStyle: AppTypography.smallBodyRegular.copyWith(
-          color: AppColors.mediumColor,
+        hintText: 'e.g. 104',
+        hintStyle: AppTypography.smallBodyRegular.copyWith(
+          color: AppColors.mediumColor.withValues(alpha: AppOpacity.solid),
         ),
         errorText: asyncError,
+        filled: true,
+        fillColor: AppColors.surfaceColor,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppBorderRadius.md),
-          borderSide: BorderSide(color: AppColors.lightColor),
+          borderSide: const BorderSide(color: AppColors.borderColor, width: 1.5),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppBorderRadius.md),
-          borderSide: BorderSide(color: AppColors.lightColor),
+          borderSide: const BorderSide(color: AppColors.borderColor, width: 1.5),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppBorderRadius.md),
+          borderSide: const BorderSide(color: AppColors.primaryColor, width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppBorderRadius.md),
+          borderSide: const BorderSide(color: AppColors.redColor, width: 1.5),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppBorderRadius.md),
+          borderSide: const BorderSide(color: AppColors.redColor, width: 1.5),
         ),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.md,
-          vertical: AppSpacing.sm,
+          vertical: AppSpacing.md,
         ),
       ),
       style: AppTypography.smallBodyRegular.copyWith(
@@ -268,23 +315,19 @@ class _GradePill extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.primaryColor
-              : AppColors.primaryColor.withValues(alpha: AppOpacity.faint),
-          borderRadius: BorderRadius.circular(AppBorderRadius.full),
+              ? AppColors.primaryColor.withValues(alpha: AppOpacity.faint)
+              : AppColors.surfaceColor,
+          borderRadius: BorderRadius.circular(AppBorderRadius.md),
           border: Border.all(
-            color: isSelected
-                ? AppColors.primaryColor
-                : AppColors.primaryColor.withValues(alpha: AppOpacity.medium),
-            width: 1,
+            color: isSelected ? AppColors.primaryColor : AppColors.borderColor,
+            width: 1.5,
           ),
         ),
         child: Center(
           child: Text(
             label,
             style: AppTypography.smallBodySemibold.copyWith(
-              color: isSelected
-                  ? AppColors.backgroundColor
-                  : AppColors.primaryColor,
+              color: isSelected ? AppColors.primaryColor : AppColors.mediumColor,
             ),
           ),
         ),
@@ -295,12 +338,10 @@ class _GradePill extends StatelessWidget {
 
 class _SubmitButton extends StatelessWidget {
   const _SubmitButton({
-    required this.teamColor,
     required this.isSubmitting,
     required this.onPressed,
   });
 
-  final Color teamColor;
   final bool isSubmitting;
   final VoidCallback onPressed;
 
@@ -308,34 +349,49 @@ class _SubmitButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       height: 48,
-      child: ElevatedButton(
-        onPressed: isSubmitting ? null : onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: teamColor,
-          foregroundColor: AppColors.backgroundColor,
-          disabledBackgroundColor: teamColor.withValues(alpha: AppOpacity.solid),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppBorderRadius.lg),
-          ),
-          elevation: 0,
-        ),
-        child: isSubmitting
-            ? SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    AppColors.backgroundColor,
+      child: GestureDetector(
+        onTap: isSubmitting ? null : onPressed,
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: isSubmitting
+                ? null
+                : const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [AppColors.primaryColor, AppColors.primaryGradientEnd],
                   ),
-                ),
-              )
-            : Text(
-                'Add Runner',
-                style: AppTypography.bodySemibold.copyWith(
-                  color: AppColors.backgroundColor,
-                ),
-              ),
+            color: isSubmitting ? AppColors.lightColor : null,
+            borderRadius: BorderRadius.circular(AppBorderRadius.lg),
+            boxShadow: isSubmitting
+                ? null
+                : [
+                    BoxShadow(
+                      color: AppColors.primaryColor.withValues(alpha: AppOpacity.strong),
+                      blurRadius: 14,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+          ),
+          child: Center(
+            child: isSubmitting
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        AppColors.backgroundColor,
+                      ),
+                    ),
+                  )
+                : Text(
+                    'Add Runner',
+                    style: AppTypography.bodySemibold.copyWith(
+                      color: AppColors.backgroundColor,
+                    ),
+                  ),
+          ),
+        ),
       ),
     );
   }

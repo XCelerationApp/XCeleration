@@ -5,33 +5,50 @@ import '../../../core/theme/typography.dart';
 
 /// Body widget for the "Add Team" choice sheet.
 ///
-/// Presents two options — Create Team and Import Teams — as tappable rows.
+/// Presents three options — Import from Previous Race, Import from Spreadsheet,
+/// and Create New Team — as tappable rows with a description subtitle.
 /// The caller is responsible for dismissing the sheet and opening the next flow.
 class AddTeamChoiceSheet extends StatelessWidget {
   const AddTeamChoiceSheet({
     super.key,
+    required this.onImportFromPreviousRace,
+    required this.onImportFromSpreadsheet,
     required this.onCreateTeam,
-    required this.onImportTeams,
   });
 
+  final VoidCallback onImportFromPreviousRace;
+  final VoidCallback onImportFromSpreadsheet;
   final VoidCallback onCreateTeam;
-  final VoidCallback onImportTeams;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        Text(
+          'Choose how you want to add teams to this race.',
+          style: AppTypography.bodyRegular.copyWith(
+            color: AppColors.mediumColor,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.lg),
         _ChoiceTile(
-          icon: Icons.group_add,
-          label: 'Create Team',
-          onTap: onCreateTeam,
+          icon: Icons.history,
+          label: 'Import from Previous Race',
+          onTap: onImportFromPreviousRace,
         ),
         Divider(height: 1, thickness: 1, color: AppColors.lightColor),
         _ChoiceTile(
-          icon: Icons.download,
-          label: 'Import Teams',
-          onTap: onImportTeams,
+          icon: Icons.table_chart_outlined,
+          label: 'Import from Spreadsheet',
+          onTap: onImportFromSpreadsheet,
+        ),
+        Divider(height: 1, thickness: 1, color: AppColors.lightColor),
+        _ChoiceTile(
+          icon: Icons.group_add,
+          label: 'Create New Team',
+          onTap: onCreateTeam,
         ),
       ],
     );

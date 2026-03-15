@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_animations.dart';
 import '../../../core/theme/app_border_radius.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_opacity.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/typography.dart';
 import '../../../shared/models/database/team.dart';
@@ -35,63 +36,59 @@ class TeamHeaderTile extends StatelessWidget {
       onTap: onToggleExpand,
       behavior: HitTestBehavior.opaque,
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.sm,
-          vertical: AppSpacing.sm,
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          AppSpacing.sm,
+          AppSpacing.md,
+          AppSpacing.sm,
         ),
         child: Row(
           children: [
-            // Collapse chevron
+            // Collapse chevron — lighter, smaller, matches prototype
             AnimatedRotation(
               turns: isExpanded ? 0.25 : 0,
               duration: AppAnimations.standard,
               curve: AppAnimations.spring,
               child: Icon(
                 Icons.chevron_right,
-                size: 20,
-                color: AppColors.mediumColor,
-              ),
-            ),
-            const SizedBox(width: AppSpacing.xs),
-            // Team color dot
-            Container(
-              width: 10,
-              height: 10,
-              decoration: BoxDecoration(
-                color: teamColor,
-                borderRadius:
-                    BorderRadius.circular(AppBorderRadius.full),
+                size: 18,
+                color: AppColors.mediumColor.withValues(alpha: AppOpacity.solid),
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
-            // Team name
+            // Team name + runner count
             Expanded(
-              child: Text(
-                team.name ?? '',
-                style: AppTypography.smallBodySemibold.copyWith(
-                  color: teamColor,
-                ),
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1,
-              ),
-            ),
-            // Runner count
-            Text(
-              '$runnerCount runner${runnerCount == 1 ? '' : 's'}',
-              style: AppTypography.smallCaption.copyWith(
-                color: AppColors.mediumColor,
+              child: Row(
+                children: [
+                  Flexible(
+                    child: Text(
+                      team.name ?? '',
+                      style: AppTypography.smallBodySemibold.copyWith(
+                        color: teamColor,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Text(
+                    '$runnerCount ${runnerCount == 1 ? 'runner' : 'runners'}',
+                    style: AppTypography.smallCaption.copyWith(
+                      color: AppColors.mediumColor.withValues(alpha: AppOpacity.solid),
+                    ),
+                  ),
+                ],
               ),
             ),
             if (!isViewMode) ...[
-              const SizedBox(width: AppSpacing.sm),
               _AddRunnerChip(
                 color: teamColor,
                 onTap: onAddRunner,
               ),
+              const SizedBox(width: AppSpacing.sm),
               _TeamMenuButton(
                 team: team,
                 controller: controller,
-                context: context,
               ),
             ],
           ],
@@ -113,30 +110,22 @@ class _AddRunnerChip extends StatelessWidget {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
+          horizontal: AppSpacing.sm,
           vertical: AppSpacing.xs,
         ),
         decoration: BoxDecoration(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(AppBorderRadius.md),
+          color: color.withValues(alpha: AppOpacity.light),
+          borderRadius: BorderRadius.circular(AppBorderRadius.sm),
           border: Border.all(
-            color: color,
-            width: 1.5,
+            color: color.withValues(alpha: AppOpacity.strong),
           ),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.add, size: 12, color: color),
-            const SizedBox(width: AppSpacing.xs),
-            Text(
-              'Runner',
-              style: AppTypography.smallCaption.copyWith(
-                color: color,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
+        child: Text(
+          '+ Runner',
+          style: AppTypography.smallCaption.copyWith(
+            color: color,
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ),
     );
@@ -147,12 +136,10 @@ class _TeamMenuButton extends StatelessWidget {
   const _TeamMenuButton({
     required this.team,
     required this.controller,
-    required this.context,
   });
 
   final Team team;
   final RunnersManagementController controller;
-  final BuildContext context;
 
   @override
   Widget build(BuildContext context) {
@@ -160,7 +147,7 @@ class _TeamMenuButton extends StatelessWidget {
       icon: Icon(
         Icons.more_vert,
         size: 20,
-        color: AppColors.mediumColor,
+        color: AppColors.mediumColor.withValues(alpha: AppOpacity.solid),
       ),
       onSelected: (value) {
         if (value == 'edit') {

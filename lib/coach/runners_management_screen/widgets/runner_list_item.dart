@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import '../../../core/theme/app_animations.dart';
-import '../../../core/theme/app_border_radius.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_opacity.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -49,13 +48,13 @@ class _RunnerListItemState extends State<RunnerListItem> {
         curve: AppAnimations.spring,
         color: _pressed
             ? AppColors.primaryColor.withValues(alpha: AppOpacity.faint)
-            : AppColors.backgroundColor,
+            : Colors.transparent,
         child: Column(
           children: [
             Padding(
               padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.sm,
-                vertical: AppSpacing.xs,
+                horizontal: AppSpacing.lg,
+                vertical: AppSpacing.md,
               ),
               child: Row(
                 children: [
@@ -64,13 +63,11 @@ class _RunnerListItemState extends State<RunnerListItem> {
                     child: Row(
                       children: [
                         Container(
-                          width: AppSpacing.sm,
-                          height: AppSpacing.sm,
+                          width: 6,
+                          height: 6,
                           decoration: BoxDecoration(
                             color: teamColor,
-                            borderRadius: BorderRadius.circular(
-                              AppBorderRadius.full,
-                            ),
+                            shape: BoxShape.circle,
                           ),
                         ),
                         const SizedBox(width: AppSpacing.sm),
@@ -79,6 +76,7 @@ class _RunnerListItemState extends State<RunnerListItem> {
                             widget.runner.name ?? '-',
                             style: AppTypography.smallBodyRegular.copyWith(
                               color: AppColors.darkColor,
+                              fontWeight: FontWeight.w500,
                             ),
                             overflow: TextOverflow.ellipsis,
                             maxLines: 1,
@@ -89,44 +87,49 @@ class _RunnerListItemState extends State<RunnerListItem> {
                   ),
                   // Grade label
                   SizedBox(
-                    width: 40,
+                    width: 36,
                     child: Center(
                       child: Text(
                         label,
-                        style: AppTypography.smallBodyRegular.copyWith(
+                        style: AppTypography.caption.copyWith(
                           color: AppColors.mediumColor,
                         ),
                       ),
                     ),
                   ),
-                  // Bib number
+                  // Bib number — tabular figures for alignment
                   SizedBox(
-                    width: 60,
-                    child: Center(
-                      child: Text(
-                        widget.runner.bibNumber ?? '-',
-                        style: AppTypography.smallBodySemibold.copyWith(
-                          color: teamColor,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
+                    width: 56,
+                    child: Text(
+                      widget.runner.bibNumber ?? '-',
+                      textAlign: TextAlign.right,
+                      style: AppTypography.smallBodySemibold.copyWith(
+                        color: teamColor,
+                        fontWeight: FontWeight.w700,
+                        fontFeatures: const [FontFeature.tabularFigures()],
                       ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
                     ),
                   ),
                   // Swipe hint chevron
-                  if (!widget.isViewMode)
+                  if (!widget.isViewMode) ...[
+                    const SizedBox(width: AppSpacing.sm),
                     Icon(
-                      Icons.chevron_right,
-                      size: 16,
+                      Icons.chevron_left,
+                      size: 14,
                       color: AppColors.lightColor,
                     ),
+                  ],
                 ],
               ),
             ),
+            // Indented divider matching prototype
             Divider(
               height: 1,
-              thickness: 1,
-              color: AppColors.lightColor,
+              indent: AppSpacing.lg,
+              endIndent: AppSpacing.lg,
+              color: AppColors.surfaceColor,
             ),
           ],
         ),

@@ -413,18 +413,43 @@ class RunnersManagementController with ChangeNotifier {
       context: context,
       title: 'Add Team',
       body: AddTeamChoiceSheet(
+        onImportFromPreviousRace: () async {
+          Navigator.of(context).pop();
+          if (!context.mounted) return;
+          await showExistingTeamsBrowser(context);
+        },
+        onImportFromSpreadsheet: () async {
+          Navigator.of(context).pop();
+          if (!context.mounted) return;
+          await showImportTeamFromSpreadsheet(context);
+        },
         onCreateTeam: () async {
           Navigator.of(context).pop();
           if (!context.mounted) return;
           await showCreateTeamSheet(context);
         },
-        onImportTeams: () async {
-          Navigator.of(context).pop();
-          if (!context.mounted) return;
-          await showExistingTeamsBrowser(context);
-        },
       ),
     );
+  }
+
+  Future<void> showImportTeamFromSpreadsheet(BuildContext context) async {
+    final createdTeam = await sheet(
+      context: context,
+      title: 'Create New Team',
+      body: CreateTeamSheet(
+        masterRace: masterRace,
+        createTeam: createTeam,
+      ),
+    );
+
+    if (createdTeam is Team) {
+      Team? persisted = await masterRace.getTeamByName(createdTeam.name ?? '');
+      persisted ??= (await masterRace.teams).firstWhere(
+          (t) => t.name == createdTeam.name,
+          orElse: () => createdTeam);
+      if (!context.mounted) return;
+      await loadSpreadsheet(context, persisted);
+    }
   }
 
   Future<void> showCreateTeamSheet(BuildContext context) async {

@@ -10,27 +10,31 @@ class ListTitles extends StatelessWidget {
   Widget build(BuildContext context) {
     final style = AppTypography.smallCaption.copyWith(
       color: AppColors.mediumColor,
-      fontWeight: FontWeight.w600,
+      fontWeight: FontWeight.w700,
       letterSpacing: 0.5,
     );
 
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.sm,
-            vertical: AppSpacing.xs,
-          ),
-          child: Row(
-            children: [
-              Expanded(child: Text('NAME', style: style)),
-              SizedBox(width: 40, child: Center(child: Text('GR.', style: style))),
-              SizedBox(width: 60, child: Center(child: Text('BIB', style: style))),
-            ],
-          ),
+    return ColoredBox(
+      color: AppColors.surfaceColor,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          AppSpacing.sm,
+          AppSpacing.lg,
+          AppSpacing.sm,
         ),
-        Divider(height: 1, thickness: 1, color: AppColors.lightColor),
-      ],
+        child: Row(
+          children: [
+            Expanded(child: Text('NAME', style: style)),
+            SizedBox(width: 36, child: Center(child: Text('GR.', style: style))),
+            SizedBox(
+              width: 56,
+              child: Text('BIB', textAlign: TextAlign.right, style: style),
+            ),
+            const SizedBox(width: 28),
+          ],
+        ),
+      ),
     );
   }
 }
