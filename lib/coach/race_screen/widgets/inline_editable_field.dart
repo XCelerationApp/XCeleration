@@ -9,7 +9,7 @@ import '../controller/race_screen_controller.dart';
 import '../controller/race_form_state.dart';
 
 class InlineEditableField extends StatelessWidget {
-  final RaceController controller;
+  final RaceScreenController controller;
   final RaceField field;
   final String label;
   final IconData icon;

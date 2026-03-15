@@ -21,10 +21,6 @@ class RemoteApiClient implements IRemoteApiClient {
   })  : _env = env ?? dotenv.env,
         _initializer = initializer ?? _defaultSupabaseInitializer;
 
-  // TODO(refactor): Remove once ProfileService, ParentLinkService, and
-  // AuthService are migrated to constructor-injected IRemoteApiClient.
-  static final RemoteApiClient instance = RemoteApiClient();
-
   final Map<String, String> _env;
   final SupabaseInitializer _initializer;
 
