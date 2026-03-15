@@ -80,7 +80,8 @@ dependencies:
 
   # Voice Recognition
   sherpa_onnx: ^1.12.29
-  record: ^6.1.2
+  flutter_sound: ^9.0.0
+  logger: ^2.0.2
 
 dev_dependencies:
   flutter_test:

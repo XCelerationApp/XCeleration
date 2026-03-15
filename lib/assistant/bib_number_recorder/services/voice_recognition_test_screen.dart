@@ -11,10 +11,9 @@ import 'package:xceleration/core/theme/app_shadows.dart';
 import 'package:xceleration/core/theme/app_spacing.dart';
 import 'package:xceleration/core/theme/typography.dart';
 
-/// Standalone test screen for [VoiceRecognitionService].
+/// Hold-to-speak test screen for [VoiceRecognitionService].
 ///
-/// Hold the button to start recording, release to recognise. Requires a real
-/// device — simulator microphone is unreliable with Vosk.
+/// Hold the mic button to record; release to recognise and display the result.
 ///
 /// Launch via:
 /// ```
@@ -28,17 +27,16 @@ class VoiceRecognitionTestScreen extends StatefulWidget {
       _VoiceRecognitionTestScreenState();
 }
 
-enum _Status { initialising, ready, listening, error }
+enum _Status { initialising, ready, recording, recognising, error }
 
 class _VoiceRecognitionTestScreenState
     extends State<VoiceRecognitionTestScreen> {
   final _service = VoiceRecognitionService();
 
   _Status _status = _Status.initialising;
-  String _statusMessage = 'Downloading model…';
-  String _partial = '';
+  String _statusMessage = 'Initialising…';
+  String _rawText = '';
   int? _lastBib;
-  bool _buttonPressed = false;
   final List<int> _history = [];
 
   StreamSubscription<int?>? _bibSub;
@@ -60,7 +58,7 @@ class _VoiceRecognitionTestScreenState
         _partialSub = _service.partialResults.listen(_onPartial);
         setState(() {
           _status = _Status.ready;
-          _statusMessage = 'Ready';
+          _statusMessage = 'Hold to record';
         });
       case Failure(:final error):
         setState(() {
@@ -70,43 +68,48 @@ class _VoiceRecognitionTestScreenState
     }
   }
 
+  void _onPointerDown(_) {
+    if (_status != _Status.ready) return;
+    setState(() {
+      _status = _Status.recording;
+      _statusMessage = 'Recording…';
+      _rawText = '';
+      _lastBib = null;
+    });
+    _service.start();
+  }
+
+  void _onPointerUp(_) => _stopAndRecognise();
+  void _onPointerCancel(_) => _stopAndRecognise();
+
+  Future<void> _stopAndRecognise() async {
+    if (_status != _Status.recording) return;
+    setState(() {
+      _status = _Status.recognising;
+      _statusMessage = 'Recognising…';
+    });
+    await _service.stop();
+    if (!mounted) return;
+    setState(() {
+      _status = _Status.ready;
+      _statusMessage = 'Hold to record';
+    });
+  }
+
   void _onBib(int? bib) {
     if (!mounted) return;
     setState(() {
       _lastBib = bib;
-      _partial = '';
-      if (bib != null) _history.insert(0, bib);
-      if (_history.length > 10) _history.removeLast();
+      if (bib != null) {
+        _history.insert(0, bib);
+        if (_history.length > 10) _history.removeLast();
+      }
     });
   }
 
-  void _onPartial(String partial) {
+  void _onPartial(String text) {
     if (!mounted) return;
-    setState(() => _partial = partial);
-  }
-
-  Future<void> _onButtonDown(_) async {
-    if (_status != _Status.ready) return;
-    setState(() {
-      _buttonPressed = true;
-      _status = _Status.listening;
-      _partial = '';
-      _lastBib = null;
-    });
-    await _service.start();
-  }
-
-  Future<void> _onButtonUp(_) async => _stopListening();
-
-  Future<void> _onButtonCancel() async => _stopListening();
-
-  Future<void> _stopListening() async {
-    if (_status != _Status.listening) return;
-    setState(() {
-      _buttonPressed = false;
-      _status = _Status.ready;
-    });
-    await _service.stop();
+    setState(() => _rawText = text);
   }
 
   @override
@@ -124,25 +127,49 @@ class _VoiceRecognitionTestScreenState
       appBar: AppBar(
         backgroundColor: AppColors.navBarColor,
         title: Text(
-          'Voice Bib Recognition Test',
+          'Voice Bib Test',
           style: AppTypography.titleSemibold.copyWith(color: Colors.white),
         ),
       ),
       body: SafeArea(
-        child: Column(
-          children: [
-            _StatusBanner(status: _status, message: _statusMessage),
-            Expanded(child: _RecognitionDisplay(partial: _partial, lastBib: _lastBib)),
-            _HistoryRow(history: _history),
-            _HoldToSpeakButton(
-              status: _status,
-              pressed: _buttonPressed,
-              onDown: _onButtonDown,
-              onUp: _onButtonUp,
-              onCancel: _onButtonCancel,
-            ),
-            SizedBox(height: AppSpacing.xxl),
-          ],
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _StatusCard(status: _status, message: _statusMessage),
+              SizedBox(height: AppSpacing.xl),
+
+              Center(
+                child: _MicButton(
+                  status: _status,
+                  onPointerDown: _onPointerDown,
+                  onPointerUp: _onPointerUp,
+                  onPointerCancel: _onPointerCancel,
+                ),
+              ),
+              SizedBox(height: AppSpacing.xl),
+
+              _ResultCard(rawText: _rawText, bib: _lastBib),
+              SizedBox(height: AppSpacing.xl),
+
+              if (_history.isNotEmpty) ...[
+                Text(
+                  'History',
+                  style: AppTypography.bodySemibold
+                      .copyWith(color: AppColors.darkColor),
+                ),
+                SizedBox(height: AppSpacing.sm),
+                Wrap(
+                  spacing: AppSpacing.sm,
+                  runSpacing: AppSpacing.xs,
+                  children: _history
+                      .map((bib) => Chip(label: Text('$bib')))
+                      .toList(),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );
@@ -153,106 +180,44 @@ class _VoiceRecognitionTestScreenState
 // Sub-widgets
 // ---------------------------------------------------------------------------
 
-class _StatusBanner extends StatelessWidget {
-  const _StatusBanner({required this.status, required this.message});
-
+class _StatusCard extends StatelessWidget {
+  const _StatusCard({required this.status, required this.message});
   final _Status status;
   final String message;
 
   @override
   Widget build(BuildContext context) {
     final color = switch (status) {
-      _Status.initialising => AppColors.mediumColor,
+      _Status.initialising || _Status.recognising => AppColors.mediumColor,
       _Status.ready => const Color(0xFF4CAF50),
-      _Status.listening => AppColors.primaryColor,
+      _Status.recording => AppColors.primaryColor,
       _Status.error => AppColors.redColor,
     };
+    final isSpinning =
+        status == _Status.initialising || status == _Status.recognising;
 
-    return AnimatedContainer(
-      duration: AppAnimations.standard,
-      curve: AppAnimations.spring,
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.lg,
-        vertical: AppSpacing.sm,
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: AppOpacity.light),
+        borderRadius: BorderRadius.circular(AppBorderRadius.md),
       ),
-      color: color.withValues(alpha: AppOpacity.light),
       child: Row(
         children: [
-          if (status == _Status.initialising)
+          if (isSpinning)
             Padding(
               padding: const EdgeInsets.only(right: AppSpacing.sm),
               child: SizedBox(
-                width: AppSpacing.lg,
-                height: AppSpacing.lg,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: color,
-                ),
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2, color: color),
               ),
             ),
-          Text(
-            message,
-            style: AppTypography.caption.copyWith(color: color),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RecognitionDisplay extends StatelessWidget {
-  const _RecognitionDisplay({required this.partial, required this.lastBib});
-
-  final String partial;
-  final int? lastBib;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(AppSpacing.xl),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Real-time partial text
-          AnimatedSwitcher(
-            duration: AppAnimations.fast,
-            child: partial.isNotEmpty
-                ? Text(
-                    partial,
-                    key: ValueKey(partial),
-                    style: AppTypography.bodyRegular.copyWith(
-                      color: AppColors.mediumColor,
-                    ),
-                    textAlign: TextAlign.center,
-                  )
-                : const SizedBox.shrink(),
-          ),
-          SizedBox(height: AppSpacing.xl),
-          // Recognised bib number
-          AnimatedSwitcher(
-            duration: AppAnimations.standard,
-            transitionBuilder: (child, animation) => ScaleTransition(
-              scale: animation,
-              child: child,
+          Expanded(
+            child: Text(
+              message,
+              style: AppTypography.caption.copyWith(color: color),
             ),
-            child: lastBib != null
-                ? Text(
-                    '$lastBib',
-                    key: ValueKey(lastBib),
-                    style: AppTypography.displayLarge.copyWith(
-                      color: AppColors.primaryColor,
-                      fontSize: 80,
-                    ),
-                  )
-                : Text(
-                    '—',
-                    key: const ValueKey('empty'),
-                    style: AppTypography.displayLarge.copyWith(
-                      color: AppColors.lightColor,
-                      fontSize: 80,
-                    ),
-                  ),
           ),
         ],
       ),
@@ -260,113 +225,120 @@ class _RecognitionDisplay extends StatelessWidget {
   }
 }
 
-class _HistoryRow extends StatelessWidget {
-  const _HistoryRow({required this.history});
-
-  final List<int> history;
+class _ResultCard extends StatelessWidget {
+  const _ResultCard({required this.rawText, required this.bib});
+  final String rawText;
+  final int? bib;
 
   @override
   Widget build(BuildContext context) {
-    if (history.isEmpty) return const SizedBox.shrink();
+    if (rawText.isEmpty && bib == null) {
+      return Container(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        decoration: BoxDecoration(
+          color: AppColors.lightColor,
+          borderRadius: BorderRadius.circular(AppBorderRadius.md),
+          border: Border.all(
+              color: AppColors.mediumColor.withValues(alpha: 0.3)),
+        ),
+        child: Text(
+          'No result yet',
+          style: AppTypography.caption.copyWith(color: AppColors.mediumColor),
+        ),
+      );
+    }
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.primaryColor.withValues(alpha: AppOpacity.faint),
+        borderRadius: BorderRadius.circular(AppBorderRadius.md),
+        border:
+            Border.all(color: AppColors.primaryColor.withValues(alpha: 0.4)),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Recent',
-            style: AppTypography.caption.copyWith(
-              color: AppColors.mediumColor,
+            'Transcript:',
+            style:
+                AppTypography.caption.copyWith(color: AppColors.mediumColor),
+          ),
+          Text(
+            rawText.isEmpty ? '(empty)' : '"$rawText"',
+            style: AppTypography.bodyRegular,
+          ),
+          SizedBox(height: AppSpacing.sm),
+          Text(
+            'Bib:',
+            style:
+                AppTypography.caption.copyWith(color: AppColors.mediumColor),
+          ),
+          Text(
+            bib != null ? '$bib' : 'not recognised',
+            style: AppTypography.titleSemibold.copyWith(
+              color:
+                  bib != null ? AppColors.primaryColor : AppColors.redColor,
+              fontSize: 40,
             ),
           ),
-          SizedBox(height: AppSpacing.xs),
-          Wrap(
-            spacing: AppSpacing.sm,
-            children: history
-                .map(
-                  (bib) => Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.md,
-                      vertical: AppSpacing.xs,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryColor
-                          .withValues(alpha: AppOpacity.faint),
-                      borderRadius:
-                          BorderRadius.circular(AppBorderRadius.full),
-                      boxShadow: AppShadows.low,
-                    ),
-                    child: Text(
-                      '$bib',
-                      style: AppTypography.bodyRegular.copyWith(
-                        color: AppColors.primaryColor,
-                      ),
-                    ),
-                  ),
-                )
-                .toList(),
-          ),
-          SizedBox(height: AppSpacing.xl),
         ],
       ),
     );
   }
 }
 
-class _HoldToSpeakButton extends StatelessWidget {
-  const _HoldToSpeakButton({
+class _MicButton extends StatelessWidget {
+  const _MicButton({
     required this.status,
-    required this.pressed,
-    required this.onDown,
-    required this.onUp,
-    required this.onCancel,
+    required this.onPointerDown,
+    required this.onPointerUp,
+    required this.onPointerCancel,
   });
 
   final _Status status;
-  final bool pressed;
-  final GestureTapDownCallback onDown;
-  final GestureTapUpCallback onUp;
-  final VoidCallback onCancel;
+  final PointerDownEventListener onPointerDown;
+  final PointerUpEventListener onPointerUp;
+  final PointerCancelEventListener onPointerCancel;
 
   @override
   Widget build(BuildContext context) {
-    final isEnabled = status == _Status.ready || status == _Status.listening;
-    final isListening = status == _Status.listening;
+    final isRecording = status == _Status.recording;
+    final isEnabled = status == _Status.ready || status == _Status.recording;
 
-    return GestureDetector(
-      onTapDown: isEnabled ? onDown : null,
-      onTapUp: isEnabled ? onUp : null,
-      onTapCancel: isEnabled ? onCancel : null,
+    return Listener(
+      onPointerDown: isEnabled ? onPointerDown : null,
+      onPointerUp: isEnabled ? onPointerUp : null,
+      onPointerCancel: isEnabled ? onPointerCancel : null,
       child: AnimatedContainer(
         duration: AppAnimations.fast,
         curve: AppAnimations.spring,
-        width: isListening ? 140 : 120,
-        height: isListening ? 140 : 120,
+        width: isRecording ? 140 : 120,
+        height: isRecording ? 140 : 120,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: isEnabled
-              ? (isListening
+              ? (isRecording
                   ? AppColors.primaryColor
                   : AppColors.primaryColor.withValues(alpha: AppOpacity.solid))
               : AppColors.lightColor,
-          boxShadow: isListening ? AppShadows.high : AppShadows.low,
+          boxShadow: isRecording ? AppShadows.high : AppShadows.low,
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             AnimatedScale(
-              scale: isListening ? 1.2 : 1.0,
+              scale: isRecording ? 1.2 : 1.0,
               duration: AppAnimations.fast,
               child: Icon(
-                isListening ? Icons.mic : Icons.mic_none,
+                isRecording ? Icons.mic : Icons.mic_none,
                 color: isEnabled ? Colors.white : AppColors.mediumColor,
                 size: 36,
               ),
             ),
             SizedBox(height: AppSpacing.xs),
             Text(
-              isListening ? 'Release' : 'Hold',
+              isRecording ? 'Release' : 'Hold',
               style: AppTypography.caption.copyWith(
                 color: isEnabled ? Colors.white : AppColors.mediumColor,
               ),

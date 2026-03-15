@@ -40,6 +40,10 @@ class EventBusProvider extends ChangeNotifier {
 
 // Production app entry point
 void main() async {
+  // Must be initialized before dotenv.load() — flutter_dotenv 6.x requires
+  // the binding to be ready before it can read from rootBundle.
+  final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   await _initializeApp();
 }
 
@@ -63,10 +67,6 @@ Future<void> _initializeApp() async {
 }
 
 void _runApp() async {
-  // Initialize Flutter binding
-  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
-  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
-
   // Set preferred orientations
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
