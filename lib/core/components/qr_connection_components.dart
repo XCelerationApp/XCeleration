@@ -133,7 +133,7 @@ class _QRConnectionState extends State<QRConnectionWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final isDisabled = widget.devices.allDevicesFinished();
+    final isDisabled = widget.devices.allDevicesFinished() || _controller.hasError;
     return GestureDetector(
       onTap: isDisabled ? null : () => _controller.handleTap(context),
       child: QRConnectionButton(
