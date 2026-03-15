@@ -78,6 +78,11 @@ dependencies:
   # App Lifecycle
   flutter_native_splash: ^2.4.4
 
+  # Voice Recognition
+  sherpa_onnx: ^1.12.29
+  flutter_sound: ^9.0.0
+  logger: ^2.0.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
