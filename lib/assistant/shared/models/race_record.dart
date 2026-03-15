@@ -1,5 +1,15 @@
 import 'dart:convert';
 
+/// Assistant-side recording session metadata.
+///
+/// **Why this differs from [lib/shared/models/database/race.dart]:**
+/// The shared [Race] is the Coach-side race configuration entity: it holds
+/// the full race spec (location, distance, flow-state machine) and is
+/// sync-tracked via Supabase. [RaceRecord] is a lightweight record of a single
+/// Assistant timing session: when the recording started and stopped, total
+/// duration, and race type. It has no awareness of flow state, location, or
+/// distance — those concerns belong to the Coach. The two live in separate
+/// databases and must not be merged.
 class RaceRecord {
   final int raceId;
   final DateTime date;

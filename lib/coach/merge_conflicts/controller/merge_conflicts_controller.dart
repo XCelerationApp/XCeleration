@@ -2,7 +2,7 @@ import 'package:xceleration/coach/merge_conflicts/models/conflict_time.dart';
 import 'package:xceleration/coach/merge_conflicts/models/ui_chunk.dart';
 import 'package:xceleration/coach/merge_conflicts/models/ui_record.dart';
 import 'package:xceleration/coach/merge_conflicts/utils/merge_conflicts_utils.dart';
-import 'package:xceleration/coach/merge_conflicts/utils/timing_data_converter.dart';
+import 'package:xceleration/coach/merge_conflicts/utils/timing_data_converter.dart' show CoachTimingDataConverter;
 import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/services/post_frame_callback_scheduler.dart';
 import 'package:xceleration/core/utils/index.dart';
@@ -48,7 +48,7 @@ class MergeConflictsController with ChangeNotifier {
         _cachedUIChunks!.length != timingChunks.length ||
         _needsUIRebuild) {
       _cachedUIChunks =
-          TimingDataConverter.convertToUIChunks(timingChunks, raceRunners);
+          CoachTimingDataConverter.convertToUIChunks(timingChunks, raceRunners);
       _needsUIRebuild = false;
     }
     return _cachedUIChunks!;

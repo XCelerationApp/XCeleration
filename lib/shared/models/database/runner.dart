@@ -1,4 +1,12 @@
-/// Represents a runner in the racing application
+/// Coach-side runner entity stored in the Coach SQLite database.
+///
+/// **Why this differs from [lib/assistant/shared/models/runner.dart]:**
+/// This model is the canonical sync-tracked record: it carries `uuid` for
+/// Supabase replication, `isDirty` for offline-first change tracking, and
+/// `int grade` (9–12 validated). The Assistant Runner is a session-scoped
+/// display model that lives in a separate database, adds `teamColor` and
+/// `teamAbbreviation` resolved at load time, and uses `String grade` to match
+/// the P2P bib-datum encoding. The two must not be merged.
 class Runner {
   final int? runnerId;
   final String? uuid;

@@ -1,5 +1,13 @@
 // ignore_for_file: constant_identifier_names, non_constant_identifier_names
 
+/// Coach-side race configuration entity stored in the Coach SQLite database.
+///
+/// **Why this differs from [lib/assistant/shared/models/race_record.dart]:**
+/// [Race] owns the full race spec: location, distance, flow-state machine, and
+/// Supabase sync metadata (`uuid`, `isDirty`). [RaceRecord] is a lightweight
+/// Assistant-side record of a single timing session (start/stop timestamps,
+/// duration, race type) — it has no knowledge of flow state, location, or
+/// distance. The two live in separate databases and must not be merged.
 class Race {
   final int? raceId;
   final String? uuid;
