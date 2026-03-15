@@ -4,12 +4,10 @@ import 'package:xceleration/core/services/i_sync_service.dart';
 import '../controller/runners_management_controller.dart';
 import '../../../core/theme/app_border_radius.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_opacity.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/utils/sheet_utils.dart';
 import '../../../shared/models/database/master_race.dart';
-import '../widgets/list_titles.dart';
 import '../widgets/runner_search_bar.dart';
 import '../widgets/runners_list.dart';
 
@@ -84,7 +82,7 @@ class _TeamsAndRunnersManagementWidgetState
       child: Consumer<RunnersManagementController>(
         builder: (context, controller, child) {
           return Material(
-            color: AppColors.backgroundColor,
+            color: AppColors.surfaceColor,
             child: LayoutBuilder(
               builder: (context, constraints) {
                 return Column(
@@ -93,13 +91,21 @@ class _TeamsAndRunnersManagementWidgetState
                     if (controller.showHeader)
                       _buildHeader(controller),
                     if (!controller.isLoading) ...[
-                      _buildSearchSection(),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.lg,
+                        ),
+                        child: _buildSearchSection(),
+                      ),
                       const SizedBox(height: AppSpacing.sm),
-                      const ListTitles(),
-                      const SizedBox(height: AppSpacing.xs),
                     ],
                     Expanded(
-                      child: RunnersList(controller: controller),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.lg,
+                        ),
+                        child: RunnersList(controller: controller),
+                      ),
                     ),
                   ],
                 );
@@ -115,26 +121,35 @@ class _TeamsAndRunnersManagementWidgetState
     return Padding(
       padding: const EdgeInsets.only(
         top: AppSpacing.sm,
-        left: AppSpacing.xl,
-        right: AppSpacing.sm,
-        bottom: AppSpacing.lg,
+        left: AppSpacing.lg,
+        right: AppSpacing.lg,
+        bottom: AppSpacing.md,
       ),
       child: Column(
         children: [
           createSheetHandle(height: 5, width: 50),
           const SizedBox(height: AppSpacing.sm),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               if (widget.onBack != null)
                 createBackArrow(context, onBack: widget.onBack),
-              Expanded(
-                child: Text(
-                  'Teams and Runners',
-                  style: AppTypography.titleLarge.copyWith(
-                    color: AppColors.darkColor,
-                  ),
+              Text(
+                'Runners',
+                style: AppTypography.titleLarge.copyWith(
+                  color: AppColors.darkColor,
                 ),
               ),
+              if (controller.totalRunnerCount > 0) ...[
+                const SizedBox(width: AppSpacing.sm),
+                Text(
+                  '${controller.totalRunnerCount}',
+                  style: AppTypography.titleLarge.copyWith(
+                    color: AppColors.mediumColor,
+                  ),
+                ),
+              ],
+              const Spacer(),
               if (!controller.isViewMode)
                 _AddTeamButton(
                   onTap: () =>
@@ -176,15 +191,15 @@ class _AddTeamButton extends StatelessWidget {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
+          horizontal: AppSpacing.lg,
           vertical: AppSpacing.sm,
         ),
         decoration: BoxDecoration(
-          color: AppColors.primaryColor.withValues(alpha: AppOpacity.faint),
-          borderRadius: BorderRadius.circular(AppBorderRadius.full),
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(AppBorderRadius.lg),
           border: Border.all(
-            color: AppColors.primaryColor.withValues(alpha: AppOpacity.medium),
-            width: 1,
+            color: AppColors.primaryColor,
+            width: 1.5,
           ),
         ),
         child: Row(

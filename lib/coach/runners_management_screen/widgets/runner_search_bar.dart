@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_animations.dart';
 import '../../../core/theme/app_border_radius.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_opacity.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/typography.dart';
 
@@ -81,12 +80,8 @@ class _SearchField extends StatelessWidget {
     return Container(
       height: 44,
       decoration: BoxDecoration(
-        color: AppColors.primaryColor.withValues(alpha: AppOpacity.faint),
+        color: AppColors.lightColor,
         borderRadius: BorderRadius.circular(AppBorderRadius.full),
-        border: Border.all(
-          color: AppColors.primaryColor.withValues(alpha: AppOpacity.light),
-          width: 1,
-        ),
       ),
       child: Row(
         children: [
@@ -154,12 +149,8 @@ class _AttributeDropdown extends StatelessWidget {
       height: 44,
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
       decoration: BoxDecoration(
-        color: AppColors.primaryColor.withValues(alpha: AppOpacity.faint),
+        color: AppColors.lightColor,
         borderRadius: BorderRadius.circular(AppBorderRadius.full),
-        border: Border.all(
-          color: AppColors.primaryColor.withValues(alpha: AppOpacity.light),
-          width: 1,
-        ),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(

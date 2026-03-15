@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_animations.dart';
+import '../../../core/theme/app_border_radius.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/typography.dart';
+import 'list_titles.dart';
 import '../../../shared/models/database/race_runner.dart';
 import '../../../shared/models/database/team.dart';
 import '../controller/runners_management_controller.dart';
@@ -76,7 +78,7 @@ class _RunnersListState extends State<RunnersList> {
       child: ListView.builder(
         key: ValueKey(teams.length),
         physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
         itemCount: teams.length,
         itemBuilder: (context, index) {
           final team = teams[index];
@@ -85,14 +87,16 @@ class _RunnersListState extends State<RunnersList> {
 
           return _AnimatedTeamSection(
             index: index,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Divider(
-                  height: 1,
-                  thickness: 1,
-                  color: AppColors.lightColor,
-                ),
+            child: Container(
+              margin: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+              decoration: BoxDecoration(
+                color: AppColors.backgroundColor,
+                borderRadius: BorderRadius.circular(AppBorderRadius.md),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                 TeamHeaderTile(
                   team: team,
                   runnerCount: raceRunners.length,
@@ -106,32 +110,36 @@ class _RunnersListState extends State<RunnersList> {
                   ),
                   isViewMode: widget.controller.isViewMode,
                 ),
-                // Collapsible runner rows
+                // Collapsible runner rows with column headers
                 AnimatedSize(
                   duration: AppAnimations.standard,
                   curve: AppAnimations.spring,
                   child: expanded
                       ? Column(
-                          children: raceRunners.map((raceRunner) {
-                            return RunnerListItem(
-                              runner: raceRunner.runner,
-                              team: team,
-                              controller: widget.controller,
-                              onAction: (action) =>
-                                  widget.controller.handleRaceRunnerAction(
-                                context,
-                                action,
-                                raceRunner,
-                              ),
-                              isViewMode: widget.controller.isViewMode,
-                            );
-                          }).toList(),
+                          children: [
+                            const ListTitles(),
+                            ...raceRunners.map((raceRunner) {
+                              return RunnerListItem(
+                                runner: raceRunner.runner,
+                                team: team,
+                                controller: widget.controller,
+                                onAction: (action) =>
+                                    widget.controller.handleRaceRunnerAction(
+                                  context,
+                                  action,
+                                  raceRunner,
+                                ),
+                                isViewMode: widget.controller.isViewMode,
+                              );
+                            }),
+                          ],
                         )
                       : const SizedBox.shrink(),
                 ),
               ],
             ),
-          );
+          ),
+        );
         },
       ),
     );

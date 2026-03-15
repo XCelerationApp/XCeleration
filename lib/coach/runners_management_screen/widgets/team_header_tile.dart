@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_animations.dart';
 import '../../../core/theme/app_border_radius.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_opacity.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/typography.dart';
 import '../../../shared/models/database/team.dart';
@@ -76,8 +75,13 @@ class TeamHeaderTile extends StatelessWidget {
                 maxLines: 1,
               ),
             ),
-            // Runner count badge
-            _CountBadge(count: runnerCount, color: teamColor),
+            // Runner count
+            Text(
+              '$runnerCount runner${runnerCount == 1 ? '' : 's'}',
+              style: AppTypography.smallCaption.copyWith(
+                color: AppColors.mediumColor,
+              ),
+            ),
             if (!isViewMode) ...[
               const SizedBox(width: AppSpacing.sm),
               _AddRunnerChip(
@@ -97,34 +101,6 @@ class TeamHeaderTile extends StatelessWidget {
   }
 }
 
-class _CountBadge extends StatelessWidget {
-  const _CountBadge({required this.count, required this.color});
-
-  final int count;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.sm,
-        vertical: AppSpacing.xs,
-      ),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: AppOpacity.light),
-        borderRadius: BorderRadius.circular(AppBorderRadius.full),
-      ),
-      child: Text(
-        '$count',
-        style: AppTypography.smallCaption.copyWith(
-          color: color,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-}
-
 class _AddRunnerChip extends StatelessWidget {
   const _AddRunnerChip({required this.color, required this.onTap});
 
@@ -137,15 +113,15 @@ class _AddRunnerChip extends StatelessWidget {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.sm,
+          horizontal: AppSpacing.md,
           vertical: AppSpacing.xs,
         ),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: AppOpacity.faint),
-          borderRadius: BorderRadius.circular(AppBorderRadius.full),
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(AppBorderRadius.md),
           border: Border.all(
-            color: color.withValues(alpha: AppOpacity.medium),
-            width: 1,
+            color: color,
+            width: 1.5,
           ),
         ),
         child: Row(

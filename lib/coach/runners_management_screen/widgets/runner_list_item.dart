@@ -113,6 +113,13 @@ class _RunnerListItemState extends State<RunnerListItem> {
                       ),
                     ),
                   ),
+                  // Swipe hint chevron
+                  if (!widget.isViewMode)
+                    Icon(
+                      Icons.chevron_right,
+                      size: 16,
+                      color: AppColors.lightColor,
+                    ),
                 ],
               ),
             ),

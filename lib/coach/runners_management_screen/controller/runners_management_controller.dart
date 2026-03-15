@@ -45,6 +45,7 @@ class RunnersManagementController with ChangeNotifier {
 
   // UI state
   bool isLoading = true;
+  int totalRunnerCount = 0;
   String searchAttribute = 'All';
   final TextEditingController searchController = TextEditingController();
 
@@ -97,6 +98,7 @@ class RunnersManagementController with ChangeNotifier {
         _initialRaceRunners = List.from(raceRunners);
       }
 
+      totalRunnerCount = raceRunners.length;
       _updateFilteredRaceRunners();
       isLoading = false;
       notifyListeners();
