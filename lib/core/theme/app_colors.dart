@@ -12,6 +12,9 @@ class AppColors {
   static const Color navBarColor = Color(0xFFE2572B);
   // static const Color primaryColor = Color(0xFF4CAF50);
   static const Color primaryColor = Color(0xFFE2572B);
+
+  /// Darker shade of primary — used as the gradient end colour.
+  static const Color darkPrimaryColor = Color(0xFFC0421E);
   static const Color redColor = Color(0xFFA81F15);
   static const Color selectedRoleColor = Color(0xFFFBE5E1);
   static const Color unselectedRoleColor = Color(0xFFF5F3FB);
@@ -29,4 +32,7 @@ class AppColors {
   static const Color statusPreRace = Color(0xFF2196F3); // blue
   static const Color statusPostRace = Color(0xFF9C27B0); // purple
   static const Color statusFinished = Color(0xFF4CAF50); // green
+
+  /// Warm orange — gradient end paired with [primaryColor].
+  static const Color primaryGradientEnd = Color(0xFFF07A50);
 }
