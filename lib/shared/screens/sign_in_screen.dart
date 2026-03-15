@@ -294,7 +294,7 @@ class _SignInScreenState extends State<SignInScreen>
                           setState(() => _passwordError = null),
                       onToggleObscure: () =>
                           setState(() => _obscure = !_obscure),
-                      onSubmit: canSubmit ? _submit : null,
+                      onSubmit: _submit,
                       onForgotPassword:
                           _busy ? null : _handleForgotPassword,
                       onSwitchMode: _busy ? null : _switchMode,
