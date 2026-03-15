@@ -40,6 +40,10 @@ class EventBusProvider extends ChangeNotifier {
 
 // Production app entry point
 void main() async {
+  // Must be initialized before dotenv.load() — flutter_dotenv 6.x requires
+  // the binding to be ready before it can read from rootBundle.
+  final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   await _initializeApp();
 }
 
@@ -63,10 +67,6 @@ Future<void> _initializeApp() async {
 }
 
 void _runApp() async {
-  // Initialize Flutter binding
-  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
-  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
-
   // Set preferred orientations
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
@@ -77,18 +77,20 @@ void _runApp() async {
   await ServiceLocator.initialize();
 
   // Initialize Supabase eagerly so it is ready before any screen is reached.
-  await RemoteApiClient.instance.init();
+  final remoteApi = RemoteApiClient();
+  await remoteApi.init();
+  final authService = AuthService(remoteApi: remoteApi);
 
   // Wire up concrete service instances once at startup
   final syncService = SyncService(
     db: ServiceLocator.get<IDatabaseConnectionProvider>(),
-    remote: RemoteApiClient.instance,
-    syncClient: SupabaseRemoteSyncClient(remote: RemoteApiClient.instance),
-    auth: AuthService.instance,
+    remote: remoteApi,
+    syncClient: SupabaseRemoteSyncClient(remote: remoteApi),
+    auth: authService,
   );
   final connectivitySyncService = ConnectivitySyncService(
     sync: syncService,
-    auth: AuthService.instance,
+    auth: authService,
     writeStream: ServiceLocator.get<DatabaseWriteBus>().writes,
   );
   connectivitySyncService.start();
@@ -100,12 +102,12 @@ void _runApp() async {
         Provider<ConnectivitySyncService>.value(value: connectivitySyncService),
         ChangeNotifierProvider(create: (context) => EventBusProvider()),
         ChangeNotifierProvider(
-          create: (context) => RaceController(
+          create: (context) => RaceScreenController(
               masterRace: MasterRace.getInstance(0),
-              parentController: RacesController(racesService: RacesService(), authService: AuthService.instance, eventBus: EventBus.instance, geoLocationService: GeoLocationService(), postFrameCallbackScheduler: WidgetsBindingAdapter(), tutorialManager: TutorialManager(), syncStream: syncService.syncEvents)),
+              parentController: RacesController(racesService: RacesService(), authService: authService, eventBus: EventBus.instance, geoLocationService: GeoLocationService(), postFrameCallbackScheduler: WidgetsBindingAdapter(), tutorialManager: TutorialManager(), syncStream: syncService.syncEvents)),
         ),
         ChangeNotifierProvider(
-            create: (context) => RacesController(racesService: RacesService(), authService: AuthService.instance, eventBus: EventBus.instance, geoLocationService: GeoLocationService(), postFrameCallbackScheduler: WidgetsBindingAdapter(), tutorialManager: TutorialManager(), syncStream: syncService.syncEvents)),
+            create: (context) => RacesController(racesService: RacesService(), authService: authService, eventBus: EventBus.instance, geoLocationService: GeoLocationService(), postFrameCallbackScheduler: WidgetsBindingAdapter(), tutorialManager: TutorialManager(), syncStream: syncService.syncEvents)),
       ],
       child: const MyApp(),
     ),

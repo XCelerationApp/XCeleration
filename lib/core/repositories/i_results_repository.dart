@@ -1,6 +1,6 @@
 import '../../shared/models/database/base_models.dart';
 
-abstract class IResultsRepository {
+abstract interface class IResultsRepository {
   Future<void> saveRaceResults(int raceId, List<RaceResult> results);
   Future<void> addRaceResult(RaceResult result);
   Future<RaceResult?> getRaceResult(RaceResult raceResult);

@@ -66,7 +66,7 @@ class _RaceCardState extends State<RaceCard> {
                 context: context,
                 body: ChangeNotifierProvider(
                   create: (ctx) {
-                    final raceController = RaceController(
+                    final raceController = RaceScreenController(
                       masterRace: masterRace,
                       parentController: widget.controller,
                     );

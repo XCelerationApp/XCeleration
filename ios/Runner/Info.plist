@@ -63,9 +63,7 @@
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Location access is required to save race locations.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>This app needs access to play audio to let you know when buttons have been pressed or actions have been completed</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Access to photo library is needed to upload photos of runner bib numbers.</string>
+	<string>This app uses the microphone for audio feedback and offline voice recognition of bib numbers during races.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -112,7 +110,5 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
-	<key>io.flutter.embedded_views_preview</key>
-	<true/>
 </dict>
 </plist>

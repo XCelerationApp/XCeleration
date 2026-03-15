@@ -6,8 +6,8 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/sheet_utils.dart';
 import '../../flows/widgets/flow_indicator.dart';
-import '../PreRaceFlow/controller/pre_race_controller.dart';
-import '../PostRaceFlow/controller/post_race_controller.dart';
+import '../pre_race_flow/controller/pre_race_controller.dart';
+import '../post_race_flow/controller/post_race_controller.dart';
 import 'dart:async';
 import '../../../coach/race_screen/controller/race_screen_controller.dart';
 import '../../../shared/models/database/race.dart';
@@ -16,7 +16,7 @@ import '../../../coach/race_screen/services/race_service.dart';
 
 /// Controller class for handling all flow-related operations
 class MasterFlowController {
-  final RaceController raceController;
+  final RaceScreenController raceController;
   late PreRaceController preRaceController;
   late PostRaceController postRaceController;
 
@@ -330,6 +330,7 @@ Future<bool> showFlow({
     title: null,
     takeUpScreen: true,
     useRootNavigator: true,
+    horizontalPadding: 0,
     body: ChangeNotifierProvider.value(
       value: controller,
       child: Consumer<FlowController>(
@@ -339,13 +340,16 @@ Future<bool> showFlow({
             mainAxisSize: MainAxisSize.min,
             children: [
               if (showProgressIndicator)
-                EnhancedFlowIndicator(
-                  totalSteps: steps.length,
-                  currentStep: controller.currentIndex,
-                  onBack: controller.canGoBack ? controller.goBack : null,
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: EnhancedFlowIndicator(
+                    totalSteps: steps.length,
+                    currentStep: controller.currentIndex,
+                    onBack: controller.canGoBack ? controller.goBack : null,
+                  ),
                 ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -371,17 +375,14 @@ Future<bool> showFlow({
                 ),
               ),
               Expanded(
-                child: Padding(
-                  padding: EdgeInsets.zero,
-                  child: currentStep.canScroll
-                      ? SingleChildScrollView(
-                          child: currentStep.content,
-                        )
-                      : currentStep.content,
-                ),
+                child: currentStep.canScroll
+                    ? SingleChildScrollView(
+                        child: currentStep.content,
+                      )
+                    : currentStep.content,
               ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(0, 16, 0, 24),
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
                 child: FullWidthButton(
                   text: 'Next',
                   borderRadius: 6,

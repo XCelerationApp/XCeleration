@@ -20,8 +20,7 @@ class ReviewRunnersStep extends FlowStep {
               'Make sure all runner information is correct before the race starts. You can make any last-minute changes here.',
           content: TeamsAndRunnersManagementWidget(
             masterRace: masterRace,
-            showHeader: false,
-            onBack: null,
+            showHeader: true,
             isViewMode: false,
           ),
           canScroll: false,
@@ -49,8 +48,7 @@ class ReviewRunnersStep extends FlowStep {
   Widget get content {
     return TeamsAndRunnersManagementWidget(
       masterRace: masterRace,
-      showHeader: false,
-      onBack: null,
+      showHeader: true,
       onContentChanged: () async {
         checkRunners();
       },

@@ -7,7 +7,7 @@ import '../../runners_management_screen/screen/runners_management_screen.dart';
 import '../widgets/race_header.dart';
 
 class TabBarViewWidget extends StatefulWidget {
-  final RaceController controller;
+  final RaceScreenController controller;
   const TabBarViewWidget({super.key, required this.controller});
 
   @override
@@ -43,7 +43,6 @@ class _TabBarViewWidgetState extends State<TabBarViewWidget> {
           // First tab: Race Details with sliding to Runners
           SlidingPageView(
             showSecondPage: widget.controller.showingRunnersManagement,
-            secondPageTitle: 'Runners',
             onBackToFirst: () {
               widget.controller
                   .navigateToRaceDetails(context)
@@ -70,7 +69,10 @@ class _TabBarViewWidgetState extends State<TabBarViewWidget> {
                 if (widget.controller.showingRunnersManagement) {
                   return TeamsAndRunnersManagementWidget(
                     masterRace: widget.controller.masterRace,
-                    showHeader: false,
+                    showHeader: true,
+                    onBack: () => widget.controller
+                        .navigateToRaceDetails(context)
+                        .catchError((e) => debugPrint('$e')),
                     isViewMode: true, // Always view mode when race is finished
                   );
                 } else {
