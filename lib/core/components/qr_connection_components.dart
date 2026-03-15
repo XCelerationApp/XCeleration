@@ -14,6 +14,7 @@ class QRConnectionButton extends StatefulWidget {
   final Function()? onRetry;
   final String? errorMessage;
   final bool isLoading;
+  final bool isDisabled;
 
   const QRConnectionButton({
     super.key,
@@ -23,6 +24,7 @@ class QRConnectionButton extends StatefulWidget {
     this.onRetry,
     this.errorMessage,
     this.isLoading = false,
+    this.isDisabled = false,
   });
 
   @override
@@ -32,6 +34,10 @@ class QRConnectionButton extends StatefulWidget {
 class _QRConnectionButtonState extends State<QRConnectionButton> {
   @override
   Widget build(BuildContext context) {
+    final iconColor =
+        widget.isDisabled ? Colors.black26 : Colors.black54;
+    final textColor =
+        widget.isDisabled ? Colors.black26 : Colors.black87;
     return ConnectionButtonContainer(
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -41,9 +47,9 @@ class _QRConnectionButtonState extends State<QRConnectionButton> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.qr_code,
-                    color: Colors.black54,
+                    color: iconColor,
                     size: 24,
                   ),
                   const SizedBox(width: AppSpacing.lg),
@@ -51,9 +57,9 @@ class _QRConnectionButtonState extends State<QRConnectionButton> {
                     widget.deviceType == DeviceType.advertiserDevice
                         ? 'Show QR Code'
                         : 'Scan QR Code',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 17,
-                      color: Colors.black87,
+                      color: textColor,
                     ),
                   )
                 ],
@@ -70,12 +76,14 @@ class QRConnectionWidget extends StatefulWidget {
   final DevicesManager devices;
   final Function callback;
   final PlatformCheckerInterface platformChecker;
+  final bool inSheet;
 
   const QRConnectionWidget({
     super.key,
     required this.devices,
     required this.callback,
     this.platformChecker = const PlatformChecker(),
+    this.inSheet = false,
   });
 
   @override
@@ -92,8 +100,12 @@ class _QRConnectionState extends State<QRConnectionWidget> {
       devices: widget.devices,
       platformChecker: widget.platformChecker,
       callback: widget.callback,
+      inSheet: widget.inSheet,
     );
     _controller.addListener(_onControllerChange);
+    for (final device in widget.devices.devices) {
+      device.addListener(_onDeviceChange);
+    }
   }
 
   void _onControllerChange() {
@@ -105,21 +117,30 @@ class _QRConnectionState extends State<QRConnectionWidget> {
     }
   }
 
+  void _onDeviceChange() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
     _controller.removeListener(_onControllerChange);
     _controller.dispose();
+    for (final device in widget.devices.devices) {
+      device.removeListener(_onDeviceChange);
+    }
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDisabled = widget.devices.allDevicesFinished();
     return GestureDetector(
-      onTap: () => _controller.handleTap(context),
+      onTap: isDisabled ? null : () => _controller.handleTap(context),
       child: QRConnectionButton(
         deviceName: widget.devices.currentDeviceName,
         deviceType: widget.devices.currentDeviceType,
         connectionStatus: ConnectionStatus.searching,
+        isDisabled: isDisabled,
       ),
     );
   }
