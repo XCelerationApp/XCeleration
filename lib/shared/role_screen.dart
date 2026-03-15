@@ -378,6 +378,26 @@ class _AssistantScreenState extends State<_AssistantScreen> {
                   Expanded(child: _buildRoleList()),
                 ],
               ),
+              SizedBox(height: 40),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                child: OutlinedButton(
+                  onPressed: () => Navigator.of(context).push(
+                    InitialPageRouteAnimation(
+                      child: const ConflictResolutionScreen(),
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Colors.white54),
+                    padding: const EdgeInsets.all(14),
+                    minimumSize: const Size(300, 50),
+                  ),
+                  child: const Text(
+                    '[DEV] Conflict Resolution Prototype',
+                    style: TextStyle(color: Colors.white70, fontSize: 13),
+                  ),
+                ),
+              ),
             ],
           ),
         ),

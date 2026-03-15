@@ -62,6 +62,8 @@
 	<string>Location access is required to determine race locations.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Location access is required to save race locations.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>This app uses the microphone for audio feedback and offline voice recognition of bib numbers during races.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
