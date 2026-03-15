@@ -9,15 +9,15 @@ import 'package:xceleration/assistant/bib_number_recorder/services/model_assets.
 // Isolate entry point — must be top-level to be spawnable
 // ---------------------------------------------------------------------------
 
-/// Runs sherpa-onnx inference in a background isolate.
-/// All parameters are plain strings so the isolate message is sendable.
-String _runInferenceInIsolate(({
+/// Long-lived inference isolate. Loads the model once, then processes
+/// transcription requests until a shutdown signal is received.
+void _inferenceIsolateEntry(({
   String encoder,
   String decoder,
   String joiner,
   String tokens,
   String hotwordsFile,
-  String wavPath,
+  SendPort mainSendPort,
 }) args) {
   sherpa.initBindings();
 
@@ -39,47 +39,96 @@ String _runInferenceInIsolate(({
   );
 
   final recognizer = sherpa.OfflineRecognizer(config);
-  try {
-    final wave = sherpa.readWave(args.wavPath);
-    if (wave.samples.isEmpty) return '';
+  final port = ReceivePort();
 
-    final stream = recognizer.createStream();
-    try {
-      stream.acceptWaveform(
-          samples: wave.samples, sampleRate: wave.sampleRate);
-      recognizer.decode(stream);
-      return recognizer.getResult(stream).text.trim().toLowerCase();
-    } finally {
-      stream.free();
+  // Signal to the main isolate that the model is loaded and we are ready.
+  args.mainSendPort.send(port.sendPort);
+
+  port.listen((message) {
+    if (message == null) {
+      // Shutdown signal — free resources and exit.
+      port.close();
+      recognizer.free();
+      return;
     }
-  } finally {
-    recognizer.free();
-  }
+
+    // message: ({String wavPath, SendPort replyPort})
+    final wavPath = (message as ({String wavPath, SendPort replyPort})).wavPath;
+    final replyPort = message.replyPort;
+
+    try {
+      final wave = sherpa.readWave(wavPath);
+      if (wave.samples.isEmpty) {
+        replyPort.send('');
+        return;
+      }
+      final stream = recognizer.createStream();
+      try {
+        stream.acceptWaveform(
+            samples: wave.samples, sampleRate: wave.sampleRate);
+        recognizer.decode(stream);
+        replyPort.send(
+            recognizer.getResult(stream).text.trim().toLowerCase());
+      } finally {
+        stream.free();
+      }
+    } catch (_) {
+      replyPort.send('');
+    }
+  });
 }
 
 // ---------------------------------------------------------------------------
 // Service
 // ---------------------------------------------------------------------------
 
-/// [ISpeechRecognitionService] implementation using sherpa-onnx offline
-/// inference in a background [Isolate] to keep the main thread responsive.
+/// [ISpeechRecognitionService] implementation backed by a long-lived
+/// background [Isolate].
+///
+/// The ONNX model is loaded once in [initialize] and kept resident for the
+/// lifetime of the service. Each [transcribe] call sends the WAV path to the
+/// isolate and awaits the transcript — no model-reload overhead per call.
 class SpeechRecognitionService implements ISpeechRecognitionService {
-  const SpeechRecognitionService();
+  SendPort? _sendPort;
+  Isolate? _isolate;
 
   @override
-  Future<String> transcribe(ModelAssets assets, String wavPath) async {
-    // Capture plain strings before the closure — the isolate message must only
-    // contain sendable values (strings, not objects with platform handles).
-    final modelDir = assets.modelDir;
-    final hotwordsPath = assets.hotwordsPath;
+  Future<void> initialize(ModelAssets assets) async {
+    final ready = ReceivePort();
 
-    return Isolate.run(() => _runInferenceInIsolate((
-          encoder: p.join(modelDir, 'encoder-epoch-99-avg-1.int8.onnx'),
-          decoder: p.join(modelDir, 'decoder-epoch-99-avg-1.int8.onnx'),
-          joiner: p.join(modelDir, 'joiner-epoch-99-avg-1.int8.onnx'),
-          tokens: p.join(modelDir, 'tokens.txt'),
-          hotwordsFile: hotwordsPath,
-          wavPath: wavPath,
-        )));
+    _isolate = await Isolate.spawn(
+      _inferenceIsolateEntry,
+      (
+        encoder: p.join(assets.modelDir, 'encoder-epoch-99-avg-1.int8.onnx'),
+        decoder: p.join(assets.modelDir, 'decoder-epoch-99-avg-1.int8.onnx'),
+        joiner: p.join(assets.modelDir, 'joiner-epoch-99-avg-1.int8.onnx'),
+        tokens: p.join(assets.modelDir, 'tokens.txt'),
+        hotwordsFile: assets.hotwordsPath,
+        mainSendPort: ready.sendPort,
+      ),
+    );
+
+    // Wait until the isolate signals it has loaded the model.
+    _sendPort = await ready.first as SendPort;
+    ready.close();
+  }
+
+  @override
+  Future<String> transcribe(String wavPath) async {
+    if (_sendPort == null) return '';
+
+    final reply = ReceivePort();
+    _sendPort!.send((wavPath: wavPath, replyPort: reply.sendPort));
+    final result = await reply.first as String;
+    reply.close();
+    return result;
+  }
+
+  @override
+  Future<void> dispose() async {
+    _sendPort?.send(null); // shutdown signal
+    _isolate?.kill(priority: Isolate.immediate);
+    _sendPort = null;
+    _isolate = null;
   }
 }

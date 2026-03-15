@@ -1,11 +1,20 @@
 import 'package:xceleration/assistant/bib_number_recorder/services/model_assets.dart';
 
-/// Runs offline speech inference against a WAV file and returns the raw
-/// lower-cased transcript.
+/// Manages an offline speech recognition engine.
+///
+/// Lifecycle: [initialize] → [transcribe] (repeatable) → [dispose].
 abstract interface class ISpeechRecognitionService {
-  /// Transcribes [wavPath] using the sherpa-onnx model described by [assets].
+  /// Loads the sherpa-onnx model described by [assets] into a background
+  /// isolate. The model stays resident until [dispose] is called, so
+  /// subsequent [transcribe] calls pay no model-load overhead.
+  Future<void> initialize(ModelAssets assets);
+
+  /// Transcribes the WAV file at [wavPath] and returns the raw lowercase
+  /// transcript, or an empty string if no speech was detected.
   ///
-  /// Returns the raw lowercase transcript, or an empty string if no speech was
-  /// detected. Never throws — callers should handle the empty-string case.
-  Future<String> transcribe(ModelAssets assets, String wavPath);
+  /// [initialize] must be called before the first [transcribe].
+  Future<String> transcribe(String wavPath);
+
+  /// Shuts down the background isolate and releases all model resources.
+  Future<void> dispose();
 }

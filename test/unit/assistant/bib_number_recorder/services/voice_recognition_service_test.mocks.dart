@@ -123,27 +123,37 @@ class MockISpeechRecognitionService extends _i1.Mock
   }
 
   @override
-  _i3.Future<String> transcribe(
-    _i7.ModelAssets? assets,
-    String? wavPath,
-  ) =>
-      (super.noSuchMethod(
+  _i3.Future<void> initialize(_i7.ModelAssets? assets) => (super.noSuchMethod(
+        Invocation.method(
+          #initialize,
+          [assets],
+        ),
+        returnValue: _i3.Future<void>.value(),
+        returnValueForMissingStub: _i3.Future<void>.value(),
+      ) as _i3.Future<void>);
+
+  @override
+  _i3.Future<String> transcribe(String? wavPath) => (super.noSuchMethod(
         Invocation.method(
           #transcribe,
-          [
-            assets,
-            wavPath,
-          ],
+          [wavPath],
         ),
         returnValue: _i3.Future<String>.value(_i5.dummyValue<String>(
           this,
           Invocation.method(
             #transcribe,
-            [
-              assets,
-              wavPath,
-            ],
+            [wavPath],
           ),
         )),
       ) as _i3.Future<String>);
+
+  @override
+  _i3.Future<void> dispose() => (super.noSuchMethod(
+        Invocation.method(
+          #dispose,
+          [],
+        ),
+        returnValue: _i3.Future<void>.value(),
+        returnValueForMissingStub: _i3.Future<void>.value(),
+      ) as _i3.Future<void>);
 }

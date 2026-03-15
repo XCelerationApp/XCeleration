@@ -6,7 +6,6 @@ import 'package:xceleration/assistant/bib_number_recorder/services/i_bib_audio_r
 import 'package:xceleration/assistant/bib_number_recorder/services/i_model_download_service.dart';
 import 'package:xceleration/assistant/bib_number_recorder/services/i_speech_recognition_service.dart';
 import 'package:xceleration/assistant/bib_number_recorder/services/i_voice_recognition_service.dart';
-import 'package:xceleration/assistant/bib_number_recorder/services/model_assets.dart';
 import 'package:xceleration/assistant/bib_number_recorder/services/model_download_service.dart';
 import 'package:xceleration/assistant/bib_number_recorder/services/speech_recognition_service.dart';
 import 'package:xceleration/core/app_error.dart';
@@ -35,7 +34,7 @@ class VoiceRecognitionService implements IVoiceRecognitionService {
   factory VoiceRecognitionService.create() => VoiceRecognitionService(
         recorder: BibAudioRecorder(),
         modelDownload: ModelDownloadService(),
-        speechRecognition: const SpeechRecognitionService(),
+        speechRecognition: SpeechRecognitionService(),
         parser: const BibNumberParser(),
       );
 
@@ -47,7 +46,7 @@ class VoiceRecognitionService implements IVoiceRecognitionService {
   final _bibController = StreamController<int?>.broadcast();
   final _partialController = StreamController<String>.broadcast();
 
-  ModelAssets? _assets;
+  bool _ready = false;
 
   @override
   Stream<int?> get bibNumbers => _bibController.stream;
@@ -64,7 +63,8 @@ class VoiceRecognitionService implements IVoiceRecognitionService {
       final modelResult = await _modelDownload.ensureModelReady();
       switch (modelResult) {
         case Success(:final value):
-          _assets = value;
+          await _speechRecognition.initialize(value);
+          _ready = true;
         case Failure():
           return modelResult;
       }
@@ -80,7 +80,7 @@ class VoiceRecognitionService implements IVoiceRecognitionService {
 
   @override
   Future<void> start() async {
-    if (_assets == null) return;
+    if (!_ready) return;
     await _recorder.start();
   }
 
@@ -88,13 +88,13 @@ class VoiceRecognitionService implements IVoiceRecognitionService {
   Future<void> stop() async {
     final path = await _recorder.stop();
 
-    if (path == null || _assets == null) {
+    if (path == null || !_ready) {
       _bibController.add(null);
       _partialController.add('');
       return;
     }
 
-    final transcript = await _speechRecognition.transcribe(_assets!, path);
+    final transcript = await _speechRecognition.transcribe(path);
     _partialController.add(transcript);
     _bibController.add(_parser.parse(transcript));
   }
@@ -102,6 +102,7 @@ class VoiceRecognitionService implements IVoiceRecognitionService {
   @override
   Future<void> dispose() async {
     await _recorder.close();
+    await _speechRecognition.dispose();
     await _bibController.close();
     await _partialController.close();
   }

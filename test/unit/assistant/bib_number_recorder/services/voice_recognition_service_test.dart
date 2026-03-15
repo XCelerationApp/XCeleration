@@ -46,6 +46,7 @@ void main() {
 
   tearDown(() async {
     when(mockRecorder.close()).thenAnswer((_) => Future.value());
+    when(mockSpeechRecognition.dispose()).thenAnswer((_) => Future.value());
     await service.dispose();
   });
 
@@ -55,10 +56,13 @@ void main() {
         when(mockRecorder.open()).thenAnswer((_) async => const Success(null));
         when(mockModelDownload.ensureModelReady())
             .thenAnswer((_) async => const Success(assets));
+        when(mockSpeechRecognition.initialize(assets))
+            .thenAnswer((_) => Future.value());
 
         final result = await service.initialize();
 
         expect(result, isA<Success<void>>());
+        verify(mockSpeechRecognition.initialize(assets)).called(1);
       });
 
       test('returns Failure when recorder fails to open', () async {
@@ -70,6 +74,7 @@ void main() {
 
         expect(result, isA<Failure<void>>());
         verifyNever(mockModelDownload.ensureModelReady());
+        verifyNever(mockSpeechRecognition.initialize(any));
       });
 
       test('returns Failure when model download fails', () async {
@@ -80,26 +85,42 @@ void main() {
         final result = await service.initialize();
 
         expect(result, isA<Failure<void>>());
+        verifyNever(mockSpeechRecognition.initialize(any));
       });
     });
 
     group('start', () {
-      test('delegates to recorder after successful initialize', () async {
+      setUp(() async {
         when(mockRecorder.open()).thenAnswer((_) async => const Success(null));
         when(mockModelDownload.ensureModelReady())
             .thenAnswer((_) async => const Success(assets));
+        when(mockSpeechRecognition.initialize(assets))
+            .thenAnswer((_) => Future.value());
+        await service.initialize();
+      });
+
+      test('delegates to recorder after successful initialize', () async {
         when(mockRecorder.start()).thenAnswer((_) => Future.value());
 
-        await service.initialize();
         await service.start();
 
         verify(mockRecorder.start()).called(1);
       });
 
       test('does nothing if not initialized', () async {
-        await service.start();
-
+        // Create a fresh uninitialised service.
+        final uninit = VoiceRecognitionService(
+          recorder: mockRecorder,
+          modelDownload: mockModelDownload,
+          speechRecognition: mockSpeechRecognition,
+          parser: parser,
+        );
+        await uninit.start();
         verifyNever(mockRecorder.start());
+        // Dispose cleanly.
+        when(mockRecorder.close()).thenAnswer((_) => Future.value());
+        when(mockSpeechRecognition.dispose()).thenAnswer((_) => Future.value());
+        await uninit.dispose();
       });
     });
 
@@ -108,6 +129,8 @@ void main() {
         when(mockRecorder.open()).thenAnswer((_) async => const Success(null));
         when(mockModelDownload.ensureModelReady())
             .thenAnswer((_) async => const Success(assets));
+        when(mockSpeechRecognition.initialize(assets))
+            .thenAnswer((_) => Future.value());
         await service.initialize();
       });
 
@@ -129,7 +152,7 @@ void main() {
 
       test('emits parsed bib number from transcript', () async {
         when(mockRecorder.stop()).thenAnswer((_) async => '/tmp/bib.wav');
-        when(mockSpeechRecognition.transcribe(assets, '/tmp/bib.wav'))
+        when(mockSpeechRecognition.transcribe('/tmp/bib.wav'))
             .thenAnswer((_) async => 'twenty three');
 
         final bibs = <int?>[];
@@ -147,7 +170,7 @@ void main() {
       test('emits null bib when transcript does not contain a valid number',
           () async {
         when(mockRecorder.stop()).thenAnswer((_) async => '/tmp/bib.wav');
-        when(mockSpeechRecognition.transcribe(assets, '/tmp/bib.wav'))
+        when(mockSpeechRecognition.transcribe('/tmp/bib.wav'))
             .thenAnswer((_) async => 'hello world');
 
         final bibs = <int?>[];
@@ -162,7 +185,7 @@ void main() {
 
       test('emits null bib for empty transcript', () async {
         when(mockRecorder.stop()).thenAnswer((_) async => '/tmp/bib.wav');
-        when(mockSpeechRecognition.transcribe(assets, '/tmp/bib.wav'))
+        when(mockSpeechRecognition.transcribe('/tmp/bib.wav'))
             .thenAnswer((_) async => '');
 
         final bibs = <int?>[];
@@ -177,16 +200,20 @@ void main() {
     });
 
     group('dispose', () {
-      test('closes the recorder', () async {
+      test('closes the recorder and speech service', () async {
         when(mockRecorder.open()).thenAnswer((_) async => const Success(null));
         when(mockModelDownload.ensureModelReady())
             .thenAnswer((_) async => const Success(assets));
+        when(mockSpeechRecognition.initialize(assets))
+            .thenAnswer((_) => Future.value());
         when(mockRecorder.close()).thenAnswer((_) => Future.value());
+        when(mockSpeechRecognition.dispose()).thenAnswer((_) => Future.value());
 
         await service.initialize();
         await service.dispose();
 
         verify(mockRecorder.close()).called(1);
+        verify(mockSpeechRecognition.dispose()).called(1);
       });
     });
   });
