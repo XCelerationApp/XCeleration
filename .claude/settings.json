@@ -3,6 +3,8 @@
     "allow": [
       "Bash(git *)",
       "Bash(git * && *)",
+      "Bash(git status && git log *)",
+      "Bash(git -C * worktree *)",
       "Bash(gh *)",
       "Bash(flutter *)",
       "Bash(flutter analyze)",
