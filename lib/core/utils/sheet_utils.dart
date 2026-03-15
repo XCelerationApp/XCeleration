@@ -79,7 +79,8 @@ Future<dynamic> sheet(
     bool showHeader = true,
     bool takeUpScreen = false,
     bool useRootNavigator = false,
-    bool useBottomPadding = true}) async {
+    bool useBottomPadding = true,
+    double horizontalPadding = 24}) async {
   // Ensure no underlying input keeps focus when presenting the sheet
   FocusManager.instance.primaryFocus?.unfocus();
   final result = await showModalBottomSheet(
@@ -102,8 +103,8 @@ Future<dynamic> sheet(
       child: Padding(
         padding: EdgeInsets.only(
           top: 8,
-          left: 24,
-          right: 24,
+          left: horizontalPadding,
+          right: horizontalPadding,
           bottom: (useBottomPadding
                   ? MediaQuery.of(context).viewInsets.bottom
                   : 0) +

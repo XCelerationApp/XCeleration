@@ -156,13 +156,10 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
                   Expanded(
                     child: SlidingPageView(
                       showSecondPage: controller.showingRunnersManagement,
-                      secondPageTitle: 'Runners',
                       onBackToFirst: () {
-                        // Handle async navigation in a fire-and-forget manner
                         controller
                             .navigateToRaceDetails(context)
                             .catchError((error) {
-                          // Log error but don't block UI
                           debugPrint(
                               'Error navigating to race details: $error');
                         });
@@ -179,7 +176,10 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
                           if (controller.showingRunnersManagement) {
                             return TeamsAndRunnersManagementWidget(
                               masterRace: widget.masterRace,
-                              showHeader: false,
+                              showHeader: true,
+                              onBack: () => controller
+                                  .navigateToRaceDetails(context)
+                                  .catchError((e) => debugPrint('$e')),
                               isViewMode: !controller.canEdit,
                             );
                           } else {

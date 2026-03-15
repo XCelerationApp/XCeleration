@@ -330,6 +330,7 @@ Future<bool> showFlow({
     title: null,
     takeUpScreen: true,
     useRootNavigator: true,
+    horizontalPadding: 0,
     body: ChangeNotifierProvider.value(
       value: controller,
       child: Consumer<FlowController>(
@@ -339,13 +340,16 @@ Future<bool> showFlow({
             mainAxisSize: MainAxisSize.min,
             children: [
               if (showProgressIndicator)
-                EnhancedFlowIndicator(
-                  totalSteps: steps.length,
-                  currentStep: controller.currentIndex,
-                  onBack: controller.canGoBack ? controller.goBack : null,
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: EnhancedFlowIndicator(
+                    totalSteps: steps.length,
+                    currentStep: controller.currentIndex,
+                    onBack: controller.canGoBack ? controller.goBack : null,
+                  ),
                 ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -371,17 +375,14 @@ Future<bool> showFlow({
                 ),
               ),
               Expanded(
-                child: Padding(
-                  padding: EdgeInsets.zero,
-                  child: currentStep.canScroll
-                      ? SingleChildScrollView(
-                          child: currentStep.content,
-                        )
-                      : currentStep.content,
-                ),
+                child: currentStep.canScroll
+                    ? SingleChildScrollView(
+                        child: currentStep.content,
+                      )
+                    : currentStep.content,
               ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(0, 16, 0, 24),
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
                 child: FullWidthButton(
                   text: 'Next',
                   borderRadius: 6,
