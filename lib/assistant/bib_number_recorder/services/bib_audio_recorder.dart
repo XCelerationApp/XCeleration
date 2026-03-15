@@ -31,12 +31,39 @@ class BibAudioRecorder implements IBibAudioRecorder {
     try {
       await _recorder.openRecorder();
       _isOpen = true;
+      await _warmUpAudioSession();
       return const Success(null);
     } catch (e) {
       return Failure(AppError(
         userMessage: 'Could not open audio recorder.',
         originalException: e,
       ));
+    }
+  }
+
+  /// Activates AVAudioSession by doing a silent start/stop during initialisation.
+  ///
+  /// On iOS, the first call to startRecorder triggers AVAudioSession activation
+  /// on the platform thread, which can block Flutter's frame pipeline and cause
+  /// a visible ~500 ms delay before the first UI state change. Running a
+  /// dummy start/stop here — where the delay is invisible — ensures the session
+  /// is warm by the time the user presses the button.
+  Future<void> _warmUpAudioSession() async {
+    final tmp = await _tempDirProvider();
+    final warmupPath = p.join(tmp.path, 'warmup.wav');
+    try {
+      await _recorder.startRecorder(
+        toFile: warmupPath,
+        codec: Codec.pcm16WAV,
+        sampleRate: 16000,
+        numChannels: 1,
+      );
+      await _recorder.stopRecorder();
+    } catch (_) {
+      // Warm-up is best-effort — failures are silently ignored.
+    } finally {
+      final f = File(warmupPath);
+      if (f.existsSync()) f.deleteSync();
     }
   }
 
