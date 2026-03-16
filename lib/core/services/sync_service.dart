@@ -295,7 +295,8 @@ class SyncService implements ISyncService {
       return;
     }
 
-    Future<void> pushTable(String table, String onConflict) async {
+    Future<void> pushTable(String table, String onConflict,
+        {String? localPkColumn}) async {
       final rows = await db.query(table, where: 'is_dirty = 1');
       if (rows.isEmpty) return;
 
@@ -315,6 +316,7 @@ class SyncService implements ISyncService {
       for (final row in rows) {
         final copy = Map<String, dynamic>.from(row);
         copy.remove('is_dirty');
+        if (localPkColumn != null) copy.remove(localPkColumn);
         // uid is guaranteed non-null by the guard at the top of pushAll().
         copy['owner_user_id'] = uid;
         // Older local rows may have NULL created_at if they pre-date the column.
@@ -346,9 +348,9 @@ class SyncService implements ISyncService {
       }
     }
 
-    await pushTable('runners', 'uuid');
-    await pushTable('teams', 'uuid');
-    await pushTable('races', 'uuid');
+    await pushTable('runners', 'uuid', localPkColumn: 'runner_id');
+    await pushTable('teams', 'uuid', localPkColumn: 'team_id');
+    await pushTable('races', 'uuid', localPkColumn: 'race_id');
     await _pushRaceResults();
     await _pushRaceParticipants();
   }
