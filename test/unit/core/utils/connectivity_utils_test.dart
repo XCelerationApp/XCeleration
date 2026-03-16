@@ -1,41 +1,70 @@
-import 'dart:io';
-
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mockito/annotations.dart';
+import 'package:mockito/mockito.dart';
 import 'package:xceleration/core/utils/connectivity_utils.dart';
 
-Future<List<InternetAddress>> _resolves(String _) async =>
-    [InternetAddress('142.250.64.46')];
-
-Future<List<InternetAddress>> _empty(String _) async => [];
-
-Future<List<InternetAddress>> _throws(String _) async =>
-    throw const SocketException('no route');
+@GenerateMocks([Connectivity])
+import 'connectivity_utils_test.mocks.dart';
 
 void main() {
-  group('ConnectivityUtils.isOnline', () {
-    test('returns true when lookup resolves with an address', () async {
-      final result = await ConnectivityUtils.isOnline(lookupFn: _resolves);
-      expect(result, isTrue);
-    });
+  late MockConnectivity mockConnectivity;
 
-    test('returns false when lookup resolves with an empty list', () async {
-      final result = await ConnectivityUtils.isOnline(lookupFn: _empty);
-      expect(result, isFalse);
-    });
+  setUp(() {
+    mockConnectivity = MockConnectivity();
+  });
 
-    test('returns false when lookup throws', () async {
-      final result = await ConnectivityUtils.isOnline(lookupFn: _throws);
-      expect(result, isFalse);
-    });
+  group('ConnectivityUtils', () {
+    group('isOnline', () {
+      test('returns true when results contain wifi', () async {
+        when(mockConnectivity.checkConnectivity())
+            .thenAnswer((_) async => [ConnectivityResult.wifi]);
 
-    test('returns false when lookup times out', () async {
-      Future<List<InternetAddress>> slow(String _) async {
-        await Future.delayed(const Duration(seconds: 10));
-        return [InternetAddress('1.1.1.1')];
-      }
+        final result =
+            await ConnectivityUtils.isOnline(connectivity: mockConnectivity);
 
-      final result = await ConnectivityUtils.isOnline(lookupFn: slow);
-      expect(result, isFalse);
+        expect(result, isTrue);
+      });
+
+      test('returns true when results contain mobile', () async {
+        when(mockConnectivity.checkConnectivity())
+            .thenAnswer((_) async => [ConnectivityResult.mobile]);
+
+        final result =
+            await ConnectivityUtils.isOnline(connectivity: mockConnectivity);
+
+        expect(result, isTrue);
+      });
+
+      test('returns true when results contain multiple connections', () async {
+        when(mockConnectivity.checkConnectivity()).thenAnswer(
+            (_) async => [ConnectivityResult.wifi, ConnectivityResult.mobile]);
+
+        final result =
+            await ConnectivityUtils.isOnline(connectivity: mockConnectivity);
+
+        expect(result, isTrue);
+      });
+
+      test('returns false when results contain only none', () async {
+        when(mockConnectivity.checkConnectivity())
+            .thenAnswer((_) async => [ConnectivityResult.none]);
+
+        final result =
+            await ConnectivityUtils.isOnline(connectivity: mockConnectivity);
+
+        expect(result, isFalse);
+      });
+
+      test('returns false and does not throw when connectivity throws', () async {
+        when(mockConnectivity.checkConnectivity())
+            .thenThrow(Exception('platform error'));
+
+        final result =
+            await ConnectivityUtils.isOnline(connectivity: mockConnectivity);
+
+        expect(result, isFalse);
+      });
     });
   });
 }
