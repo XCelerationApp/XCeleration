@@ -36,6 +36,7 @@ class SignInScreen extends StatefulWidget {
 
   @override
   State<SignInScreen> createState() => _SignInScreenState();
+
 }
 
 class _SignInScreenState extends State<SignInScreen>
@@ -45,6 +46,9 @@ class _SignInScreenState extends State<SignInScreen>
   final _emailFocus = FocusNode();
   final _passwordFocus = FocusNode();
 
+  ConnectivityService get _connectivity =>
+      widget._connectivityService ?? const ConnectivityService();
+
   bool _isLogin = true;
   bool _obscure = true;
   bool _busy = false;
@@ -53,9 +57,6 @@ class _SignInScreenState extends State<SignInScreen>
 
   late final AnimationController _shakeController;
   late final Animation<Offset> _shakeAnimation;
-
-  ConnectivityService get _connectivity =>
-      widget._connectivityService ?? const ConnectivityService();
 
   @override
   void initState() {
@@ -212,9 +213,11 @@ class _SignInScreenState extends State<SignInScreen>
     }
     if (error is gotrue.AuthException) {
       final msg = error.message;
-      if (msg.contains('SocketException') ||
-          msg.contains('ClientException') ||
-          msg.contains('Failed host lookup')) {
+      if (msg.contains('Failed host lookup') ||
+          msg.contains('nodename nor servname')) {
+        return 'Could not reach the server. Please try again later.';
+      }
+      if (msg.contains('SocketException') || msg.contains('ClientException')) {
         return 'No internet connection. Please check your connection and try again.';
       }
       return msg;
@@ -259,7 +262,7 @@ class _SignInScreenState extends State<SignInScreen>
   @override
   Widget build(BuildContext context) {
     final canSubmit = _emailController.text.trim().isNotEmpty &&
-        _passwordController.text.isNotEmpty &&
+        _passwordController.text.length >= 6 &&
         !_busy;
     return Scaffold(
       backgroundColor: Colors.white,
