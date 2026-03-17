@@ -14,15 +14,17 @@ class ChunkList extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<MergeConflictsController>(
       builder: (context, controller, _) {
-        return Column(
-          children: [
-            for (int index = 0; index < controller.uiChunks.length; index++)
-              ChunkItem(
-                index: index,
-                chunk: controller.uiChunks[index],
-                controller: controller,
-              ),
-          ],
+        final chunks = controller.uiChunks;
+        return ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: chunks.length,
+          itemBuilder: (context, index) => ChunkItem(
+            key: ValueKey(chunks[index].chunkId),
+            index: index,
+            chunk: chunks[index],
+            controller: controller,
+          ),
         );
       },
     );
