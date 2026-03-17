@@ -19,6 +19,10 @@ class BibNumberDataController extends ChangeNotifier {
   final List<ValueNotifier<BibDatumRecord>> _rowNotifiers = [];
   List<ValueNotifier<BibDatumRecord>> get rowNotifiers => _rowNotifiers;
 
+  /// Narrow notifier for the current race so [RaceHeaderWidget] only rebuilds
+  /// when the race itself changes, not on every keystroke.
+  final ValueNotifier<RaceRecord?> currentRaceNotifier = ValueNotifier(null);
+
   /// Tracks keyboard visibility without going through the main [notifyListeners]
   /// path. Widgets that only need keyboard state (e.g. [KeyboardAccessoryBar])
   /// can listen to this notifier directly and avoid rebuilding on every
@@ -221,6 +225,7 @@ class BibNumberDataController extends ChangeNotifier {
   /// Sets the current race
   void setCurrentRace(RaceRecord? race) {
     _currentRace = race;
+    currentRaceNotifier.value = race;
     notifyListeners();
   }
 
@@ -290,6 +295,7 @@ class BibNumberDataController extends ChangeNotifier {
   /// reset + load sequence completes.
   void resetStateForLoad() {
     _currentRace = null;
+    currentRaceNotifier.value = null;
     _raceStopped = true;
     clearBibRecordsSilent();
   }
@@ -457,6 +463,7 @@ class BibNumberDataController extends ChangeNotifier {
       notifier.dispose();
     }
     _rowNotifiers.clear();
+    currentRaceNotifier.dispose();
     keyboardVisibleNotifier.dispose();
     super.dispose();
   }
