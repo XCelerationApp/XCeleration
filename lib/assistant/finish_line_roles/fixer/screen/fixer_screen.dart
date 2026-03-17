@@ -9,10 +9,8 @@ import 'package:xceleration/core/services/tutorial_manager.dart';
 import 'package:xceleration/assistant/finish_line_roles/bib_recorder/widgets/overflow_menu_button.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/widgets/role_bottom_bar.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/widgets/role_lobby_card.dart';
-import 'package:xceleration/core/theme/app_animations.dart';
-import 'package:xceleration/core/theme/app_border_radius.dart';
+import 'package:xceleration/assistant/finish_line_roles/fixer/widgets/fixer_queue_widgets.dart';
 import 'package:xceleration/core/theme/app_colors.dart';
-import 'package:xceleration/core/theme/app_opacity.dart';
 import 'package:xceleration/core/theme/app_spacing.dart';
 import 'package:xceleration/core/theme/typography.dart';
 import 'package:xceleration/shared/role_bar/models/role_enums.dart';
@@ -135,7 +133,7 @@ class _FixerScreenState extends State<FixerScreen> {
                       PeerStatusStrip(notifier: _peerNotifier!),
                     Expanded(
                       child: _controller.queue.isEmpty
-                          ? const _EmptyState()
+                          ? const FixerEmptyState()
                           : _FixerQueue(controller: _controller),
                     ),
                     RoleBottomBar(
@@ -180,7 +178,7 @@ class _FixerQueue extends StatelessWidget {
         top: false,
         child: Column(
           children: [
-            _StatusPill(unresolvedCount: unresolved.length),
+            FixerStatusPill(unresolvedCount: unresolved.length),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(
@@ -191,7 +189,7 @@ class _FixerQueue extends StatelessWidget {
                 ),
                 children: [
                   if (unresolved.isNotEmpty) ...[
-                    _SectionLabel(label: 'NEEDS FIXING'),
+                    FixerSectionLabel(label: 'NEEDS FIXING'),
                     const SizedBox(height: AppSpacing.sm),
                     ...unresolved.map(
                       (e) => FixerEntryCard(
@@ -202,7 +200,7 @@ class _FixerQueue extends StatelessWidget {
                     ),
                   ],
                   if (resolved.isNotEmpty) ...[
-                    _SectionLabel(
+                    FixerSectionLabel(
                       label: 'RESOLVED',
                       topPadding: unresolved.isNotEmpty ? AppSpacing.lg : 0,
                     ),
@@ -216,135 +214,12 @@ class _FixerQueue extends StatelessWidget {
                     ),
                   ],
                   if (unresolved.isEmpty && resolved.isEmpty)
-                    const _LiveEmptyState(),
+                    const FixerLiveEmptyState(),
                 ],
               ),
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _StatusPill extends StatelessWidget {
-  const _StatusPill({required this.unresolvedCount});
-
-  final int unresolvedCount;
-
-  @override
-  Widget build(BuildContext context) {
-    final hasIssues = unresolvedCount > 0;
-    final pillColor =
-        hasIssues ? AppColors.primaryColor : AppColors.statusFinished;
-    return AnimatedContainer(
-      duration: AppAnimations.standard,
-      width: double.infinity,
-      margin: const EdgeInsets.fromLTRB(
-        AppSpacing.lg,
-        AppSpacing.sm,
-        AppSpacing.lg,
-        AppSpacing.xs,
-      ),
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
-      ),
-      decoration: BoxDecoration(
-        color: pillColor.withValues(alpha: AppOpacity.subtle),
-        borderRadius: BorderRadius.circular(AppBorderRadius.md),
-        border: Border.all(color: pillColor.withValues(alpha: AppOpacity.strong)),
-      ),
-      child: Text(
-        hasIssues
-            ? '$unresolvedCount entr${unresolvedCount == 1 ? "y" : "ies"} need attention'
-            : 'All entries resolved ✓',
-        style: AppTypography.bodySmall.copyWith(
-          fontWeight: FontWeight.w700,
-          color: pillColor,
-        ),
-      ),
-    );
-  }
-}
-
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel({required this.label, this.topPadding = 0});
-
-  final String label;
-  final double topPadding;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(top: topPadding),
-      child: Text(
-        label,
-        style: AppTypography.labelTiny.copyWith(
-          color: AppColors.mediumColor,
-          letterSpacing: 1.2,
-        ),
-      ),
-    );
-  }
-}
-
-class _LiveEmptyState extends StatelessWidget {
-  const _LiveEmptyState();
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxxl),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text('🎯', style: TextStyle(fontSize: 36)),
-          const SizedBox(height: AppSpacing.md),
-          Text(
-            'No issues yet',
-            style: AppTypography.smallBodySemibold.copyWith(
-              color: AppColors.mediumColor,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            'Flagged entries from Verifier appear here',
-            style: AppTypography.bodySmall.copyWith(
-              color: AppColors.lightColor,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text('🔧', style: TextStyle(fontSize: 40)),
-          const SizedBox(height: AppSpacing.md),
-          Text(
-            'No conflicts to resolve',
-            style: AppTypography.smallBodyRegular.copyWith(
-              color: AppColors.mediumColor,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            'Flagged entries from the Verifier will appear here.',
-            style: AppTypography.bodySmall.copyWith(
-              color: AppColors.lightColor,
-            ),
-          ),
-        ],
       ),
     );
   }
