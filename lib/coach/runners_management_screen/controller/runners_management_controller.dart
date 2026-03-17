@@ -671,7 +671,8 @@ class RunnersManagementController with ChangeNotifier {
   }
 
   Future<void> loadSpreadsheet(BuildContext context, Team team) async {
-    final bool useGoogleDrive = await showSpreadsheetLoadSheet(context);
+    final bool? useGoogleDrive = await showSpreadsheetLoadSheet(context);
+    if (useGoogleDrive == null) return;
     if (!context.mounted) return;
 
     try {
@@ -889,14 +890,14 @@ class RunnersManagementController with ChangeNotifier {
     }
   }
 
-  Future<bool> showSpreadsheetLoadSheet(BuildContext context) async {
+  Future<bool?> showSpreadsheetLoadSheet(BuildContext context) async {
     final result = await sheet(
       context: context,
       title: 'Import Runners',
       titleSize: 24,
       body: const SpreadsheetLoadSheet(),
     );
-    return result['useGoogleDrive'] ?? false;
+    return result?['useGoogleDrive'] ?? false;
   }
 
   @override
