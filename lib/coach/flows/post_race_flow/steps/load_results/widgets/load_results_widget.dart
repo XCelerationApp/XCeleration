@@ -25,57 +25,64 @@ class LoadResultsWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Use AnimatedBuilder to rebuild when controller changes
-    return AnimatedBuilder(
-      animation: controller,
-      builder: (context, _) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Display device connection widget
-              DeviceConnectionWidget(
-                devices: controller.devices,
-                callback: () => controller.processReceivedData(context),
-                inSheet: closeWhenDone,
-              ),
-
-              const SizedBox(height: 24),
-
-              // Display conflicts or success message
-              if (controller.resultsLoaded) ...[
-                if (controller.hasBibConflicts || controller.hasTimingConflicts)
-                  ConflictButton(
-                    title: 'Race Conflicts',
-                    description:
-                        'Your race contains conflicts. Please resolve them before proceeding.',
-                    buttonText: 'Resolve',
-                    onPressed: () {
-                      debugPrint(
-                          'Conflict button pressed - Bib conflicts: ${controller.hasBibConflicts}, Timing conflicts: ${controller.hasTimingConflicts}');
-                      if (controller.hasBibConflicts) {
-                        controller.showBibConflictsSheet(context);
-                      } else {
-                        controller.showTimingConflictsSheet(context);
-                      }
-                    },
-                  )
-                else
-                  const SuccessMessage(),
-                const SizedBox(height: 16),
-              ],
-
-              // Reload button
-              if (controller.resultsLoaded)
-                ReloadButton(onPressed: controller.resetDevices)
-              else
-                const SizedBox.shrink(),
-            ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // DeviceConnectionWidget does not depend on controller state changes;
+          // keep it outside the AnimatedBuilder to avoid unnecessary rebuilds.
+          DeviceConnectionWidget(
+            devices: controller.devices,
+            callback: () => controller.processReceivedData(context),
+            inSheet: closeWhenDone,
           ),
-        );
-      },
+
+          const SizedBox(height: 24),
+
+          // Only the state-dependent section rebuilds on controller changes.
+          AnimatedBuilder(
+            animation: controller,
+            builder: (context, _) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Display conflicts or success message
+                  if (controller.resultsLoaded) ...[
+                    if (controller.hasBibConflicts ||
+                        controller.hasTimingConflicts)
+                      ConflictButton(
+                        title: 'Race Conflicts',
+                        description:
+                            'Your race contains conflicts. Please resolve them before proceeding.',
+                        buttonText: 'Resolve',
+                        onPressed: () {
+                          debugPrint(
+                              'Conflict button pressed - Bib conflicts: ${controller.hasBibConflicts}, Timing conflicts: ${controller.hasTimingConflicts}');
+                          if (controller.hasBibConflicts) {
+                            controller.showBibConflictsSheet(context);
+                          } else {
+                            controller.showTimingConflictsSheet(context);
+                          }
+                        },
+                      )
+                    else
+                      const SuccessMessage(),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // Reload button
+                  if (controller.resultsLoaded)
+                    ReloadButton(onPressed: controller.resetDevices)
+                  else
+                    const SizedBox.shrink(),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 }
