@@ -68,9 +68,16 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
       if (widget.page == RaceScreenPage.results) {
         controller.tabController.animateTo(1);
       }
-      // Add listener to update UI when tab changes
+      // Add listener to update UI when tab changes.
+      // Guard against every animation tick — only rebuild when the tab
+      // index has fully settled to a new value.
+      int lastTabIndex = controller.tabController.index;
       controller.tabController.addListener(() {
-        setState(() {}); // Refresh UI when tab changes
+        if (!controller.tabController.indexIsChanging &&
+            controller.tabController.index != lastTabIndex) {
+          lastTabIndex = controller.tabController.index;
+          setState(() {});
+        }
       });
       // Controller starts loading automatically when created
       // Subscribe to flow state changes to refresh UI when needed
