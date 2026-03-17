@@ -191,7 +191,7 @@ class _StatusCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = switch (status) {
       _Status.initialising || _Status.recognising => AppColors.mediumColor,
-      _Status.ready => const Color(0xFF4CAF50),
+      _Status.ready => AppColors.statusFinished,
       _Status.recording => AppColors.primaryColor,
       _Status.error => AppColors.redColor,
     };
@@ -241,7 +241,7 @@ class _ResultCard extends StatelessWidget {
           color: AppColors.lightColor,
           borderRadius: BorderRadius.circular(AppBorderRadius.md),
           border: Border.all(
-              color: AppColors.mediumColor.withValues(alpha: 0.3)),
+              color: AppColors.mediumColor.withValues(alpha: AppOpacity.strong)),
         ),
         child: Text(
           'No result yet',
@@ -256,7 +256,7 @@ class _ResultCard extends StatelessWidget {
         color: AppColors.primaryColor.withValues(alpha: AppOpacity.faint),
         borderRadius: BorderRadius.circular(AppBorderRadius.md),
         border:
-            Border.all(color: AppColors.primaryColor.withValues(alpha: 0.4)),
+            Border.all(color: AppColors.primaryColor.withValues(alpha: AppOpacity.medium)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

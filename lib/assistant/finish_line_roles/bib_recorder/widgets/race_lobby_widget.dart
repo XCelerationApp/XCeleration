@@ -185,9 +185,9 @@ class _StatusBadge extends StatelessWidget {
         vertical: AppSpacing.xs,
       ),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFEBEE),
+        color: AppColors.liveBackground,
         borderRadius: BorderRadius.circular(AppBorderRadius.full),
-        border: Border.all(color: const Color(0xFFFFCDD2)),
+        border: Border.all(color: AppColors.liveBorder),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

@@ -220,9 +220,7 @@ class _EntryDetailCard extends StatelessWidget {
         children: [
           Text(
             '#${entry.bib}',
-            style: AppTypography.titleSemibold.copyWith(
-              fontSize: 26,
-              fontWeight: FontWeight.w900,
+            style: AppTypography.bibStandard.copyWith(
               color: AppColors.darkColor,
             ),
           ),
@@ -472,8 +470,7 @@ class _CreateRunnerButtonState extends State<_CreateRunnerButton> {
 
   @override
   Widget build(BuildContext context) {
-    // Use amber for "create new runner" matching prototype
-    const amber = Color(0xFFF59E0B);
+    const amber = AppColors.warningAmber;
     return GestureDetector(
       onTapDown: (_) => setState(() => _pressed = true),
       onTapUp: (_) => setState(() => _pressed = false),
@@ -486,10 +483,10 @@ class _CreateRunnerButtonState extends State<_CreateRunnerButton> {
         decoration: BoxDecoration(
           color: _pressed
               ? amber.withValues(alpha: AppOpacity.medium)
-              : amber.withValues(alpha: AppOpacity.light - 0.02),
+              : amber.withValues(alpha: AppOpacity.subtle),
           borderRadius: BorderRadius.circular(AppBorderRadius.lg),
           border: Border.all(
-            color: amber.withValues(alpha: AppOpacity.strong + 0.1),
+            color: amber.withValues(alpha: AppOpacity.medium),
           ),
         ),
         child: Center(
@@ -633,7 +630,7 @@ class _AddRunnerButton extends StatelessWidget {
         decoration: BoxDecoration(
           gradient: enabled
               ? const LinearGradient(
-                  colors: [AppColors.primaryColor, Color(0xFFF07A50)],
+                  colors: [AppColors.primaryColor, AppColors.primaryGradientEnd],
                 )
               : null,
           color: enabled ? null : AppColors.surfaceColor,

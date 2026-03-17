@@ -12,6 +12,7 @@ import 'package:xceleration/core/theme/app_animations.dart';
 import 'package:xceleration/core/theme/app_border_radius.dart';
 import 'package:xceleration/core/theme/app_colors.dart';
 import 'package:xceleration/core/theme/app_opacity.dart';
+import 'package:xceleration/core/theme/app_shadows.dart';
 import 'package:xceleration/core/theme/app_spacing.dart';
 import 'package:xceleration/core/theme/typography.dart';
 
@@ -105,19 +106,13 @@ class ManageModeWidget extends StatelessWidget {
         onTap: () => _onShareTap(context),
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 14),
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
               colors: [AppColors.primaryColor, AppColors.primaryGradientEnd],
             ),
             borderRadius: BorderRadius.circular(AppBorderRadius.lg),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primaryColor.withValues(alpha: AppOpacity.strong),
-                blurRadius: 16,
-                offset: const Offset(0, 4),
-              ),
-            ],
+            boxShadow: AppShadows.high,
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -276,7 +271,7 @@ class _ResumeButtonState extends State<_ResumeButton> {
       onTap: widget.onTap,
       child: AnimatedContainer(
         duration: AppAnimations.fast,
-        padding: const EdgeInsets.symmetric(vertical: 13),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
         decoration: BoxDecoration(
           color: _pressed
               ? AppColors.statusFinished.withValues(alpha: AppOpacity.medium)
@@ -409,7 +404,7 @@ class _CancelButtonState extends State<_CancelButton> {
       onTap: widget.onTap,
       child: AnimatedContainer(
         duration: AppAnimations.fast,
-        padding: const EdgeInsets.symmetric(vertical: 13),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
         decoration: BoxDecoration(
           color: _pressed
               ? AppColors.surfaceColor
@@ -452,10 +447,10 @@ class _DestructiveButtonState extends State<_DestructiveButton> {
       onTap: widget.onTap,
       child: AnimatedContainer(
         duration: AppAnimations.fast,
-        padding: const EdgeInsets.symmetric(vertical: 13),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
         decoration: BoxDecoration(
           color: _pressed
-              ? AppColors.redColor.withValues(alpha: AppOpacity.solid + 0.1)
+              ? AppColors.redColor.withValues(alpha: AppOpacity.heavy)
               : AppColors.redColor,
           borderRadius: BorderRadius.circular(AppBorderRadius.lg),
         ),
