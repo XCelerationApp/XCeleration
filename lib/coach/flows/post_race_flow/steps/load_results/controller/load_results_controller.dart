@@ -95,7 +95,7 @@ class LoadResultsController with ChangeNotifier {
 
       if (savedResults.isNotEmpty) {
         results = savedResults;
-        resultsLoaded = true;
+        _resultsLoaded = true;
       }
     } catch (e) {
       if (e.toString().contains('Race is not finished')) {
