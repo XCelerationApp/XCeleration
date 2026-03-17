@@ -24,6 +24,38 @@ class RunnersList extends StatefulWidget {
 class _RunnersListState extends State<RunnersList> {
   // teamId → expanded; default true (all sections start open)
   final Map<int, bool> _expanded = {};
+  Future<Map<Team, List<RaceRunner>>>? _filteredFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_onControllerChanged);
+    _filteredFuture = widget.controller.masterRace.filteredSearchResults;
+  }
+
+  @override
+  void didUpdateWidget(RunnersList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.removeListener(_onControllerChanged);
+      widget.controller.addListener(_onControllerChanged);
+      setState(() {
+        _filteredFuture = widget.controller.masterRace.filteredSearchResults;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onControllerChanged);
+    super.dispose();
+  }
+
+  void _onControllerChanged() {
+    setState(() {
+      _filteredFuture = widget.controller.masterRace.filteredSearchResults;
+    });
+  }
 
   bool _isExpanded(Team team) =>
       _expanded[team.teamId] ?? true;
@@ -45,7 +77,7 @@ class _RunnersListState extends State<RunnersList> {
     }
 
     return FutureBuilder<Map<Team, List<RaceRunner>>>(
-      future: widget.controller.masterRace.filteredSearchResults,
+      future: _filteredFuture,
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return Center(
