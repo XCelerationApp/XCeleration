@@ -224,9 +224,29 @@ class RaceScreenController with ChangeNotifier {
       distanceController: form.distanceController,
       unitController: form.unitController,
     );
-    await loadRace();
+
+    // Update _race in memory from the saved form values instead of
+    // re-fetching from the DB (eliminates a redundant read).
+    if (_race != null) {
+      DateTime? date;
+      if (form.dateController.text.isNotEmpty) {
+        date = DateTime.tryParse(form.dateController.text);
+      }
+      final distance = double.tryParse(form.distanceController.text) ?? 0;
+      _race = _race!.copyWith(
+        raceName: form.nameController.text.trim(),
+        location: form.locationController.text,
+        raceDate: date,
+        distance: distance,
+        distanceUnit: form.unitController.text,
+      );
+    }
     notifyListeners();
+
+    // Pass already-loaded race and teams — avoids two extra DB reads.
     final setupComplete = await RaceService.checkSetupComplete(
+      race: _race!,
+      teams: _teams ?? [],
       masterRace: masterRace,
       nameController: form.nameController,
       locationController: form.locationController,

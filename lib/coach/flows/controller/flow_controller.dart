@@ -81,9 +81,12 @@ class MasterFlowController {
 
     final currentState = race.flowState!;
 
-    // Setup state: validate completeness before advancing
+    // Setup state: validate completeness before advancing.
+    // Pass the already-fetched race and cached teams to avoid extra DB reads.
     if (currentState == Race.FLOW_SETUP) {
       final canAdvance = await RaceService.checkSetupComplete(
+        race: race,
+        teams: raceController.teamsOrNull ?? [],
         masterRace: raceController.masterRace,
         nameController: raceController.form.nameController,
         locationController: raceController.form.locationController,
