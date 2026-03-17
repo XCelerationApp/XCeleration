@@ -248,12 +248,16 @@ class RaceRepository implements IRaceRepository {
   @override
   Future<List<RaceParticipant>> getRaceParticipantsByBibs(
       int raceId, List<String> bibNumbers) async {
-    final results = <RaceParticipant>[];
-    for (final bib in bibNumbers) {
-      final participant = await getRaceParticipantByBib(raceId, bib);
-      if (participant != null) results.add(participant);
-    }
-    return results;
+    if (bibNumbers.isEmpty) return [];
+    final db = await _db;
+    final qMarks = List.filled(bibNumbers.length, '?').join(',');
+    final rows = await db.rawQuery('''
+      SELECT rp.race_id, rp.runner_id, rp.team_id
+      FROM race_participants rp
+      JOIN runners r ON r.runner_id = rp.runner_id
+      WHERE rp.race_id = ? AND r.bib_number IN ($qMarks)
+    ''', [raceId, ...bibNumbers]);
+    return rows.map((m) => RaceParticipant.fromMap(m)).toList();
   }
 
   @override
