@@ -261,14 +261,13 @@ class RaceScreenController with ChangeNotifier {
   Future<void> handleFieldFocusLoss(
       BuildContext context, RaceField field) async {
     trackFieldChange(field);
-    if (!(await _isSetupFlow()) && form.hasUnsavedChanges && context.mounted) {
+    if (!_isSetupFlow() && form.hasUnsavedChanges && context.mounted) {
       await saveAllChanges(context);
     }
   }
 
-  Future<bool> _isSetupFlow() async {
-    final race = await masterRace.race;
-    final flowState = race.flowState;
+  bool _isSetupFlow() {
+    final flowState = _race?.flowState;
     return flowState == Race.FLOW_SETUP ||
         flowState == Race.FLOW_SETUP_COMPLETED;
   }
