@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show VoidCallback;
 import 'package:flutter/material.dart' show ChangeNotifier, TextEditingController;
 import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/utils/logger.dart';
@@ -18,6 +19,7 @@ class ResolveBibNumberController with ChangeNotifier {
   final TextEditingController bibController = TextEditingController();
   bool showCreateNew = false;
   final List<RaceRunner> raceRunners;
+  late final VoidCallback _masterRaceListener;
   final int raceId;
   final Function(RaceRunner) onComplete;
   final RaceRunner raceRunner;
@@ -31,10 +33,10 @@ class ResolveBibNumberController with ChangeNotifier {
   }) {
     this.masterRace = masterRace ?? MasterRace.getInstance(raceId);
 
-    // Listen to changes from MasterRace
-    this.masterRace.addListener(() {
-      notifyListeners();
-    });
+    // Listen to changes from MasterRace — stored so the same reference can
+    // be passed to removeListener in dispose().
+    _masterRaceListener = () { notifyListeners(); };
+    this.masterRace.addListener(_masterRaceListener);
   }
 
   /// Get all teams (cached by MasterRace)
@@ -170,9 +172,7 @@ class ResolveBibNumberController with ChangeNotifier {
     gradeController.dispose();
     teamController.dispose();
     bibController.dispose();
-    masterRace.removeListener(() {
-      notifyListeners();
-    });
+    masterRace.removeListener(_masterRaceListener);
     super.dispose();
   }
 }
