@@ -75,7 +75,16 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
   }
 
   Future<void> _viewRace(Map<String, dynamic> race) async {
-    final encodedPayload = race['encoded_payload'] as String;
+    final raceId = race['id'] as int;
+    final fullRace = await SpectatorStorageService.instance.getRace(raceId);
+    final encodedPayload = fullRace?['encoded_payload'] as String?;
+    if (encodedPayload == null) {
+      if (mounted) {
+        DialogUtils.showErrorDialog(context,
+            message: 'Could not load race data.');
+      }
+      return;
+    }
     final result = RaceShareDecoder.decodeWithRaw(encodedPayload);
 
     switch (result) {
@@ -105,7 +114,16 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
 
   Future<void> _shareRace(Map<String, dynamic> race) async {
     try {
-      final encodedPayload = race['encoded_payload'] as String;
+      final raceId = race['id'] as int;
+      final fullRace = await SpectatorStorageService.instance.getRace(raceId);
+      final encodedPayload = fullRace?['encoded_payload'] as String?;
+      if (encodedPayload == null) {
+        if (mounted) {
+          DialogUtils.showErrorDialog(context,
+              message: 'Could not load race data.');
+        }
+        return;
+      }
       final raceName = race['race_name'] as String? ?? 'Race';
 
       if (!mounted) return;
