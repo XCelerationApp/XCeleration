@@ -66,25 +66,32 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
         }
       }
 
-      // Collect runners for bib numbers that need resolution
+      // Collect runners for bib numbers that need resolution.
+      // Fire all DB lookups concurrently rather than awaiting each one in turn.
+      final futures = <Future<RaceRunner?>>[];
+      final futureIndices = <int>[];
+
       for (int i = 0; i < _raceRunners.length; i++) {
         final bibNumber = _raceRunners[i];
         if (bibNumber is int) {
           if (seenBibs.contains(bibNumber.toString())) {
-            final raceRunner = await widget.masterRace
-                .getRaceRunnerByBib(bibNumber.toString());
-            duplicateRunners.add(raceRunner!);
-            duplicateBibNumberPlaces.add(i);
+            futures.add(widget.masterRace.getRaceRunnerByBib(bibNumber.toString()));
+            futureIndices.add(i);
           } else {
             // Create a placeholder runner for display purposes
-            final placeholderRunner = RaceRunner(
+            unknownRunners.add(RaceRunner(
               raceId: widget.masterRace.raceId,
               runner: Runner(bibNumber: bibNumber.toString()),
               team: Team(),
-            );
-            unknownRunners.add(placeholderRunner);
+            ));
           }
         }
+      }
+
+      final resolved = await Future.wait(futures);
+      for (int j = 0; j < resolved.length; j++) {
+        duplicateRunners.add(resolved[j]!);
+        duplicateBibNumberPlaces.add(futureIndices[j]);
       }
 
       if (mounted) {
