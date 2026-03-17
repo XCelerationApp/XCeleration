@@ -896,7 +896,7 @@ class RunnersManagementController with ChangeNotifier {
       titleSize: 24,
       body: const SpreadsheetLoadSheet(),
     );
-    return result['useGoogleDrive'] ?? false;
+    return result?['useGoogleDrive'] ?? false;
   }
 
   @override
