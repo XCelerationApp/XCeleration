@@ -13,6 +13,7 @@ import 'package:xceleration/core/theme/app_animations.dart';
 import 'package:xceleration/core/theme/app_border_radius.dart';
 import 'package:xceleration/core/theme/app_colors.dart';
 import 'package:xceleration/core/theme/app_opacity.dart';
+import 'package:xceleration/core/theme/app_shadows.dart';
 import 'package:xceleration/core/theme/app_spacing.dart';
 import 'package:xceleration/core/theme/typography.dart';
 
@@ -563,16 +564,7 @@ class _RaceModeWidgetState extends State<RaceModeWidget> {
                     : AppColors.borderColor,
                 width: 2.5,
               ),
-              boxShadow: _ctrl.isListening
-                  ? [
-                      BoxShadow(
-                        color: AppColors.primaryColor
-                            .withValues(alpha: AppOpacity.strong),
-                        blurRadius: 20,
-                        spreadRadius: 4,
-                      ),
-                    ]
-                  : [],
+              boxShadow: _ctrl.isListening ? AppShadows.glow : [],
             ),
             child: Icon(
               Icons.mic,
@@ -752,9 +744,9 @@ class _LiveBadge extends StatelessWidget {
         vertical: AppSpacing.xs + 1,
       ),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFEBEE),
+        color: AppColors.liveBackground,
         borderRadius: BorderRadius.circular(AppBorderRadius.full),
-        border: Border.all(color: const Color(0xFFFFCDD2)),
+        border: Border.all(color: AppColors.liveBorder),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -837,7 +829,7 @@ class _ActionButtonState extends State<_ActionButton> {
       onTap: widget.onTap,
       child: AnimatedContainer(
         duration: AppAnimations.fast,
-        padding: const EdgeInsets.symmetric(vertical: 13),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
         decoration: BoxDecoration(
           color: _pressed
               ? (widget.backgroundColor ?? widget.color)

@@ -145,11 +145,10 @@ class _OverflowMenuButtonState extends State<OverflowMenuButton> {
             color: _isOpen ? AppColors.primaryColor : AppColors.borderColor,
           ),
         ),
-        child: const Center(
+        child: Center(
           child: Text(
             '⋮',
-            style: TextStyle(
-              fontSize: 20,
+            style: AppTypography.titleRegular.copyWith(
               color: AppColors.mediumColor,
             ),
           ),

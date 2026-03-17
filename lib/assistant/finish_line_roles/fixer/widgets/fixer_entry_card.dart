@@ -79,9 +79,7 @@ class _FixerEntryCardState extends State<FixerEntryCard> {
               children: [
                 Text(
                   '#${entry.bib}',
-                  style: AppTypography.titleSemibold.copyWith(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
+                  style: AppTypography.bibCompact.copyWith(
                     color: AppColors.darkColor,
                   ),
                 ),
@@ -145,7 +143,7 @@ class _ResolvedCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: AppSpacing.xs),
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: AppColors.statusFinished.withValues(alpha: AppOpacity.faint * 2),
+        color: AppColors.statusFinished.withValues(alpha: AppOpacity.subtle),
         borderRadius: BorderRadius.circular(AppBorderRadius.lg),
         border: Border.all(
           color: AppColors.statusFinished.withValues(alpha: AppOpacity.medium),
@@ -158,7 +156,7 @@ class _ResolvedCard extends StatelessWidget {
             width: 30,
             height: 30,
             decoration: BoxDecoration(
-              color: AppColors.statusFinished.withValues(alpha: AppOpacity.light + 0.05),
+              color: AppColors.statusFinished.withValues(alpha: AppOpacity.soft),
               borderRadius: BorderRadius.circular(AppBorderRadius.sm),
             ),
             child: Center(

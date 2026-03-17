@@ -47,13 +47,13 @@ class VerifierEntryCard extends StatelessWidget {
               AppColors.redColor.withValues(alpha: AppOpacity.strong),
             BibFlag.unknown =>
               AppColors.statusSetup.withValues(alpha: AppOpacity.strong),
-            BibFlag.none => const Color(0xFFE8E8E8),
+            BibFlag.none => AppColors.borderColor,
           }
-        : _actColor.withValues(alpha: 0.5);
+        : _actColor.withValues(alpha: AppOpacity.solid);
 
     final bgColor = _isPending
         ? Colors.white
-        : _actColor.withValues(alpha: 0.05);
+        : _actColor.withValues(alpha: AppOpacity.faint);
 
     return AnimatedContainer(
       duration: AppAnimations.standard,
@@ -140,7 +140,7 @@ class _FlagBanner extends StatelessWidget {
         AppSpacing.sm,
       ),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: isDuplicate ? AppOpacity.light : 0.12),
+        color: color.withValues(alpha: isDuplicate ? AppOpacity.light : AppOpacity.dim),
         borderRadius: const BorderRadius.vertical(
           top: Radius.circular(AppBorderRadius.xl - 2),
         ),
@@ -260,7 +260,7 @@ class _ActionButtons extends StatelessWidget {
     if (entry.flag == BibFlag.unknown) {
       return _ActionBtn(
         label: 'Got it — sending to Fixer',
-        bg: const Color(0xFFF5F5F5),
+        bg: AppColors.surfaceColor,
         color: AppColors.mediumColor,
         onTap: () => controller.flag(entry.id),
       );
@@ -280,7 +280,7 @@ class _ActionButtons extends StatelessWidget {
         Expanded(
           child: _ActionBtn(
             label: 'Skip',
-            bg: const Color(0xFFF5F5F5),
+            bg: AppColors.surfaceColor,
             color: AppColors.mediumColor,
             onTap: () => controller.skip(entry.id),
           ),
@@ -375,7 +375,7 @@ class _ActionBtnState extends State<_ActionBtn> {
               : widget.bg,
           borderRadius: BorderRadius.circular(AppBorderRadius.md),
           border: Border.all(
-            color: widget.color.withValues(alpha: 0.4),
+            color: widget.color.withValues(alpha: AppOpacity.medium),
           ),
         ),
         child: Center(
@@ -424,7 +424,7 @@ class _UndoButtonState extends State<_UndoButton> {
               : Colors.white,
           borderRadius: BorderRadius.circular(AppBorderRadius.sm),
           border: Border.all(
-            color: widget.color.withValues(alpha: 0.5),
+            color: widget.color.withValues(alpha: AppOpacity.solid),
           ),
         ),
         child: Text(

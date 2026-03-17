@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/assistant/finish_line_roles/verifier/controller/verifier_controller.dart';
 import 'package:xceleration/assistant/finish_line_roles/verifier/widgets/verifier_entry_card.dart';
+import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/connection_setup_screen.dart';
+import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/peer_discovery_notifier.dart';
+import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/peer_status_strip.dart';
 import 'package:xceleration/core/components/app_header.dart';
 import 'package:xceleration/core/services/tutorial_manager.dart';
 import 'package:xceleration/core/theme/app_animations.dart';
@@ -29,6 +32,10 @@ class _VerifierScreenState extends State<VerifierScreen> {
   late final VerifierController _controller;
   final TutorialManager _tutorialManager = TutorialManager();
 
+  // Connection setup state
+  bool _connecting = false;
+  PeerDiscoveryNotifier? _peerNotifier;
+
   @override
   void initState() {
     super.initState();
@@ -36,9 +43,45 @@ class _VerifierScreenState extends State<VerifierScreen> {
     _controller.initialize();
   }
 
+  void _onJoinTapped() {
+    final notifier = PeerDiscoveryNotifier(
+      role: Role.verifier,
+      // TODO(XCE-230): use real race ID from discovered P2P session.
+      raceId: 1,
+    )..startDiscovery();
+    setState(() {
+      _connecting = true;
+      _peerNotifier = notifier;
+    });
+  }
+
+  void _onConnectionReady() {
+    // Keep notifier alive for PeerStatusStrip during the race.
+    setState(() => _connecting = false);
+    _controller.joinRace();
+  }
+
+  void _onConnectionSkip() {
+    _peerNotifier?.dispose();
+    setState(() {
+      _connecting = false;
+      _peerNotifier = null;
+    });
+    _controller.joinRace();
+  }
+
+  void _onConnectionLeave() {
+    _peerNotifier?.dispose();
+    setState(() {
+      _connecting = false;
+      _peerNotifier = null;
+    });
+  }
+
   @override
   void dispose() {
     _controller.dispose();
+    _peerNotifier?.dispose();
     super.dispose();
   }
 
@@ -68,10 +111,23 @@ class _VerifierScreenState extends State<VerifierScreen> {
               listenable: _controller,
               builder: (context, _) {
                 if (!_controller.isInRace) {
-                  return _RaceLobby(controller: _controller);
+                  if (_connecting) {
+                    return ConnectionSetupScreen(
+                      role: Role.verifier,
+                      // TODO(XCE-230): use real race ID/name from P2P session.
+                      raceId: 1,
+                      raceName: 'Demo Verifier Session',
+                      onReady: _onConnectionReady,
+                      onSkip: _onConnectionSkip,
+                      onLeave: _onConnectionLeave,
+                    );
+                  }
+                  return _RaceLobby(onJoin: _onJoinTapped);
                 }
                 return Column(
                   children: [
+                    if (_peerNotifier != null)
+                      PeerStatusStrip(notifier: _peerNotifier!),
                     _StatsBar(controller: _controller),
                     Expanded(
                       child: _controller.entries.isEmpty
@@ -166,7 +222,7 @@ class _StatChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.10),
+          color: color.withValues(alpha: AppOpacity.light),
           borderRadius: BorderRadius.circular(AppBorderRadius.sm),
         ),
         child: Column(
@@ -180,11 +236,9 @@ class _StatChip extends StatelessWidget {
             ),
             Text(
               label,
-              style: AppTypography.bodySmall.copyWith(
+              style: AppTypography.labelTiny.copyWith(
                 color: color,
-                fontWeight: FontWeight.w700,
                 letterSpacing: 0.3,
-                fontSize: 10,
               ),
             ),
           ],
@@ -263,7 +317,7 @@ class _BottomBarState extends State<_BottomBar> {
               onTap: widget.controller.leaveRace,
               child: AnimatedContainer(
                 duration: AppAnimations.fast,
-                padding: const EdgeInsets.symmetric(vertical: 13),
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
                 decoration: BoxDecoration(
                   color: _pressed
                       ? AppColors.redColor.withValues(alpha: AppOpacity.light)
@@ -302,9 +356,9 @@ class _BottomBarState extends State<_BottomBar> {
 // ── Race lobby ────────────────────────────────────────────────────────────────
 
 class _RaceLobby extends StatelessWidget {
-  const _RaceLobby({required this.controller});
+  const _RaceLobby({required this.onJoin});
 
-  final VerifierController controller;
+  final VoidCallback onJoin;
 
   @override
   Widget build(BuildContext context) {
@@ -323,7 +377,7 @@ class _RaceLobby extends StatelessWidget {
             _LobbySessionCard(
               title: 'Demo Verifier Session',
               subtitle: 'Connect to the Bib Recorder',
-              onTap: controller.joinRace,
+              onTap: onJoin,
             ),
           ],
         ),

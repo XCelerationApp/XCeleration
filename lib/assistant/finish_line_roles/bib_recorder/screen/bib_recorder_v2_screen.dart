@@ -11,6 +11,7 @@ import 'package:xceleration/assistant/shared/services/i_assistant_storage_servic
 import 'package:xceleration/core/components/app_header.dart';
 import 'package:xceleration/core/services/tutorial_manager.dart';
 import 'package:xceleration/core/theme/app_colors.dart';
+import 'package:xceleration/core/theme/app_spacing.dart';
 import 'package:xceleration/core/theme/typography.dart';
 import 'package:xceleration/shared/role_bar/models/role_enums.dart';
 import 'package:xceleration/shared/role_bar/widgets/role_selector_sheet.dart';
@@ -174,7 +175,7 @@ class _LoadingBody extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           const CircularProgressIndicator(color: AppColors.primaryColor),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.lg),
           Text(
             'Loading voice model…',
             style: AppTypography.smallBodyRegular.copyWith(

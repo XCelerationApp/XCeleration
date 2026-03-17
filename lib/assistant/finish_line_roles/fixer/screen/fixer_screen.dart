@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/assistant/finish_line_roles/fixer/controller/fixer_controller.dart';
 import 'package:xceleration/assistant/finish_line_roles/fixer/widgets/fixer_entry_card.dart';
+import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/connection_setup_screen.dart';
+import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/peer_discovery_notifier.dart';
+import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/peer_status_strip.dart';
 import 'package:xceleration/core/components/app_header.dart';
 import 'package:xceleration/core/services/tutorial_manager.dart';
 import 'package:xceleration/assistant/finish_line_roles/bib_recorder/widgets/overflow_menu_button.dart';
@@ -32,6 +35,10 @@ class _FixerScreenState extends State<FixerScreen> {
   late final FixerController _controller;
   final TutorialManager _tutorialManager = TutorialManager();
 
+  // Connection setup state
+  bool _connecting = false;
+  PeerDiscoveryNotifier? _peerNotifier;
+
   @override
   void initState() {
     super.initState();
@@ -39,9 +46,45 @@ class _FixerScreenState extends State<FixerScreen> {
     _controller.initialize();
   }
 
+  void _onJoinTapped() {
+    final notifier = PeerDiscoveryNotifier(
+      role: Role.fixer,
+      // TODO(XCE-230): use real race ID from discovered P2P session.
+      raceId: 1,
+    )..startDiscovery();
+    setState(() {
+      _connecting = true;
+      _peerNotifier = notifier;
+    });
+  }
+
+  void _onConnectionReady() {
+    // Keep notifier alive for PeerStatusStrip during the race.
+    setState(() => _connecting = false);
+    _controller.joinRace();
+  }
+
+  void _onConnectionSkip() {
+    _peerNotifier?.dispose();
+    setState(() {
+      _connecting = false;
+      _peerNotifier = null;
+    });
+    _controller.joinRace();
+  }
+
+  void _onConnectionLeave() {
+    _peerNotifier?.dispose();
+    setState(() {
+      _connecting = false;
+      _peerNotifier = null;
+    });
+  }
+
   @override
   void dispose() {
     _controller.dispose();
+    _peerNotifier?.dispose();
     super.dispose();
   }
 
@@ -71,10 +114,23 @@ class _FixerScreenState extends State<FixerScreen> {
               listenable: _controller,
               builder: (context, _) {
                 if (!_controller.isInRace) {
-                  return _RaceLobby(controller: _controller);
+                  if (_connecting) {
+                    return ConnectionSetupScreen(
+                      role: Role.fixer,
+                      // TODO(XCE-230): use real race ID/name from P2P session.
+                      raceId: 1,
+                      raceName: 'Demo Fixer Session',
+                      onReady: _onConnectionReady,
+                      onSkip: _onConnectionSkip,
+                      onLeave: _onConnectionLeave,
+                    );
+                  }
+                  return _RaceLobby(onJoin: _onJoinTapped);
                 }
                 return Column(
                   children: [
+                    if (_peerNotifier != null)
+                      PeerStatusStrip(notifier: _peerNotifier!),
                     Expanded(
                       child: _controller.queue.isEmpty
                           ? const _EmptyState()
@@ -183,9 +239,9 @@ class _StatusPill extends StatelessWidget {
         vertical: AppSpacing.sm,
       ),
       decoration: BoxDecoration(
-        color: pillColor.withValues(alpha: 0.08),
+        color: pillColor.withValues(alpha: AppOpacity.subtle),
         borderRadius: BorderRadius.circular(AppBorderRadius.md),
-        border: Border.all(color: pillColor.withValues(alpha: 0.25)),
+        border: Border.all(color: pillColor.withValues(alpha: AppOpacity.strong)),
       ),
       child: Text(
         hasIssues
@@ -212,9 +268,7 @@ class _SectionLabel extends StatelessWidget {
       padding: EdgeInsets.only(top: topPadding),
       child: Text(
         label,
-        style: AppTypography.bodySmall.copyWith(
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
+        style: AppTypography.labelTiny.copyWith(
           color: AppColors.mediumColor,
           letterSpacing: 1.2,
         ),
@@ -321,7 +375,7 @@ class _BottomBarState extends State<_BottomBar> {
               onTap: widget.controller.leaveRace,
               child: AnimatedContainer(
                 duration: AppAnimations.fast,
-                padding: const EdgeInsets.symmetric(vertical: 13),
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
                 decoration: BoxDecoration(
                   color: _pressed
                       ? AppColors.redColor.withValues(alpha: AppOpacity.light)
@@ -360,9 +414,9 @@ class _BottomBarState extends State<_BottomBar> {
 // ── Race lobby ────────────────────────────────────────────────────────────────
 
 class _RaceLobby extends StatelessWidget {
-  const _RaceLobby({required this.controller});
+  const _RaceLobby({required this.onJoin});
 
-  final FixerController controller;
+  final VoidCallback onJoin;
 
   @override
   Widget build(BuildContext context) {
@@ -381,7 +435,7 @@ class _RaceLobby extends StatelessWidget {
             _LobbySessionCard(
               title: 'Demo Fixer Session',
               subtitle: 'Connect to the Verifier',
-              onTap: controller.joinRace,
+              onTap: onJoin,
             ),
           ],
         ),
