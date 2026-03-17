@@ -653,52 +653,43 @@ class _SubmitButton extends StatelessWidget {
   final bool busy;
   final VoidCallback? onPressed;
 
+  static final _activeDecoration = BoxDecoration(
+    gradient: const LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [AppColors.primaryColor, AppColors.primaryGradientEnd],
+    ),
+    borderRadius: BorderRadius.circular(AppBorderRadius.lg),
+    boxShadow: [
+      BoxShadow(
+        color: AppColors.primaryColor
+            .withValues(alpha: AppOpacity.strong + 0.05),
+        blurRadius: 18,
+        offset: const Offset(0, 4),
+      ),
+    ],
+  );
+
+  static final _disabledDecoration = BoxDecoration(
+    color: AppColors.lightColor,
+    borderRadius: BorderRadius.circular(AppBorderRadius.lg),
+  );
+
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       height: 54,
       child: Stack(
         children: [
-          AnimatedOpacity(
-            opacity: canSubmit ? 1.0 : 0.0,
+          AnimatedContainer(
             duration: AppAnimations.standard,
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [AppColors.primaryColor, AppColors.primaryGradientEnd],
-                ),
-                borderRadius:
-                    BorderRadius.circular(AppBorderRadius.lg),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primaryColor
-                        .withValues(alpha: AppOpacity.strong + 0.05),
-                    blurRadius: 18,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          AnimatedOpacity(
-            opacity: canSubmit ? 0.0 : 1.0,
-            duration: AppAnimations.standard,
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppColors.lightColor,
-                borderRadius:
-                    BorderRadius.circular(AppBorderRadius.lg),
-              ),
-            ),
+            decoration: canSubmit ? _activeDecoration : _disabledDecoration,
           ),
           Material(
             color: Colors.transparent,
             child: InkWell(
               onTap: onPressed,
-              borderRadius:
-                  BorderRadius.circular(AppBorderRadius.lg),
+              borderRadius: BorderRadius.circular(AppBorderRadius.lg),
               child: Center(
                 child: AnimatedSwitcher(
                   duration: AppAnimations.fast,
