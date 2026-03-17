@@ -79,9 +79,9 @@ class LoadResultsController with ChangeNotifier {
     final encoded = await _encodeBibData(masterRace);
     devices.bibRecorder?.data = encoded;
     Logger.d('POST-RESET: Encoded runners data length: ${encoded.length}');
-    resultsLoaded = false;
-    hasBibConflicts = false;
-    hasTimingConflicts = false;
+    _resultsLoaded = false;
+    _hasBibConflicts = false;
+    _hasTimingConflicts = false;
     results = [];
     timingChunks = null;
     raceRunners = null;
