@@ -19,7 +19,7 @@ class DatabaseConnectionProvider implements IDatabaseConnectionProvider {
 
     return await openDatabase(
       path,
-      version: 16,
+      version: 17,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -67,6 +67,18 @@ class DatabaseConnectionProvider implements IDatabaseConnectionProvider {
         Logger.d('Added race_uuid column to race_results table');
       } catch (e) {
         Logger.d('race_uuid column might already exist in race_results: $e');
+      }
+    }
+
+    if (oldVersion < 17) {
+      for (final col in ['race_uuid', 'runner_uuid', 'team_uuid']) {
+        try {
+          await db
+              .execute('ALTER TABLE race_participants ADD COLUMN $col TEXT');
+          Logger.d('Added $col column to race_participants table');
+        } catch (e) {
+          Logger.d('$col column might already exist in race_participants: $e');
+        }
       }
     }
   }
