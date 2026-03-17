@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../coach/bib_conflict_resolution/screen/conflict_resolution_screen.dart';
 import '../coach/races_screen/screen/races_screen.dart';
@@ -79,13 +80,20 @@ class _RoleRow extends StatefulWidget {
 class _RoleRowState extends State<_RoleRow> {
   bool _pressed = false;
   double _opacity = 0;
+  Timer? _timer;
 
   @override
   void initState() {
     super.initState();
-    Future.delayed(Duration(milliseconds: 120 + widget.index * 80), () {
+    _timer = Timer(Duration(milliseconds: 120 + widget.index * 80), () {
       if (mounted) setState(() => _opacity = 1);
     });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
   }
 
   void _onTapUp(_) {
@@ -210,13 +218,20 @@ class _SubRoleCard extends StatefulWidget {
 class _SubRoleCardState extends State<_SubRoleCard> {
   bool _pressed = false;
   double _opacity = 0;
+  Timer? _timer;
 
   @override
   void initState() {
     super.initState();
-    Future.delayed(Duration(milliseconds: widget.index * 60), () {
+    _timer = Timer(Duration(milliseconds: widget.index * 60), () {
       if (mounted) setState(() => _opacity = 1);
     });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
   }
 
   void _onTapUp(_) {
