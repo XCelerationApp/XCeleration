@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:xceleration/assistant/finish_line_roles/bib_recorder/controller/bib_recorder_v2_controller.dart';
 import 'package:xceleration/assistant/bib_number_recorder/widgets/runners_loaded_sheet.dart';
 import 'package:xceleration/assistant/finish_line_roles/bib_recorder/widgets/overflow_menu_button.dart';
+import 'package:xceleration/assistant/finish_line_roles/shared/widgets/confirm_bottom_sheet.dart';
 import 'package:xceleration/assistant/finish_line_roles/bib_recorder/widgets/swipe_bib_row_widget.dart';
 import 'package:xceleration/core/utils/sheet_utils.dart';
 import 'package:xceleration/shared/models/timing_records/bib_datum.dart';
@@ -707,7 +708,7 @@ class _RaceModeWidgetState extends State<RaceModeWidget> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _ConfirmSheet(
+      builder: (_) => ConfirmBottomSheet(
         title: 'Stop Race?',
         message:
             'Stopping ends recording. You can still edit entries afterward.',
@@ -722,7 +723,7 @@ class _RaceModeWidgetState extends State<RaceModeWidget> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _ConfirmSheet(
+      builder: (_) => ConfirmBottomSheet(
         title: 'Delete Race?',
         message:
             'Permanently deletes all ${_ctrl.entries.length} bib records.',
@@ -904,90 +905,3 @@ class _ToggleChip extends StatelessWidget {
   }
 }
 
-class _ConfirmSheet extends StatelessWidget {
-  const _ConfirmSheet({
-    required this.title,
-    required this.message,
-    required this.confirmLabel,
-    required this.onConfirm,
-  });
-
-  final String title;
-  final String message;
-  final String confirmLabel;
-  final VoidCallback onConfirm;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppBorderRadius.xl)),
-      ),
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.xl,
-        AppSpacing.lg,
-        AppSpacing.xl,
-        AppSpacing.xxl,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.borderColor,
-                borderRadius: BorderRadius.circular(AppBorderRadius.full),
-              ),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          Text(
-            title,
-            style: AppTypography.smallBodySemibold.copyWith(
-              color: AppColors.darkColor,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            message,
-            style: AppTypography.bodySmall.copyWith(
-              color: AppColors.mediumColor,
-              height: 1.6,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xl),
-          Row(
-            children: [
-              Expanded(
-                child: _ActionButton(
-                  label: 'Cancel',
-                  color: AppColors.mediumColor,
-                  backgroundColor: Colors.white,
-                  borderColor: AppColors.borderColor,
-                  onTap: () => Navigator.pop(context),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                flex: 2,
-                child: _ActionButton(
-                  label: confirmLabel,
-                  color: Colors.white,
-                  backgroundColor: AppColors.redColor,
-                  onTap: () {
-                    Navigator.pop(context);
-                    onConfirm();
-                  },
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
