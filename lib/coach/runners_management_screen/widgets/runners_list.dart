@@ -106,10 +106,7 @@ class _RunnersListState extends State<RunnersList> {
     final teams = teamMap.keys.toList()
       ..sort((a, b) => (a.name ?? '').compareTo(b.name ?? ''));
 
-    return AnimatedSwitcher(
-      duration: AppAnimations.standard,
-      child: ListView.builder(
-        key: ValueKey(teams.length),
+    return ListView.builder(
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
         itemCount: teams.length,
