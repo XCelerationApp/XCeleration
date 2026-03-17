@@ -4,9 +4,10 @@ import 'package:xceleration/assistant/finish_line_roles/verifier/widgets/verifie
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/connection_setup_screen.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/peer_discovery_notifier.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/peer_status_strip.dart';
+import 'package:xceleration/assistant/finish_line_roles/shared/widgets/role_bottom_bar.dart';
+import 'package:xceleration/assistant/finish_line_roles/shared/widgets/role_lobby_card.dart';
 import 'package:xceleration/core/components/app_header.dart';
 import 'package:xceleration/core/services/tutorial_manager.dart';
-import 'package:xceleration/core/theme/app_animations.dart';
 import 'package:xceleration/core/theme/app_border_radius.dart';
 import 'package:xceleration/core/theme/app_colors.dart';
 import 'package:xceleration/core/theme/app_opacity.dart';
@@ -145,7 +146,17 @@ class _VerifierScreenState extends State<VerifierScreen> {
                               ),
                             ),
                     ),
-                    _BottomBar(controller: _controller),
+                    RoleBottomBar(
+                      label: 'Stop Race',
+                      buttonColor: AppColors.redColor,
+                      onTap: _controller.leaveRace,
+                      menuItems: [
+                        OverflowMenuItem(
+                          label: 'Leave Race',
+                          onTap: _controller.leaveRace,
+                        ),
+                      ],
+                    ),
                   ],
                 );
               },
@@ -280,79 +291,6 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-// ── Bottom bar ────────────────────────────────────────────────────────────────
-
-class _BottomBar extends StatefulWidget {
-  const _BottomBar({required this.controller});
-
-  final VerifierController controller;
-
-  @override
-  State<_BottomBar> createState() => _BottomBarState();
-}
-
-class _BottomBarState extends State<_BottomBar> {
-  bool _pressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.lg,
-        AppSpacing.sm,
-        AppSpacing.lg,
-        AppSpacing.xxl,
-      ),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: AppColors.borderColor)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: GestureDetector(
-              onTapDown: (_) => setState(() => _pressed = true),
-              onTapUp: (_) => setState(() => _pressed = false),
-              onTapCancel: () => setState(() => _pressed = false),
-              onTap: widget.controller.leaveRace,
-              child: AnimatedContainer(
-                duration: AppAnimations.fast,
-                padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-                decoration: BoxDecoration(
-                  color: _pressed
-                      ? AppColors.redColor.withValues(alpha: AppOpacity.light)
-                      : AppColors.redColor.withValues(alpha: AppOpacity.faint),
-                  borderRadius: BorderRadius.circular(AppBorderRadius.lg),
-                  border: Border.all(
-                    color: AppColors.redColor.withValues(alpha: AppOpacity.strong),
-                  ),
-                ),
-                child: Center(
-                  child: Text(
-                    'Stop Race',
-                    style: AppTypography.smallBodySemibold.copyWith(
-                      color: AppColors.redColor,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          OverflowMenuButton(
-            items: [
-              OverflowMenuItem(
-                label: 'Leave Race',
-                onTap: widget.controller.leaveRace,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 // ── Race lobby ────────────────────────────────────────────────────────────────
 
 class _RaceLobby extends StatelessWidget {
@@ -372,118 +310,12 @@ class _RaceLobby extends StatelessWidget {
             vertical: AppSpacing.sm,
           ),
           children: [
-            _LobbySectionLabel(label: 'Available'),
+            const RoleLobbySectionLabel(label: 'Available'),
             const SizedBox(height: AppSpacing.sm),
-            _LobbySessionCard(
+            RoleLobbySessionCard(
               title: 'Demo Verifier Session',
               subtitle: 'Connect to the Bib Recorder',
               onTap: onJoin,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _LobbySectionLabel extends StatelessWidget {
-  const _LobbySectionLabel({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      label.toUpperCase(),
-      style: AppTypography.bodySmall.copyWith(
-        fontWeight: FontWeight.w700,
-        color: AppColors.mediumColor,
-        letterSpacing: 0.8,
-      ),
-    );
-  }
-}
-
-class _LobbySessionCard extends StatefulWidget {
-  const _LobbySessionCard({
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  @override
-  State<_LobbySessionCard> createState() => _LobbySessionCardState();
-}
-
-class _LobbySessionCardState extends State<_LobbySessionCard> {
-  bool _pressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapUp: (_) => setState(() => _pressed = false),
-      onTapCancel: () => setState(() => _pressed = false),
-      onTap: widget.onTap,
-      child: AnimatedContainer(
-        duration: AppAnimations.fast,
-        curve: AppAnimations.spring,
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.lg,
-          vertical: AppSpacing.md,
-        ),
-        decoration: BoxDecoration(
-          color: _pressed
-              ? AppColors.primaryColor.withValues(alpha: AppOpacity.faint)
-              : Colors.white,
-          borderRadius: BorderRadius.circular(AppBorderRadius.lg),
-          border: Border.all(color: AppColors.borderColor),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.title,
-                    style: AppTypography.smallBodySemibold.copyWith(
-                      color: AppColors.darkColor,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.xs),
-                  Text(
-                    widget.subtitle,
-                    style: AppTypography.bodySmall.copyWith(
-                      color: AppColors.mediumColor,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.md,
-                vertical: AppSpacing.xs,
-              ),
-              decoration: BoxDecoration(
-                color: AppColors.primaryColor.withValues(alpha: AppOpacity.faint),
-                borderRadius: BorderRadius.circular(AppBorderRadius.full),
-                border: Border.all(
-                  color: AppColors.primaryColor.withValues(alpha: AppOpacity.strong),
-                ),
-              ),
-              child: Text(
-                'Join',
-                style: AppTypography.bodySmall.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.primaryColor,
-                ),
-              ),
             ),
           ],
         ),
