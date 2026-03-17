@@ -433,22 +433,50 @@ class RunnersManagementController with ChangeNotifier {
   }
 
   Future<void> showImportTeamFromSpreadsheet(BuildContext context) async {
-    final createdTeam = await sheet(
-      context: context,
-      title: 'Create New Team',
-      body: CreateTeamSheet(
-        masterRace: masterRace,
-        createTeam: createTeam,
-      ),
-    );
+    final bool useGoogleDrive = await showSpreadsheetLoadSheet(context);
+    if (!context.mounted) return;
 
-    if (createdTeam is Team) {
+    try {
+      final List<Map<String, dynamic>> importData = await processSpreadsheet(
+        context,
+        useGoogleDrive: useGoogleDrive,
+      );
+
+      if (importData.isEmpty) {
+        if (context.mounted) {
+          DialogUtils.showErrorDialog(context,
+              message: 'No Valid Runners Loaded');
+        }
+        return;
+      }
+
+      if (!context.mounted) return;
+      final createdTeam = await sheet(
+        context: context,
+        title: 'Create New Team',
+        body: CreateTeamSheet(
+          masterRace: masterRace,
+          createTeam: createTeam,
+        ),
+      );
+
+      if (createdTeam is! Team) return;
+
       Team? persisted = await masterRace.getTeamByName(createdTeam.name ?? '');
       persisted ??= (await masterRace.teams).firstWhere(
           (t) => t.name == createdTeam.name,
           orElse: () => createdTeam);
       if (!context.mounted) return;
-      await loadSpreadsheet(context, persisted);
+      await _importRunnersFromData(context, persisted, importData);
+    } catch (e) {
+      Logger.e('Error handling spreadsheet import: $e');
+      if (context.mounted) {
+        DialogUtils.showMessageDialog(
+          context,
+          title: 'Error',
+          message: 'Error importing runners: $e',
+        );
+      }
     }
   }
 
@@ -675,8 +703,26 @@ class RunnersManagementController with ChangeNotifier {
         return;
       }
 
-      // Let the user select which imported rows to add
       if (!context.mounted) return;
+      await _importRunnersFromData(context, team, importData);
+    } catch (e) {
+      Logger.e('Error handling spreadsheet load: $e');
+      if (context.mounted) {
+        DialogUtils.showMessageDialog(
+          context,
+          title: 'Error',
+          message: 'Error importing runners: $e',
+        );
+      }
+    }
+  }
+
+  Future<void> _importRunnersFromData(
+    BuildContext context,
+    Team team,
+    List<Map<String, dynamic>> importData,
+  ) async {
+      // Let the user select which imported rows to add
       final selectedRows = await sheet(
         context: context,
         title: 'Select Runners to Add',
@@ -835,16 +881,6 @@ class RunnersManagementController with ChangeNotifier {
       }
 
       onContentChanged?.call();
-    } catch (e) {
-      Logger.e('Error handling spreadsheet load: $e');
-      if (context.mounted) {
-        DialogUtils.showMessageDialog(
-          context,
-          title: 'Error',
-          message: 'Error importing runners: $e',
-        );
-      }
-    }
   }
 
   // ============================================================================
