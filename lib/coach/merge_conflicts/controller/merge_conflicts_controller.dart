@@ -134,7 +134,6 @@ class MergeConflictsController with ChangeNotifier {
       isOriginallyTBD: record.isOriginallyTBD,
       validationError: validationError,
     ));
-    notifyListeners();
   }
 
   /// Called by widget when user taps the insert TBD button.
