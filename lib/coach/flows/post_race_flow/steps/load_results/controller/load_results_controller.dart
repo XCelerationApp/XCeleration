@@ -322,8 +322,8 @@ class LoadResultsController with ChangeNotifier {
   }
 
   Future<void> _checkForConflicts() async {
-    hasBibConflicts = containsBibConflicts();
-    hasTimingConflicts = containsTimingConflicts();
+    _hasBibConflicts = containsBibConflicts();
+    _hasTimingConflicts = containsTimingConflicts();
     Logger.d(
         'LoadResultsController: Conflict check - Bib conflicts: $hasBibConflicts, Timing conflicts: $hasTimingConflicts');
     Logger.d(
