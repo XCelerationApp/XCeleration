@@ -270,8 +270,8 @@ class SyncService implements ISyncService {
       }
 
       await ensureLocalUuids();
-      await pushAll();
       await pullAll();
+      await pushAll();
     } catch (e) {
       Logger.d('Sync error: $e');
       rethrow;
@@ -295,6 +295,14 @@ class SyncService implements ISyncService {
       return;
     }
 
+    // Maps each table to its local integer PK column that must be stripped
+    // before upserting to Supabase (remote schema uses UUIDs for identity).
+    const localPkColumn = {
+      'runners': 'runner_id',
+      'teams': 'team_id',
+      'races': 'race_id',
+    };
+
     Future<void> pushTable(String table, String onConflict) async {
       final rows = await db.query(table, where: 'is_dirty = 1');
       if (rows.isEmpty) return;
@@ -315,6 +323,9 @@ class SyncService implements ISyncService {
       for (final row in rows) {
         final copy = Map<String, dynamic>.from(row);
         copy.remove('is_dirty');
+        // Strip the local integer PK — remote schema uses uuid for identity.
+        final pk = localPkColumn[table];
+        if (pk != null) copy.remove(pk);
         // uid is guaranteed non-null by the guard at the top of pushAll().
         copy['owner_user_id'] = uid;
         // Older local rows may have NULL created_at if they pre-date the column.
