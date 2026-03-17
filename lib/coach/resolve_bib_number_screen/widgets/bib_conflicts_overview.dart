@@ -266,29 +266,22 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
           );
 
           if (updatedRaceRunner != null) {
-            setState(() {
-              // Handle both unknown bib conflicts (integers) and duplicate bib conflicts (RaceRunner objects)
-              int index = -1;
+            // Compute the index outside setState so the async refresh runs after the sync state update.
+            int index = -1;
+            if (_duplicateRaceRunners!.contains(raceRunner)) {
+              index = _raceRunners.indexWhere(
+                  (r) => r is int && r.toString() == raceRunner.runner.bibNumber);
+            } else {
+              final conflictBib =
+                  int.tryParse(raceRunner.runner.bibNumber!) ??
+                      raceRunner.runner.bibNumber;
+              index = _raceRunners.indexWhere((r) => r == conflictBib);
+            }
 
-              if (_duplicateRaceRunners!.contains(raceRunner)) {
-                // This is a duplicate bib conflict - find the RaceRunner object in the list
-                // For duplicates, find any RaceRunner with the same bib number (since we're replacing the entire duplicate)
-                // Note: This finds the first RaceRunner with this bib number - there may be multiple duplicates
-                index = _raceRunners.indexWhere((r) =>
-                    r is int && r.toString() == raceRunner.runner.bibNumber);
-              } else {
-                // This is an unknown bib conflict - find the integer in the list
-                final conflictBib =
-                    int.tryParse(raceRunner.runner.bibNumber!) ??
-                        raceRunner.runner.bibNumber;
-                index = _raceRunners.indexWhere((r) => r == conflictBib);
-              }
-
-              if (index != -1) {
-                _raceRunners[index] = updatedRaceRunner;
-                _getErrorRaceRunners();
-              } else {}
-            });
+            if (index != -1) {
+              setState(() => _raceRunners[index] = updatedRaceRunner);
+              _getErrorRaceRunners();
+            }
           }
         },
         borderRadius: BorderRadius.circular(12),
