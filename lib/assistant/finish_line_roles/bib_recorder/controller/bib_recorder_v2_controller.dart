@@ -9,6 +9,7 @@ import 'package:xceleration/assistant/shared/models/runner.dart';
 import 'package:xceleration/assistant/shared/services/i_assistant_storage_service.dart';
 import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/result.dart';
+import 'package:xceleration/core/services/haptic_feedback_service.dart';
 import 'package:xceleration/core/utils/encode_utils.dart';
 import 'package:xceleration/core/utils/enums.dart';
 import 'package:xceleration/core/utils/logger.dart';
@@ -23,11 +24,14 @@ class BibRecorderV2Controller extends ChangeNotifier {
   BibRecorderV2Controller({
     required IAssistantStorageService storage,
     IVoiceRecognitionService? voice,
+    IHapticFeedback? haptic,
   })  : _storage = storage,
-        _voice = voice ?? VoiceRecognitionService.create();
+        _voice = voice ?? VoiceRecognitionService.create(),
+        _haptic = haptic ?? HapticFeedbackService();
 
   final IAssistantStorageService _storage;
   final IVoiceRecognitionService _voice;
+  final IHapticFeedback _haptic;
 
   StreamSubscription<int?>? _bibSub;
   StreamSubscription<String>? _transcriptSub;
@@ -225,6 +229,7 @@ class BibRecorderV2Controller extends ChangeNotifier {
         0,
         BibEntry(id: DateTime.now().millisecondsSinceEpoch, bib: bib),
       );
+      if (flagFor(bib) != null) _haptic.vibrate();
     }
     notifyListeners();
   }
@@ -238,6 +243,7 @@ class BibRecorderV2Controller extends ChangeNotifier {
       0,
       BibEntry(id: DateTime.now().millisecondsSinceEpoch, bib: bib),
     );
+    if (flagFor(bib) != null) _haptic.vibrate();
     notifyListeners();
   }
 
