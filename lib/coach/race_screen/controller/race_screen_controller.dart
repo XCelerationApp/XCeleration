@@ -256,13 +256,13 @@ class RaceScreenController with ChangeNotifier {
   Future<void> saveAllChanges(BuildContext context) async {
     if (!form.hasUnsavedChanges) return;
 
-    bool allValid = true;
-    for (final field in form.changedFields) {
-      form.applyValidation(field);
-      if (form.errorFor(field) != null) allValid = false;
-    }
+    // Collect all validation results first, then apply in one notifyListeners.
+    final validationResults = {
+      for (final field in form.changedFields) field: form.validateField(field),
+    };
+    form.setErrors(validationResults);
 
-    if (!allValid) return;
+    if (validationResults.values.any((e) => e != null)) return;
 
     await saveRaceDetails(context);
     form.clearChangeTracking();

@@ -25,6 +25,14 @@ class RaceFormState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Sets multiple field errors at once and notifies listeners only once.
+  void setErrors(Map<RaceField, String?> errors) {
+    for (final entry in errors.entries) {
+      _errors[entry.key] = entry.value;
+    }
+    notifyListeners();
+  }
+
   // Editing state
   final Set<RaceField> _editingFields = {};
   bool isEditing(RaceField field) => _editingFields.contains(field);
@@ -189,6 +197,12 @@ class RaceFormState extends ChangeNotifier {
     RaceField.date: RaceService.validateDate,
     RaceField.distance: RaceService.validateDistance,
   };
+
+  /// Returns the validation result for [field] without mutating error state.
+  String? validateField(RaceField field) {
+    final validator = _fieldValidators[field];
+    return validator?.call(controllerFor(field).text);
+  }
 
   /// Looks up the validator for [field] and applies it via [setError].
   void applyValidation(RaceField field) {
