@@ -38,12 +38,19 @@ class ResolveBibNumberController with ChangeNotifier {
     // Listen to changes from MasterRace — stored so the same reference can
     // be passed to removeListener in dispose(). Only re-notifies when the
     // search results relevant to this screen actually change.
-    _masterRaceListener = () { _onMasterRaceChanged(); };
+    _masterRaceListener = _onMasterRaceChanged;
     this.masterRace.addListener(_masterRaceListener);
   }
 
   /// Get all teams (cached by MasterRace)
   Future<List<Team>> get teams => masterRace.teams;
+
+  /// Updates [showCreateNew] and notifies consumers so the screen does not
+  /// need a separate setState call.
+  void setShowCreateNew(bool value) {
+    showCreateNew = value;
+    notifyListeners();
+  }
 
   /// Fetches and filters runners without notifying listeners.
   Future<List<RaceRunner>> _fetchFilteredResults(String query) async {
