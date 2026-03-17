@@ -158,21 +158,27 @@ class _RunnersListState extends State<RunnersList> {
                                         isViewMode: widget.controller.isViewMode,
                                       )
                                     else
-                                      ...raceRunners.map((raceRunner) {
-                                        return RunnerListItem(
-                                          key: ValueKey(raceRunner.runner.bibNumber),
-                                          runner: raceRunner.runner,
-                                          team: team,
-                                          controller: widget.controller,
-                                          onAction: (action) =>
-                                              widget.controller.handleRaceRunnerAction(
-                                            context,
-                                            action,
-                                            raceRunner,
-                                          ),
-                                          isViewMode: widget.controller.isViewMode,
-                                        );
-                                      }),
+                                      ListView.builder(
+                                        shrinkWrap: true,
+                                        physics: const NeverScrollableScrollPhysics(),
+                                        itemCount: raceRunners.length,
+                                        itemBuilder: (context, i) {
+                                          final raceRunner = raceRunners[i];
+                                          return RunnerListItem(
+                                            key: ValueKey(raceRunner.runner.bibNumber),
+                                            runner: raceRunner.runner,
+                                            team: team,
+                                            controller: widget.controller,
+                                            onAction: (action) =>
+                                                widget.controller.handleRaceRunnerAction(
+                                              context,
+                                              action,
+                                              raceRunner,
+                                            ),
+                                            isViewMode: widget.controller.isViewMode,
+                                          );
+                                        },
+                                      ),
                                   ],
                                 )
                             : const SizedBox.shrink(),
