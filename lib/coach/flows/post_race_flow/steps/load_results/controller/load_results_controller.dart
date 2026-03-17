@@ -353,6 +353,7 @@ class LoadResultsController with ChangeNotifier {
     Logger.d(
         'LoadResultsController: Starting to save ${timingRecords.length} results');
 
+    final futures = <Future<void>>[];
     for (var i = 0; i < timingRecords.length; i++) {
       final raceRunner = raceRunners![i];
       final timingDatum = timingRecords[i];
@@ -361,9 +362,9 @@ class LoadResultsController with ChangeNotifier {
           'LoadResultsController: Processing result ${i + 1}/${timingRecords.length}');
 
       // Convert elapsed time string to Duration
-      Duration finishDuration;
-      finishDuration = TimeFormatter.loadDurationFromString(timingDatum.time) ??
-          Duration.zero;
+      final finishDuration =
+          TimeFormatter.loadDurationFromString(timingDatum.time) ??
+              Duration.zero;
 
       // Skip if runner is null; it will be handled by resolver later
       if (raceRunner == null) {
@@ -373,21 +374,21 @@ class LoadResultsController with ChangeNotifier {
       final runner = raceRunner.runner;
       final team = raceRunner.team;
 
-      try {
-        final raceResult = RaceResult(
-          raceId: masterRace.raceId,
-          runner: runner,
-          team: team,
-          place: i + 1, // 1-based place
-          finishTime: finishDuration,
-        );
-
-        await masterRace.addResult(raceResult);
-      } catch (e) {
-        Logger.d(
-            'LoadResultsController: Failed to save result for runner: ${runner.name}, error: $e');
-      }
+      final raceResult = RaceResult(
+        raceId: masterRace.raceId,
+        runner: runner,
+        team: team,
+        place: i + 1, // 1-based place
+        finishTime: finishDuration,
+      );
+      futures.add(
+        masterRace.addResult(raceResult).catchError((Object e) {
+          Logger.d(
+              'LoadResultsController: Failed to save result for runner: ${runner.name}, error: $e');
+        }),
+      );
     }
+    await Future.wait(futures);
 
     return results;
   }
@@ -510,6 +511,7 @@ class LoadResultsController with ChangeNotifier {
       return;
     }
 
+    final runners = raceRunners!.whereType<RaceRunner>().toList();
     try {
       await sheet(
         context: context,
@@ -518,12 +520,12 @@ class LoadResultsController with ChangeNotifier {
           create: (_) => MergeConflictsController(
             masterRace: masterRace,
             timingChunks: conflictChunks,
-            raceRunners: raceRunners!.whereType<RaceRunner>().toList(),
+            raceRunners: runners,
           ),
           child: MergeConflictsScreen(
             masterRace: masterRace,
             timingChunks: conflictChunks,
-            raceRunners: raceRunners!.whereType<RaceRunner>().toList(),
+            raceRunners: runners,
           ),
         ),
         useBottomPadding: false,
