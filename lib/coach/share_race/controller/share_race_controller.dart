@@ -80,8 +80,6 @@ class ShareRaceController extends ChangeNotifier {
         await _shareResultsController.handlePdf(context);
         break;
     }
-
-    notifyListeners();
   }
 
   /// Share wirelessly to spectators via Nearby Connections (P2P_STAR)
