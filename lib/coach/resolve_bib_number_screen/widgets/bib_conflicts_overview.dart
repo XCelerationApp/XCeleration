@@ -29,7 +29,7 @@ class BibConflictsOverview extends StatefulWidget {
 class _BibConflictsOverviewState extends State<BibConflictsOverview> {
   late List<dynamic> _raceRunners;
   List<RaceRunner>? _unknownRaceRunners;
-  List<RaceRunner>? _duplicateRaceRunners;
+  Set<RaceRunner>? _duplicateRaceRunners;
   List<int>? _duplicateBibNumberPlaces;
   List<RaceRunner>? _errorRaceRunners;
   bool _resolved = false;
@@ -48,7 +48,7 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
     Logger.d('Race Runners: $_raceRunners');
     try {
       final unknownRunners = <RaceRunner>[];
-      final duplicateRunners = <RaceRunner>[];
+      final duplicateRunners = <RaceRunner>{};
       final duplicateBibNumberPlaces = <int>[];
 
       // Find duplicate bibs within the resolved runners
@@ -99,7 +99,7 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
       if (mounted) {
         setState(() {
           _unknownRaceRunners = [];
-          _duplicateRaceRunners = [];
+          _duplicateRaceRunners = {};
           _duplicateBibNumberPlaces = [];
           _errorRaceRunners = [];
         });
