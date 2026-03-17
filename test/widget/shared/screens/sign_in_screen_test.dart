@@ -437,6 +437,62 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
+  // XCE-234: Long-press selection safety
+  // -------------------------------------------------------------------------
+
+  group('XCE-234 long-press selection safety', () {
+    testWidgets('email field has interactive selection enabled', (tester) async {
+      await tester.pumpWidget(_wrap(
+        SignInScreen(authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
+        syncService: mockSync,
+      ));
+      await tester.pump();
+
+      final emailField = tester.widget<TextField>(find.byType(TextField).first);
+      expect(emailField.enableInteractiveSelection, isTrue);
+    });
+
+    testWidgets('password field has interactive selection disabled', (tester) async {
+      await tester.pumpWidget(_wrap(
+        SignInScreen(authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
+        syncService: mockSync,
+      ));
+      await tester.pump();
+
+      final passwordField = tester.widget<TextField>(find.byType(TextField).last);
+      expect(passwordField.enableInteractiveSelection, isFalse);
+    });
+
+    testWidgets('long-pressing email field does not throw', (tester) async {
+      await tester.pumpWidget(_wrap(
+        SignInScreen(authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
+        syncService: mockSync,
+      ));
+      await tester.pump();
+
+      await tester.enterText(find.byType(TextField).first, 'test@test.com');
+      await tester.pump();
+
+      await tester.longPress(find.byType(TextField).first);
+      await tester.pump();
+    });
+
+    testWidgets('long-pressing password field does not throw', (tester) async {
+      await tester.pumpWidget(_wrap(
+        SignInScreen(authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
+        syncService: mockSync,
+      ));
+      await tester.pump();
+
+      await tester.enterText(find.byType(TextField).last, 'password123');
+      await tester.pump();
+
+      await tester.longPress(find.byType(TextField).last);
+      await tester.pump();
+    });
+  });
+
+  // -------------------------------------------------------------------------
   // Forgot password
   // -------------------------------------------------------------------------
 
