@@ -237,6 +237,35 @@ class TimingData with ChangeNotifier {
     notifyListeners();
   }
 
+  /// Returns the number of runners that have been assigned a finishing place,
+  /// or null if no runners have finished yet.
+  ///
+  /// Computed directly from [ChunkCacher.startingPlace] and [currentChunk]
+  /// without building the full [uiRecords] list.
+  int? get runnerCount {
+    // startingPlace is 0 when empty, 1 when the first chunk begins
+    int total = _chunkCacher.startingPlace > 0
+        ? _chunkCacher.startingPlace - 1
+        : 0;
+
+    if (!currentChunk.isEmpty) {
+      if (!currentChunk.hasConflict) {
+        total += currentChunk.timingData.length;
+      } else {
+        final conflict = currentChunk.conflictRecord!.conflict!;
+        total += switch (conflict.type) {
+          ConflictType.confirmRunner => currentChunk.timingData.length,
+          ConflictType.missingTime =>
+            currentChunk.timingData.length + conflict.offBy,
+          ConflictType.extraTime =>
+            currentChunk.timingData.length - conflict.offBy,
+        };
+      }
+    }
+
+    return total > 0 ? total : null;
+  }
+
   bool get hasTimingData =>
       currentChunk.timingData.isNotEmpty ||
       currentChunk.conflictRecord != null ||

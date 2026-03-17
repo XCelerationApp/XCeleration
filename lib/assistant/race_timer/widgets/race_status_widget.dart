@@ -26,21 +26,10 @@ class RaceStatusWidget extends StatelessWidget {
       statusColor = AppColors.primaryColor;
     }
 
-    // Get the last non-null place among uiRecords, or null if none
-    late final int? lastPlace;
-    try {
-      lastPlace = controller.uiRecords
-          .lastWhere((r) => r.place != null,
-              orElse: () => throw Exception('No place found'))
-          .place;
-    } catch (e) {
-      lastPlace = null;
-    }
-
     return RaceStatusHeaderWidget(
       status: status,
       statusColor: statusColor,
-      runnerCount: lastPlace,
+      runnerCount: controller.runnerCount,
       recordLabel: 'Runners',
     );
   }
