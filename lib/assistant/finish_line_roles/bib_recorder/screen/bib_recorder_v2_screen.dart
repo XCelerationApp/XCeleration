@@ -3,7 +3,11 @@ import 'package:xceleration/assistant/finish_line_roles/bib_recorder/controller/
 import 'package:xceleration/assistant/finish_line_roles/bib_recorder/widgets/manage_mode_widget.dart';
 import 'package:xceleration/assistant/finish_line_roles/bib_recorder/widgets/race_lobby_widget.dart';
 import 'package:xceleration/assistant/finish_line_roles/bib_recorder/widgets/race_mode_widget.dart';
-import 'package:xceleration/assistant/shared/services/assistant_storage_service.dart';
+import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/connection_setup_screen.dart';
+import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/peer_discovery_notifier.dart';
+import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/peer_status_strip.dart';
+import 'package:xceleration/assistant/shared/models/race_record.dart';
+import 'package:xceleration/assistant/shared/services/i_assistant_storage_service.dart';
 import 'package:xceleration/core/components/app_header.dart';
 import 'package:xceleration/core/services/tutorial_manager.dart';
 import 'package:xceleration/core/theme/app_colors.dart';
@@ -15,12 +19,15 @@ import 'package:xceleration/shared/settings_screen.dart';
 /// Entry point for the new Bib Recorder (v2) role.
 ///
 /// Creates and owns [BibRecorderV2Controller], initialises it once, then
-/// routes between the three screens based on controller state:
-///   - No race selected  → [RaceLobbyWidget]
-///   - Race active       → [RaceModeWidget]
-///   - Race stopped      → [ManageModeWidget]
+/// routes between the four screens based on controller state:
+///   - No race selected      → [RaceLobbyWidget]
+///   - Race selected, connecting → [ConnectionSetupScreen]
+///   - Race active           → [RaceModeWidget]
+///   - Race stopped          → [ManageModeWidget]
 class BibRecorderV2Screen extends StatefulWidget {
-  const BibRecorderV2Screen({super.key});
+  const BibRecorderV2Screen({super.key, required this.storage});
+
+  final IAssistantStorageService storage;
 
   @override
   State<BibRecorderV2Screen> createState() => _BibRecorderV2ScreenState();
@@ -31,20 +38,67 @@ class _BibRecorderV2ScreenState extends State<BibRecorderV2Screen> {
   final TutorialManager _tutorialManager = TutorialManager();
   bool _initialising = true;
 
+  // Connection setup state
+  bool _connecting = false;
+  PeerDiscoveryNotifier? _peerNotifier;
+  RaceRecord? _previousRace;
+
   @override
   void initState() {
     super.initState();
     _controller = BibRecorderV2Controller(
-      storage: AssistantStorageService.instance,
+      storage: widget.storage,
     );
+    _controller.addListener(_onControllerChanged);
     _controller.initialize().then((_) {
       if (mounted) setState(() => _initialising = false);
     });
   }
 
+  void _onControllerChanged() {
+    // Detect race selection: null → non-null transition.
+    if (_previousRace == null && _controller.selectedRace != null) {
+      final race = _controller.selectedRace!;
+      final notifier = PeerDiscoveryNotifier(
+        role: Role.bibRecorderV2,
+        raceId: race.raceId,
+      )..startDiscovery();
+      setState(() {
+        _connecting = true;
+        _peerNotifier = notifier;
+      });
+    }
+    _previousRace = _controller.selectedRace;
+  }
+
+  void _onConnectionReady() {
+    // Keep notifier alive to show PeerStatusStrip during the race.
+    setState(() => _connecting = false);
+  }
+
+  void _onConnectionSkip() {
+    // Offline mode: discard the notifier.
+    _peerNotifier?.dispose();
+    setState(() {
+      _connecting = false;
+      _peerNotifier = null;
+    });
+  }
+
+  void _onConnectionLeave() {
+    _peerNotifier?.dispose();
+    _controller.leaveRace();
+    setState(() {
+      _connecting = false;
+      _peerNotifier = null;
+    });
+  }
+
   @override
   void dispose() {
+    _controller.removeListener(_onControllerChanged);
     _controller.dispose();
+    _peerNotifier?.dispose();
     super.dispose();
   }
 
@@ -79,10 +133,28 @@ class _BibRecorderV2ScreenState extends State<BibRecorderV2Screen> {
                       if (_controller.selectedRace == null) {
                         return RaceLobbyWidget(controller: _controller);
                       }
+                      if (_connecting) {
+                        return ConnectionSetupScreen(
+                          role: Role.bibRecorderV2,
+                          raceId: _controller.selectedRace!.raceId,
+                          raceName: _controller.selectedRace!.name,
+                          onReady: _onConnectionReady,
+                          onSkip: _onConnectionSkip,
+                          onLeave: _onConnectionLeave,
+                        );
+                      }
                       if (_controller.raceStopped) {
                         return ManageModeWidget(controller: _controller);
                       }
-                      return RaceModeWidget(controller: _controller);
+                      return Column(
+                        children: [
+                          if (_peerNotifier != null)
+                            PeerStatusStrip(notifier: _peerNotifier!),
+                          Expanded(
+                            child: RaceModeWidget(controller: _controller),
+                          ),
+                        ],
+                      );
                     },
                   ),
           ),
