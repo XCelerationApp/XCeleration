@@ -596,15 +596,21 @@ class BibNumberController extends BibNumberDataController {
       // Only scroll if necessary - check if we need to scroll to make new item visible
       _scheduler.schedulePostFrame(_scrollToLastItemIfNeeded);
 
-      // Validate the new record and revalidate all others for duplicate state
-      // in a single timer to avoid the triple-assignment bug
+      // Validate the new record, then re-validate only existing records whose
+      // bib matches the new value so their duplicate flag stays accurate.
+      // Re-validating all records is O(N) and unnecessary — only records
+      // sharing the same bib can gain or lose the duplicateBibNumber flag.
       _debounceTimer = Timer(const Duration(milliseconds: 500), () async {
         final newIndex = bibRecords.length - 1;
         if (newIndex >= 0) {
           await validateBibNumber(newIndex, bibNumber);
         }
-        for (var i = 0; i < bibRecords.length - 1; i++) {
-          await validateBibNumber(i, bibRecords[i].bib);
+        if (bibNumber.isNotEmpty) {
+          for (var i = 0; i < newIndex; i++) {
+            if (bibRecords[i].bib == bibNumber) {
+              await validateBibNumber(i, bibRecords[i].bib);
+            }
+          }
         }
       });
 
