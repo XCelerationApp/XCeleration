@@ -11,13 +11,21 @@ import 'package:xceleration/core/services/i_sync_service.dart';
 
 /// Emitted by [SyncService.syncEvents] after each successful [SyncService.pullAll].
 class SyncEvent {
-  const SyncEvent({required this.timestamp, required this.changedTables});
+  const SyncEvent({
+    required this.timestamp,
+    required this.changedTables,
+    this.changedRaceIds = const {},
+  });
 
   /// When the pull completed.
   final DateTime timestamp;
 
   /// Tables that had at least one row inserted or updated during this pull.
   final Set<String> changedTables;
+
+  /// Local race IDs whose race_results rows were inserted or updated during this pull.
+  /// Non-empty only when [changedTables] contains `'race_results'`.
+  final Set<int> changedRaceIds;
 }
 
 /// Helper class to track data conflicts
@@ -501,6 +509,7 @@ class SyncService implements ISyncService {
         : <String>[];
 
     final changedTables = <String>{};
+    final changedRaceIds = <int>{};
 
     Future<void> pullTable(String table, String idCol) async {
       final cursorKey = 'cursor.$table';
@@ -630,13 +639,14 @@ class SyncService implements ISyncService {
     await pullTable('runners', 'runner_id');
     await pullTable('teams', 'team_id');
     await pullTable('races', 'race_id');
-    await _pullRaceResults(accessibleOwnerIds, changedTables);
+    await _pullRaceResults(accessibleOwnerIds, changedTables, changedRaceIds);
     await _pullRaceParticipants(accessibleOwnerIds, changedTables);
 
     if (changedTables.isNotEmpty) {
       _syncEventController.add(SyncEvent(
         timestamp: DateTime.now(),
         changedTables: changedTables,
+        changedRaceIds: changedRaceIds,
       ));
     }
   }
@@ -645,7 +655,9 @@ class SyncService implements ISyncService {
   /// local integer IDs before inserting or updating. Skips any row whose
   /// runner_uuid or race_uuid cannot be resolved locally (will retry next sync).
   Future<void> _pullRaceResults(
-      List<String> accessibleOwnerIds, Set<String> changedTables) async {
+      List<String> accessibleOwnerIds,
+      Set<String> changedTables,
+      Set<int> changedRaceIds) async {
     final db = await _db.database;
 
     const table = 'race_results';
@@ -732,6 +744,7 @@ class SyncService implements ISyncService {
           await db.insert(table, insert,
               conflictAlgorithm: ConflictAlgorithm.replace);
           hadWrites = true;
+          changedRaceIds.add(raceId);
         } else if (locals.first['deleted_at'] == null) {
           await db.update(
             table,
@@ -741,6 +754,7 @@ class SyncService implements ISyncService {
           );
           Logger.d('Applied remote tombstone to $table UUID:$uuid');
           hadWrites = true;
+          changedRaceIds.add(raceId);
         }
         final updatedAtStr = remote['updated_at']?.toString();
         if (updatedAtStr != null &&
@@ -756,6 +770,7 @@ class SyncService implements ISyncService {
         await db.insert(table, insert,
             conflictAlgorithm: ConflictAlgorithm.replace);
         hadWrites = true;
+        changedRaceIds.add(raceId);
       } else {
         final local = locals.first;
         final localUpdated =
@@ -799,6 +814,7 @@ class SyncService implements ISyncService {
           await db.update(table, update, where: 'uuid = ?', whereArgs: [uuid]);
           Logger.d('Updated $table UUID:$uuid from remote ($conflictReason)');
           hadWrites = true;
+          changedRaceIds.add(raceId);
         } else {
           Logger.d('Kept local $table UUID:$uuid ($conflictReason)');
         }
