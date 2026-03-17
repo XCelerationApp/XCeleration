@@ -86,21 +86,13 @@ class _SignInScreenState extends State<SignInScreen>
           weight: 1),
     ]).animate(_shakeController);
 
-    _emailController.addListener(_onTextChanged);
-    _passwordController.addListener(_onTextChanged);
   }
-
-  void _onTextChanged() => setState(() {});
 
   @override
   void dispose() {
     _shakeController.dispose();
-    _emailController
-      ..removeListener(_onTextChanged)
-      ..dispose();
-    _passwordController
-      ..removeListener(_onTextChanged)
-      ..dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
     _emailFocus.dispose();
     _passwordFocus.dispose();
     super.dispose();
@@ -261,9 +253,6 @@ class _SignInScreenState extends State<SignInScreen>
 
   @override
   Widget build(BuildContext context) {
-    final canSubmit = _emailController.text.trim().isNotEmpty &&
-        _passwordController.text.length >= 6 &&
-        !_busy;
     return Scaffold(
       backgroundColor: Colors.white,
       body: GestureDetector(
@@ -290,11 +279,16 @@ class _SignInScreenState extends State<SignInScreen>
                       passwordError: _passwordError,
                       obscure: _obscure,
                       busy: _busy,
-                      canSubmit: canSubmit,
-                      onEmailChanged: (_) =>
-                          setState(() => _emailError = null),
-                      onPasswordChanged: (_) =>
-                          setState(() => _passwordError = null),
+                      onEmailChanged: (_) {
+                        if (_emailError != null) {
+                          setState(() => _emailError = null);
+                        }
+                      },
+                      onPasswordChanged: (_) {
+                        if (_passwordError != null) {
+                          setState(() => _passwordError = null);
+                        }
+                      },
                       onToggleObscure: () =>
                           setState(() => _obscure = !_obscure),
                       onSubmit: _submit,
@@ -379,7 +373,6 @@ class _FormBody extends StatelessWidget {
     required this.passwordError,
     required this.obscure,
     required this.busy,
-    required this.canSubmit,
     required this.onEmailChanged,
     required this.onPasswordChanged,
     required this.onToggleObscure,
@@ -397,7 +390,6 @@ class _FormBody extends StatelessWidget {
   final String? passwordError;
   final bool obscure;
   final bool busy;
-  final bool canSubmit;
   final ValueChanged<String> onEmailChanged;
   final ValueChanged<String> onPasswordChanged;
   final VoidCallback onToggleObscure;
@@ -474,11 +466,19 @@ class _FormBody extends StatelessWidget {
             ),
           ],
           SizedBox(height: isLogin ? AppSpacing.xl : AppSpacing.xxl),
-          _SubmitButton(
-            isLogin: isLogin,
-            canSubmit: canSubmit,
-            busy: busy,
-            onPressed: onSubmit,
+          ListenableBuilder(
+            listenable: Listenable.merge([emailController, passwordController]),
+            builder: (context, _) {
+              final canSubmit = emailController.text.trim().isNotEmpty &&
+                  passwordController.text.length >= 6 &&
+                  !busy;
+              return _SubmitButton(
+                isLogin: isLogin,
+                canSubmit: canSubmit,
+                busy: busy,
+                onPressed: onSubmit,
+              );
+            },
           ),
           const SizedBox(height: AppSpacing.xl),
           _ModeToggle(isLogin: isLogin, onSwitch: onSwitchMode),
