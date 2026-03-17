@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:xceleration/core/services/connectivity_sync_service.dart';
@@ -85,7 +86,8 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
       }
       return;
     }
-    final result = RaceShareDecoder.decodeWithRaw(encodedPayload);
+    final result =
+        await compute(RaceShareDecoder.decodeWithRaw, encodedPayload);
 
     switch (result) {
       case Failure(:final error):
