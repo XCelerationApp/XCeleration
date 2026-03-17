@@ -207,16 +207,16 @@ void main() {
           flowState: Race.FLOW_SETUP_COMPLETED,
         );
         when(mockMasterRace.race).thenAnswer((_) async => completedRace);
-        // handleFlowNavigation re-fetches race (still FLOW_SETUP_COMPLETED) →
-        // hits completed-suffix branch → needs tabController
-        final tabController = TabController(length: 2, vsync: tester);
-        when(mockRaceController.tabController).thenReturn(tabController);
+        // handleFlowNavigation is now called with the locally-tracked FLOW_PRE_RACE
+        // (no second DB read) → dispatches to _preRaceFlow.
+        when(mockPreRaceController.showPreRaceFlow(any, any))
+            .thenAnswer((_) async => false);
 
         await controller.continueRaceFlow(context);
 
         verify(mockRaceController.updateRaceFlowState(any, Race.FLOW_PRE_RACE))
             .called(1);
-        tabController.dispose();
+        verify(mockPreRaceController.showPreRaceFlow(any, any)).called(1);
       });
 
       testWidgets('FLOW_PRE_RACE: delegates to preRaceFlow', (tester) async {
