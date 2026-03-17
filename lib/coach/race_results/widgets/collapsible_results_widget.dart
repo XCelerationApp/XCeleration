@@ -77,8 +77,9 @@ class _CollapsibleResultsWidgetState extends State<CollapsibleResultsWidget> {
               const SizedBox(height: 8),
 
               // Display results rows
-              ...displayResults.map((item) {
-                final index = displayResults.indexOf(item);
+              ...displayResults.asMap().entries.map((entry) {
+                final index = entry.key;
+                final item = entry.value;
                 // Use subtle alternate row colors for better readability
                 final backgroundColor = index % 2 == 0
                     ? Colors.transparent
