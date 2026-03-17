@@ -19,6 +19,7 @@ class ResolveBibNumberController with ChangeNotifier {
   final TextEditingController bibController = TextEditingController();
   bool showCreateNew = false;
   final List<RaceRunner> raceRunners;
+  late final Set<String?> _recordedBibs;
   late final VoidCallback _masterRaceListener;
   final int raceId;
   final Function(RaceRunner) onComplete;
@@ -32,6 +33,7 @@ class ResolveBibNumberController with ChangeNotifier {
     IMasterRaceResolver? masterRace,
   }) {
     this.masterRace = masterRace ?? MasterRace.getInstance(raceId);
+    _recordedBibs = raceRunners.map((rr) => rr.runner.bibNumber).toSet();
 
     // Listen to changes from MasterRace — stored so the same reference can
     // be passed to removeListener in dispose().
@@ -47,11 +49,7 @@ class ResolveBibNumberController with ChangeNotifier {
     Logger.d('Query: $query');
     Logger.d('Race ID: $raceId');
 
-    // Get already recorded runners for this race (runners that already have results)
-    final recordedBibs =
-        raceRunners.map((raceRunner) => raceRunner.runner.bibNumber).toSet();
-
-    Logger.d('Already recorded bibs: ${recordedBibs.join(', ')}');
+    Logger.d('Already recorded bibs: ${_recordedBibs.join(', ')}');
 
     List<RaceRunner> filteredRaceRunners;
     if (query.isEmpty) {
@@ -69,7 +67,7 @@ class ResolveBibNumberController with ChangeNotifier {
     // Filter out runners that have already been recorded
     searchResults = filteredRaceRunners
         .where(
-            (raceRunner) => !recordedBibs.contains(raceRunner.runner.bibNumber))
+            (raceRunner) => !_recordedBibs.contains(raceRunner.runner.bibNumber))
         .toList();
 
     notifyListeners();
