@@ -139,7 +139,7 @@ class _OverflowMenuButtonState extends State<OverflowMenuButton> {
         width: 46,
         height: 46,
         decoration: BoxDecoration(
-          color: _isOpen ? AppColors.surfaceColor : AppColors.surfaceColor,
+          color: _isOpen ? AppColors.selectedRoleColor : AppColors.surfaceColor,
           borderRadius: BorderRadius.circular(AppBorderRadius.lg),
           border: Border.all(
             color: _isOpen ? AppColors.primaryColor : AppColors.borderColor,
