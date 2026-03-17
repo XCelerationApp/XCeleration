@@ -273,9 +273,12 @@ class MergeConflictsController with ChangeNotifier {
         Logger.d(
             'MergeConflictsController: Chunk ${uiChunk.chunkId} synced and is now fully resolved, consolidating confirmed times');
 
-        // Consolidate confirmed times (merge adjacent confirmRunner chunks)
+        // Consolidate confirmed times (merge adjacent confirmRunner chunks).
+        // consolidateConfirmedTimes() calls notifyListeners() internally, so
+        // we return early to avoid a redundant second rebuild.
         await consolidateConfirmedTimes();
         _needsUIRebuild = true;
+        return;
       }
     }
 
