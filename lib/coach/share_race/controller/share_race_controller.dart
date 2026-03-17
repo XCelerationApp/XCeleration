@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/foundation.dart' show compute;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'
     show rootBundle, Clipboard, ClipboardData;
@@ -458,9 +459,9 @@ class FormattedResultsController {
 
     _textGenerationStarted = true;
     try {
-      // Generate text asynchronously in a microtask to avoid blocking the UI
+      // Generate text on a background isolate to avoid blocking the UI
       _formattedResultsText =
-          await Future.microtask(() => _getFormattedText(raceResultsData));
+          await compute(_getFormattedText, raceResultsData);
       if (!_textCompleter.isCompleted) {
         _textCompleter.complete(_formattedResultsText);
       }
@@ -543,9 +544,9 @@ class FormattedResultsController {
 
     _sheetsDataGenerationStarted = true;
     try {
-      // Process asynchronously in a microtask to avoid blocking the UI
+      // Process on a background isolate to avoid blocking the UI
       _formattedSheetsData =
-          await Future.microtask(() => _getSheetsData(raceResultsData));
+          await compute(_getSheetsData, raceResultsData);
       if (!_sheetsDataCompleter.isCompleted) {
         _sheetsDataCompleter.complete(_formattedSheetsData);
       }
