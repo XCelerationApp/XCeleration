@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../core/utils/enums.dart';
 import '../controller/merge_conflicts_controller.dart';
 import 'runner_time_record.dart';
@@ -7,20 +8,23 @@ import 'resolve_conflict_button.dart';
 import 'package:xceleration/coach/merge_conflicts/models/ui_chunk.dart';
 
 class ChunkList extends StatelessWidget {
-  final MergeConflictsController controller;
-  const ChunkList({super.key, required this.controller});
+  const ChunkList({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        for (int index = 0; index < controller.uiChunks.length; index++)
-          ChunkItem(
-            index: index,
-            chunk: controller.uiChunks[index],
-            controller: controller,
-          ),
-      ],
+    return Consumer<MergeConflictsController>(
+      builder: (context, controller, _) {
+        return Column(
+          children: [
+            for (int index = 0; index < controller.uiChunks.length; index++)
+              ChunkItem(
+                index: index,
+                chunk: controller.uiChunks[index],
+                controller: controller,
+              ),
+          ],
+        );
+      },
     );
   }
 }
