@@ -20,6 +20,7 @@ import '../widgets/existing_teams_browser_sheet.dart';
 import '../widgets/edit_team_sheet.dart';
 import '../../../shared/models/database/race_participant.dart';
 import '../widgets/add_runners_to_team_sheet.dart';
+import '../widgets/add_runner_choice_sheet.dart';
 import '../widgets/add_team_choice_sheet.dart';
 import '../widgets/imported_runners_selection_sheet.dart';
 import '../widgets/spreadsheet_load_sheet.dart';
@@ -433,51 +434,13 @@ class RunnersManagementController with ChangeNotifier {
   }
 
   Future<void> showImportTeamFromSpreadsheet(BuildContext context) async {
-    final bool useGoogleDrive = await showSpreadsheetLoadSheet(context);
+    // TODO(XCE-257): implement full team import from spreadsheet
     if (!context.mounted) return;
-
-    try {
-      final List<Map<String, dynamic>> importData = await processSpreadsheet(
-        context,
-        useGoogleDrive: useGoogleDrive,
-      );
-
-      if (importData.isEmpty) {
-        if (context.mounted) {
-          DialogUtils.showErrorDialog(context,
-              message: 'No Valid Runners Loaded');
-        }
-        return;
-      }
-
-      if (!context.mounted) return;
-      final createdTeam = await sheet(
-        context: context,
-        title: 'Create New Team',
-        body: CreateTeamSheet(
-          masterRace: masterRace,
-          createTeam: createTeam,
-        ),
-      );
-
-      if (createdTeam is! Team) return;
-
-      Team? persisted = await masterRace.getTeamByName(createdTeam.name ?? '');
-      persisted ??= (await masterRace.teams).firstWhere(
-          (t) => t.name == createdTeam.name,
-          orElse: () => createdTeam);
-      if (!context.mounted) return;
-      await _importRunnersFromData(context, persisted, importData);
-    } catch (e) {
-      Logger.e('Error handling spreadsheet import: $e');
-      if (context.mounted) {
-        DialogUtils.showMessageDialog(
-          context,
-          title: 'Error',
-          message: 'Error importing runners: $e',
-        );
-      }
-    }
+    DialogUtils.showMessageDialog(
+      context,
+      title: 'Coming Soon',
+      message: 'This feature is not yet enabled.',
+    );
   }
 
   Future<void> showCreateTeamSheet(BuildContext context) async {
@@ -500,6 +463,25 @@ class RunnersManagementController with ChangeNotifier {
       if (!context.mounted) return;
       await showAddRunnersToTeamSheet(context, persisted);
     }
+  }
+
+  Future<void> showAddRunnerChoiceSheet(BuildContext context, Team team) async {
+    await sheet(
+      context: context,
+      title: 'Add Runner',
+      body: AddRunnerChoiceSheet(
+        onAddManually: () async {
+          Navigator.of(context).pop();
+          if (!context.mounted) return;
+          await showAddRunnersToTeamSheet(context, team);
+        },
+        onImportFromSpreadsheet: () async {
+          Navigator.of(context).pop();
+          if (!context.mounted) return;
+          await showImportRunnersToTeam(context, team);
+        },
+      ),
+    );
   }
 
   Future<void> showAddRunnersToTeamSheet(

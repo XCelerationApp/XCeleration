@@ -110,7 +110,7 @@ class _RunnersListState extends State<RunnersList> {
                         isExpanded: expanded,
                         onToggleExpand: () => _toggleExpanded(team),
                         onAddRunner: () =>
-                            widget.controller.showAddRunnersToTeamSheet(
+                            widget.controller.showAddRunnerChoiceSheet(
                           context,
                           team,
                         ),
