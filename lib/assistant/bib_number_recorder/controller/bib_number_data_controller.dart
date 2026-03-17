@@ -220,6 +220,66 @@ class BibNumberDataController extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ---------------------------------------------------------------------------
+  // Batch / silent helpers — no notifyListeners(); caller notifies once at end.
+  // ---------------------------------------------------------------------------
+
+  /// Adds a bib record without notifying listeners. Returns the new index.
+  /// Use only inside bulk-load operations that emit a single notification at
+  /// the end (e.g. [_loadBibRecords]).
+  int addBibRecordSilent(BibDatumRecord record) {
+    _bibRecords.add(record);
+    final newIndex = _bibRecords.length - 1;
+    controllers.add(_textInputFactory.createController(record.bib));
+
+    final focusNode = _textInputFactory.createFocusNode();
+    focusNode.addListener(() {
+      if (focusNode.hasFocus != _isKeyboardVisible) {
+        _isKeyboardVisible = focusNode.hasFocus;
+        notifyListeners();
+      }
+      if (!focusNode.hasFocus) {
+        _saveBibRecordOnFocusLoss(newIndex);
+      }
+    });
+    focusNodes.add(focusNode);
+    return newIndex;
+  }
+
+  /// Updates a bib record without notifying listeners.
+  /// Use only inside bulk-load operations.
+  void updateBibRecordSilent(int index, BibDatumRecord record) {
+    if (index < 0 || index >= _bibRecords.length) return;
+    _bibRecords[index] = record;
+    if (index < controllers.length) {
+      final currentText = controllers[index].text;
+      if (currentText != record.bib) controllers[index].text = record.bib;
+    }
+  }
+
+  /// Clears only the bib record list (and its controllers/focus nodes) without
+  /// notifying listeners. Use inside [_loadBibRecords] to avoid mid-load rebuilds.
+  void clearBibRecordsSilent() {
+    _bibRecords.clear();
+    for (var c in controllers) {
+      c.dispose();
+    }
+    controllers.clear();
+    for (var n in focusNodes) {
+      n.dispose();
+    }
+    focusNodes.clear();
+  }
+
+  /// Resets all mutable UI state (race, stopped flag, bib records) without
+  /// notifying listeners. Caller must call [notifyListeners] once the full
+  /// reset + load sequence completes.
+  void resetStateForLoad() {
+    _currentRace = null;
+    _raceStopped = true;
+    clearBibRecordsSilent();
+  }
+
   /// Saves all current bib records to database
   Future<void> saveBibRecordsToDatabase(int raceId) async {
     try {

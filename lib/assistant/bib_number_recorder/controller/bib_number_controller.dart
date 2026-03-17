@@ -190,12 +190,12 @@ class BibNumberController extends BibNumberDataController {
           return;
       }
 
-      // Clear existing records
-      clearBibRecords();
+      // Clear existing records silently — the single notifyListeners() at the
+      // end of _loadRace / _loadRaceWithRunners covers the full-load update.
+      clearBibRecordsSilent();
 
-      // Convert database records to UI records
+      // Convert and validate all records without intermediate notifications.
       for (final dbRecord in dbBibRecords) {
-        // Create initial bib record
         final bibRecord = BibDatumRecord(
           bib: dbRecord.bibNumber,
           name: '',
@@ -207,12 +207,8 @@ class BibNumberController extends BibNumberDataController {
             duplicateBibNumber: false,
           ),
         );
-
-        // Add the bib record
-        final index = await addBibRecord(bibRecord);
-
-        // Validate it to populate runner info and set flags
-        await validateBibNumber(index, dbRecord.bibNumber);
+        final index = addBibRecordSilent(bibRecord);
+        _validateBibNumberSilent(index, dbRecord.bibNumber);
       }
     } catch (e) {
       Logger.e('Failed to load bib records from database: $e');
@@ -306,22 +302,12 @@ class BibNumberController extends BibNumberDataController {
     }
   }
 
-  /// Completely resets the controller state before loading a new race
+  /// Completely resets the controller state before loading a new race.
+  /// All mutations are silent; a single [notifyListeners] fires at the end.
   void _resetControllerState() {
-    // Clear current race
-    setCurrentRace(null);
-
-    // Reset race state
-    setRaceStopped(true);
-
-    // Clear runners list
+    resetStateForLoad(); // clears race, raceStopped, bibRecords silently
     runners.clear();
     _runnersByBib.clear();
-
-    // Clear all bib records and dispose resources
-    clearBibRecords();
-
-    // Notify listeners of the reset
     notifyListeners();
   }
 
@@ -546,6 +532,90 @@ class BibNumberController extends BibNumberDataController {
         ),
       );
       updateBibRecord(index, updatedRecord);
+    }
+  }
+
+  /// Validates a bib number and updates the record without calling
+  /// [notifyListeners]. For bulk-load operations only.
+  void _validateBibNumberSilent(int index, String bibNumber) {
+    if (index < 0 || index >= bibRecords.length) return;
+
+    if (bibNumber.isEmpty) {
+      updateBibRecordSilent(
+        index,
+        BibDatumRecord(
+          bib: bibNumber,
+          name: '',
+          teamAbbreviation: '',
+          grade: '',
+          flags: const BibDatumRecordFlags(
+            notInDatabase: false,
+            duplicateBibNumber: false,
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (!bibNumber.contains(RegExp(r'^[0-9]+$'))) {
+      updateBibRecordSilent(
+        index,
+        BibDatumRecord(
+          bib: bibNumber,
+          name: '',
+          teamAbbreviation: '',
+          grade: '',
+          flags: const BibDatumRecordFlags(
+            notInDatabase: true,
+            duplicateBibNumber: false,
+          ),
+        ),
+      );
+      return;
+    }
+
+    final matchedRunner = getRunnerByBib(bibNumber);
+
+    if (matchedRunner != null) {
+      bool isDuplicate = false;
+      int count = 0;
+      for (var i = 0; i < bibRecords.length; i++) {
+        if (bibRecords[i].bib == bibNumber) {
+          count++;
+          if (count > 1 && i == index) {
+            isDuplicate = true;
+            break;
+          }
+        }
+      }
+      updateBibRecordSilent(
+        index,
+        BibDatumRecord(
+          bib: bibNumber,
+          name: matchedRunner.name,
+          teamAbbreviation: matchedRunner.teamAbbreviation,
+          grade: matchedRunner.grade,
+          teamColor: matchedRunner.teamColor,
+          flags: BibDatumRecordFlags(
+            notInDatabase: false,
+            duplicateBibNumber: isDuplicate,
+          ),
+        ),
+      );
+    } else {
+      updateBibRecordSilent(
+        index,
+        BibDatumRecord(
+          bib: bibNumber,
+          name: '',
+          teamAbbreviation: '',
+          grade: '',
+          flags: const BibDatumRecordFlags(
+            notInDatabase: true,
+            duplicateBibNumber: false,
+          ),
+        ),
+      );
     }
   }
 
