@@ -39,7 +39,6 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
   final IColorPickerDialogService _colorPickerDialogService;
 
   List<Race> races = [];
-  bool isLocationButtonVisible = true;
   final TextEditingController nameController = TextEditingController();
   final TextEditingController locationController = TextEditingController();
   final TextEditingController dateController = TextEditingController();
@@ -52,11 +51,25 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
 
   final TutorialManager tutorialManager;
 
-  // Validation error messages
-  String? nameError;
-  String? locationError;
-  String? dateError;
-  String? distanceError;
+  // Per-field error notifiers — each field widget listens only to its own notifier
+  final nameErrorNotifier = ValueNotifier<String?>(null);
+  final locationErrorNotifier = ValueNotifier<String?>(null);
+  final dateErrorNotifier = ValueNotifier<String?>(null);
+  final distanceErrorNotifier = ValueNotifier<String?>(null);
+  final locationButtonVisibleNotifier = ValueNotifier<bool>(true);
+
+  // Getters/setters for backward compatibility
+  String? get nameError => nameErrorNotifier.value;
+  set nameError(String? v) => nameErrorNotifier.value = v;
+  String? get locationError => locationErrorNotifier.value;
+  set locationError(String? v) => locationErrorNotifier.value = v;
+  String? get dateError => dateErrorNotifier.value;
+  set dateError(String? v) => dateErrorNotifier.value = v;
+  String? get distanceError => distanceErrorNotifier.value;
+  set distanceError(String? v) => distanceErrorNotifier.value = v;
+  bool get isLocationButtonVisible => locationButtonVisibleNotifier.value;
+  set isLocationButtonVisible(bool v) => locationButtonVisibleNotifier.value = v;
+
   String? teamsError;
 
   @override
@@ -118,9 +131,8 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
   }
 
   void updateLocationButtonVisibility() {
-    isLocationButtonVisible =
+    locationButtonVisibleNotifier.value =
         locationController.text.trim() != userLocationController.text.trim();
-    notifyListeners();
   }
 
   // Method to add a new TextEditingController
@@ -175,23 +187,19 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
   }
 
   void validateName(String name) {
-    nameError = _racesService.validateName(name);
-    notifyListeners();
+    nameErrorNotifier.value = _racesService.validateName(name);
   }
 
   void validateLocation(String location) {
-    locationError = _racesService.validateLocation(location);
-    notifyListeners();
+    locationErrorNotifier.value = _racesService.validateLocation(location);
   }
 
   void validateDate(String dateString) {
-    dateError = _racesService.validateDate(dateString);
-    notifyListeners();
+    dateErrorNotifier.value = _racesService.validateDate(dateString);
   }
 
   void validateDistance(String distanceString) {
-    distanceError = _racesService.validateDistance(distanceString);
-    notifyListeners();
+    distanceErrorNotifier.value = _racesService.validateDistance(distanceString);
   }
 
   void resetControllers() {
@@ -208,10 +216,11 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
     teamColors.add(Colors.white);
     teamColors.add(Colors.white);
     unitController.text = 'mi';
-    nameError = null;
-    locationError = null;
-    dateError = null;
-    distanceError = null;
+    nameErrorNotifier.value = null;
+    locationErrorNotifier.value = null;
+    dateErrorNotifier.value = null;
+    distanceErrorNotifier.value = null;
+    locationButtonVisibleNotifier.value = true;
     teamsError = null;
 
     notifyListeners();
@@ -219,12 +228,10 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
 
   bool validateRaceName() {
     if (nameController.text.trim().isEmpty) {
-      nameError = 'Race name is required';
-      notifyListeners();
+      nameErrorNotifier.value = 'Race name is required';
       return false;
     }
-    nameError = null;
-    notifyListeners();
+    nameErrorNotifier.value = null;
     return true;
   }
 
@@ -280,8 +287,7 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
       locationController.text =
           '${placemark.subThoroughfare} ${placemark.thoroughfare}, ${placemark.locality}, ${placemark.administrativeArea} ${placemark.postalCode}';
       userLocationController.text = locationController.text;
-      locationError = null;
-      notifyListeners();
+      locationErrorNotifier.value = null;
       updateLocationButtonVisibility();
     } catch (e) {
       Logger.d('Error getting location: $e');
@@ -295,8 +301,7 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
     final DateTime? picked = await _datePickerService.pickDate(context);
     if (picked != null) {
       dateController.text = picked.toLocal().toString().split(' ')[0];
-      dateError = null;
-      notifyListeners();
+      dateErrorNotifier.value = null;
     }
   }
 
@@ -415,6 +420,11 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
       controller.dispose();
     }
     teamColors.clear();
+    nameErrorNotifier.dispose();
+    locationErrorNotifier.dispose();
+    dateErrorNotifier.dispose();
+    distanceErrorNotifier.dispose();
+    locationButtonVisibleNotifier.dispose();
     tutorialManager.dispose();
     _eventSubscription?.cancel();
     _syncSubscription?.cancel();
