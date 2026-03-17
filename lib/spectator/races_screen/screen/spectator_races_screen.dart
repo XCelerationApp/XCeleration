@@ -236,31 +236,26 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
                         )
                       : RefreshIndicator(
                           onRefresh: _loadSavedRaces,
-                          child: SingleChildScrollView(
+                          child: ListView.builder(
                             physics: const AlwaysScrollableScrollPhysics(),
-                            child: Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 16.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  ..._savedRaces.map((race) {
-                                    final raceName =
-                                        race['race_name'] as String? ??
-                                            'Unnamed Race';
-                                    final raceId = race['id'] as int;
+                            padding:
+                                const EdgeInsets.symmetric(vertical: 16.0),
+                            itemCount: _savedRaces.length,
+                            itemBuilder: (context, index) {
+                              final race = _savedRaces[index];
+                              final raceName =
+                                  race['race_name'] as String? ??
+                                      'Unnamed Race';
+                              final raceId = race['id'] as int;
 
-                                    return SpectatorRaceCard(
-                                      race: race,
-                                      onTap: () => _viewRace(race),
-                                      onShare: () => _shareRace(race),
-                                      onDelete: () =>
-                                          _deleteRace(raceId, raceName),
-                                    );
-                                  }),
-                                ],
-                              ),
-                            ),
+                              return SpectatorRaceCard(
+                                race: race,
+                                onTap: () => _viewRace(race),
+                                onShare: () => _shareRace(race),
+                                onDelete: () =>
+                                    _deleteRace(raceId, raceName),
+                              );
+                            },
                           ),
                         ),
             ),
