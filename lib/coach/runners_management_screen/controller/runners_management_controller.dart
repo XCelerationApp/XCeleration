@@ -20,6 +20,7 @@ import '../widgets/existing_teams_browser_sheet.dart';
 import '../widgets/edit_team_sheet.dart';
 import '../../../shared/models/database/race_participant.dart';
 import '../widgets/add_runners_to_team_sheet.dart';
+import '../widgets/add_runner_choice_sheet.dart';
 import '../widgets/add_team_choice_sheet.dart';
 import '../widgets/imported_runners_selection_sheet.dart';
 import '../widgets/spreadsheet_load_sheet.dart';
@@ -409,10 +410,13 @@ class RunnersManagementController with ChangeNotifier {
   }
 
   Future<void> showAddTeamChoiceSheet(BuildContext context) async {
+    final otherTeams = await masterRace.getOtherTeams();
+    if (!context.mounted) return;
     await sheet(
       context: context,
       title: 'Add Team',
       body: AddTeamChoiceSheet(
+        showImportFromPreviousRace: otherTeams.isNotEmpty,
         onImportFromPreviousRace: () async {
           Navigator.of(context).pop();
           if (!context.mounted) return;
@@ -433,23 +437,13 @@ class RunnersManagementController with ChangeNotifier {
   }
 
   Future<void> showImportTeamFromSpreadsheet(BuildContext context) async {
-    final createdTeam = await sheet(
-      context: context,
-      title: 'Create New Team',
-      body: CreateTeamSheet(
-        masterRace: masterRace,
-        createTeam: createTeam,
-      ),
+    // TODO(XCE-257): implement full team import from spreadsheet
+    if (!context.mounted) return;
+    DialogUtils.showMessageDialog(
+      context,
+      title: 'Coming Soon',
+      message: 'This feature is not yet enabled.',
     );
-
-    if (createdTeam is Team) {
-      Team? persisted = await masterRace.getTeamByName(createdTeam.name ?? '');
-      persisted ??= (await masterRace.teams).firstWhere(
-          (t) => t.name == createdTeam.name,
-          orElse: () => createdTeam);
-      if (!context.mounted) return;
-      await loadSpreadsheet(context, persisted);
-    }
   }
 
   Future<void> showCreateTeamSheet(BuildContext context) async {
@@ -472,6 +466,25 @@ class RunnersManagementController with ChangeNotifier {
       if (!context.mounted) return;
       await showAddRunnersToTeamSheet(context, persisted);
     }
+  }
+
+  Future<void> showAddRunnerChoiceSheet(BuildContext context, Team team) async {
+    await sheet(
+      context: context,
+      title: 'Add Runner',
+      body: AddRunnerChoiceSheet(
+        onAddManually: () async {
+          Navigator.of(context).pop();
+          if (!context.mounted) return;
+          await showAddRunnersToTeamSheet(context, team);
+        },
+        onImportFromSpreadsheet: () async {
+          Navigator.of(context).pop();
+          if (!context.mounted) return;
+          await showImportRunnersToTeam(context, team);
+        },
+      ),
+    );
   }
 
   Future<void> showAddRunnersToTeamSheet(
@@ -675,8 +688,26 @@ class RunnersManagementController with ChangeNotifier {
         return;
       }
 
-      // Let the user select which imported rows to add
       if (!context.mounted) return;
+      await _importRunnersFromData(context, team, importData);
+    } catch (e) {
+      Logger.e('Error handling spreadsheet load: $e');
+      if (context.mounted) {
+        DialogUtils.showMessageDialog(
+          context,
+          title: 'Error',
+          message: 'Error importing runners: $e',
+        );
+      }
+    }
+  }
+
+  Future<void> _importRunnersFromData(
+    BuildContext context,
+    Team team,
+    List<Map<String, dynamic>> importData,
+  ) async {
+      // Let the user select which imported rows to add
       final selectedRows = await sheet(
         context: context,
         title: 'Select Runners to Add',
@@ -835,16 +866,6 @@ class RunnersManagementController with ChangeNotifier {
       }
 
       onContentChanged?.call();
-    } catch (e) {
-      Logger.e('Error handling spreadsheet load: $e');
-      if (context.mounted) {
-        DialogUtils.showMessageDialog(
-          context,
-          title: 'Error',
-          message: 'Error importing runners: $e',
-        );
-      }
-    }
   }
 
   // ============================================================================
