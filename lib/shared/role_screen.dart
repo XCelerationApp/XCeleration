@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import '../coach/bib_conflict_resolution/screen/conflict_resolution_screen.dart';
 import '../coach/races_screen/screen/races_screen.dart';
@@ -68,10 +67,10 @@ class _SpeedLinesPainter extends CustomPainter {
 // ─── Role row (on gradient) ───────────────────────────────────────────────────
 
 class _RoleRow extends StatefulWidget {
-  const _RoleRow({required this.data, required this.isLast, required this.index});
+  const _RoleRow({required this.data, required this.isLast, required this.entrance});
   final _RoleData data;
   final bool isLast;
-  final int index;
+  final Animation<double> entrance;
 
   @override
   State<_RoleRow> createState() => _RoleRowState();
@@ -79,22 +78,6 @@ class _RoleRow extends StatefulWidget {
 
 class _RoleRowState extends State<_RoleRow> {
   bool _pressed = false;
-  double _opacity = 0;
-  Timer? _timer;
-
-  @override
-  void initState() {
-    super.initState();
-    _timer = Timer(Duration(milliseconds: 120 + widget.index * 80), () {
-      if (mounted) setState(() => _opacity = 1);
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
 
   void _onTapUp(_) {
     setState(() => _pressed = false);
@@ -103,10 +86,8 @@ class _RoleRowState extends State<_RoleRow> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedOpacity(
-      opacity: _opacity,
-      duration: AppAnimations.slow,
-      curve: AppAnimations.enter,
+    return FadeTransition(
+      opacity: widget.entrance,
       child: GestureDetector(
         onTapDown: (_) => setState(() => _pressed = true),
         onTapUp: _onTapUp,
@@ -203,13 +184,13 @@ class _SubRoleCard extends StatefulWidget {
     required this.label,
     required this.description,
     required this.onPressed,
-    required this.index,
+    required this.entrance,
   });
 
   final String label;
   final String description;
   final VoidCallback onPressed;
-  final int index;
+  final Animation<double> entrance;
 
   @override
   State<_SubRoleCard> createState() => _SubRoleCardState();
@@ -217,22 +198,6 @@ class _SubRoleCard extends StatefulWidget {
 
 class _SubRoleCardState extends State<_SubRoleCard> {
   bool _pressed = false;
-  double _opacity = 0;
-  Timer? _timer;
-
-  @override
-  void initState() {
-    super.initState();
-    _timer = Timer(Duration(milliseconds: widget.index * 60), () {
-      if (mounted) setState(() => _opacity = 1);
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
 
   void _onTapUp(_) {
     setState(() => _pressed = false);
@@ -241,10 +206,8 @@ class _SubRoleCardState extends State<_SubRoleCard> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedOpacity(
-      opacity: _opacity,
-      duration: AppAnimations.reveal,
-      curve: AppAnimations.enter,
+    return FadeTransition(
+      opacity: widget.entrance,
       child: GestureDetector(
         onTapDown: (_) => setState(() => _pressed = true),
         onTapUp: _onTapUp,
@@ -332,8 +295,11 @@ class _AssistantScreen extends StatefulWidget {
   State<_AssistantScreen> createState() => _AssistantScreenState();
 }
 
-class _AssistantScreenState extends State<_AssistantScreen> {
+class _AssistantScreenState extends State<_AssistantScreen>
+    with SingleTickerProviderStateMixin {
   late final List<_RoleData> _roles;
+  late final AnimationController _entranceController;
+  late final List<CurvedAnimation> _rowAnimations;
 
   @override
   void initState() {
@@ -350,6 +316,28 @@ class _AssistantScreenState extends State<_AssistantScreen> {
         onPressed: _onRecorder,
       ),
     ];
+    final totalMs = 120 + (_roles.length - 1) * 80 + 400;
+    _entranceController = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: totalMs),
+    )..forward();
+    _rowAnimations = List.generate(_roles.length, (i) {
+      final startMs = 120 + i * 80;
+      final endMs = startMs + 400;
+      return CurvedAnimation(
+        parent: _entranceController,
+        curve: Interval(startMs / totalMs, endMs / totalMs, curve: AppAnimations.enter),
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    for (final a in _rowAnimations) {
+      a.dispose();
+    }
+    _entranceController.dispose();
+    super.dispose();
   }
 
   void _onTimer() => Navigator.of(context).push(
@@ -482,7 +470,7 @@ class _AssistantScreenState extends State<_AssistantScreen> {
             _RoleRow(
               data: _roles[i],
               isLast: i == _roles.length - 1,
-              index: i,
+              entrance: _rowAnimations[i],
             ),
         ],
       ),
@@ -509,8 +497,11 @@ class RoleScreen extends StatefulWidget {
   State<RoleScreen> createState() => _RoleScreenState();
 }
 
-class _RoleScreenState extends State<RoleScreen> {
+class _RoleScreenState extends State<RoleScreen>
+    with SingleTickerProviderStateMixin {
   late final List<_RoleData> _roles;
+  late final AnimationController _entranceController;
+  late final List<CurvedAnimation> _rowAnimations;
 
   @override
   void initState() {
@@ -532,6 +523,28 @@ class _RoleScreenState extends State<RoleScreen> {
         onPressed: _onSpectator,
       ),
     ];
+    final totalMs = 120 + (_roles.length - 1) * 80 + 400;
+    _entranceController = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: totalMs),
+    )..forward();
+    _rowAnimations = List.generate(_roles.length, (i) {
+      final startMs = 120 + i * 80;
+      final endMs = startMs + 400;
+      return CurvedAnimation(
+        parent: _entranceController,
+        curve: Interval(startMs / totalMs, endMs / totalMs, curve: AppAnimations.enter),
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    for (final a in _rowAnimations) {
+      a.dispose();
+    }
+    _entranceController.dispose();
+    super.dispose();
   }
 
   void _onCoach() {
@@ -659,7 +672,7 @@ class _RoleScreenState extends State<RoleScreen> {
             _RoleRow(
               data: _roles[i],
               isLast: i == _roles.length - 1,
-              index: i,
+              entrance: _rowAnimations[i],
             ),
         ],
       ),
