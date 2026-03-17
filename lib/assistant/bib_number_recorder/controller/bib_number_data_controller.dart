@@ -14,7 +14,11 @@ class BibNumberDataController extends ChangeNotifier {
   final List<TextEditingController> controllers = [];
   final List<FocusNode> focusNodes = [];
 
-  bool _isKeyboardVisible = false;
+  /// Tracks keyboard visibility without going through the main [notifyListeners]
+  /// path. Widgets that only need keyboard state (e.g. [KeyboardAccessoryBar])
+  /// can listen to this notifier directly and avoid rebuilding on every
+  /// unrelated controller change.
+  final ValueNotifier<bool> keyboardVisibleNotifier = ValueNotifier(false);
 
   // Race context and storage - single source of truth
   final IAssistantStorageService storage;
@@ -26,13 +30,6 @@ class BibNumberDataController extends ChangeNotifier {
     required this.storage,
     required ITextInputFactory textInputFactory,
   }) : _textInputFactory = textInputFactory;
-
-  bool get isKeyboardVisible => _isKeyboardVisible;
-
-  set isKeyboardVisible(bool visible) {
-    _isKeyboardVisible = visible;
-    notifyListeners();
-  }
 
   // Race context getters
   RaceRecord? get currentRace => _currentRace;
@@ -92,10 +89,7 @@ class BibNumberDataController extends ChangeNotifier {
     final focusNode = _textInputFactory.createFocusNode();
     focusNode.addListener(() {
       // Handle keyboard visibility
-      if (focusNode.hasFocus != _isKeyboardVisible) {
-        _isKeyboardVisible = focusNode.hasFocus;
-        notifyListeners();
-      }
+      keyboardVisibleNotifier.value = focusNode.hasFocus;
 
       // Save to database when focus is lost
       if (!focusNode.hasFocus) {
@@ -234,10 +228,7 @@ class BibNumberDataController extends ChangeNotifier {
 
     final focusNode = _textInputFactory.createFocusNode();
     focusNode.addListener(() {
-      if (focusNode.hasFocus != _isKeyboardVisible) {
-        _isKeyboardVisible = focusNode.hasFocus;
-        notifyListeners();
-      }
+      keyboardVisibleNotifier.value = focusNode.hasFocus;
       if (!focusNode.hasFocus) {
         _saveBibRecordOnFocusLoss(newIndex);
       }
@@ -439,6 +430,7 @@ class BibNumberDataController extends ChangeNotifier {
     _bibRecords.clear();
     controllers.clear();
     focusNodes.clear();
+    keyboardVisibleNotifier.dispose();
     super.dispose();
   }
 }

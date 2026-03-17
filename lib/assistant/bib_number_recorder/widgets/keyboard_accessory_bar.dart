@@ -16,13 +16,18 @@ class KeyboardAccessoryBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (controller.raceStopped ||
-        !(Platform.isIOS || Platform.isAndroid) ||
-        !controller.isKeyboardVisible ||
-        controller.bibRecords.isEmpty) {
-      return const SizedBox.shrink();
-    }
-    return Column(children: [
+    return ValueListenableBuilder<bool>(
+      valueListenable: controller.keyboardVisibleNotifier,
+      builder: (context, isKeyboardVisible, child) {
+        if (controller.raceStopped ||
+            !(Platform.isIOS || Platform.isAndroid) ||
+            !isKeyboardVisible ||
+            controller.bibRecords.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        return child!;
+      },
+      child: Column(children: [
       Padding(
           padding: EdgeInsets.symmetric(horizontal: 4),
           child: Container(
@@ -59,6 +64,7 @@ class KeyboardAccessoryBar extends StatelessWidget {
             ),
           )),
       const SizedBox(height: 6)
-    ]);
+    ]),
+    );
   }
 }
