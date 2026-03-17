@@ -5,8 +5,9 @@ import '../../../core/theme/typography.dart';
 
 /// Body widget for the "Add Team" choice sheet.
 ///
-/// Presents three options — Import from Previous Race, Import from Spreadsheet,
-/// and Create New Team — as tappable rows with a description subtitle.
+/// Presents up to three options — Import from Previous Race (only when
+/// [showImportFromPreviousRace] is true), Import from Spreadsheet, and
+/// Create New Team — as tappable rows with a description subtitle.
 /// The caller is responsible for dismissing the sheet and opening the next flow.
 class AddTeamChoiceSheet extends StatelessWidget {
   const AddTeamChoiceSheet({
@@ -14,11 +15,13 @@ class AddTeamChoiceSheet extends StatelessWidget {
     required this.onImportFromPreviousRace,
     required this.onImportFromSpreadsheet,
     required this.onCreateTeam,
+    this.showImportFromPreviousRace = true,
   });
 
   final VoidCallback onImportFromPreviousRace;
   final VoidCallback onImportFromSpreadsheet;
   final VoidCallback onCreateTeam;
+  final bool showImportFromPreviousRace;
 
   @override
   Widget build(BuildContext context) {
@@ -33,12 +36,14 @@ class AddTeamChoiceSheet extends StatelessWidget {
           ),
         ),
         const SizedBox(height: AppSpacing.lg),
-        _ChoiceTile(
-          icon: Icons.history,
-          label: 'Import from Previous Race',
-          onTap: onImportFromPreviousRace,
-        ),
-        Divider(height: 1, thickness: 1, color: AppColors.lightColor),
+        if (showImportFromPreviousRace) ...[
+          _ChoiceTile(
+            icon: Icons.history,
+            label: 'Import from Previous Race',
+            onTap: onImportFromPreviousRace,
+          ),
+          Divider(height: 1, thickness: 1, color: AppColors.lightColor),
+        ],
         _ChoiceTile(
           icon: Icons.table_chart_outlined,
           label: 'Import from Spreadsheet',

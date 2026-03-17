@@ -410,10 +410,13 @@ class RunnersManagementController with ChangeNotifier {
   }
 
   Future<void> showAddTeamChoiceSheet(BuildContext context) async {
+    final otherTeams = await masterRace.getOtherTeams();
+    if (!context.mounted) return;
     await sheet(
       context: context,
       title: 'Add Team',
       body: AddTeamChoiceSheet(
+        showImportFromPreviousRace: otherTeams.isNotEmpty,
         onImportFromPreviousRace: () async {
           Navigator.of(context).pop();
           if (!context.mounted) return;
