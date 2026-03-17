@@ -51,6 +51,9 @@ class BibNumberController extends BibNumberDataController {
   late final ScrollController scrollController;
   late final List<BibDatum> runners;
 
+  // O(1) bib → runner lookup, rebuilt whenever runners list is populated or cleared
+  final Map<String, BibDatum> _runnersByBib = {};
+
   final TutorialManager tutorialManager;
   final IDemoRaceGenerator _demoRaceGenerator;
   final IDeviceConnectionFactory _deviceConnectionFactory;
@@ -151,15 +154,18 @@ class BibNumberController extends BibNumberDataController {
 
       // Clear existing runners and populate with loaded data
       runners.clear();
+      _runnersByBib.clear();
       for (final runner in dbRunners) {
         // Convert database Runner to BibDatum
-        runners.add(BibDatum(
+        final datum = BibDatum(
           bib: runner.bibNumber,
           name: runner.name,
           teamAbbreviation: runner.teamAbbreviation,
           grade: runner.grade,
           teamColor: runner.teamColor,
-        ));
+        );
+        runners.add(datum);
+        _runnersByBib[datum.bib] = datum;
       }
     } catch (e) {
       Logger.e('Failed to load runners from database: $e');
@@ -282,6 +288,10 @@ class BibNumberController extends BibNumberDataController {
 
     // Set runners from provided data
     runners.addAll(runnersData);
+    _runnersByBib.clear();
+    for (final r in runnersData) {
+      _runnersByBib[r.bib] = r;
+    }
 
     // Load bib records after runners are set
     await _loadBibRecords();
@@ -306,6 +316,7 @@ class BibNumberController extends BibNumberDataController {
 
     // Clear runners list
     runners.clear();
+    _runnersByBib.clear();
 
     // Clear all bib records and dispose resources
     clearBibRecords();
@@ -447,15 +458,11 @@ class BibNumberController extends BibNumberDataController {
     );
   }
 
-  /// Gets a runner by bib number from the local runners list
-  BibDatum? getRunnerByBib(String bib) {
-    for (final runner in runners) {
-      if (runner.bib == bib) {
-        return runner;
-      }
-    }
-    return null;
-  }
+  /// Gets a runner by bib number from the local runners list.
+  /// O(1) via the pre-built map; falls back to linear scan for runners added
+  /// directly to [runners] outside the normal population path.
+  BibDatum? getRunnerByBib(String bib) =>
+      _runnersByBib[bib] ?? runners.where((r) => r.bib == bib).firstOrNull;
 
   // Bib number validation and handling
   Future<void> validateBibNumber(int index, String bibNumber) async {
