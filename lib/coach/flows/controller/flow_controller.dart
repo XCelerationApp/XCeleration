@@ -209,8 +209,10 @@ class MasterFlowController {
     // Set the race state directly to finished after post-race flow completes
     await updateRaceFlowState(context, Race.FLOW_FINISHED);
 
-    // Add a short delay to let the UI settle
-    await Future.delayed(const Duration(milliseconds: 500));
+    // Wait for the next frame so the UI reflects the new state before animating.
+    final frameReady = Completer<void>();
+    WidgetsBinding.instance.addPostFrameCallback((_) => frameReady.complete());
+    await frameReady.future;
 
     // Return to race results tab
     Logger.d('MasterFlowController: Navigating to results tab');
