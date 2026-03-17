@@ -393,8 +393,7 @@ class RunnersManagementController with ChangeNotifier {
         teamId: newTeamId,
         colorOverride: team.color?.toARGB32(),
       ));
-      onContentChanged?.call();
-      loadData();
+      await forceRefresh();
     } catch (e) {
       Logger.e('Error creating team: $e');
       throw Exception('Failed to create team: $e');
@@ -498,8 +497,6 @@ class RunnersManagementController with ChangeNotifier {
         getRunnerByBib: _runners.getRunnerByBib,
         onSubmit: (raceRunner) async {
           await handleRunnerSubmission(context, raceRunner);
-          onContentChanged?.call();
-          await loadData();
         },
       ),
     );
@@ -515,8 +512,7 @@ class RunnersManagementController with ChangeNotifier {
           try {
             await _teams.updateTeam(updatedTeam);
             // If color/name changed, ensure race team participation reflects color override when shown
-            onContentChanged?.call();
-            await loadData();
+            await forceRefresh();
           } catch (e) {
             Logger.e('Failed to update team: $e');
             if (context.mounted) {
@@ -661,8 +657,7 @@ class RunnersManagementController with ChangeNotifier {
         teamId: team.teamId!,
       ));
 
-      onContentChanged?.call();
-      await loadData();
+      await forceRefresh();
       return true;
     } catch (e) {
       Logger.e('Error deleting team: $e');
@@ -873,11 +868,15 @@ class RunnersManagementController with ChangeNotifier {
   // ============================================================================
 
   /// Force refresh the UI by clearing MasterRace caches and notifying listeners
-  /// This is more efficient than reloading all data
+  /// This is more efficient than reloading all data (no loading flash).
   Future<void> forceRefresh() async {
     try {
       // Clear MasterRace caches to force fresh data loading
       masterRace.invalidateCache();
+
+      // Keep totalRunnerCount accurate without a loading-state cycle
+      final raceRunners = await masterRace.raceRunners;
+      totalRunnerCount = raceRunners.length;
 
       // Update filtered results
       _updateFilteredRaceRunners();
