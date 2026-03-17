@@ -8,9 +8,8 @@ import 'package:xceleration/assistant/finish_line_roles/shared/widgets/role_bott
 import 'package:xceleration/assistant/finish_line_roles/shared/widgets/role_lobby_card.dart';
 import 'package:xceleration/core/components/app_header.dart';
 import 'package:xceleration/core/services/tutorial_manager.dart';
-import 'package:xceleration/core/theme/app_border_radius.dart';
+import 'package:xceleration/assistant/finish_line_roles/verifier/widgets/verifier_stats_bar.dart';
 import 'package:xceleration/core/theme/app_colors.dart';
-import 'package:xceleration/core/theme/app_opacity.dart';
 import 'package:xceleration/core/theme/app_spacing.dart';
 import 'package:xceleration/core/theme/typography.dart';
 import 'package:xceleration/shared/role_bar/models/role_enums.dart';
@@ -129,10 +128,10 @@ class _VerifierScreenState extends State<VerifierScreen> {
                   children: [
                     if (_peerNotifier != null)
                       PeerStatusStrip(notifier: _peerNotifier!),
-                    _StatsBar(controller: _controller),
+                    VerifierStatsBar(controller: _controller),
                     Expanded(
                       child: _controller.entries.isEmpty
-                          ? const _EmptyState()
+                          ? const VerifierEmptyState()
                           : ListView.builder(
                               padding: const EdgeInsets.only(
                                 top: AppSpacing.sm,
@@ -160,129 +159,6 @@ class _VerifierScreenState extends State<VerifierScreen> {
                   ],
                 );
               },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Stats bar ─────────────────────────────────────────────────────────────────
-
-class _StatsBar extends StatelessWidget {
-  const _StatsBar({required this.controller});
-
-  final VerifierController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.lg,
-        AppSpacing.sm,
-        AppSpacing.lg,
-        AppSpacing.md,
-      ),
-      child: Row(
-        children: [
-          _StatChip(
-            label: 'CORRECT',
-            count: controller.confirmed,
-            color: AppColors.statusFinished,
-          ),
-          const SizedBox(width: AppSpacing.xs),
-          _StatChip(
-            label: 'WRONG',
-            count: controller.wrong,
-            color: AppColors.redColor,
-          ),
-          const SizedBox(width: AppSpacing.xs),
-          _StatChip(
-            label: 'SKIPPED',
-            count: controller.skipped,
-            color: AppColors.mediumColor,
-          ),
-          const SizedBox(width: AppSpacing.xs),
-          _StatChip(
-            label: 'PENDING',
-            count: controller.pending,
-            color: AppColors.primaryColor,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatChip extends StatelessWidget {
-  const _StatChip({
-    required this.label,
-    required this.count,
-    required this.color,
-  });
-
-  final String label;
-  final int count;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: AppOpacity.light),
-          borderRadius: BorderRadius.circular(AppBorderRadius.sm),
-        ),
-        child: Column(
-          children: [
-            Text(
-              '$count',
-              style: AppTypography.titleSemibold.copyWith(
-                color: color,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            Text(
-              label,
-              style: AppTypography.labelTiny.copyWith(
-                color: color,
-                letterSpacing: 0.3,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ── Empty state ───────────────────────────────────────────────────────────────
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text('👀', style: TextStyle(fontSize: 36)),
-          const SizedBox(height: AppSpacing.md),
-          Text(
-            'Waiting for finishers',
-            style: AppTypography.smallBodySemibold.copyWith(
-              color: AppColors.mediumColor,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            'Entries from Bib Recorder appear here',
-            style: AppTypography.bodySmall.copyWith(
-              color: AppColors.lightColor,
             ),
           ),
         ],

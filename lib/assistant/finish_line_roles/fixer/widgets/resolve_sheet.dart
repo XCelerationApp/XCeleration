@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/assistant/finish_line_roles/fixer/controller/fixer_controller.dart';
+import 'package:xceleration/assistant/finish_line_roles/fixer/widgets/candidate_list.dart';
+import 'package:xceleration/assistant/finish_line_roles/fixer/widgets/resolve_sheet_controls.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/models/fixer_entry.dart';
-import 'package:xceleration/assistant/shared/models/runner.dart';
 import 'package:xceleration/coach/bib_conflict_resolution/utils/ordinal.dart';
-import 'package:xceleration/core/theme/app_animations.dart';
 import 'package:xceleration/core/theme/app_border_radius.dart';
 import 'package:xceleration/core/theme/app_colors.dart';
-import 'package:xceleration/core/theme/app_opacity.dart';
 import 'package:xceleration/core/theme/app_spacing.dart';
 import 'package:xceleration/core/theme/typography.dart';
 
@@ -102,16 +101,16 @@ class _ResolveSheetState extends State<ResolveSheet> {
     return [
       _EntryDetailCard(entry: widget.entry),
       const SizedBox(height: AppSpacing.lg),
-      _SearchSection(
+      SearchSection(
         controller: widget.controller,
         entry: widget.entry,
         searchCtrl: _searchCtrl,
         onResolved: () => Navigator.pop(context),
       ),
       const Divider(height: AppSpacing.xxl, color: AppColors.borderColor),
-      _CreateRunnerButton(onTap: () => setState(() => _creating = true)),
+      CreateRunnerButton(onTap: () => setState(() => _creating = true)),
       const SizedBox(height: AppSpacing.sm),
-      _LeaveForCoachButton(onTap: () => Navigator.pop(context)),
+      LeaveForCoachButton(onTap: () => Navigator.pop(context)),
     ];
   }
 
@@ -134,13 +133,13 @@ class _ResolveSheetState extends State<ResolveSheet> {
         ),
       ),
       const SizedBox(height: AppSpacing.lg),
-      _FormField(
+      ResolveFormField(
         label: 'Name',
         hint: "Runner's full name",
         controller: _nameCtrl,
         onChanged: (_) => setState(() {}),
       ),
-      _FormField(
+      ResolveFormField(
         label: 'Bib #',
         hint: 'e.g. ${widget.entry.bib}',
         controller: _bibCtrl,
@@ -148,7 +147,7 @@ class _ResolveSheetState extends State<ResolveSheet> {
         onChanged: (_) => setState(() {}),
       ),
       const SizedBox(height: AppSpacing.sm),
-      _AddRunnerButton(enabled: canSubmit, onTap: _submitNew),
+      AddRunnerButton(enabled: canSubmit, onTap: _submitNew),
     ];
   }
 }
@@ -231,428 +230,6 @@ class _EntryDetailCard extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _SearchSection extends StatelessWidget {
-  const _SearchSection({
-    required this.controller,
-    required this.entry,
-    required this.searchCtrl,
-    required this.onResolved,
-  });
-
-  final FixerController controller;
-  final FixerEntry entry;
-  final TextEditingController searchCtrl;
-  final VoidCallback onResolved;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'SEARCH BY NAME',
-          style: AppTypography.bodySmall.copyWith(
-            color: AppColors.mediumColor,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.5,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        TextField(
-          controller: searchCtrl,
-          onChanged: controller.search,
-          style: AppTypography.smallBodyRegular.copyWith(
-            color: AppColors.darkColor,
-          ),
-          decoration: InputDecoration(
-            hintText: 'e.g. Singh, Priya, Tom G…',
-            hintStyle: AppTypography.smallBodyRegular.copyWith(
-              color: AppColors.mediumColor,
-            ),
-            filled: true,
-            fillColor: Colors.white,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.lg,
-              vertical: AppSpacing.md,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppBorderRadius.md),
-              borderSide: const BorderSide(color: AppColors.borderColor),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppBorderRadius.md),
-              borderSide: const BorderSide(color: AppColors.borderColor),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppBorderRadius.md),
-              borderSide:
-                  const BorderSide(color: AppColors.primaryColor, width: 1.5),
-            ),
-          ),
-        ),
-        if (controller.searchResults.isNotEmpty) ...[
-          const SizedBox(height: AppSpacing.md),
-          _CandidateList(
-            results: controller.searchResults,
-            entryBib: entry.bib,
-            onPick: (runner) {
-              controller.resolveWithRunner(entry.id, runner);
-              onResolved();
-            },
-          ),
-        ],
-        if (searchCtrl.text.isNotEmpty && controller.searchResults.isEmpty) ...[
-          const SizedBox(height: AppSpacing.sm),
-          Center(
-            child: Text(
-              'No matches',
-              style: AppTypography.smallBodyRegular.copyWith(
-                color: AppColors.mediumColor,
-              ),
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-class _CandidateList extends StatelessWidget {
-  const _CandidateList({
-    required this.results,
-    required this.entryBib,
-    required this.onPick,
-  });
-
-  final List<Runner> results;
-  final int entryBib;
-  final ValueChanged<Runner> onPick;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: results.map((runner) {
-        return _CandidateRow(
-          runner: runner,
-          entryBib: entryBib,
-          onTap: () => onPick(runner),
-        );
-      }).toList(),
-    );
-  }
-}
-
-class _CandidateRow extends StatefulWidget {
-  const _CandidateRow({
-    required this.runner,
-    required this.entryBib,
-    required this.onTap,
-  });
-
-  final Runner runner;
-  final int entryBib;
-  final VoidCallback onTap;
-
-  @override
-  State<_CandidateRow> createState() => _CandidateRowState();
-}
-
-class _CandidateRowState extends State<_CandidateRow> {
-  bool _pressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapUp: (_) => setState(() => _pressed = false),
-      onTapCancel: () => setState(() => _pressed = false),
-      onTap: widget.onTap,
-      child: AnimatedContainer(
-        duration: AppAnimations.fast,
-        margin: const EdgeInsets.only(bottom: AppSpacing.xs),
-        padding: const EdgeInsets.all(AppSpacing.md),
-        decoration: BoxDecoration(
-          color: _pressed
-              ? AppColors.primaryColor.withValues(alpha: AppOpacity.faint)
-              : Colors.white,
-          borderRadius: BorderRadius.circular(AppBorderRadius.md),
-          border: Border.all(
-            color: AppColors.borderColor,
-            width: 1.5,
-          ),
-        ),
-        child: Row(
-          children: [
-            // Bib badge
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: AppColors.surfaceColor,
-                borderRadius: BorderRadius.circular(AppBorderRadius.sm),
-              ),
-              child: Center(
-                child: Text(
-                  '#${widget.runner.bibNumber}',
-                  style: AppTypography.bodySmall.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.mediumColor,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            // Name + team
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.runner.name ?? widget.runner.bibNumber,
-                    style: AppTypography.smallBodySemibold.copyWith(
-                      color: AppColors.darkColor,
-                    ),
-                  ),
-                  if (widget.runner.teamAbbreviation != null) ...[
-                    const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        if (widget.runner.teamColor != null)
-                          Container(
-                            width: 6,
-                            height: 6,
-                            decoration: BoxDecoration(
-                              color: widget.runner.teamColor,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                        const SizedBox(width: AppSpacing.xs),
-                        Text(
-                          widget.runner.teamAbbreviation!,
-                          style: AppTypography.bodySmall.copyWith(
-                            color: AppColors.mediumColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            const Icon(
-              Icons.chevron_right,
-              size: 18,
-              color: AppColors.mediumColor,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _CreateRunnerButton extends StatefulWidget {
-  const _CreateRunnerButton({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  State<_CreateRunnerButton> createState() => _CreateRunnerButtonState();
-}
-
-class _CreateRunnerButtonState extends State<_CreateRunnerButton> {
-  bool _pressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    const amber = AppColors.warningAmber;
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapUp: (_) => setState(() => _pressed = false),
-      onTapCancel: () => setState(() => _pressed = false),
-      onTap: widget.onTap,
-      child: AnimatedContainer(
-        duration: AppAnimations.fast,
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-        decoration: BoxDecoration(
-          color: _pressed
-              ? amber.withValues(alpha: AppOpacity.medium)
-              : amber.withValues(alpha: AppOpacity.subtle),
-          borderRadius: BorderRadius.circular(AppBorderRadius.lg),
-          border: Border.all(
-            color: amber.withValues(alpha: AppOpacity.medium),
-          ),
-        ),
-        child: Center(
-          child: Text(
-            'Create new runner',
-            style: AppTypography.smallBodySemibold.copyWith(
-              color: amber,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _LeaveForCoachButton extends StatefulWidget {
-  const _LeaveForCoachButton({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  State<_LeaveForCoachButton> createState() => _LeaveForCoachButtonState();
-}
-
-class _LeaveForCoachButtonState extends State<_LeaveForCoachButton> {
-  bool _pressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapUp: (_) => setState(() => _pressed = false),
-      onTapCancel: () => setState(() => _pressed = false),
-      onTap: widget.onTap,
-      child: AnimatedContainer(
-        duration: AppAnimations.fast,
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md - 2),
-        decoration: BoxDecoration(
-          color: _pressed ? AppColors.surfaceColor : Colors.white,
-          borderRadius: BorderRadius.circular(AppBorderRadius.lg),
-          border: Border.all(color: AppColors.borderColor),
-        ),
-        child: Center(
-          child: Text(
-            'Leave for coach',
-            style: AppTypography.smallBodySemibold.copyWith(
-              color: AppColors.mediumColor,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _FormField extends StatelessWidget {
-  const _FormField({
-    required this.label,
-    required this.hint,
-    required this.controller,
-    required this.onChanged,
-    this.keyboardType = TextInputType.text,
-  });
-
-  final String label;
-  final String hint;
-  final TextEditingController controller;
-  final ValueChanged<String> onChanged;
-  final TextInputType keyboardType;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: AppTypography.smallBodySemibold.copyWith(
-              color: AppColors.darkColor,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          TextField(
-            controller: controller,
-            keyboardType: keyboardType,
-            onChanged: onChanged,
-            style: AppTypography.smallBodyRegular.copyWith(
-              color: AppColors.darkColor,
-            ),
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: AppTypography.smallBodyRegular.copyWith(
-                color: AppColors.lightColor,
-              ),
-              filled: true,
-              fillColor: AppColors.backgroundColor,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.md,
-                vertical: AppSpacing.sm,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppBorderRadius.md),
-                borderSide: const BorderSide(color: AppColors.borderColor),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppBorderRadius.md),
-                borderSide: const BorderSide(color: AppColors.borderColor),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppBorderRadius.md),
-                borderSide: const BorderSide(
-                  color: AppColors.primaryColor,
-                  width: 1.5,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AddRunnerButton extends StatelessWidget {
-  const _AddRunnerButton({required this.enabled, required this.onTap});
-
-  final bool enabled;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: enabled ? onTap : null,
-      child: AnimatedContainer(
-        duration: AppAnimations.fast,
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg - 2),
-        decoration: BoxDecoration(
-          gradient: enabled
-              ? const LinearGradient(
-                  colors: [AppColors.primaryColor, AppColors.primaryGradientEnd],
-                )
-              : null,
-          color: enabled ? null : AppColors.surfaceColor,
-          borderRadius: BorderRadius.circular(AppBorderRadius.lg),
-          boxShadow: enabled
-              ? [
-                  BoxShadow(
-                    color: AppColors.primaryColor.withValues(alpha: AppOpacity.medium),
-                    blurRadius: 16,
-                    offset: const Offset(0, 4),
-                  ),
-                ]
-              : null,
-        ),
-        child: Center(
-          child: Text(
-            'Add Runner',
-            style: AppTypography.smallBodySemibold.copyWith(
-              color: enabled ? Colors.white : AppColors.mediumColor,
-            ),
-          ),
-        ),
       ),
     );
   }
