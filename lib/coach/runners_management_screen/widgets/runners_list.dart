@@ -199,26 +199,41 @@ class _AnimatedTeamSection extends StatefulWidget {
   State<_AnimatedTeamSection> createState() => _AnimatedTeamSectionState();
 }
 
-class _AnimatedTeamSectionState extends State<_AnimatedTeamSection> {
-  double _opacity = 0;
+class _AnimatedTeamSectionState extends State<_AnimatedTeamSection>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _opacity;
 
   @override
   void initState() {
     super.initState();
-    Future.delayed(
-      Duration(milliseconds: widget.index * 40),
-      () {
-        if (mounted) setState(() => _opacity = 1);
-      },
+    final staggerMs = widget.index * 40;
+    final totalMs = staggerMs + AppAnimations.reveal.inMilliseconds;
+    _controller = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: totalMs),
     );
+    _opacity = CurvedAnimation(
+      parent: _controller,
+      curve: Interval(
+        staggerMs / totalMs,
+        1.0,
+        curve: AppAnimations.enter,
+      ),
+    );
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedOpacity(
+    return FadeTransition(
       opacity: _opacity,
-      duration: AppAnimations.reveal,
-      curve: AppAnimations.enter,
       child: widget.child,
     );
   }
