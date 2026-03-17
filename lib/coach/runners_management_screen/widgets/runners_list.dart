@@ -160,6 +160,7 @@ class _RunnersListState extends State<RunnersList> {
                                     else
                                       ...raceRunners.map((raceRunner) {
                                         return RunnerListItem(
+                                          key: ValueKey(raceRunner.runner.bibNumber),
                                           runner: raceRunner.runner,
                                           team: team,
                                           controller: widget.controller,
@@ -183,7 +184,6 @@ class _RunnersListState extends State<RunnersList> {
             ),
           );
         },
-      ),
     );
   }
 }
