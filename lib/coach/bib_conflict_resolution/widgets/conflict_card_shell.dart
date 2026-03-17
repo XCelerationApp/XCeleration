@@ -23,20 +23,26 @@ class ConflictCardShell extends StatefulWidget {
 class _ConflictCardShellState extends State<ConflictCardShell> {
   @override
   Widget build(BuildContext context) {
-    final controller = context.watch<ConflictResolutionController>();
+    // Only watch the two values that drive the shell's own layout.
+    final hasPending = context.select<ConflictResolutionController, bool>(
+      (c) => c.hasPending,
+    );
+    final stepKey = context.select<ConflictResolutionController, String>(
+      (c) => c.stepKey,
+    );
 
     return Stack(
       children: [
         Column(
           children: [
-            _NavBar(controller: controller),
-            _ProgressSection(controller: controller),
+            const _NavBar(),
+            const _ProgressSection(),
             Expanded(
               child: AnimatedOpacity(
-                opacity: controller.hasPending ? 0.35 : 1.0,
+                opacity: hasPending ? 0.35 : 1.0,
                 duration: AppAnimations.fast,
                 child: IgnorePointer(
-                  ignoring: controller.hasPending,
+                  ignoring: hasPending,
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.fromLTRB(
                       AppSpacing.lg,
@@ -51,8 +57,8 @@ class _ConflictCardShellState extends State<ConflictCardShell> {
                           switchInCurve: AppAnimations.enter,
                           switchOutCurve: AppAnimations.exit,
                           child: KeyedSubtree(
-                            key: ValueKey(controller.stepKey),
-                            child: _buildCardBody(controller),
+                            key: ValueKey(stepKey),
+                            child: _buildCardBody(context),
                           ),
                         ),
                       ],
@@ -63,22 +69,19 @@ class _ConflictCardShellState extends State<ConflictCardShell> {
             ),
           ],
         ),
-        if (controller.hasPending)
+        if (hasPending)
           Positioned(
             bottom: AppSpacing.xl,
             left: AppSpacing.lg,
             right: AppSpacing.lg,
-            child: UndoToast(
-              label: controller.pendingLabel,
-              onUndo: controller.undoPending,
-              onDone: controller.commitPending,
-            ),
+            child: const _UndoToastWrapper(),
           ),
       ],
     );
   }
 
-  Widget _buildCardBody(ConflictResolutionController controller) {
+  Widget _buildCardBody(BuildContext context) {
+    final controller = context.read<ConflictResolutionController>();
     if (controller.isOnDuplicateStep1) {
       return DuplicateStep1Card(
         conflict: controller.currentConflict as MockDuplicateConflict,
@@ -90,13 +93,18 @@ class _ConflictCardShellState extends State<ConflictCardShell> {
   }
 }
 
-class _NavBar extends StatelessWidget {
-  const _NavBar({required this.controller});
+// ---------------------------------------------------------------------------
+// Sub-widgets with scoped subscriptions
+// ---------------------------------------------------------------------------
 
-  final ConflictResolutionController controller;
+/// Nav bar — only needs `controller.goBack`, a stable method reference.
+/// Uses context.read so it never rebuilds on controller notifications.
+class _NavBar extends StatelessWidget {
+  const _NavBar();
 
   @override
   Widget build(BuildContext context) {
+    final controller = context.read<ConflictResolutionController>();
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.lg,
@@ -147,15 +155,16 @@ class _NavBar extends StatelessWidget {
   }
 }
 
+/// Progress bar — only subscribes to resolvedCount and totalConflicts.
 class _ProgressSection extends StatelessWidget {
-  const _ProgressSection({required this.controller});
-
-  final ConflictResolutionController controller;
+  const _ProgressSection();
 
   @override
   Widget build(BuildContext context) {
-    final resolved = controller.resolvedCount;
-    final total = controller.totalConflicts;
+    final (resolved, total) =
+        context.select<ConflictResolutionController, (int, int)>(
+      (c) => (c.resolvedCount, c.totalConflicts),
+    );
     final fraction = total > 0 ? resolved / total : 0.0;
 
     return Padding(
@@ -221,6 +230,22 @@ class _ProgressSection extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Reads the controller once (safe because it only renders when hasPending is
+/// true, at which point pendingLabel is already set and stable).
+class _UndoToastWrapper extends StatelessWidget {
+  const _UndoToastWrapper();
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = context.read<ConflictResolutionController>();
+    return UndoToast(
+      label: controller.pendingLabel,
+      onUndo: controller.undoPending,
+      onDone: controller.commitPending,
     );
   }
 }
