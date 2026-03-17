@@ -17,6 +17,7 @@ class TimingData with ChangeNotifier {
   final ChunkCacher _chunkCacher;
   final RaceTimerDataConverter _timingDataConverter;
   DateTime? _startTime;
+  List<UIRecord>? _cachedUiRecords;
 
   TimingData({
     required IAssistantStorageService storage,
@@ -95,6 +96,7 @@ class TimingData with ChangeNotifier {
       currentChunk = TimingChunk(id: chunkId + 1, timingData: [record]);
       _saveCurrentChunkInDatabase();
     }
+    _cachedUiRecords = null;
     notifyListeners();
   }
 
@@ -119,6 +121,7 @@ class TimingData with ChangeNotifier {
 
       _saveCurrentChunkInDatabase();
     }
+    _cachedUiRecords = null;
     notifyListeners();
   }
 
@@ -148,6 +151,7 @@ class TimingData with ChangeNotifier {
           TimingChunk(id: chunkId + 1, timingData: [], conflictRecord: record);
       _saveCurrentChunkInDatabase();
     }
+    _cachedUiRecords = null;
     notifyListeners();
   }
 
@@ -179,6 +183,7 @@ class TimingData with ChangeNotifier {
         _saveCurrentChunkInDatabase();
       }
     }
+    _cachedUiRecords = null;
     notifyListeners();
   }
 
@@ -195,6 +200,7 @@ class TimingData with ChangeNotifier {
     if (conflict.offBy <= 0) {
       currentChunk.conflictRecord = null;
     }
+    _cachedUiRecords = null;
     notifyListeners();
   }
 
@@ -227,6 +233,7 @@ class TimingData with ChangeNotifier {
         currentChunk = restoredChunk;
       }
     }
+    _cachedUiRecords = null;
     notifyListeners();
   }
 
@@ -267,7 +274,9 @@ class TimingData with ChangeNotifier {
     return await TimingEncodeUtils.encodeTimeRecords(records);
   }
 
-  List<UIRecord> get uiRecords {
+  List<UIRecord> get uiRecords => _cachedUiRecords ??= _buildUiRecords();
+
+  List<UIRecord> _buildUiRecords() {
     List<UIRecord> records = [];
     // add cached chunks
     List<UIChunk> cachedChunks = _chunkCacher.cachedChunks;
@@ -294,6 +303,7 @@ class TimingData with ChangeNotifier {
     _timingDataConverter.clearCache();
     _startTime = null;
     _raceDuration = null;
+    _cachedUiRecords = null;
     notifyListeners();
   }
 }
