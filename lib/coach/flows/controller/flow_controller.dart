@@ -343,7 +343,7 @@ Future<bool> showFlow({
           if (showProgressIndicator)
             Selector<FlowController, (int, bool)>(
               selector: (_, c) => (c.currentIndex, c.canGoBack),
-              builder: (_, data, __) {
+              builder: (ctx, data, __) {
                 final (currentIndex, canGoBack) = data;
                 return Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -351,9 +351,7 @@ Future<bool> showFlow({
                     totalSteps: steps.length,
                     currentStep: currentIndex,
                     onBack: canGoBack
-                        ? () => context
-                            .read<FlowController>()
-                            .goBack()
+                        ? () => ctx.read<FlowController>().goBack()
                         : null,
                   ),
                 );
@@ -407,7 +405,7 @@ Future<bool> showFlow({
           // Next button: rebuilds only when canProceed or step changes
           Selector<FlowController, (bool, int)>(
             selector: (_, c) => (c.canProceed, c.currentIndex),
-            builder: (_, data, __) {
+            builder: (ctx, data, __) {
               final (canProceed, _) = data;
               return Padding(
                 padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
@@ -421,7 +419,7 @@ Future<bool> showFlow({
                   fontWeight: FontWeight.w600,
                   onPressed: canProceed
                       ? () async {
-                          final c = context.read<FlowController>();
+                          final c = ctx.read<FlowController>();
                           if (c.canGoForward) {
                             await c.goToNext();
                           } else if (c.isLastStep) {
