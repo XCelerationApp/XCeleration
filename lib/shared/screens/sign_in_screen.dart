@@ -523,6 +523,9 @@ class _AuthTextField extends StatefulWidget {
 
 class _AuthTextFieldState extends State<_AuthTextField> {
   bool _focused = false;
+  late final String _upperLabel;
+  late final TextStyle _labelBaseStyle;
+  late final TextStyle _inputTextStyle;
 
   void _onFocusChange() =>
       setState(() => _focused = widget.focusNode.hasFocus);
@@ -530,6 +533,14 @@ class _AuthTextFieldState extends State<_AuthTextField> {
   @override
   void initState() {
     super.initState();
+    _upperLabel = widget.label.toUpperCase();
+    _labelBaseStyle = AppTypography.smallCaption.copyWith(
+      fontWeight: FontWeight.w700,
+      letterSpacing: 0.5,
+    );
+    _inputTextStyle = AppTypography.bodyRegular.copyWith(
+      color: AppColors.darkColor,
+    );
     widget.focusNode.addListener(_onFocusChange);
   }
 
@@ -550,10 +561,8 @@ class _AuthTextFieldState extends State<_AuthTextField> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          widget.label.toUpperCase(),
-          style: AppTypography.smallCaption.copyWith(
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.5,
+          _upperLabel,
+          style: _labelBaseStyle.copyWith(
             color: hasError ? AppColors.primaryColor : AppColors.mediumColor,
           ),
         ),
@@ -594,8 +603,7 @@ class _AuthTextFieldState extends State<_AuthTextField> {
                   enableSuggestions: false,
                   smartDashesType: SmartDashesType.disabled,
                   smartQuotesType: SmartQuotesType.disabled,
-                  style: AppTypography.bodyRegular
-                      .copyWith(color: AppColors.darkColor),
+                  style: _inputTextStyle,
                   decoration: const InputDecoration(
                     border: InputBorder.none,
                     contentPadding: EdgeInsets.symmetric(
