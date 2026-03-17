@@ -14,6 +14,11 @@ class BibNumberDataController extends ChangeNotifier {
   final List<TextEditingController> controllers = [];
   final List<FocusNode> focusNodes = [];
 
+  /// Per-row notifiers so each [BibInputWidget] can rebuild independently
+  /// without triggering a full-list rebuild.
+  final List<ValueNotifier<BibDatumRecord>> _rowNotifiers = [];
+  List<ValueNotifier<BibDatumRecord>> get rowNotifiers => _rowNotifiers;
+
   /// Tracks keyboard visibility without going through the main [notifyListeners]
   /// path. Widgets that only need keyboard state (e.g. [KeyboardAccessoryBar])
   /// can listen to this notifier directly and avoid rebuilding on every
@@ -81,6 +86,7 @@ class BibNumberDataController extends ChangeNotifier {
   /// Returns the index of the added record.
   Future<int> addBibRecord(BibDatumRecord record) async {
     _bibRecords.add(record);
+    _rowNotifiers.add(ValueNotifier(record));
 
     final newIndex = _bibRecords.length - 1;
     final controller = _textInputFactory.createController(record.bib);
@@ -140,6 +146,7 @@ class BibNumberDataController extends ChangeNotifier {
     _syncCollections();
 
     _bibRecords[index] = record;
+    if (index < _rowNotifiers.length) _rowNotifiers[index].value = record;
 
     // Only update the controller text if it differs to avoid cursor jumping
     if (index < controllers.length) {
@@ -170,6 +177,11 @@ class BibNumberDataController extends ChangeNotifier {
     focusNodes[index].dispose();
     focusNodes.removeAt(index);
 
+    if (index < _rowNotifiers.length) {
+      _rowNotifiers[index].dispose();
+      _rowNotifiers.removeAt(index);
+    }
+
     // Remove from database if there's a current race
     if (_currentRace != null) {
       try {
@@ -198,6 +210,11 @@ class BibNumberDataController extends ChangeNotifier {
     }
     focusNodes.clear();
 
+    for (var notifier in _rowNotifiers) {
+      notifier.dispose();
+    }
+    _rowNotifiers.clear();
+
     notifyListeners();
   }
 
@@ -223,6 +240,7 @@ class BibNumberDataController extends ChangeNotifier {
   /// the end (e.g. [_loadBibRecords]).
   int addBibRecordSilent(BibDatumRecord record) {
     _bibRecords.add(record);
+    _rowNotifiers.add(ValueNotifier(record));
     final newIndex = _bibRecords.length - 1;
     controllers.add(_textInputFactory.createController(record.bib));
 
@@ -242,6 +260,7 @@ class BibNumberDataController extends ChangeNotifier {
   void updateBibRecordSilent(int index, BibDatumRecord record) {
     if (index < 0 || index >= _bibRecords.length) return;
     _bibRecords[index] = record;
+    if (index < _rowNotifiers.length) _rowNotifiers[index].value = record;
     if (index < controllers.length) {
       final currentText = controllers[index].text;
       if (currentText != record.bib) controllers[index].text = record.bib;
@@ -260,6 +279,10 @@ class BibNumberDataController extends ChangeNotifier {
       n.dispose();
     }
     focusNodes.clear();
+    for (var notifier in _rowNotifiers) {
+      notifier.dispose();
+    }
+    _rowNotifiers.clear();
   }
 
   /// Resets all mutable UI state (race, stopped flag, bib records) without
@@ -430,6 +453,10 @@ class BibNumberDataController extends ChangeNotifier {
     _bibRecords.clear();
     controllers.clear();
     focusNodes.clear();
+    for (var notifier in _rowNotifiers) {
+      notifier.dispose();
+    }
+    _rowNotifiers.clear();
     keyboardVisibleNotifier.dispose();
     super.dispose();
   }

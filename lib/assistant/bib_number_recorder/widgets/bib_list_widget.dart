@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../controller/bib_number_controller.dart';
+import '../model/bib_datum_record.dart';
 import 'bib_input_widget.dart';
 import '../../../core/components/dialog_utils.dart';
 
@@ -19,26 +20,46 @@ class _BibListWidgetState extends State<BibListWidget>
     with TickerProviderStateMixin {
   final Map<int, AnimationController> _animationControllers = {};
 
+  // Track the last-known values that require a full-list rebuild.
+  int _lastKnownCount = 0;
+  bool _lastKnownRaceStopped = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _lastKnownCount = widget.controller.bibRecords.length;
+    _lastKnownRaceStopped = widget.controller.raceStopped;
+    widget.controller.addListener(_onControllerChanged);
+  }
+
   @override
   void dispose() {
-    // Dispose all animation controllers
+    widget.controller.removeListener(_onControllerChanged);
     for (var controller in _animationControllers.values) {
       controller.dispose();
     }
     super.dispose();
   }
 
+  void _onControllerChanged() {
+    final newCount = widget.controller.bibRecords.length;
+    final newRaceStopped = widget.controller.raceStopped;
+    if (newCount != _lastKnownCount || newRaceStopped != _lastKnownRaceStopped) {
+      setState(() {
+        _lastKnownCount = newCount;
+        _lastKnownRaceStopped = newRaceStopped;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      // Add unfocus behavior when tapping outside textfields
       onTap: () {
-        // Unfocus any active text fields when tapping elsewhere
         FocusScope.of(context).unfocus();
       },
       child: Column(
         children: [
-          // List of bib records
           Expanded(
             child: ListView.builder(
               controller: widget.controller.scrollController,
@@ -77,9 +98,14 @@ class _BibListWidgetState extends State<BibListWidget>
                   onDismissed: (direction) {
                     widget.controller.removeBibRecord(index);
                   },
-                  child: BibInputWidget(
-                    index: index,
-                    controller: widget.controller,
+                  child: ValueListenableBuilder<BibDatumRecord>(
+                    valueListenable: widget.controller.rowNotifiers[index],
+                    builder: (context, record, _) => BibInputWidget(
+                      key: ValueKey('bib_input_$index'),
+                      index: index,
+                      record: record,
+                      controller: widget.controller,
+                    ),
                   ),
                 );
               },
