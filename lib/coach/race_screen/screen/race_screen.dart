@@ -104,10 +104,16 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<RaceScreenController>(
-      builder: (context, controller, _) {
-        // Handle loading state
-        if (controller.isLoading) {
+    // Outer Selector: only rebuilds when loading or error state changes.
+    // This is the rarest state transition (initial load, retry).
+    return Selector<RaceScreenController, ({bool isLoading, bool hasError, String error})>(
+      selector: (_, c) => (
+        isLoading: c.isLoading,
+        hasError: c.hasError,
+        error: c.hasError ? c.error : '',
+      ),
+      builder: (context, state, _) {
+        if (state.isLoading) {
           return const Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -120,49 +126,75 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
           );
         }
 
-        // Handle error state
-        if (controller.hasError) {
+        if (state.hasError) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.error_outline, size: 48, color: Colors.red),
-                SizedBox(height: 16),
-                Text('Error loading race data'),
-                SizedBox(height: 8),
+                const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                const SizedBox(height: 16),
+                const Text('Error loading race data'),
+                const SizedBox(height: 8),
                 Text(
-                  controller.error,
-                  style: TextStyle(color: Colors.grey),
+                  state.error,
+                  style: const TextStyle(color: Colors.grey),
                   textAlign: TextAlign.center,
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: () => controller.loadAllData(context),
-                  child: Text('Retry'),
+                  onPressed: () => context
+                      .read<RaceScreenController>()
+                      .loadAllData(context),
+                  child: const Text('Retry'),
                 ),
               ],
             ),
           );
         }
 
-        // Data available in controller - widgets access directly
-        final flowState = controller.flowState;
+        return _RaceScreenContent(
+          masterRace: widget.masterRace,
+        );
+      },
+    );
+  }
+}
 
-        return Stack(
-          children: [
-            Column(
+/// Stateless body rendered once loading is complete.
+///
+/// Uses targeted [Selector]s so that different sub-trees only rebuild when
+/// the state they actually depend on changes:
+/// - Layout structure rebuilds on [flowState] or [showingRunnersManagement]
+/// - [UnsavedChangesBar] rebuilds on its own slice of form + runner state
+class _RaceScreenContent extends StatelessWidget {
+  final MasterRace masterRace;
+  const _RaceScreenContent({required this.masterRace});
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = context.read<RaceScreenController>();
+
+    return Stack(
+      children: [
+        // Inner Selector: controls layout structure.
+        // Rebuilds only when flowState or navigation state changes —
+        // not on keystrokes or form-only updates.
+        Selector<RaceScreenController,
+            ({String flowState, bool showingRunners})>(
+          selector: (_, c) => (
+            flowState: c.flowState,
+            showingRunners: c.showingRunnersManagement,
+          ),
+          builder: (context, state, _) {
+            return Column(
               mainAxisSize: MainAxisSize.max,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (flowState != Race.FLOW_FINISHED) ...[
-                  // Sticky header
-                  RaceHeader(
-                    controller: controller,
-                  ),
-                  // Scrollable content
+                if (state.flowState != Race.FLOW_FINISHED) ...[
+                  RaceHeader(controller: controller),
                   Expanded(
                     child: SlidingPageView(
-                      showSecondPage: controller.showingRunnersManagement,
+                      showSecondPage: state.showingRunners,
                       onBackToFirst: () {
                         controller
                             .navigateToRaceDetails(context)
@@ -172,76 +204,78 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
                         });
                       },
                       firstPage: SingleChildScrollView(
-                        child: RaceDetailsTab(
-                          controller: controller,
-                        ),
+                        child: RaceDetailsTab(controller: controller),
                       ),
                       secondPage: Builder(
                         builder: (context) {
-                          // Only build TeamsAndRunnersManagementWidget when it's actually shown
-                          // This prevents it from creating listeners and causing infinite refresh loops
-                          if (controller.showingRunnersManagement) {
+                          if (state.showingRunners) {
                             return TeamsAndRunnersManagementWidget(
-                              masterRace: widget.masterRace,
+                              masterRace: masterRace,
                               showHeader: true,
                               onBack: () => controller
                                   .navigateToRaceDetails(context)
                                   .catchError((e) => debugPrint('$e')),
                               isViewMode: !controller.canEdit,
                             );
-                          } else {
-                            // Return a simple placeholder when not shown to avoid unnecessary widget creation
-                            // The real widget will be built when controller.showingRunnersManagement becomes true
-                            return Container(
-                              padding: EdgeInsets.all(16),
-                              child: Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.group,
-                                        size: 48, color: Colors.grey),
-                                    SizedBox(height: 16),
-                                    Text(
-                                      'Runners Management',
-                                      style: TextStyle(
-                                          fontSize: 18, color: Colors.grey),
-                                    ),
-                                    SizedBox(height: 8),
-                                    Text(
-                                      'Navigate from the main screen to manage runners',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(color: Colors.grey[600]),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
                           }
+                          // Lightweight placeholder — avoids constructing
+                          // the full runners widget before it is visible.
+                          return Container(
+                            padding: const EdgeInsets.all(16),
+                            child: Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.group,
+                                      size: 48, color: Colors.grey),
+                                  const SizedBox(height: 16),
+                                  const Text(
+                                    'Runners Management',
+                                    style: TextStyle(
+                                        fontSize: 18, color: Colors.grey),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Navigate from the main screen to manage runners',
+                                    textAlign: TextAlign.center,
+                                    style:
+                                        TextStyle(color: Colors.grey[600]),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
                         },
                       ),
                     ),
-                  )
-                ] else ...[
-                  // Sticky header for finished races
-                  RaceHeader(
-                    controller: controller,
                   ),
-                  // Tab Bar for finished races
+                ] else ...[
+                  RaceHeader(controller: controller),
                   TabBarWidget(controller: controller),
-                  // Tab Bar View
                   TabBarViewWidget(controller: controller),
                 ],
               ],
+            );
+          },
+        ),
+        // UnsavedChangesBar Selector: rebuilds only when form dirty state,
+        // runner presence, or flow state changes — not on layout navigation.
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: Selector<RaceScreenController,
+              ({bool hasUnsaved, bool runnersEmpty, String flowState})>(
+            selector: (_, c) => (
+              hasUnsaved: c.form.hasUnsavedChanges,
+              runnersEmpty: c.raceRunners.isEmpty,
+              flowState: c.flowState,
             ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: UnsavedChangesBar(controller: controller),
-            ),
-          ],
-        );
-      },
+            builder: (_, __, ___) =>
+                UnsavedChangesBar(controller: controller),
+          ),
+        ),
+      ],
     );
   }
 }
