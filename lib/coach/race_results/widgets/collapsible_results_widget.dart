@@ -76,23 +76,27 @@ class _CollapsibleResultsWidgetState extends State<CollapsibleResultsWidget> {
 
               const SizedBox(height: 8),
 
-              // Display results rows
-              ...displayResults.asMap().entries.map((entry) {
-                final index = entry.key;
-                final item = entry.value;
-                // Use subtle alternate row colors for better readability
-                final backgroundColor = index % 2 == 0
-                    ? Colors.transparent
-                    : ColorUtils.withOpacity(Colors.grey, 0.05);
+              // Display results rows lazily
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: displayResults.length,
+                itemBuilder: (context, index) {
+                  final item = displayResults[index];
+                  // Use subtle alternate row colors for better readability
+                  final backgroundColor = index % 2 == 0
+                      ? Colors.transparent
+                      : ColorUtils.withOpacity(Colors.grey, 0.05);
 
-                return Container(
-                  color: backgroundColor,
-                  padding: const EdgeInsets.symmetric(vertical: 6.0),
-                  child: isTeamResults
-                      ? _buildTeamResultRow(item as TeamRecord)
-                      : _buildIndividualResultRow(item as ResultsRecord),
-                );
-              }),
+                  return Container(
+                    color: backgroundColor,
+                    padding: const EdgeInsets.symmetric(vertical: 6.0),
+                    child: isTeamResults
+                        ? _buildTeamResultRow(item as TeamRecord)
+                        : _buildIndividualResultRow(item as ResultsRecord),
+                  );
+                },
+              ),
             ],
           ),
         ),
