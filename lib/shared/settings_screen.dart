@@ -10,7 +10,7 @@ import 'package:xceleration/core/services/i_sync_service.dart';
 import '../core/components/page_route_animations.dart';
 import 'role_screen.dart';
 
-class SettingsScreen extends StatefulWidget {
+class SettingsScreen extends StatelessWidget {
   final String currentRole;
 
   const SettingsScreen({
@@ -18,11 +18,6 @@ class SettingsScreen extends StatefulWidget {
     required this.currentRole,
   });
 
-  @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
-}
-
-class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
