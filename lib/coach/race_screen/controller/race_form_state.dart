@@ -76,12 +76,17 @@ class RaceFormState extends ChangeNotifier {
       RaceField.unit => ctrl.text,
     };
 
+    final bool wasDirty = _changedFields.contains(field);
     if (currentValue != _originalValues[field]) {
       _changedFields.add(field);
     } else {
       _changedFields.remove(field);
     }
-    notifyListeners();
+    // Only rebuild when a field transitions between clean and dirty.
+    // Avoids a full screen rebuild on every keystroke.
+    if (_changedFields.contains(field) != wasDirty) {
+      notifyListeners();
+    }
   }
 
   void revertField(RaceField field) {
