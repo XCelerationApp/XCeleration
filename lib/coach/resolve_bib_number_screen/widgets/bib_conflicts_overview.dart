@@ -32,6 +32,7 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
   List<RaceRunner>? _duplicateRaceRunners;
   List<int>? _duplicateBibNumberPlaces;
   List<RaceRunner>? _errorRaceRunners;
+  bool _resolved = false;
 
   @override
   void initState() {
@@ -43,6 +44,7 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
   }
 
   Future<void> _getErrorRaceRunners() async {
+    _resolved = false;
     Logger.d('Race Runners: $_raceRunners');
     try {
       final unknownRunners = <RaceRunner>[];
@@ -124,13 +126,15 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
     final errorRaceRunners = _errorRaceRunners!;
 
     if (errorRaceRunners.isEmpty) {
-      // All conflicts resolved - call onResolved callback and close the sheet
-      final resolvedRunners = _raceRunners.whereType<RaceRunner>().toList();
-
-      // Use addPostFrameCallback to ensure the widget tree is updated before calling the callback
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        widget.onResolved(resolvedRunners);
-      });
+      // All conflicts resolved - call onResolved callback exactly once per resolution event.
+      if (!_resolved) {
+        _resolved = true;
+        final resolvedRunners = _raceRunners.whereType<RaceRunner>().toList();
+        // Use addPostFrameCallback to ensure the widget tree is updated before calling the callback
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) widget.onResolved(resolvedRunners);
+        });
+      }
 
       return Center(
         child: Column(
