@@ -81,8 +81,14 @@ class InstructionsBanner extends StatelessWidget {
         return 'You time the race. Click start when the race begins, and log times when runners cross the finish line.\n\nWhen there is a break in the runners, check with the Bib Recorder to check that your records are the same number. Adjust if needed.';
       case Role.coach:
         return 'You create and manage the races. You will oversee your assistants and will compile and share the race results.';
+      case Role.bibRecorderV2:
+        return 'You record runners bib numbers during the race after they have passed the finish line. Hold the mic button to record each bib number by voice.\n\nBefore the race begins, you will need the Coach to share the runners with you.';
       case Role.spectator:
         return 'As a spectator, you can connect with a nearby coach to load races and view the results.';
+      case Role.verifier:
+        return 'You confirm each runner\'s name matches the bib number shown on screen as they leave the chute. Tap ✓ to confirm, ✗ to escalate to the Fixer, or — to skip.';
+      case Role.fixer:
+        return 'You resolve flagged bib conflicts sent by the Bib Recorder or Verifier. Search by name, correct the bib number, or mark the runner as unknown.';
     }
   }
 }
