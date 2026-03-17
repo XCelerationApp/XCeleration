@@ -107,10 +107,10 @@ class _RunnersListState extends State<RunnersList> {
       ..sort((a, b) => (a.name ?? '').compareTo(b.name ?? ''));
 
     return ListView.builder(
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-        itemCount: teams.length,
-        itemBuilder: (context, index) {
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+      itemCount: teams.length,
+      itemBuilder: (context, index) {
           final team = teams[index];
           final raceRunners = teamMap[team] ?? [];
           final expanded = _isExpanded(team);
@@ -183,7 +183,7 @@ class _RunnersListState extends State<RunnersList> {
               ),
             ),
           );
-        },
+      },
     );
   }
 }
