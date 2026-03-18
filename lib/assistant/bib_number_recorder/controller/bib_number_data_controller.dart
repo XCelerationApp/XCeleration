@@ -17,6 +17,12 @@ class BibNumberDataController extends ChangeNotifier {
   /// Per-row notifiers so each [BibInputWidget] can rebuild independently
   /// without triggering a full-list rebuild.
   final List<ValueNotifier<BibDatumRecord>> _rowNotifiers = [];
+
+  /// Stored listener closures parallel to [focusNodes] so [removeListener]
+  /// can receive the exact same object that was passed to [addListener].
+  /// An anonymous `() {}` passed to [removeListener] is a new object and
+  /// never matches the original, making the call a no-op.
+  final List<VoidCallback> _focusListeners = [];
   List<ValueNotifier<BibDatumRecord>> get rowNotifiers => _rowNotifiers;
 
   /// Narrow notifier for the current race so [RaceHeaderWidget] only rebuilds
@@ -71,10 +77,14 @@ class BibNumberDataController extends ChangeNotifier {
       }
       controllers.clear();
 
-      for (var node in focusNodes) {
-        node.dispose();
+      for (var i = 0; i < focusNodes.length; i++) {
+        if (i < _focusListeners.length) {
+          focusNodes[i].removeListener(_focusListeners[i]);
+        }
+        focusNodes[i].dispose();
       }
       focusNodes.clear();
+      _focusListeners.clear();
 
       // Reset records collection
       _bibRecords.clear();
@@ -97,15 +107,14 @@ class BibNumberDataController extends ChangeNotifier {
     controllers.add(controller);
 
     final focusNode = _textInputFactory.createFocusNode();
-    focusNode.addListener(() {
-      // Handle keyboard visibility
+    void focusListener() {
       keyboardVisibleNotifier.value = focusNode.hasFocus;
-
-      // Save to database when focus is lost
       if (!focusNode.hasFocus) {
         _saveBibRecordOnFocusLoss(newIndex);
       }
-    });
+    }
+    focusNode.addListener(focusListener);
+    _focusListeners.add(focusListener);
     focusNodes.add(focusNode);
 
     notifyListeners();
@@ -178,6 +187,10 @@ class BibNumberDataController extends ChangeNotifier {
     controllers[index].dispose();
     controllers.removeAt(index);
 
+    if (index < _focusListeners.length) {
+      focusNodes[index].removeListener(_focusListeners[index]);
+      _focusListeners.removeAt(index);
+    }
     focusNodes[index].dispose();
     focusNodes.removeAt(index);
 
@@ -209,10 +222,14 @@ class BibNumberDataController extends ChangeNotifier {
     }
     controllers.clear();
 
-    for (var node in focusNodes) {
-      node.dispose();
+    for (var i = 0; i < focusNodes.length; i++) {
+      if (i < _focusListeners.length) {
+        focusNodes[i].removeListener(_focusListeners[i]);
+      }
+      focusNodes[i].dispose();
     }
     focusNodes.clear();
+    _focusListeners.clear();
 
     for (var notifier in _rowNotifiers) {
       notifier.dispose();
@@ -250,12 +267,14 @@ class BibNumberDataController extends ChangeNotifier {
     controllers.add(_textInputFactory.createController(record.bib));
 
     final focusNode = _textInputFactory.createFocusNode();
-    focusNode.addListener(() {
+    void focusListener() {
       keyboardVisibleNotifier.value = focusNode.hasFocus;
       if (!focusNode.hasFocus) {
         _saveBibRecordOnFocusLoss(newIndex);
       }
-    });
+    }
+    focusNode.addListener(focusListener);
+    _focusListeners.add(focusListener);
     focusNodes.add(focusNode);
     return newIndex;
   }
@@ -280,10 +299,14 @@ class BibNumberDataController extends ChangeNotifier {
       c.dispose();
     }
     controllers.clear();
-    for (var n in focusNodes) {
-      n.dispose();
+    for (var i = 0; i < focusNodes.length; i++) {
+      if (i < _focusListeners.length) {
+        focusNodes[i].removeListener(_focusListeners[i]);
+      }
+      focusNodes[i].dispose();
     }
     focusNodes.clear();
+    _focusListeners.clear();
     for (var notifier in _rowNotifiers) {
       notifier.dispose();
     }
@@ -433,17 +456,20 @@ class BibNumberDataController extends ChangeNotifier {
 
   @override
   void dispose() {
-    // Dispose of focus nodes
-    for (var node in focusNodes) {
+    // Dispose of focus nodes — remove the stored listener reference first so
+    // focus events that fire during teardown cannot call notifyListeners() on
+    // the partially-disposed controller.
+    for (var i = 0; i < focusNodes.length; i++) {
       try {
-        // Try to remove listeners first to prevent callbacks during dispose
-        node.removeListener(() {});
-        node.dispose();
+        if (i < _focusListeners.length) {
+          focusNodes[i].removeListener(_focusListeners[i]);
+        }
+        focusNodes[i].dispose();
       } catch (e) {
-        // Node may already be disposed, ignore the error
         Logger.e('Warning: Error disposing focus node: $e');
       }
     }
+    _focusListeners.clear();
 
     // Dispose of text controllers
     for (var controller in controllers) {
