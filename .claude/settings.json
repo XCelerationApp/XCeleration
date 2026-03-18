@@ -4,6 +4,7 @@
       "Bash(git *)",
       "Bash(git * && *)",
       "Bash(git status && git log *)",
+      "Bash(git status && git log origin/$(git branch --show-current)..HEAD)",
       "Bash(git -C * worktree *)",
       "Bash(WORKTREE=* && MAIN=* && git -C * worktree *)",
       "Bash(gh *)",
