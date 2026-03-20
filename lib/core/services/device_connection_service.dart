@@ -71,6 +71,9 @@ class DevicesManager {
   ConnectedDevice? _bibRecorder;
   ConnectedDevice? _raceTimer;
   ConnectedDevice? _spectator;
+  ConnectedDevice? _verifier;
+  ConnectedDevice? _fixer;
+  ConnectedDevice? _bibRecorderV2;
 
   /// Creates a device manager for the current device name and type
   ///
@@ -83,6 +86,25 @@ class DevicesManager {
   }
 
   void _initializeDevices() {
+    // Finish-line roles connect to both their peers regardless of device type
+    // and do not require an initial data payload.
+    if (_currentDeviceName == DeviceName.bibRecorderV2) {
+      _bibRecorderV2 = ConnectedDevice(DeviceName.bibRecorderV2);
+      _verifier = ConnectedDevice(DeviceName.verifier);
+      _fixer = ConnectedDevice(DeviceName.fixer);
+      return;
+    } else if (_currentDeviceName == DeviceName.verifier) {
+      _verifier = ConnectedDevice(DeviceName.verifier);
+      _bibRecorderV2 = ConnectedDevice(DeviceName.bibRecorderV2);
+      _fixer = ConnectedDevice(DeviceName.fixer);
+      return;
+    } else if (_currentDeviceName == DeviceName.fixer) {
+      _fixer = ConnectedDevice(DeviceName.fixer);
+      _verifier = ConnectedDevice(DeviceName.verifier);
+      _bibRecorderV2 = ConnectedDevice(DeviceName.bibRecorderV2);
+      return;
+    }
+
     if (_currentDeviceType == DeviceType.advertiserDevice) {
       if (_data == null) {
         throw Exception(
@@ -173,6 +195,9 @@ class DevicesManager {
         if (_bibRecorder != null) _bibRecorder!,
         if (_raceTimer != null) _raceTimer!,
         if (_spectator != null) _spectator!,
+        if (_verifier != null) _verifier!,
+        if (_fixer != null) _fixer!,
+        if (_bibRecorderV2 != null) _bibRecorderV2!,
       ];
 
   List<ConnectedDevice> get otherDevices {
@@ -231,6 +256,7 @@ class DeviceConnectionService implements DeviceConnectionServiceInterface {
   final String _serviceType;
   final String _deviceName;
   final DeviceType _deviceType;
+  final Strategy _strategy;
 
   // Subscription for data received
   StreamSubscription? receivedDataSubscription;
@@ -261,9 +287,11 @@ class DeviceConnectionService implements DeviceConnectionServiceInterface {
     this._deviceName,
     this._deviceType,
     this._nearbyConnections, {
+    Strategy strategy = Strategy.P2P_STAR,
     PlatformCheckerInterface? platformChecker,
     NearbyConnectionsInterface Function()? nearbyConnectionsFactory,
-  })  : _platformChecker = platformChecker ?? const PlatformChecker(),
+  })  : _strategy = strategy,
+        _platformChecker = platformChecker ?? const PlatformChecker(),
         _nearbyConnectionsFactory =
             nearbyConnectionsFactory ?? NearbyConnections.new;
 
@@ -333,7 +361,7 @@ class DeviceConnectionService implements DeviceConnectionServiceInterface {
           await testService.init(
             serviceType: 'test',
             deviceName: 'test',
-            strategy: Strategy.P2P_STAR,
+            strategy: _strategy,
             callback: (isRunning) {
               if (!completer.isCompleted) {
                 nearbyConnectionsInitialized = true;
@@ -395,7 +423,7 @@ class DeviceConnectionService implements DeviceConnectionServiceInterface {
       await _nearbyConnections.init(
           serviceType: _serviceType,
           deviceName: _deviceName,
-          strategy: Strategy.P2P_STAR,
+          strategy: _strategy,
           callback: (isRunning) async {
             // Check if we've been disposed or cancelled while initializing
             if (_shouldCancel(token) || !isRunning) {
