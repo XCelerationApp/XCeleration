@@ -206,6 +206,43 @@ void main() {
     });
   });
 
+  group('Strategy configuration', () {
+    test('init uses P2P_POINT_TO_POINT when injected via constructor', () async {
+      final svc = DeviceConnectionService(
+        mockDevicesManager,
+        'wirelessconn',
+        'verifier',
+        DeviceType.browserDevice,
+        mockNearbyConnections,
+        strategy: Strategy.P2P_POINT_TO_POINT,
+        platformChecker: mockPlatformChecker,
+        nearbyConnectionsFactory: () => mockNearbyConnections,
+      );
+      clearInteractions(mockNearbyConnections);
+      await svc.init();
+
+      verify(mockNearbyConnections.init(
+        serviceType: anyNamed('serviceType'),
+        deviceName: anyNamed('deviceName'),
+        strategy: Strategy.P2P_POINT_TO_POINT,
+        callback: anyNamed('callback'),
+      )).called(1);
+      svc.dispose();
+    });
+
+    test('init defaults to P2P_STAR when no strategy is provided', () async {
+      clearInteractions(mockNearbyConnections);
+      await deviceConnectionService.init();
+
+      verify(mockNearbyConnections.init(
+        serviceType: anyNamed('serviceType'),
+        deviceName: anyNamed('deviceName'),
+        strategy: Strategy.P2P_STAR,
+        callback: anyNamed('callback'),
+      )).called(1);
+    });
+  });
+
   group('Device scanning', () {
     test('init should initialize nearby service', () async {
       // Act
