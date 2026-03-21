@@ -29,6 +29,12 @@ const int _kQueueCap = 500;
 ///   devices connect and disconnect.
 /// - Exposes [sendMessage] for typed outbound messages and [incomingMessages]
 ///   for typed inbound messages.
+/// - Stamps every outbound message with a monotonic sequence number and
+///   tracks un-ACKed messages in [_pendingAck]. On disconnect the pending
+///   messages are re-queued in front of the offline queue so they are
+///   re-delivered in order on reconnect.
+/// - Receiver side deduplicates re-delivered messages using the sequence
+///   number and sends a lightweight ACK after each processed message.
 /// - Drops messages from unrecognised device IDs silently (defence against
 ///   misconfigured devices).
 class P2PSessionService {
@@ -49,6 +55,15 @@ class P2PSessionService {
   // Per-peer outbound queues for messages buffered while the peer is offline.
   final Map<Role, List<MessageEnvelope>> _outboundQueues = {};
 
+  // Messages sent but not yet ACKed, keyed by target role then sequence number.
+  final Map<Role, Map<int, MessageEnvelope>> _pendingAck = {};
+
+  // Highest sequence number seen from each sender role, for deduplication.
+  final Map<Role, int> _highestSeenSequence = {};
+
+  // Monotonically increasing counter — assigned at sendMessage time.
+  int _nextSequence = 0;
+
   final StreamController<(Role, MessageEnvelope)> _incomingController =
       StreamController.broadcast();
 
@@ -63,6 +78,7 @@ class P2PSessionService {
   ///
   /// Each event is a `(Role sender, MessageEnvelope msg)` record.
   /// Messages from unrecognised device IDs are silently dropped.
+  /// ACK envelopes are never emitted here — they are handled internally.
   Stream<(Role, MessageEnvelope)> get incomingMessages =>
       _incomingController.stream;
 
@@ -96,11 +112,15 @@ class P2PSessionService {
     );
   }
 
-  /// Serialises [msg] to JSON and sends it to the peer device running [target].
+  /// Serialises [msg] to JSON, stamps a sequence number, and sends it to the
+  /// peer device running [target].
   ///
-  /// If [target] is not currently connected the message is added to its
-  /// outbound queue and will be flushed automatically when it reconnects.
+  /// If [target] is currently connected the message is sent immediately and
+  /// tracked in the pending-ACK map until the peer acknowledges receipt.
+  /// If [target] is not connected the stamped message is added to its outbound
+  /// queue and will be flushed automatically when it reconnects.
   Future<void> sendMessage(Role target, MessageEnvelope msg) async {
+    final stamped = msg.withSequence(_nextSequence++);
     final deviceId = _roleToDeviceId[target];
     if (deviceId == null) {
       final queue = _outboundQueues.putIfAbsent(target, () => []);
@@ -109,18 +129,20 @@ class P2PSessionService {
         Logger.d(
             '[P2PSessionService] Queue cap hit for $target — oldest message evicted.');
       }
-      queue.add(msg);
+      queue.add(stamped);
       return;
     }
     try {
-      final json = jsonEncode(msg.toJson());
+      final json = jsonEncode(stamped.toJson());
       await _nearbyConnections.sendMessage(deviceId, json);
+      _pendingAck.putIfAbsent(target, () => {})[stamped.sequence!] = stamped;
     } catch (e) {
       Logger.e('[P2PSessionService] sendMessage to $target failed: $e');
     }
   }
 
-  /// Returns the number of messages currently buffered for [peer].
+  /// Returns the number of messages currently buffered in the offline queue
+  /// for [peer].
   ///
   /// Non-zero only when [peer] is offline.  Useful for showing a badge in the
   /// peer-status strip.
@@ -162,6 +184,9 @@ class P2PSessionService {
           _roleToDeviceId[role] = device.deviceId;
           await _flushQueue(role);
         case SessionState.notConnected:
+          // Re-queue any un-ACKed messages before the device goes offline so
+          // they are re-delivered in order on the next reconnect.
+          _requeuePending(role);
           // Device visible but not connected — auto-invite.
           try {
             await _nearbyConnections.invitePeer(
@@ -199,9 +224,39 @@ class P2PSessionService {
       final envelope = MessageEnvelope.fromJson(
         (jsonDecode(message) as Map).cast<String, dynamic>(),
       );
+
+      // ACKs are transport-level — remove from pending and do not forward.
+      if (envelope.type == MessageType.ack) {
+        final seq = envelope.sequence;
+        if (seq != null) _pendingAck[senderRole]?.remove(seq);
+        return;
+      }
+
+      final seq = envelope.sequence;
+      if (seq != null) {
+        final highest = _highestSeenSequence[senderRole];
+        if (highest != null && seq <= highest) {
+          // Duplicate re-delivery — acknowledge again and drop.
+          unawaited(_sendAck(senderDeviceId, seq));
+          return;
+        }
+        _highestSeenSequence[senderRole] = seq;
+        unawaited(_sendAck(senderDeviceId, seq));
+      }
+
       _incomingController.add((senderRole, envelope));
     } catch (e) {
       Logger.d('[P2PSessionService] Failed to parse incoming message: $e');
+    }
+  }
+
+  /// Sends a lightweight ACK back to [deviceId] confirming [sequence].
+  Future<void> _sendAck(String deviceId, int sequence) async {
+    try {
+      final ack = MessageEnvelope.wrapAck(sequence);
+      await _nearbyConnections.sendMessage(deviceId, jsonEncode(ack.toJson()));
+    } catch (e) {
+      Logger.e('[P2PSessionService] Failed to send ACK for seq $sequence: $e');
     }
   }
 
@@ -214,10 +269,26 @@ class P2PSessionService {
     for (final msg in queue) {
       try {
         await _nearbyConnections.sendMessage(deviceId, jsonEncode(msg.toJson()));
+        _pendingAck.putIfAbsent(role, () => {})[msg.sequence!] = msg;
       } catch (e) {
         Logger.e('[P2PSessionService] Flush sendMessage to $role failed: $e');
       }
     }
+  }
+
+  /// Moves all un-ACKed messages for [role] back to the front of the offline
+  /// queue in ascending sequence order, so they are re-delivered before any
+  /// newer messages on the next reconnect.
+  void _requeuePending(Role role) {
+    final pending = _pendingAck.remove(role);
+    if (pending == null || pending.isEmpty) return;
+    final sorted = pending.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+    final existing = _outboundQueues.remove(role) ?? [];
+    _outboundQueues[role] = [
+      ...sorted.map((e) => e.value),
+      ...existing,
+    ];
   }
 
   /// Extracts a [Role] from a device name formatted as `xce-<roleName>`.
@@ -235,3 +306,9 @@ class P2PSessionService {
     };
   }
 }
+
+/// Discards the [Future] returned by an async call intentionally.
+///
+/// Used for fire-and-forget operations (e.g. sending ACKs from a sync
+/// callback) where we accept that the result is not awaited.
+void unawaited(Future<void> future) {}
