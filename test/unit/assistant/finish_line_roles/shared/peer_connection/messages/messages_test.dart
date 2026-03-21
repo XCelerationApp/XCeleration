@@ -64,6 +64,32 @@ void main() {
         );
         expect(decoded.status, BibEntryStatus.duplicate);
       });
+
+      test('round-trips runner context when present', () {
+        final msg = BibEntryMessage(
+          finishPosition: 1,
+          bib: 42,
+          status: BibEntryStatus.resolved,
+          timestamp: timestamp,
+          runnerName: 'Alice',
+          teamAbbreviation: 'NCC',
+          teamColor: 0xFF123456,
+        );
+        final decoded = BibEntryMessage.fromJson(msg.toJson());
+
+        expect(decoded.runnerName, 'Alice');
+        expect(decoded.teamAbbreviation, 'NCC');
+        expect(decoded.teamColor, 0xFF123456);
+      });
+
+      test('round-trips null runner context for unknown bib', () {
+        final decoded = BibEntryMessage.fromJson(
+          makeEntry(status: BibEntryStatus.unknown).toJson(),
+        );
+        expect(decoded.runnerName, isNull);
+        expect(decoded.teamAbbreviation, isNull);
+        expect(decoded.teamColor, isNull);
+      });
     });
   });
 
