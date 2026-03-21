@@ -42,7 +42,7 @@ final _testRace =
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  late MockRaceController mockRaceController;
+  late MockRaceScreenController mockRaceController;
   late MockPreRaceController mockPreRaceController;
   late MockPostRaceController mockPostRaceController;
   late MockMasterRace mockMasterRace;
@@ -50,7 +50,7 @@ void main() {
   late MasterFlowController controller;
 
   setUp(() {
-    mockRaceController = MockRaceController();
+    mockRaceController = MockRaceScreenController();
     mockPreRaceController = MockPreRaceController();
     mockPostRaceController = MockPostRaceController();
     mockMasterRace = MockMasterRace();
