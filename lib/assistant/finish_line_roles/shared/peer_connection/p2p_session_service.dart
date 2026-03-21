@@ -13,6 +13,10 @@ import 'package:xceleration/shared/role_bar/models/role_enums.dart';
 /// Format: `xce-<roleName>` e.g. `xce-bibRecorderV2`
 const _kDeviceNamePrefix = 'xce-';
 
+/// Maximum number of messages buffered per peer while they are offline.
+/// When this cap is reached the oldest message is evicted to make room.
+const int _kQueueCap = 500;
+
 /// Wraps [NearbyConnectionsInterface] and exposes typed [MessageEnvelope]
 /// send/receive for the three finish-line roles.
 ///
@@ -41,6 +45,9 @@ class P2PSessionService {
   // Role ↔ device-ID look-ups for currently connected peers.
   final Map<String, Role> _deviceIdToRole = {};
   final Map<Role, String> _roleToDeviceId = {};
+
+  // Per-peer outbound queues for messages buffered while the peer is offline.
+  final Map<Role, List<MessageEnvelope>> _outboundQueues = {};
 
   final StreamController<(Role, MessageEnvelope)> _incomingController =
       StreamController.broadcast();
@@ -91,12 +98,18 @@ class P2PSessionService {
 
   /// Serialises [msg] to JSON and sends it to the peer device running [target].
   ///
-  /// No-ops silently if [target] is not currently connected.
+  /// If [target] is not currently connected the message is added to its
+  /// outbound queue and will be flushed automatically when it reconnects.
   Future<void> sendMessage(Role target, MessageEnvelope msg) async {
     final deviceId = _roleToDeviceId[target];
     if (deviceId == null) {
-      Logger.d(
-          '[P2PSessionService] sendMessage: $target not connected, dropping.');
+      final queue = _outboundQueues.putIfAbsent(target, () => []);
+      if (queue.length >= _kQueueCap) {
+        queue.removeAt(0);
+        Logger.d(
+            '[P2PSessionService] Queue cap hit for $target — oldest message evicted.');
+      }
+      queue.add(msg);
       return;
     }
     try {
@@ -106,6 +119,12 @@ class P2PSessionService {
       Logger.e('[P2PSessionService] sendMessage to $target failed: $e');
     }
   }
+
+  /// Returns the number of messages currently buffered for [peer].
+  ///
+  /// Non-zero only when [peer] is offline.  Useful for showing a badge in the
+  /// peer-status strip.
+  int pendingCount(Role peer) => _outboundQueues[peer]?.length ?? 0;
 
   /// Stops advertising/browsing, cancels subscriptions, and closes the stream.
   Future<void> dispose() async {
@@ -141,6 +160,7 @@ class P2PSessionService {
         case SessionState.connected:
           _deviceIdToRole[device.deviceId] = role;
           _roleToDeviceId[role] = device.deviceId;
+          await _flushQueue(role);
         case SessionState.notConnected:
           // Device visible but not connected — auto-invite.
           try {
@@ -182,6 +202,21 @@ class P2PSessionService {
       _incomingController.add((senderRole, envelope));
     } catch (e) {
       Logger.d('[P2PSessionService] Failed to parse incoming message: $e');
+    }
+  }
+
+  /// Drains the outbound queue for [role], sending each buffered message in
+  /// FIFO order.  Assumes the peer is already registered in [_roleToDeviceId].
+  Future<void> _flushQueue(Role role) async {
+    final queue = _outboundQueues.remove(role);
+    if (queue == null || queue.isEmpty) return;
+    final deviceId = _roleToDeviceId[role]!;
+    for (final msg in queue) {
+      try {
+        await _nearbyConnections.sendMessage(deviceId, jsonEncode(msg.toJson()));
+      } catch (e) {
+        Logger.e('[P2PSessionService] Flush sendMessage to $role failed: $e');
+      }
     }
   }
 
