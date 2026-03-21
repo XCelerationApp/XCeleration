@@ -19,9 +19,10 @@ Use the `mcp__linear__*` tools (e.g. `mcp__linear__get_issue`, `mcp__linear__sav
 
 ## The Agent's Role
 
-The agent reads the issue, implements the work, commits, pushes, and updates the PR description. That's it.
+The agent reads the issue, implements the work, commits, pushes, and updates the PR description.
 
-**The agent never marks issues Done.** That is the user's step, triggered via `/done` after reviewing the work.
+- **Subissues** — the agent marks them Done automatically after pushing. No `/done` needed from the user.
+- **Top-level issues** — the agent never marks these Done. That is the user's step, triggered via `/done` after reviewing the work.
 
 ---
 
@@ -31,7 +32,7 @@ The agent reads the issue, implements the work, commits, pushes, and updates the
 - The user asks to create an issue → follow the creation rules below
 - A significant unexpected blocker is hit → add a comment before stopping
 
-Do not move issues through statuses (In Progress, In Review, etc.). The only status change that matters is Done, and that belongs to the user.
+Do not move issues through statuses (In Progress, In Review, etc.) except for the Done transition described above.
 
 ---
 
@@ -123,15 +124,19 @@ Use subissues when a large or complex problem requires multiple distinct steps o
 
 ### Completing Subissues
 
-All subissues share the parent's worktree and branch. When finished with a subissue, push the commits and update the PR description as normal, then remind the user to run `/done XCE-101` (with the subissue ID) to mark it Done. The worktree stays open.
+All subissues share the parent's worktree and branch. When finished with a subissue:
 
-Once the user has marked all subissues Done, they run `/done` (no argument, or with the parent issue ID) to mark the parent Done and close the worktree.
+1. Push the commits and update the PR description as normal.
+2. **Immediately mark the subissue Done** using `mcp__linear__save_issue` — do not wait for the user to run `/done`. The worktree stays open.
+3. Tell the user the subissue is marked Done and the worktree remains open for remaining subissues.
+
+Once all subissues are Done, the user runs `/done` (no argument, or with the parent issue ID) to mark the parent Done and close the worktree.
 
 ---
 
 ## What Not to Do
 
 - Don't create issues for things already in scope of the current issue
-- Don't move issues through statuses — the agent doesn't touch status
+- Don't move issues through statuses other than Done
 - Don't post comments just to say work is in progress
-- Don't mark any issue Done — that is always the user's step via `/done`
+- Don't mark top-level issues Done — that is always the user's step via `/done`
