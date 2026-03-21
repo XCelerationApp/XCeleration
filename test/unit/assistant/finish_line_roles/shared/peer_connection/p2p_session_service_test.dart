@@ -114,6 +114,115 @@ void main() {
   });
 
   // ---------------------------------------------------------------------------
+  // Offline queue
+  // ---------------------------------------------------------------------------
+
+  group('offline queue', () {
+    test('queues messages sent while peer is offline', () async {
+      final envelope = MessageEnvelope.wrapBibEntry(makeEntry());
+      await service.sendMessage(Role.verifier, envelope);
+
+      expect(service.pendingCount(Role.verifier), 1);
+      verifyNever(mockNearby.sendMessage(any, any));
+    });
+
+    test('flushes queued messages in FIFO order on reconnect', () async {
+      final e1 = MessageEnvelope.wrapBibEntry(
+          BibEntryMessage(finishPosition: 1, bib: 1, status: BibEntryStatus.resolved, timestamp: DateTime.utc(2026, 3, 20)));
+      final e2 = MessageEnvelope.wrapBibEntry(
+          BibEntryMessage(finishPosition: 2, bib: 2, status: BibEntryStatus.resolved, timestamp: DateTime.utc(2026, 3, 20)));
+      final e3 = MessageEnvelope.wrapBibEntry(
+          BibEntryMessage(finishPosition: 3, bib: 3, status: BibEntryStatus.resolved, timestamp: DateTime.utc(2026, 3, 20)));
+
+      await service.sendMessage(Role.verifier, e1);
+      await service.sendMessage(Role.verifier, e2);
+      await service.sendMessage(Role.verifier, e3);
+
+      expect(service.pendingCount(Role.verifier), 3);
+      verifyNever(mockNearby.sendMessage(any, any));
+
+      await connectVerifier();
+
+      expect(service.pendingCount(Role.verifier), 0);
+
+      final captured = verify(mockNearby.sendMessage(
+        'verifier-device-id',
+        captureAny,
+      )).captured;
+
+      expect(captured.length, 3);
+      expect(captured[0], jsonEncode(e1.toJson()));
+      expect(captured[1], jsonEncode(e2.toJson()));
+      expect(captured[2], jsonEncode(e3.toJson()));
+    });
+
+    test('evicts oldest message when queue cap is exceeded', () async {
+      // Fill the queue to the cap (500) with position 0..499, then send one
+      // more (position 500) which should evict position 0.
+      for (int i = 0; i < 500; i++) {
+        await service.sendMessage(
+          Role.verifier,
+          MessageEnvelope.wrapBibEntry(BibEntryMessage(
+            finishPosition: i,
+            bib: i,
+            status: BibEntryStatus.resolved,
+            timestamp: DateTime.utc(2026, 3, 20),
+          )),
+        );
+      }
+      expect(service.pendingCount(Role.verifier), 500);
+
+      final newMsg = MessageEnvelope.wrapBibEntry(BibEntryMessage(
+        finishPosition: 500,
+        bib: 500,
+        status: BibEntryStatus.resolved,
+        timestamp: DateTime.utc(2026, 3, 20),
+      ));
+      await service.sendMessage(Role.verifier, newMsg);
+
+      // Count stays at cap.
+      expect(service.pendingCount(Role.verifier), 500);
+
+      // The newest message (position 500) must be in the queue.
+      await connectVerifier();
+      final captured = verify(mockNearby.sendMessage(
+        'verifier-device-id',
+        captureAny,
+      )).captured;
+
+      expect(captured.last, jsonEncode(newMsg.toJson()));
+      // Position 0 (the oldest) must have been evicted.
+      final firstJson = jsonEncode(MessageEnvelope.wrapBibEntry(BibEntryMessage(
+        finishPosition: 0,
+        bib: 0,
+        status: BibEntryStatus.resolved,
+        timestamp: DateTime.utc(2026, 3, 20),
+      )).toJson());
+      expect(captured.contains(firstJson), isFalse);
+    });
+
+    test('pendingCount returns 0 when peer is connected', () async {
+      await connectVerifier();
+      expect(service.pendingCount(Role.verifier), 0);
+    });
+
+    test('pendingCount returns 0 after flush on reconnect', () async {
+      await service.sendMessage(Role.verifier, MessageEnvelope.wrapBibEntry(makeEntry()));
+      expect(service.pendingCount(Role.verifier), 1);
+
+      await connectVerifier();
+      expect(service.pendingCount(Role.verifier), 0);
+    });
+
+    test('queue for one peer does not affect another peer', () async {
+      await service.sendMessage(Role.verifier, MessageEnvelope.wrapBibEntry(makeEntry()));
+
+      expect(service.pendingCount(Role.verifier), 1);
+      expect(service.pendingCount(Role.fixer), 0);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
   // incomingMessages
   // ---------------------------------------------------------------------------
 
