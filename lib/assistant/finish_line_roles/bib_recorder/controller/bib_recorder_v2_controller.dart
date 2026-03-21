@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:xceleration/assistant/bib_number_recorder/services/i_voice_recognition_service.dart';
 import 'package:xceleration/assistant/bib_number_recorder/services/voice_recognition_service.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/models/bib_entry.dart';
+import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/messages/messages.dart';
+import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/p2p_session_service.dart';
 import 'package:xceleration/assistant/shared/models/race_record.dart';
 import 'package:xceleration/assistant/shared/models/runner.dart';
 import 'package:xceleration/assistant/shared/services/i_assistant_storage_service.dart';
@@ -14,6 +16,7 @@ import 'package:xceleration/core/utils/encode_utils.dart';
 import 'package:xceleration/core/utils/enums.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/shared/models/timing_records/bib_datum.dart';
+import 'package:xceleration/shared/role_bar/models/role_enums.dart';
 
 /// Controls the full lifecycle of the new Bib Recorder role:
 ///   Lobby → Race Mode (live recording) → Manage Mode (post-race review).
@@ -25,16 +28,25 @@ class BibRecorderV2Controller extends ChangeNotifier {
     required IAssistantStorageService storage,
     IVoiceRecognitionService? voice,
     IHapticFeedback? haptic,
+    P2PSessionService? session,
   })  : _storage = storage,
         _voice = voice ?? VoiceRecognitionService.create(),
-        _haptic = haptic ?? HapticFeedbackService();
+        _haptic = haptic ?? HapticFeedbackService(),
+        _session = session;
 
   final IAssistantStorageService _storage;
   final IVoiceRecognitionService _voice;
   final IHapticFeedback _haptic;
+  final P2PSessionService? _session;
 
   StreamSubscription<int?>? _bibSub;
   StreamSubscription<String>? _transcriptSub;
+  StreamSubscription<(Role, MessageEnvelope)>? _sessionSub;
+
+  // Monotonically increasing finish position — incremented on every bib insert.
+  int _nextPosition = 0;
+  // Maps finish position → BibEntry.id for applying Fixer corrections.
+  final Map<int, int> _positionToEntryId = {};
 
   // ── Race-selection state ──────────────────────────────────────────────────
 
@@ -81,8 +93,12 @@ class BibRecorderV2Controller extends ChangeNotifier {
   // ── Lifecycle ─────────────────────────────────────────────────────────────
 
   /// Call once after creating the controller. Loads races and initialises the
-  /// voice service in parallel.
+  /// voice service in parallel. If a [P2PSessionService] was provided it also
+  /// subscribes to incoming [FixerCorrectionMessage]s.
   Future<void> initialize() async {
+    if (_session != null) {
+      _sessionSub = _session.incomingMessages.listen(_onSessionMessage);
+    }
     await Future.wait([
       _loadRaces(),
       _initVoice(),
@@ -225,11 +241,12 @@ class BibRecorderV2Controller extends ChangeNotifier {
     _transcript = '';
     _awaitingRecord = false;
     if (bib != null) {
-      _entries.insert(
-        0,
-        BibEntry(id: DateTime.now().millisecondsSinceEpoch, bib: bib),
-      );
+      final entry = BibEntry(id: DateTime.now().millisecondsSinceEpoch, bib: bib);
+      _entries.insert(0, entry);
       if (flagFor(bib) != null) _haptic.vibrate();
+      _nextPosition++;
+      _positionToEntryId[_nextPosition] = entry.id;
+      _sendBibEntry(entry.id, bib, _nextPosition);
     }
     notifyListeners();
   }
@@ -239,11 +256,12 @@ class BibRecorderV2Controller extends ChangeNotifier {
   /// Adds a bib entry directly (used by manual mode).
   void addBib(int bib) {
     _awaitingRecord = false;
-    _entries.insert(
-      0,
-      BibEntry(id: DateTime.now().millisecondsSinceEpoch, bib: bib),
-    );
+    final entry = BibEntry(id: DateTime.now().millisecondsSinceEpoch, bib: bib);
+    _entries.insert(0, entry);
     if (flagFor(bib) != null) _haptic.vibrate();
+    _nextPosition++;
+    _positionToEntryId[_nextPosition] = entry.id;
+    _sendBibEntry(entry.id, bib, _nextPosition);
     notifyListeners();
   }
 
@@ -290,12 +308,49 @@ class BibRecorderV2Controller extends ChangeNotifier {
     return BibEncodeUtils.getEncodedBibData(bibData);
   }
 
+  // ── P2P ───────────────────────────────────────────────────────────────────
+
+  void _sendBibEntry(int entryId, int bib, int position) {
+    if (_session == null) return;
+    final flag = flagFor(bib, excludeId: entryId);
+    final status = flag == 'duplicate'
+        ? BibEntryStatus.duplicate
+        : flag == 'unknown'
+            ? BibEntryStatus.unknown
+            : BibEntryStatus.resolved;
+    unawaited(_session.sendMessage(
+      Role.verifier,
+      MessageEnvelope.wrapBibEntry(BibEntryMessage(
+        finishPosition: position,
+        bib: bib,
+        status: status,
+        timestamp: DateTime.now(),
+      )),
+    ));
+  }
+
+  void _onSessionMessage((Role, MessageEnvelope) event) {
+    final (_, envelope) = event;
+    if (envelope.type != MessageType.fixerCorrection) return;
+    _applyCorrection(envelope.decode() as FixerCorrectionMessage);
+  }
+
+  void _applyCorrection(FixerCorrectionMessage msg) {
+    final entryId = _positionToEntryId[msg.finishPosition];
+    if (entryId == null) return;
+    final idx = _entries.indexWhere((e) => e.id == entryId);
+    if (idx == -1) return;
+    _entries[idx] = _entries[idx].copyWith(correctedTo: msg.correctedBib);
+    notifyListeners();
+  }
+
   // ── Dispose ───────────────────────────────────────────────────────────────
 
   @override
   void dispose() {
     _bibSub?.cancel();
     _transcriptSub?.cancel();
+    _sessionSub?.cancel();
     _voice.dispose();
     super.dispose();
   }
