@@ -451,14 +451,12 @@ class BibNumberController extends BibNumberDataController {
       _runnersByBib[bib] ?? runners.where((r) => r.bib == bib).firstOrNull;
 
   // Bib number validation and handling
-  Future<void> validateBibNumber(int index, String bibNumber) async {
-    if (index < 0 || index >= bibRecords.length) {
-      return;
-    }
 
-    // Special handling for empty inputs
+  /// Builds a validated [BibDatumRecord] for [index] and [bibNumber].
+  /// Pure computation — no side effects, no notifications.
+  BibDatumRecord _buildValidatedRecord(int index, String bibNumber) {
     if (bibNumber.isEmpty) {
-      final updatedRecord = BibDatumRecord(
+      return BibDatumRecord(
         bib: bibNumber,
         name: '',
         teamAbbreviation: '',
@@ -468,110 +466,19 @@ class BibNumberController extends BibNumberDataController {
           duplicateBibNumber: false,
         ),
       );
-      updateBibRecord(index, updatedRecord);
-      return;
     }
 
-    // Try to parse the bib number
     if (!bibNumber.contains(RegExp(r'^[0-9]+$'))) {
-      // Not a valid number
-      final updatedRecord = BibDatumRecord(
+      return BibDatumRecord(
         bib: bibNumber,
         name: '',
         teamAbbreviation: '',
         grade: '',
-        flags: BibDatumRecordFlags(
+        flags: const BibDatumRecordFlags(
           notInDatabase: true,
           duplicateBibNumber: false,
         ),
       );
-      updateBibRecord(index, updatedRecord);
-      return;
-    }
-
-    // Check for a matching runner
-    BibDatum? matchedRunner = getRunnerByBib(bibNumber);
-
-    if (matchedRunner != null) {
-      // Found a match in database
-      // Check for duplicate entries
-      bool isDuplicate = false;
-      int count = 0;
-      for (var i = 0; i < bibRecords.length; i++) {
-        if (bibRecords[i].bib == bibNumber) {
-          count++;
-          if (count > 1 && i == index) {
-            isDuplicate = true;
-            break;
-          }
-        }
-      }
-
-      final updatedRecord = BibDatumRecord(
-        bib: bibNumber,
-        name: matchedRunner.name,
-        teamAbbreviation: matchedRunner.teamAbbreviation,
-        grade: matchedRunner.grade,
-        teamColor: matchedRunner.teamColor,
-        flags: BibDatumRecordFlags(
-          notInDatabase: false,
-          duplicateBibNumber: isDuplicate,
-        ),
-      );
-      updateBibRecord(index, updatedRecord);
-    } else {
-      // No match in database
-      final updatedRecord = BibDatumRecord(
-        bib: bibNumber,
-        name: '',
-        teamAbbreviation: '',
-        grade: '',
-        flags: BibDatumRecordFlags(
-          notInDatabase: true,
-          duplicateBibNumber: false,
-        ),
-      );
-      updateBibRecord(index, updatedRecord);
-    }
-  }
-
-  /// Validates a bib number and updates the record without calling
-  /// [notifyListeners]. For bulk-load operations only.
-  void _validateBibNumberSilent(int index, String bibNumber) {
-    if (index < 0 || index >= bibRecords.length) return;
-
-    if (bibNumber.isEmpty) {
-      updateBibRecordSilent(
-        index,
-        BibDatumRecord(
-          bib: bibNumber,
-          name: '',
-          teamAbbreviation: '',
-          grade: '',
-          flags: const BibDatumRecordFlags(
-            notInDatabase: false,
-            duplicateBibNumber: false,
-          ),
-        ),
-      );
-      return;
-    }
-
-    if (!bibNumber.contains(RegExp(r'^[0-9]+$'))) {
-      updateBibRecordSilent(
-        index,
-        BibDatumRecord(
-          bib: bibNumber,
-          name: '',
-          teamAbbreviation: '',
-          grade: '',
-          flags: const BibDatumRecordFlags(
-            notInDatabase: true,
-            duplicateBibNumber: false,
-          ),
-        ),
-      );
-      return;
     }
 
     final matchedRunner = getRunnerByBib(bibNumber);
@@ -588,35 +495,41 @@ class BibNumberController extends BibNumberDataController {
           }
         }
       }
-      updateBibRecordSilent(
-        index,
-        BibDatumRecord(
-          bib: bibNumber,
-          name: matchedRunner.name,
-          teamAbbreviation: matchedRunner.teamAbbreviation,
-          grade: matchedRunner.grade,
-          teamColor: matchedRunner.teamColor,
-          flags: BibDatumRecordFlags(
-            notInDatabase: false,
-            duplicateBibNumber: isDuplicate,
-          ),
+      return BibDatumRecord(
+        bib: bibNumber,
+        name: matchedRunner.name,
+        teamAbbreviation: matchedRunner.teamAbbreviation,
+        grade: matchedRunner.grade,
+        teamColor: matchedRunner.teamColor,
+        flags: BibDatumRecordFlags(
+          notInDatabase: false,
+          duplicateBibNumber: isDuplicate,
         ),
       );
     } else {
-      updateBibRecordSilent(
-        index,
-        BibDatumRecord(
-          bib: bibNumber,
-          name: '',
-          teamAbbreviation: '',
-          grade: '',
-          flags: const BibDatumRecordFlags(
-            notInDatabase: true,
-            duplicateBibNumber: false,
-          ),
+      return BibDatumRecord(
+        bib: bibNumber,
+        name: '',
+        teamAbbreviation: '',
+        grade: '',
+        flags: const BibDatumRecordFlags(
+          notInDatabase: true,
+          duplicateBibNumber: false,
         ),
       );
     }
+  }
+
+  Future<void> validateBibNumber(int index, String bibNumber) async {
+    if (index < 0 || index >= bibRecords.length) return;
+    updateBibRecord(index, _buildValidatedRecord(index, bibNumber));
+  }
+
+  /// Validates a bib number and updates the record without calling
+  /// [notifyListeners]. For bulk-load operations only.
+  void _validateBibNumberSilent(int index, String bibNumber) {
+    if (index < 0 || index >= bibRecords.length) return;
+    updateBibRecordSilent(index, _buildValidatedRecord(index, bibNumber));
   }
 
   Future<void> addBib() async {
