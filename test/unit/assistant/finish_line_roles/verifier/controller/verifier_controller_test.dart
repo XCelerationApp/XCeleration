@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
@@ -112,6 +113,53 @@ void main() {
         await Future.microtask(() {});
 
         expect(controller.entries.first.flag, BibFlag.unknown);
+      });
+
+      test('populates runner context from message when present', () async {
+        final controller = VerifierController(session: mockSession);
+        controller.initialize();
+
+        incomingController.add((
+          Role.bibRecorderV2,
+          MessageEnvelope.wrapBibEntry(BibEntryMessage(
+            finishPosition: 5,
+            bib: 42,
+            status: BibEntryStatus.resolved,
+            timestamp: DateTime.now(),
+            runnerName: 'Alice',
+            teamAbbreviation: 'NCC',
+            teamColor: const Color(0xFF123456).toARGB32(),
+          )),
+        ));
+
+        await Future.microtask(() {});
+
+        final entry = controller.entries.first;
+        expect(entry.runnerName, 'Alice');
+        expect(entry.teamAbbreviation, 'NCC');
+        expect(entry.teamColor, const Color(0xFF123456));
+      });
+
+      test('leaves runner context null for unknown bib', () async {
+        final controller = VerifierController(session: mockSession);
+        controller.initialize();
+
+        incomingController.add((
+          Role.bibRecorderV2,
+          MessageEnvelope.wrapBibEntry(BibEntryMessage(
+            finishPosition: 6,
+            bib: 999,
+            status: BibEntryStatus.unknown,
+            timestamp: DateTime.now(),
+          )),
+        ));
+
+        await Future.microtask(() {});
+
+        final entry = controller.entries.first;
+        expect(entry.runnerName, isNull);
+        expect(entry.teamAbbreviation, isNull);
+        expect(entry.teamColor, isNull);
       });
 
       test('ignores non-bibEntry message types', () async {

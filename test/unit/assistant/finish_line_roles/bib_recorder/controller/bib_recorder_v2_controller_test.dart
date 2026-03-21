@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
@@ -8,6 +9,7 @@ import 'package:xceleration/assistant/finish_line_roles/bib_recorder/controller/
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/messages/messages.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/p2p_session_service.dart';
 import 'package:xceleration/assistant/shared/models/race_record.dart';
+import 'package:xceleration/assistant/shared/models/runner.dart';
 import 'package:xceleration/assistant/shared/services/i_assistant_storage_service.dart';
 import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/result.dart';
@@ -28,6 +30,7 @@ void main() {
     provideDummy<Result<void>>(
         Failure<void>(const AppError(userMessage: '')));
     provideDummy<Result<List<RaceRecord>>>(const Success([]));
+    provideDummy<Result<List<Runner>>>(const Success([]));
   });
 
   late MockP2PSessionService mockSession;
@@ -150,6 +153,65 @@ void main() {
         controller.addBib(101);
 
         verifyNever(mockSession.sendMessage(any, any));
+      });
+
+      test('includes runner context in message when bib matches roster', () async {
+        final mockStorage = MockIAssistantStorageService();
+        final race = RaceRecord(
+          raceId: 1,
+          date: DateTime(2026),
+          name: 'Test Race',
+          type: 'bibRecorder',
+        );
+        final runner = Runner(
+          raceId: 1,
+          bibNumber: '101',
+          name: 'Alice',
+          teamAbbreviation: 'NCC',
+          teamColor: const Color(0xFF123456),
+          createdAt: DateTime(2026),
+        );
+        when(mockStorage.getRaces(any))
+            .thenAnswer((_) async => const Success<List<RaceRecord>>([]));
+        when(mockStorage.getRunners(1))
+            .thenAnswer((_) async => Success<List<Runner>>([runner]));
+
+        final controller = BibRecorderV2Controller(
+          storage: mockStorage,
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+          session: mockSession,
+        );
+        controller.selectRace(race);
+        await Future.microtask(() {});
+
+        controller.addBib(101);
+
+        final captured =
+            verify(mockSession.sendMessage(Role.verifier, captureAny)).captured;
+        final msg = (captured.last as MessageEnvelope).decode() as BibEntryMessage;
+        expect(msg.runnerName, 'Alice');
+        expect(msg.teamAbbreviation, 'NCC');
+        expect(msg.teamColor, const Color(0xFF123456).toARGB32());
+      });
+
+      test('sends null runner context when bib is unknown', () {
+        final controller = BibRecorderV2Controller(
+          storage: MockIAssistantStorageService(),
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+          session: mockSession,
+        );
+
+        // No runners loaded — bib is unknown.
+        controller.addBib(999);
+
+        final captured =
+            verify(mockSession.sendMessage(Role.verifier, captureAny)).captured;
+        final msg = (captured.last as MessageEnvelope).decode() as BibEntryMessage;
+        expect(msg.runnerName, isNull);
+        expect(msg.teamAbbreviation, isNull);
+        expect(msg.teamColor, isNull);
       });
     });
 
