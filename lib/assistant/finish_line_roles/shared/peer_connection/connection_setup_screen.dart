@@ -50,7 +50,7 @@ class _ConnectionSetupScreenState extends State<ConnectionSetupScreen> {
       role: widget.role,
       raceId: widget.raceId,
     );
-    _notifier.startDiscovery();
+    _notifier.startDiscovery(); // fire-and-forget; errors are handled internally
   }
 
   @override
@@ -92,6 +92,7 @@ class _ConnectionSetupScreenState extends State<ConnectionSetupScreen> {
                             .map((p) => _PeerCard(
                                   config: p,
                                   status: _notifier.statusFor(p.role),
+                                  deviceName: _notifier.deviceNameFor(p.role),
                                 ))
                             .toList(),
                       ),
@@ -392,10 +393,15 @@ class _OfflineButton extends StatelessWidget {
 // ── Peer card ─────────────────────────────────────────────────────────────────
 
 class _PeerCard extends StatelessWidget {
-  const _PeerCard({required this.config, required this.status});
+  const _PeerCard({
+    required this.config,
+    required this.status,
+    this.deviceName,
+  });
 
   final PeerConfig config;
   final PeerStatus status;
+  final String? deviceName;
 
   Color get _borderColor => switch (status) {
         PeerStatus.connected =>
@@ -466,7 +472,7 @@ class _PeerCard extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: Text(
                 showDevice
-                    ? '📱 ${kStubDeviceNames[config.role] ?? "Unknown device"}'
+                    ? '📱 ${deviceName ?? "Unknown device"}'
                     : 'Waiting for device…',
                 style: AppTypography.bodySmall.copyWith(
                   color: isConn ? const Color(0xFF444444) : AppColors.lightColor,
