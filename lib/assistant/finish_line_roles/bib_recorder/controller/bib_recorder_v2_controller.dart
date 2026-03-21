@@ -247,11 +247,10 @@ class BibRecorderV2Controller extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Removes the most recently added entry and signals the card to show idle
-  /// until the next bib is recorded.
+  /// Signals the card to show idle until the next bib is recorded.
+  /// The most recently added entry remains in the list below.
   void reRecordLast() {
     if (_entries.isEmpty) return;
-    _entries.removeAt(0);
     _awaitingRecord = true;
     notifyListeners();
   }
