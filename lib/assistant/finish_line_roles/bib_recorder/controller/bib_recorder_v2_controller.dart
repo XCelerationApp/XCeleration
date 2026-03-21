@@ -318,6 +318,7 @@ class BibRecorderV2Controller extends ChangeNotifier {
         : flag == 'unknown'
             ? BibEntryStatus.unknown
             : BibEntryStatus.resolved;
+    final runner = runnerFor(bib);
     unawaited(_session.sendMessage(
       Role.verifier,
       MessageEnvelope.wrapBibEntry(BibEntryMessage(
@@ -325,6 +326,9 @@ class BibRecorderV2Controller extends ChangeNotifier {
         bib: bib,
         status: status,
         timestamp: DateTime.now(),
+        runnerName: runner?.name,
+        teamAbbreviation: runner?.teamAbbreviation,
+        teamColor: runner?.teamColor?.toARGB32(),
       )),
     ));
   }
