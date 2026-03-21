@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/messages/bib_entry_message.dart';
 
 /// Bib flag carried over from the Bib Recorder's roster check.
 enum BibFlag { none, unknown, duplicate }
@@ -32,6 +33,27 @@ class VerifierEntry {
   final Color? teamColor;
   final BibFlag flag;
   final VerificationStatus status;
+
+  /// Constructs a [VerifierEntry] directly from a received [BibEntryMessage].
+  ///
+  /// Runner context fields are carried through from the message when present;
+  /// they are null for unmatched (unknown) bibs.
+  factory VerifierEntry.fromMessage(BibEntryMessage msg) {
+    final flag = switch (msg.status) {
+      BibEntryStatus.duplicate => BibFlag.duplicate,
+      BibEntryStatus.unknown => BibFlag.unknown,
+      BibEntryStatus.resolved => BibFlag.none,
+    };
+    return VerifierEntry(
+      id: msg.finishPosition,
+      position: msg.finishPosition,
+      bib: msg.bib,
+      runnerName: msg.runnerName,
+      teamAbbreviation: msg.teamAbbreviation,
+      teamColor: msg.teamColor != null ? Color(msg.teamColor!) : null,
+      flag: flag,
+    );
+  }
 
   VerifierEntry copyWith({VerificationStatus? status}) => VerifierEntry(
         id: id,

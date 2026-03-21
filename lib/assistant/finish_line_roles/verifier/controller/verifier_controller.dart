@@ -134,20 +134,7 @@ class VerifierController extends ChangeNotifier {
   }
 
   void _addEntryFromMessage(BibEntryMessage msg) {
-    final flag = switch (msg.status) {
-      BibEntryStatus.duplicate => BibFlag.duplicate,
-      BibEntryStatus.unknown => BibFlag.unknown,
-      BibEntryStatus.resolved => BibFlag.none,
-    };
-    _entries.insert(
-      0,
-      VerifierEntry(
-        id: msg.finishPosition,
-        position: msg.finishPosition,
-        bib: msg.bib,
-        flag: flag,
-      ),
-    );
+    _entries.insert(0, VerifierEntry.fromMessage(msg));
     notifyListeners();
   }
 
