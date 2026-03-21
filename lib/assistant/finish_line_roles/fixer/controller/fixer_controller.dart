@@ -1,7 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:xceleration/assistant/finish_line_roles/fixer/services/phonetic_search.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/models/fixer_entry.dart';
+import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/messages/messages.dart';
+import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/p2p_session_service.dart';
 import 'package:xceleration/assistant/shared/models/runner.dart';
+import 'package:xceleration/shared/role_bar/models/role_enums.dart';
 
 /// Controls the Fixer role.
 ///
@@ -10,18 +15,17 @@ import 'package:xceleration/assistant/shared/models/runner.dart';
 ///   • Match to an existing runner (via fuzzy name search)
 ///   • Correct the bib number directly
 ///   • Create a new runner record
-///
-/// In the UI-first build the queue and runner roster are seeded from stub data.
-/// TODO(XCE-230): populate queue from Verifier P2P session + Bib Recorder flags
-/// TODO(XCE-230): load runners from AssistantStorageService
 class FixerController extends ChangeNotifier {
-  FixerController();
+  FixerController({P2PSessionService? session}) : _session = session;
+
+  final P2PSessionService? _session;
 
   final List<FixerEntry> _queue = [];
   final List<Runner> _allRunners = [];
   List<Runner> _searchResults = [];
   String _searchQuery = '';
   bool _inRace = false;
+  StreamSubscription<(Role, MessageEnvelope)>? _sessionSub;
 
   List<FixerEntry> get queue => List.unmodifiable(_queue);
   List<Runner> get searchResults => List.unmodifiable(_searchResults);
@@ -31,14 +35,15 @@ class FixerController extends ChangeNotifier {
   bool get isInRace => _inRace;
 
   void initialize() {
-    // No-op for now; real init will subscribe to Verifier P2P session.
+    if (_session != null) {
+      _sessionSub = _session.incomingMessages.listen(_onSessionMessage);
+    }
   }
 
-  /// Enter a race session (populates stub data until P2P is wired up).
+  /// Enter a race session.
   void joinRace() {
     _inRace = true;
     _allRunners.addAll(_stubRunners());
-    _queue.addAll(_stubQueue());
     notifyListeners();
   }
 
@@ -85,13 +90,24 @@ class FixerController extends ChangeNotifier {
   void resolveWithRunner(int entryId, Runner runner) {
     final idx = _queue.indexWhere((e) => e.id == entryId);
     if (idx == -1) return;
-    final correctedBib = int.tryParse(runner.bibNumber) ?? _queue[idx].bib;
-    _queue[idx] = _queue[idx].copyWith(
+    final original = _queue[idx];
+    final correctedBib = int.tryParse(runner.bibNumber) ?? original.bib;
+    _queue[idx] = original.copyWith(
       isResolved: true,
       correctedBib: correctedBib,
       resolvedName: runner.name ?? runner.bibNumber,
     );
-    // TODO(XCE-230): back-propagate correction to Bib Recorder via P2P
+    if (_session != null) {
+      unawaited(_session.sendMessage(
+        Role.bibRecorderV2,
+        MessageEnvelope.wrapFixerCorrection(FixerCorrectionMessage(
+          finishPosition: original.position,
+          originalBib: original.bib,
+          correctedBib: correctedBib,
+          correctionType: CorrectionType.matched,
+        )),
+      ));
+    }
     notifyListeners();
   }
 
@@ -99,8 +115,19 @@ class FixerController extends ChangeNotifier {
   void resolveWithBib(int entryId, int newBib) {
     final idx = _queue.indexWhere((e) => e.id == entryId);
     if (idx == -1) return;
-    _queue[idx] = _queue[idx].copyWith(isResolved: true, correctedBib: newBib);
-    // TODO(XCE-230): back-propagate correction to Bib Recorder via P2P
+    final original = _queue[idx];
+    _queue[idx] = original.copyWith(isResolved: true, correctedBib: newBib);
+    if (_session != null) {
+      unawaited(_session.sendMessage(
+        Role.bibRecorderV2,
+        MessageEnvelope.wrapFixerCorrection(FixerCorrectionMessage(
+          finishPosition: original.position,
+          originalBib: original.bib,
+          correctedBib: newBib,
+          correctionType: CorrectionType.bibCorrected,
+        )),
+      ));
+    }
     notifyListeners();
   }
 
@@ -108,39 +135,62 @@ class FixerController extends ChangeNotifier {
   void resolveAsNewRunner(int entryId, {String? name, int? newBib}) {
     final idx = _queue.indexWhere((e) => e.id == entryId);
     if (idx == -1) return;
-    _queue[idx] = _queue[idx].copyWith(
+    final original = _queue[idx];
+    _queue[idx] = original.copyWith(
       isResolved: true,
       isNewRunner: true,
       resolvedName: name ?? 'New Runner',
       correctedBib: newBib,
     );
-    // TODO(XCE-230): persist new runner via storage and notify Bib Recorder
+    if (_session != null) {
+      unawaited(_session.sendMessage(
+        Role.bibRecorderV2,
+        MessageEnvelope.wrapFixerCorrection(FixerCorrectionMessage(
+          finishPosition: original.position,
+          originalBib: original.bib,
+          correctedBib: newBib ?? original.bib,
+          correctionType: CorrectionType.newRunner,
+        )),
+      ));
+    }
     notifyListeners();
   }
 
-  // ── Stub data ─────────────────────────────────────────────────────────────
+  // ── P2P ───────────────────────────────────────────────────────────────────
 
-  List<FixerEntry> _stubQueue() => const [
-        FixerEntry(
-          id: 1,
-          position: 2,
-          bib: 107,
-          reason: FixReason.unknown,
-        ),
-        FixerEntry(
-          id: 2,
-          position: 4,
-          bib: 105,
-          runnerName: 'Johnson, Alex',
-          reason: FixReason.duplicate,
-        ),
-        FixerEntry(
-          id: 3,
-          position: 7,
-          bib: 199,
-          reason: FixReason.verifierFlagged,
-        ),
-      ];
+  void _onSessionMessage((Role, MessageEnvelope) event) {
+    final (_, envelope) = event;
+    if (envelope.type != MessageType.verifierFlag) return;
+    _addEntryFromFlag(envelope.decode() as VerifierFlagMessage);
+  }
+
+  void _addEntryFromFlag(VerifierFlagMessage msg) {
+    final reason = switch (msg.reason) {
+      FlagReason.wrongName => FixReason.verifierFlagged,
+      FlagReason.unknown => FixReason.unknown,
+      FlagReason.duplicate => FixReason.duplicate,
+    };
+    _queue.insert(
+      0,
+      FixerEntry(
+        id: msg.entry.finishPosition,
+        position: msg.entry.finishPosition,
+        bib: msg.entry.bib,
+        reason: reason,
+      ),
+    );
+    notifyListeners();
+  }
+
+  // ── Dispose ───────────────────────────────────────────────────────────────
+
+  @override
+  void dispose() {
+    _sessionSub?.cancel();
+    super.dispose();
+  }
+
+  // ── Stub data ─────────────────────────────────────────────────────────────
 
   List<Runner> _stubRunners() => [
         Runner(
