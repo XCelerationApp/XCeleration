@@ -10,7 +10,49 @@ import 'google_auth_service.dart';
 import 'google_sheets_service.dart';
 import 'google_drive_service.dart';
 
-/// A service that handles picking files from Google Drive using the Google Picker API
+/// A service that handles picking files from Google Drive using the Google Picker API.
+///
+/// ## Architecture overview
+///
+/// The Google Drive Picker API (`google.picker`) is a JavaScript web API.
+/// We host a thin HTML wrapper at `GOOGLE_PICKER_URL`
+/// (currently `https://xceleration-app.github.io/google_picker.html`) and load
+/// it in a Flutter `WebViewController`. Once the page loads, we inject the OAuth
+/// token and config via `window.setPickerVariables(...)`, the JS initialises the
+/// Picker, and results are posted back via the `PickerChannel` JavaScript channel.
+///
+/// ## Why `webAccessToken`, not `iosAccessToken`
+///
+/// The Google Picker API validates the OAuth token against the "Authorized
+/// JavaScript origins" registered on the OAuth client in Google Cloud Console.
+/// - The **web** OAuth client has `https://xceleration-app.github.io/` listed
+///   as an authorized JavaScript origin (required for `setOrigin(...)` to pass).
+/// - The **iOS** OAuth client has no JavaScript origins (not a web client).
+///
+/// Passing an iOS token to the Picker causes an origin/client validation failure,
+/// which makes the Picker fall back to cookie-based Google sign-in. Because the
+/// WebView's cookie store is isolated from Safari, Google blocks this with the
+/// "Can't access your Google Account" error page.
+///
+/// **Always use `webAccessToken` here.** See `GoogleAuthService` for how that
+/// token is obtained (server-side serverAuthCode exchange).
+///
+/// ## WebView navigation guard
+///
+/// If the web token IS invalid (expired, backend exchange failed, etc.), the
+/// Picker falls back to Google's sign-in flow. Google blocks OAuth sign-in in
+/// embedded WebViews (since 2017) and redirects to an error page at
+/// `accounts.google.com`. The `onNavigationRequest` guard in
+/// `GooglePickerDialog` intercepts this top-level navigation and pops the
+/// dialog with a clean error instead of showing the Google error page.
+/// Iframe navigations are allowed through (the Picker uses iframes internally
+/// for its file browser and account selector).
+///
+/// ## GOOGLE_APP_ID
+///
+/// Must be the Google Cloud **project number** (numeric), not the OAuth client
+/// ID. If this is set to the wrong value (e.g. a client ID string), the Picker
+/// will fail to authorise access to the user's files.
 class GooglePickerService {
   static GooglePickerService? _instance;
   static GooglePickerService get instance =>
@@ -35,6 +77,8 @@ class GooglePickerService {
     Logger.d('Context mounted: ${context.mounted}');
     try {
       final instance = GooglePickerService.instance;
+      // Must be webAccessToken — the Picker validates the token's OAuth client
+      // against the page's JS origin. See class-level comment for full details.
       final accessToken = await instance._authService.webAccessToken;
       if (accessToken == null) {
         return {'action': 'error', 'message': 'Google Authentication Failed'};
@@ -69,7 +113,7 @@ class GooglePickerService {
       // Directly proceed with Google Drive flow without showing the source selection dialog
       Logger.d('Proceeding directly with Google Drive picker');
 
-      // Get access token for Google Drive
+      // Must be webAccessToken — see GooglePickerService class-level comment.
       final accessToken = await _authService.webAccessToken;
       if (accessToken == null) {
         Logger.e('Failed to get access token');
@@ -339,8 +383,33 @@ class _GooglePickerDialogState extends State<GooglePickerDialog> {
       );
 
       // Set navigation delegate
+      final pickerOrigin = Uri.parse(pickerUrl).origin;
       controller.setNavigationDelegate(
         NavigationDelegate(
+          onNavigationRequest: (NavigationRequest request) {
+            // Guard: if the web token is invalid or expired, the Picker falls
+            // back to Google's sign-in flow. Google blocks OAuth in embedded
+            // WebViews and redirects to accounts.google.com with a "Can't
+            // access your Google Account" error page. We intercept that
+            // top-level navigation and return a clean error instead.
+            //
+            // Iframe navigations are allowed through — the Picker loads
+            // Google's file-browser and account-selector UIs in iframes and
+            // those must not be blocked.
+            if (!request.isMainFrame) {
+              return NavigationDecision.navigate;
+            }
+            final requestOrigin = Uri.tryParse(request.url)?.origin ?? '';
+            if (requestOrigin != pickerOrigin) {
+              Logger.e('Blocked WebView navigation to: ${request.url}');
+              Navigator.of(context).pop({
+                'action': 'error',
+                'message': 'Google Authentication Failed',
+              });
+              return NavigationDecision.prevent;
+            }
+            return NavigationDecision.navigate;
+          },
           onPageStarted: (String url) {
             Logger.d('WebView started loading: $url');
           },

@@ -28,6 +28,45 @@ class GoogleAuthClient extends http.BaseClient {
 }
 
 /// Service for handling Google authentication
+///
+/// ## Two-token design — why it exists
+///
+/// The app maintains two separate OAuth 2.0 access tokens for the same signed-in
+/// Google user:
+///
+/// ### 1. iOS token  (`iosAccessToken`)
+/// Obtained directly from the native `google_sign_in` SDK via
+/// `GoogleSignInAccount.authentication.accessToken`. The SDK manages refresh
+/// tokens internally, so this token is always fresh on request.
+///
+/// Used for: Drive REST API calls and Sheets API calls (via `GoogleAuthClient`).
+///
+/// ### 2. Web token  (`webAccessToken`)
+/// Obtained by exchanging `GoogleSignInAccount.serverAuthCode` at a backend
+/// endpoint (`WEB_ACCESS_TOKEN_API_ENDPOINT`). The exchange uses the **web**
+/// OAuth 2.0 client ID and is performed server-side so the client secret never
+/// lives in the app.
+///
+/// **Why the web token is required for the picker:**
+/// The Google Drive Picker API (`google.picker.PickerBuilder`) is a JavaScript
+/// API designed for web applications. Internally it validates the OAuth token
+/// against the "Authorized JavaScript origins" configured on the OAuth client in
+/// Google Cloud Console. An iOS/mobile OAuth client has no JavaScript origins,
+/// so a token issued by the iOS client will fail the Picker's origin check.
+/// `setOrigin('https://xceleration-app.github.io/')` in the picker HTML must
+/// match an entry on the **web** OAuth client's authorized origins — the web
+/// token satisfies this; the iOS token does not.
+///
+/// **Do NOT switch the picker to use `iosAccessToken`** — it will appear to
+/// work in some cases but will fail the Picker's origin/client validation.
+///
+/// ### serverAuthCode is one-time use
+/// Google's serverAuthCode is a single-use authorization code. After it is
+/// exchanged at the backend for a web access token, the same code cannot be
+/// used again. The exchanged token is cached in memory and SharedPreferences
+/// for up to 55 minutes (5-minute buffer before the 60-minute Google expiry).
+/// When the token expires, `signIn()` forces a fresh interactive sign-in to
+/// obtain a new serverAuthCode, which is then exchanged for a new web token.
 class GoogleAuthService {
   static GoogleAuthService? _instance;
   // Retrieve client ID from environment variables
@@ -167,9 +206,14 @@ class GoogleAuthService {
       scopes: [
         'https://www.googleapis.com/auth/drive.file',
       ],
+      // serverClientId causes the sign-in to also produce a serverAuthCode
+      // that can be exchanged server-side for a web access token. This is
+      // required for the Google Drive Picker — see class-level comment above.
       serverClientId: _webClientId,
-      forceCodeForRefreshToken:
-          true, // This forces the auth code to be included
+      // forceCodeForRefreshToken ensures serverAuthCode is always returned
+      // even if the user has previously consented. Without this, subsequent
+      // sign-ins may not include a fresh code, breaking web token refresh.
+      forceCodeForRefreshToken: true,
     );
   }
 
@@ -221,7 +265,16 @@ class GoogleAuthService {
     return null;
   }
 
-  /// Get or refresh the web access token if we have a signed-in user
+  /// Get or refresh the web access token if we have a signed-in user.
+  ///
+  /// The web token is required specifically for the Google Drive Picker API.
+  /// See the class-level comment for the full explanation of why.
+  ///
+  /// If the cached token is still valid (< 55 min old) it is returned directly.
+  /// Otherwise we attempt to exchange `_currentUser.serverAuthCode` at the
+  /// backend. Because serverAuthCode is single-use, this only works once per
+  /// sign-in session. When the token expires, `signIn()` must be called first
+  /// (it forces a fresh interactive sign-in to get a new code).
   Future<String?> get webAccessToken async {
     // Ensure prefs are loaded and sign-in is initialized
     await _ensureInitialized();
@@ -275,6 +328,15 @@ class GoogleAuthService {
     return GoogleAuthClient(token);
   }
 
+  /// Exchanges a one-time serverAuthCode for a web access token via the backend.
+  ///
+  /// The exchange is done server-side (not in-app) so the web OAuth client
+  /// secret is never embedded in the binary. The backend endpoint receives the
+  /// auth code and client ID, calls Google's token endpoint with the secret,
+  /// and returns the resulting access token.
+  ///
+  /// IMPORTANT: Google's serverAuthCode is single-use. Once exchanged, the
+  /// same code will be rejected by Google. Do not retry with the same code.
   Future<String?> _exchangeServerAuthCodeForAccessToken(String authCode) async {
     Logger.d('Exchanging auth code for token with client ID: $_webClientId');
     if (!await _connectivity.isOnline()) {
