@@ -596,6 +596,49 @@ void main() {
             reason: 'dirty flag must be cleared when diff >= 5 minutes');
       });
 
+      test(
+          'updates local when timestamps are equal and an unrecognised new column differs',
+          () async {
+        // Verifies the schema-driven approach: an arbitrary column not in any
+        // hardcoded list is still detected as a conflict when its value differs.
+        const uuid = 'uuid-runner-1';
+        const ts = '2024-06-01T12:00:00.000Z';
+        final localRow = {
+          'uuid': uuid,
+          'name': 'Alice',
+          'new_arbitrary_column': 'old_value',
+          'updated_at': ts,
+          'is_dirty': 0,
+        };
+        final remoteRow = {
+          'uuid': uuid,
+          'name': 'Alice',
+          'new_arbitrary_column': 'new_value',
+          'updated_at': ts,
+          'owner_user_id': 'user-1',
+        };
+
+        when(mockSyncClient.fetchTableRows(
+          'runners',
+          any,
+          cursor: anyNamed('cursor'),
+        )).thenAnswer((_) async => [remoteRow]);
+
+        when(mockDatabase.rawQuery(
+          argThat(contains('WHERE uuid IN')),
+          any,
+        )).thenAnswer((_) async => [localRow]);
+
+        await service.pullAll();
+
+        verify(mockDatabase.update(
+          'runners',
+          argThat(containsPair('new_arbitrary_column', 'new_value')),
+          where: anyNamed('where'),
+          whereArgs: anyNamed('whereArgs'),
+        )).called(1);
+      });
+
       test('emits SyncEvent after a pull that wrote at least one row', () async {
         const uuid = 'uuid-runner-1';
         final remoteRow = {
