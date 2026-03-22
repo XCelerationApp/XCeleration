@@ -559,6 +559,319 @@ void main() {
       });
     });
 
+    group('addBib entry state', () {
+      test('inserts entry at front of list', () {
+        final controller = BibRecorderV2Controller(
+          storage: MockIAssistantStorageService(),
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+        );
+        controller.addBib(101);
+        controller.addBib(202);
+        expect(controller.entries.first.bib, 202);
+        expect(controller.entries.length, 2);
+      });
+
+      test('lastAddedBib reflects the newly added bib', () {
+        final controller = BibRecorderV2Controller(
+          storage: MockIAssistantStorageService(),
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+        );
+        controller.addBib(101);
+        expect(controller.lastAddedBib, 101);
+      });
+
+      test('vibrates haptic when bib is a duplicate', () async {
+        final mockHaptic = MockIHapticFeedback();
+        when(mockHaptic.vibrate()).thenAnswer((_) async {});
+        final controller = BibRecorderV2Controller(
+          storage: MockIAssistantStorageService(),
+          voice: MockIVoiceRecognitionService(),
+          haptic: mockHaptic,
+        );
+        controller.addBib(101);
+        // Wait 2 ms so the second entry gets a distinct id.
+        await Future.delayed(const Duration(milliseconds: 2));
+        controller.addBib(101); // duplicate
+        verify(mockHaptic.vibrate()).called(1);
+      });
+
+      test('does not vibrate when bib is clean (no roster, no duplicates)', () {
+        final mockHaptic = MockIHapticFeedback();
+        final controller = BibRecorderV2Controller(
+          storage: MockIAssistantStorageService(),
+          voice: MockIVoiceRecognitionService(),
+          haptic: mockHaptic,
+        );
+        controller.addBib(101);
+        verifyNever(mockHaptic.vibrate());
+      });
+    });
+
+    group('reRecordLast', () {
+      test('lastAddedBib returns null after reRecordLast', () {
+        final controller = BibRecorderV2Controller(
+          storage: MockIAssistantStorageService(),
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+        );
+        controller.addBib(101);
+        expect(controller.lastAddedBib, 101);
+        controller.reRecordLast();
+        expect(controller.lastAddedBib, isNull);
+      });
+
+      test('lastAddedBib resumes after next addBib', () {
+        final controller = BibRecorderV2Controller(
+          storage: MockIAssistantStorageService(),
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+        );
+        controller.addBib(101);
+        controller.reRecordLast();
+        controller.addBib(202);
+        expect(controller.lastAddedBib, 202);
+      });
+
+      test('is a no-op when entries is empty', () {
+        final controller = BibRecorderV2Controller(
+          storage: MockIAssistantStorageService(),
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+        );
+        controller.reRecordLast();
+        expect(controller.lastAddedBib, isNull);
+        expect(controller.entries, isEmpty);
+      });
+    });
+
+    group('deleteEntry / editEntry / clearEntries', () {
+      test('deleteEntry removes entry from list', () {
+        final controller = BibRecorderV2Controller(
+          storage: MockIAssistantStorageService(),
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+        );
+        controller.addBib(101);
+        final id = controller.entries.first.id;
+        controller.deleteEntry(id);
+        expect(controller.entries, isEmpty);
+      });
+
+      test('editEntry updates bib in list', () {
+        final controller = BibRecorderV2Controller(
+          storage: MockIAssistantStorageService(),
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+        );
+        controller.addBib(101);
+        final id = controller.entries.first.id;
+        controller.editEntry(id, 202);
+        expect(controller.entries.first.bib, 202);
+      });
+
+      test('editEntry is a no-op for unknown id', () {
+        final controller = BibRecorderV2Controller(
+          storage: MockIAssistantStorageService(),
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+        );
+        controller.addBib(101);
+        controller.editEntry(999, 202);
+        expect(controller.entries.first.bib, 101);
+      });
+
+      test('clearEntries empties the list', () {
+        final controller = BibRecorderV2Controller(
+          storage: MockIAssistantStorageService(),
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+        );
+        controller.addBib(101);
+        controller.addBib(202);
+        controller.clearEntries();
+        expect(controller.entries, isEmpty);
+      });
+    });
+
+    group('flagFor', () {
+      test('returns null when roster is empty (no unknown flag without roster)', () {
+        final controller = BibRecorderV2Controller(
+          storage: MockIAssistantStorageService(),
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+        );
+        expect(controller.flagFor(999), isNull);
+      });
+
+      test('returns null when bib is in roster', () async {
+        final mockStorage = MockIAssistantStorageService();
+        when(mockStorage.getRaces(any))
+            .thenAnswer((_) async => const Success<List<RaceRecord>>([]));
+        when(mockStorage.getRunners(1)).thenAnswer(
+          (_) async => Success<List<Runner>>([
+            Runner(raceId: 1, bibNumber: '101', createdAt: DateTime(2026)),
+          ]),
+        );
+        when(mockStorage.getBibRecords(any))
+            .thenAnswer((_) async => const Success<List<BibRecord>>([]));
+        final race = RaceRecord(
+          raceId: 1,
+          date: DateTime(2026),
+          name: 'Test Race',
+          type: 'bibRecorderV2',
+        );
+        final controller = BibRecorderV2Controller(
+          storage: mockStorage,
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+        );
+        controller.selectRace(race);
+        await Future.microtask(() {});
+        expect(controller.flagFor(101), isNull);
+      });
+
+      test('returns unknown when roster loaded and bib absent', () async {
+        final mockStorage = MockIAssistantStorageService();
+        when(mockStorage.getRaces(any))
+            .thenAnswer((_) async => const Success<List<RaceRecord>>([]));
+        when(mockStorage.getRunners(1)).thenAnswer(
+          (_) async => Success<List<Runner>>([
+            Runner(raceId: 1, bibNumber: '200', createdAt: DateTime(2026)),
+          ]),
+        );
+        when(mockStorage.getBibRecords(any))
+            .thenAnswer((_) async => const Success<List<BibRecord>>([]));
+        final race = RaceRecord(
+          raceId: 1,
+          date: DateTime(2026),
+          name: 'Test Race',
+          type: 'bibRecorderV2',
+        );
+        final controller = BibRecorderV2Controller(
+          storage: mockStorage,
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+        );
+        controller.selectRace(race);
+        await Future.microtask(() {});
+        expect(controller.flagFor(999), 'unknown');
+      });
+    });
+
+    group('voice state', () {
+      late StreamController<int?> bibStreamCtrl;
+      late StreamController<String> transcriptStreamCtrl;
+
+      setUp(() {
+        bibStreamCtrl = StreamController<int?>.broadcast();
+        transcriptStreamCtrl = StreamController<String>.broadcast();
+      });
+
+      tearDown(() async {
+        await bibStreamCtrl.close();
+        await transcriptStreamCtrl.close();
+      });
+
+      Future<BibRecorderV2Controller> makeVoiceController({
+        bool voiceSuccess = true,
+      }) async {
+        final mockStorage = MockIAssistantStorageService();
+        final mockVoice = MockIVoiceRecognitionService();
+        when(mockVoice.bibNumbers)
+            .thenAnswer((_) => bibStreamCtrl.stream);
+        when(mockVoice.partialResults)
+            .thenAnswer((_) => transcriptStreamCtrl.stream);
+        when(mockVoice.initialize()).thenAnswer((_) async => voiceSuccess
+            ? const Success<void>(null)
+            : Failure<void>(const AppError(userMessage: 'voice failed')));
+        when(mockVoice.start()).thenAnswer((_) async {});
+        when(mockVoice.stop()).thenAnswer((_) async {});
+        when(mockStorage.getRaces(any))
+            .thenAnswer((_) async => const Success<List<RaceRecord>>([]));
+        final controller = BibRecorderV2Controller(
+          storage: mockStorage,
+          voice: mockVoice,
+          haptic: MockIHapticFeedback(),
+        );
+        await controller.initialize();
+        return controller;
+      }
+
+      test('isListening becomes true on startListening', () async {
+        final controller = await makeVoiceController();
+        expect(controller.isListening, isFalse);
+        await controller.startListening();
+        expect(controller.isListening, isTrue);
+      });
+
+      test('isListening becomes false on stopListening', () async {
+        final controller = await makeVoiceController();
+        await controller.startListening();
+        await controller.stopListening();
+        expect(controller.isListening, isFalse);
+      });
+
+      test('isProcessing is set after stopListening', () async {
+        final controller = await makeVoiceController();
+        await controller.startListening();
+        await controller.stopListening();
+        expect(controller.isProcessing, isTrue);
+      });
+
+      test('isProcessing is cleared when bib stream emits', () async {
+        final controller = await makeVoiceController();
+        await controller.startListening();
+        await controller.stopListening();
+        expect(controller.isProcessing, isTrue);
+        bibStreamCtrl.add(null);
+        await Future.microtask(() {});
+        expect(controller.isProcessing, isFalse);
+      });
+
+      test('voiceError is set when initialize returns Failure', () async {
+        final controller = await makeVoiceController(voiceSuccess: false);
+        expect(controller.voiceError, isNotNull);
+        expect(controller.voiceError!.userMessage, 'voice failed');
+      });
+
+      test('voiceReady is true when initialize succeeds', () async {
+        final controller = await makeVoiceController();
+        expect(controller.voiceReady, isTrue);
+      });
+    });
+
+    group('leaveRace', () {
+      test('clears entries, transcript, and listening state', () {
+        final controller = BibRecorderV2Controller(
+          storage: MockIAssistantStorageService(),
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+        );
+        controller.addBib(101);
+        controller.addBib(202);
+        controller.leaveRace();
+        expect(controller.entries, isEmpty);
+        expect(controller.isListening, isFalse);
+        expect(controller.isProcessing, isFalse);
+        expect(controller.transcript, '');
+        expect(controller.selectedRace, isNull);
+        expect(controller.raceStarted, isFalse);
+      });
+
+      test('lastAddedBib is null after leaveRace', () {
+        final controller = BibRecorderV2Controller(
+          storage: MockIAssistantStorageService(),
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+        );
+        controller.addBib(101);
+        controller.leaveRace();
+        expect(controller.lastAddedBib, isNull);
+      });
+    });
+
     group('incoming FixerCorrectionMessage', () {
       test('applies correctedTo on matching entry', () async {
         final controller = await makeInitializedController();
