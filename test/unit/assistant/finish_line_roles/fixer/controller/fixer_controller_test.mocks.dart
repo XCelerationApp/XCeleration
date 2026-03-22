@@ -6,6 +6,10 @@
 import 'dart:async' as _i4;
 
 import 'package:mockito/mockito.dart' as _i1;
+import 'package:xceleration/assistant/finish_line_roles/shared/models/bib_correction_message.dart'
+    as _i7;
+import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/i_bib_correction_channel.dart'
+    as _i6;
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/messages/messages.dart'
     as _i5;
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/p2p_session_service.dart'
@@ -99,4 +103,23 @@ class MockP2PSessionService extends _i1.Mock implements _i2.P2PSessionService {
         returnValue: _i4.Future<void>.value(),
         returnValueForMissingStub: _i4.Future<void>.value(),
       ) as _i4.Future<void>);
+}
+
+/// A class which mocks [IBibCorrectionChannel].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockIBibCorrectionChannel extends _i1.Mock
+    implements _i6.IBibCorrectionChannel {
+  MockIBibCorrectionChannel() {
+    _i1.throwOnMissingStub(this);
+  }
+
+  @override
+  void sendCorrection(_i7.BibCorrectionMessage? msg) => super.noSuchMethod(
+        Invocation.method(
+          #sendCorrection,
+          [msg],
+        ),
+        returnValueForMissingStub: null,
+      );
 }
