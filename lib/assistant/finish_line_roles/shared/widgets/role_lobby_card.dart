@@ -25,6 +25,57 @@ class RoleLobbySectionLabel extends StatelessWidget {
   }
 }
 
+/// Non-interactive card shown while the lobby scanner is still searching.
+class RoleLobbySearchingCard extends StatelessWidget {
+  const RoleLobbySearchingCard({super.key, required this.subtitle});
+
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.md,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceColor,
+        borderRadius: BorderRadius.circular(AppBorderRadius.lg),
+        border: Border.all(color: AppColors.borderColor),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Scanning…',
+                  style: AppTypography.smallBodySemibold.copyWith(
+                    color: AppColors.mediumColor,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  subtitle,
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.lightColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// Pressable session card shown in the role lobby.
 ///
 /// Displays a [title], [subtitle], and a "Join" pill. Calls [onTap] when

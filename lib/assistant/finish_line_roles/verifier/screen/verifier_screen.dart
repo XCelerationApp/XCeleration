@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:xceleration/assistant/finish_line_roles/verifier/controller/verifier_controller.dart';
 import 'package:xceleration/assistant/finish_line_roles/verifier/widgets/verifier_entry_card.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/connection_setup_screen.dart';
+import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/lobby_scanner.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/peer_discovery_notifier.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/peer_status_strip.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/widgets/role_bottom_bar.dart';
@@ -30,6 +31,7 @@ class VerifierScreen extends StatefulWidget {
 
 class _VerifierScreenState extends State<VerifierScreen> {
   late final VerifierController _controller;
+  late final LobbyScanner _lobbyScanner;
   final TutorialManager _tutorialManager = TutorialManager();
 
   // Connection setup state
@@ -41,13 +43,15 @@ class _VerifierScreenState extends State<VerifierScreen> {
     super.initState();
     _controller = VerifierController();
     _controller.initialize();
+    _lobbyScanner = LobbyScanner(localRole: Role.verifier)..start();
   }
 
-  void _onJoinTapped() {
+  void _onJoinTapped(int raceId) {
+    // Stop the lobby scan now that the user has selected a session.
+    _lobbyScanner.dispose();
     final notifier = PeerDiscoveryNotifier(
       role: Role.verifier,
-      // TODO(XCE-230): use real race ID from discovered P2P session.
-      raceId: 1,
+      raceId: raceId,
     )..startDiscovery();
     setState(() {
       _connecting = true;
@@ -78,9 +82,17 @@ class _VerifierScreenState extends State<VerifierScreen> {
     });
   }
 
+  /// Tears down the active P2P session and returns to the lobby.
+  void _leaveRace() {
+    _peerNotifier?.dispose();
+    setState(() => _peerNotifier = null);
+    _controller.leaveRace();
+  }
+
   @override
   void dispose() {
     _controller.dispose();
+    _lobbyScanner.dispose();
     _peerNotifier?.dispose();
     super.dispose();
   }
@@ -114,15 +126,17 @@ class _VerifierScreenState extends State<VerifierScreen> {
                   if (_connecting) {
                     return ConnectionSetupScreen(
                       role: Role.verifier,
-                      // TODO(XCE-230): use real race ID/name from P2P session.
-                      raceId: 1,
-                      raceName: 'Demo Verifier Session',
+                      raceId: _peerNotifier!.raceId,
+                      raceName: 'Race #${_peerNotifier!.raceId}',
                       onReady: _onConnectionReady,
                       onSkip: _onConnectionSkip,
                       onLeave: _onConnectionLeave,
                     );
                   }
-                  return _RaceLobby(onJoin: _onJoinTapped);
+                  return _RaceLobby(
+                    scanner: _lobbyScanner,
+                    onJoin: _onJoinTapped,
+                  );
                 }
                 return Column(
                   children: [
@@ -148,11 +162,11 @@ class _VerifierScreenState extends State<VerifierScreen> {
                     RoleBottomBar(
                       label: 'Stop Race',
                       buttonColor: AppColors.redColor,
-                      onTap: _controller.leaveRace,
+                      onTap: _leaveRace,
                       menuItems: [
                         OverflowMenuItem(
                           label: 'Leave Race',
-                          onTap: _controller.leaveRace,
+                          onTap: _leaveRace,
                         ),
                       ],
                     ),
@@ -170,9 +184,10 @@ class _VerifierScreenState extends State<VerifierScreen> {
 // ── Race lobby ────────────────────────────────────────────────────────────────
 
 class _RaceLobby extends StatelessWidget {
-  const _RaceLobby({required this.onJoin});
+  const _RaceLobby({required this.scanner, required this.onJoin});
 
-  final VoidCallback onJoin;
+  final LobbyScanner scanner;
+  final void Function(int raceId) onJoin;
 
   @override
   Widget build(BuildContext context) {
@@ -180,20 +195,32 @@ class _RaceLobby extends StatelessWidget {
       color: AppColors.backgroundColor,
       child: SafeArea(
         top: false,
-        child: ListView(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.lg,
-            vertical: AppSpacing.sm,
-          ),
-          children: [
-            const RoleLobbySectionLabel(label: 'Available'),
-            const SizedBox(height: AppSpacing.sm),
-            RoleLobbySessionCard(
-              title: 'Demo Verifier Session',
-              subtitle: 'Connect to the Bib Recorder',
-              onTap: onJoin,
-            ),
-          ],
+        child: ListenableBuilder(
+          listenable: scanner,
+          builder: (_, __) {
+            final sessions = scanner.sessions;
+            return ListView(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.lg,
+                vertical: AppSpacing.sm,
+              ),
+              children: [
+                const RoleLobbySectionLabel(label: 'Available'),
+                const SizedBox(height: AppSpacing.sm),
+                if (sessions.isEmpty)
+                  const RoleLobbySearchingCard(
+                    subtitle: 'Looking for a Bib Recorder on this network…',
+                  )
+                else
+                  for (final s in sessions)
+                    RoleLobbySessionCard(
+                      title: 'Race #${s.raceId}',
+                      subtitle: s.hostName,
+                      onTap: () => onJoin(s.raceId),
+                    ),
+              ],
+            );
+          },
         ),
       ),
     );
