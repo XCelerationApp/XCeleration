@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/services/device_connection_service.dart';
 import 'package:xceleration/core/components/device_connection_widget.dart';
@@ -22,7 +21,6 @@ class _SpectatorBroadcastSheetState extends State<SpectatorBroadcastSheet> {
   final Set<ConnectedDevice> _finished = {};
   final _finishedCount = ValueNotifier<int>(0);
   final Map<ConnectedDevice, VoidCallback> _listeners = {};
-  Timer? _timeoutTimer;
 
   @override
   void initState() {
@@ -32,9 +30,6 @@ class _SpectatorBroadcastSheetState extends State<SpectatorBroadcastSheet> {
       _listeners[d] = listener;
       d.addListener(listener);
     }
-    _timeoutTimer = Timer(const Duration(minutes: 2), () {
-      if (mounted) Navigator.of(context).maybePop();
-    });
   }
 
   void _onDeviceChanged(ConnectedDevice device) {
@@ -50,7 +45,6 @@ class _SpectatorBroadcastSheetState extends State<SpectatorBroadcastSheet> {
       entry.key.removeListener(entry.value);
     }
     _finishedCount.dispose();
-    _timeoutTimer?.cancel();
     super.dispose();
   }
 
