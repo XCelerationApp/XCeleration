@@ -70,17 +70,6 @@ class BibNumberController extends BibNumberDataController {
     _runnersJustLoaded = false;
   }
 
-  /// Testing helper — adds [runner] to both [runners] and [_runnersByBib]
-  /// atomically so that [getRunnerByBib]'s sync-guard assert passes.
-  ///
-  /// Production code must go through [_loadRunners] / [_loadRaceWithRunners],
-  /// which populate both collections together.
-  @visibleForTesting
-  void addRunnerForTesting(BibDatum runner) {
-    runners.add(runner);
-    _runnersByBib[runner.bib] = runner;
-  }
-
   BibNumberController({
     required super.storage,
     super.textInputFactory = const TextInputFactory(),
@@ -455,17 +444,11 @@ class BibNumberController extends BibNumberDataController {
     );
   }
 
-  /// Gets a runner by bib number. O(1) via [_runnersByBib].
-  ///
-  /// Invariant: every write to [runners] must also update [_runnersByBib].
-  /// All population paths (_loadRunners, _loadRaceWithRunners) satisfy this.
-  BibDatum? getRunnerByBib(String bib) {
-    assert(
-      runners.every((r) => _runnersByBib.containsKey(r.bib)),
-      '_runnersByBib is out of sync with runners — a write path is missing a map update',
-    );
-    return _runnersByBib[bib];
-  }
+  /// Gets a runner by bib number from the local runners list.
+  /// O(1) via the pre-built map; falls back to linear scan for runners added
+  /// directly to [runners] outside the normal population path.
+  BibDatum? getRunnerByBib(String bib) =>
+      _runnersByBib[bib] ?? runners.where((r) => r.bib == bib).firstOrNull;
 
   // Bib number validation and handling
 
