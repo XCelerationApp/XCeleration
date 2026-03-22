@@ -60,7 +60,7 @@ dependencies:
   barcode_scan2: ^4.1.0
 
   # Document Generation
-  pdf: ^3.12.0
+  pdf: ^3.10.7
 
   # Web & External Content
   webview_flutter: ^4.13.0
