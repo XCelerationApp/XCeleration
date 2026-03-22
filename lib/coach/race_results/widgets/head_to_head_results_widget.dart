@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/shared/services/i_race_results_service.dart';
 import 'package:xceleration/shared/services/race_results_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
@@ -6,13 +7,41 @@ import '../model/results_record.dart';
 import '../model/team_record.dart';
 import 'collapsible_results_widget.dart';
 
-class HeadToHeadResultsWidget extends StatelessWidget {
+class HeadToHeadResultsWidget extends StatefulWidget {
   final List<TeamRecord> matchup;
-  late final TeamRecord teamA;
-  late final TeamRecord teamB;
-  late final List<ResultsRecord> allResults;
+  final IRaceResultsService raceResultsService;
 
-  HeadToHeadResultsWidget({super.key, required this.matchup}) {
+  const HeadToHeadResultsWidget({
+    super.key,
+    required this.matchup,
+    this.raceResultsService = const RaceResultsService(),
+  });
+
+  @override
+  State<HeadToHeadResultsWidget> createState() =>
+      _HeadToHeadResultsWidgetState();
+}
+
+class _HeadToHeadResultsWidgetState extends State<HeadToHeadResultsWidget> {
+  late TeamRecord teamA;
+  late TeamRecord teamB;
+  late List<ResultsRecord> allResults;
+
+  @override
+  void initState() {
+    super.initState();
+    _computeResults(widget.matchup);
+  }
+
+  @override
+  void didUpdateWidget(HeadToHeadResultsWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.matchup != oldWidget.matchup) {
+      _computeResults(widget.matchup);
+    }
+  }
+
+  void _computeResults(List<TeamRecord> matchup) {
     teamA = matchup[0];
     teamB = matchup[1];
 
@@ -22,13 +51,12 @@ class HeadToHeadResultsWidget extends StatelessWidget {
 
     // Convert RaceResult objects to ResultsRecord objects for display
     // No dedicated race distance context here; pace/splits not critical for H2H
-    allResults =
-        const RaceResultsService().convertToResultsRecords(raceResults);
+    allResults = widget.raceResultsService.convertToResultsRecords(raceResults);
   }
 
   @override
   Widget build(BuildContext context) {
-    if (matchup.length != 2) return const SizedBox.shrink();
+    if (widget.matchup.length != 2) return const SizedBox.shrink();
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -78,7 +106,7 @@ class HeadToHeadResultsWidget extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            CollapsibleResultsWidget(
+            CollapsibleIndividualResultsWidget(
               results: allResults,
               initialVisibleCount: 3,
             ),

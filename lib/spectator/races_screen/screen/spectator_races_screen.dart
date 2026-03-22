@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:xceleration/core/services/connectivity_sync_service.dart';
@@ -9,6 +10,7 @@ import 'package:xceleration/shared/settings_screen.dart';
 import 'package:xceleration/core/services/tutorial_manager.dart';
 import 'package:xceleration/spectator/receive_race/screen/receive_race_screen.dart';
 import 'package:xceleration/core/utils/sheet_utils.dart';
+import 'package:xceleration/core/services/service_locator.dart';
 import 'package:xceleration/spectator/services/spectator_storage_service.dart';
 import 'package:xceleration/core/utils/race_share_decoder.dart';
 import 'package:xceleration/core/result.dart';
@@ -57,7 +59,7 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
 
   Future<void> _loadSavedRaces() async {
     try {
-      final races = await SpectatorStorageService.instance.getAllRaces();
+      final races = await ServiceLocator.get<SpectatorStorageService>().getAllRaces();
       if (mounted) {
         setState(() {
           _savedRaces = races;
@@ -75,9 +77,20 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
   }
 
   Future<void> _viewRace(Map<String, dynamic> race) async {
-    final encodedPayload = race['encoded_payload'] as String;
-    final result = RaceShareDecoder.decodeWithRaw(encodedPayload);
+    final raceId = race['id'] as int;
+    final fullRace = await ServiceLocator.get<SpectatorStorageService>().getRace(raceId);
+    final encodedPayload = fullRace?['encoded_payload'] as String?;
+    if (encodedPayload == null) {
+      if (mounted) {
+        DialogUtils.showErrorDialog(context,
+            message: 'Could not load race data.');
+      }
+      return;
+    }
+    final result =
+        await compute(RaceShareDecoder.decodeWithRaw, encodedPayload);
 
+    if (!mounted) return;
     switch (result) {
       case Failure(:final error):
         Logger.e('[SpectatorRacesScreen._viewRace] ${error.originalException}');
@@ -105,7 +118,16 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
 
   Future<void> _shareRace(Map<String, dynamic> race) async {
     try {
-      final encodedPayload = race['encoded_payload'] as String;
+      final raceId = race['id'] as int;
+      final fullRace = await ServiceLocator.get<SpectatorStorageService>().getRace(raceId);
+      final encodedPayload = fullRace?['encoded_payload'] as String?;
+      if (encodedPayload == null) {
+        if (mounted) {
+          DialogUtils.showErrorDialog(context,
+              message: 'Could not load race data.');
+        }
+        return;
+      }
       final raceName = race['race_name'] as String? ?? 'Race';
 
       if (!mounted) return;
@@ -171,7 +193,7 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
 
     if (confirmed == true) {
       try {
-        await SpectatorStorageService.instance.deleteRace(raceId);
+        await ServiceLocator.get<SpectatorStorageService>().deleteRace(raceId);
         _loadSavedRaces();
       } catch (e) {
         Logger.e('Failed to delete race: $e');
@@ -236,31 +258,26 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
                         )
                       : RefreshIndicator(
                           onRefresh: _loadSavedRaces,
-                          child: SingleChildScrollView(
+                          child: ListView.builder(
                             physics: const AlwaysScrollableScrollPhysics(),
-                            child: Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 16.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  ..._savedRaces.map((race) {
-                                    final raceName =
-                                        race['race_name'] as String? ??
-                                            'Unnamed Race';
-                                    final raceId = race['id'] as int;
+                            padding:
+                                const EdgeInsets.symmetric(vertical: 16.0),
+                            itemCount: _savedRaces.length,
+                            itemBuilder: (context, index) {
+                              final race = _savedRaces[index];
+                              final raceName =
+                                  race['race_name'] as String? ??
+                                      'Unnamed Race';
+                              final raceId = race['id'] as int;
 
-                                    return SpectatorRaceCard(
-                                      race: race,
-                                      onTap: () => _viewRace(race),
-                                      onShare: () => _shareRace(race),
-                                      onDelete: () =>
-                                          _deleteRace(raceId, raceName),
-                                    );
-                                  }),
-                                ],
-                              ),
-                            ),
+                              return SpectatorRaceCard(
+                                race: race,
+                                onTap: () => _viewRace(race),
+                                onShare: () => _shareRace(race),
+                                onDelete: () =>
+                                    _deleteRace(raceId, raceName),
+                              );
+                            },
                           ),
                         ),
             ),

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:provider/provider.dart'; // Selector, ChangeNotifierProvider
 import 'package:xceleration/core/services/i_sync_service.dart';
 import '../controller/runners_management_controller.dart';
 import '../../../core/theme/app_border_radius.dart';
@@ -8,35 +8,17 @@ import '../../../core/theme/app_opacity.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/utils/sheet_utils.dart';
-import '../../../shared/models/database/master_race.dart';
+import '../../../shared/models/database/i_master_race_resolver.dart';
 import '../widgets/runner_search_bar.dart';
 import '../widgets/runners_list.dart';
 
 // Main Screen
 class TeamsAndRunnersManagementWidget extends StatefulWidget {
-  final MasterRace masterRace;
+  final IMasterRaceResolver masterRace;
   final VoidCallback? onBack;
   final VoidCallback? onContentChanged;
   final bool? showHeader;
   final bool isViewMode;
-
-  // Add a static method that can be called from outside
-  static Future<bool> checkMinimumRunnersLoaded(MasterRace masterRace) async {
-    final teamToRaceRunnersMap = await masterRace.teamtoRaceRunnersMap;
-
-    // If there are no teams yet, we cannot proceed
-    if (teamToRaceRunnersMap.isEmpty) {
-      return false;
-    }
-
-    for (final entry in teamToRaceRunnersMap.entries) {
-      if (entry.value.isEmpty) {
-        return false;
-      }
-    }
-
-    return true;
-  }
 
   const TeamsAndRunnersManagementWidget({
     super.key,
@@ -80,39 +62,46 @@ class _TeamsAndRunnersManagementWidgetState
   Widget build(BuildContext context) {
     return ChangeNotifierProvider.value(
       value: _controller,
-      child: Consumer<RunnersManagementController>(
-        builder: (context, controller, child) {
+      // Selector gates rebuilds of the header/search section to only the
+      // fields those sections actually read. RunnersList subscribes to the
+      // controller independently, so it is placed outside the Selector —
+      // search/filter notifications no longer cause a full-column rebuild.
+      child: Selector<RunnersManagementController,
+          ({bool showHeader, bool isLoading, int totalRunnerCount, String searchAttribute})>(
+        selector: (_, c) => (
+          showHeader: c.showHeader,
+          isLoading: c.isLoading,
+          totalRunnerCount: c.totalRunnerCount,
+          searchAttribute: c.searchAttribute,
+        ),
+        builder: (context, data, _) {
           return Material(
             color: AppColors.backgroundColor,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return Column(
-                  mainAxisSize: MainAxisSize.max,
-                  children: [
-                    if (controller.showHeader)
-                      ColoredBox(
-                        color: AppColors.backgroundColor,
-                        child: _buildHeader(controller),
+            child: Column(
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                if (data.showHeader)
+                  ColoredBox(
+                    color: AppColors.backgroundColor,
+                    child: _buildHeader(_controller),
+                  ),
+                if (!data.isLoading)
+                  ColoredBox(
+                    color: AppColors.backgroundColor,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.lg,
+                        AppSpacing.sm,
+                        AppSpacing.lg,
+                        AppSpacing.md,
                       ),
-                    if (!controller.isLoading)
-                      ColoredBox(
-                        color: AppColors.backgroundColor,
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(
-                            AppSpacing.lg,
-                            AppSpacing.sm,
-                            AppSpacing.lg,
-                            AppSpacing.md,
-                          ),
-                          child: _buildSearchSection(),
-                        ),
-                      ),
-                    Expanded(
-                      child: RunnersList(controller: controller),
+                      child: _buildSearchSection(),
                     ),
-                  ],
-                );
-              },
+                  ),
+                Expanded(
+                  child: RunnersList(controller: _controller),
+                ),
+              ],
             ),
           );
         },
@@ -170,11 +159,7 @@ class _TeamsAndRunnersManagementWidgetState
       onSearchChanged: () => _controller
           .filterRaceRunners(_controller.searchController.text.trim()),
       onAttributeChanged: (value) {
-        setState(() {
-          _controller.searchAttribute = value!;
-          _controller
-              .filterRaceRunners(_controller.searchController.text.trim());
-        });
+        _controller.setSearchAttribute(value!);
       },
       isViewMode: _controller.isViewMode,
     );

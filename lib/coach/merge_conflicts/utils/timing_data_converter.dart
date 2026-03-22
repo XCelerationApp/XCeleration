@@ -2,7 +2,15 @@ import 'package:xceleration/coach/merge_conflicts/models/ui_chunk.dart';
 import 'package:xceleration/shared/models/database/race_runner.dart';
 import 'package:xceleration/shared/models/timing_records/timing_chunk.dart';
 
-class TimingDataConverter {
+/// Converts [TimingChunk] lists into [UIChunk] lists for the Coach merge-conflict
+/// resolution screen.
+///
+/// This is intentionally separate from [RaceTimerDataConverter]
+/// (lib/assistant/race_timer/utils/timing_data_converter.dart), which handles
+/// live-timing conversion for the Assistant role. The two converters operate on
+/// different UIChunk types, use different conflict-resolution strategies, and must
+/// not be merged.
+class CoachTimingDataConverter {
   static List<UIChunk> convertToUIChunks(
       List<TimingChunk> timingChunks, List<RaceRunner> runners) {
     final runnersCopy = List<RaceRunner>.from(runners);

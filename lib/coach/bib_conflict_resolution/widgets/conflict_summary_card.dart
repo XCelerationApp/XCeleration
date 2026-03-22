@@ -14,7 +14,7 @@ class ConflictSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = context.watch<ConflictResolutionController>();
+    final controller = context.read<ConflictResolutionController>();
 
     final duplicateCount = ConflictMockData.conflicts
         .whereType<MockDuplicateConflict>()

@@ -1,20 +1,19 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/typography.dart';
-import '../model/bib_record.dart';
+import '../model/bib_datum_record.dart';
 import '../controller/bib_number_controller.dart';
 
 class BibInputWidget extends StatelessWidget {
   final int index;
   final BibNumberController controller;
-  late final BibDatumRecord record;
+  final BibDatumRecord record;
 
-  BibInputWidget({
+  const BibInputWidget({
     super.key,
     required this.index,
+    required this.record,
     required this.controller,
-  }) {
-    record = controller.bibRecords[index];
-  }
+  });
 
   @override
   Widget build(BuildContext context) {

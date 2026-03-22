@@ -20,7 +20,26 @@ import '../widgets/races_list.dart';
 
 class RacesScreen extends StatefulWidget {
   final bool canEdit;
-  const RacesScreen({super.key, this.canEdit = true});
+
+  // Optional service overrides — defaults to production implementations.
+  // Inject mocks in tests to avoid touching real platform APIs.
+  final IRacesService? racesService;
+  final IAuthService? authService;
+  final IEventBus? eventBus;
+  final IGeoLocationService? geoLocationService;
+  final IPostFrameCallbackScheduler? postFrameCallbackScheduler;
+  final TutorialManager? tutorialManager;
+
+  const RacesScreen({
+    super.key,
+    this.canEdit = true,
+    this.racesService,
+    this.authService,
+    this.eventBus,
+    this.geoLocationService,
+    this.postFrameCallbackScheduler,
+    this.tutorialManager,
+  });
 
   @override
   RacesScreenState createState() => RacesScreenState();
@@ -33,12 +52,13 @@ class RacesScreenState extends State<RacesScreen> {
   void initState() {
     super.initState();
     _controller = RacesController(
-      racesService: RacesService(),
-      authService: AuthService.instance,
-      eventBus: EventBus.instance,
-      geoLocationService: GeoLocationService(),
-      postFrameCallbackScheduler: WidgetsBindingAdapter(),
-      tutorialManager: TutorialManager(),
+      racesService: widget.racesService ?? RacesService(),
+      authService: widget.authService ?? AuthService.instance,
+      eventBus: widget.eventBus ?? EventBus.instance,
+      geoLocationService: widget.geoLocationService ?? GeoLocationService(),
+      postFrameCallbackScheduler:
+          widget.postFrameCallbackScheduler ?? WidgetsBindingAdapter(),
+      tutorialManager: widget.tutorialManager ?? TutorialManager(),
       syncStream: context.read<ISyncService>().syncEvents,
       canEdit: widget.canEdit,
     );
@@ -53,81 +73,76 @@ class RacesScreenState extends State<RacesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        return TutorialRoot(
-            tutorialManager: _controller.tutorialManager,
-            child: Scaffold(
-                floatingActionButton: widget.canEdit
-                    ? Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Main Create Race FAB
-                          CoachMark(
-                            id: 'create_race_button_tutorial',
-                            tutorialManager: _controller.tutorialManager,
-                            config: const CoachMarkConfig(
-                              title: 'Create Race',
-                              alignmentX: AlignmentX.left,
-                              alignmentY: AlignmentY.top,
-                              description: 'Click here to create a new race',
-                              icon: Icons.add,
-                              type: CoachMarkType.targeted,
-                              backgroundColor: AppColors.statusPreRace,
-                              elevation: 12,
-                            ),
-                            child: FloatingActionButton(
-                              heroTag: 'create_race',
-                              onPressed: () =>
-                                  _controller.showCreateRaceSheet(context),
-                              backgroundColor: AppColors.primaryColor,
-                              child: const Icon(Icons.add),
-                            ),
-                          ),
-                        ],
-                      )
-                    : null,
-                body: Column(
-                  children: [
-                    // Sticky header
-                    AppHeader(
-                      title: 'My Races',
-                      currentRole:
-                          widget.canEdit ? Role.coach : Role.spectator,
-                      tutorialManager: _controller.tutorialManager,
-                      onRoleTap: () => RoleSelectorSheet.showRoleSelection(
-                          context,
-                          widget.canEdit ? Role.coach : Role.spectator),
-                      onSettingsTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => SettingsScreen(
-                            currentRole: (widget.canEdit
-                                    ? Role.coach
-                                    : Role.spectator)
-                                .toValueString(),
-                          ),
+    final role = widget.canEdit ? Role.coach : Role.spectator;
+    // Static Scaffold — no outer AnimatedBuilder. RacesList subscribes to
+    // _controller directly so only the list rebuilds when races change.
+    return TutorialRoot(
+        tutorialManager: _controller.tutorialManager,
+        child: Scaffold(
+            floatingActionButton: widget.canEdit
+                ? Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Main Create Race FAB
+                      CoachMark(
+                        id: 'create_race_button_tutorial',
+                        tutorialManager: _controller.tutorialManager,
+                        config: const CoachMarkConfig(
+                          title: 'Create Race',
+                          alignmentX: AlignmentX.left,
+                          alignmentY: AlignmentY.top,
+                          description: 'Click here to create a new race',
+                          icon: Icons.add,
+                          type: CoachMarkType.targeted,
+                          backgroundColor: AppColors.statusPreRace,
+                          elevation: 12,
+                        ),
+                        child: FloatingActionButton(
+                          heroTag: 'create_race',
+                          onPressed: () =>
+                              _controller.showCreateRaceSheet(context),
+                          backgroundColor: AppColors.primaryColor,
+                          child: const Icon(Icons.add),
                         ),
                       ),
+                    ],
+                  )
+                : null,
+            body: Column(
+              children: [
+                // Sticky header
+                AppHeader(
+                  title: 'My Races',
+                  currentRole: role,
+                  tutorialManager: _controller.tutorialManager,
+                  onRoleTap: () =>
+                      RoleSelectorSheet.showRoleSelection(context, role),
+                  onSettingsTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => SettingsScreen(
+                        currentRole: role.toValueString(),
+                      ),
                     ),
-                    // Scrollable content
-                    Expanded(
-                      child: Padding(
-                        padding: EdgeInsets.fromLTRB(AppSpacing.xl, 0, AppSpacing.xl, AppSpacing.xl),
-                        child: SingleChildScrollView(
-                          child: RaceCoachMark(
+                  ),
+                ),
+                // Scrollable content
+                Expanded(
+                  child: RaceCoachMark(
+                    controller: _controller,
+                    child: CustomScrollView(
+                      slivers: [
+                        SliverPadding(
+                          padding: EdgeInsets.fromLTRB(AppSpacing.xl, 0, AppSpacing.xl, AppSpacing.xl),
+                          sliver: RacesList(
                             controller: _controller,
-                            child: RacesList(
-                              controller: _controller,
-                              canEdit: widget.canEdit,
-                            ),
+                            canEdit: widget.canEdit,
                           ),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
-                )));
-      },
-    );
+                  ),
+                ),
+              ],
+            )));
   }
 }

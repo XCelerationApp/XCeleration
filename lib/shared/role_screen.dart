@@ -18,9 +18,37 @@ import '../core/theme/app_animations.dart';
 import '../core/theme/typography.dart';
 import '../core/components/page_route_animations.dart';
 import '../core/services/auth_service.dart';
+import '../core/services/i_remote_api_client.dart';
 import '../core/services/profile_service.dart';
 import '../core/services/remote_api_client.dart';
 import 'screens/sign_in_screen.dart';
+
+// ─── Shared animation helper ──────────────────────────────────────────────────
+
+/// Builds a staggered entrance [AnimationController] and per-item
+/// [CurvedAnimation] list for [count] items, then immediately starts the
+/// animation forward.
+///
+/// The caller is responsible for disposing both the controller and each
+/// [CurvedAnimation] in the returned list.
+({AnimationController controller, List<CurvedAnimation> animations})
+    _buildStaggeredAnimations(int count, TickerProvider vsync) {
+  final totalMs = 120 + (count - 1) * 80 + 400;
+  final controller = AnimationController(
+    vsync: vsync,
+    duration: Duration(milliseconds: totalMs),
+  )..forward();
+  final animations = List.generate(count, (i) {
+    final startMs = 120 + i * 80;
+    final endMs = startMs + 400;
+    return CurvedAnimation(
+      parent: controller,
+      curve: Interval(startMs / totalMs, endMs / totalMs,
+          curve: AppAnimations.enter),
+    );
+  });
+  return (controller: controller, animations: animations);
+}
 
 // ─── Role data ────────────────────────────────────────────────────────────────
 
@@ -67,10 +95,10 @@ class _SpeedLinesPainter extends CustomPainter {
 // ─── Role row (on gradient) ───────────────────────────────────────────────────
 
 class _RoleRow extends StatefulWidget {
-  const _RoleRow({required this.data, required this.isLast, required this.index});
+  const _RoleRow({required this.data, required this.isLast, required this.entrance});
   final _RoleData data;
   final bool isLast;
-  final int index;
+  final Animation<double> entrance;
 
   @override
   State<_RoleRow> createState() => _RoleRowState();
@@ -78,15 +106,6 @@ class _RoleRow extends StatefulWidget {
 
 class _RoleRowState extends State<_RoleRow> {
   bool _pressed = false;
-  double _opacity = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    Future.delayed(Duration(milliseconds: 120 + widget.index * 80), () {
-      if (mounted) setState(() => _opacity = 1);
-    });
-  }
 
   void _onTapUp(_) {
     setState(() => _pressed = false);
@@ -95,10 +114,8 @@ class _RoleRowState extends State<_RoleRow> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedOpacity(
-      opacity: _opacity,
-      duration: AppAnimations.slow,
-      curve: AppAnimations.enter,
+    return FadeTransition(
+      opacity: widget.entrance,
       child: GestureDetector(
         onTapDown: (_) => setState(() => _pressed = true),
         onTapUp: _onTapUp,
@@ -195,13 +212,13 @@ class _SubRoleCard extends StatefulWidget {
     required this.label,
     required this.description,
     required this.onPressed,
-    required this.index,
+    required this.entrance,
   });
 
   final String label;
   final String description;
   final VoidCallback onPressed;
-  final int index;
+  final Animation<double> entrance;
 
   @override
   State<_SubRoleCard> createState() => _SubRoleCardState();
@@ -209,15 +226,6 @@ class _SubRoleCard extends StatefulWidget {
 
 class _SubRoleCardState extends State<_SubRoleCard> {
   bool _pressed = false;
-  double _opacity = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    Future.delayed(Duration(milliseconds: widget.index * 60), () {
-      if (mounted) setState(() => _opacity = 1);
-    });
-  }
 
   void _onTapUp(_) {
     setState(() => _pressed = false);
@@ -226,10 +234,8 @@ class _SubRoleCardState extends State<_SubRoleCard> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedOpacity(
-      opacity: _opacity,
-      duration: AppAnimations.reveal,
-      curve: AppAnimations.enter,
+    return FadeTransition(
+      opacity: widget.entrance,
       child: GestureDetector(
         onTapDown: (_) => setState(() => _pressed = true),
         onTapUp: _onTapUp,
@@ -317,8 +323,14 @@ class _AssistantScreen extends StatefulWidget {
   State<_AssistantScreen> createState() => _AssistantScreenState();
 }
 
-class _AssistantScreenState extends State<_AssistantScreen> {
+class _AssistantScreenState extends State<_AssistantScreen>
+    with SingleTickerProviderStateMixin {
   late final List<_RoleData> _roles;
+  late final AnimationController _entranceController;
+  late final List<CurvedAnimation> _rowAnimations;
+  // Cached controller — created once per tap, cleared after the screen pops.
+  // Prevents multiple live instances when the user taps rapidly.
+  BibNumberController? _bibController;
 
   @override
   void initState() {
@@ -335,25 +347,48 @@ class _AssistantScreenState extends State<_AssistantScreen> {
         onPressed: _onRecorder,
       ),
     ];
+    final (:controller, :animations) =
+        _buildStaggeredAnimations(_roles.length, this);
+    _entranceController = controller;
+    _rowAnimations = animations;
+  }
+
+  @override
+  void dispose() {
+    for (final a in _rowAnimations) {
+      a.dispose();
+    }
+    _entranceController.dispose();
+    super.dispose();
   }
 
   void _onTimer() => Navigator.of(context).push(
         InitialPageRouteAnimation(child: const TimingScreen()),
       );
 
-  void _onRecorder() => Navigator.of(context).push(
-        InitialPageRouteAnimation(
-          child: BibNumberScreen(
-            controller: BibNumberController(
-              storage: AssistantStorageService.instance,
-              tutorialManager: TutorialManager(),
-              demoRaceGenerator: const DemoRaceGeneratorImpl(),
-              deviceConnectionFactory: const DeviceConnectionFactoryImpl(),
-              scheduler: const PostFrameScheduler(),
-            ),
-          ),
-        ),
-      );
+  Future<void> _onRecorder() async {
+    // Guard: a session is already active; ignore the tap.
+    if (_bibController != null) return;
+    _bibController = BibNumberController(
+      storage: AssistantStorageService.instance,
+      tutorialManager: TutorialManager(),
+      demoRaceGenerator: const DemoRaceGeneratorImpl(),
+      deviceConnectionFactory: const DeviceConnectionFactoryImpl(),
+      scheduler: const PostFrameScheduler(),
+    );
+    if (!mounted) {
+      _bibController!.dispose();
+      _bibController = null;
+      return;
+    }
+    await Navigator.of(context).push(
+      InitialPageRouteAnimation(
+        child: BibNumberScreen(controller: _bibController!),
+      ),
+    );
+    // BibNumberScreen.dispose() has already disposed the controller.
+    _bibController = null;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -467,7 +502,7 @@ class _AssistantScreenState extends State<_AssistantScreen> {
             _RoleRow(
               data: _roles[i],
               isLast: i == _roles.length - 1,
-              index: i,
+              entrance: _rowAnimations[i],
             ),
         ],
       ),
@@ -488,14 +523,22 @@ const _gradientBg = BoxDecoration(
 // ─── Role selection screen ────────────────────────────────────────────────────
 
 class RoleScreen extends StatefulWidget {
-  const RoleScreen({super.key});
+  // Optional service overrides — defaults to production implementations.
+  // Inject mocks in tests to avoid touching real singletons.
+  final IAuthService? authService;
+  final IRemoteApiClient? remoteApiClient;
+
+  const RoleScreen({super.key, this.authService, this.remoteApiClient});
 
   @override
   State<RoleScreen> createState() => _RoleScreenState();
 }
 
-class _RoleScreenState extends State<RoleScreen> {
+class _RoleScreenState extends State<RoleScreen>
+    with SingleTickerProviderStateMixin {
   late final List<_RoleData> _roles;
+  late final AnimationController _entranceController;
+  late final List<CurvedAnimation> _rowAnimations;
 
   @override
   void initState() {
@@ -517,17 +560,32 @@ class _RoleScreenState extends State<RoleScreen> {
         onPressed: _onSpectator,
       ),
     ];
+    final (:controller, :animations) =
+        _buildStaggeredAnimations(_roles.length, this);
+    _entranceController = controller;
+    _rowAnimations = animations;
+  }
+
+  @override
+  void dispose() {
+    for (final a in _rowAnimations) {
+      a.dispose();
+    }
+    _entranceController.dispose();
+    super.dispose();
   }
 
   void _onCoach() {
-    if (!AuthService.instance.isSignedIn) {
+    final auth = widget.authService ?? AuthService.instance;
+    final remoteApi = widget.remoteApiClient ?? RemoteApiClient();
+    if (!auth.isSignedIn) {
       Navigator.of(context).push(
         InitialPageRouteAnimation(
           child: SignInScreen(
-            authService: AuthService.instance,
+            authService: auth,
             profileService: ProfileService(
-              remoteApi: RemoteApiClient(),
-              auth: AuthService.instance,
+              remoteApi: remoteApi,
+              auth: auth,
             ),
           ),
         ),
@@ -644,7 +702,7 @@ class _RoleScreenState extends State<RoleScreen> {
             _RoleRow(
               data: _roles[i],
               isLast: i == _roles.length - 1,
-              index: i,
+              entrance: _rowAnimations[i],
             ),
         ],
       ),

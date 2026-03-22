@@ -11,13 +11,21 @@ import 'package:xceleration/core/services/i_sync_service.dart';
 
 /// Emitted by [SyncService.syncEvents] after each successful [SyncService.pullAll].
 class SyncEvent {
-  const SyncEvent({required this.timestamp, required this.changedTables});
+  const SyncEvent({
+    required this.timestamp,
+    required this.changedTables,
+    this.changedRaceIds = const {},
+  });
 
   /// When the pull completed.
   final DateTime timestamp;
 
   /// Tables that had at least one row inserted or updated during this pull.
   final Set<String> changedTables;
+
+  /// Local race IDs whose race_results rows were inserted or updated during this pull.
+  /// Non-empty only when [changedTables] contains `'race_results'`.
+  final Set<int> changedRaceIds;
 }
 
 /// Helper class to track data conflicts
@@ -67,6 +75,11 @@ class SyncService implements ISyncService {
 
   final _uuid = const Uuid();
 
+  // Set to true once the normalized schema is confirmed present for the first time.
+  // The schema never changes at runtime after the database is opened, so this
+  // cache is valid for the lifetime of the SyncService instance.
+  bool _schemaNormalized = false;
+
   // Cursor keys
   static const String cursorRunners = 'cursor.runners';
   static const String cursorTeams = 'cursor.teams';
@@ -83,6 +96,7 @@ class SyncService implements ISyncService {
   }
 
   Future<bool> _hasNormalizedSchema(Database db) async {
+    if (_schemaNormalized) return true;
     final needed = [
       'runners',
       'teams',
@@ -93,6 +107,7 @@ class SyncService implements ISyncService {
     for (final t in needed) {
       if (!await _tableExists(db, t)) return false;
     }
+    _schemaNormalized = true;
     return true;
   }
 
@@ -109,14 +124,19 @@ class SyncService implements ISyncService {
         where: "uuid IS NULL OR uuid = ''",
         limit: 1000,
       );
-      for (final row in rows) {
-        await db.update(
-          table,
-          {'uuid': _uuid.v4()},
-          where: '$idCol = ?',
-          whereArgs: [row[idCol]],
-        );
-      }
+      if (rows.isEmpty) return;
+      // Generate all UUIDs in Dart first, then write them in a single
+      // transaction to avoid N sequential auto-commit round-trips.
+      await db.transaction((txn) async {
+        for (final row in rows) {
+          await txn.update(
+            table,
+            {'uuid': _uuid.v4()},
+            where: '$idCol = ?',
+            whereArgs: [row[idCol]],
+          );
+        }
+      });
     }
 
     await assignUuids('runners', 'runner_id');
@@ -168,28 +188,34 @@ class SyncService implements ISyncService {
     return rows.isNotEmpty ? rows.first['value'] as String : null;
   }
 
-  /// Detect if there's an actual data conflict when timestamps are equal
+  /// Fields excluded from conflict detection: sync metadata and local-only PKs/FKs
+  /// that are not present on the remote row.
+  static const _conflictExcludedFields = {
+    'uuid',
+    'updated_at',
+    'created_at',
+    'is_dirty',
+    'deleted_at',
+    'owner_user_id',
+    // Local integer PKs / FKs — not synced as data columns
+    'id',
+    'runner_id',
+    'team_id',
+    'race_id',
+  };
+
+  /// Detect if there's an actual data conflict when timestamps are equal.
+  ///
+  /// Compares all data columns present in either row, automatically picking up
+  /// any new columns added to synced tables without requiring code changes here.
   _DataConflictResult _detectDataConflict(
       Map<String, dynamic> local, Map<String, dynamic> remote) {
     final differences = <String>[];
 
-    // Define fields that should be compared for conflicts (exclude metadata fields)
-    final fieldsToCompare = [
-      'name',
-      'bib_number',
-      'grade',
-      'abbreviation',
-      'color',
-      'race_date',
-      'location',
-      'distance',
-      'distance_unit',
-      'flow_state',
-      'place',
-      'finish_time'
-    ];
+    final allKeys = {...local.keys, ...remote.keys}
+        .difference(_conflictExcludedFields);
 
-    for (final field in fieldsToCompare) {
+    for (final field in allKeys) {
       final localValue = local[field];
       final remoteValue = remote[field];
 
@@ -250,6 +276,12 @@ class SyncService implements ISyncService {
   }
 
   // Public API
+
+  @override
+  Future<void> dispose() async {
+    await _syncEventController.close();
+  }
+
   @override
   Future<void> syncAll() async {
     try {
@@ -295,15 +327,8 @@ class SyncService implements ISyncService {
       return;
     }
 
-    // Maps each table to its local integer PK column that must be stripped
-    // before upserting to Supabase (remote schema uses UUIDs for identity).
-    const localPkColumn = {
-      'runners': 'runner_id',
-      'teams': 'team_id',
-      'races': 'race_id',
-    };
-
-    Future<void> pushTable(String table, String onConflict) async {
+    Future<void> pushTable(String table, String onConflict,
+        {String? localPkColumn}) async {
       final rows = await db.query(table, where: 'is_dirty = 1');
       if (rows.isEmpty) return;
 
@@ -323,9 +348,7 @@ class SyncService implements ISyncService {
       for (final row in rows) {
         final copy = Map<String, dynamic>.from(row);
         copy.remove('is_dirty');
-        // Strip the local integer PK — remote schema uses uuid for identity.
-        final pk = localPkColumn[table];
-        if (pk != null) copy.remove(pk);
+        if (localPkColumn != null) copy.remove(localPkColumn);
         // uid is guaranteed non-null by the guard at the top of pushAll().
         copy['owner_user_id'] = uid;
         // Older local rows may have NULL created_at if they pre-date the column.
@@ -337,7 +360,16 @@ class SyncService implements ISyncService {
             copy, remoteMap[copy['uuid'] as String?]);
         if (conflictCheck.hasConflict) {
           Logger.d(
-              '⚠️ Push conflict detected for $table UUID:${copy['uuid']}: ${conflictCheck.details}');
+              '⚠️ Push conflict detected for $table UUID:${copy['uuid']}: ${conflictCheck.details} — skipping push, clearing dirty flag');
+          // Remote is newer: clear the dirty flag without pushing so we don't
+          // overwrite the more-recent remote data. The next pullAll will bring
+          // the remote version down.
+          final skippedUuid = copy['uuid'] as String?;
+          if (skippedUuid != null) {
+            await db.rawUpdate(
+                'UPDATE $table SET is_dirty = 0 WHERE uuid = ?', [skippedUuid]);
+          }
+          continue;
         }
 
         payload.add(copy);
@@ -357,9 +389,9 @@ class SyncService implements ISyncService {
       }
     }
 
-    await pushTable('runners', 'uuid');
-    await pushTable('teams', 'uuid');
-    await pushTable('races', 'uuid');
+    await pushTable('runners', 'uuid', localPkColumn: 'runner_id');
+    await pushTable('teams', 'uuid', localPkColumn: 'team_id');
+    await pushTable('races', 'uuid', localPkColumn: 'race_id');
     await _pushRaceResults();
     await _pushRaceParticipants();
   }
@@ -419,7 +451,14 @@ class SyncService implements ISyncService {
           copy, remoteMap[copy['uuid'] as String?]);
       if (conflictCheck.hasConflict) {
         Logger.d(
-            '⚠️ Push conflict for race_results UUID:${copy['uuid']}: ${conflictCheck.details}');
+            '⚠️ Push conflict for race_results UUID:${copy['uuid']}: ${conflictCheck.details} — skipping push, clearing dirty flag');
+        final skippedUuid = copy['uuid'] as String?;
+        if (skippedUuid != null) {
+          await db.rawUpdate(
+              'UPDATE race_results SET is_dirty = 0 WHERE uuid = ?',
+              [skippedUuid]);
+        }
+        continue;
       }
 
       payload.add(copy);
@@ -458,7 +497,6 @@ class SyncService implements ISyncService {
     if (rows.isEmpty) return;
 
     final payload = <Map<String, dynamic>>[];
-    final pushedKeys = <(String, String)>[];
 
     for (final row in rows) {
       final copy = Map<String, dynamic>.from(row);
@@ -479,17 +517,19 @@ class SyncService implements ISyncService {
       copy['owner_user_id'] = uid;
       copy['created_at'] ??= copy['updated_at'] ?? DateTime.now().toUtc().toIso8601String();
       payload.add(copy);
-      pushedKeys.add((raceUuid as String, runnerUuid as String));
     }
 
     if (payload.isNotEmpty) {
       await _syncClient.upsertRows(
           'race_participants', payload,
           onConflict: 'race_uuid,runner_uuid');
-      for (final (raceUuid, runnerUuid) in pushedKeys) {
+      final pushedUuids =
+          payload.map((r) => r['uuid']).whereType<String>().toList();
+      if (pushedUuids.isNotEmpty) {
+        final qMarks = List.filled(pushedUuids.length, '?').join(',');
         await db.rawUpdate(
-          'UPDATE race_participants SET is_dirty = 0 WHERE race_uuid = ? AND runner_uuid = ?',
-          [raceUuid, runnerUuid],
+          'UPDATE race_participants SET is_dirty = 0 WHERE uuid IN ($qMarks)',
+          pushedUuids,
         );
       }
       Logger.d('Pushed ${payload.length} dirty records for race_participants');
@@ -510,8 +550,9 @@ class SyncService implements ISyncService {
         : <String>[];
 
     final changedTables = <String>{};
+    final changedRaceIds = <int>{};
 
-    Future<void> pullTable(String table, String idCol) async {
+    Future<void> pullTable(String table) async {
       final cursorKey = 'cursor.$table';
       final cursor = await getCursor(cursorKey);
       final data = await _syncClient.fetchTableRows(
@@ -520,14 +561,30 @@ class SyncService implements ISyncService {
         cursor: cursor,
       );
 
+      // Batch-fetch all matching local rows in a single query to avoid
+      // N per-row round-trips when the remote payload contains many rows.
+      final remoteUuids =
+          data.map((r) => r['uuid']).whereType<String>().toList();
+      final localsByUuid = <String, Map<String, dynamic>>{};
+      if (remoteUuids.isNotEmpty) {
+        final qMarks = List.filled(remoteUuids.length, '?').join(',');
+        final localRows = await db.rawQuery(
+            'SELECT * FROM $table WHERE uuid IN ($qMarks)', remoteUuids);
+        for (final r in localRows) {
+          final u = r['uuid'] as String?;
+          if (u != null) localsByUuid[u] = r;
+        }
+      }
+
       String? newCursor = cursor;
       bool hadWrites = false;
       for (final row in data) {
         final remote = Map<String, dynamic>.from(row);
         final uuid = remote['uuid'] as String?;
         if (uuid == null) continue;
-        final locals =
-            await db.query(table, where: 'uuid = ?', whereArgs: [uuid]);
+        final locals = localsByUuid.containsKey(uuid)
+            ? [localsByUuid[uuid]!]
+            : <Map<String, dynamic>>[];
         // Remove remote-only fields not present locally
         remote.remove('owner_user_id');
 
@@ -603,18 +660,9 @@ class SyncService implements ISyncService {
 
           if (shouldUpdateLocal) {
             final update = Map<String, dynamic>.from(remote);
-
-            // Preserve local dirty flag if local has unsaved changes and remote is not significantly newer
-            final localDirty = local['is_dirty'] == 1;
-            final timeDifference = remoteUpdated.difference(localUpdated);
-            if (localDirty && timeDifference.inMinutes < 5) {
-              // Keep local dirty flag if changes were recent and local is dirty
-              update['is_dirty'] = 1;
-              Logger.d(
-                  'Preserving dirty flag for $table UUID:$uuid - local has recent unsaved changes');
-            } else {
-              update['is_dirty'] = 0;
-            }
+            // Remote won LWW — always clear the dirty flag so this row is not
+            // re-pushed over the newer remote data on the next sync cycle.
+            update['is_dirty'] = 0;
 
             await db
                 .update(table, update, where: 'uuid = ?', whereArgs: [uuid]);
@@ -636,16 +684,17 @@ class SyncService implements ISyncService {
       }
     }
 
-    await pullTable('runners', 'runner_id');
-    await pullTable('teams', 'team_id');
-    await pullTable('races', 'race_id');
-    await _pullRaceResults(accessibleOwnerIds, changedTables);
+    await pullTable('runners');
+    await pullTable('teams');
+    await pullTable('races');
+    await _pullRaceResults(accessibleOwnerIds, changedTables, changedRaceIds);
     await _pullRaceParticipants(accessibleOwnerIds, changedTables);
 
     if (changedTables.isNotEmpty) {
       _syncEventController.add(SyncEvent(
         timestamp: DateTime.now(),
         changedTables: changedTables,
+        changedRaceIds: changedRaceIds,
       ));
     }
   }
@@ -654,7 +703,9 @@ class SyncService implements ISyncService {
   /// local integer IDs before inserting or updating. Skips any row whose
   /// runner_uuid or race_uuid cannot be resolved locally (will retry next sync).
   Future<void> _pullRaceResults(
-      List<String> accessibleOwnerIds, Set<String> changedTables) async {
+      List<String> accessibleOwnerIds,
+      Set<String> changedTables,
+      Set<int> changedRaceIds) async {
     final db = await _db.database;
 
     const table = 'race_results';
@@ -695,6 +746,20 @@ class SyncService implements ISyncService {
       }
     }
 
+    // Batch-fetch all matching local rows in a single query.
+    final resultUuids =
+        data.map((r) => r['uuid']).whereType<String>().toList();
+    final localsByUuid = <String, Map<String, dynamic>>{};
+    if (resultUuids.isNotEmpty) {
+      final qMarks = List.filled(resultUuids.length, '?').join(',');
+      final localRows = await db.rawQuery(
+          'SELECT * FROM $table WHERE uuid IN ($qMarks)', resultUuids);
+      for (final r in localRows) {
+        final u = r['uuid'] as String?;
+        if (u != null) localsByUuid[u] = r;
+      }
+    }
+
     String? newCursor = cursor;
     bool hadWrites = false;
 
@@ -730,8 +795,9 @@ class SyncService implements ISyncService {
       remote['runner_id'] = runnerId;
       remote['race_id'] = raceId;
 
-      final locals =
-          await db.query(table, where: 'uuid = ?', whereArgs: [uuid]);
+      final locals = localsByUuid.containsKey(uuid)
+          ? [localsByUuid[uuid]!]
+          : <Map<String, dynamic>>[];
 
       // Handle tombstones: apply soft delete regardless of LWW
       if (remote['deleted_at'] != null) {
@@ -741,6 +807,7 @@ class SyncService implements ISyncService {
           await db.insert(table, insert,
               conflictAlgorithm: ConflictAlgorithm.replace);
           hadWrites = true;
+          changedRaceIds.add(raceId);
         } else if (locals.first['deleted_at'] == null) {
           await db.update(
             table,
@@ -750,6 +817,7 @@ class SyncService implements ISyncService {
           );
           Logger.d('Applied remote tombstone to $table UUID:$uuid');
           hadWrites = true;
+          changedRaceIds.add(raceId);
         }
         final updatedAtStr = remote['updated_at']?.toString();
         if (updatedAtStr != null &&
@@ -765,6 +833,7 @@ class SyncService implements ISyncService {
         await db.insert(table, insert,
             conflictAlgorithm: ConflictAlgorithm.replace);
         hadWrites = true;
+        changedRaceIds.add(raceId);
       } else {
         final local = locals.first;
         final localUpdated =
@@ -796,18 +865,11 @@ class SyncService implements ISyncService {
 
         if (shouldUpdateLocal) {
           final update = Map<String, dynamic>.from(remote);
-          final localDirty = local['is_dirty'] == 1;
-          final timeDifference = remoteUpdated.difference(localUpdated);
-          if (localDirty && timeDifference.inMinutes < 5) {
-            update['is_dirty'] = 1;
-            Logger.d(
-                'Preserving dirty flag for $table UUID:$uuid — local has recent unsaved changes');
-          } else {
-            update['is_dirty'] = 0;
-          }
+          update['is_dirty'] = 0;
           await db.update(table, update, where: 'uuid = ?', whereArgs: [uuid]);
           Logger.d('Updated $table UUID:$uuid from remote ($conflictReason)');
           hadWrites = true;
+          changedRaceIds.add(raceId);
         } else {
           Logger.d('Kept local $table UUID:$uuid ($conflictReason)');
         }
@@ -882,6 +944,21 @@ class SyncService implements ISyncService {
       }
     }
 
+    // Batch-fetch all matching local race_participant rows by UUID in a single
+    // query to avoid N per-row round-trips.
+    final participantUuids =
+        data.map((r) => r['uuid']).whereType<String>().toList();
+    final localsByUuid = <String, Map<String, dynamic>>{};
+    if (participantUuids.isNotEmpty) {
+      final qMarks = List.filled(participantUuids.length, '?').join(',');
+      final localRows = await db.rawQuery(
+          'SELECT * FROM $table WHERE uuid IN ($qMarks)', participantUuids);
+      for (final r in localRows) {
+        final u = r['uuid'] as String?;
+        if (u != null) localsByUuid[u] = r;
+      }
+    }
+
     String? newCursor = cursor;
     bool hadWrites = false;
 
@@ -889,6 +966,7 @@ class SyncService implements ISyncService {
       final remote = Map<String, dynamic>.from(row);
       remote.remove('owner_user_id');
 
+      final uuid = remote['uuid'] as String?;
       final raceUuid = remote['race_uuid'] as String?;
       final runnerUuid = remote['runner_uuid'] as String?;
       final teamUuid = remote['team_uuid'] as String?;
@@ -915,11 +993,9 @@ class SyncService implements ISyncService {
       remote['runner_id'] = runnerId;
       if (teamId != null) remote['team_id'] = teamId;
 
-      final locals = await db.query(
-        table,
-        where: 'race_id = ? AND runner_id = ?',
-        whereArgs: [raceId, runnerId],
-      );
+      final locals = uuid != null && localsByUuid.containsKey(uuid)
+          ? [localsByUuid[uuid]!]
+          : <Map<String, dynamic>>[];
 
       // Handle tombstones
       if (remote['deleted_at'] != null) {
@@ -933,8 +1009,8 @@ class SyncService implements ISyncService {
           await db.update(
             table,
             {'deleted_at': remote['deleted_at'], 'is_dirty': 0},
-            where: 'race_id = ? AND runner_id = ?',
-            whereArgs: [raceId, runnerId],
+            where: 'uuid = ?',
+            whereArgs: [uuid],
           );
           Logger.d(
               'Applied remote tombstone to $table race_uuid=$raceUuid runner_uuid=$runnerUuid');
@@ -977,16 +1053,9 @@ class SyncService implements ISyncService {
 
         if (shouldUpdateLocal) {
           final update = Map<String, dynamic>.from(remote);
-          final localDirty = local['is_dirty'] == 1;
-          final timeDifference = remoteUpdated.difference(localUpdated);
-          if (localDirty && timeDifference.inMinutes < 5) {
-            update['is_dirty'] = 1;
-          } else {
-            update['is_dirty'] = 0;
-          }
+          update['is_dirty'] = 0;
           await db.update(table, update,
-              where: 'race_id = ? AND runner_id = ?',
-              whereArgs: [raceId, runnerId]);
+              where: 'uuid = ?', whereArgs: [uuid]);
           Logger.d(
               'Updated $table race_uuid=$raceUuid runner_uuid=$runnerUuid from remote ($conflictReason)');
           hadWrites = true;

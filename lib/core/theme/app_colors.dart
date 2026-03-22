@@ -44,4 +44,7 @@ class AppColors {
 
   /// Amber — used for "create new runner" action buttons.
   static const Color warningAmber = Color(0xFFF59E0B);
+
+  /// Default fallback colour for a team that has no colour set.
+  static const Color defaultTeamColor = Color(0xFF2196F3);
 }

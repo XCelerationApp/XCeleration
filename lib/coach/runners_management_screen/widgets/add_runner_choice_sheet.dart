@@ -3,25 +3,20 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/typography.dart';
 
-/// Body widget for the "Add Team" choice sheet.
+/// Body widget for the "Add Runner" choice sheet.
 ///
-/// Presents up to three options — Import from Previous Race (only when
-/// [showImportFromPreviousRace] is true), Import from Spreadsheet, and
-/// Create New Team — as tappable rows with a description subtitle.
-/// The caller is responsible for dismissing the sheet and opening the next flow.
-class AddTeamChoiceSheet extends StatelessWidget {
-  const AddTeamChoiceSheet({
+/// Presents two options — Add Manually and Import from Spreadsheet —
+/// as tappable rows. The caller is responsible for dismissing the sheet
+/// and opening the next flow.
+class AddRunnerChoiceSheet extends StatelessWidget {
+  const AddRunnerChoiceSheet({
     super.key,
-    required this.onImportFromPreviousRace,
+    required this.onAddManually,
     required this.onImportFromSpreadsheet,
-    required this.onCreateTeam,
-    this.showImportFromPreviousRace = true,
   });
 
-  final VoidCallback onImportFromPreviousRace;
+  final VoidCallback onAddManually;
   final VoidCallback onImportFromSpreadsheet;
-  final VoidCallback onCreateTeam;
-  final bool showImportFromPreviousRace;
 
   @override
   Widget build(BuildContext context) {
@@ -30,30 +25,22 @@ class AddTeamChoiceSheet extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'Choose how you want to add teams to this race.',
+          'Choose how you want to add runners to this team.',
           style: AppTypography.bodyRegular.copyWith(
             color: AppColors.mediumColor,
           ),
         ),
         const SizedBox(height: AppSpacing.lg),
-        if (showImportFromPreviousRace) ...[
-          _ChoiceTile(
-            icon: Icons.history,
-            label: 'Import from Previous Race',
-            onTap: onImportFromPreviousRace,
-          ),
-          Divider(height: 1, thickness: 1, color: AppColors.lightColor),
-        ],
+        _ChoiceTile(
+          icon: Icons.edit_outlined,
+          label: 'Add Manually',
+          onTap: onAddManually,
+        ),
+        Divider(height: 1, thickness: 1, color: AppColors.lightColor),
         _ChoiceTile(
           icon: Icons.table_chart_outlined,
           label: 'Import from Spreadsheet',
           onTap: onImportFromSpreadsheet,
-        ),
-        Divider(height: 1, thickness: 1, color: AppColors.lightColor),
-        _ChoiceTile(
-          icon: Icons.group_add,
-          label: 'Create New Team',
-          onTap: onCreateTeam,
         ),
       ],
     );

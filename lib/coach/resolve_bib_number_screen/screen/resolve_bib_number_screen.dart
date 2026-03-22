@@ -9,7 +9,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/components/runner_input_form.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
 import 'package:xceleration/shared/models/database/race_runner.dart';
-import 'package:xceleration/shared/models/database/team.dart';
 
 class ResolveBibNumberScreen extends StatefulWidget {
   final List<RaceRunner> raceRunners;
@@ -33,8 +32,6 @@ class ResolveBibNumberScreen extends StatefulWidget {
 
 class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
   late ResolveBibNumberController _controller;
-  List<Team> _teams = [];
-  bool _isLoadingTeams = true;
   bool _isUnknownConflict = true;
 
   @override
@@ -46,7 +43,7 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
       onComplete: widget.onComplete,
       raceRunner: widget.raceRunner,
     );
-    _loadTeams();
+    _controller.loadTeams();
 
     // Detect conflict type and set up form accordingly
     _setupFormForConflictType();
@@ -85,39 +82,31 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
 
   @override
   void dispose() {
-    // Controller will be disposed through the Provider
+    _controller.dispose();
     super.dispose();
   }
 
-  Future<void> _loadTeams() async {
-    try {
-      // Load teams using the controller's teams getter (from MasterRace)
-      final teams = await _controller.teams;
-
-      // Check if widget is still mounted before calling setState
-      if (!mounted) return;
-
-      setState(() {
-        _teams = teams;
-        _isLoadingTeams = false;
-      });
-    } catch (e) {
-      // Check if widget is still mounted before calling setState
-      if (!mounted) return;
-
-      setState(() {
-        _teams = [];
-        _isLoadingTeams = false;
-      });
-    }
-  }
-
   Future<void> _handleSubmit(RaceRunner raceRunner) async {
+    final name = raceRunner.runner.name;
+    final grade = raceRunner.runner.grade;
+    final teamName = raceRunner.team.name;
+    final bib = raceRunner.runner.bibNumber;
+
+    if (name == null || grade == null || teamName == null || bib == null) {
+      if (mounted) {
+        DialogUtils.showErrorDialog(
+          context,
+          message: 'Runner is missing required fields (name, grade, team, or bib number).',
+        );
+      }
+      return;
+    }
+
     // Transfer form data to controller for resolution
-    _controller.nameController.text = raceRunner.runner.name!;
-    _controller.gradeController.text = raceRunner.runner.grade!.toString();
-    _controller.teamController.text = raceRunner.team.name!;
-    _controller.bibController.text = raceRunner.runner.bibNumber!;
+    _controller.nameController.text = name;
+    _controller.gradeController.text = grade.toString();
+    _controller.teamController.text = teamName;
+    _controller.bibController.text = bib;
 
     final error = await _controller.createNewRunner();
     if (error != null && mounted) {
@@ -125,8 +114,8 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
     }
   }
 
-  Widget _buildCreateNewForm() {
-    if (_isLoadingTeams) {
+  Widget _buildCreateNewForm(ResolveBibNumberController controller) {
+    if (controller.isLoadingTeams) {
       return const Expanded(
         child: Center(
           child: CircularProgressIndicator(),
@@ -138,14 +127,14 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
       child: SingleChildScrollView(
         child: RunnerInputForm(
           raceId: widget.raceId,
-          initialRaceRunner: _controller.raceRunner,
-          teamOptions: _teams,
+          initialRaceRunner: controller.raceRunner,
+          teamOptions: controller.teamsList,
           onSubmit: _handleSubmit,
-          getRunnerByBib: _controller.masterRace.getRunnerByBib,
+          getRunnerByBib: controller.masterRace.getRunnerByBib,
           submitButtonText: 'Create New Runner',
           useSheetLayout: false,
           showBibField: true,
-          bibController: _controller.bibController,
+          bibController: controller.bibController,
         ),
       ),
     );
@@ -236,14 +225,11 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
                       child: SharedActionButton(
                         text: 'Choose Existing Runner',
                         icon: Icons.person_search,
-                        // isSelected: !_controller.showCreateNew,
                         isPrimary: !_controller.showCreateNew,
                         onPressed: () {
-                          setState(() {
-                            _controller.showCreateNew = false;
-                            _controller.searchRunners(
-                                _controller.searchController.text);
-                          });
+                          _controller.setShowCreateNew(false);
+                          _controller.searchRunners(
+                              _controller.searchController.text);
                         },
                       ),
                     ),
@@ -253,12 +239,9 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
                       child: SharedActionButton(
                         text: 'Create New Runner',
                         icon: Icons.person_add,
-                        // isSelected: _controller.showCreateNew,
                         isPrimary: _controller.showCreateNew,
                         onPressed: () {
-                          setState(() {
-                            _controller.showCreateNew = true;
-                          });
+                          _controller.setShowCreateNew(true);
                         },
                       ),
                     ),
@@ -287,7 +270,7 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
                               ],
                             ),
                           )
-                        : _buildCreateNewForm();
+                        : _buildCreateNewForm(controller);
                   },
                 ),
               ],

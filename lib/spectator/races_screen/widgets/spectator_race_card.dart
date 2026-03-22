@@ -5,7 +5,7 @@ import 'package:xceleration/core/theme/typography.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
 import 'package:intl/intl.dart';
 
-class SpectatorRaceCard extends StatelessWidget {
+class SpectatorRaceCard extends StatefulWidget {
   final Map<String, dynamic> race;
   final VoidCallback onTap;
   final VoidCallback onShare;
@@ -20,31 +20,57 @@ class SpectatorRaceCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final raceName = race['race_name'] as String? ?? 'Unnamed Race';
-    final raceDate = race['race_date'] as String?;
-    final location = race['location'] as String?;
-    final distance = race['distance'] as double?;
-    final distanceUnit = race['distance_unit'] as String?;
+  State<SpectatorRaceCard> createState() => _SpectatorRaceCardState();
+}
 
-    DateTime? parsedDate;
+class _SpectatorRaceCardState extends State<SpectatorRaceCard> {
+  static final _dateFormat = DateFormat('MMM d, y');
+
+  DateTime? _parsedDate;
+
+  @override
+  void initState() {
+    super.initState();
+    _parseDate();
+  }
+
+  @override
+  void didUpdateWidget(SpectatorRaceCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.race['race_date'] != widget.race['race_date']) {
+      _parseDate();
+    }
+  }
+
+  void _parseDate() {
+    final raceDate = widget.race['race_date'] as String?;
     if (raceDate != null) {
       try {
-        parsedDate = DateTime.parse(raceDate);
+        _parsedDate = DateTime.parse(raceDate);
       } catch (_) {
-        // Invalid date format
+        _parsedDate = null;
       }
+    } else {
+      _parsedDate = null;
     }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final raceName = widget.race['race_name'] as String? ?? 'Unnamed Race';
+    final location = widget.race['location'] as String?;
+    final distance = widget.race['distance'] as double?;
+    final distanceUnit = widget.race['distance_unit'] as String?;
 
     return Slidable(
-      key: Key(race['id']?.toString() ?? 'unknown'),
+      key: Key(widget.race['id']?.toString() ?? 'unknown'),
       endActionPane: ActionPane(
         extentRatio: 0.5,
         motion: const DrawerMotion(),
         dragDismissible: false,
         children: [
           CustomSlidableAction(
-            onPressed: (_) => onShare(),
+            onPressed: (_) => widget.onShare(),
             backgroundColor: AppColors.primaryColor,
             foregroundColor: Colors.white,
             padding: EdgeInsets.zero,
@@ -66,7 +92,7 @@ class SpectatorRaceCard extends StatelessWidget {
             ),
           ),
           CustomSlidableAction(
-            onPressed: (_) => onDelete(),
+            onPressed: (_) => widget.onDelete(),
             backgroundColor: Colors.red,
             foregroundColor: Colors.white,
             padding: EdgeInsets.zero,
@@ -105,7 +131,7 @@ class SpectatorRaceCard extends StatelessWidget {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(16),
           child: InkWell(
-            onTap: onTap,
+            onTap: widget.onTap,
             child: Padding(
               padding: const EdgeInsets.only(
                   left: 24.0, right: 24.0, top: 16.0, bottom: 16.0),
@@ -148,7 +174,7 @@ class SpectatorRaceCard extends StatelessWidget {
                   ],
 
                   // Only show date if not null
-                  if (parsedDate != null) ...[
+                  if (_parsedDate != null) ...[
                     const SizedBox(height: 8),
                     Row(
                       children: [
@@ -159,7 +185,7 @@ class SpectatorRaceCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          DateFormat('MMM d, y').format(parsedDate),
+                          _dateFormat.format(_parsedDate!),
                           style: AppTypography.bodyRegular
                               .copyWith(color: Colors.black54),
                         ),

@@ -11,7 +11,7 @@ import '../../../core/components/device_connection_widget.dart';
 import '../../../core/services/i_device_connection_factory.dart';
 import '../../../core/utils/decode_utils.dart';
 import 'package:xceleration/shared/models/timing_records/bib_datum.dart';
-import '../model/bib_record.dart';
+import '../model/bib_datum_record.dart';
 import '../../shared/models/race_record.dart';
 import '../../shared/services/i_demo_race_generator.dart';
 import '../../shared/models/bib_record.dart' as db_models;
@@ -50,6 +50,9 @@ final class ShareDataReady extends ShareDataResult {
 class BibNumberController extends BibNumberDataController {
   late final ScrollController scrollController;
   late final List<BibDatum> runners;
+
+  // O(1) bib → runner lookup, rebuilt whenever runners list is populated or cleared
+  final Map<String, BibDatum> _runnersByBib = {};
 
   final TutorialManager tutorialManager;
   final IDemoRaceGenerator _demoRaceGenerator;
@@ -97,7 +100,7 @@ class BibNumberController extends BibNumberDataController {
     }
     if (bibRecords.isNotEmpty) {
       if (bibRecords.last.bib.isEmpty) {
-        bibRecords.removeLast();
+        removeLastBibRecordSilent();
       }
     }
     notifyListeners();
@@ -151,15 +154,18 @@ class BibNumberController extends BibNumberDataController {
 
       // Clear existing runners and populate with loaded data
       runners.clear();
+      _runnersByBib.clear();
       for (final runner in dbRunners) {
         // Convert database Runner to BibDatum
-        runners.add(BibDatum(
+        final datum = BibDatum(
           bib: runner.bibNumber,
           name: runner.name,
           teamAbbreviation: runner.teamAbbreviation,
           grade: runner.grade,
           teamColor: runner.teamColor,
-        ));
+        );
+        runners.add(datum);
+        _runnersByBib[datum.bib] = datum;
       }
     } catch (e) {
       Logger.e('Failed to load runners from database: $e');
@@ -184,12 +190,12 @@ class BibNumberController extends BibNumberDataController {
           return;
       }
 
-      // Clear existing records
-      clearBibRecords();
+      // Clear existing records silently — the single notifyListeners() at the
+      // end of _loadRace / _loadRaceWithRunners covers the full-load update.
+      clearBibRecordsSilent();
 
-      // Convert database records to UI records
+      // Convert and validate all records without intermediate notifications.
       for (final dbRecord in dbBibRecords) {
-        // Create initial bib record
         final bibRecord = BibDatumRecord(
           bib: dbRecord.bibNumber,
           name: '',
@@ -201,12 +207,8 @@ class BibNumberController extends BibNumberDataController {
             duplicateBibNumber: false,
           ),
         );
-
-        // Add the bib record
-        final index = await addBibRecord(bibRecord);
-
-        // Validate it to populate runner info and set flags
-        await validateBibNumber(index, dbRecord.bibNumber);
+        final index = addBibRecordSilent(bibRecord);
+        _validateBibNumberSilent(index, dbRecord.bibNumber);
       }
     } catch (e) {
       Logger.e('Failed to load bib records from database: $e');
@@ -282,6 +284,10 @@ class BibNumberController extends BibNumberDataController {
 
     // Set runners from provided data
     runners.addAll(runnersData);
+    _runnersByBib.clear();
+    for (final r in runnersData) {
+      _runnersByBib[r.bib] = r;
+    }
 
     // Load bib records after runners are set
     await _loadBibRecords();
@@ -296,21 +302,12 @@ class BibNumberController extends BibNumberDataController {
     }
   }
 
-  /// Completely resets the controller state before loading a new race
+  /// Completely resets the controller state before loading a new race.
+  /// All mutations are silent; a single [notifyListeners] fires at the end.
   void _resetControllerState() {
-    // Clear current race
-    setCurrentRace(null);
-
-    // Reset race state
-    setRaceStopped(true);
-
-    // Clear runners list
+    resetStateForLoad(); // clears race, raceStopped, bibRecords silently
     runners.clear();
-
-    // Clear all bib records and dispose resources
-    clearBibRecords();
-
-    // Notify listeners of the reset
+    _runnersByBib.clear();
     notifyListeners();
   }
 
@@ -447,25 +444,19 @@ class BibNumberController extends BibNumberDataController {
     );
   }
 
-  /// Gets a runner by bib number from the local runners list
-  BibDatum? getRunnerByBib(String bib) {
-    for (final runner in runners) {
-      if (runner.bib == bib) {
-        return runner;
-      }
-    }
-    return null;
-  }
+  /// Gets a runner by bib number from the local runners list.
+  /// O(1) via the pre-built map; falls back to linear scan for runners added
+  /// directly to [runners] outside the normal population path.
+  BibDatum? getRunnerByBib(String bib) =>
+      _runnersByBib[bib] ?? runners.where((r) => r.bib == bib).firstOrNull;
 
   // Bib number validation and handling
-  Future<void> validateBibNumber(int index, String bibNumber) async {
-    if (index < 0 || index >= bibRecords.length) {
-      return;
-    }
 
-    // Special handling for empty inputs
+  /// Builds a validated [BibDatumRecord] for [index] and [bibNumber].
+  /// Pure computation — no side effects, no notifications.
+  BibDatumRecord _buildValidatedRecord(int index, String bibNumber) {
     if (bibNumber.isEmpty) {
-      final updatedRecord = BibDatumRecord(
+      return BibDatumRecord(
         bib: bibNumber,
         name: '',
         teamAbbreviation: '',
@@ -475,33 +466,24 @@ class BibNumberController extends BibNumberDataController {
           duplicateBibNumber: false,
         ),
       );
-      updateBibRecord(index, updatedRecord);
-      return;
     }
 
-    // Try to parse the bib number
     if (!bibNumber.contains(RegExp(r'^[0-9]+$'))) {
-      // Not a valid number
-      final updatedRecord = BibDatumRecord(
+      return BibDatumRecord(
         bib: bibNumber,
         name: '',
         teamAbbreviation: '',
         grade: '',
-        flags: BibDatumRecordFlags(
+        flags: const BibDatumRecordFlags(
           notInDatabase: true,
           duplicateBibNumber: false,
         ),
       );
-      updateBibRecord(index, updatedRecord);
-      return;
     }
 
-    // Check for a matching runner
-    BibDatum? matchedRunner = getRunnerByBib(bibNumber);
+    final matchedRunner = getRunnerByBib(bibNumber);
 
     if (matchedRunner != null) {
-      // Found a match in database
-      // Check for duplicate entries
       bool isDuplicate = false;
       int count = 0;
       for (var i = 0; i < bibRecords.length; i++) {
@@ -513,8 +495,7 @@ class BibNumberController extends BibNumberDataController {
           }
         }
       }
-
-      final updatedRecord = BibDatumRecord(
+      return BibDatumRecord(
         bib: bibNumber,
         name: matchedRunner.name,
         teamAbbreviation: matchedRunner.teamAbbreviation,
@@ -525,21 +506,30 @@ class BibNumberController extends BibNumberDataController {
           duplicateBibNumber: isDuplicate,
         ),
       );
-      updateBibRecord(index, updatedRecord);
     } else {
-      // No match in database
-      final updatedRecord = BibDatumRecord(
+      return BibDatumRecord(
         bib: bibNumber,
         name: '',
         teamAbbreviation: '',
         grade: '',
-        flags: BibDatumRecordFlags(
+        flags: const BibDatumRecordFlags(
           notInDatabase: true,
           duplicateBibNumber: false,
         ),
       );
-      updateBibRecord(index, updatedRecord);
     }
+  }
+
+  Future<void> validateBibNumber(int index, String bibNumber) async {
+    if (index < 0 || index >= bibRecords.length) return;
+    updateBibRecord(index, _buildValidatedRecord(index, bibNumber));
+  }
+
+  /// Validates a bib number and updates the record without calling
+  /// [notifyListeners]. For bulk-load operations only.
+  void _validateBibNumberSilent(int index, String bibNumber) {
+    if (index < 0 || index >= bibRecords.length) return;
+    updateBibRecordSilent(index, _buildValidatedRecord(index, bibNumber));
   }
 
   Future<void> addBib() async {
@@ -589,15 +579,21 @@ class BibNumberController extends BibNumberDataController {
       // Only scroll if necessary - check if we need to scroll to make new item visible
       _scheduler.schedulePostFrame(_scrollToLastItemIfNeeded);
 
-      // Validate the new record and revalidate all others for duplicate state
-      // in a single timer to avoid the triple-assignment bug
+      // Validate the new record, then re-validate only existing records whose
+      // bib matches the new value so their duplicate flag stays accurate.
+      // Re-validating all records is O(N) and unnecessary — only records
+      // sharing the same bib can gain or lose the duplicateBibNumber flag.
       _debounceTimer = Timer(const Duration(milliseconds: 500), () async {
         final newIndex = bibRecords.length - 1;
         if (newIndex >= 0) {
           await validateBibNumber(newIndex, bibNumber);
         }
-        for (var i = 0; i < bibRecords.length - 1; i++) {
-          await validateBibNumber(i, bibRecords[i].bib);
+        if (bibNumber.isNotEmpty) {
+          for (var i = 0; i < newIndex; i++) {
+            if (bibRecords[i].bib == bibNumber) {
+              await validateBibNumber(i, bibRecords[i].bib);
+            }
+          }
         }
       });
 

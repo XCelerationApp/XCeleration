@@ -182,5 +182,34 @@ void main() {
 
       expect(find.byIcon(Icons.qr_code), findsOneWidget);
     });
+
+    testWidgets('renders greyed-out icon color when isDisabled is true',
+        (tester) async {
+      await tester.pumpWidget(
+        _wrap(const QRConnectionButton(
+          deviceName: DeviceName.coach,
+          deviceType: DeviceType.advertiserDevice,
+          connectionStatus: ConnectionStatus.searching,
+          isDisabled: true,
+        )),
+      );
+
+      final icon = tester.widget<Icon>(find.byIcon(Icons.qr_code));
+      expect(icon.color, Colors.black26);
+    });
+
+    testWidgets('renders normal icon color when isDisabled is false',
+        (tester) async {
+      await tester.pumpWidget(
+        _wrap(const QRConnectionButton(
+          deviceName: DeviceName.coach,
+          deviceType: DeviceType.advertiserDevice,
+          connectionStatus: ConnectionStatus.searching,
+        )),
+      );
+
+      final icon = tester.widget<Icon>(find.byIcon(Icons.qr_code));
+      expect(icon.color, Colors.black54);
+    });
   });
 }

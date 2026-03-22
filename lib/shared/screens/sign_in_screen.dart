@@ -36,6 +36,7 @@ class SignInScreen extends StatefulWidget {
 
   @override
   State<SignInScreen> createState() => _SignInScreenState();
+
 }
 
 class _SignInScreenState extends State<SignInScreen>
@@ -45,6 +46,9 @@ class _SignInScreenState extends State<SignInScreen>
   final _emailFocus = FocusNode();
   final _passwordFocus = FocusNode();
 
+  ConnectivityService get _connectivity =>
+      widget._connectivityService ?? const ConnectivityService();
+
   bool _isLogin = true;
   bool _obscure = true;
   bool _busy = false;
@@ -53,9 +57,6 @@ class _SignInScreenState extends State<SignInScreen>
 
   late final AnimationController _shakeController;
   late final Animation<Offset> _shakeAnimation;
-
-  ConnectivityService get _connectivity =>
-      widget._connectivityService ?? const ConnectivityService();
 
   @override
   void initState() {
@@ -85,21 +86,13 @@ class _SignInScreenState extends State<SignInScreen>
           weight: 1),
     ]).animate(_shakeController);
 
-    _emailController.addListener(_onTextChanged);
-    _passwordController.addListener(_onTextChanged);
   }
-
-  void _onTextChanged() => setState(() {});
 
   @override
   void dispose() {
     _shakeController.dispose();
-    _emailController
-      ..removeListener(_onTextChanged)
-      ..dispose();
-    _passwordController
-      ..removeListener(_onTextChanged)
-      ..dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
     _emailFocus.dispose();
     _passwordFocus.dispose();
     super.dispose();
@@ -212,9 +205,11 @@ class _SignInScreenState extends State<SignInScreen>
     }
     if (error is gotrue.AuthException) {
       final msg = error.message;
-      if (msg.contains('SocketException') ||
-          msg.contains('ClientException') ||
-          msg.contains('Failed host lookup')) {
+      if (msg.contains('Failed host lookup') ||
+          msg.contains('nodename nor servname')) {
+        return 'Could not reach the server. Please try again later.';
+      }
+      if (msg.contains('SocketException') || msg.contains('ClientException')) {
         return 'No internet connection. Please check your connection and try again.';
       }
       return msg;
@@ -258,9 +253,6 @@ class _SignInScreenState extends State<SignInScreen>
 
   @override
   Widget build(BuildContext context) {
-    final canSubmit = _emailController.text.trim().isNotEmpty &&
-        _passwordController.text.isNotEmpty &&
-        !_busy;
     return Scaffold(
       backgroundColor: Colors.white,
       body: GestureDetector(
@@ -287,11 +279,16 @@ class _SignInScreenState extends State<SignInScreen>
                       passwordError: _passwordError,
                       obscure: _obscure,
                       busy: _busy,
-                      canSubmit: canSubmit,
-                      onEmailChanged: (_) =>
-                          setState(() => _emailError = null),
-                      onPasswordChanged: (_) =>
-                          setState(() => _passwordError = null),
+                      onEmailChanged: (_) {
+                        if (_emailError != null) {
+                          setState(() => _emailError = null);
+                        }
+                      },
+                      onPasswordChanged: (_) {
+                        if (_passwordError != null) {
+                          setState(() => _passwordError = null);
+                        }
+                      },
                       onToggleObscure: () =>
                           setState(() => _obscure = !_obscure),
                       onSubmit: _submit,
@@ -365,7 +362,7 @@ class _SignInHeader extends StatelessWidget {
 
 // ─── Form body ────────────────────────────────────────────────────────────────
 
-class _FormBody extends StatelessWidget {
+class _FormBody extends StatefulWidget {
   const _FormBody({
     required this.isLogin,
     required this.emailController,
@@ -376,7 +373,6 @@ class _FormBody extends StatelessWidget {
     required this.passwordError,
     required this.obscure,
     required this.busy,
-    required this.canSubmit,
     required this.onEmailChanged,
     required this.onPasswordChanged,
     required this.onToggleObscure,
@@ -394,13 +390,28 @@ class _FormBody extends StatelessWidget {
   final String? passwordError;
   final bool obscure;
   final bool busy;
-  final bool canSubmit;
   final ValueChanged<String> onEmailChanged;
   final ValueChanged<String> onPasswordChanged;
   final VoidCallback onToggleObscure;
   final VoidCallback? onSubmit;
   final VoidCallback? onForgotPassword;
   final VoidCallback? onSwitchMode;
+
+  @override
+  State<_FormBody> createState() => _FormBodyState();
+}
+
+class _FormBodyState extends State<_FormBody> {
+  late final Listenable _buttonListenable;
+
+  @override
+  void initState() {
+    super.initState();
+    _buttonListenable = Listenable.merge([
+      widget.emailController,
+      widget.passwordController,
+    ]);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -415,29 +426,29 @@ class _FormBody extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _AuthTextField(
-            controller: emailController,
-            focusNode: emailFocus,
+            controller: widget.emailController,
+            focusNode: widget.emailFocus,
             label: 'Email',
-            error: emailError,
+            error: widget.emailError,
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
-            onChanged: onEmailChanged,
-            onSubmitted: (_) => passwordFocus.requestFocus(),
-            disabled: busy,
+            onChanged: widget.onEmailChanged,
+            onSubmitted: (_) => widget.passwordFocus.requestFocus(),
+            disabled: widget.busy,
           ),
           const SizedBox(height: AppSpacing.lg),
           _AuthTextField(
-            controller: passwordController,
-            focusNode: passwordFocus,
+            controller: widget.passwordController,
+            focusNode: widget.passwordFocus,
             label: 'Password',
-            error: passwordError,
-            obscureText: obscure,
+            error: widget.passwordError,
+            obscureText: widget.obscure,
             textInputAction: TextInputAction.done,
-            onChanged: onPasswordChanged,
-            onSubmitted: (_) => onSubmit?.call(),
-            disabled: busy,
+            onChanged: widget.onPasswordChanged,
+            onSubmitted: (_) => widget.onSubmit?.call(),
+            disabled: widget.busy,
             suffix: TextButton(
-              onPressed: onToggleObscure,
+              onPressed: widget.onToggleObscure,
               style: TextButton.styleFrom(
                 padding: const EdgeInsets.symmetric(
                     horizontal: AppSpacing.md),
@@ -445,18 +456,18 @@ class _FormBody extends StatelessWidget {
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
               child: Text(
-                obscure ? 'Show' : 'Hide',
+                widget.obscure ? 'Show' : 'Hide',
                 style: AppTypography.smallBodySemibold
                     .copyWith(color: AppColors.mediumColor),
               ),
             ),
           ),
-          if (isLogin) ...[
+          if (widget.isLogin) ...[
             const SizedBox(height: AppSpacing.sm),
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
-                onPressed: onForgotPassword,
+                onPressed: widget.onForgotPassword,
                 style: TextButton.styleFrom(
                   padding: EdgeInsets.zero,
                   foregroundColor: AppColors.primaryColor,
@@ -470,15 +481,23 @@ class _FormBody extends StatelessWidget {
               ),
             ),
           ],
-          SizedBox(height: isLogin ? AppSpacing.xl : AppSpacing.xxl),
-          _SubmitButton(
-            isLogin: isLogin,
-            canSubmit: canSubmit,
-            busy: busy,
-            onPressed: onSubmit,
+          SizedBox(height: widget.isLogin ? AppSpacing.xl : AppSpacing.xxl),
+          ListenableBuilder(
+            listenable: _buttonListenable,
+            builder: (context, _) {
+              final canSubmit = widget.emailController.text.trim().isNotEmpty &&
+                  widget.passwordController.text.length >= 6 &&
+                  !widget.busy;
+              return _SubmitButton(
+                isLogin: widget.isLogin,
+                canSubmit: canSubmit,
+                busy: widget.busy,
+                onPressed: widget.onSubmit,
+              );
+            },
           ),
           const SizedBox(height: AppSpacing.xl),
-          _ModeToggle(isLogin: isLogin, onSwitch: onSwitchMode),
+          _ModeToggle(isLogin: widget.isLogin, onSwitch: widget.onSwitchMode),
         ],
       ),
     );
@@ -520,6 +539,9 @@ class _AuthTextField extends StatefulWidget {
 
 class _AuthTextFieldState extends State<_AuthTextField> {
   bool _focused = false;
+  late final String _upperLabel;
+  late final TextStyle _labelBaseStyle;
+  late final TextStyle _inputTextStyle;
 
   void _onFocusChange() =>
       setState(() => _focused = widget.focusNode.hasFocus);
@@ -527,6 +549,14 @@ class _AuthTextFieldState extends State<_AuthTextField> {
   @override
   void initState() {
     super.initState();
+    _upperLabel = widget.label.toUpperCase();
+    _labelBaseStyle = AppTypography.smallCaption.copyWith(
+      fontWeight: FontWeight.w700,
+      letterSpacing: 0.5,
+    );
+    _inputTextStyle = AppTypography.bodyRegular.copyWith(
+      color: AppColors.darkColor,
+    );
     widget.focusNode.addListener(_onFocusChange);
   }
 
@@ -547,10 +577,8 @@ class _AuthTextFieldState extends State<_AuthTextField> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          widget.label.toUpperCase(),
-          style: AppTypography.smallCaption.copyWith(
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.5,
+          _upperLabel,
+          style: _labelBaseStyle.copyWith(
             color: hasError ? AppColors.primaryColor : AppColors.mediumColor,
           ),
         ),
@@ -587,12 +615,12 @@ class _AuthTextFieldState extends State<_AuthTextField> {
                   onSubmitted: widget.onSubmitted,
                   onChanged: widget.onChanged,
                   enabled: !widget.disabled,
+                  enableInteractiveSelection: !widget.obscureText,
                   autocorrect: false,
                   enableSuggestions: false,
                   smartDashesType: SmartDashesType.disabled,
                   smartQuotesType: SmartQuotesType.disabled,
-                  style: AppTypography.bodyRegular
-                      .copyWith(color: AppColors.darkColor),
+                  style: _inputTextStyle,
                   decoration: const InputDecoration(
                     border: InputBorder.none,
                     contentPadding: EdgeInsets.symmetric(
@@ -642,52 +670,43 @@ class _SubmitButton extends StatelessWidget {
   final bool busy;
   final VoidCallback? onPressed;
 
+  static final _activeDecoration = BoxDecoration(
+    gradient: const LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [AppColors.primaryColor, AppColors.primaryGradientEnd],
+    ),
+    borderRadius: BorderRadius.circular(AppBorderRadius.lg),
+    boxShadow: [
+      BoxShadow(
+        color: AppColors.primaryColor
+            .withValues(alpha: AppOpacity.strong + 0.05),
+        blurRadius: 18,
+        offset: const Offset(0, 4),
+      ),
+    ],
+  );
+
+  static final _disabledDecoration = BoxDecoration(
+    color: AppColors.lightColor,
+    borderRadius: BorderRadius.circular(AppBorderRadius.lg),
+  );
+
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       height: 54,
       child: Stack(
         children: [
-          AnimatedOpacity(
-            opacity: canSubmit ? 1.0 : 0.0,
+          AnimatedContainer(
             duration: AppAnimations.standard,
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [AppColors.primaryColor, AppColors.primaryGradientEnd],
-                ),
-                borderRadius:
-                    BorderRadius.circular(AppBorderRadius.lg),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primaryColor
-                        .withValues(alpha: AppOpacity.strong + 0.05),
-                    blurRadius: 18,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          AnimatedOpacity(
-            opacity: canSubmit ? 0.0 : 1.0,
-            duration: AppAnimations.standard,
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppColors.lightColor,
-                borderRadius:
-                    BorderRadius.circular(AppBorderRadius.lg),
-              ),
-            ),
+            decoration: canSubmit ? _activeDecoration : _disabledDecoration,
           ),
           Material(
             color: Colors.transparent,
             child: InkWell(
               onTap: onPressed,
-              borderRadius:
-                  BorderRadius.circular(AppBorderRadius.lg),
+              borderRadius: BorderRadius.circular(AppBorderRadius.lg),
               child: Center(
                 child: AnimatedSwitcher(
                   duration: AppAnimations.fast,

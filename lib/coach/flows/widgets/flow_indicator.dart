@@ -41,7 +41,7 @@ class EnhancedFlowIndicator extends StatelessWidget {
           Center(
             child: ConstrainedBox(
               constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.35,
+                maxWidth: MediaQuery.sizeOf(context).width * 0.35,
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -50,7 +50,9 @@ class EnhancedFlowIndicator extends StatelessWidget {
                   final isCompleted = index < currentStep;
                   return Expanded(
                     flex: isCurrentStep ? 3 : 1,
-                    child: Container(
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeInOut,
                       height: 5,
                       margin: EdgeInsets.only(
                         right: index < totalSteps - 1 ? 4 : 0,

@@ -183,6 +183,7 @@ void main() {
         when(mockMasterRace.addRaceParticipant(any))
             .thenAnswer((_) async {});
 
+        await controller.loadTeams();
         final error = await controller.createNewRunner();
 
         expect(error, isNull);
@@ -216,6 +217,7 @@ void main() {
         when(mockMasterRace.addRaceParticipant(any))
             .thenAnswer((_) async {});
 
+        await controller.loadTeams();
         final error = await controller.createNewRunner();
 
         expect(error, isNull);

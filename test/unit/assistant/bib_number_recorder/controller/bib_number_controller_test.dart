@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:xceleration/assistant/bib_number_recorder/controller/bib_number_controller.dart';
-import 'package:xceleration/assistant/bib_number_recorder/model/bib_record.dart';
+import 'package:xceleration/assistant/bib_number_recorder/model/bib_datum_record.dart';
 import 'package:xceleration/assistant/shared/models/race_record.dart';
 import 'package:xceleration/assistant/shared/models/runner.dart' as runner_models;
 import 'package:xceleration/assistant/shared/services/i_assistant_storage_service.dart';

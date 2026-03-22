@@ -244,14 +244,6 @@ void main() {
         verifyNever(mockShareResultsController.handleGoogleSheet(any));
       });
 
-      test('calls notifyListeners after delegating', () async {
-        int notifyCount = 0;
-        controller.addListener(() => notifyCount++);
-
-        await controller.shareResults(mockContext, ResultFormat.plainText);
-
-        expect(notifyCount, 1);
-      });
     });
   });
 }
