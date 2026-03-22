@@ -9,23 +9,48 @@ import 'package:xceleration/assistant/finish_line_roles/shared/models/verifier_e
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/messages/messages.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/p2p_session_service.dart';
 import 'package:xceleration/assistant/finish_line_roles/verifier/controller/verifier_controller.dart';
+import 'package:xceleration/assistant/shared/models/race_record.dart';
+import 'package:xceleration/assistant/shared/models/runner.dart';
+import 'package:xceleration/assistant/shared/services/i_assistant_storage_service.dart';
+import 'package:xceleration/core/app_error.dart';
+import 'package:xceleration/core/result.dart';
 import 'package:xceleration/shared/role_bar/models/role_enums.dart';
 
 import 'verifier_controller_test.mocks.dart';
 
-@GenerateMocks([P2PSessionService])
+@GenerateMocks([P2PSessionService, IAssistantStorageService])
 void main() {
   late MockP2PSessionService mockSession;
+  late MockIAssistantStorageService mockStorage;
   late StreamController<(Role, MessageEnvelope)> incomingController;
+
+  final testRace = RaceRecord(
+    raceId: 1,
+    date: DateTime(2026),
+    name: 'Test Race',
+    type: 'verifier',
+  );
+  const validRunnerJson = '{"teams":["EAG"],"r":[["42","Alice",0,"10"]]}';
 
   setUp(() {
     mockSession = MockP2PSessionService();
+    mockStorage = MockIAssistantStorageService();
     incomingController =
         StreamController<(Role, MessageEnvelope)>.broadcast();
 
     when(mockSession.incomingMessages)
         .thenAnswer((_) => incomingController.stream);
     when(mockSession.sendMessage(any, any)).thenAnswer((_) async {});
+    when(mockStorage.saveNewRace(any))
+        .thenAnswer((_) async => const Success<void>(null));
+    when(mockStorage.saveRunners(any, any))
+        .thenAnswer((_) async => const Success<void>(null));
+  });
+
+  setUpAll(() {
+    provideDummy<Result<void>>(Failure<void>(const AppError(userMessage: '')));
+    provideDummy<Result<List<RaceRecord>>>(const Success([]));
+    provideDummy<Result<List<Runner>>>(const Success([]));
   });
 
   tearDown(() async {
@@ -575,6 +600,66 @@ void main() {
           expect(controller.entries, isEmpty);
           expect(controller.confirmed, 0);
         });
+      });
+    });
+
+    group('processLoadedRaceData', () {
+      test('returns Failure when data cannot be parsed', () async {
+        final controller = VerifierController(storage: mockStorage);
+
+        final result = await controller.processLoadedRaceData('not valid json');
+
+        expect(result, isA<Failure<void>>());
+      });
+
+      test('returns Failure when runner section is invalid', () async {
+        final controller = VerifierController(storage: mockStorage);
+        final data = '${testRace.encode()}---invalid-runner-data';
+
+        final result = await controller.processLoadedRaceData(data);
+
+        expect(result, isA<Failure<void>>());
+      });
+
+      test('returns Failure when saveNewRace fails', () async {
+        when(mockStorage.saveNewRace(any)).thenAnswer(
+          (_) async => Failure<void>(const AppError(userMessage: 'Save failed')),
+        );
+        final controller = VerifierController(storage: mockStorage);
+
+        final result = await controller.processLoadedRaceData(testRace.encode());
+
+        expect(result, isA<Failure<void>>());
+        expect((result as Failure).error.userMessage, 'Save failed');
+      });
+
+      test('returns Success and calls saveNewRace on valid data without runners', () async {
+        final controller = VerifierController(storage: mockStorage);
+
+        final result = await controller.processLoadedRaceData(testRace.encode());
+
+        expect(result, isA<Success<void>>());
+        verify(mockStorage.saveNewRace(any)).called(1);
+        verifyNever(mockStorage.saveRunners(any, any));
+      });
+
+      test('returns Success and calls saveRunners on valid data with runners', () async {
+        final controller = VerifierController(storage: mockStorage);
+        final data = '${testRace.encode()}---$validRunnerJson';
+
+        final result = await controller.processLoadedRaceData(data);
+
+        expect(result, isA<Success<void>>());
+        verify(mockStorage.saveNewRace(any)).called(1);
+        verify(mockStorage.saveRunners(any, any)).called(1);
+      });
+
+      test('returns Failure when storage is null', () async {
+        final controller = VerifierController();
+
+        final result = await controller.processLoadedRaceData(testRace.encode());
+
+        expect(result, isA<Failure<void>>());
       });
     });
 

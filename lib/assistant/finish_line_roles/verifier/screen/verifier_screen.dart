@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/assistant/finish_line_roles/verifier/controller/verifier_controller.dart';
+import 'package:xceleration/assistant/shared/services/i_assistant_storage_service.dart';
 import 'package:xceleration/assistant/finish_line_roles/verifier/widgets/verifier_entry_card.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/connection_setup_screen.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/lobby_scanner.dart';
@@ -23,7 +24,9 @@ import 'package:xceleration/shared/settings_screen.dart';
 /// The Verifier is stationed at the chute exit and visually confirms each
 /// runner's name against the bib number shown on screen.
 class VerifierScreen extends StatefulWidget {
-  const VerifierScreen({super.key});
+  const VerifierScreen({super.key, required this.storage});
+
+  final IAssistantStorageService storage;
 
   @override
   State<VerifierScreen> createState() => _VerifierScreenState();
@@ -41,7 +44,7 @@ class _VerifierScreenState extends State<VerifierScreen> {
   @override
   void initState() {
     super.initState();
-    _controller = VerifierController();
+    _controller = VerifierController(storage: widget.storage);
     _controller.initialize();
     _lobbyScanner = LobbyScanner(localRole: Role.verifier)..start();
   }

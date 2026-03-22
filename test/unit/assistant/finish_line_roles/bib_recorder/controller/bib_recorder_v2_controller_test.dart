@@ -940,5 +940,103 @@ void main() {
         expect(controller.entries.first.correctedTo, isNull);
       });
     });
+
+    group('processLoadedRaceData', () {
+      final testRace = RaceRecord(
+        raceId: 1,
+        date: DateTime(2026),
+        name: 'Test Race',
+        type: 'bibRecorderV2',
+      );
+      const validRunnerJson = '{"teams":["EAG"],"r":[["42","Alice",0,"10"]]}';
+
+      MockIAssistantStorageService makeStorage() {
+        final s = MockIAssistantStorageService();
+        when(s.getRaces(any))
+            .thenAnswer((_) async => const Success<List<RaceRecord>>([]));
+        when(s.saveNewRace(any))
+            .thenAnswer((_) async => const Success<void>(null));
+        when(s.saveRunners(any, any))
+            .thenAnswer((_) async => const Success<void>(null));
+        return s;
+      }
+
+      test('returns Failure when data cannot be parsed', () async {
+        final mockStorage = makeStorage();
+        final controller = BibRecorderV2Controller(
+          storage: mockStorage,
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+        );
+
+        final result = await controller.processLoadedRaceData('not valid json');
+
+        expect(result, isA<Failure<void>>());
+      });
+
+      test('returns Failure when runner section is invalid', () async {
+        final mockStorage = makeStorage();
+        final controller = BibRecorderV2Controller(
+          storage: mockStorage,
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+        );
+        final data = '${testRace.encode()}---invalid-runner-data';
+
+        final result = await controller.processLoadedRaceData(data);
+
+        expect(result, isA<Failure<void>>());
+      });
+
+      test('returns Failure when saveNewRace fails', () async {
+        final mockStorage = makeStorage();
+        when(mockStorage.saveNewRace(any)).thenAnswer(
+          (_) async => Failure<void>(const AppError(userMessage: 'Save failed')),
+        );
+        final controller = BibRecorderV2Controller(
+          storage: mockStorage,
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+        );
+
+        final result = await controller.processLoadedRaceData(testRace.encode());
+
+        expect(result, isA<Failure<void>>());
+        expect((result as Failure).error.userMessage, 'Save failed');
+      });
+
+      test('returns Success and reloads race list on valid data without runners', () async {
+        final mockStorage = makeStorage();
+        final controller = BibRecorderV2Controller(
+          storage: mockStorage,
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+        );
+
+        final result = await controller.processLoadedRaceData(testRace.encode());
+
+        expect(result, isA<Success<void>>());
+        verify(mockStorage.saveNewRace(any)).called(1);
+        verifyNever(mockStorage.saveRunners(any, any));
+        // getRaces called once for initialize() reload after save
+        verify(mockStorage.getRaces(any)).called(1);
+      });
+
+      test('returns Success and calls saveRunners on valid data with runners', () async {
+        final mockStorage = makeStorage();
+        final controller = BibRecorderV2Controller(
+          storage: mockStorage,
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+        );
+        final data = '${testRace.encode()}---$validRunnerJson';
+
+        final result = await controller.processLoadedRaceData(data);
+
+        expect(result, isA<Success<void>>());
+        verify(mockStorage.saveNewRace(any)).called(1);
+        verify(mockStorage.saveRunners(any, any)).called(1);
+      });
+    });
   });
 }

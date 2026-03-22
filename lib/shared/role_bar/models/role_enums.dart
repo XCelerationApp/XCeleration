@@ -97,7 +97,7 @@ enum Role {
       case Role.bibRecorderV2:
         return BibRecorderV2Screen(storage: AssistantStorageService.instance);
       case Role.verifier:
-        return const VerifierScreen();
+        return VerifierScreen(storage: AssistantStorageService.instance);
       case Role.fixer:
         return FixerScreen(storage: AssistantStorageService.instance);
       case Role.coach:

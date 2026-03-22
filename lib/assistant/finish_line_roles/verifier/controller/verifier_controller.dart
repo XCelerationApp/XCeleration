@@ -4,6 +4,15 @@ import 'package:flutter/foundation.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/models/verifier_entry.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/messages/messages.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/p2p_session_service.dart';
+import 'package:xceleration/assistant/shared/models/race_record.dart';
+import 'package:xceleration/assistant/shared/models/runner.dart';
+import 'package:xceleration/assistant/shared/services/i_assistant_storage_service.dart';
+import 'package:xceleration/core/app_error.dart';
+import 'package:xceleration/core/result.dart';
+import 'package:xceleration/core/utils/decode_utils.dart';
+import 'package:xceleration/core/utils/enums.dart';
+import 'package:xceleration/core/utils/logger.dart';
+import 'package:xceleration/shared/models/timing_records/bib_datum.dart';
 import 'package:xceleration/shared/role_bar/models/role_enums.dart';
 
 /// Controls the Verifier role.
@@ -12,9 +21,14 @@ import 'package:xceleration/shared/role_bar/models/role_enums.dart';
 /// an acted state for 3 seconds so the verifier can undo. After the timer
 /// fires the entry is committed to [history] and counted in the stats.
 class VerifierController extends ChangeNotifier {
-  VerifierController({P2PSessionService? session}) : _session = session;
+  VerifierController({
+    P2PSessionService? session,
+    IAssistantStorageService? storage,
+  })  : _session = session,
+        _storage = storage;
 
   final P2PSessionService? _session;
+  final IAssistantStorageService? _storage;
 
   final List<VerifierEntry> _entries = [];
   final List<VerifierEntry> _history = [];
@@ -42,6 +56,69 @@ class VerifierController extends ChangeNotifier {
     if (_session != null) {
       _sessionSub = _session.incomingMessages.listen(_onSessionMessage);
     }
+  }
+
+  // ── Race loading ──────────────────────────────────────────────────────────
+
+  /// Parses [data] received from the Coach and saves the race and runners to
+  /// local storage. Returns [Failure] with a user-readable message if parsing
+  /// or saving fails.
+  Future<Result<void>> processLoadedRaceData(String data) async {
+    if (_storage == null) {
+      return Failure(const AppError(userMessage: 'Storage not available'));
+    }
+
+    late RaceRecord raceRecord;
+    List<BibDatum> loadedRunners = [];
+
+    try {
+      final parts = data.split('---');
+      if (parts.length == 2) {
+        raceRecord = RaceRecord.fromEncodedString(parts[0],
+            type: DeviceName.verifier.toString());
+
+        final runnersResult =
+            await BibDecodeUtils.decodeEncodedRunners(parts[1]);
+        switch (runnersResult) {
+          case Success(:final value):
+            loadedRunners = value;
+          case Failure(:final error):
+            Logger.e(
+                '[VerifierController.processLoadedRaceData] ${error.originalException}');
+            return Failure(error);
+        }
+      } else {
+        raceRecord = RaceRecord.fromEncodedString(data,
+            type: DeviceName.verifier.toString());
+      }
+    } catch (e) {
+      Logger.e('Error parsing race data: $e');
+      return Failure(AppError(userMessage: 'Failed to parse race data: $e'));
+    }
+
+    final saveResult = await _storage.saveNewRace(raceRecord);
+    if (saveResult case Failure(:final error)) {
+      Logger.e(
+          '[VerifierController.processLoadedRaceData] ${error.originalException}');
+      return Failure(error);
+    }
+
+    if (loadedRunners.isNotEmpty) {
+      final dbRunners = loadedRunners
+          .map((runner) => Runner(
+                raceId: raceRecord.raceId,
+                bibNumber: runner.bib,
+                name: runner.name,
+                teamAbbreviation: runner.teamAbbreviation,
+                grade: runner.grade,
+                teamColor: runner.teamColor,
+                createdAt: DateTime.now(),
+              ))
+          .toList();
+      await _storage.saveRunners(raceRecord.raceId, dbRunners);
+    }
+
+    return const Success(null);
   }
 
   /// Enter a race session.
