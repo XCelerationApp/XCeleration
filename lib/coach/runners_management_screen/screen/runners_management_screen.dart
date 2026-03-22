@@ -8,35 +8,17 @@ import '../../../core/theme/app_opacity.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/utils/sheet_utils.dart';
-import '../../../shared/models/database/master_race.dart';
+import '../../../shared/models/database/i_master_race_resolver.dart';
 import '../widgets/runner_search_bar.dart';
 import '../widgets/runners_list.dart';
 
 // Main Screen
 class TeamsAndRunnersManagementWidget extends StatefulWidget {
-  final MasterRace masterRace;
+  final IMasterRaceResolver masterRace;
   final VoidCallback? onBack;
   final VoidCallback? onContentChanged;
   final bool? showHeader;
   final bool isViewMode;
-
-  // Add a static method that can be called from outside
-  static Future<bool> checkMinimumRunnersLoaded(MasterRace masterRace) async {
-    final teamToRaceRunnersMap = await masterRace.teamtoRaceRunnersMap;
-
-    // If there are no teams yet, we cannot proceed
-    if (teamToRaceRunnersMap.isEmpty) {
-      return false;
-    }
-
-    for (final entry in teamToRaceRunnersMap.entries) {
-      if (entry.value.isEmpty) {
-        return false;
-      }
-    }
-
-    return true;
-  }
 
   const TeamsAndRunnersManagementWidget({
     super.key,
@@ -166,11 +148,7 @@ class _TeamsAndRunnersManagementWidgetState
       onSearchChanged: () => _controller
           .filterRaceRunners(_controller.searchController.text.trim()),
       onAttributeChanged: (value) {
-        setState(() {
-          _controller.searchAttribute = value!;
-          _controller
-              .filterRaceRunners(_controller.searchController.text.trim());
-        });
+        _controller.setSearchAttribute(value!);
       },
       isViewMode: _controller.isViewMode,
     );

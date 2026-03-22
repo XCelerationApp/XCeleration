@@ -30,7 +30,7 @@ class _RunnersListState extends State<RunnersList> {
   void initState() {
     super.initState();
     widget.controller.addListener(_onControllerChanged);
-    _filteredFuture = widget.controller.masterRace.filteredSearchResults;
+    _filteredFuture = widget.controller.filteredSearchResults;
   }
 
   @override
@@ -40,7 +40,7 @@ class _RunnersListState extends State<RunnersList> {
       oldWidget.controller.removeListener(_onControllerChanged);
       widget.controller.addListener(_onControllerChanged);
       setState(() {
-        _filteredFuture = widget.controller.masterRace.filteredSearchResults;
+        _filteredFuture = widget.controller.filteredSearchResults;
       });
     }
   }
@@ -53,7 +53,7 @@ class _RunnersListState extends State<RunnersList> {
 
   void _onControllerChanged() {
     setState(() {
-      _filteredFuture = widget.controller.masterRace.filteredSearchResults;
+      _filteredFuture = widget.controller.filteredSearchResults;
     });
   }
 
