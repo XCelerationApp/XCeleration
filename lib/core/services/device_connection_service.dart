@@ -126,6 +126,9 @@ class DevicesManager {
         }
         _bibRecorder = ConnectedDevice(DeviceName.bibRecorder, data: bibData);
         _raceTimer = ConnectedDevice(DeviceName.raceTimer, data: timerData);
+        _bibRecorderV2 = ConnectedDevice(DeviceName.bibRecorderV2, data: bibData);
+        _verifier = ConnectedDevice(DeviceName.verifier, data: bibData);
+        _fixer = ConnectedDevice(DeviceName.fixer, data: bibData);
       } else if (_currentDeviceName == DeviceName.coach && _toSpectator) {
         _coach = ConnectedDevice(DeviceName.coach);
         _spectator = ConnectedDevice(DeviceName.spectator, data: _data);
@@ -146,6 +149,9 @@ class DevicesManager {
         _coach = ConnectedDevice(DeviceName.coach);
         _bibRecorder = ConnectedDevice(DeviceName.bibRecorder);
         _raceTimer = ConnectedDevice(DeviceName.raceTimer);
+        _bibRecorderV2 = ConnectedDevice(DeviceName.bibRecorderV2);
+        _verifier = ConnectedDevice(DeviceName.verifier);
+        _fixer = ConnectedDevice(DeviceName.fixer);
       } else if (_currentDeviceName == DeviceName.spectator) {
         // Spectator receiving: choose either Coach or Spectator based on flag
         if (_toSpectator) {
@@ -185,6 +191,15 @@ class DevicesManager {
 
   /// Get the spectator device if available
   ConnectedDevice? get spectator => _spectator;
+
+  /// Get the bib recorder v2 device if available
+  ConnectedDevice? get bibRecorderV2 => _bibRecorderV2;
+
+  /// Get the verifier device if available
+  ConnectedDevice? get verifier => _verifier;
+
+  /// Get the fixer device if available
+  ConnectedDevice? get fixer => _fixer;
 
   /// Whether coach is targeting spectator broadcast mode
   bool get toSpectator => _toSpectator;
