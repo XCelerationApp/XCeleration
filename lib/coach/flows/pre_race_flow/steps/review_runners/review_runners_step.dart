@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/coach/flows/model/flow_model.dart';
 import '../../../../runners_management_screen/screen/runners_management_screen.dart';
-import '../../../../race_screen/services/race_service.dart';
+import '../../../../race_screen/services/i_race_service.dart';
+import '../../../../../core/services/service_locator.dart';
 import 'package:xceleration/shared/models/database/master_race.dart';
 
 class ReviewRunnersStep extends FlowStep {
@@ -15,7 +16,8 @@ class ReviewRunnersStep extends FlowStep {
     required Future<void> Function() onNext,
     Future<bool> Function(MasterRace)? checkMinimumRunners,
   })  : _checkMinimumRunners =
-            checkMinimumRunners ?? RaceService.checkMinimumRunnersLoaded,
+            checkMinimumRunners ??
+                ServiceLocator.get<IRaceService>().checkMinimumRunnersLoaded,
         super(
           title: 'Review Runners',
           description:

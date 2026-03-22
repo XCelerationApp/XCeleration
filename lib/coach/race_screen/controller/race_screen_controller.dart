@@ -13,7 +13,8 @@ import '../../../core/services/event_bus.dart';
 import '../../../core/services/i_device_connection_factory.dart';
 import 'package:intl/intl.dart';
 import '../../races_screen/controller/i_parent_race_controller.dart';
-import '../services/race_service.dart';
+import '../services/i_race_service.dart';
+import '../../../core/services/service_locator.dart';
 import '../../../core/services/geo_location_service.dart';
 import '../../../core/services/date_picker_service.dart';
 import '../../../core/components/dialog_utils.dart';
@@ -106,6 +107,7 @@ class RaceScreenController with ChangeNotifier {
   final IDatePickerService _datePickerService;
   final IEventBus _eventBus;
   final IDeviceConnectionFactory _devicesFactory;
+  late final IRaceService _raceService;
 
   late final RaceGeoController _geoController;
 
@@ -118,9 +120,11 @@ class RaceScreenController with ChangeNotifier {
     IEventBus? eventBus,
     IDeviceConnectionFactory? devicesFactory,
     RaceGeoController? geoController,
+    IRaceService? raceService,
   })  : _datePickerService = datePickerService ?? DatePickerService(),
         _eventBus = eventBus ?? EventBus.instance,
         _devicesFactory = devicesFactory ?? const DeviceConnectionFactoryImpl() {
+    _raceService = raceService ?? ServiceLocator.get<IRaceService>();
     this.flowController =
         flowController ?? MasterFlowController(raceController: this);
     _geoController = geoController ??
@@ -216,7 +220,7 @@ class RaceScreenController with ChangeNotifier {
   // Save orchestration
 
   Future<void> saveRaceDetails(BuildContext context) async {
-    await RaceService.saveRaceDetails(
+    await _raceService.saveRaceDetails(
       masterRace: masterRace,
       nameController: form.nameController,
       locationController: form.locationController,
@@ -246,7 +250,7 @@ class RaceScreenController with ChangeNotifier {
     // Pass already-loaded race and teams — avoids two extra DB reads.
     final race = _race;
     if (race == null) return;
-    final setupComplete = await RaceService.checkSetupComplete(
+    final setupComplete = await _raceService.checkSetupComplete(
       race: race,
       teams: _teams ?? [],
       masterRace: masterRace,

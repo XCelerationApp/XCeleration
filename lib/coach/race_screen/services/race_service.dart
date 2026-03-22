@@ -3,11 +3,13 @@ import '../../../shared/models/database/race.dart';
 import '../../../shared/models/database/master_race.dart';
 import '../../../shared/models/database/i_master_race_resolver.dart';
 import '../../../shared/models/database/team.dart';
+import 'i_race_service.dart';
 import 'package:intl/intl.dart';
 
-class RaceService {
+class RaceService implements IRaceService {
   /// Saves race details to the database.
-  static Future<void> saveRaceDetails({
+  @override
+  Future<void> saveRaceDetails({
     required MasterRace masterRace,
     required TextEditingController nameController,
     required TextEditingController locationController,
@@ -43,7 +45,8 @@ class RaceService {
   }
 
   /// Returns true if every team in the race has at least one runner.
-  static Future<bool> checkMinimumRunnersLoaded(
+  @override
+  Future<bool> checkMinimumRunnersLoaded(
       IMasterRaceResolver masterRace) async {
     final teamsList = await masterRace.teams;
     if (teamsList.isEmpty) return false;
@@ -62,7 +65,8 @@ class RaceService {
   ///
   /// Accepts already-loaded [race] and [teams] to avoid redundant DB reads.
   /// [masterRace] is still needed to check the minimum runners count.
-  static Future<bool> checkSetupComplete({
+  @override
+  Future<bool> checkSetupComplete({
     required Race race,
     required List<Team> teams,
     required MasterRace masterRace,
