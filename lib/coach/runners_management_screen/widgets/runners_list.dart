@@ -79,6 +79,28 @@ class _RunnersListState extends State<RunnersList> {
     return FutureBuilder<Map<Team, List<RaceRunner>>>(
       future: _filteredFuture,
       builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  size: 48,
+                  color: AppColors.mediumColor.withValues(alpha: AppOpacity.solid),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                Text(
+                  'Could not load runners',
+                  style: AppTypography.titleSemibold.copyWith(
+                    color: AppColors.mediumColor,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
         if (!snapshot.hasData) {
           return Center(
             child: CircularProgressIndicator(
