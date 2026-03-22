@@ -615,6 +615,7 @@ class _AuthTextFieldState extends State<_AuthTextField> {
                   onSubmitted: widget.onSubmitted,
                   onChanged: widget.onChanged,
                   enabled: !widget.disabled,
+                  enableInteractiveSelection: !widget.obscureText,
                   autocorrect: false,
                   enableSuggestions: false,
                   smartDashesType: SmartDashesType.disabled,
