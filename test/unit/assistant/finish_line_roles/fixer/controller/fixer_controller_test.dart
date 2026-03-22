@@ -931,5 +931,72 @@ void main() {
         expect(runner.bibNumber, '4');
       });
     });
+
+    group('processLoadedRaceData', () {
+      final testRace = RaceRecord(
+        raceId: 1,
+        date: DateTime(2026),
+        name: 'Test Race',
+        type: 'fixer',
+      );
+      const validRunnerJson = '{"teams":["EAG"],"r":[["42","Alice",0,"10"]]}';
+
+      setUp(() {
+        when(mockStorage.saveNewRace(any))
+            .thenAnswer((_) async => const Success<void>(null));
+        when(mockStorage.saveRunners(any, any))
+            .thenAnswer((_) async => const Success<void>(null));
+      });
+
+      test('returns Failure when data cannot be parsed', () async {
+        final controller = makeController();
+
+        final result = await controller.processLoadedRaceData('not valid json');
+
+        expect(result, isA<Failure<void>>());
+      });
+
+      test('returns Failure when runner section is invalid', () async {
+        final controller = makeController();
+        final data = '${testRace.encode()}---invalid-runner-data';
+
+        final result = await controller.processLoadedRaceData(data);
+
+        expect(result, isA<Failure<void>>());
+      });
+
+      test('returns Failure when saveNewRace fails', () async {
+        when(mockStorage.saveNewRace(any)).thenAnswer(
+          (_) async => Failure<void>(const AppError(userMessage: 'Save failed')),
+        );
+        final controller = makeController();
+
+        final result = await controller.processLoadedRaceData(testRace.encode());
+
+        expect(result, isA<Failure<void>>());
+        expect((result as Failure).error.userMessage, 'Save failed');
+      });
+
+      test('returns Success and calls saveNewRace on valid data without runners', () async {
+        final controller = makeController();
+
+        final result = await controller.processLoadedRaceData(testRace.encode());
+
+        expect(result, isA<Success<void>>());
+        verify(mockStorage.saveNewRace(any)).called(1);
+        verifyNever(mockStorage.saveRunners(any, any));
+      });
+
+      test('returns Success and calls saveRunners on valid data with runners', () async {
+        final controller = makeController();
+        final data = '${testRace.encode()}---$validRunnerJson';
+
+        final result = await controller.processLoadedRaceData(data);
+
+        expect(result, isA<Success<void>>());
+        verify(mockStorage.saveNewRace(any)).called(1);
+        verify(mockStorage.saveRunners(any, any)).called(1);
+      });
+    });
   });
 }
