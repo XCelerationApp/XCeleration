@@ -188,28 +188,34 @@ class SyncService implements ISyncService {
     return rows.isNotEmpty ? rows.first['value'] as String : null;
   }
 
-  /// Detect if there's an actual data conflict when timestamps are equal
+  /// Fields excluded from conflict detection: sync metadata and local-only PKs/FKs
+  /// that are not present on the remote row.
+  static const _conflictExcludedFields = {
+    'uuid',
+    'updated_at',
+    'created_at',
+    'is_dirty',
+    'deleted_at',
+    'owner_user_id',
+    // Local integer PKs / FKs — not synced as data columns
+    'id',
+    'runner_id',
+    'team_id',
+    'race_id',
+  };
+
+  /// Detect if there's an actual data conflict when timestamps are equal.
+  ///
+  /// Compares all data columns present in either row, automatically picking up
+  /// any new columns added to synced tables without requiring code changes here.
   _DataConflictResult _detectDataConflict(
       Map<String, dynamic> local, Map<String, dynamic> remote) {
     final differences = <String>[];
 
-    // Define fields that should be compared for conflicts (exclude metadata fields)
-    final fieldsToCompare = [
-      'name',
-      'bib_number',
-      'grade',
-      'abbreviation',
-      'color',
-      'race_date',
-      'location',
-      'distance',
-      'distance_unit',
-      'flow_state',
-      'place',
-      'finish_time'
-    ];
+    final allKeys = {...local.keys, ...remote.keys}
+        .difference(_conflictExcludedFields);
 
-    for (final field in fieldsToCompare) {
+    for (final field in allKeys) {
       final localValue = local[field];
       final remoteValue = remote[field];
 
