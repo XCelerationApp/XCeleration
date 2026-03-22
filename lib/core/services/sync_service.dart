@@ -524,7 +524,7 @@ class SyncService implements ISyncService {
     final changedTables = <String>{};
     final changedRaceIds = <int>{};
 
-    Future<void> pullTable(String table, String idCol) async {
+    Future<void> pullTable(String table) async {
       final cursorKey = 'cursor.$table';
       final cursor = await getCursor(cursorKey);
       final data = await _syncClient.fetchTableRows(
@@ -665,9 +665,9 @@ class SyncService implements ISyncService {
       }
     }
 
-    await pullTable('runners', 'runner_id');
-    await pullTable('teams', 'team_id');
-    await pullTable('races', 'race_id');
+    await pullTable('runners');
+    await pullTable('teams');
+    await pullTable('races');
     await _pullRaceResults(accessibleOwnerIds, changedTables, changedRaceIds);
     await _pullRaceParticipants(accessibleOwnerIds, changedTables);
 
