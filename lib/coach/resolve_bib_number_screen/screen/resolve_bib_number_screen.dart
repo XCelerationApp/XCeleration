@@ -239,11 +239,9 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
                         // isSelected: !_controller.showCreateNew,
                         isPrimary: !_controller.showCreateNew,
                         onPressed: () {
-                          setState(() {
-                            _controller.showCreateNew = false;
-                            _controller.searchRunners(
-                                _controller.searchController.text);
-                          });
+                          _controller.showCreateNew = false;
+                          _controller.searchRunners(
+                              _controller.searchController.text);
                         },
                       ),
                     ),
@@ -256,9 +254,7 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
                         // isSelected: _controller.showCreateNew,
                         isPrimary: _controller.showCreateNew,
                         onPressed: () {
-                          setState(() {
-                            _controller.showCreateNew = true;
-                          });
+                          _controller.setShowCreateNew(true);
                         },
                       ),
                     ),

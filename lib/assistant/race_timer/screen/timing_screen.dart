@@ -82,69 +82,89 @@ class _TimingScreenState extends State<TimingScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-              // Only rebuild the parts that depend on controller state
-              AnimatedBuilder(
-                animation: _controller,
+              // Race header: only rebuilds when the loaded race changes
+              ListenableBuilder(
+                listenable: _controller.raceInfoSignal,
                 builder: (context, child) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      CoachMark(
-                        id: 'race_header_tutorial',
-                        tutorialManager: tutorialManager,
-                        config: const CoachMarkConfig(
-                          title: 'Race Information',
-                          description:
-                              'This shows your current race. A demo race has been loaded so you can test the features. Tap the menu to load a race from your coach.',
-                          icon: Icons.info_outline,
-                          alignmentY: AlignmentY.bottom,
-                          type: CoachMarkType.targeted,
-                          backgroundColor: Color(0xFF1976D2),
-                        ),
-                        child: RaceHeaderWidget(
-                          currentRace: _controller.currentRace,
-                          role: DeviceName.raceTimer,
-                          onLoadRace: () =>
-                              _controller.showLoadRaceSheet(context),
-                          onShowOtherRaces: () =>
-                              _controller.showOtherRaces(context),
-                          onDeleteRace: () async {
-                            final error = await _controller.deleteCurrentRace();
-                            if (error != null && context.mounted) {
-                              DialogUtils.showErrorDialog(context,
-                                  message: error.userMessage);
-                            }
-                          },
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      RaceStatusWidget(controller: _controller),
-                      const SizedBox(height: 8),
-                      TimerDisplayWidget(
-                        controller: _controller,
-                      ),
-                      const SizedBox(height: 8),
-                      RaceControlsWidget(controller: _controller),
-                    ],
+                  return CoachMark(
+                    id: 'race_header_tutorial',
+                    tutorialManager: tutorialManager,
+                    config: const CoachMarkConfig(
+                      title: 'Race Information',
+                      description:
+                          'This shows your current race. A demo race has been loaded so you can test the features. Tap the menu to load a race from your coach.',
+                      icon: Icons.info_outline,
+                      alignmentY: AlignmentY.bottom,
+                      type: CoachMarkType.targeted,
+                      backgroundColor: Color(0xFF1976D2),
+                    ),
+                    child: RaceHeaderWidget(
+                      currentRace: _controller.currentRace,
+                      role: DeviceName.raceTimer,
+                      onLoadRace: () =>
+                          _controller.showLoadRaceSheet(context),
+                      onShowOtherRaces: () =>
+                          _controller.showOtherRaces(context),
+                      onDeleteRace: () async {
+                        final error = await _controller.deleteCurrentRace();
+                        if (error != null && context.mounted) {
+                          DialogUtils.showErrorDialog(context,
+                              message: error.userMessage);
+                        }
+                      },
+                    ),
                   );
                 },
               ),
+              const SizedBox(height: 8),
+              // Race status: rebuilds when race state or records change
+              ListenableBuilder(
+                listenable: Listenable.merge([
+                  _controller.raceStateSignal,
+                  _controller.recordsSignal,
+                ]),
+                builder: (context, child) {
+                  return RaceStatusWidget(controller: _controller);
+                },
+              ),
+              const SizedBox(height: 8),
+              // Timer display: rebuilds when race running state changes
+              ListenableBuilder(
+                listenable: _controller.raceStateSignal,
+                builder: (context, child) {
+                  return TimerDisplayWidget(controller: _controller);
+                },
+              ),
+              const SizedBox(height: 8),
+              // Race controls: rebuilds when race state or race identity changes
+              ListenableBuilder(
+                listenable: Listenable.merge([
+                  _controller.raceStateSignal,
+                  _controller.raceInfoSignal,
+                ]),
+                builder: (context, child) {
+                  return RaceControlsWidget(controller: _controller);
+                },
+              ),
               Expanded(
-                child: AnimatedBuilder(
-                  animation: _controller,
+                // Records list: rebuilds only when records change, not on race start/stop
+                child: ListenableBuilder(
+                  listenable: _controller.recordsSignal,
                   builder: (context, child) {
                     return RecordsListWidget(controller: _controller);
                   },
                 ),
               ),
-              AnimatedBuilder(
-                animation: _controller,
+              // Bottom controls: rebuilds when race state or records change
+              ListenableBuilder(
+                listenable: Listenable.merge([
+                  _controller.raceStateSignal,
+                  _controller.recordsSignal,
+                ]),
                 builder: (context, child) {
                   if (_controller.raceStopped == false &&
                       _controller.hasTimingData) {
-                    return BottomControlsWidget(
-                      controller: _controller,
-                    );
+                    return BottomControlsWidget(controller: _controller);
                   }
                   return const SizedBox.shrink();
                 },

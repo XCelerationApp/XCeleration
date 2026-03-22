@@ -229,8 +229,7 @@ void main() {
         verify(mockTeams.createTeam(any)).called(1);
         verify(mockMasterRace.addTeamParticipant(any)).called(1);
 
-        // Allow the unawaited loadData() fired inside createTeam to complete
-        // before tearDown disposes the controller.
+        // forceRefresh() is awaited inside createTeam, so no extra pump needed.
         await Future.delayed(Duration.zero);
       });
     });
@@ -323,7 +322,7 @@ void main() {
 
     // -------------------------------------------------------------------------
     group('confirmAndDeleteTeam', () {
-      testWidgets('removes team from race, calls loadData, returns true on confirm', (tester) async {
+      testWidgets('removes team from race, calls forceRefresh, returns true on confirm', (tester) async {
         when(mockMasterRace.removeTeamFromRace(any)).thenAnswer((_) async {});
         var called = false;
         final ctrl = RunnersManagementController(

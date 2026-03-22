@@ -112,16 +112,18 @@ class RacesScreenState extends State<RacesScreen> {
                     ),
                     // Scrollable content
                     Expanded(
-                      child: Padding(
-                        padding: EdgeInsets.fromLTRB(AppSpacing.xl, 0, AppSpacing.xl, AppSpacing.xl),
-                        child: SingleChildScrollView(
-                          child: RaceCoachMark(
-                            controller: _controller,
-                            child: RacesList(
-                              controller: _controller,
-                              canEdit: widget.canEdit,
+                      child: RaceCoachMark(
+                        controller: _controller,
+                        child: CustomScrollView(
+                          slivers: [
+                            SliverPadding(
+                              padding: EdgeInsets.fromLTRB(AppSpacing.xl, 0, AppSpacing.xl, AppSpacing.xl),
+                              sliver: RacesList(
+                                controller: _controller,
+                                canEdit: widget.canEdit,
+                              ),
                             ),
-                          ),
+                          ],
                         ),
                       ),
                     ),

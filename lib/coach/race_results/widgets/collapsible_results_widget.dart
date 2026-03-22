@@ -76,10 +76,13 @@ class _CollapsibleResultsWidgetState extends State<CollapsibleResultsWidget> {
 
               const SizedBox(height: 8),
 
-              // Display results rows
-              ...displayResults.map((item) {
-                final index = displayResults.indexOf(item);
-                // Use subtle alternate row colors for better readability
+              // Display results rows — inside a horizontal scroll view so a
+              // vertical viewport (ListView) cannot be used here (unbounded
+              // cross-axis width). Use a Column spread instead; the list is
+              // always small (≤ initialVisibleCount visible at once).
+              ...displayResults.asMap().entries.map((entry) {
+                final index = entry.key;
+                final item = entry.value;
                 final backgroundColor = index % 2 == 0
                     ? Colors.transparent
                     : ColorUtils.withOpacity(Colors.grey, 0.05);

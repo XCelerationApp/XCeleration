@@ -24,6 +24,38 @@ class RunnersList extends StatefulWidget {
 class _RunnersListState extends State<RunnersList> {
   // teamId → expanded; default true (all sections start open)
   final Map<int, bool> _expanded = {};
+  Future<Map<Team, List<RaceRunner>>>? _filteredFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_onControllerChanged);
+    _filteredFuture = widget.controller.masterRace.filteredSearchResults;
+  }
+
+  @override
+  void didUpdateWidget(RunnersList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.removeListener(_onControllerChanged);
+      widget.controller.addListener(_onControllerChanged);
+      setState(() {
+        _filteredFuture = widget.controller.masterRace.filteredSearchResults;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onControllerChanged);
+    super.dispose();
+  }
+
+  void _onControllerChanged() {
+    setState(() {
+      _filteredFuture = widget.controller.masterRace.filteredSearchResults;
+    });
+  }
 
   bool _isExpanded(Team team) =>
       _expanded[team.teamId] ?? true;
@@ -45,7 +77,7 @@ class _RunnersListState extends State<RunnersList> {
     }
 
     return FutureBuilder<Map<Team, List<RaceRunner>>>(
-      future: widget.controller.masterRace.filteredSearchResults,
+      future: _filteredFuture,
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return Center(
@@ -74,14 +106,11 @@ class _RunnersListState extends State<RunnersList> {
     final teams = teamMap.keys.toList()
       ..sort((a, b) => (a.name ?? '').compareTo(b.name ?? ''));
 
-    return AnimatedSwitcher(
-      duration: AppAnimations.standard,
-      child: ListView.builder(
-        key: ValueKey(teams.length),
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-        itemCount: teams.length,
-        itemBuilder: (context, index) {
+    return ListView.builder(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+      itemCount: teams.length,
+      itemBuilder: (context, index) {
           final team = teams[index];
           final raceRunners = teamMap[team] ?? [];
           final expanded = _isExpanded(team);
@@ -129,20 +158,27 @@ class _RunnersListState extends State<RunnersList> {
                                         isViewMode: widget.controller.isViewMode,
                                       )
                                     else
-                                      ...raceRunners.map((raceRunner) {
-                                        return RunnerListItem(
-                                          runner: raceRunner.runner,
-                                          team: team,
-                                          controller: widget.controller,
-                                          onAction: (action) =>
-                                              widget.controller.handleRaceRunnerAction(
-                                            context,
-                                            action,
-                                            raceRunner,
-                                          ),
-                                          isViewMode: widget.controller.isViewMode,
-                                        );
-                                      }),
+                                      ListView.builder(
+                                        shrinkWrap: true,
+                                        physics: const NeverScrollableScrollPhysics(),
+                                        itemCount: raceRunners.length,
+                                        itemBuilder: (context, i) {
+                                          final raceRunner = raceRunners[i];
+                                          return RunnerListItem(
+                                            key: ValueKey(raceRunner.runner.bibNumber),
+                                            runner: raceRunner.runner,
+                                            team: team,
+                                            controller: widget.controller,
+                                            onAction: (action) =>
+                                                widget.controller.handleRaceRunnerAction(
+                                              context,
+                                              action,
+                                              raceRunner,
+                                            ),
+                                            isViewMode: widget.controller.isViewMode,
+                                          );
+                                        },
+                                      ),
                                   ],
                                 )
                             : const SizedBox.shrink(),
@@ -153,8 +189,7 @@ class _RunnersListState extends State<RunnersList> {
               ),
             ),
           );
-        },
-      ),
+      },
     );
   }
 }
@@ -170,26 +205,41 @@ class _AnimatedTeamSection extends StatefulWidget {
   State<_AnimatedTeamSection> createState() => _AnimatedTeamSectionState();
 }
 
-class _AnimatedTeamSectionState extends State<_AnimatedTeamSection> {
-  double _opacity = 0;
+class _AnimatedTeamSectionState extends State<_AnimatedTeamSection>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _opacity;
 
   @override
   void initState() {
     super.initState();
-    Future.delayed(
-      Duration(milliseconds: widget.index * 40),
-      () {
-        if (mounted) setState(() => _opacity = 1);
-      },
+    final staggerMs = widget.index * 40;
+    final totalMs = staggerMs + AppAnimations.reveal.inMilliseconds;
+    _controller = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: totalMs),
     );
+    _opacity = CurvedAnimation(
+      parent: _controller,
+      curve: Interval(
+        staggerMs / totalMs,
+        1.0,
+        curve: AppAnimations.enter,
+      ),
+    );
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedOpacity(
+    return FadeTransition(
       opacity: _opacity,
-      duration: AppAnimations.reveal,
-      curve: AppAnimations.enter,
       child: widget.child,
     );
   }

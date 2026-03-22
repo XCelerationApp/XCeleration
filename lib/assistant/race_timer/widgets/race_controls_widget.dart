@@ -68,49 +68,45 @@ class RaceControlsWidget extends StatelessWidget {
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.all(8.0),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return ActionButton(
-              height: 70,
-              text: 'Share Times',
-              icon: Icons.share,
-              iconSize: 18,
-              fontSize: 18,
-              textColor: AppColors.mediumColor,
-              backgroundColor: AppColors.backgroundColor,
-              borderColor: AppColors.mediumColor,
-              fontWeight: FontWeight.w500,
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-              borderRadius: 30,
-              isPrimary: false,
-              onPressed: () async {
-                // Prevent sharing demo race
-                if (controller.currentRace != null &&
-                    DemoRaceGenerator.isDemoRace(controller.currentRace!)) {
-                  DialogUtils.showMessageDialog(
-                    context,
-                    title: 'Demo Race',
-                    message:
-                        'The demo race is for practice only and cannot be shared. Please load a real race from your coach to share results.',
-                  );
-                  return;
-                }
+        child: ActionButton(
+          height: 70,
+          text: 'Share Times',
+          icon: Icons.share,
+          iconSize: 18,
+          fontSize: 18,
+          textColor: AppColors.mediumColor,
+          backgroundColor: AppColors.backgroundColor,
+          borderColor: AppColors.mediumColor,
+          fontWeight: FontWeight.w500,
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+          borderRadius: 30,
+          isPrimary: false,
+          onPressed: () async {
+            // Prevent sharing demo race
+            if (controller.currentRace != null &&
+                DemoRaceGenerator.isDemoRace(controller.currentRace!)) {
+              DialogUtils.showMessageDialog(
+                context,
+                title: 'Demo Race',
+                message:
+                    'The demo race is for practice only and cannot be shared. Please load a real race from your coach to share results.',
+              );
+              return;
+            }
 
-                final encodedData = await controller.encodedRecords();
-                if (!context.mounted) return;
+            final encodedData = await controller.encodedRecords();
+            if (!context.mounted) return;
 
-                sheet(
-                  context: context,
-                  title: 'Share Times',
-                  body: DeviceConnectionWidget(
-                    devices: DeviceConnectionService.createDevices(
-                      DeviceName.raceTimer,
-                      DeviceType.advertiserDevice,
-                      data: encodedData,
-                    ),
-                  ),
-                );
-              },
+            sheet(
+              context: context,
+              title: 'Share Times',
+              body: DeviceConnectionWidget(
+                devices: DeviceConnectionService.createDevices(
+                  DeviceName.raceTimer,
+                  DeviceType.advertiserDevice,
+                  data: encodedData,
+                ),
+              ),
             );
           },
         ),

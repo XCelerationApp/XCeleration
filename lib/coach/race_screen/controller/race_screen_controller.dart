@@ -224,9 +224,29 @@ class RaceScreenController with ChangeNotifier {
       distanceController: form.distanceController,
       unitController: form.unitController,
     );
-    await loadRace();
+
+    // Update _race in memory from the saved form values instead of
+    // re-fetching from the DB (eliminates a redundant read).
+    if (_race != null) {
+      DateTime? date;
+      if (form.dateController.text.isNotEmpty) {
+        date = DateTime.tryParse(form.dateController.text);
+      }
+      final distance = double.tryParse(form.distanceController.text) ?? 0;
+      _race = _race!.copyWith(
+        raceName: form.nameController.text.trim(),
+        location: form.locationController.text,
+        raceDate: date,
+        distance: distance,
+        distanceUnit: form.unitController.text,
+      );
+    }
     notifyListeners();
+
+    // Pass already-loaded race and teams — avoids two extra DB reads.
     final setupComplete = await RaceService.checkSetupComplete(
+      race: _race!,
+      teams: _teams ?? [],
       masterRace: masterRace,
       nameController: form.nameController,
       locationController: form.locationController,
@@ -241,14 +261,13 @@ class RaceScreenController with ChangeNotifier {
   Future<void> handleFieldFocusLoss(
       BuildContext context, RaceField field) async {
     trackFieldChange(field);
-    if (!(await _isSetupFlow()) && form.hasUnsavedChanges && context.mounted) {
+    if (!_isSetupFlow() && form.hasUnsavedChanges && context.mounted) {
       await saveAllChanges(context);
     }
   }
 
-  Future<bool> _isSetupFlow() async {
-    final race = await masterRace.race;
-    final flowState = race.flowState;
+  bool _isSetupFlow() {
+    final flowState = _race?.flowState;
     return flowState == Race.FLOW_SETUP ||
         flowState == Race.FLOW_SETUP_COMPLETED;
   }
@@ -256,13 +275,13 @@ class RaceScreenController with ChangeNotifier {
   Future<void> saveAllChanges(BuildContext context) async {
     if (!form.hasUnsavedChanges) return;
 
-    bool allValid = true;
-    for (final field in form.changedFields) {
-      form.applyValidation(field);
-      if (form.errorFor(field) != null) allValid = false;
-    }
+    // Collect all validation results first, then apply in one notifyListeners.
+    final validationResults = {
+      for (final field in form.changedFields) field: form.validateField(field),
+    };
+    form.setErrors(validationResults);
 
-    if (!allValid) return;
+    if (validationResults.values.any((e) => e != null)) return;
 
     await saveRaceDetails(context);
     form.clearChangeTracking();

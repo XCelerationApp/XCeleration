@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:xceleration/core/services/connectivity_sync_service.dart';
@@ -75,8 +76,18 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
   }
 
   Future<void> _viewRace(Map<String, dynamic> race) async {
-    final encodedPayload = race['encoded_payload'] as String;
-    final result = RaceShareDecoder.decodeWithRaw(encodedPayload);
+    final raceId = race['id'] as int;
+    final fullRace = await SpectatorStorageService.instance.getRace(raceId);
+    final encodedPayload = fullRace?['encoded_payload'] as String?;
+    if (encodedPayload == null) {
+      if (mounted) {
+        DialogUtils.showErrorDialog(context,
+            message: 'Could not load race data.');
+      }
+      return;
+    }
+    final result =
+        await compute(RaceShareDecoder.decodeWithRaw, encodedPayload);
 
     switch (result) {
       case Failure(:final error):
@@ -105,7 +116,16 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
 
   Future<void> _shareRace(Map<String, dynamic> race) async {
     try {
-      final encodedPayload = race['encoded_payload'] as String;
+      final raceId = race['id'] as int;
+      final fullRace = await SpectatorStorageService.instance.getRace(raceId);
+      final encodedPayload = fullRace?['encoded_payload'] as String?;
+      if (encodedPayload == null) {
+        if (mounted) {
+          DialogUtils.showErrorDialog(context,
+              message: 'Could not load race data.');
+        }
+        return;
+      }
       final raceName = race['race_name'] as String? ?? 'Race';
 
       if (!mounted) return;
@@ -236,31 +256,26 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
                         )
                       : RefreshIndicator(
                           onRefresh: _loadSavedRaces,
-                          child: SingleChildScrollView(
+                          child: ListView.builder(
                             physics: const AlwaysScrollableScrollPhysics(),
-                            child: Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 16.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  ..._savedRaces.map((race) {
-                                    final raceName =
-                                        race['race_name'] as String? ??
-                                            'Unnamed Race';
-                                    final raceId = race['id'] as int;
+                            padding:
+                                const EdgeInsets.symmetric(vertical: 16.0),
+                            itemCount: _savedRaces.length,
+                            itemBuilder: (context, index) {
+                              final race = _savedRaces[index];
+                              final raceName =
+                                  race['race_name'] as String? ??
+                                      'Unnamed Race';
+                              final raceId = race['id'] as int;
 
-                                    return SpectatorRaceCard(
-                                      race: race,
-                                      onTap: () => _viewRace(race),
-                                      onShare: () => _shareRace(race),
-                                      onDelete: () =>
-                                          _deleteRace(raceId, raceName),
-                                    );
-                                  }),
-                                ],
-                              ),
-                            ),
+                              return SpectatorRaceCard(
+                                race: race,
+                                onTap: () => _viewRace(race),
+                                onShare: () => _shareRace(race),
+                                onDelete: () =>
+                                    _deleteRace(raceId, raceName),
+                              );
+                            },
                           ),
                         ),
             ),

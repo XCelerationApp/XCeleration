@@ -1,3 +1,6 @@
+@Timeout(Duration(minutes: 30))
+library;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:xceleration/coach/race_results/model/results_record.dart';

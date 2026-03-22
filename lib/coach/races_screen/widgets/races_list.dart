@@ -6,18 +6,23 @@ import '../../../core/components/empty_section.dart';
 import 'race_card.dart';
 import '../../flows/widgets/flow_section_header.dart';
 
-class RacesList extends StatelessWidget {
+class RacesList extends StatefulWidget {
   final RacesController controller;
   final bool canEdit;
   const RacesList({super.key, required this.controller, this.canEdit = true});
 
   @override
-  Widget build(BuildContext context) {
-    return _buildList();
-  }
+  State<RacesList> createState() => _RacesListState();
+}
 
-  Widget _buildList() {
-    final List<Race> raceData = controller.races;
+class _RacesListState extends State<RacesList> {
+  bool _inProgressExpanded = true;
+  bool _upcomingExpanded = true;
+  bool _finishedExpanded = true;
+
+  @override
+  Widget build(BuildContext context) {
+    final List<Race> raceData = widget.controller.races;
     final finishedRaces =
         raceData.where((race) => race.flowState == Race.FLOW_FINISHED).toList();
     final raceInProgress = raceData
@@ -25,7 +30,6 @@ class RacesList extends StatelessWidget {
             race.flowState == Race.FLOW_POST_RACE ||
             race.flowState == Race.FLOW_PRE_RACE ||
             race.flowState == Race.FLOW_PRE_RACE_COMPLETED)
-        // race.flowState == Race.FLOW_POST_RACE_COMPLETED)
         .toList();
     final upcomingRaces = raceData
         .where((race) =>
@@ -37,112 +41,146 @@ class RacesList extends StatelessWidget {
         raceInProgress.length + upcomingRaces.length + finishedRaces.length;
     final useStagger = totalItems <= 20;
 
-    int itemIndex = 0;
+    // Build flat list: section header + card items
+    final items = <_ListItem>[];
 
-    List<Widget> buildRaceCards(List<Race> races) {
-      return [
-        for (final race in races)
-          Builder(builder: (context) {
-            final index = itemIndex++;
-            final card = RaceCard(
+    void addSection({
+      required String title,
+      required List<Race> races,
+      required bool isExpanded,
+      required VoidCallback onToggle,
+      required Widget emptyState,
+      required int startIndex,
+    }) {
+      items.add(_HeaderItem(
+        title: title,
+        count: races.length,
+        isExpanded: isExpanded,
+        onToggle: onToggle,
+      ));
+      if (isExpanded) {
+        if (races.isEmpty) {
+          items.add(_WidgetItem(emptyState));
+        } else {
+          for (int i = 0; i < races.length; i++) {
+            final globalIndex = startIndex + i;
+            final race = races[i];
+            items.add(_CardItem(
               race: race,
-              flowState: race.flowState!,
-              controller: controller,
-              canEdit: canEdit,
-            );
-            return useStagger
-                ? _AnimatedListItem(index: index, child: card)
-                : card;
-          }),
-      ];
+              controller: widget.controller,
+              canEdit: widget.canEdit,
+              useStagger: useStagger,
+              index: globalIndex,
+            ));
+          }
+        }
+      }
     }
 
-    return Column(
-      key: const ValueKey('list'),
-      mainAxisAlignment: MainAxisAlignment.start,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _CollapsibleSection(
-          title: 'In Progress',
-          count: raceInProgress.length,
-          emptyState: const EmptySection(
-            icon: Icons.timer_outlined,
-            title: 'No races in progress',
-            subtitle: 'Active races will appear here',
-          ),
-          children: buildRaceCards(raceInProgress),
-        ),
-        _CollapsibleSection(
-          title: 'Upcoming',
-          count: upcomingRaces.length,
-          emptyState: const EmptySection(
-            icon: Icons.calendar_today_outlined,
-            title: 'No upcoming races',
-            subtitle: 'Races you\'re setting up will appear here',
-          ),
-          children: buildRaceCards(upcomingRaces),
-        ),
-        _CollapsibleSection(
-          title: 'Finished',
-          count: finishedRaces.length,
-          emptyState: const EmptySection(
-            icon: Icons.history,
-            title: 'No finished races yet',
-            subtitle: 'Completed races will appear here',
-          ),
-          children: buildRaceCards(finishedRaces),
-        ),
-      ],
+    addSection(
+      title: 'In Progress',
+      races: raceInProgress,
+      isExpanded: _inProgressExpanded,
+      onToggle: () => setState(() => _inProgressExpanded = !_inProgressExpanded),
+      emptyState: const EmptySection(
+        icon: Icons.timer_outlined,
+        title: 'No races in progress',
+        subtitle: 'Active races will appear here',
+      ),
+      startIndex: 0,
+    );
+    addSection(
+      title: 'Upcoming',
+      races: upcomingRaces,
+      isExpanded: _upcomingExpanded,
+      onToggle: () => setState(() => _upcomingExpanded = !_upcomingExpanded),
+      emptyState: const EmptySection(
+        icon: Icons.calendar_today_outlined,
+        title: 'No upcoming races',
+        subtitle: 'Races you\'re setting up will appear here',
+      ),
+      startIndex: raceInProgress.length,
+    );
+    addSection(
+      title: 'Finished',
+      races: finishedRaces,
+      isExpanded: _finishedExpanded,
+      onToggle: () => setState(() => _finishedExpanded = !_finishedExpanded),
+      emptyState: const EmptySection(
+        icon: Icons.history,
+        title: 'No finished races yet',
+        subtitle: 'Completed races will appear here',
+      ),
+      startIndex: raceInProgress.length + upcomingRaces.length,
+    );
+
+    return SliverList.builder(
+      itemCount: items.length,
+      itemBuilder: (context, index) => items[index].build(context),
     );
   }
 }
 
-class _CollapsibleSection extends StatefulWidget {
+sealed class _ListItem {
+  Widget build(BuildContext context);
+}
+
+class _HeaderItem extends _ListItem {
   final String title;
   final int count;
-  final Widget emptyState;
-  final List<Widget> children;
+  final bool isExpanded;
+  final VoidCallback onToggle;
 
-  const _CollapsibleSection({
+  _HeaderItem({
     required this.title,
     required this.count,
-    required this.emptyState,
-    required this.children,
+    required this.isExpanded,
+    required this.onToggle,
   });
 
   @override
-  State<_CollapsibleSection> createState() => _CollapsibleSectionState();
+  Widget build(BuildContext context) {
+    return FlowSectionHeader(
+      title: title,
+      count: count,
+      isExpanded: isExpanded,
+      onToggle: onToggle,
+    );
+  }
 }
 
-class _CollapsibleSectionState extends State<_CollapsibleSection> {
-  bool _isExpanded = true;
+class _WidgetItem extends _ListItem {
+  final Widget child;
+  _WidgetItem(this.child);
+
+  @override
+  Widget build(BuildContext context) => child;
+}
+
+class _CardItem extends _ListItem {
+  final Race race;
+  final RacesController controller;
+  final bool canEdit;
+  final bool useStagger;
+  final int index;
+
+  _CardItem({
+    required this.race,
+    required this.controller,
+    required this.canEdit,
+    required this.useStagger,
+    required this.index,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        FlowSectionHeader(
-          title: widget.title,
-          count: widget.count,
-          isExpanded: _isExpanded,
-          onToggle: () => setState(() => _isExpanded = !_isExpanded),
-        ),
-        AnimatedSize(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeInOut,
-          alignment: Alignment.topCenter,
-          child: _isExpanded
-              ? Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: widget.count == 0
-                      ? [widget.emptyState]
-                      : widget.children,
-                )
-              : const SizedBox.shrink(),
-        ),
-      ],
+    final card = RaceCard(
+      race: race,
+      flowState: race.flowState!,
+      controller: controller,
+      canEdit: canEdit,
     );
+    return useStagger ? _AnimatedListItem(index: index, child: card) : card;
   }
 }
 

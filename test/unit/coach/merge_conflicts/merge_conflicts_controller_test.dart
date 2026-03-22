@@ -681,7 +681,8 @@ void main() {
 
     // -----------------------------------------------------------------------
     group('updateMissingTimeRecord', () {
-      test('updates timeController text and notifies listeners', () {
+      test('updates timeController text without notifying controller listeners',
+          () {
         final chunk = _missingTimeChunk(1, ['TBD'], 1, endTime: '5:00.0');
         final controller = _buildController(
           timingChunks: [chunk],
@@ -695,7 +696,9 @@ void main() {
         controller.updateMissingTimeRecord(uiChunk.chunkId, 0, '2:00.0');
 
         expect(uiChunk.records.first.timeController.text, '2:00.0');
-        expect(notified, isTrue);
+        // Controller-level notifyListeners() is intentionally NOT called on
+        // each keystroke — UIRecord notifies its own listeners instead.
+        expect(notified, isFalse);
       });
 
       test('sets validation error for invalid time', () {

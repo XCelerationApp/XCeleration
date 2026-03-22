@@ -164,6 +164,7 @@ class TimingController extends TimingData {
         cacheChunkInMemoryOnly(chunkToCache);
       }
     }
+    invalidateRecordsCache();
     notifyListeners();
   }
 
@@ -366,6 +367,7 @@ class TimingController extends TimingData {
     if (currentChunk.isEmpty) {
       deleteCurrentChunk();
     } else {
+      invalidateRecordsCache();
       notifyListeners();
     }
   }
@@ -440,6 +442,7 @@ class TimingController extends TimingData {
         _storage.deleteChunk(currentRace!.raceId, currentChunk.id);
         return true;
       }
+      invalidateRecordsCache();
       notifyListeners();
       return true;
     }
@@ -450,6 +453,7 @@ class TimingController extends TimingData {
         if (currentChunk.timingData.isEmpty) {
           deleteCurrentChunk();
         } else {
+          invalidateRecordsCache();
           notifyListeners();
         }
         return true;

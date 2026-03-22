@@ -12,7 +12,10 @@ class RaceLocationField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: controller,
+      listenable: Listenable.merge([
+        controller.locationErrorNotifier,
+        controller.locationButtonVisibleNotifier,
+      ]),
       builder: (context, _) => buildInputRow(
         label: 'Location',
         inputWidget: Row(

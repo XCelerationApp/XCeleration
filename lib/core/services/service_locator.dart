@@ -48,9 +48,9 @@ class ServiceLocator {
         ResultsRepository(conn: connProvider, writeBus: writeBus);
     _services[IResultsRepository] = resultsRepo;
 
-    // Consolidated Google service
+    // Consolidated Google service — registered here for DI; initialization is
+    // deferred to first use (GoogleService.signIn() calls initialize() lazily).
     _services[GoogleService] = GoogleService.instance;
-    await GoogleService.instance.initialize();
 
     // Feature services
     _services[RaceService] = RaceService();

@@ -6,13 +6,36 @@ import '../model/results_record.dart';
 import '../model/team_record.dart';
 import 'collapsible_results_widget.dart';
 
-class HeadToHeadResultsWidget extends StatelessWidget {
+class HeadToHeadResultsWidget extends StatefulWidget {
   final List<TeamRecord> matchup;
-  late final TeamRecord teamA;
-  late final TeamRecord teamB;
-  late final List<ResultsRecord> allResults;
 
-  HeadToHeadResultsWidget({super.key, required this.matchup}) {
+  const HeadToHeadResultsWidget({super.key, required this.matchup});
+
+  @override
+  State<HeadToHeadResultsWidget> createState() =>
+      _HeadToHeadResultsWidgetState();
+}
+
+class _HeadToHeadResultsWidgetState extends State<HeadToHeadResultsWidget> {
+  late TeamRecord teamA;
+  late TeamRecord teamB;
+  late List<ResultsRecord> allResults;
+
+  @override
+  void initState() {
+    super.initState();
+    _computeResults(widget.matchup);
+  }
+
+  @override
+  void didUpdateWidget(HeadToHeadResultsWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.matchup != oldWidget.matchup) {
+      _computeResults(widget.matchup);
+    }
+  }
+
+  void _computeResults(List<TeamRecord> matchup) {
     teamA = matchup[0];
     teamB = matchup[1];
 
@@ -28,7 +51,7 @@ class HeadToHeadResultsWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (matchup.length != 2) return const SizedBox.shrink();
+    if (widget.matchup.length != 2) return const SizedBox.shrink();
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),

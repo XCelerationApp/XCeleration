@@ -17,37 +17,36 @@ class SpectatorBroadcastSheet extends StatefulWidget {
 
 class _SpectatorBroadcastSheetState extends State<SpectatorBroadcastSheet> {
   final Set<ConnectedDevice> _finished = {};
+  final _finishedCount = ValueNotifier<int>(0);
+  final Map<ConnectedDevice, VoidCallback> _listeners = {};
   Timer? _timeoutTimer;
 
   @override
   void initState() {
     super.initState();
-    // Listen for device status changes to compute sent count
     for (final d in widget.devices.otherDevices) {
-      d.addListener(_onDeviceChanged);
+      void listener() => _onDeviceChanged(d);
+      _listeners[d] = listener;
+      d.addListener(listener);
     }
-    // Auto-timeout after 2 minutes
     _timeoutTimer = Timer(const Duration(minutes: 2), () {
       if (mounted) Navigator.of(context).maybePop();
     });
   }
 
-  void _onDeviceChanged() {
+  void _onDeviceChanged(ConnectedDevice device) {
     if (!mounted) return;
-    setState(() {
-      for (final d in widget.devices.otherDevices) {
-        if (d.status == ConnectionStatus.finished) {
-          _finished.add(d);
-        }
-      }
-    });
+    if (device.status == ConnectionStatus.finished && _finished.add(device)) {
+      _finishedCount.value = _finished.length;
+    }
   }
 
   @override
   void dispose() {
-    for (final d in widget.devices.otherDevices) {
-      d.removeListener(_onDeviceChanged);
+    for (final entry in _listeners.entries) {
+      entry.key.removeListener(entry.value);
     }
+    _finishedCount.dispose();
     _timeoutTimer?.cancel();
     super.dispose();
   }
@@ -68,10 +67,13 @@ class _SpectatorBroadcastSheetState extends State<SpectatorBroadcastSheet> {
           child: Row(
             children: [
               Expanded(
-                child: Text(
-                  'Sent to ${_finished.length} device${_finished.length == 1 ? '' : 's'}',
-                  style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.w600),
+                child: ValueListenableBuilder<int>(
+                  valueListenable: _finishedCount,
+                  builder: (context, count, _) => Text(
+                    'Sent to $count device${count == 1 ? '' : 's'}',
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
                 ),
               ),
               TextButton.icon(
