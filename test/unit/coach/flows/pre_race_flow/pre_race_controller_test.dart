@@ -10,6 +10,9 @@ import 'package:xceleration/coach/flows/model/flow_model.dart';
 import 'package:xceleration/core/services/device_connection_service.dart';
 import 'package:xceleration/core/utils/enums.dart';
 import 'package:xceleration/shared/models/database/master_race.dart';
+import 'package:xceleration/coach/race_screen/services/i_race_service.dart';
+import 'package:xceleration/coach/race_screen/services/race_service.dart';
+import 'package:xceleration/core/services/service_locator.dart';
 
 @GenerateMocks([MasterRace])
 import 'pre_race_controller_test.mocks.dart';
@@ -49,10 +52,15 @@ void main() {
   late DevicesManager devices;
 
   setUp(() {
+    ServiceLocator.register<IRaceService>(RaceService());
     mockMasterRace = MockMasterRace();
     _stubCheckRunners(mockMasterRace);
     devices =
         DevicesManager(DeviceName.coach, DeviceType.advertiserDevice, data: '');
+  });
+
+  tearDown(() {
+    ServiceLocator.restoreDefault();
   });
 
   // =========================================================================

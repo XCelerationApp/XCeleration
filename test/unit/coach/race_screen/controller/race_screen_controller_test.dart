@@ -6,6 +6,7 @@ import 'package:xceleration/coach/flows/controller/flow_controller.dart';
 import 'package:xceleration/coach/race_screen/controller/race_form_state.dart';
 import 'package:xceleration/coach/race_screen/controller/race_geo_controller.dart';
 import 'package:xceleration/coach/race_screen/controller/race_screen_controller.dart';
+import 'package:xceleration/coach/race_screen/services/race_service.dart';
 import 'package:xceleration/coach/races_screen/controller/i_parent_race_controller.dart';
 import 'package:xceleration/core/services/date_picker_service.dart';
 import 'package:xceleration/core/services/event_bus.dart';
@@ -101,6 +102,7 @@ void main() {
       eventBus: mockEventBus,
       devicesFactory: mockDevicesFactory,
       geoController: mockGeoController,
+      raceService: RaceService(),
     );
   });
 
@@ -746,6 +748,7 @@ void main() {
           eventBus: mockEventBus,
           devicesFactory: mockDevicesFactory,
           geoController: mockGeoController,
+          raceService: RaceService(),
         );
       });
 
