@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
@@ -266,6 +267,374 @@ void main() {
 
         // Without a session, flag should not call any sendMessage.
         verifyNever(mockSession.sendMessage(any, any));
+      });
+    });
+
+    group('verify / flag / skip immediate status', () {
+      BibEntryMessage makeMsg(int position, int bib,
+          {BibEntryStatus status = BibEntryStatus.resolved}) =>
+          BibEntryMessage(
+            finishPosition: position,
+            bib: bib,
+            status: status,
+            timestamp: DateTime.now(),
+          );
+
+      test('verify updates entry status to verified immediately', () async {
+        final controller = VerifierController(session: mockSession);
+        controller.initialize();
+        incomingController.add((
+          Role.bibRecorderV2,
+          MessageEnvelope.wrapBibEntry(makeMsg(1, 101)),
+        ));
+        await Future.microtask(() {});
+
+        controller.verify(1);
+
+        expect(controller.entries.first.status, VerificationStatus.verified);
+      });
+
+      test('flag updates entry status to flagged immediately', () async {
+        final controller = VerifierController(session: mockSession);
+        controller.initialize();
+        incomingController.add((
+          Role.bibRecorderV2,
+          MessageEnvelope.wrapBibEntry(makeMsg(2, 202)),
+        ));
+        await Future.microtask(() {});
+
+        controller.flag(2);
+
+        expect(controller.entries.first.status, VerificationStatus.flagged);
+      });
+
+      test('skip updates entry status to skipped immediately', () async {
+        final controller = VerifierController(session: mockSession);
+        controller.initialize();
+        incomingController.add((
+          Role.bibRecorderV2,
+          MessageEnvelope.wrapBibEntry(makeMsg(3, 303)),
+        ));
+        await Future.microtask(() {});
+
+        controller.skip(3);
+
+        expect(controller.entries.first.status, VerificationStatus.skipped);
+      });
+
+      test('acted entry remains in entries within the 3-second window', () async {
+        final controller = VerifierController(session: mockSession);
+        controller.initialize();
+        incomingController.add((
+          Role.bibRecorderV2,
+          MessageEnvelope.wrapBibEntry(makeMsg(1, 101)),
+        ));
+        await Future.microtask(() {});
+
+        controller.verify(1);
+
+        expect(controller.entries, isNotEmpty);
+        expect(controller.entries.first.status, VerificationStatus.verified);
+      });
+    });
+
+    group('undo timer', () {
+      BibEntryMessage makeMsg(int position, int bib) => BibEntryMessage(
+            finishPosition: position,
+            bib: bib,
+            status: BibEntryStatus.resolved,
+            timestamp: DateTime.now(),
+          );
+
+      test('entry moves to history after 3 seconds', () {
+        fakeAsync((fake) {
+          final controller = VerifierController(session: mockSession);
+          controller.initialize();
+          incomingController.add((
+            Role.bibRecorderV2,
+            MessageEnvelope.wrapBibEntry(makeMsg(1, 101)),
+          ));
+          fake.flushMicrotasks();
+
+          controller.verify(1);
+          expect(controller.entries, isNotEmpty);
+
+          fake.elapse(const Duration(seconds: 3));
+
+          expect(controller.entries, isEmpty);
+          expect(controller.confirmed, 1);
+        });
+      });
+
+      test('confirmed count is 0 before timer fires', () {
+        fakeAsync((fake) {
+          final controller = VerifierController(session: mockSession);
+          controller.initialize();
+          incomingController.add((
+            Role.bibRecorderV2,
+            MessageEnvelope.wrapBibEntry(makeMsg(1, 101)),
+          ));
+          fake.flushMicrotasks();
+
+          controller.verify(1);
+
+          // Not yet committed — timer hasn't fired.
+          expect(controller.confirmed, 0);
+        });
+      });
+
+      test('wrong count increments after flagged entry commits', () {
+        fakeAsync((fake) {
+          final controller = VerifierController(session: mockSession);
+          controller.initialize();
+          incomingController.add((
+            Role.bibRecorderV2,
+            MessageEnvelope.wrapBibEntry(makeMsg(2, 202)),
+          ));
+          fake.flushMicrotasks();
+
+          controller.flag(2);
+          fake.elapse(const Duration(seconds: 3));
+
+          expect(controller.wrong, 1);
+          expect(controller.confirmed, 0);
+        });
+      });
+
+      test('skipped count increments after skipped entry commits', () {
+        fakeAsync((fake) {
+          final controller = VerifierController(session: mockSession);
+          controller.initialize();
+          incomingController.add((
+            Role.bibRecorderV2,
+            MessageEnvelope.wrapBibEntry(makeMsg(3, 303)),
+          ));
+          fake.flushMicrotasks();
+
+          controller.skip(3);
+          fake.elapse(const Duration(seconds: 3));
+
+          expect(controller.skipped, 1);
+        });
+      });
+
+      test('pending count excludes acted-but-not-committed entries', () {
+        fakeAsync((fake) {
+          final controller = VerifierController(session: mockSession);
+          controller.initialize();
+          incomingController.add((
+            Role.bibRecorderV2,
+            MessageEnvelope.wrapBibEntry(makeMsg(1, 101)),
+          ));
+          incomingController.add((
+            Role.bibRecorderV2,
+            MessageEnvelope.wrapBibEntry(makeMsg(2, 202)),
+          ));
+          fake.flushMicrotasks();
+
+          controller.verify(1); // acted, not yet committed
+
+          // Entry 1 is verified (not pending), entry 2 is still pending.
+          expect(controller.pending, 1);
+          expect(controller.confirmed, 0);
+        });
+      });
+    });
+
+    group('undo', () {
+      BibEntryMessage makeMsg(int position, int bib) => BibEntryMessage(
+            finishPosition: position,
+            bib: bib,
+            status: BibEntryStatus.resolved,
+            timestamp: DateTime.now(),
+          );
+
+      test('undo cancels timer and reverts entry to pending', () async {
+        final controller = VerifierController(session: mockSession);
+        controller.initialize();
+        incomingController.add((
+          Role.bibRecorderV2,
+          MessageEnvelope.wrapBibEntry(makeMsg(1, 101)),
+        ));
+        await Future.microtask(() {});
+
+        controller.verify(1);
+        expect(controller.entries.first.status, VerificationStatus.verified);
+
+        controller.undo(1);
+
+        expect(controller.entries.first.status, VerificationStatus.pending);
+      });
+
+      test('undo restores pending count', () async {
+        final controller = VerifierController(session: mockSession);
+        controller.initialize();
+        incomingController.add((
+          Role.bibRecorderV2,
+          MessageEnvelope.wrapBibEntry(makeMsg(1, 101)),
+        ));
+        await Future.microtask(() {});
+
+        controller.verify(1);
+        expect(controller.pending, 0);
+
+        controller.undo(1);
+
+        expect(controller.pending, 1);
+      });
+
+      test('undo prevents entry from being committed to history', () {
+        fakeAsync((fake) {
+          final controller = VerifierController(session: mockSession);
+          controller.initialize();
+          incomingController.add((
+            Role.bibRecorderV2,
+            MessageEnvelope.wrapBibEntry(makeMsg(1, 101)),
+          ));
+          fake.flushMicrotasks();
+
+          controller.verify(1);
+          controller.undo(1);
+
+          // Advance past 3s — timer was cancelled so entry stays in entries.
+          fake.elapse(const Duration(seconds: 5));
+
+          expect(controller.entries.first.status, VerificationStatus.pending);
+          expect(controller.confirmed, 0);
+        });
+      });
+
+      test('undo after entry committed is a no-op', () {
+        fakeAsync((fake) {
+          final controller = VerifierController(session: mockSession);
+          controller.initialize();
+          incomingController.add((
+            Role.bibRecorderV2,
+            MessageEnvelope.wrapBibEntry(makeMsg(1, 101)),
+          ));
+          fake.flushMicrotasks();
+
+          controller.verify(1);
+          fake.elapse(const Duration(seconds: 3)); // entry committed to history
+          expect(controller.confirmed, 1);
+          expect(controller.entries, isEmpty);
+
+          // undo after commit — entry is gone from entries, no-op
+          controller.undo(1);
+
+          expect(controller.confirmed, 1);
+          expect(controller.entries, isEmpty);
+        });
+      });
+    });
+
+    group('leaveRace', () {
+      test('clears entries, history, and sets isInRace to false', () async {
+        final controller = VerifierController(session: mockSession);
+        controller.initialize();
+        controller.joinRace();
+        incomingController.add((
+          Role.bibRecorderV2,
+          MessageEnvelope.wrapBibEntry(BibEntryMessage(
+            finishPosition: 1,
+            bib: 101,
+            status: BibEntryStatus.resolved,
+            timestamp: DateTime.now(),
+          )),
+        ));
+        await Future.microtask(() {});
+
+        expect(controller.entries, isNotEmpty);
+        controller.leaveRace();
+
+        expect(controller.entries, isEmpty);
+        expect(controller.isInRace, isFalse);
+      });
+
+      test('cancels pending timers so no commits fire after leave', () {
+        fakeAsync((fake) {
+          final controller = VerifierController(session: mockSession);
+          controller.initialize();
+          incomingController.add((
+            Role.bibRecorderV2,
+            MessageEnvelope.wrapBibEntry(BibEntryMessage(
+              finishPosition: 1,
+              bib: 101,
+              status: BibEntryStatus.resolved,
+              timestamp: DateTime.now(),
+            )),
+          ));
+          fake.flushMicrotasks();
+
+          controller.verify(1);
+          controller.leaveRace(); // cancels timers
+
+          fake.elapse(const Duration(seconds: 5));
+
+          // Entries and history are both cleared — no timer fired.
+          expect(controller.entries, isEmpty);
+          expect(controller.confirmed, 0);
+        });
+      });
+    });
+
+    group('stats', () {
+      test('confirmed / wrong / skipped only count committed entries', () {
+        fakeAsync((fake) {
+          final controller = VerifierController(session: mockSession);
+          controller.initialize();
+          for (final pos in [1, 2, 3]) {
+            incomingController.add((
+              Role.bibRecorderV2,
+              MessageEnvelope.wrapBibEntry(BibEntryMessage(
+                finishPosition: pos,
+                bib: 100 + pos,
+                status: BibEntryStatus.resolved,
+                timestamp: DateTime.now(),
+              )),
+            ));
+          }
+          fake.flushMicrotasks();
+
+          controller.verify(1);
+          controller.flag(2);
+          controller.skip(3);
+
+          // Before timer fires — nothing committed yet.
+          expect(controller.confirmed, 0);
+          expect(controller.wrong, 0);
+          expect(controller.skipped, 0);
+
+          fake.elapse(const Duration(seconds: 3));
+
+          expect(controller.confirmed, 1);
+          expect(controller.wrong, 1);
+          expect(controller.skipped, 1);
+        });
+      });
+
+      test('pending only counts genuinely pending entries', () {
+        fakeAsync((fake) {
+          final controller = VerifierController(session: mockSession);
+          controller.initialize();
+          for (final pos in [1, 2, 3]) {
+            incomingController.add((
+              Role.bibRecorderV2,
+              MessageEnvelope.wrapBibEntry(BibEntryMessage(
+                finishPosition: pos,
+                bib: 100 + pos,
+                status: BibEntryStatus.resolved,
+                timestamp: DateTime.now(),
+              )),
+            ));
+          }
+          fake.flushMicrotasks();
+
+          controller.verify(1); // acted, not pending
+          controller.skip(2);   // acted, not pending
+
+          expect(controller.pending, 1); // only entry 3
+        });
       });
     });
   });
