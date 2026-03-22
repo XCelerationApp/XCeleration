@@ -26,7 +26,9 @@ class ConflictResolutionController extends ChangeNotifier {
             unassignedRunners ?? ConflictMockData.allUnassignedRunners),
         _conflicts = List.from(conflicts ?? ConflictMockData.conflicts),
         _unassignedRunners = List.from(
-            unassignedRunners ?? ConflictMockData.allUnassignedRunners);
+            unassignedRunners ?? ConflictMockData.allUnassignedRunners) {
+    _teams = _computeTeams();
+  }
 
   final List<MockBibConflict> _initialConflicts;
   final List<RaceRunner> _initialUnassignedRunners;
@@ -34,6 +36,10 @@ class ConflictResolutionController extends ChangeNotifier {
   final List<MockBibConflict> _conflicts;
   final List<RaceRunner> _unassignedRunners;
   final List<ResolutionEntry> _resolutionLog = [];
+
+  // --- Caches ---
+  late List<String> _teams;
+  final Map<int, List<RaceRunner>> _runnersNearBibCache = {};
 
   _FlowStep _currentStep = _FlowStep.summary;
   int _currentConflictIndex = 0;
@@ -100,27 +106,34 @@ class ConflictResolutionController extends ChangeNotifier {
   }
 
   /// Unique team names derived from the initial runner list, sorted alphabetically.
-  /// Widgets use this instead of accessing ConflictMockData directly.
-  List<String> get teams {
+  /// Computed once at construction and never changes.
+  List<String> get teams => _teams;
+
+  List<String> _computeTeams() {
     final names = _initialUnassignedRunners
         .map((r) => r.team.name ?? '')
         .where((n) => n.isNotEmpty)
         .toSet()
         .toList()
       ..sort();
-    return names;
+    return List.unmodifiable(names);
   }
 
   /// All unassigned runners sorted by proximity to [targetBib].
+  /// Result is cached per [targetBib] and invalidated when [_unassignedRunners] changes.
   List<RaceRunner> runnersNearBib(int targetBib) {
-    final sorted = List<RaceRunner>.from(_unassignedRunners);
-    sorted.sort((a, b) {
-      final aBib = int.parse(a.runner.bibNumber ?? '0');
-      final bBib = int.parse(b.runner.bibNumber ?? '0');
-      return (aBib - targetBib).abs().compareTo((bBib - targetBib).abs());
+    return _runnersNearBibCache.putIfAbsent(targetBib, () {
+      final sorted = List<RaceRunner>.from(_unassignedRunners);
+      sorted.sort((a, b) {
+        final aBib = int.parse(a.runner.bibNumber ?? '0');
+        final bBib = int.parse(b.runner.bibNumber ?? '0');
+        return (aBib - targetBib).abs().compareTo((bBib - targetBib).abs());
+      });
+      return sorted;
     });
-    return sorted;
   }
+
+  void _invalidateRunnerCache() => _runnersNearBibCache.clear();
 
   /// All bib numbers currently known (assigned + unassigned), for new-runner validation.
   Set<int> get allKnownBibs {
@@ -149,6 +162,7 @@ class ConflictResolutionController extends ChangeNotifier {
     _unassignedRunners
       ..clear()
       ..addAll(_initialUnassignedRunners);
+    _invalidateRunnerCache();
     _conflicts
       ..clear()
       ..addAll(_initialConflicts);
@@ -201,6 +215,7 @@ class ConflictResolutionController extends ChangeNotifier {
   void prepareAssignForDuplicate(RaceRunner runner, String label) {
     _isGoingBack = false;
     _unassignedRunners.remove(runner);
+    _invalidateRunnerCache();
     _pendingAssignedRunner = runner;
     _pendingLabel = label;
     _pendingCommitAction = () {
@@ -247,6 +262,7 @@ class ConflictResolutionController extends ChangeNotifier {
   void prepareAssign(RaceRunner runner, String label) {
     _isGoingBack = false;
     _unassignedRunners.remove(runner);
+    _invalidateRunnerCache();
     _pendingAssignedRunner = runner;
     _pendingLabel = label;
     _pendingCommitAction = () {
@@ -303,6 +319,7 @@ class ConflictResolutionController extends ChangeNotifier {
     _isGoingBack = true;
     if (_pendingAssignedRunner != null) {
       _unassignedRunners.add(_pendingAssignedRunner!);
+      _invalidateRunnerCache();
     }
     _clearPending();
     notifyListeners();

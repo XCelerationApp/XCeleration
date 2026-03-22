@@ -20,6 +20,7 @@ import '../widgets/existing_teams_browser_sheet.dart';
 import '../widgets/edit_team_sheet.dart';
 import '../../../shared/models/database/race_participant.dart';
 import '../widgets/add_runners_to_team_sheet.dart';
+import '../widgets/add_runner_choice_sheet.dart';
 import '../widgets/add_team_choice_sheet.dart';
 import '../widgets/imported_runners_selection_sheet.dart';
 import '../widgets/spreadsheet_load_sheet.dart';
@@ -392,8 +393,7 @@ class RunnersManagementController with ChangeNotifier {
         teamId: newTeamId,
         colorOverride: team.color?.toARGB32(),
       ));
-      onContentChanged?.call();
-      loadData();
+      await forceRefresh();
     } catch (e) {
       Logger.e('Error creating team: $e');
       throw Exception('Failed to create team: $e');
@@ -409,10 +409,13 @@ class RunnersManagementController with ChangeNotifier {
   }
 
   Future<void> showAddTeamChoiceSheet(BuildContext context) async {
+    final otherTeams = await masterRace.getOtherTeams();
+    if (!context.mounted) return;
     await sheet(
       context: context,
       title: 'Add Team',
       body: AddTeamChoiceSheet(
+        showImportFromPreviousRace: otherTeams.isNotEmpty,
         onImportFromPreviousRace: () async {
           Navigator.of(context).pop();
           if (!context.mounted) return;
@@ -433,23 +436,13 @@ class RunnersManagementController with ChangeNotifier {
   }
 
   Future<void> showImportTeamFromSpreadsheet(BuildContext context) async {
-    final createdTeam = await sheet(
-      context: context,
-      title: 'Create New Team',
-      body: CreateTeamSheet(
-        masterRace: masterRace,
-        createTeam: createTeam,
-      ),
+    // TODO(XCE-257): implement full team import from spreadsheet
+    if (!context.mounted) return;
+    DialogUtils.showMessageDialog(
+      context,
+      title: 'Coming Soon',
+      message: 'This feature is not yet enabled.',
     );
-
-    if (createdTeam is Team) {
-      Team? persisted = await masterRace.getTeamByName(createdTeam.name ?? '');
-      persisted ??= (await masterRace.teams).firstWhere(
-          (t) => t.name == createdTeam.name,
-          orElse: () => createdTeam);
-      if (!context.mounted) return;
-      await loadSpreadsheet(context, persisted);
-    }
   }
 
   Future<void> showCreateTeamSheet(BuildContext context) async {
@@ -474,6 +467,25 @@ class RunnersManagementController with ChangeNotifier {
     }
   }
 
+  Future<void> showAddRunnerChoiceSheet(BuildContext context, Team team) async {
+    await sheet(
+      context: context,
+      title: 'Add Runner',
+      body: AddRunnerChoiceSheet(
+        onAddManually: () async {
+          Navigator.of(context).pop();
+          if (!context.mounted) return;
+          await showAddRunnersToTeamSheet(context, team);
+        },
+        onImportFromSpreadsheet: () async {
+          Navigator.of(context).pop();
+          if (!context.mounted) return;
+          await showImportRunnersToTeam(context, team);
+        },
+      ),
+    );
+  }
+
   Future<void> showAddRunnersToTeamSheet(
       BuildContext context, Team team) async {
     await sheet(
@@ -485,8 +497,6 @@ class RunnersManagementController with ChangeNotifier {
         getRunnerByBib: _runners.getRunnerByBib,
         onSubmit: (raceRunner) async {
           await handleRunnerSubmission(context, raceRunner);
-          onContentChanged?.call();
-          await loadData();
         },
       ),
     );
@@ -502,8 +512,7 @@ class RunnersManagementController with ChangeNotifier {
           try {
             await _teams.updateTeam(updatedTeam);
             // If color/name changed, ensure race team participation reflects color override when shown
-            onContentChanged?.call();
-            await loadData();
+            await forceRefresh();
           } catch (e) {
             Logger.e('Failed to update team: $e');
             if (context.mounted) {
@@ -648,8 +657,7 @@ class RunnersManagementController with ChangeNotifier {
         teamId: team.teamId!,
       ));
 
-      onContentChanged?.call();
-      await loadData();
+      await forceRefresh();
       return true;
     } catch (e) {
       Logger.e('Error deleting team: $e');
@@ -658,7 +666,8 @@ class RunnersManagementController with ChangeNotifier {
   }
 
   Future<void> loadSpreadsheet(BuildContext context, Team team) async {
-    final bool useGoogleDrive = await showSpreadsheetLoadSheet(context);
+    final bool? useGoogleDrive = await showSpreadsheetLoadSheet(context);
+    if (useGoogleDrive == null) return;
     if (!context.mounted) return;
 
     try {
@@ -675,8 +684,26 @@ class RunnersManagementController with ChangeNotifier {
         return;
       }
 
-      // Let the user select which imported rows to add
       if (!context.mounted) return;
+      await _importRunnersFromData(context, team, importData);
+    } catch (e) {
+      Logger.e('Error handling spreadsheet load: $e');
+      if (context.mounted) {
+        DialogUtils.showMessageDialog(
+          context,
+          title: 'Error',
+          message: 'Error importing runners: $e',
+        );
+      }
+    }
+  }
+
+  Future<void> _importRunnersFromData(
+    BuildContext context,
+    Team team,
+    List<Map<String, dynamic>> importData,
+  ) async {
+      // Let the user select which imported rows to add
       final selectedRows = await sheet(
         context: context,
         title: 'Select Runners to Add',
@@ -835,16 +862,6 @@ class RunnersManagementController with ChangeNotifier {
       }
 
       onContentChanged?.call();
-    } catch (e) {
-      Logger.e('Error handling spreadsheet load: $e');
-      if (context.mounted) {
-        DialogUtils.showMessageDialog(
-          context,
-          title: 'Error',
-          message: 'Error importing runners: $e',
-        );
-      }
-    }
   }
 
   // ============================================================================
@@ -852,11 +869,15 @@ class RunnersManagementController with ChangeNotifier {
   // ============================================================================
 
   /// Force refresh the UI by clearing MasterRace caches and notifying listeners
-  /// This is more efficient than reloading all data
+  /// This is more efficient than reloading all data (no loading flash).
   Future<void> forceRefresh() async {
     try {
       // Clear MasterRace caches to force fresh data loading
       masterRace.invalidateCache();
+
+      // Keep totalRunnerCount accurate without a loading-state cycle
+      final raceRunners = await masterRace.raceRunners;
+      totalRunnerCount = raceRunners.length;
 
       // Update filtered results
       _updateFilteredRaceRunners();
@@ -868,14 +889,14 @@ class RunnersManagementController with ChangeNotifier {
     }
   }
 
-  Future<bool> showSpreadsheetLoadSheet(BuildContext context) async {
+  Future<bool?> showSpreadsheetLoadSheet(BuildContext context) async {
     final result = await sheet(
       context: context,
       title: 'Import Runners',
       titleSize: 24,
       body: const SpreadsheetLoadSheet(),
     );
-    return result['useGoogleDrive'] ?? false;
+    return result?['useGoogleDrive'] ?? false;
   }
 
   @override

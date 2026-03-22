@@ -23,6 +23,9 @@ class RaceResultsController extends ChangeNotifier {
   }) : _service = service {
     _syncSubscription = syncStream
         ?.where((event) => event.changedTables.contains('race_results'))
+        .where((event) =>
+            event.changedRaceIds.isEmpty ||
+            event.changedRaceIds.contains(_lastMasterRace?.raceId))
         .listen((_) {
       if (_lastMasterRace != null) loadRaceResults(_lastMasterRace!);
     });

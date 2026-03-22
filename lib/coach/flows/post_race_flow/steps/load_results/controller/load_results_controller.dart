@@ -79,9 +79,9 @@ class LoadResultsController with ChangeNotifier {
     final encoded = await _encodeBibData(masterRace);
     devices.bibRecorder?.data = encoded;
     Logger.d('POST-RESET: Encoded runners data length: ${encoded.length}');
-    resultsLoaded = false;
-    hasBibConflicts = false;
-    hasTimingConflicts = false;
+    _resultsLoaded = false;
+    _hasBibConflicts = false;
+    _hasTimingConflicts = false;
     results = [];
     timingChunks = null;
     raceRunners = null;
@@ -95,7 +95,7 @@ class LoadResultsController with ChangeNotifier {
 
       if (savedResults.isNotEmpty) {
         results = savedResults;
-        resultsLoaded = true;
+        _resultsLoaded = true;
       }
     } catch (e) {
       if (e.toString().contains('Race is not finished')) {
@@ -322,8 +322,8 @@ class LoadResultsController with ChangeNotifier {
   }
 
   Future<void> _checkForConflicts() async {
-    hasBibConflicts = containsBibConflicts();
-    hasTimingConflicts = containsTimingConflicts();
+    _hasBibConflicts = containsBibConflicts();
+    _hasTimingConflicts = containsTimingConflicts();
     Logger.d(
         'LoadResultsController: Conflict check - Bib conflicts: $hasBibConflicts, Timing conflicts: $hasTimingConflicts');
     Logger.d(
@@ -353,6 +353,7 @@ class LoadResultsController with ChangeNotifier {
     Logger.d(
         'LoadResultsController: Starting to save ${timingRecords.length} results');
 
+    final futures = <Future<void>>[];
     for (var i = 0; i < timingRecords.length; i++) {
       final raceRunner = raceRunners![i];
       final timingDatum = timingRecords[i];
@@ -361,9 +362,9 @@ class LoadResultsController with ChangeNotifier {
           'LoadResultsController: Processing result ${i + 1}/${timingRecords.length}');
 
       // Convert elapsed time string to Duration
-      Duration finishDuration;
-      finishDuration = TimeFormatter.loadDurationFromString(timingDatum.time) ??
-          Duration.zero;
+      final finishDuration =
+          TimeFormatter.loadDurationFromString(timingDatum.time) ??
+              Duration.zero;
 
       // Skip if runner is null; it will be handled by resolver later
       if (raceRunner == null) {
@@ -373,21 +374,21 @@ class LoadResultsController with ChangeNotifier {
       final runner = raceRunner.runner;
       final team = raceRunner.team;
 
-      try {
-        final raceResult = RaceResult(
-          raceId: masterRace.raceId,
-          runner: runner,
-          team: team,
-          place: i + 1, // 1-based place
-          finishTime: finishDuration,
-        );
-
-        await masterRace.addResult(raceResult);
-      } catch (e) {
-        Logger.d(
-            'LoadResultsController: Failed to save result for runner: ${runner.name}, error: $e');
-      }
+      final raceResult = RaceResult(
+        raceId: masterRace.raceId,
+        runner: runner,
+        team: team,
+        place: i + 1, // 1-based place
+        finishTime: finishDuration,
+      );
+      futures.add(
+        masterRace.addResult(raceResult).catchError((Object e) {
+          Logger.d(
+              'LoadResultsController: Failed to save result for runner: ${runner.name}, error: $e');
+        }),
+      );
     }
+    await Future.wait(futures);
 
     return results;
   }
@@ -510,6 +511,7 @@ class LoadResultsController with ChangeNotifier {
       return;
     }
 
+    final runners = raceRunners!.whereType<RaceRunner>().toList();
     try {
       await sheet(
         context: context,
@@ -518,12 +520,12 @@ class LoadResultsController with ChangeNotifier {
           create: (_) => MergeConflictsController(
             masterRace: masterRace,
             timingChunks: conflictChunks,
-            raceRunners: raceRunners!.whereType<RaceRunner>().toList(),
+            raceRunners: runners,
           ),
           child: MergeConflictsScreen(
             masterRace: masterRace,
             timingChunks: conflictChunks,
-            raceRunners: raceRunners!.whereType<RaceRunner>().toList(),
+            raceRunners: runners,
           ),
         ),
         useBottomPadding: false,

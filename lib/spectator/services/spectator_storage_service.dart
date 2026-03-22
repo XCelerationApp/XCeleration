@@ -21,7 +21,7 @@ class SpectatorStorageService {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: (db, version) async {
         // Spectator races table
         await db.execute('''
@@ -38,6 +38,16 @@ class SpectatorStorageService {
             race_data TEXT NOT NULL
           )
         ''');
+        await db.execute(
+          'CREATE UNIQUE INDEX IF NOT EXISTS idx_race_uuid ON spectator_races(race_uuid)',
+        );
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute(
+            'CREATE UNIQUE INDEX IF NOT EXISTS idx_race_uuid ON spectator_races(race_uuid)',
+          );
+        }
       },
     );
   }
@@ -101,12 +111,23 @@ class SpectatorStorageService {
     }
   }
 
-  /// Get all saved races
+  /// Get all saved races (metadata only — excludes encoded_payload)
   Future<List<Map<String, dynamic>>> getAllRaces() async {
     final db = await database;
     try {
       final races = await db.query(
         'spectator_races',
+        columns: [
+          'id',
+          'race_uuid',
+          'race_name',
+          'race_date',
+          'location',
+          'distance',
+          'distance_unit',
+          'received_at',
+          'race_data',
+        ],
         orderBy: 'received_at DESC',
       );
       return races;

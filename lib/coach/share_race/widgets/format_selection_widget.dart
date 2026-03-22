@@ -74,8 +74,7 @@ class FormatSelectionWidget extends StatelessWidget {
     return InkWell(
         onTap: () => onShareSelected(format),
         borderRadius: BorderRadius.circular(16),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
+        child: Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
           child: Row(

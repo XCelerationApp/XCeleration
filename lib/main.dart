@@ -11,14 +11,7 @@ import 'core/services/splash_screen.dart';
 import 'core/services/event_bus.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'coach/race_screen/controller/race_screen_controller.dart';
-import 'coach/races_screen/controller/races_controller.dart';
-import 'core/services/geo_location_service.dart';
-import 'core/services/post_frame_callback_scheduler.dart';
-import 'coach/races_screen/services/races_service.dart';
 import 'core/services/auth_service.dart';
-import 'core/services/tutorial_manager.dart';
-import 'shared/models/database/master_race.dart';
 import 'core/repositories/i_database_connection_provider.dart';
 import 'core/services/database_write_bus.dart';
 import 'core/services/sync_service.dart';
@@ -101,13 +94,6 @@ void _runApp() async {
         Provider<ISyncService>.value(value: syncService),
         Provider<ConnectivitySyncService>.value(value: connectivitySyncService),
         ChangeNotifierProvider(create: (context) => EventBusProvider()),
-        ChangeNotifierProvider(
-          create: (context) => RaceScreenController(
-              masterRace: MasterRace.getInstance(0),
-              parentController: RacesController(racesService: RacesService(), authService: authService, eventBus: EventBus.instance, geoLocationService: GeoLocationService(), postFrameCallbackScheduler: WidgetsBindingAdapter(), tutorialManager: TutorialManager(), syncStream: syncService.syncEvents)),
-        ),
-        ChangeNotifierProvider(
-            create: (context) => RacesController(racesService: RacesService(), authService: authService, eventBus: EventBus.instance, geoLocationService: GeoLocationService(), postFrameCallbackScheduler: WidgetsBindingAdapter(), tutorialManager: TutorialManager(), syncStream: syncService.syncEvents)),
       ],
       child: const MyApp(),
     ),

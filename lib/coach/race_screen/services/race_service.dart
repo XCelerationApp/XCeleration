@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../shared/models/database/race.dart';
 import '../../../shared/models/database/master_race.dart';
+import '../../../shared/models/database/team.dart';
 import 'package:intl/intl.dart';
 import '../../runners_management_screen/screen/runners_management_screen.dart';
 
@@ -42,14 +43,18 @@ class RaceService {
   }
 
   /// Checks if all requirements are met to advance to setup_complete.
+  ///
+  /// Accepts already-loaded [race] and [teams] to avoid redundant DB reads.
+  /// [masterRace] is still needed to check the minimum runners count.
   static Future<bool> checkSetupComplete({
+    required Race race,
+    required List<Team> teams,
     required MasterRace masterRace,
     required TextEditingController nameController,
     required TextEditingController locationController,
     required TextEditingController dateController,
     required TextEditingController distanceController,
   }) async {
-    final race = await masterRace.race;
     if (race.flowState != Race.FLOW_SETUP) return true;
 
     // Check for minimum runners
@@ -57,7 +62,6 @@ class RaceService {
         await TeamsAndRunnersManagementWidget.checkMinimumRunnersLoaded(
             masterRace);
 
-    final teams = await masterRace.teams;
     final hasTeams = teams.isNotEmpty;
 
     // Check if essential race fields are filled

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show VoidCallback;
 import 'package:flutter/material.dart' show ChangeNotifier, TextEditingController;
 import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/utils/logger.dart';
@@ -18,6 +19,8 @@ class ResolveBibNumberController with ChangeNotifier {
   final TextEditingController bibController = TextEditingController();
   bool showCreateNew = false;
   final List<RaceRunner> raceRunners;
+  late final Set<String?> _recordedBibs;
+  late final VoidCallback _masterRaceListener;
   final int raceId;
   final Function(RaceRunner) onComplete;
   final RaceRunner raceRunner;
@@ -30,46 +33,72 @@ class ResolveBibNumberController with ChangeNotifier {
     IMasterRaceResolver? masterRace,
   }) {
     this.masterRace = masterRace ?? MasterRace.getInstance(raceId);
+    _recordedBibs = raceRunners.map((rr) => rr.runner.bibNumber).toSet();
 
-    // Listen to changes from MasterRace
-    this.masterRace.addListener(() {
-      notifyListeners();
-    });
+    // Listen to changes from MasterRace — stored so the same reference can
+    // be passed to removeListener in dispose(). Only re-notifies when the
+    // search results relevant to this screen actually change.
+    _masterRaceListener = _onMasterRaceChanged;
+    this.masterRace.addListener(_masterRaceListener);
   }
 
   /// Get all teams (cached by MasterRace)
   Future<List<Team>> get teams => masterRace.teams;
 
-  Future<void> searchRunners(String query) async {
-    Logger.d('Searching runners...');
-    Logger.d('Query: $query');
-    Logger.d('Race ID: $raceId');
+  /// Updates [showCreateNew] and notifies consumers so the screen does not
+  /// need a separate setState call.
+  void setShowCreateNew(bool value) {
+    showCreateNew = value;
+    notifyListeners();
+  }
 
-    // Get already recorded runners for this race (runners that already have results)
-    final recordedBibs =
-        raceRunners.map((raceRunner) => raceRunner.runner.bibNumber).toSet();
-
-    Logger.d('Already recorded bibs: ${recordedBibs.join(', ')}');
-
-    List<RaceRunner> filteredRaceRunners;
+  /// Fetches and filters runners without notifying listeners.
+  Future<List<RaceRunner>> _fetchFilteredResults(String query) async {
+    List<RaceRunner> candidates;
     if (query.isEmpty) {
-      // Get all race runners
-      filteredRaceRunners = await masterRace.raceRunners;
+      candidates = await masterRace.raceRunners;
     } else {
-      // Search race runners by query
       await masterRace.searchRaceRunners(query);
-      filteredRaceRunners = (await masterRace.filteredSearchResults)
+      candidates = (await masterRace.filteredSearchResults)
           .values
           .expand((list) => list)
           .toList();
     }
-
-    // Filter out runners that have already been recorded
-    searchResults = filteredRaceRunners
-        .where(
-            (raceRunner) => !recordedBibs.contains(raceRunner.runner.bibNumber))
+    return candidates
+        .where((rr) => !_recordedBibs.contains(rr.runner.bibNumber))
         .toList();
+  }
 
+  /// Called when MasterRace notifies. Only rebuilds consumers if the results
+  /// relevant to this screen have actually changed, preventing rebuilds caused
+  /// by unrelated MasterRace mutations.
+  void _onMasterRaceChanged() {
+    _refreshIfResultsChanged();
+  }
+
+  Future<void> _refreshIfResultsChanged() async {
+    final fresh = await _fetchFilteredResults(searchController.text);
+    if (_resultsChanged(searchResults, fresh)) {
+      searchResults = fresh;
+      notifyListeners();
+    }
+  }
+
+  bool _resultsChanged(List<RaceRunner> a, List<RaceRunner> b) {
+    if (a.length != b.length) return true;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i].runner.bibNumber != b[i].runner.bibNumber) return true;
+    }
+    return false;
+  }
+
+  Future<void> searchRunners(String query) async {
+    Logger.d('Searching runners...');
+    Logger.d('Query: $query');
+    Logger.d('Race ID: $raceId');
+    Logger.d('Already recorded bibs: ${_recordedBibs.join(', ')}');
+
+    searchResults = await _fetchFilteredResults(query);
     notifyListeners();
     Logger.d('Filtered search results');
   }
@@ -170,9 +199,7 @@ class ResolveBibNumberController with ChangeNotifier {
     gradeController.dispose();
     teamController.dispose();
     bibController.dispose();
-    masterRace.removeListener(() {
-      notifyListeners();
-    });
+    masterRace.removeListener(_masterRaceListener);
     super.dispose();
   }
 }

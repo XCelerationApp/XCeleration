@@ -66,7 +66,7 @@ class _FakeWidget_2 extends _i1.SmartFake implements _i4.Widget {
         );
 
   @override
-  String toString({_i4.DiagnosticLevel? minLevel = _i4.DiagnosticLevel.info}) =>
+  String toString({_i5.DiagnosticLevel? minLevel = _i5.DiagnosticLevel.info}) =>
       super.toString();
 }
 
@@ -81,12 +81,12 @@ class _FakeInheritedWidget_3 extends _i1.SmartFake
         );
 
   @override
-  String toString({_i4.DiagnosticLevel? minLevel = _i4.DiagnosticLevel.info}) =>
+  String toString({_i5.DiagnosticLevel? minLevel = _i5.DiagnosticLevel.info}) =>
       super.toString();
 }
 
 class _FakeDiagnosticsNode_4 extends _i1.SmartFake
-    implements _i4.DiagnosticsNode {
+    implements _i5.DiagnosticsNode {
   _FakeDiagnosticsNode_4(
     Object parent,
     Invocation parentInvocation,
@@ -98,7 +98,7 @@ class _FakeDiagnosticsNode_4 extends _i1.SmartFake
   @override
   String toString({
     _i5.TextTreeConfiguration? parentConfiguration,
-    _i4.DiagnosticLevel? minLevel = _i4.DiagnosticLevel.info,
+    _i5.DiagnosticLevel? minLevel = _i5.DiagnosticLevel.info,
   }) =>
       super.toString();
 }
@@ -580,7 +580,7 @@ class MockBuildContext extends _i1.Mock implements _i4.BuildContext {
       );
 
   @override
-  _i4.DiagnosticsNode describeElement(
+  _i5.DiagnosticsNode describeElement(
     String? name, {
     _i5.DiagnosticsTreeStyle? style = _i5.DiagnosticsTreeStyle.errorProperty,
   }) =>
@@ -598,10 +598,10 @@ class MockBuildContext extends _i1.Mock implements _i4.BuildContext {
             {#style: style},
           ),
         ),
-      ) as _i4.DiagnosticsNode);
+      ) as _i5.DiagnosticsNode);
 
   @override
-  _i4.DiagnosticsNode describeWidget(
+  _i5.DiagnosticsNode describeWidget(
     String? name, {
     _i5.DiagnosticsTreeStyle? style = _i5.DiagnosticsTreeStyle.errorProperty,
   }) =>
@@ -619,10 +619,10 @@ class MockBuildContext extends _i1.Mock implements _i4.BuildContext {
             {#style: style},
           ),
         ),
-      ) as _i4.DiagnosticsNode);
+      ) as _i5.DiagnosticsNode);
 
   @override
-  List<_i4.DiagnosticsNode> describeMissingAncestor(
+  List<_i5.DiagnosticsNode> describeMissingAncestor(
           {required Type? expectedAncestorType}) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -630,11 +630,11 @@ class MockBuildContext extends _i1.Mock implements _i4.BuildContext {
           [],
           {#expectedAncestorType: expectedAncestorType},
         ),
-        returnValue: <_i4.DiagnosticsNode>[],
-      ) as List<_i4.DiagnosticsNode>);
+        returnValue: <_i5.DiagnosticsNode>[],
+      ) as List<_i5.DiagnosticsNode>);
 
   @override
-  _i4.DiagnosticsNode describeOwnershipChain(String? name) =>
+  _i5.DiagnosticsNode describeOwnershipChain(String? name) =>
       (super.noSuchMethod(
         Invocation.method(
           #describeOwnershipChain,
@@ -647,7 +647,7 @@ class MockBuildContext extends _i1.Mock implements _i4.BuildContext {
             [name],
           ),
         ),
-      ) as _i4.DiagnosticsNode);
+      ) as _i5.DiagnosticsNode);
 }
 
 /// A class which mocks [IShareService].

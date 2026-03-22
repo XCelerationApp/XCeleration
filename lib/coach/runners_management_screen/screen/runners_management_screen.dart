@@ -84,35 +84,31 @@ class _TeamsAndRunnersManagementWidgetState
         builder: (context, controller, child) {
           return Material(
             color: AppColors.backgroundColor,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return Column(
-                  mainAxisSize: MainAxisSize.max,
-                  children: [
-                    if (controller.showHeader)
-                      ColoredBox(
-                        color: AppColors.backgroundColor,
-                        child: _buildHeader(controller),
+            child: Column(
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                if (controller.showHeader)
+                  ColoredBox(
+                    color: AppColors.backgroundColor,
+                    child: _buildHeader(controller),
+                  ),
+                if (!controller.isLoading)
+                  ColoredBox(
+                    color: AppColors.backgroundColor,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.lg,
+                        AppSpacing.sm,
+                        AppSpacing.lg,
+                        AppSpacing.md,
                       ),
-                    if (!controller.isLoading)
-                      ColoredBox(
-                        color: AppColors.backgroundColor,
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(
-                            AppSpacing.lg,
-                            AppSpacing.sm,
-                            AppSpacing.lg,
-                            AppSpacing.md,
-                          ),
-                          child: _buildSearchSection(),
-                        ),
-                      ),
-                    Expanded(
-                      child: RunnersList(controller: controller),
+                      child: _buildSearchSection(),
                     ),
-                  ],
-                );
-              },
+                  ),
+                Expanded(
+                  child: RunnersList(controller: controller),
+                ),
+              ],
             ),
           );
         },

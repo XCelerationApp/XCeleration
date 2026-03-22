@@ -6,15 +6,14 @@ import '../controller/bib_number_controller.dart';
 class BibInputWidget extends StatelessWidget {
   final int index;
   final BibNumberController controller;
-  late final BibDatumRecord record;
+  final BibDatumRecord record;
 
-  BibInputWidget({
+  const BibInputWidget({
     super.key,
     required this.index,
+    required this.record,
     required this.controller,
-  }) {
-    record = controller.bibRecords[index];
-  }
+  });
 
   @override
   Widget build(BuildContext context) {

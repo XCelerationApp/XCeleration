@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/foundation.dart' show compute;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'
     show rootBundle, Clipboard, ClipboardData;
@@ -79,8 +80,6 @@ class ShareRaceController extends ChangeNotifier {
         await _shareResultsController.handlePdf(context);
         break;
     }
-
-    notifyListeners();
   }
 
   /// Share wirelessly to spectators via Nearby Connections (P2P_STAR)
@@ -188,114 +187,42 @@ class ShareResultsController {
       if (!context.mounted && navigator.mounted) context = navigator.context;
       if (!context.mounted) throw Exception('Context not mounted');
 
-      // Step 1: Sign in to Google with loading dialog
-      try {
-        if (!await _googleSheetsService.signIn()) {
-          if (context.mounted) {
-            DialogUtils.showErrorDialog(context,
-                message: 'Google sign-in failed');
+      // Run all four steps under a single loading dialog to reduce
+      // Navigator push/pop cycles from 8 (show+hide × 4) down to 2.
+      final sheetUri = await DialogUtils.executeWithLoadingDialog<Uri?>(
+        context,
+        loadingMessage: 'Creating Google Sheet...',
+        operation: () async {
+          // Step 1: Sign in
+          if (!await _googleSheetsService.signIn()) {
+            throw Exception('Google sign-in failed');
           }
-          return;
-        }
-      } catch (e) {
-        Logger.e('Error signing in to Google: $e');
-        if (context.mounted) {
-          DialogUtils.showErrorDialog(context,
-              message: 'Error signing in to Google');
-        }
-        return;
-      }
 
-      if (!context.mounted && navigator.mounted) context = navigator.context;
-      if (!context.mounted) throw Exception('Context not mounted');
+          // Step 2: Create the sheet
+          final spreadsheetId = await _googleSheetsService.createSheet(
+              title: raceResultsData.resultsTitle);
+          if (spreadsheetId == null) return null; // cancelled
 
-      // Step 2: Create the sheet with loading dialog
-      // We need to declare the variable here so it can be used outside the try/catch block
-      String? spreadsheetId;
-      try {
-        spreadsheetId = await DialogUtils.executeWithLoadingDialog<String?>(
-          context,
-          operation: () => _googleSheetsService.createSheet(
-              title: raceResultsData.resultsTitle),
-          loadingMessage: 'Creating Google Sheet...',
-        );
-        if (spreadsheetId == null) {
-          // If the user cancels the creation, we don't want to continue, but no need to show an error dialog
-          return;
-        }
-      } catch (e) {
-        Logger.e('Error creating Google Sheet: $e');
-        if (context.mounted) {
-          DialogUtils.showErrorDialog(context,
-              message: 'Error creating Google Sheet');
-        }
-        return;
-      }
-
-      if (!context.mounted && navigator.mounted) context = navigator.context;
-      if (!context.mounted) throw Exception('Context not mounted');
-
-      // Step 3: Update the sheet with data
-      try {
-        final updateSuccess = await DialogUtils.executeWithLoadingDialog<bool>(
-          context,
-          operation: () => _googleSheetsService.updateSheet(
-            spreadsheetId: spreadsheetId!,
+          // Step 3: Update the sheet with data
+          final updateSuccess = await _googleSheetsService.updateSheet(
+            spreadsheetId: spreadsheetId,
             data: data,
-          ),
-          loadingMessage: 'Adding data to sheet...',
-        );
-        if (updateSuccess == null) {
-          // If the user cancels the update, we don't want to continue, but no need to show an error dialog
-          return;
-        }
-        if (updateSuccess != true) {
-          if (context.mounted) {
-            DialogUtils.showErrorDialog(context,
-                message: 'Failed to write to Google Sheet');
-          }
-          return;
-        }
-      } catch (e) {
-        Logger.e('Error writing to Google Sheet: $e');
-        if (context.mounted) {
-          DialogUtils.showErrorDialog(context,
-              message: 'Error writing to Google Sheet');
-        }
-        return;
-      }
-
-      if (!context.mounted && navigator.mounted) context = navigator.context;
-      if (!context.mounted) throw Exception('Context not mounted');
-      // Step 4: Get the sheet URI
-      // We need to declare the variable here so it can be used outside the try/catch block
-      Uri? sheetUri;
-      try {
-        sheetUri = await DialogUtils.executeWithLoadingDialog<Uri?>(
-          context,
-          operation: () => _googleSheetsService.getSheetUri(spreadsheetId!),
-          loadingMessage: 'Getting sheet link...',
-        );
-        if (sheetUri == null) {
-          // If the user cancels the creation, we don't want to continue, but no need to show an error dialog
-          return;
-        }
-      } catch (e) {
-        Logger.e('Error getting sheet URI: $e');
-        if (context.mounted) {
-          DialogUtils.showErrorDialog(
-            context,
-            message: 'Error getting sheet link',
           );
-        }
-        return;
-      }
+          if (!updateSuccess) {
+            throw Exception('Failed to write to Google Sheet');
+          }
+
+          // Step 4: Get the sheet URI
+          return _googleSheetsService.getSheetUri(spreadsheetId);
+        },
+      );
+
+      if (sheetUri == null) return; // cancelled
 
       Logger.d('Sheet URI: $sheetUri');
 
       if (!context.mounted && navigator.mounted) context = navigator.context;
 
-      // Show options dialog using the stored navigator
       if (context.mounted) {
         await _showGoogleSheetOptions(context, sheetUri);
       } else {
@@ -310,7 +237,6 @@ class ShareResultsController {
     } catch (e) {
       Logger.e('Error in Google Sheet creation: $e');
 
-      // Use the stored global context for showing error dialog
       if (context.mounted && e is! OperationCanceledException) {
         DialogUtils.showErrorDialog(context,
             message: 'Error creating Google Sheet');
@@ -458,9 +384,9 @@ class FormattedResultsController {
 
     _textGenerationStarted = true;
     try {
-      // Generate text asynchronously in a microtask to avoid blocking the UI
+      // Generate text on a background isolate to avoid blocking the UI
       _formattedResultsText =
-          await Future.microtask(() => _getFormattedText(raceResultsData));
+          await compute(_getFormattedText, raceResultsData);
       if (!_textCompleter.isCompleted) {
         _textCompleter.complete(_formattedResultsText);
       }
@@ -543,9 +469,9 @@ class FormattedResultsController {
 
     _sheetsDataGenerationStarted = true;
     try {
-      // Process asynchronously in a microtask to avoid blocking the UI
+      // Process on a background isolate to avoid blocking the UI
       _formattedSheetsData =
-          await Future.microtask(() => _getSheetsData(raceResultsData));
+          await compute(_getSheetsData, raceResultsData);
       if (!_sheetsDataCompleter.isCompleted) {
         _sheetsDataCompleter.complete(_formattedSheetsData);
       }

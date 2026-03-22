@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../../core/components/button_components.dart';
 
@@ -64,10 +65,10 @@ class _ShareActionButtonState extends State<ShareActionButton>
                   iconSize: 18,
                   onPressed: () {
                     if (widget.onPressed != null) {
-                      _controller.forward().then((_) {
-                        _controller.reverse();
-                        widget.onPressed!();
-                      });
+                      widget.onPressed!();
+                      unawaited(_controller
+                          .forward()
+                          .then((_) => _controller.reverse()));
                     }
                   },
                 )
@@ -81,10 +82,10 @@ class _ShareActionButtonState extends State<ShareActionButton>
                   iconSize: 18,
                   onPressed: () {
                     if (widget.onPressed != null) {
-                      _controller.forward().then((_) {
-                        _controller.reverse();
-                        widget.onPressed!();
-                      });
+                      widget.onPressed!();
+                      unawaited(_controller
+                          .forward()
+                          .then((_) => _controller.reverse()));
                     }
                   },
                 ),
