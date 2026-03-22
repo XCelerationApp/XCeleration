@@ -80,6 +80,8 @@ class GooglePickerService {
       // Must be webAccessToken — the Picker validates the token's OAuth client
       // against the page's JS origin. See class-level comment for full details.
       final accessToken = await instance._authService.webAccessToken;
+      Logger.d('[Picker] webAccessToken result: '
+          '${accessToken != null ? "non-null (length=${accessToken.length})" : "NULL — aborting picker"}');
       if (accessToken == null) {
         return {'action': 'error', 'message': 'Google Authentication Failed'};
       }
@@ -401,7 +403,10 @@ class _GooglePickerDialogState extends State<GooglePickerDialog> {
             }
             final requestOrigin = Uri.tryParse(request.url)?.origin ?? '';
             if (requestOrigin != pickerOrigin) {
-              Logger.e('Blocked WebView navigation to: ${request.url}');
+              Logger.e('[Picker] WebView attempted top-level navigation away '
+                  'from picker — this means the Picker fell back to Google '
+                  'sign-in, which is blocked in WebViews. '
+                  'Destination: ${request.url}');
               Navigator.of(context).pop({
                 'action': 'error',
                 'message': 'Google Authentication Failed',

@@ -279,27 +279,46 @@ class GoogleAuthService {
     // Ensure prefs are loaded and sign-in is initialized
     await _ensureInitialized();
 
-    if (_currentUser == null) return null;
+    if (_currentUser == null) {
+      Logger.d('[WebToken] No current user — cannot get web token');
+      return null;
+    }
 
-    if (hasValidWebToken) return _webAccessToken;
+    if (hasValidWebToken) {
+      final remaining = _webAccessTokenExpiry!
+          .subtract(const Duration(minutes: 5))
+          .difference(DateTime.now());
+      Logger.d('[WebToken] Returning cached token '
+          '(${remaining.inMinutes}m${remaining.inSeconds.remainder(60)}s remaining), '
+          'length=${_webAccessToken!.length}');
+      return _webAccessToken;
+    }
+
+    Logger.d('[WebToken] No valid cached token — '
+        'attempting server auth code exchange. '
+        'serverAuthCode present: ${_currentUser!.serverAuthCode != null}');
 
     try {
       final serverAuthCode = _currentUser!.serverAuthCode;
       if (serverAuthCode != null) {
-        Logger.d('Exchanging server auth code for access token');
+        Logger.d('[WebToken] Exchanging server auth code for access token');
         _webAccessToken =
             await _exchangeServerAuthCodeForAccessToken(serverAuthCode);
         _webAccessTokenExpiry = DateTime.now().add(const Duration(minutes: 55));
+
+        Logger.d('[WebToken] Exchange result: '
+            '${_webAccessToken != null ? "success (length=${_webAccessToken!.length})" : "FAILED — null returned"}');
 
         // Save the updated token to preferences
         await _saveAuthDataToPrefs();
         return _webAccessToken;
       } else {
-        Logger.d('Failed to get Web token - no server auth code');
+        Logger.d('[WebToken] FAILED — no server auth code on current user. '
+            'A fresh interactive sign-in is needed to get a new code.');
         return null;
       }
     } catch (e) {
-      Logger.d('Error getting web access token: $e');
+      Logger.d('[WebToken] Error getting web access token: $e');
     }
 
     return null;
@@ -361,9 +380,13 @@ class GoogleAuthService {
 
     if (response.statusCode == 200) {
       final responseJson = jsonDecode(response.body);
-      return responseJson['access_token'] as String?;
+      final token = responseJson['access_token'] as String?;
+      Logger.d('[WebToken] Backend exchange HTTP 200 — '
+          'access_token ${token != null ? "present (length=${token.length})" : "MISSING from response"}');
+      return token;
     } else {
-      Logger.e('Token exchange failed: ${response.body}');
+      Logger.e('[WebToken] Backend exchange failed: '
+          'status=${response.statusCode} body=${response.body}');
       return null;
     }
   }
