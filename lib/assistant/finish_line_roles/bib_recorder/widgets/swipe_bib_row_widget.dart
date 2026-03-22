@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:xceleration/assistant/finish_line_roles/bib_recorder/controller/bib_recorder_v2_controller.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/models/bib_entry.dart';
 import 'package:xceleration/core/theme/app_animations.dart';
+import 'package:xceleration/core/theme/app_border_radius.dart';
 import 'package:xceleration/core/theme/app_colors.dart';
 import 'package:xceleration/core/theme/app_opacity.dart';
 import 'package:xceleration/core/theme/app_spacing.dart';
@@ -130,30 +131,7 @@ class _SwipeBibRowWidgetState extends State<SwipeBibRowWidget> {
                       onSubmitted: (_) => _commit(),
                     ),
                   )
-                : GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _editing = true;
-                        _textCtrl.text = '${widget.entry.bib}';
-                      });
-                    },
-                    child: Container(
-                      width: 56,
-                      decoration: const BoxDecoration(
-                        border: Border(
-                          bottom: BorderSide(
-                            color: AppColors.borderColor,
-                          ),
-                        ),
-                      ),
-                      child: Text(
-                        '${widget.entry.bib}',
-                        style: AppTypography.titleSemibold.copyWith(
-                          color: AppColors.darkColor,
-                        ),
-                      ),
-                    ),
-                  ),
+                : _buildBibCell(),
             const SizedBox(width: AppSpacing.sm),
             Expanded(child: _buildTrailing(flag, runner)),
             const Icon(
@@ -167,13 +145,78 @@ class _SwipeBibRowWidgetState extends State<SwipeBibRowWidget> {
     );
   }
 
+  /// Displays the bib number. When corrected, shows the corrected bib as
+  /// primary and the original struck through below it.
+  Widget _buildBibCell() {
+    final correctedTo = widget.entry.correctedTo;
+    if (correctedTo != null) {
+      return GestureDetector(
+        onTap: () => setState(() {
+          _editing = true;
+          _textCtrl.text = '${widget.entry.bib}';
+        }),
+        child: SizedBox(
+          width: 56,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '$correctedTo',
+                style: AppTypography.titleSemibold.copyWith(
+                  color: AppColors.darkColor,
+                ),
+              ),
+              Text(
+                '${widget.entry.bib}',
+                style: AppTypography.caption.copyWith(
+                  color: AppColors.mediumColor,
+                  decoration: TextDecoration.lineThrough,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    return GestureDetector(
+      onTap: () => setState(() {
+        _editing = true;
+        _textCtrl.text = '${widget.entry.bib}';
+      }),
+      child: Container(
+        width: 56,
+        decoration: const BoxDecoration(
+          border: Border(
+            bottom: BorderSide(color: AppColors.borderColor),
+          ),
+        ),
+        child: Text(
+          '${widget.entry.bib}',
+          style: AppTypography.titleSemibold.copyWith(
+            color: AppColors.darkColor,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildTrailing(String? flag, dynamic runner) {
     if (widget.entry.correctedTo != null) {
-      return Text(
-        '✓ corrected → #${widget.entry.correctedTo}',
-        style: AppTypography.bodySmall.copyWith(
-          fontWeight: FontWeight.w600,
-          color: AppColors.statusFinished,
+      return Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.sm,
+          vertical: AppSpacing.xs,
+        ),
+        decoration: BoxDecoration(
+          color: AppColors.statusFinished.withValues(alpha: AppOpacity.light),
+          borderRadius: BorderRadius.circular(AppBorderRadius.xs),
+        ),
+        child: Text(
+          'Corrected',
+          style: AppTypography.caption.copyWith(
+            color: AppColors.statusFinished,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       );
     }
