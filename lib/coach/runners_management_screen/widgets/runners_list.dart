@@ -88,7 +88,7 @@ class _RunnersListState extends State<RunnersList> {
           );
         }
 
-        final teamMap = snapshot.data!;
+        final teamMap = snapshot.requireData;
 
         if (teamMap.isEmpty) {
           return _EmptyState(controller: widget.controller);

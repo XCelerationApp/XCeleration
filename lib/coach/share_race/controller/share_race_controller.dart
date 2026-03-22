@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart' show compute;
 import 'package:flutter/material.dart';
@@ -352,52 +351,18 @@ class ShareResultsController {
 
 class FormattedResultsController {
   final RaceResultsData raceResultsData;
-  String? _formattedResultsText;
-  List<List<dynamic>>? _formattedSheetsData;
-  pw.Document? _formattedPdf;
-  late String raceName;
 
-  // Completer objects to prevent multiple simultaneous generations
-  final Completer<String> _textCompleter = Completer<String>();
-  final Completer<List<List<dynamic>>> _sheetsDataCompleter =
-      Completer<List<List<dynamic>>>();
-  final Completer<pw.Document> _pdfCompleter = Completer<pw.Document>();
-
-  // Track whether generation processes have been initiated
-  bool _textGenerationStarted = false;
-  bool _sheetsDataGenerationStarted = false;
-  bool _pdfGenerationStarted = false;
+  Future<String>? _textFuture;
+  Future<List<List<dynamic>>>? _sheetsDataFuture;
+  Future<pw.Document>? _pdfFuture;
 
   FormattedResultsController({
     required this.raceResultsData,
   });
 
   // Async getters that lazily initialize and cache results
-  Future<String> get formattedResultsText async {
-    if (_formattedResultsText != null) {
-      return _formattedResultsText!;
-    }
-
-    if (_textGenerationStarted) {
-      return _textCompleter.future;
-    }
-
-    _textGenerationStarted = true;
-    try {
-      // Generate text on a background isolate to avoid blocking the UI
-      _formattedResultsText =
-          await compute(_getFormattedText, raceResultsData);
-      if (!_textCompleter.isCompleted) {
-        _textCompleter.complete(_formattedResultsText);
-      }
-      return _formattedResultsText!;
-    } catch (e) {
-      if (!_textCompleter.isCompleted) {
-        _textCompleter.completeError(e);
-      }
-      rethrow;
-    }
-  }
+  Future<String> get formattedResultsText =>
+      _textFuture ??= compute(_getFormattedText, raceResultsData);
 
   // Text Formatting Methods - Made static for compute() function
   static String _getFormattedText(RaceResultsData raceResultsData) {
@@ -458,31 +423,8 @@ class FormattedResultsController {
   }
 
   // Async getter for sheets data
-  Future<List<List<dynamic>>> get formattedSheetsData async {
-    if (_formattedSheetsData != null) {
-      return _formattedSheetsData!;
-    }
-
-    if (_sheetsDataGenerationStarted) {
-      return _sheetsDataCompleter.future;
-    }
-
-    _sheetsDataGenerationStarted = true;
-    try {
-      // Process on a background isolate to avoid blocking the UI
-      _formattedSheetsData =
-          await compute(_getSheetsData, raceResultsData);
-      if (!_sheetsDataCompleter.isCompleted) {
-        _sheetsDataCompleter.complete(_formattedSheetsData);
-      }
-      return _formattedSheetsData!;
-    } catch (e) {
-      if (!_sheetsDataCompleter.isCompleted) {
-        _sheetsDataCompleter.completeError(e);
-      }
-      rethrow;
-    }
-  }
+  Future<List<List<dynamic>>> get formattedSheetsData =>
+      _sheetsDataFuture ??= compute(_getSheetsData, raceResultsData);
 
   // Data Formatting Methods - Made static for compute() function
   static List<List<dynamic>> _getSheetsData(RaceResultsData raceResultsData) {
@@ -544,14 +486,14 @@ class FormattedResultsController {
             String team1Place =
                 i < team1.topSeven.length ? '${team1.topSeven[i].place}' : '';
             String team1Name = i < team1.topSeven.length
-                ? team1.topSeven[i].runner!.name!
+                ? team1.topSeven[i].runner?.name ?? ''
                 : '';
 
             // Runner from second team (if exists)
             String team2Place =
                 i < team2.topSeven.length ? '${team2.topSeven[i].place}' : '';
             String team2Name = i < team2.topSeven.length
-                ? team2.topSeven[i].runner!.name!
+                ? team2.topSeven[i].runner?.name ?? ''
                 : '';
 
             runnerRows.add([
@@ -594,30 +536,8 @@ class FormattedResultsController {
   }
 
   // Async getter for PDF document
-  Future<pw.Document> get formattedPdf async {
-    if (_formattedPdf != null) {
-      return _formattedPdf!;
-    }
-
-    if (_pdfGenerationStarted) {
-      return _pdfCompleter.future;
-    }
-
-    _pdfGenerationStarted = true;
-    try {
-      // Process asynchronously in a microtask to avoid blocking the UI
-      _formattedPdf = await _getPdfDocument(raceResultsData);
-      if (!_pdfCompleter.isCompleted) {
-        _pdfCompleter.complete(_formattedPdf);
-      }
-      return _formattedPdf!;
-    } catch (e) {
-      if (!_pdfCompleter.isCompleted) {
-        _pdfCompleter.completeError(e);
-      }
-      rethrow;
-    }
-  }
+  Future<pw.Document> get formattedPdf =>
+      _pdfFuture ??= _getPdfDocument(raceResultsData);
 
   // Static method for PDF generation - made static for compute() function
   static Future<pw.Document> _getPdfDocument(
@@ -750,13 +670,13 @@ class FormattedResultsController {
       String team1Place =
           i < team1.topSeven.length ? '${team1.topSeven[i].place}' : '';
       String team1Name =
-          i < team1.topSeven.length ? team1.topSeven[i].runner!.name! : '';
+          i < team1.topSeven.length ? team1.topSeven[i].runner?.name ?? '' : '';
 
       // Runner from second team (if exists)
       String team2Place =
           i < team2.topSeven.length ? '${team2.topSeven[i].place}' : '';
       String team2Name =
-          i < team2.topSeven.length ? team2.topSeven[i].runner!.name! : '';
+          i < team2.topSeven.length ? team2.topSeven[i].runner?.name ?? '' : '';
 
       rows.add([
         '${i + 1}',

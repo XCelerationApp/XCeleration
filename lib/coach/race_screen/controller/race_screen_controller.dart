@@ -244,8 +244,10 @@ class RaceScreenController with ChangeNotifier {
     notifyListeners();
 
     // Pass already-loaded race and teams — avoids two extra DB reads.
+    final race = _race;
+    if (race == null) return;
     final setupComplete = await RaceService.checkSetupComplete(
-      race: _race!,
+      race: race,
       teams: _teams ?? [],
       masterRace: masterRace,
       nameController: form.nameController,

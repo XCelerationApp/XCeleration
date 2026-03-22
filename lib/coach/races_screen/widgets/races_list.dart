@@ -176,7 +176,7 @@ class _CardItem extends _ListItem {
   Widget build(BuildContext context) {
     final card = RaceCard(
       race: race,
-      flowState: race.flowState!,
+      flowState: race.flowState ?? '',
       controller: controller,
       canEdit: canEdit,
     );

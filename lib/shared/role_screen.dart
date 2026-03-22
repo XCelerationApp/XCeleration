@@ -23,6 +23,33 @@ import '../core/services/profile_service.dart';
 import '../core/services/remote_api_client.dart';
 import 'screens/sign_in_screen.dart';
 
+// ─── Shared animation helper ──────────────────────────────────────────────────
+
+/// Builds a staggered entrance [AnimationController] and per-item
+/// [CurvedAnimation] list for [count] items, then immediately starts the
+/// animation forward.
+///
+/// The caller is responsible for disposing both the controller and each
+/// [CurvedAnimation] in the returned list.
+({AnimationController controller, List<CurvedAnimation> animations})
+    _buildStaggeredAnimations(int count, TickerProvider vsync) {
+  final totalMs = 120 + (count - 1) * 80 + 400;
+  final controller = AnimationController(
+    vsync: vsync,
+    duration: Duration(milliseconds: totalMs),
+  )..forward();
+  final animations = List.generate(count, (i) {
+    final startMs = 120 + i * 80;
+    final endMs = startMs + 400;
+    return CurvedAnimation(
+      parent: controller,
+      curve: Interval(startMs / totalMs, endMs / totalMs,
+          curve: AppAnimations.enter),
+    );
+  });
+  return (controller: controller, animations: animations);
+}
+
 // ─── Role data ────────────────────────────────────────────────────────────────
 
 class _RoleData {
@@ -317,19 +344,10 @@ class _AssistantScreenState extends State<_AssistantScreen>
         onPressed: _onRecorder,
       ),
     ];
-    final totalMs = 120 + (_roles.length - 1) * 80 + 400;
-    _entranceController = AnimationController(
-      vsync: this,
-      duration: Duration(milliseconds: totalMs),
-    )..forward();
-    _rowAnimations = List.generate(_roles.length, (i) {
-      final startMs = 120 + i * 80;
-      final endMs = startMs + 400;
-      return CurvedAnimation(
-        parent: _entranceController,
-        curve: Interval(startMs / totalMs, endMs / totalMs, curve: AppAnimations.enter),
-      );
-    });
+    final (:controller, :animations) =
+        _buildStaggeredAnimations(_roles.length, this);
+    _entranceController = controller;
+    _rowAnimations = animations;
   }
 
   @override
@@ -529,19 +547,10 @@ class _RoleScreenState extends State<RoleScreen>
         onPressed: _onSpectator,
       ),
     ];
-    final totalMs = 120 + (_roles.length - 1) * 80 + 400;
-    _entranceController = AnimationController(
-      vsync: this,
-      duration: Duration(milliseconds: totalMs),
-    )..forward();
-    _rowAnimations = List.generate(_roles.length, (i) {
-      final startMs = 120 + i * 80;
-      final endMs = startMs + 400;
-      return CurvedAnimation(
-        parent: _entranceController,
-        curve: Interval(startMs / totalMs, endMs / totalMs, curve: AppAnimations.enter),
-      );
-    });
+    final (:controller, :animations) =
+        _buildStaggeredAnimations(_roles.length, this);
+    _entranceController = controller;
+    _rowAnimations = animations;
   }
 
   @override

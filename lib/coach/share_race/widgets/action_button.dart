@@ -48,6 +48,13 @@ class _ShareActionButtonState extends State<ShareActionButton>
 
   @override
   Widget build(BuildContext context) {
+    final handlePress = widget.onPressed == null
+        ? null
+        : () {
+            widget.onPressed?.call();
+            unawaited(_controller.forward().then((_) => _controller.reverse()));
+          };
+
     return Tooltip(
       message: widget.tooltip ?? '',
       child: Container(
@@ -63,14 +70,7 @@ class _ShareActionButtonState extends State<ShareActionButton>
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
                   iconSize: 18,
-                  onPressed: () {
-                    if (widget.onPressed != null) {
-                      widget.onPressed!();
-                      unawaited(_controller
-                          .forward()
-                          .then((_) => _controller.reverse()));
-                    }
-                  },
+                  onPressed: handlePress,
                 )
               : SecondaryButton(
                   text: widget.label,
@@ -80,14 +80,7 @@ class _ShareActionButtonState extends State<ShareActionButton>
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
                   iconSize: 18,
-                  onPressed: () {
-                    if (widget.onPressed != null) {
-                      widget.onPressed!();
-                      unawaited(_controller
-                          .forward()
-                          .then((_) => _controller.reverse()));
-                    }
-                  },
+                  onPressed: handlePress,
                 ),
         ),
       ),
