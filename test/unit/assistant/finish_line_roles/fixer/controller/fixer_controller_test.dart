@@ -475,6 +475,381 @@ void main() {
       });
     });
 
+    group('resolveWithRunner state', () {
+      Future<FixerController> makeControllerWithEntry({
+        required int finishPosition,
+        required int bib,
+      }) async {
+        final controller = makeController(session: mockSession);
+        controller.initialize();
+        incomingController.add((
+          Role.verifier,
+          MessageEnvelope.wrapVerifierFlag(VerifierFlagMessage(
+            entry: BibEntryMessage(
+              finishPosition: finishPosition,
+              bib: bib,
+              status: BibEntryStatus.unknown,
+              timestamp: DateTime.now(),
+            ),
+            reason: FlagReason.wrongName,
+          )),
+        ));
+        await Future.microtask(() {});
+        return controller;
+      }
+
+      test('marks entry as resolved', () async {
+        final controller =
+            await makeControllerWithEntry(finishPosition: 1, bib: 107);
+        final runner = Runner(
+          raceId: 1,
+          bibNumber: '110',
+          name: 'Ryan Smith',
+          createdAt: DateTime(2026),
+        );
+
+        controller.resolveWithRunner(1, runner);
+
+        expect(controller.queue.first.isResolved, isTrue);
+      });
+
+      test('sets correctedBib from runner', () async {
+        final controller =
+            await makeControllerWithEntry(finishPosition: 1, bib: 107);
+        final runner = Runner(
+          raceId: 1,
+          bibNumber: '110',
+          createdAt: DateTime(2026),
+        );
+
+        controller.resolveWithRunner(1, runner);
+
+        expect(controller.queue.first.correctedBib, 110);
+      });
+
+      test('sets resolvedName from runner name', () async {
+        final controller =
+            await makeControllerWithEntry(finishPosition: 1, bib: 107);
+        final runner = Runner(
+          raceId: 1,
+          bibNumber: '110',
+          name: 'Ryan Smith',
+          createdAt: DateTime(2026),
+        );
+
+        controller.resolveWithRunner(1, runner);
+
+        expect(controller.queue.first.resolvedName, 'Ryan Smith');
+      });
+
+      test('decrements unresolvedCount', () async {
+        final controller =
+            await makeControllerWithEntry(finishPosition: 1, bib: 107);
+        final runner = Runner(
+          raceId: 1,
+          bibNumber: '110',
+          createdAt: DateTime(2026),
+        );
+        expect(controller.unresolvedCount, 1);
+
+        controller.resolveWithRunner(1, runner);
+
+        expect(controller.unresolvedCount, 0);
+      });
+
+      test('is a no-op for unknown entryId', () async {
+        final controller =
+            await makeControllerWithEntry(finishPosition: 1, bib: 107);
+        final runner = Runner(
+          raceId: 1,
+          bibNumber: '110',
+          createdAt: DateTime(2026),
+        );
+
+        controller.resolveWithRunner(999, runner); // unknown id
+
+        expect(controller.queue.first.isResolved, isFalse);
+      });
+    });
+
+    group('resolveWithBib state', () {
+      Future<FixerController> makeControllerWithEntry({
+        required int finishPosition,
+        required int bib,
+      }) async {
+        final controller = makeController(session: mockSession);
+        controller.initialize();
+        incomingController.add((
+          Role.verifier,
+          MessageEnvelope.wrapVerifierFlag(VerifierFlagMessage(
+            entry: BibEntryMessage(
+              finishPosition: finishPosition,
+              bib: bib,
+              status: BibEntryStatus.duplicate,
+              timestamp: DateTime.now(),
+            ),
+            reason: FlagReason.duplicate,
+          )),
+        ));
+        await Future.microtask(() {});
+        return controller;
+      }
+
+      test('marks entry as resolved', () async {
+        final controller =
+            await makeControllerWithEntry(finishPosition: 2, bib: 105);
+
+        controller.resolveWithBib(2, 115);
+
+        expect(controller.queue.first.isResolved, isTrue);
+      });
+
+      test('sets correctedBib to the new value', () async {
+        final controller =
+            await makeControllerWithEntry(finishPosition: 2, bib: 105);
+
+        controller.resolveWithBib(2, 115);
+
+        expect(controller.queue.first.correctedBib, 115);
+      });
+
+      test('decrements unresolvedCount', () async {
+        final controller =
+            await makeControllerWithEntry(finishPosition: 2, bib: 105);
+        expect(controller.unresolvedCount, 1);
+
+        controller.resolveWithBib(2, 115);
+
+        expect(controller.unresolvedCount, 0);
+      });
+
+      test('is a no-op for unknown entryId', () async {
+        final controller =
+            await makeControllerWithEntry(finishPosition: 2, bib: 105);
+
+        controller.resolveWithBib(999, 115);
+
+        expect(controller.queue.first.isResolved, isFalse);
+      });
+    });
+
+    group('resolveAsNewRunner state', () {
+      Future<FixerController> makeControllerWithEntry({
+        required int finishPosition,
+        required int bib,
+      }) async {
+        final controller = makeController(session: mockSession);
+        controller.initialize();
+        incomingController.add((
+          Role.verifier,
+          MessageEnvelope.wrapVerifierFlag(VerifierFlagMessage(
+            entry: BibEntryMessage(
+              finishPosition: finishPosition,
+              bib: bib,
+              status: BibEntryStatus.unknown,
+              timestamp: DateTime.now(),
+            ),
+            reason: FlagReason.unknown,
+          )),
+        ));
+        await Future.microtask(() {});
+        return controller;
+      }
+
+      test('marks entry as resolved with isNewRunner true', () async {
+        final controller =
+            await makeControllerWithEntry(finishPosition: 3, bib: 199);
+
+        controller.resolveAsNewRunner(3, name: 'Jane Doe', newBib: 200);
+
+        expect(controller.queue.first.isResolved, isTrue);
+        expect(controller.queue.first.isNewRunner, isTrue);
+      });
+
+      test('sets resolvedName when name provided', () async {
+        final controller =
+            await makeControllerWithEntry(finishPosition: 3, bib: 199);
+
+        controller.resolveAsNewRunner(3, name: 'Jane Doe');
+
+        expect(controller.queue.first.resolvedName, 'Jane Doe');
+      });
+
+      test('sets correctedBib when newBib provided', () async {
+        final controller =
+            await makeControllerWithEntry(finishPosition: 3, bib: 199);
+
+        controller.resolveAsNewRunner(3, newBib: 205);
+
+        expect(controller.queue.first.correctedBib, 205);
+      });
+
+      test('correctedBib is null when no newBib provided', () async {
+        final controller =
+            await makeControllerWithEntry(finishPosition: 3, bib: 199);
+
+        controller.resolveAsNewRunner(3);
+
+        expect(controller.queue.first.correctedBib, isNull);
+      });
+
+      test('is a no-op for unknown entryId', () async {
+        final controller =
+            await makeControllerWithEntry(finishPosition: 3, bib: 199);
+
+        controller.resolveAsNewRunner(999);
+
+        expect(controller.queue.first.isResolved, isFalse);
+      });
+
+      test('decrements unresolvedCount', () async {
+        final controller =
+            await makeControllerWithEntry(finishPosition: 3, bib: 199);
+        expect(controller.unresolvedCount, 1);
+
+        controller.resolveAsNewRunner(3);
+
+        expect(controller.unresolvedCount, 0);
+      });
+    });
+
+    group('search', () {
+      Future<FixerController> makeControllerWithRunners(
+          List<Runner> runners) async {
+        when(mockStorage.getRunners(1)).thenAnswer(
+          (_) async => Success<List<Runner>>(runners),
+        );
+        final controller = makeController();
+        controller.initialize();
+        await controller.joinRace();
+        return controller;
+      }
+
+      Runner makeRunner(String bib, String name) => Runner(
+            raceId: 1,
+            bibNumber: bib,
+            name: name,
+            createdAt: DateTime(2026),
+          );
+
+      test('empty query clears results', () async {
+        final controller = await makeControllerWithRunners([
+          makeRunner('101', 'Alice Smith'),
+        ]);
+        controller.search('alice');
+        expect(controller.searchResults, isNotEmpty);
+
+        controller.search('');
+        expect(controller.searchResults, isEmpty);
+        expect(controller.searchQuery, '');
+      });
+
+      test('whitespace-only query clears results', () async {
+        final controller = await makeControllerWithRunners([
+          makeRunner('101', 'Alice Smith'),
+        ]);
+        controller.search('alice');
+        controller.search('   ');
+        expect(controller.searchResults, isEmpty);
+      });
+
+      test('results are capped at 5', () async {
+        final runners = List.generate(
+          8,
+          (i) => makeRunner('${100 + i}', 'Alice Runner $i'),
+        );
+        final controller = await makeControllerWithRunners(runners);
+        controller.search('alice');
+        expect(controller.searchResults.length, lessThanOrEqualTo(5));
+      });
+
+      test('results ranked by score descending (exact bib scores highest)', () async {
+        final controller = await makeControllerWithRunners([
+          makeRunner('101', 'Alice Smith'),  // exact name match for 'alice smith'
+          makeRunner('999', 'Bob Jones'),
+          makeRunner('alice', 'Carol White'), // bib matches query 'alice'
+        ]);
+
+        controller.search('alice');
+
+        // The runner with bib 'alice' should score higher (exact bib = 1.0)
+        // than the runner with name 'Alice Smith' (name substring = 0.8).
+        expect(
+          controller.searchResults.first.bibNumber,
+          'alice',
+        );
+      });
+
+      test('exact bib match returned first', () async {
+        final controller = await makeControllerWithRunners([
+          makeRunner('105', 'Alice Johnson'),
+          makeRunner('200', 'Runner Two'),
+        ]);
+
+        controller.search('105');
+
+        expect(controller.searchResults.first.bibNumber, '105');
+      });
+    });
+
+    group('clearSearch', () {
+      test('clears query and results', () async {
+        when(mockStorage.getRunners(1)).thenAnswer(
+          (_) async => Success<List<Runner>>([
+            Runner(
+              raceId: 1,
+              bibNumber: '105',
+              name: 'Alice Johnson',
+              createdAt: DateTime(2026),
+            ),
+          ]),
+        );
+        final controller = makeController();
+        await controller.joinRace();
+        controller.search('alice');
+        expect(controller.searchResults, isNotEmpty);
+
+        controller.clearSearch();
+
+        expect(controller.searchQuery, '');
+        expect(controller.searchResults, isEmpty);
+      });
+    });
+
+    group('leaveRace', () {
+      test('clears queue, runners, search state, and isInRace', () async {
+        final controller = makeController(session: mockSession);
+        controller.initialize();
+        await controller.joinRace();
+
+        incomingController.add((
+          Role.verifier,
+          MessageEnvelope.wrapVerifierFlag(VerifierFlagMessage(
+            entry: BibEntryMessage(
+              finishPosition: 1,
+              bib: 101,
+              status: BibEntryStatus.unknown,
+              timestamp: DateTime.now(),
+            ),
+            reason: FlagReason.unknown,
+          )),
+        ));
+        await Future.microtask(() {});
+
+        controller.search('101');
+        expect(controller.isInRace, isTrue);
+        expect(controller.queue, isNotEmpty);
+
+        controller.leaveRace();
+
+        expect(controller.queue, isEmpty);
+        expect(controller.isInRace, isFalse);
+        expect(controller.searchResults, isEmpty);
+        expect(controller.searchQuery, '');
+        expect(controller.unresolvedCount, 0);
+      });
+    });
+
     group('resolve methods persist to storage (XCE-378)', () {
       Future<FixerController> makeControllerWithEntry({
         required int finishPosition,
