@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:xceleration/assistant/bib_number_recorder/services/i_voice_recognition_service.dart';
 import 'package:xceleration/assistant/bib_number_recorder/services/voice_recognition_service.dart';
+import 'package:xceleration/assistant/finish_line_roles/shared/models/bib_correction_message.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/models/bib_entry.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/messages/messages.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/p2p_session_service.dart';
@@ -197,14 +198,31 @@ class BibRecorderV2Controller extends ChangeNotifier {
 
   /// Returns `'duplicate'`, `'unknown'`, or `null` for a given bib.
   /// Pass [excludeId] to skip the entry being edited/checked.
+  ///
+  /// Corrected entries (where [BibEntry.correctedTo] is non-null) are excluded
+  /// from the duplicate check — their original bib is no longer the active value.
   String? flagFor(int bib, {int? excludeId}) {
-    final isDuplicate =
-        _entries.any((e) => e.bib == bib && e.id != excludeId);
+    final isDuplicate = _entries.any(
+      (e) => e.bib == bib && e.id != excludeId && e.correctedTo == null,
+    );
     if (isDuplicate) return 'duplicate';
-    final inRoster =
-        _runners.any((r) => r.bibNumber == bib.toString());
+    final inRoster = _runners.any((r) => r.bibNumber == bib.toString());
     if (_runners.isNotEmpty && !inRoster) return 'unknown';
     return null;
+  }
+
+  /// Applies a correction received from the Fixer.
+  ///
+  /// Looks up the [BibEntry] by finish position via the internal
+  /// position-to-entry map, sets [BibEntry.correctedTo], and notifies listeners.
+  /// A no-op if [msg.entryId] does not match any known finish position.
+  void applyCorrection(BibCorrectionMessage msg) {
+    final entryId = _positionToEntryId[msg.entryId];
+    if (entryId == null) return;
+    final idx = _entries.indexWhere((e) => e.id == entryId);
+    if (idx == -1) return;
+    _entries[idx] = _entries[idx].copyWith(correctedTo: msg.correctedBib);
+    notifyListeners();
   }
 
   Runner? runnerFor(int bib) =>

@@ -6,6 +6,7 @@ import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:xceleration/assistant/bib_number_recorder/services/i_voice_recognition_service.dart';
 import 'package:xceleration/assistant/finish_line_roles/bib_recorder/controller/bib_recorder_v2_controller.dart';
+import 'package:xceleration/assistant/finish_line_roles/shared/models/bib_correction_message.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/messages/messages.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/p2p_session_service.dart';
 import 'package:xceleration/assistant/shared/models/race_record.dart';
@@ -212,6 +213,87 @@ void main() {
         expect(msg.runnerName, isNull);
         expect(msg.teamAbbreviation, isNull);
         expect(msg.teamColor, isNull);
+      });
+    });
+
+    group('applyCorrection', () {
+      test('sets correctedTo on matching entry and notifies listeners', () async {
+        final controller = await makeInitializedController();
+        controller.addBib(101); // position 1
+
+        var notified = false;
+        controller.addListener(() => notified = true);
+
+        controller.applyCorrection(const BibCorrectionMessage(
+          entryId: 1,
+          originalBib: 101,
+          correctedBib: 114,
+        ));
+
+        expect(controller.entries.first.correctedTo, 114);
+        expect(notified, isTrue);
+      });
+
+      test('is a no-op when entryId does not match any finish position', () async {
+        final controller = await makeInitializedController();
+        controller.addBib(101); // position 1
+
+        controller.applyCorrection(const BibCorrectionMessage(
+          entryId: 99,
+          originalBib: 101,
+          correctedBib: 114,
+        ));
+
+        expect(controller.entries.first.correctedTo, isNull);
+      });
+
+      test('sets correctedTo to null when correctedBib is null', () async {
+        final controller = await makeInitializedController();
+        controller.addBib(101); // position 1
+
+        controller.applyCorrection(const BibCorrectionMessage(
+          entryId: 1,
+          originalBib: 101,
+          isNewRunner: true,
+        ));
+
+        // correctedBib is null → correctedTo should not be changed from null
+        expect(controller.entries.first.correctedTo, isNull);
+      });
+    });
+
+    group('flagFor after correction', () {
+      test('corrected entry is excluded from duplicate check', () async {
+        final controller = await makeInitializedController();
+        controller.addBib(101); // position 1 — first entry
+        await Future.delayed(const Duration(milliseconds: 2));
+        controller.addBib(101); // position 2 — duplicate
+
+        // Apply correction to first entry (bib 101 → 114)
+        controller.applyCorrection(const BibCorrectionMessage(
+          entryId: 1,
+          originalBib: 101,
+          correctedBib: 114,
+        ));
+
+        // Second entry (bib 101) should no longer be a duplicate
+        final secondEntry = controller.entries.firstWhere(
+          (e) => e.correctedTo == null,
+        );
+        expect(controller.flagFor(secondEntry.bib, excludeId: secondEntry.id), isNull);
+      });
+
+      test('uncorrected duplicate is still flagged', () async {
+        final controller = await makeInitializedController();
+        controller.addBib(101);
+        await Future.delayed(const Duration(milliseconds: 2));
+        controller.addBib(101);
+
+        final secondEntry = controller.entries.first;
+        expect(
+          controller.flagFor(secondEntry.bib, excludeId: secondEntry.id),
+          'duplicate',
+        );
       });
     });
 
