@@ -8,6 +8,9 @@ import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/i
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/messages/messages.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/p2p_session_service.dart';
 import 'package:xceleration/assistant/shared/models/runner.dart';
+import 'package:xceleration/assistant/shared/services/i_assistant_storage_service.dart';
+import 'package:xceleration/core/result.dart';
+import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/shared/role_bar/models/role_enums.dart';
 
 /// Controls the Fixer role.
@@ -19,11 +22,17 @@ import 'package:xceleration/shared/role_bar/models/role_enums.dart';
 ///   • Create a new runner record
 class FixerController extends ChangeNotifier {
   FixerController({
+    required IAssistantStorageService storage,
+    required int raceId,
     P2PSessionService? session,
     IBibCorrectionChannel? correctionChannel,
-  })  : _session = session,
+  })  : _storage = storage,
+        _raceId = raceId,
+        _session = session,
         _correctionChannel = correctionChannel;
 
+  final IAssistantStorageService _storage;
+  final int _raceId;
   final P2PSessionService? _session;
   final IBibCorrectionChannel? _correctionChannel;
 
@@ -48,9 +57,16 @@ class FixerController extends ChangeNotifier {
   }
 
   /// Enter a race session.
-  void joinRace() {
+  Future<void> joinRace() async {
     _inRace = true;
-    _allRunners.addAll(_stubRunners());
+    notifyListeners();
+    final result = await _storage.getRunners(_raceId);
+    switch (result) {
+      case Success(:final value):
+        _allRunners.addAll(value);
+      case Failure(:final error):
+        Logger.e('[FixerController.joinRace] ${error.originalException}');
+    }
     notifyListeners();
   }
 
@@ -122,6 +138,11 @@ class FixerController extends ChangeNotifier {
         )),
       ));
     }
+    unawaited(_storage.updateBibRecordValue(_raceId, entryId, correctedBib.toString()).then((result) {
+      if (result case Failure(:final error)) {
+        Logger.e('[FixerController.resolveWithRunner] ${error.originalException}');
+      }
+    }));
     notifyListeners();
   }
 
@@ -147,6 +168,11 @@ class FixerController extends ChangeNotifier {
         )),
       ));
     }
+    unawaited(_storage.updateBibRecordValue(_raceId, entryId, newBib.toString()).then((result) {
+      if (result case Failure(:final error)) {
+        Logger.e('[FixerController.resolveWithBib] ${error.originalException}');
+      }
+    }));
     notifyListeners();
   }
 
@@ -156,6 +182,7 @@ class FixerController extends ChangeNotifier {
     if (idx == -1) return;
     final original = _queue[idx];
     final resolvedName = name ?? 'New Runner';
+    final bibNumber = (newBib ?? entryId).toString();
     _queue[idx] = original.copyWith(
       isResolved: true,
       isNewRunner: true,
@@ -179,6 +206,23 @@ class FixerController extends ChangeNotifier {
           correctionType: CorrectionType.newRunner,
         )),
       ));
+    }
+    unawaited(_storage.saveRunner(Runner(
+      raceId: _raceId,
+      bibNumber: bibNumber,
+      name: name,
+      createdAt: DateTime.now(),
+    )).then((result) {
+      if (result case Failure(:final error)) {
+        Logger.e('[FixerController.resolveAsNewRunner] ${error.originalException}');
+      }
+    }));
+    if (newBib != null) {
+      unawaited(_storage.updateBibRecordValue(_raceId, entryId, newBib.toString()).then((result) {
+        if (result case Failure(:final error)) {
+          Logger.e('[FixerController.resolveAsNewRunner] ${error.originalException}');
+        }
+      }));
     }
     notifyListeners();
   }
@@ -217,56 +261,4 @@ class FixerController extends ChangeNotifier {
     super.dispose();
   }
 
-  // ── Stub data ─────────────────────────────────────────────────────────────
-
-  List<Runner> _stubRunners() => [
-        Runner(
-          raceId: 1,
-          bibNumber: '105',
-          name: 'Alex Johnson',
-          teamAbbreviation: 'MVW',
-          teamColor: const Color(0xFF1565C0),
-          createdAt: DateTime(2026),
-        ),
-        Runner(
-          raceId: 1,
-          bibNumber: '107',
-          name: 'Ryan Smith',
-          teamAbbreviation: 'ELK',
-          teamColor: const Color(0xFF2E7D32),
-          createdAt: DateTime(2026),
-        ),
-        Runner(
-          raceId: 1,
-          bibNumber: '112',
-          name: 'Jordan Lee',
-          teamAbbreviation: 'ELK',
-          teamColor: const Color(0xFF2E7D32),
-          createdAt: DateTime(2026),
-        ),
-        Runner(
-          raceId: 1,
-          bibNumber: '118',
-          name: 'Sarah Kim',
-          teamAbbreviation: 'RVS',
-          teamColor: const Color(0xFFAD1457),
-          createdAt: DateTime(2026),
-        ),
-        Runner(
-          raceId: 1,
-          bibNumber: '120',
-          name: 'Taylor Brown',
-          teamAbbreviation: 'MVW',
-          teamColor: const Color(0xFF1565C0),
-          createdAt: DateTime(2026),
-        ),
-        Runner(
-          raceId: 1,
-          bibNumber: '103',
-          name: 'Chris Davis',
-          teamAbbreviation: 'RVS',
-          teamColor: const Color(0xFFAD1457),
-          createdAt: DateTime(2026),
-        ),
-      ];
 }

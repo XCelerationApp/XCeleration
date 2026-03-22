@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/assistant/finish_line_roles/fixer/controller/fixer_controller.dart';
+import 'package:xceleration/assistant/shared/services/i_assistant_storage_service.dart';
 import 'package:xceleration/assistant/finish_line_roles/fixer/widgets/fixer_entry_card.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/connection_setup_screen.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/lobby_scanner.dart';
@@ -26,14 +27,16 @@ import 'package:xceleration/shared/settings_screen.dart';
 ///   • Correcting the bib number directly
 ///   • Marking as a new / unknown runner
 class FixerScreen extends StatefulWidget {
-  const FixerScreen({super.key});
+  const FixerScreen({super.key, required this.storage});
+
+  final IAssistantStorageService storage;
 
   @override
   State<FixerScreen> createState() => _FixerScreenState();
 }
 
 class _FixerScreenState extends State<FixerScreen> {
-  late final FixerController _controller;
+  late FixerController _controller;
   late final LobbyScanner _lobbyScanner;
   final TutorialManager _tutorialManager = TutorialManager();
 
@@ -44,7 +47,7 @@ class _FixerScreenState extends State<FixerScreen> {
   @override
   void initState() {
     super.initState();
-    _controller = FixerController();
+    _controller = FixerController(storage: widget.storage, raceId: 0);
     _controller.initialize();
     _lobbyScanner = LobbyScanner(localRole: Role.fixer)..start();
   }
@@ -52,6 +55,10 @@ class _FixerScreenState extends State<FixerScreen> {
   void _onJoinTapped(int raceId) {
     // Stop the lobby scan now that the user has selected a session.
     _lobbyScanner.dispose();
+    // Re-create the controller now that the raceId is known.
+    _controller.dispose();
+    _controller = FixerController(storage: widget.storage, raceId: raceId);
+    _controller.initialize();
     final notifier = PeerDiscoveryNotifier(
       role: Role.fixer,
       raceId: raceId,
@@ -62,19 +69,19 @@ class _FixerScreenState extends State<FixerScreen> {
     });
   }
 
-  void _onConnectionReady() {
+  Future<void> _onConnectionReady() async {
     // Keep notifier alive for PeerStatusStrip during the race.
     setState(() => _connecting = false);
-    _controller.joinRace();
+    await _controller.joinRace();
   }
 
-  void _onConnectionSkip() {
+  Future<void> _onConnectionSkip() async {
     _peerNotifier?.dispose();
     setState(() {
       _connecting = false;
       _peerNotifier = null;
     });
-    _controller.joinRace();
+    await _controller.joinRace();
   }
 
   void _onConnectionLeave() {

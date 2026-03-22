@@ -99,7 +99,7 @@ enum Role {
       case Role.verifier:
         return const VerifierScreen();
       case Role.fixer:
-        return const FixerScreen();
+        return FixerScreen(storage: AssistantStorageService.instance);
       case Role.coach:
         return const RacesScreen();
       case Role.spectator:
