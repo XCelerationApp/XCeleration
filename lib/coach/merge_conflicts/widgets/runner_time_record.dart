@@ -112,7 +112,8 @@ class RunnerTimeRecord extends StatelessWidget {
                             final shouldAutofocus =
                                 chunk.lastInsertedIndex == chunkIndex;
                             if (shouldAutofocus) {
-                              chunk.lastInsertedIndex = null;
+                              WidgetsBinding.instance.addPostFrameCallback(
+                                  (_) => chunk.lastInsertedIndex = null);
                             }
                             return MissingTimeCell(
                               controller: record.timeController,
