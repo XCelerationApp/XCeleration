@@ -9,12 +9,14 @@ import 'package:xceleration/assistant/finish_line_roles/bib_recorder/controller/
 import 'package:xceleration/assistant/finish_line_roles/shared/models/bib_correction_message.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/messages/messages.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/p2p_session_service.dart';
+import 'package:xceleration/assistant/shared/models/bib_record.dart';
 import 'package:xceleration/assistant/shared/models/race_record.dart';
 import 'package:xceleration/assistant/shared/models/runner.dart';
 import 'package:xceleration/assistant/shared/services/i_assistant_storage_service.dart';
 import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/result.dart';
 import 'package:xceleration/core/services/haptic_feedback_service.dart';
+import 'package:xceleration/shared/models/timing_records/timing_chunk.dart';
 import 'package:xceleration/shared/role_bar/models/role_enums.dart';
 
 import 'bib_recorder_v2_controller_test.mocks.dart';
@@ -32,6 +34,11 @@ void main() {
         Failure<void>(const AppError(userMessage: '')));
     provideDummy<Result<List<RaceRecord>>>(const Success([]));
     provideDummy<Result<List<Runner>>>(const Success([]));
+    provideDummy<Result<List<BibRecord>>>(const Success([]));
+    provideDummy<Result<TimingChunk?>>(const Success(null));
+    provideDummy<Result<List<TimingChunk>>>(const Success([]));
+    provideDummy<Result<String?>>(const Success(null));
+    provideDummy<Result<int>>(const Success(0));
   });
 
   late MockP2PSessionService mockSession;
@@ -176,6 +183,10 @@ void main() {
             .thenAnswer((_) async => const Success<List<RaceRecord>>([]));
         when(mockStorage.getRunners(1))
             .thenAnswer((_) async => Success<List<Runner>>([runner]));
+        when(mockStorage.getBibRecords(any))
+            .thenAnswer((_) async => const Success<List<BibRecord>>([]));
+        when(mockStorage.addBibRecord(any, any, any))
+            .thenAnswer((_) async => const Success<void>(null));
 
         final controller = BibRecorderV2Controller(
           storage: mockStorage,
@@ -294,6 +305,257 @@ void main() {
           controller.flagFor(secondEntry.bib, excludeId: secondEntry.id),
           'duplicate',
         );
+      });
+    });
+
+    group('storage persistence (XCE-376)', () {
+      RaceRecord makeRace() => RaceRecord(
+            raceId: 1,
+            date: DateTime(2026),
+            name: 'Test Race',
+            type: 'bibRecorderV2',
+          );
+
+      MockIAssistantStorageService makeStorage({
+        List<BibRecord> bibRecords = const [],
+      }) {
+        final s = MockIAssistantStorageService();
+        when(s.getRaces(any))
+            .thenAnswer((_) async => const Success<List<RaceRecord>>([]));
+        when(s.getRunners(any))
+            .thenAnswer((_) async => const Success<List<Runner>>([]));
+        when(s.getBibRecords(any))
+            .thenAnswer((_) async => Success<List<BibRecord>>(bibRecords));
+        when(s.addBibRecord(any, any, any))
+            .thenAnswer((_) async => const Success<void>(null));
+        when(s.updateBibRecordValue(any, any, any))
+            .thenAnswer((_) async => const Success<void>(null));
+        when(s.removeBibRecord(any, any))
+            .thenAnswer((_) async => const Success<void>(null));
+        when(s.deleteBibRecords(any))
+            .thenAnswer((_) async => const Success<void>(null));
+        when(s.deleteRace(any, any))
+            .thenAnswer((_) async => const Success<void>(null));
+        return s;
+      }
+
+      test('addBib calls addBibRecord with correct args', () async {
+        final mockStorage = makeStorage();
+        final controller = BibRecorderV2Controller(
+          storage: mockStorage,
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+        );
+        controller.selectRace(makeRace());
+        await Future.microtask(() {});
+
+        controller.addBib(101);
+        await Future.microtask(() {});
+
+        verify(mockStorage.addBibRecord(1, any, '101')).called(1);
+      });
+
+      test('editEntry calls updateBibRecordValue with correct args', () async {
+        final mockStorage = makeStorage();
+        final controller = BibRecorderV2Controller(
+          storage: mockStorage,
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+        );
+        controller.selectRace(makeRace());
+        await Future.microtask(() {});
+        controller.addBib(101);
+        await Future.microtask(() {});
+        final entryId = controller.entries.first.id;
+
+        controller.editEntry(entryId, 202);
+        await Future.microtask(() {});
+
+        verify(mockStorage.updateBibRecordValue(1, entryId, '202')).called(1);
+      });
+
+      test('deleteEntry calls removeBibRecord with correct args', () async {
+        final mockStorage = makeStorage();
+        final controller = BibRecorderV2Controller(
+          storage: mockStorage,
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+        );
+        controller.selectRace(makeRace());
+        await Future.microtask(() {});
+        controller.addBib(101);
+        await Future.microtask(() {});
+        final entryId = controller.entries.first.id;
+
+        controller.deleteEntry(entryId);
+        await Future.microtask(() {});
+
+        verify(mockStorage.removeBibRecord(1, entryId)).called(1);
+      });
+
+      test('clearEntries calls deleteBibRecords', () async {
+        final mockStorage = makeStorage();
+        final controller = BibRecorderV2Controller(
+          storage: mockStorage,
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+        );
+        controller.selectRace(makeRace());
+        await Future.microtask(() {});
+
+        controller.clearEntries();
+        await Future.microtask(() {});
+
+        verify(mockStorage.deleteBibRecords(1)).called(1);
+      });
+
+      test('deleteRace calls deleteRace on storage', () async {
+        final mockStorage = makeStorage();
+        final controller = BibRecorderV2Controller(
+          storage: mockStorage,
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+        );
+        controller.selectRace(makeRace());
+        await Future.microtask(() {});
+
+        await controller.deleteRace();
+
+        verify(mockStorage.deleteRace(1, any)).called(1);
+      });
+
+      test('selectRace loads existing bib records and restores entries', () async {
+        final existingRecord = BibRecord(
+          raceId: 1,
+          bibId: 42,
+          bibNumber: '105',
+          createdAt: DateTime(2026),
+        );
+        final mockStorage = makeStorage(bibRecords: [existingRecord]);
+        final controller = BibRecorderV2Controller(
+          storage: mockStorage,
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+        );
+
+        controller.selectRace(makeRace());
+        await Future.microtask(() {});
+
+        expect(controller.entries.length, 1);
+        expect(controller.entries.first.id, 42);
+        expect(controller.entries.first.bib, 105);
+      });
+
+      test('storage methods are not called when no race is selected', () async {
+        final mockStorage = makeStorage();
+        final controller = BibRecorderV2Controller(
+          storage: mockStorage,
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+        );
+
+        controller.addBib(101);
+        await Future.microtask(() {});
+
+        verifyNever(mockStorage.addBibRecord(any, any, any));
+      });
+    });
+
+    group('stopRace unresolved handoff (XCE-379)', () {
+      MockIAssistantStorageService makeStorage() {
+        final s = MockIAssistantStorageService();
+        when(s.getRaces(any))
+            .thenAnswer((_) async => const Success<List<RaceRecord>>([]));
+        when(s.getRunners(any))
+            .thenAnswer((_) async => const Success<List<Runner>>([]));
+        when(s.getBibRecords(any))
+            .thenAnswer((_) async => const Success<List<BibRecord>>([]));
+        when(s.addBibRecord(any, any, any))
+            .thenAnswer((_) async => const Success<void>(null));
+        when(s.saveChunk(any, any))
+            .thenAnswer((_) async => const Success<void>(null));
+        when(s.saveChunkConflict(any, any, any))
+            .thenAnswer((_) async => const Success<void>(null));
+        return s;
+      }
+
+      test('saveChunkConflict called for each unresolved entry on stopRace', () async {
+        final mockStorage = makeStorage();
+        final race = RaceRecord(
+          raceId: 1,
+          date: DateTime(2026),
+          name: 'Test Race',
+          type: 'bibRecorderV2',
+        );
+        // Load a roster so bibs can be flagged as unknown.
+        final runner = Runner(
+          raceId: 1,
+          bibNumber: '200',
+          createdAt: DateTime(2026),
+        );
+        when(mockStorage.getRunners(1))
+            .thenAnswer((_) async => Success<List<Runner>>([runner]));
+
+        final controller = BibRecorderV2Controller(
+          storage: mockStorage,
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+        );
+        controller.selectRace(race);
+        await Future.microtask(() {});
+
+        // Add two unknown bibs (not in the roster).
+        controller.addBib(101);
+        await Future.delayed(const Duration(milliseconds: 2));
+        controller.addBib(102);
+        await Future.microtask(() {});
+
+        controller.stopRace();
+        // Pump enough for the async loop (2 entries × 2 awaits each).
+        await Future.delayed(Duration.zero);
+
+        verify(mockStorage.saveChunkConflict(1, any, any)).called(2);
+      });
+
+      test('resolved entries are not handed off as conflicts', () async {
+        final mockStorage = makeStorage();
+        final race = RaceRecord(
+          raceId: 1,
+          date: DateTime(2026),
+          name: 'Test Race',
+          type: 'bibRecorderV2',
+        );
+        final runner = Runner(
+          raceId: 1,
+          bibNumber: '200',
+          createdAt: DateTime(2026),
+        );
+        when(mockStorage.getRunners(1))
+            .thenAnswer((_) async => Success<List<Runner>>([runner]));
+
+        final controller = BibRecorderV2Controller(
+          storage: mockStorage,
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+          session: mockSession,
+        );
+        controller.selectRace(race);
+        await Future.microtask(() {});
+
+        controller.addBib(101); // unknown — unresolved
+        await Future.microtask(() {});
+
+        // Apply correction so correctedTo is set.
+        controller.applyCorrection(const BibCorrectionMessage(
+          entryId: 1,
+          originalBib: 101,
+          correctedBib: 200,
+        ));
+
+        controller.stopRace();
+        await Future.delayed(Duration.zero);
+
+        verifyNever(mockStorage.saveChunkConflict(any, any, any));
       });
     });
 

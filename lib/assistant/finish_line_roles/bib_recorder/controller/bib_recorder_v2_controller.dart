@@ -7,6 +7,7 @@ import 'package:xceleration/assistant/finish_line_roles/shared/models/bib_correc
 import 'package:xceleration/assistant/finish_line_roles/shared/models/bib_entry.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/messages/messages.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/p2p_session_service.dart';
+import 'package:xceleration/assistant/shared/models/bib_record.dart';
 import 'package:xceleration/assistant/shared/models/race_record.dart';
 import 'package:xceleration/assistant/shared/models/runner.dart';
 import 'package:xceleration/assistant/shared/services/i_assistant_storage_service.dart';
@@ -17,6 +18,9 @@ import 'package:xceleration/core/utils/encode_utils.dart';
 import 'package:xceleration/core/utils/enums.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/shared/models/timing_records/bib_datum.dart';
+import 'package:xceleration/shared/models/timing_records/conflict.dart';
+import 'package:xceleration/shared/models/timing_records/timing_chunk.dart';
+import 'package:xceleration/shared/models/timing_records/timing_datum.dart';
 import 'package:xceleration/shared/role_bar/models/role_enums.dart';
 
 /// Controls the full lifecycle of the new Bib Recorder role:
@@ -141,6 +145,7 @@ class BibRecorderV2Controller extends ChangeNotifier {
     _entries.clear();
     _runners.clear();
     _loadRunners();
+    _loadBibRecords();
     notifyListeners();
   }
 
@@ -153,6 +158,7 @@ class BibRecorderV2Controller extends ChangeNotifier {
   void stopRace() {
     _raceStopped = true;
     notifyListeners();
+    unawaited(_handOffUnresolvedEntries());
   }
 
   void resumeRace() {
@@ -173,9 +179,15 @@ class BibRecorderV2Controller extends ChangeNotifier {
     notifyListeners();
   }
 
-  void deleteRace() {
+  Future<void> deleteRace() async {
+    final raceId = _selectedRace?.raceId;
     leaveRace();
-    // TODO: persist deletion via storage when bib entries are persisted
+    if (raceId != null) {
+      final result = await _storage.deleteRace(raceId, DeviceName.bibRecorderV2.toString());
+      if (result case Failure(:final error)) {
+        Logger.e('[BibRecorderV2Controller.deleteRace] ${error.originalException}');
+      }
+    }
   }
 
   // ── Runners ───────────────────────────────────────────────────────────────
@@ -191,6 +203,24 @@ class BibRecorderV2Controller extends ChangeNotifier {
         notifyListeners();
       case Failure(:final error):
         Logger.e('[BibRecorderV2Controller._loadRunners] ${error.originalException}');
+    }
+  }
+
+  Future<void> _loadBibRecords() async {
+    if (_selectedRace == null) return;
+    final result = await _storage.getBibRecords(_selectedRace!.raceId);
+    switch (result) {
+      case Success(:final value):
+        _entries.clear();
+        for (final BibRecord record in value) {
+          final bib = int.tryParse(record.bibNumber);
+          if (bib != null) {
+            _entries.add(BibEntry(id: record.bibId, bib: bib));
+          }
+        }
+        notifyListeners();
+      case Failure(:final error):
+        Logger.e('[BibRecorderV2Controller._loadBibRecords] ${error.originalException}');
     }
   }
 
@@ -265,6 +295,7 @@ class BibRecorderV2Controller extends ChangeNotifier {
       _nextPosition++;
       _positionToEntryId[_nextPosition] = entry.id;
       _sendBibEntry(entry.id, bib, _nextPosition);
+      _persistAddBib(entry.id, bib);
     }
     notifyListeners();
   }
@@ -280,6 +311,7 @@ class BibRecorderV2Controller extends ChangeNotifier {
     _nextPosition++;
     _positionToEntryId[_nextPosition] = entry.id;
     _sendBibEntry(entry.id, bib, _nextPosition);
+    _persistAddBib(entry.id, bib);
     notifyListeners();
   }
 
@@ -293,6 +325,13 @@ class BibRecorderV2Controller extends ChangeNotifier {
 
   void deleteEntry(int id) {
     _entries.removeWhere((e) => e.id == id);
+    if (_selectedRace != null) {
+      unawaited(_storage.removeBibRecord(_selectedRace!.raceId, id).then((result) {
+        if (result case Failure(:final error)) {
+          Logger.e('[BibRecorderV2Controller.deleteEntry] ${error.originalException}');
+        }
+      }));
+    }
     notifyListeners();
   }
 
@@ -300,13 +339,64 @@ class BibRecorderV2Controller extends ChangeNotifier {
     final idx = _entries.indexWhere((e) => e.id == id);
     if (idx == -1) return;
     _entries[idx] = _entries[idx].copyWith(bib: newBib);
+    if (_selectedRace != null) {
+      unawaited(_storage.updateBibRecordValue(_selectedRace!.raceId, id, newBib.toString()).then((result) {
+        if (result case Failure(:final error)) {
+          Logger.e('[BibRecorderV2Controller.editEntry] ${error.originalException}');
+        }
+      }));
+    }
     notifyListeners();
   }
 
   void clearEntries() {
     _entries.clear();
     _awaitingRecord = false;
+    if (_selectedRace != null) {
+      unawaited(_storage.deleteBibRecords(_selectedRace!.raceId).then((result) {
+        if (result case Failure(:final error)) {
+          Logger.e('[BibRecorderV2Controller.clearEntries] ${error.originalException}');
+        }
+      }));
+    }
     notifyListeners();
+  }
+
+  // ── Storage persistence ───────────────────────────────────────────────────
+
+  void _persistAddBib(int bibId, int bib) {
+    if (_selectedRace == null) return;
+    unawaited(_storage.addBibRecord(_selectedRace!.raceId, bibId, bib.toString()).then((result) {
+      if (result case Failure(:final error)) {
+        Logger.e('[BibRecorderV2Controller._persistAddBib] ${error.originalException}');
+      }
+    }));
+  }
+
+  Future<void> _handOffUnresolvedEntries() async {
+    if (_selectedRace == null) return;
+    final raceId = _selectedRace!.raceId;
+    final unresolved = _entries
+        .where((e) => e.correctedTo == null && flagFor(e.bib, excludeId: e.id) != null)
+        .toList();
+    for (final entry in unresolved) {
+      final conflict = TimingDatum(
+        time: '',
+        conflict: Conflict(type: ConflictType.confirmRunner),
+      );
+      final saveResult = await _storage.saveChunk(
+        raceId,
+        TimingChunk(id: entry.id, timingData: const [], conflictRecord: conflict),
+      );
+      if (saveResult case Failure(:final error)) {
+        Logger.e('[BibRecorderV2Controller._handOffUnresolvedEntries] ${error.originalException}');
+        continue;
+      }
+      final conflictResult = await _storage.saveChunkConflict(raceId, entry.id, conflict);
+      if (conflictResult case Failure(:final error)) {
+        Logger.e('[BibRecorderV2Controller._handOffUnresolvedEntries] ${error.originalException}');
+      }
+    }
   }
 
   // ── Share ─────────────────────────────────────────────────────────────────
