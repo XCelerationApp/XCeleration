@@ -270,6 +270,12 @@ class SyncService implements ISyncService {
   }
 
   // Public API
+
+  @override
+  Future<void> dispose() async {
+    await _syncEventController.close();
+  }
+
   @override
   Future<void> syncAll() async {
     try {
