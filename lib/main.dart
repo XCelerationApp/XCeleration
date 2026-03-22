@@ -47,7 +47,10 @@ Future<void> _initializeApp() async {
   await SentryFlutter.init(
     (options) async {
       options.dsn = dotenv.env['SENTRY_DSN'] ?? '';
-      options.tracesSampleRate = 1.0;
+      // Use 0.2 in production; override via SENTRY_TRACES_SAMPLE_RATE env var.
+      options.tracesSampleRate =
+          double.tryParse(dotenv.env['SENTRY_TRACES_SAMPLE_RATE'] ?? '') ??
+              0.2;
       options.diagnosticLevel = SentryLevel.warning;
       try {
         final info = await PackageInfo.fromPlatform();
@@ -55,11 +58,11 @@ Future<void> _initializeApp() async {
             '${info.packageName}@${info.version}+${info.buildNumber}';
       } catch (_) {}
     },
-    appRunner: () => _runApp(),
+    appRunner: _runApp,
   );
 }
 
-void _runApp() async {
+Future<void> _runApp() async {
   // Set preferred orientations
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
@@ -116,7 +119,7 @@ class MyApp extends StatelessWidget {
     final appName = dotenv.env['APP_NAME'];
 
     return MaterialApp(
-      title: appName,
+      title: appName ?? 'XCeleration',
       theme: _buildTheme(),
       home: const SplashScreen(),
       showPerformanceOverlay: false,

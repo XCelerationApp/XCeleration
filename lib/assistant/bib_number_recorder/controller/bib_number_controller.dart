@@ -100,7 +100,7 @@ class BibNumberController extends BibNumberDataController {
     }
     if (bibRecords.isNotEmpty) {
       if (bibRecords.last.bib.isEmpty) {
-        bibRecords.removeLast();
+        removeLastBibRecordSilent();
       }
     }
     notifyListeners();

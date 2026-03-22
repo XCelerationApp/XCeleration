@@ -234,8 +234,15 @@ class _ProgressSection extends StatelessWidget {
   }
 }
 
-/// Reads the controller once (safe because it only renders when hasPending is
-/// true, at which point pendingLabel is already set and stable).
+/// Reads the controller once via `context.read`. This is safe because:
+/// - `_UndoToastWrapper` is only mounted when `hasPending` is `true`
+///   (see the `if (hasPending)` guard in `_ConflictCardShellState.build`).
+/// - While `hasPending` is `true`, the card body is wrapped in
+///   `IgnorePointer(ignoring: hasPending)`, so no user interaction can reach
+///   the conflict card widgets that call `prepareAssign` / `prepareCreate`.
+/// - Therefore, `pendingLabel` is guaranteed to be stable for the lifetime of
+///   this widget — it cannot change without first clearing `hasPending`, which
+///   unmounts this widget entirely.
 class _UndoToastWrapper extends StatelessWidget {
   const _UndoToastWrapper();
 

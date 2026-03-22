@@ -68,17 +68,9 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
       if (widget.page == RaceScreenPage.results) {
         controller.tabController.animateTo(1);
       }
-      // Add listener to update UI when tab changes.
-      // Guard against every animation tick — only rebuild when the tab
-      // index has fully settled to a new value.
-      int lastTabIndex = controller.tabController.index;
-      controller.tabController.addListener(() {
-        if (!controller.tabController.indexIsChanging &&
-            controller.tabController.index != lastTabIndex) {
-          lastTabIndex = controller.tabController.index;
-          setState(() {});
-        }
-      });
+      // No setState listener needed — RaceScreenState.build does not consume
+      // tabController.index. TabBar and TabBarView handle their own rebuilds
+      // via the TabController internally.
       // Controller starts loading automatically when created
       // Subscribe to flow state changes to refresh UI when needed
       _flowStateSubscription =
@@ -154,6 +146,7 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
 
         return _RaceScreenContent(
           masterRace: widget.masterRace,
+          controller: context.read<RaceScreenController>(),
         );
       },
     );
@@ -168,12 +161,11 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
 /// - [UnsavedChangesBar] rebuilds on its own slice of form + runner state
 class _RaceScreenContent extends StatelessWidget {
   final MasterRace masterRace;
-  const _RaceScreenContent({required this.masterRace});
+  final RaceScreenController controller;
+  const _RaceScreenContent({required this.masterRace, required this.controller});
 
   @override
   Widget build(BuildContext context) {
-    final controller = context.read<RaceScreenController>();
-
     return Stack(
       children: [
         // Inner Selector: controls layout structure.
@@ -220,31 +212,7 @@ class _RaceScreenContent extends StatelessWidget {
                           }
                           // Lightweight placeholder — avoids constructing
                           // the full runners widget before it is visible.
-                          return Container(
-                            padding: const EdgeInsets.all(16),
-                            child: Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.group,
-                                      size: 48, color: Colors.grey),
-                                  const SizedBox(height: 16),
-                                  const Text(
-                                    'Runners Management',
-                                    style: TextStyle(
-                                        fontSize: 18, color: Colors.grey),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'Navigate from the main screen to manage runners',
-                                    textAlign: TextAlign.center,
-                                    style:
-                                        TextStyle(color: Colors.grey[600]),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
+                          return const RunnersManagementPlaceholder();
                         },
                       ),
                     ),

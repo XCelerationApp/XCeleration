@@ -406,9 +406,9 @@ class LoadResultsController with ChangeNotifier {
     }
 
     // Check for bib conflicts
-    final hasBibConflicts = raceRunners!.any((runner) => runner is int);
+    final hadBibConflicts = raceRunners!.any((runner) => runner is int);
 
-    if (!hasBibConflicts) {
+    if (!hadBibConflicts) {
       Logger.d('No bib conflicts found, showing info dialog');
       DialogUtils.showErrorDialog(
         context,

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_colorpicker/flutter_colorpicker.dart';
+import 'package:xceleration/core/services/color_picker_dialog_service.dart';
 import 'package:xceleration/shared/models/database/team.dart';
 import 'package:xceleration/core/components/button_components.dart';
 import 'package:xceleration/core/components/textfield_utils.dart'
@@ -9,8 +9,14 @@ import 'package:xceleration/core/theme/app_colors.dart';
 class EditTeamSheet extends StatefulWidget {
   final Team team;
   final ValueChanged<Team> onSave;
+  final IColorPickerDialogService? colorPickerService;
 
-  const EditTeamSheet({super.key, required this.team, required this.onSave});
+  const EditTeamSheet({
+    super.key,
+    required this.team,
+    required this.onSave,
+    this.colorPickerService,
+  });
 
   @override
   State<EditTeamSheet> createState() => _EditTeamSheetState();
@@ -26,7 +32,7 @@ class _EditTeamSheetState extends State<EditTeamSheet> {
   void initState() {
     super.initState();
     _originalName = widget.team.name ?? '';
-    _originalColor = widget.team.color ?? const Color(0xFF2196F3);
+    _originalColor = widget.team.color ?? AppColors.defaultTeamColor;
     _nameController = TextEditingController(text: _originalName);
     _color = _originalColor;
   }
@@ -139,25 +145,10 @@ class _EditTeamSheetState extends State<EditTeamSheet> {
   }
 
   void _showColorPicker() {
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        return AlertDialog(
-          title: const Text('Pick Team Color'),
-          content: SingleChildScrollView(
-            child: BlockPicker(
-              pickerColor: _color,
-              onColorChanged: (c) => setState(() => _color = c),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Done'),
-            )
-          ],
-        );
-      },
+    (widget.colorPickerService ?? ColorPickerDialogService()).showColorPicker(
+      context,
+      currentColor: _color,
+      onColorChanged: (c) => setState(() => _color = c),
     );
   }
 

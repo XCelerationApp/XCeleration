@@ -9,21 +9,47 @@ import '../../shared/services/i_assistant_storage_service.dart';
 import '../../shared/models/bib_record.dart' as db_models;
 import '../../shared/models/runner.dart' as db_models;
 
+/// Bundles the five per-row resources that previously lived in five parallel
+/// lists. Disposing a row cleans up all of its resources in one place.
+class _BibRow {
+  BibDatumRecord record;
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final VoidCallback focusListener;
+  final ValueNotifier<BibDatumRecord> notifier;
+
+  _BibRow({
+    required this.record,
+    required this.controller,
+    required this.focusNode,
+    required this.focusListener,
+    required this.notifier,
+  });
+
+  void dispose() {
+    focusNode.removeListener(focusListener);
+    focusNode.dispose();
+    controller.dispose();
+    notifier.dispose();
+  }
+}
+
 class BibNumberDataController extends ChangeNotifier {
-  final List<BibDatumRecord> _bibRecords = [];
-  final List<TextEditingController> controllers = [];
-  final List<FocusNode> focusNodes = [];
+  final List<_BibRow> _rows = [];
+
+  // ---------------------------------------------------------------------------
+  // Public list views — computed from _rows so callers see a consistent API.
+  // ---------------------------------------------------------------------------
+
+  List<BibDatumRecord> get bibRecords => _rows.map((r) => r.record).toList();
+  List<TextEditingController> get controllers =>
+      _rows.map((r) => r.controller).toList();
+  List<FocusNode> get focusNodes => _rows.map((r) => r.focusNode).toList();
 
   /// Per-row notifiers so each [BibInputWidget] can rebuild independently
   /// without triggering a full-list rebuild.
-  final List<ValueNotifier<BibDatumRecord>> _rowNotifiers = [];
-
-  /// Stored listener closures parallel to [focusNodes] so [removeListener]
-  /// can receive the exact same object that was passed to [addListener].
-  /// An anonymous `() {}` passed to [removeListener] is a new object and
-  /// never matches the original, making the call a no-op.
-  final List<VoidCallback> _focusListeners = [];
-  List<ValueNotifier<BibDatumRecord>> get rowNotifiers => _rowNotifiers;
+  List<ValueNotifier<BibDatumRecord>> get rowNotifiers =>
+      _rows.map((r) => r.notifier).toList();
 
   /// Narrow notifier for the current race so [RaceHeaderWidget] only rebuilds
   /// when the race itself changes, not on every keystroke.
@@ -50,82 +76,30 @@ class BibNumberDataController extends ChangeNotifier {
   RaceRecord? get currentRace => _currentRace;
   bool get raceStopped => _raceStopped;
 
-  List<BibDatumRecord> get bibRecords => _bibRecords;
-
   bool get canAddBib {
-    if (_bibRecords.isEmpty) return true;
-    final BibDatumRecord lastBib = _bibRecords.last;
+    if (_rows.isEmpty) return true;
+    final lastRow = _rows.last;
     // Only prevent adding if the last bib is completely empty AND has focus
     // If the last bib has content (even if runner not found), allow adding
-    if (lastBib.bib.isEmpty && focusNodes.last.hasPrimaryFocus) return false;
-    return true;
-  }
-
-  // Synchronizes collections to match bibRecords length
-  void _syncCollections() {
-    // If collections are out of sync, reset them
-    if (!(_bibRecords.length == controllers.length &&
-        controllers.length == focusNodes.length)) {
-      // Save existing bib records
-      final existingRecords = List<BibDatumRecord>.from(_bibRecords);
-
-      // Clear and dispose all existing controllers and focus nodes
-      for (var controller in controllers) {
-        if (controller.hasListeners) {
-          controller.dispose();
-        }
-      }
-      controllers.clear();
-
-      for (var i = 0; i < focusNodes.length; i++) {
-        if (i < _focusListeners.length) {
-          focusNodes[i].removeListener(_focusListeners[i]);
-        }
-        focusNodes[i].dispose();
-      }
-      focusNodes.clear();
-      _focusListeners.clear();
-
-      // Reset records collection
-      _bibRecords.clear();
-
-      // Re-add all records with fresh controllers and focus nodes
-      for (var record in existingRecords) {
-        addBibRecord(record);
-      }
+    if (lastRow.record.bib.isEmpty && lastRow.focusNode.hasPrimaryFocus) {
+      return false;
     }
+    return true;
   }
 
   /// Adds a new bib record with the specified runner record.
   /// Returns the index of the added record.
   Future<int> addBibRecord(BibDatumRecord record) async {
-    _bibRecords.add(record);
-    _rowNotifiers.add(ValueNotifier(record));
-
-    final newIndex = _bibRecords.length - 1;
-    final controller = _textInputFactory.createController(record.bib);
-    controllers.add(controller);
-
-    final focusNode = _textInputFactory.createFocusNode();
-    void focusListener() {
-      keyboardVisibleNotifier.value = focusNode.hasFocus;
-      if (!focusNode.hasFocus) {
-        _saveBibRecordOnFocusLoss(newIndex);
-      }
-    }
-    focusNode.addListener(focusListener);
-    _focusListeners.add(focusListener);
-    focusNodes.add(focusNode);
-
+    final index = addBibRecordSilent(record);
     notifyListeners();
-    return newIndex;
+    return index;
   }
 
   /// Saves a bib record to the database when focus is lost
   void _saveBibRecordOnFocusLoss(int index) async {
-    if (index < 0 || index >= _bibRecords.length) return;
+    if (index < 0 || index >= _rows.length) return;
 
-    final record = _bibRecords[index];
+    final record = _rows[index].record;
     final bibValue = record.bib;
 
     if (_currentRace != null && bibValue.isNotEmpty) {
@@ -153,20 +127,15 @@ class BibNumberDataController extends ChangeNotifier {
 
   /// Updates an existing bib record at the specified index.
   void updateBibRecord(int index, BibDatumRecord record) {
-    if (index < 0 || index >= _bibRecords.length) return;
+    if (index < 0 || index >= _rows.length) return;
 
-    // Ensure collections are in sync
-    _syncCollections();
-
-    _bibRecords[index] = record;
-    if (index < _rowNotifiers.length) _rowNotifiers[index].value = record;
+    _rows[index].record = record;
+    _rows[index].notifier.value = record;
 
     // Only update the controller text if it differs to avoid cursor jumping
-    if (index < controllers.length) {
-      final currentText = controllers[index].text;
-      if (currentText != record.bib) {
-        controllers[index].text = record.bib;
-      }
+    final currentText = _rows[index].controller.text;
+    if (currentText != record.bib) {
+      _rows[index].controller.text = record.bib;
     }
 
     notifyListeners();
@@ -174,30 +143,10 @@ class BibNumberDataController extends ChangeNotifier {
 
   /// Removes a bib record at the specified index.
   Future<void> removeBibRecord(int index) async {
-    if (index < 0 || index >= _bibRecords.length) return;
+    if (index < 0 || index >= _rows.length) return;
 
-    // Ensure collections are in sync before removing
-    _syncCollections();
-
-    if (index >= controllers.length || index >= focusNodes.length) return;
-
-    _bibRecords.removeAt(index);
-
-    // Clean up resources
-    controllers[index].dispose();
-    controllers.removeAt(index);
-
-    if (index < _focusListeners.length) {
-      focusNodes[index].removeListener(_focusListeners[index]);
-      _focusListeners.removeAt(index);
-    }
-    focusNodes[index].dispose();
-    focusNodes.removeAt(index);
-
-    if (index < _rowNotifiers.length) {
-      _rowNotifiers[index].dispose();
-      _rowNotifiers.removeAt(index);
-    }
+    _rows[index].dispose();
+    _rows.removeAt(index);
 
     // Remove from database if there's a current race
     if (_currentRace != null) {
@@ -214,28 +163,10 @@ class BibNumberDataController extends ChangeNotifier {
   }
 
   void clearBibRecords() {
-    _bibRecords.clear();
-
-    // Dispose all controllers and focus nodes
-    for (var controller in controllers) {
-      controller.dispose();
+    for (final row in _rows) {
+      row.dispose();
     }
-    controllers.clear();
-
-    for (var i = 0; i < focusNodes.length; i++) {
-      if (i < _focusListeners.length) {
-        focusNodes[i].removeListener(_focusListeners[i]);
-      }
-      focusNodes[i].dispose();
-    }
-    focusNodes.clear();
-    _focusListeners.clear();
-
-    for (var notifier in _rowNotifiers) {
-      notifier.dispose();
-    }
-    _rowNotifiers.clear();
-
+    _rows.clear();
     notifyListeners();
   }
 
@@ -249,7 +180,6 @@ class BibNumberDataController extends ChangeNotifier {
   /// Sets the race stopped state
   void setRaceStopped(bool stopped) {
     _raceStopped = stopped;
-
     notifyListeners();
   }
 
@@ -261,11 +191,9 @@ class BibNumberDataController extends ChangeNotifier {
   /// Use only inside bulk-load operations that emit a single notification at
   /// the end (e.g. [_loadBibRecords]).
   int addBibRecordSilent(BibDatumRecord record) {
-    _bibRecords.add(record);
-    _rowNotifiers.add(ValueNotifier(record));
-    final newIndex = _bibRecords.length - 1;
-    controllers.add(_textInputFactory.createController(record.bib));
+    final newIndex = _rows.length;
 
+    final controller = _textInputFactory.createController(record.bib);
     final focusNode = _textInputFactory.createFocusNode();
     void focusListener() {
       keyboardVisibleNotifier.value = focusNode.hasFocus;
@@ -273,44 +201,46 @@ class BibNumberDataController extends ChangeNotifier {
         _saveBibRecordOnFocusLoss(newIndex);
       }
     }
+
     focusNode.addListener(focusListener);
-    _focusListeners.add(focusListener);
-    focusNodes.add(focusNode);
+
+    _rows.add(_BibRow(
+      record: record,
+      controller: controller,
+      focusNode: focusNode,
+      focusListener: focusListener,
+      notifier: ValueNotifier(record),
+    ));
+
     return newIndex;
   }
 
   /// Updates a bib record without notifying listeners.
   /// Use only inside bulk-load operations.
   void updateBibRecordSilent(int index, BibDatumRecord record) {
-    if (index < 0 || index >= _bibRecords.length) return;
-    _bibRecords[index] = record;
-    if (index < _rowNotifiers.length) _rowNotifiers[index].value = record;
-    if (index < controllers.length) {
-      final currentText = controllers[index].text;
-      if (currentText != record.bib) controllers[index].text = record.bib;
-    }
+    if (index < 0 || index >= _rows.length) return;
+    _rows[index].record = record;
+    _rows[index].notifier.value = record;
+    final currentText = _rows[index].controller.text;
+    if (currentText != record.bib) _rows[index].controller.text = record.bib;
+  }
+
+  /// Removes the last bib record without notifying listeners or touching the
+  /// database. Use in synchronous contexts where DB removal is handled
+  /// separately (e.g. [BibNumberController.raceStopped] setter).
+  void removeLastBibRecordSilent() {
+    if (_rows.isEmpty) return;
+    _rows.last.dispose();
+    _rows.removeLast();
   }
 
   /// Clears only the bib record list (and its controllers/focus nodes) without
   /// notifying listeners. Use inside [_loadBibRecords] to avoid mid-load rebuilds.
   void clearBibRecordsSilent() {
-    _bibRecords.clear();
-    for (var c in controllers) {
-      c.dispose();
+    for (final row in _rows) {
+      row.dispose();
     }
-    controllers.clear();
-    for (var i = 0; i < focusNodes.length; i++) {
-      if (i < _focusListeners.length) {
-        focusNodes[i].removeListener(_focusListeners[i]);
-      }
-      focusNodes[i].dispose();
-    }
-    focusNodes.clear();
-    _focusListeners.clear();
-    for (var notifier in _rowNotifiers) {
-      notifier.dispose();
-    }
-    _rowNotifiers.clear();
+    _rows.clear();
   }
 
   /// Resets all mutable UI state (race, stopped flag, bib records) without
@@ -330,7 +260,8 @@ class BibNumberDataController extends ChangeNotifier {
       final dbRunners = <db_models.Runner>[];
       int bibId = 0;
 
-      for (final record in _bibRecords) {
+      for (final row in _rows) {
+        final record = row.record;
         if (record.bib.isNotEmpty) {
           // Save bib record
           dbBibRecords.add(db_models.BibRecord(
@@ -351,7 +282,8 @@ class BibNumberDataController extends ChangeNotifier {
               teamAbbreviation: (record.teamAbbreviation?.isNotEmpty ?? false)
                   ? record.teamAbbreviation
                   : null,
-              grade: (record.grade?.isNotEmpty ?? false) ? record.grade : null,
+              grade:
+                  (record.grade?.isNotEmpty ?? false) ? record.grade : null,
               teamColor: record.teamColor,
               createdAt: DateTime.now(),
             ));
@@ -370,22 +302,23 @@ class BibNumberDataController extends ChangeNotifier {
 
   /// Restores the focus abilities for all focus nodes
   void restoreFocusability() {
-    for (var node in focusNodes) {
-      node.canRequestFocus = true;
+    for (final row in _rows) {
+      row.focusNode.canRequestFocus = true;
     }
   }
 
   /// Gets the encoded bib data for sharing
   Future<String> getEncodedBibData() async {
-    return await BibEncodeUtils.getEncodedBibData(_bibRecords);
+    return await BibEncodeUtils.getEncodedBibData(
+        _rows.map((r) => r.record).toList());
   }
 
   /// Returns all unique bib numbers and the corresponding runner records
   Map<String, BibDatumRecord> getBibsAndRunners() {
     final map = <String, BibDatumRecord>{};
-    for (final record in _bibRecords) {
-      if (record.bib.isNotEmpty) {
-        map[record.bib] = record;
+    for (final row in _rows) {
+      if (row.record.bib.isNotEmpty) {
+        map[row.record.bib] = row.record;
       }
     }
     return map;
@@ -396,8 +329,8 @@ class BibNumberDataController extends ChangeNotifier {
     final duplicates = <String>[];
     final seen = <String>{};
 
-    for (final record in _bibRecords) {
-      final bib = record.bib;
+    for (final row in _rows) {
+      final bib = row.record.bib;
       if (bib.isEmpty) continue;
 
       if (seen.contains(bib)) {
@@ -412,16 +345,14 @@ class BibNumberDataController extends ChangeNotifier {
 
   /// Returns true if any bib record is not in the database.
   bool checkUnknownRecords() {
-    return _bibRecords.any((record) => record.flags.notInDatabase);
+    return _rows.any((row) => row.record.flags.notInDatabase);
   }
 
   Future<bool> cleanEmptyRecords() async {
-    final emptyRecords = _bibRecords.where((bib) => bib.bib.isEmpty).toList();
-
-    for (var i = emptyRecords.length - 1; i >= 0; i--) {
-      final index = _bibRecords.indexOf(emptyRecords[i]);
-      if (index >= 0) {
-        removeBibRecord(index);
+    // Iterate in reverse to preserve indices while removing
+    for (var i = _rows.length - 1; i >= 0; i--) {
+      if (_rows[i].record.bib.isEmpty) {
+        removeBibRecord(i);
       }
     }
     return true;
@@ -429,66 +360,43 @@ class BibNumberDataController extends ChangeNotifier {
 
   // Helper to check if we have any non-empty bib numbers
   bool hasNonEmptyBibNumbers() {
-    return _bibRecords.any((record) => record.bib.isNotEmpty);
+    return _rows.any((row) => row.record.bib.isNotEmpty);
   }
 
   // Helper to count non-empty bib numbers
   int countNonEmptyBibNumbers() {
-    return _bibRecords.where((bib) => bib.bib.isNotEmpty).length;
+    return _rows.where((row) => row.record.bib.isNotEmpty).length;
   }
 
   // Helper to count empty bib numbers
   int countEmptyBibNumbers() {
-    return _bibRecords.where((bib) => bib.bib.isEmpty).length;
+    return _rows.where((row) => row.record.bib.isEmpty).length;
   }
 
   // Helper to count duplicate bib numbers
   int countDuplicateBibNumbers() {
-    return _bibRecords
-        .where((bib) => bib.flags.duplicateBibNumber == true)
+    return _rows
+        .where((row) => row.record.flags.duplicateBibNumber == true)
         .length;
   }
 
   // Helper to count unknown bib numbers
   int countUnknownBibNumbers() {
-    return _bibRecords.where((bib) => bib.flags.notInDatabase == true).length;
+    return _rows.where((row) => row.record.flags.notInDatabase == true).length;
   }
 
   @override
   void dispose() {
-    // Dispose of focus nodes — remove the stored listener reference first so
-    // focus events that fire during teardown cannot call notifyListeners() on
-    // the partially-disposed controller.
-    for (var i = 0; i < focusNodes.length; i++) {
+    // Remove focus listeners first so focus events firing during teardown
+    // cannot call notifyListeners() on the partially-disposed controller.
+    for (final row in _rows) {
       try {
-        if (i < _focusListeners.length) {
-          focusNodes[i].removeListener(_focusListeners[i]);
-        }
-        focusNodes[i].dispose();
+        row.dispose();
       } catch (e) {
-        Logger.e('Warning: Error disposing focus node: $e');
+        Logger.e('Warning: Error disposing bib row: $e');
       }
     }
-    _focusListeners.clear();
-
-    // Dispose of text controllers
-    for (var controller in controllers) {
-      try {
-        controller.dispose();
-      } catch (e) {
-        // Controller may already be disposed, ignore the error
-        Logger.e('Warning: Error disposing text controller: $e');
-      }
-    }
-
-    // Clear collections but don't notify listeners since we're disposing
-    _bibRecords.clear();
-    controllers.clear();
-    focusNodes.clear();
-    for (var notifier in _rowNotifiers) {
-      notifier.dispose();
-    }
-    _rowNotifiers.clear();
+    _rows.clear();
     currentRaceNotifier.dispose();
     keyboardVisibleNotifier.dispose();
     super.dispose();

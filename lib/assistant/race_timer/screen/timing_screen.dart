@@ -30,6 +30,8 @@ class _TimingScreenState extends State<TimingScreen>
   late TimingController _controller;
   late TabController _tabController;
   late final TutorialManager tutorialManager = TutorialManager();
+  late final Listenable _raceStateAndRecords;
+  late final Listenable _raceStateAndInfo;
 
   @override
   void initState() {
@@ -39,6 +41,14 @@ class _TimingScreenState extends State<TimingScreen>
       storage: AssistantStorageService.instance,
       audioPlayer: AudioPlayer(),
     );
+    _raceStateAndRecords = Listenable.merge([
+      _controller.raceStateSignal,
+      _controller.recordsSignal,
+    ]);
+    _raceStateAndInfo = Listenable.merge([
+      _controller.raceStateSignal,
+      _controller.raceInfoSignal,
+    ]);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       InstructionsBanner.showInstructionsSheet(context, Role.timer).then((_) {
@@ -119,10 +129,7 @@ class _TimingScreenState extends State<TimingScreen>
               const SizedBox(height: 8),
               // Race status: rebuilds when race state or records change
               ListenableBuilder(
-                listenable: Listenable.merge([
-                  _controller.raceStateSignal,
-                  _controller.recordsSignal,
-                ]),
+                listenable: _raceStateAndRecords,
                 builder: (context, child) {
                   return RaceStatusWidget(controller: _controller);
                 },
@@ -138,10 +145,7 @@ class _TimingScreenState extends State<TimingScreen>
               const SizedBox(height: 8),
               // Race controls: rebuilds when race state or race identity changes
               ListenableBuilder(
-                listenable: Listenable.merge([
-                  _controller.raceStateSignal,
-                  _controller.raceInfoSignal,
-                ]),
+                listenable: _raceStateAndInfo,
                 builder: (context, child) {
                   return RaceControlsWidget(controller: _controller);
                 },
@@ -157,10 +161,7 @@ class _TimingScreenState extends State<TimingScreen>
               ),
               // Bottom controls: rebuilds when race state or records change
               ListenableBuilder(
-                listenable: Listenable.merge([
-                  _controller.raceStateSignal,
-                  _controller.recordsSignal,
-                ]),
+                listenable: _raceStateAndRecords,
                 builder: (context, child) {
                   if (_controller.raceStopped == false &&
                       _controller.hasTimingData) {
