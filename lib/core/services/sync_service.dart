@@ -787,7 +787,13 @@ class SyncService implements ISyncService {
 
       if (runnerId == null || raceId == null) {
         Logger.d(
-            'Skipping race_result UUID:$uuid — runner_uuid=$runnerUuid or race_uuid=$raceUuid not yet pulled locally. Will retry on next sync.');
+            'Skipping race_result UUID:$uuid — runner_uuid=$runnerUuid or race_uuid=$raceUuid not available locally.');
+        final skippedUpdatedAt = remote['updated_at']?.toString();
+        if (skippedUpdatedAt != null &&
+            (newCursor == null ||
+                skippedUpdatedAt.compareTo(newCursor) > 0)) {
+          newCursor = skippedUpdatedAt;
+        }
         continue;
       }
 
@@ -982,7 +988,13 @@ class SyncService implements ISyncService {
 
       if (raceId == null || runnerId == null) {
         Logger.d(
-            'Skipping race_participant race_uuid=$raceUuid runner_uuid=$runnerUuid — not yet pulled locally. Will retry on next sync.');
+            'Skipping race_participant race_uuid=$raceUuid runner_uuid=$runnerUuid — parent race or runner not available locally.');
+        final skippedUpdatedAt = remote['updated_at']?.toString();
+        if (skippedUpdatedAt != null &&
+            (newCursor == null ||
+                skippedUpdatedAt.compareTo(newCursor) > 0)) {
+          newCursor = skippedUpdatedAt;
+        }
         continue;
       }
 
