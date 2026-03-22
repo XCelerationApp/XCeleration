@@ -291,7 +291,7 @@ class BibRecorderV2Controller extends ChangeNotifier {
     if (bib != null) {
       final entry = BibEntry(id: DateTime.now().millisecondsSinceEpoch, bib: bib);
       _entries.insert(0, entry);
-      if (flagFor(bib) != null) _haptic.vibrate();
+      if (flagFor(bib, excludeId: entry.id) != null) _haptic.vibrate();
       _nextPosition++;
       _positionToEntryId[_nextPosition] = entry.id;
       _sendBibEntry(entry.id, bib, _nextPosition);
@@ -307,7 +307,7 @@ class BibRecorderV2Controller extends ChangeNotifier {
     _awaitingRecord = false;
     final entry = BibEntry(id: DateTime.now().millisecondsSinceEpoch, bib: bib);
     _entries.insert(0, entry);
-    if (flagFor(bib) != null) _haptic.vibrate();
+    if (flagFor(bib, excludeId: entry.id) != null) _haptic.vibrate();
     _nextPosition++;
     _positionToEntryId[_nextPosition] = entry.id;
     _sendBibEntry(entry.id, bib, _nextPosition);
