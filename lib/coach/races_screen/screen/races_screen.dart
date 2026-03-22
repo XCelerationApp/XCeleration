@@ -20,7 +20,26 @@ import '../widgets/races_list.dart';
 
 class RacesScreen extends StatefulWidget {
   final bool canEdit;
-  const RacesScreen({super.key, this.canEdit = true});
+
+  // Optional service overrides — defaults to production implementations.
+  // Inject mocks in tests to avoid touching real platform APIs.
+  final IRacesService? racesService;
+  final IAuthService? authService;
+  final IEventBus? eventBus;
+  final IGeoLocationService? geoLocationService;
+  final IPostFrameCallbackScheduler? postFrameCallbackScheduler;
+  final TutorialManager? tutorialManager;
+
+  const RacesScreen({
+    super.key,
+    this.canEdit = true,
+    this.racesService,
+    this.authService,
+    this.eventBus,
+    this.geoLocationService,
+    this.postFrameCallbackScheduler,
+    this.tutorialManager,
+  });
 
   @override
   RacesScreenState createState() => RacesScreenState();
@@ -33,12 +52,13 @@ class RacesScreenState extends State<RacesScreen> {
   void initState() {
     super.initState();
     _controller = RacesController(
-      racesService: RacesService(),
-      authService: AuthService.instance,
-      eventBus: EventBus.instance,
-      geoLocationService: GeoLocationService(),
-      postFrameCallbackScheduler: WidgetsBindingAdapter(),
-      tutorialManager: TutorialManager(),
+      racesService: widget.racesService ?? RacesService(),
+      authService: widget.authService ?? AuthService.instance,
+      eventBus: widget.eventBus ?? EventBus.instance,
+      geoLocationService: widget.geoLocationService ?? GeoLocationService(),
+      postFrameCallbackScheduler:
+          widget.postFrameCallbackScheduler ?? WidgetsBindingAdapter(),
+      tutorialManager: widget.tutorialManager ?? TutorialManager(),
       syncStream: context.read<ISyncService>().syncEvents,
       canEdit: widget.canEdit,
     );

@@ -18,6 +18,7 @@ import '../core/theme/app_animations.dart';
 import '../core/theme/typography.dart';
 import '../core/components/page_route_animations.dart';
 import '../core/services/auth_service.dart';
+import '../core/services/i_remote_api_client.dart';
 import '../core/services/profile_service.dart';
 import '../core/services/remote_api_client.dart';
 import 'screens/sign_in_screen.dart';
@@ -491,7 +492,12 @@ const _gradientBg = BoxDecoration(
 // ─── Role selection screen ────────────────────────────────────────────────────
 
 class RoleScreen extends StatefulWidget {
-  const RoleScreen({super.key});
+  // Optional service overrides — defaults to production implementations.
+  // Inject mocks in tests to avoid touching real singletons.
+  final IAuthService? authService;
+  final IRemoteApiClient? remoteApiClient;
+
+  const RoleScreen({super.key, this.authService, this.remoteApiClient});
 
   @override
   State<RoleScreen> createState() => _RoleScreenState();
@@ -548,14 +554,16 @@ class _RoleScreenState extends State<RoleScreen>
   }
 
   void _onCoach() {
-    if (!AuthService.instance.isSignedIn) {
+    final auth = widget.authService ?? AuthService.instance;
+    final remoteApi = widget.remoteApiClient ?? RemoteApiClient();
+    if (!auth.isSignedIn) {
       Navigator.of(context).push(
         InitialPageRouteAnimation(
           child: SignInScreen(
-            authService: AuthService.instance,
+            authService: auth,
             profileService: ProfileService(
-              remoteApi: RemoteApiClient(),
-              auth: AuthService.instance,
+              remoteApi: remoteApi,
+              auth: auth,
             ),
           ),
         ),
