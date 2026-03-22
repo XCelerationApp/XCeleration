@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../../core/components/button_components.dart';
+import '../../../../core/theme/app_border_radius.dart';
+import '../../../../core/theme/app_spacing.dart';
 
 /// A custom animated action button widget for share race functionality
 class ShareActionButton extends StatefulWidget {
@@ -58,27 +60,28 @@ class _ShareActionButtonState extends State<ShareActionButton>
     return Tooltip(
       message: widget.tooltip ?? '',
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        margin: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
         child: ScaleTransition(
           scale: _scaleAnimation,
           child: widget.isPrimary
               ? PrimaryButton(
                   text: widget.label,
                   icon: widget.icon,
-                  borderRadius: 12,
+                  borderRadius: AppBorderRadius.md,
                   elevation: 0,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.sm, vertical: AppSpacing.md),
                   iconSize: 18,
                   onPressed: handlePress,
                 )
               : SecondaryButton(
                   text: widget.label,
                   icon: widget.icon,
-                  borderRadius: 12,
+                  borderRadius: AppBorderRadius.md,
                   elevation: 2,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.sm, vertical: AppSpacing.md),
                   iconSize: 18,
                   onPressed: handlePress,
                 ),

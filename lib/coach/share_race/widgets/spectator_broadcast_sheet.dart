@@ -2,7 +2,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/services/device_connection_service.dart';
 import 'package:xceleration/core/components/device_connection_widget.dart';
+import 'package:xceleration/core/theme/app_border_radius.dart';
 import 'package:xceleration/core/theme/app_colors.dart';
+import 'package:xceleration/core/theme/app_spacing.dart';
+import 'package:xceleration/core/theme/typography.dart';
 import 'package:xceleration/core/utils/enums.dart';
 
 class SpectatorBroadcastSheet extends StatefulWidget {
@@ -58,10 +61,11 @@ class _SpectatorBroadcastSheetState extends State<SpectatorBroadcastSheet> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.lg, vertical: AppSpacing.md),
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
+            color: AppColors.backgroundColor,
+            borderRadius: BorderRadius.circular(AppBorderRadius.md),
             border: Border.all(color: AppColors.lightColor, width: 1),
           ),
           child: Row(
@@ -71,8 +75,7 @@ class _SpectatorBroadcastSheetState extends State<SpectatorBroadcastSheet> {
                   valueListenable: _finishedCount,
                   builder: (context, count, _) => Text(
                     'Sent to $count device${count == 1 ? '' : 's'}',
-                    style: const TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.w600),
+                    style: AppTypography.bodySemibold,
                   ),
                 ),
               ),
@@ -84,7 +87,7 @@ class _SpectatorBroadcastSheetState extends State<SpectatorBroadcastSheet> {
             ],
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.md),
         // Underlying wireless connection UI modeled after coach↔assistant
         DeviceConnectionWidget(devices: widget.devices),
       ],

@@ -32,7 +32,7 @@ class _EditTeamSheetState extends State<EditTeamSheet> {
   void initState() {
     super.initState();
     _originalName = widget.team.name ?? '';
-    _originalColor = widget.team.color ?? const Color(0xFF2196F3);
+    _originalColor = widget.team.color ?? AppColors.defaultTeamColor;
     _nameController = TextEditingController(text: _originalName);
     _color = _originalColor;
   }
