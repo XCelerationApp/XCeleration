@@ -12,7 +12,7 @@ Future<void> _defaultSupabaseInitializer({
   required String url,
   required String anonKey,
 }) =>
-    Supabase.initialize(url: url, anonKey: anonKey);
+    Supabase.initialize(url: url, anonKey: anonKey, debug: false);
 
 class RemoteApiClient implements IRemoteApiClient {
   RemoteApiClient({

@@ -31,8 +31,7 @@ class RaceLocationField extends StatelessWidget {
                   : 'Enter race location',
               error: controller.form.errorFor(RaceField.location),
               onChanged: (value) {
-                controller.validateLocation(
-                    controller.form.locationController.text);
+                controller.form.applyValidation(RaceField.location);
                 if (onChanged != null) onChanged!(value);
               },
               keyboardType: TextInputType.text,

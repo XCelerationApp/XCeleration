@@ -11,6 +11,7 @@ import '../../../core/components/app_header.dart';
 import '../../../core/theme/typography.dart';
 import '../../../shared/role_bar/widgets/instructions_banner.dart';
 import '../controller/bib_number_controller.dart';
+import '../../shared/models/race_record.dart';
 import '../widgets/bib_list_widget.dart';
 import '../widgets/race_controls_widget.dart';
 import '../widgets/keyboard_accessory_bar.dart';
@@ -141,83 +142,95 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
         tutorialManager: _controller.tutorialManager,
         child: GestureDetector(
           onTap: () => FocusScope.of(context).unfocus(),
-          child: AnimatedBuilder(
-            animation: _controller,
-            builder: (context, child) {
-              return Scaffold(
-                resizeToAvoidBottomInset: true,
-                body: Column(children: [
-                  AppHeader(
-                    title: 'Bib Recorder',
-                    currentRole: Role.bibRecorder,
-                    tutorialManager: _controller.tutorialManager,
-                    titleStyle: AppTypography.displaySmall,
-                    onRoleTap: () => RoleSelectorSheet.showRoleSelection(
-                        context, Role.bibRecorder),
-                    onSettingsTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => SettingsScreen(
-                          currentRole: Role.bibRecorder.toValueString(),
-                        ),
+          child: Scaffold(
+            resizeToAvoidBottomInset: true,
+            body: Column(children: [
+              // AppHeader never depends on controller state — built once.
+              AppHeader(
+                title: 'Bib Recorder',
+                currentRole: Role.bibRecorder,
+                tutorialManager: _controller.tutorialManager,
+                titleStyle: AppTypography.displaySmall,
+                onRoleTap: () => RoleSelectorSheet.showRoleSelection(
+                    context, Role.bibRecorder),
+                onSettingsTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => SettingsScreen(
+                      currentRole: Role.bibRecorder.toValueString(),
+                    ),
+                  ),
+                ),
+              ),
+
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(children: [
+                  // RaceHeaderWidget only rebuilds when the current race changes.
+                  ValueListenableBuilder<RaceRecord?>(
+                    valueListenable: _controller.currentRaceNotifier,
+                    builder: (context, currentRace, _) => CoachMark(
+                      id: 'race_header_tutorial',
+                      tutorialManager: _controller.tutorialManager,
+                      config: const CoachMarkConfig(
+                        title: 'Race Information',
+                        description:
+                            'This shows your current race. A demo race has been loaded so you can test the features. Tap the menu to load a race from your coach.',
+                        icon: Icons.info_outline,
+                        alignmentY: AlignmentY.bottom,
+                        type: CoachMarkType.targeted,
+                        backgroundColor: Color(0xFF1976D2),
+                      ),
+                      child: RaceHeaderWidget(
+                        currentRace: currentRace,
+                        role: DeviceName.bibRecorder,
+                        onLoadRace: () =>
+                            _controller.showLoadRaceSheet(context),
+                        onShowOtherRaces: () =>
+                            _controller.showOtherRaces(context),
+                        onDeleteRace: () => _controller.deleteCurrentRace(),
+                        onShowRunners: currentRace != null
+                            ? () =>
+                                _controller.showRunnersLoadedSheet(context)
+                            : null,
                       ),
                     ),
                   ),
-                  Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16),
-                      child: Column(children: [
-                        CoachMark(
-                          id: 'race_header_tutorial',
-                          tutorialManager: _controller.tutorialManager,
-                          config: const CoachMarkConfig(
-                            title: 'Race Information',
-                            description:
-                                'This shows your current race. A demo race has been loaded so you can test the features. Tap the menu to load a race from your coach.',
-                            icon: Icons.info_outline,
-                            alignmentY: AlignmentY.bottom,
-                            type: CoachMarkType.targeted,
-                            backgroundColor: Color(0xFF1976D2),
-                          ),
-                          child: RaceHeaderWidget(
-                            currentRace: _controller.currentRace,
-                            role: DeviceName.bibRecorder,
-                            onLoadRace: () =>
-                                _controller.showLoadRaceSheet(context),
-                            onShowOtherRaces: () =>
-                                _controller.showOtherRaces(context),
-                            onDeleteRace: () => _controller.deleteCurrentRace(),
-                            onShowRunners: _controller.currentRace != null
-                                ? () =>
-                                    _controller.showRunnersLoadedSheet(context)
-                                : null,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        _buildRaceStatusWidget(),
-                        const SizedBox(height: 16),
-                        RaceControlsWidget(
-                          controller: _controller,
-                          onShare: _onShareBibNumbers,
-                        ),
-                      ])),
-
-                  // Bib input list section - moved outside the inner Column
-                  Expanded(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16),
-                      child: BibListWidget(
+                  const SizedBox(height: 8),
+                  // Race status and controls rebuild on data changes (bib
+                  // count, race stopped), but NOT on focus changes.
+                  ListenableBuilder(
+                    listenable: _controller,
+                    builder: (context, _) => Column(children: [
+                      _buildRaceStatusWidget(),
+                      const SizedBox(height: 16),
+                      RaceControlsWidget(
                         controller: _controller,
+                        onShare: _onShareBibNumbers,
                       ),
-                    ),
-                  ),
-
-                  // Keyboard accessory bar for mobile devices
-                  KeyboardAccessoryBar(
-                    controller: _controller,
-                    onDone: () => FocusScope.of(context).unfocus(),
+                    ]),
                   ),
                 ]),
-              );
-            },
+              ),
+
+              // BibListWidget manages its own listener — no wrapper needed.
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: BibListWidget(controller: _controller),
+                ),
+              ),
+
+              // KeyboardAccessoryBar uses ValueListenableBuilder internally
+              // for isKeyboardVisible; wraps in ListenableBuilder here so it
+              // still reflects raceStopped / bibRecords changes.
+              ListenableBuilder(
+                listenable: _controller,
+                builder: (context, _) => KeyboardAccessoryBar(
+                  controller: _controller,
+                  onDone: () => FocusScope.of(context).unfocus(),
+                ),
+              ),
+            ]),
           ),
         ),
       ),

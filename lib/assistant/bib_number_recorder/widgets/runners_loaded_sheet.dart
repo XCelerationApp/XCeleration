@@ -84,7 +84,6 @@ class RunnersLoadedSheet extends StatelessWidget {
             maxHeight: MediaQuery.of(context).size.height * 0.5,
           ),
           child: ListView.builder(
-            shrinkWrap: true,
             physics: const AlwaysScrollableScrollPhysics(),
             itemCount: runners.length,
             itemBuilder: (context, index) {

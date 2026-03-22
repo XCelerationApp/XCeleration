@@ -23,7 +23,7 @@ class RaceNameField extends StatelessWidget {
         hint: 'Enter race name',
         error: controller.form.errorFor(RaceField.name),
         onChanged: (value) {
-          controller.validateName(controller.form.nameController.text);
+          controller.form.applyValidation(RaceField.name);
           if (onChanged != null) onChanged!(value);
         },
       ),

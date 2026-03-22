@@ -11,14 +11,7 @@ import 'core/services/splash_screen.dart';
 import 'core/services/event_bus.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'coach/race_screen/controller/race_screen_controller.dart';
-import 'coach/races_screen/controller/races_controller.dart';
-import 'core/services/geo_location_service.dart';
-import 'core/services/post_frame_callback_scheduler.dart';
-import 'coach/races_screen/services/races_service.dart';
 import 'core/services/auth_service.dart';
-import 'core/services/tutorial_manager.dart';
-import 'shared/models/database/master_race.dart';
 import 'core/repositories/i_database_connection_provider.dart';
 import 'core/services/database_write_bus.dart';
 import 'core/services/sync_service.dart';
@@ -54,7 +47,10 @@ Future<void> _initializeApp() async {
   await SentryFlutter.init(
     (options) async {
       options.dsn = dotenv.env['SENTRY_DSN'] ?? '';
-      options.tracesSampleRate = 1.0;
+      // Use 0.2 in production; override via SENTRY_TRACES_SAMPLE_RATE env var.
+      options.tracesSampleRate =
+          double.tryParse(dotenv.env['SENTRY_TRACES_SAMPLE_RATE'] ?? '') ??
+              0.2;
       options.diagnosticLevel = SentryLevel.warning;
       try {
         final info = await PackageInfo.fromPlatform();
@@ -62,11 +58,11 @@ Future<void> _initializeApp() async {
             '${info.packageName}@${info.version}+${info.buildNumber}';
       } catch (_) {}
     },
-    appRunner: () => _runApp(),
+    appRunner: _runApp,
   );
 }
 
-void _runApp() async {
+Future<void> _runApp() async {
   // Set preferred orientations
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
@@ -101,13 +97,6 @@ void _runApp() async {
         Provider<ISyncService>.value(value: syncService),
         Provider<ConnectivitySyncService>.value(value: connectivitySyncService),
         ChangeNotifierProvider(create: (context) => EventBusProvider()),
-        ChangeNotifierProvider(
-          create: (context) => RaceScreenController(
-              masterRace: MasterRace.getInstance(0),
-              parentController: RacesController(racesService: RacesService(), authService: authService, eventBus: EventBus.instance, geoLocationService: GeoLocationService(), postFrameCallbackScheduler: WidgetsBindingAdapter(), tutorialManager: TutorialManager(), syncStream: syncService.syncEvents)),
-        ),
-        ChangeNotifierProvider(
-            create: (context) => RacesController(racesService: RacesService(), authService: authService, eventBus: EventBus.instance, geoLocationService: GeoLocationService(), postFrameCallbackScheduler: WidgetsBindingAdapter(), tutorialManager: TutorialManager(), syncStream: syncService.syncEvents)),
       ],
       child: const MyApp(),
     ),
@@ -130,7 +119,7 @@ class MyApp extends StatelessWidget {
     final appName = dotenv.env['APP_NAME'];
 
     return MaterialApp(
-      title: appName,
+      title: appName ?? 'XCeleration',
       theme: _buildTheme(),
       home: const SplashScreen(),
       showPerformanceOverlay: false,

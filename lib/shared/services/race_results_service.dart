@@ -51,6 +51,7 @@ class RaceResultsService implements IRaceResultsService {
   }
 
   /// Convert RaceResult objects to ResultsRecord objects for UI display
+  @override
   List<ResultsRecord> convertToResultsRecords(List<RaceResult> raceResults,
       {double? raceDistance, String? distanceUnit}) {
     // Convert race distance to miles and compute pace/mi only

@@ -3,6 +3,10 @@
     "allow": [
       "Bash(git *)",
       "Bash(git * && *)",
+      "Bash(git status && git log *)",
+      "Bash(git status && git log origin/$(git branch --show-current)..HEAD 2>/dev/null || echo \"No upstream branch\")",
+      "Bash(git -C * worktree *)",
+      "Bash(WORKTREE=* && MAIN=* && git -C * worktree *)",
       "Bash(gh *)",
       "Bash(flutter *)",
       "Bash(flutter analyze)",
@@ -65,6 +69,21 @@
       "Edit(.env)",
       "Edit(macos/Flutter/GeneratedPluginRegistrant.swift)",
       "Edit(ios/Flutter/GeneratedPluginRegistrant.*)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "INPUT=$(cat); CMD=$(echo \"$INPUT\" | jq -r '.tool_input.command // \"\"'); if echo \"$CMD\" | grep -q 'build_runner'; then MATCHES=$(grep -rln '// ignore:' test/ --include='*.mocks.dart' 2>/dev/null); if [ -n \"$MATCHES\" ]; then FILES=$(echo \"$MATCHES\" | tr '\\n' ' '); jq -n --arg m \"WARNING: duplicate_ignore in mocks — remove per-line // ignore: that duplicate // ignore_for_file: in: $FILES\" '{systemMessage: $m}'; fi; fi",
+            "timeout": 10,
+            "statusMessage": "Checking mocks for duplicate ignores..."
+          }
+        ]
+      }
     ]
   },
   "enableAllProjectMcpServers": true,

@@ -189,10 +189,11 @@ void main() {
         expect(controller.nameError, 'Please enter a race name');
       });
 
-      test('notifies listeners', () {
+      test('notifies per-field notifier', () {
         when(mockRacesService.validateName(any)).thenReturn(null);
+        controller.nameErrorNotifier.value = 'some error';
         var notified = false;
-        controller.addListener(() => notified = true);
+        controller.nameErrorNotifier.addListener(() => notified = true);
 
         controller.validateName('State Meet');
 
@@ -217,10 +218,11 @@ void main() {
         expect(controller.locationError, 'Please enter a location');
       });
 
-      test('notifies listeners', () {
+      test('notifies per-field notifier', () {
         when(mockRacesService.validateLocation(any)).thenReturn(null);
+        controller.locationErrorNotifier.value = 'some error';
         var notified = false;
-        controller.addListener(() => notified = true);
+        controller.locationErrorNotifier.addListener(() => notified = true);
 
         controller.validateLocation('123 Main St');
 
@@ -245,10 +247,11 @@ void main() {
         expect(controller.dateError, 'Please select a date');
       });
 
-      test('notifies listeners', () {
+      test('notifies per-field notifier', () {
         when(mockRacesService.validateDate(any)).thenReturn(null);
+        controller.dateErrorNotifier.value = 'some error';
         var notified = false;
-        controller.addListener(() => notified = true);
+        controller.dateErrorNotifier.addListener(() => notified = true);
 
         controller.validateDate('2024-06-15');
 
@@ -273,10 +276,11 @@ void main() {
         expect(controller.distanceError, 'Please enter a race distance');
       });
 
-      test('notifies listeners', () {
+      test('notifies per-field notifier', () {
         when(mockRacesService.validateDistance(any)).thenReturn(null);
+        controller.distanceErrorNotifier.value = 'some error';
         var notified = false;
-        controller.addListener(() => notified = true);
+        controller.distanceErrorNotifier.addListener(() => notified = true);
 
         controller.validateDistance('5.0');
 

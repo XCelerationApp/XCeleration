@@ -14,7 +14,9 @@ class TimerDisplayWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder(
-      stream: Stream.periodic(const Duration(milliseconds: 10)),
+      stream: (controller.raceStopped || controller.startTime == null)
+          ? const Stream<int>.empty()
+          : Stream.periodic(const Duration(milliseconds: 10)),
       builder: (context, _) {
         final elapsed = _calculateElapsedTime(
             controller.startTime, controller.raceDuration, controller);

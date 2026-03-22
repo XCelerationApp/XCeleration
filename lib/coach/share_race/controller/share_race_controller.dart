@@ -1,5 +1,5 @@
-import 'dart:async';
 import 'dart:io';
+import 'package:flutter/foundation.dart' show compute;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'
     show rootBundle, Clipboard, ClipboardData;
@@ -27,7 +27,7 @@ import '../services/race_share_service.dart';
 import '../widgets/spectator_broadcast_sheet.dart';
 
 /// Controller class responsible for all sharing logic in the app
-class ShareRaceController extends ChangeNotifier {
+class ShareRaceController {
   final RaceResultsData raceResultsData;
   final MasterRace masterRace;
   final ShareResultsController _shareResultsController;
@@ -79,8 +79,6 @@ class ShareRaceController extends ChangeNotifier {
         await _shareResultsController.handlePdf(context);
         break;
     }
-
-    notifyListeners();
   }
 
   /// Share wirelessly to spectators via Nearby Connections (P2P_STAR)
@@ -188,114 +186,42 @@ class ShareResultsController {
       if (!context.mounted && navigator.mounted) context = navigator.context;
       if (!context.mounted) throw Exception('Context not mounted');
 
-      // Step 1: Sign in to Google with loading dialog
-      try {
-        if (!await _googleSheetsService.signIn()) {
-          if (context.mounted) {
-            DialogUtils.showErrorDialog(context,
-                message: 'Google sign-in failed');
+      // Run all four steps under a single loading dialog to reduce
+      // Navigator push/pop cycles from 8 (show+hide × 4) down to 2.
+      final sheetUri = await DialogUtils.executeWithLoadingDialog<Uri?>(
+        context,
+        loadingMessage: 'Creating Google Sheet...',
+        operation: () async {
+          // Step 1: Sign in
+          if (!await _googleSheetsService.signIn()) {
+            throw Exception('Google sign-in failed');
           }
-          return;
-        }
-      } catch (e) {
-        Logger.e('Error signing in to Google: $e');
-        if (context.mounted) {
-          DialogUtils.showErrorDialog(context,
-              message: 'Error signing in to Google');
-        }
-        return;
-      }
 
-      if (!context.mounted && navigator.mounted) context = navigator.context;
-      if (!context.mounted) throw Exception('Context not mounted');
+          // Step 2: Create the sheet
+          final spreadsheetId = await _googleSheetsService.createSheet(
+              title: raceResultsData.resultsTitle);
+          if (spreadsheetId == null) return null; // cancelled
 
-      // Step 2: Create the sheet with loading dialog
-      // We need to declare the variable here so it can be used outside the try/catch block
-      String? spreadsheetId;
-      try {
-        spreadsheetId = await DialogUtils.executeWithLoadingDialog<String?>(
-          context,
-          operation: () => _googleSheetsService.createSheet(
-              title: raceResultsData.resultsTitle),
-          loadingMessage: 'Creating Google Sheet...',
-        );
-        if (spreadsheetId == null) {
-          // If the user cancels the creation, we don't want to continue, but no need to show an error dialog
-          return;
-        }
-      } catch (e) {
-        Logger.e('Error creating Google Sheet: $e');
-        if (context.mounted) {
-          DialogUtils.showErrorDialog(context,
-              message: 'Error creating Google Sheet');
-        }
-        return;
-      }
-
-      if (!context.mounted && navigator.mounted) context = navigator.context;
-      if (!context.mounted) throw Exception('Context not mounted');
-
-      // Step 3: Update the sheet with data
-      try {
-        final updateSuccess = await DialogUtils.executeWithLoadingDialog<bool>(
-          context,
-          operation: () => _googleSheetsService.updateSheet(
-            spreadsheetId: spreadsheetId!,
+          // Step 3: Update the sheet with data
+          final updateSuccess = await _googleSheetsService.updateSheet(
+            spreadsheetId: spreadsheetId,
             data: data,
-          ),
-          loadingMessage: 'Adding data to sheet...',
-        );
-        if (updateSuccess == null) {
-          // If the user cancels the update, we don't want to continue, but no need to show an error dialog
-          return;
-        }
-        if (updateSuccess != true) {
-          if (context.mounted) {
-            DialogUtils.showErrorDialog(context,
-                message: 'Failed to write to Google Sheet');
-          }
-          return;
-        }
-      } catch (e) {
-        Logger.e('Error writing to Google Sheet: $e');
-        if (context.mounted) {
-          DialogUtils.showErrorDialog(context,
-              message: 'Error writing to Google Sheet');
-        }
-        return;
-      }
-
-      if (!context.mounted && navigator.mounted) context = navigator.context;
-      if (!context.mounted) throw Exception('Context not mounted');
-      // Step 4: Get the sheet URI
-      // We need to declare the variable here so it can be used outside the try/catch block
-      Uri? sheetUri;
-      try {
-        sheetUri = await DialogUtils.executeWithLoadingDialog<Uri?>(
-          context,
-          operation: () => _googleSheetsService.getSheetUri(spreadsheetId!),
-          loadingMessage: 'Getting sheet link...',
-        );
-        if (sheetUri == null) {
-          // If the user cancels the creation, we don't want to continue, but no need to show an error dialog
-          return;
-        }
-      } catch (e) {
-        Logger.e('Error getting sheet URI: $e');
-        if (context.mounted) {
-          DialogUtils.showErrorDialog(
-            context,
-            message: 'Error getting sheet link',
           );
-        }
-        return;
-      }
+          if (!updateSuccess) {
+            throw Exception('Failed to write to Google Sheet');
+          }
+
+          // Step 4: Get the sheet URI
+          return _googleSheetsService.getSheetUri(spreadsheetId);
+        },
+      );
+
+      if (sheetUri == null) return; // cancelled
 
       Logger.d('Sheet URI: $sheetUri');
 
       if (!context.mounted && navigator.mounted) context = navigator.context;
 
-      // Show options dialog using the stored navigator
       if (context.mounted) {
         await _showGoogleSheetOptions(context, sheetUri);
       } else {
@@ -310,7 +236,6 @@ class ShareResultsController {
     } catch (e) {
       Logger.e('Error in Google Sheet creation: $e');
 
-      // Use the stored global context for showing error dialog
       if (context.mounted && e is! OperationCanceledException) {
         DialogUtils.showErrorDialog(context,
             message: 'Error creating Google Sheet');
@@ -426,52 +351,18 @@ class ShareResultsController {
 
 class FormattedResultsController {
   final RaceResultsData raceResultsData;
-  String? _formattedResultsText;
-  List<List<dynamic>>? _formattedSheetsData;
-  pw.Document? _formattedPdf;
-  late String raceName;
 
-  // Completer objects to prevent multiple simultaneous generations
-  final Completer<String> _textCompleter = Completer<String>();
-  final Completer<List<List<dynamic>>> _sheetsDataCompleter =
-      Completer<List<List<dynamic>>>();
-  final Completer<pw.Document> _pdfCompleter = Completer<pw.Document>();
-
-  // Track whether generation processes have been initiated
-  bool _textGenerationStarted = false;
-  bool _sheetsDataGenerationStarted = false;
-  bool _pdfGenerationStarted = false;
+  Future<String>? _textFuture;
+  Future<List<List<dynamic>>>? _sheetsDataFuture;
+  Future<pw.Document>? _pdfFuture;
 
   FormattedResultsController({
     required this.raceResultsData,
   });
 
   // Async getters that lazily initialize and cache results
-  Future<String> get formattedResultsText async {
-    if (_formattedResultsText != null) {
-      return _formattedResultsText!;
-    }
-
-    if (_textGenerationStarted) {
-      return _textCompleter.future;
-    }
-
-    _textGenerationStarted = true;
-    try {
-      // Generate text asynchronously in a microtask to avoid blocking the UI
-      _formattedResultsText =
-          await Future.microtask(() => _getFormattedText(raceResultsData));
-      if (!_textCompleter.isCompleted) {
-        _textCompleter.complete(_formattedResultsText);
-      }
-      return _formattedResultsText!;
-    } catch (e) {
-      if (!_textCompleter.isCompleted) {
-        _textCompleter.completeError(e);
-      }
-      rethrow;
-    }
-  }
+  Future<String> get formattedResultsText =>
+      _textFuture ??= compute(_getFormattedText, raceResultsData);
 
   // Text Formatting Methods - Made static for compute() function
   static String _getFormattedText(RaceResultsData raceResultsData) {
@@ -532,31 +423,8 @@ class FormattedResultsController {
   }
 
   // Async getter for sheets data
-  Future<List<List<dynamic>>> get formattedSheetsData async {
-    if (_formattedSheetsData != null) {
-      return _formattedSheetsData!;
-    }
-
-    if (_sheetsDataGenerationStarted) {
-      return _sheetsDataCompleter.future;
-    }
-
-    _sheetsDataGenerationStarted = true;
-    try {
-      // Process asynchronously in a microtask to avoid blocking the UI
-      _formattedSheetsData =
-          await Future.microtask(() => _getSheetsData(raceResultsData));
-      if (!_sheetsDataCompleter.isCompleted) {
-        _sheetsDataCompleter.complete(_formattedSheetsData);
-      }
-      return _formattedSheetsData!;
-    } catch (e) {
-      if (!_sheetsDataCompleter.isCompleted) {
-        _sheetsDataCompleter.completeError(e);
-      }
-      rethrow;
-    }
-  }
+  Future<List<List<dynamic>>> get formattedSheetsData =>
+      _sheetsDataFuture ??= compute(_getSheetsData, raceResultsData);
 
   // Data Formatting Methods - Made static for compute() function
   static List<List<dynamic>> _getSheetsData(RaceResultsData raceResultsData) {
@@ -618,14 +486,14 @@ class FormattedResultsController {
             String team1Place =
                 i < team1.topSeven.length ? '${team1.topSeven[i].place}' : '';
             String team1Name = i < team1.topSeven.length
-                ? team1.topSeven[i].runner!.name!
+                ? team1.topSeven[i].runner?.name ?? ''
                 : '';
 
             // Runner from second team (if exists)
             String team2Place =
                 i < team2.topSeven.length ? '${team2.topSeven[i].place}' : '';
             String team2Name = i < team2.topSeven.length
-                ? team2.topSeven[i].runner!.name!
+                ? team2.topSeven[i].runner?.name ?? ''
                 : '';
 
             runnerRows.add([
@@ -668,30 +536,8 @@ class FormattedResultsController {
   }
 
   // Async getter for PDF document
-  Future<pw.Document> get formattedPdf async {
-    if (_formattedPdf != null) {
-      return _formattedPdf!;
-    }
-
-    if (_pdfGenerationStarted) {
-      return _pdfCompleter.future;
-    }
-
-    _pdfGenerationStarted = true;
-    try {
-      // Process asynchronously in a microtask to avoid blocking the UI
-      _formattedPdf = await _getPdfDocument(raceResultsData);
-      if (!_pdfCompleter.isCompleted) {
-        _pdfCompleter.complete(_formattedPdf);
-      }
-      return _formattedPdf!;
-    } catch (e) {
-      if (!_pdfCompleter.isCompleted) {
-        _pdfCompleter.completeError(e);
-      }
-      rethrow;
-    }
-  }
+  Future<pw.Document> get formattedPdf =>
+      _pdfFuture ??= _getPdfDocument(raceResultsData);
 
   // Static method for PDF generation - made static for compute() function
   static Future<pw.Document> _getPdfDocument(
@@ -824,13 +670,13 @@ class FormattedResultsController {
       String team1Place =
           i < team1.topSeven.length ? '${team1.topSeven[i].place}' : '';
       String team1Name =
-          i < team1.topSeven.length ? team1.topSeven[i].runner!.name! : '';
+          i < team1.topSeven.length ? team1.topSeven[i].runner?.name ?? '' : '';
 
       // Runner from second team (if exists)
       String team2Place =
           i < team2.topSeven.length ? '${team2.topSeven[i].place}' : '';
       String team2Name =
-          i < team2.topSeven.length ? team2.topSeven[i].runner!.name! : '';
+          i < team2.topSeven.length ? team2.topSeven[i].runner?.name ?? '' : '';
 
       rows.add([
         '${i + 1}',

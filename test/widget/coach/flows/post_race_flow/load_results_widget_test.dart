@@ -37,6 +37,8 @@ void main() {
     when(mockDevices.currentDeviceName).thenReturn(DeviceName.coach);
     when(mockDevices.currentDeviceType).thenReturn(DeviceType.browserDevice);
     when(mockDevices.otherDevices).thenReturn([]);
+    when(mockDevices.devices).thenReturn([]);
+    when(mockDevices.allDevicesFinished()).thenReturn(false);
 
     mockController = MockLoadResultsController();
     when(mockController.addListener(any)).thenReturn(null);

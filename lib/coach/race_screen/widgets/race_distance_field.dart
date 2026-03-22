@@ -27,8 +27,7 @@ class RaceDistanceField extends StatelessWidget {
               hint: '0.0',
               error: controller.form.errorFor(RaceField.distance),
               onChanged: (value) {
-                controller
-                    .validateDistance(controller.form.distanceController.text);
+                controller.form.applyValidation(RaceField.distance);
                 // Only trigger autosave when we have valid input
                 if (value.isNotEmpty &&
                     controller.form.errorFor(RaceField.distance) == null) {

@@ -15,6 +15,7 @@ import 'package:xceleration/core/services/sync_service.dart';
   IRemoteSyncClient,
   IAuthService,
   Database,
+  Transaction,
   SupabaseClient,
 ])
 import 'sync_service_test.mocks.dart';
@@ -191,15 +192,28 @@ void main() {
           limit: anyNamed('limit'),
         )).thenAnswer((_) async => []);
 
-        when(mockDatabase.update(any, any,
-                where: anyNamed('where'), whereArgs: anyNamed('whereArgs')))
-            .thenAnswer((_) async => 1);
         when(mockDatabase.rawUpdate(any, any)).thenAnswer((_) async => 0);
         when(mockDatabase.rawUpdate(any)).thenAnswer((_) async => 0);
 
+        // UUID assignment wraps updates in a transaction; forward the
+        // callback to a MockTransaction so the update stub can be verified.
+        final mockTxn = MockTransaction();
+        when(mockTxn.update(any, any,
+                where: anyNamed('where'), whereArgs: anyNamed('whereArgs')))
+            .thenAnswer((_) async => 1);
+        when(mockDatabase.transaction<void>(any,
+                exclusive: anyNamed('exclusive')))
+            .thenAnswer((invocation) {
+          final callback = invocation.positionalArguments[0]
+              as Future<void> Function(Transaction);
+          // Return Future<Null> (not Future<void>) so the mock's internal
+          // "as Future<T>" cast succeeds when Dart infers T=Null for the lambda.
+          return callback(mockTxn).then<Null>((_) => null);
+        });
+
         await service.ensureLocalUuids();
 
-        final captured = verify(mockDatabase.update(
+        final captured = verify(mockTxn.update(
           'runners',
           captureAny,
           where: anyNamed('where'),
@@ -297,6 +311,12 @@ void main() {
         when(mockDatabase.update(any, any,
                 where: anyNamed('where'), whereArgs: anyNamed('whereArgs')))
             .thenAnswer((_) async => 1);
+        // pullTable now batch-fetches local rows with rawQuery instead of
+        // per-row query(). Default: no matching local rows.
+        when(mockDatabase.rawQuery(
+          argThat(contains('WHERE uuid IN')),
+          any,
+        )).thenAnswer((_) async => []);
       });
 
       test('skips all pulls when normalized schema is not present', () async {
@@ -366,10 +386,9 @@ void main() {
           cursor: anyNamed('cursor'),
         )).thenAnswer((_) async => [remoteRow]);
 
-        when(mockDatabase.query(
-          'runners',
-          where: anyNamed('where'),
-          whereArgs: anyNamed('whereArgs'),
+        when(mockDatabase.rawQuery(
+          argThat(contains('WHERE uuid IN')),
+          any,
         )).thenAnswer((_) async => [localRow]);
 
         await service.pullAll();
@@ -403,10 +422,9 @@ void main() {
           cursor: anyNamed('cursor'),
         )).thenAnswer((_) async => [remoteRow]);
 
-        when(mockDatabase.query(
-          'runners',
-          where: anyNamed('where'),
-          whereArgs: anyNamed('whereArgs'),
+        when(mockDatabase.rawQuery(
+          argThat(contains('WHERE uuid IN')),
+          any,
         )).thenAnswer((_) async => [localRow]);
 
         await service.pullAll();
@@ -441,10 +459,9 @@ void main() {
           cursor: anyNamed('cursor'),
         )).thenAnswer((_) async => [remoteRow]);
 
-        when(mockDatabase.query(
-          'runners',
-          where: anyNamed('where'),
-          whereArgs: anyNamed('whereArgs'),
+        when(mockDatabase.rawQuery(
+          argThat(contains('WHERE uuid IN')),
+          any,
         )).thenAnswer((_) async => [localRow]);
 
         await service.pullAll();
@@ -479,10 +496,9 @@ void main() {
           cursor: anyNamed('cursor'),
         )).thenAnswer((_) async => [remoteRow]);
 
-        when(mockDatabase.query(
-          'runners',
-          where: anyNamed('where'),
-          whereArgs: anyNamed('whereArgs'),
+        when(mockDatabase.rawQuery(
+          argThat(contains('WHERE uuid IN')),
+          any,
         )).thenAnswer((_) async => [localRow]);
 
         await service.pullAll();
@@ -495,10 +511,11 @@ void main() {
         ));
       });
 
-      test('preserves is_dirty flag when local is dirty and time diff < 5 min',
+      test(
+          'clears is_dirty flag when local is dirty and remote wins LWW (small time diff)',
           () async {
         const uuid = 'uuid-runner-1';
-        // Remote is 2 minutes newer than local — within the 5-minute window
+        // Remote is 2 minutes newer than local — remote still wins LWW
         final localRow = {
           'uuid': uuid,
           'name': 'Alice',
@@ -518,10 +535,9 @@ void main() {
           cursor: anyNamed('cursor'),
         )).thenAnswer((_) async => [remoteRow]);
 
-        when(mockDatabase.query(
-          'runners',
-          where: anyNamed('where'),
-          whereArgs: anyNamed('whereArgs'),
+        when(mockDatabase.rawQuery(
+          argThat(contains('WHERE uuid IN')),
+          any,
         )).thenAnswer((_) async => [localRow]);
 
         await service.pullAll();
@@ -534,8 +550,8 @@ void main() {
         )).captured;
 
         final updated = captured.first as Map<String, dynamic>;
-        expect(updated['is_dirty'], 1,
-            reason: 'dirty flag must be preserved when diff < 5 minutes');
+        expect(updated['is_dirty'], 0,
+            reason: 'dirty flag is always cleared when remote wins LWW');
       });
 
       test('clears is_dirty flag when remote is significantly newer (>= 5 min)',
@@ -561,10 +577,9 @@ void main() {
           cursor: anyNamed('cursor'),
         )).thenAnswer((_) async => [remoteRow]);
 
-        when(mockDatabase.query(
-          'runners',
-          where: anyNamed('where'),
-          whereArgs: anyNamed('whereArgs'),
+        when(mockDatabase.rawQuery(
+          argThat(contains('WHERE uuid IN')),
+          any,
         )).thenAnswer((_) async => [localRow]);
 
         await service.pullAll();
@@ -581,6 +596,49 @@ void main() {
             reason: 'dirty flag must be cleared when diff >= 5 minutes');
       });
 
+      test(
+          'updates local when timestamps are equal and an unrecognised new column differs',
+          () async {
+        // Verifies the schema-driven approach: an arbitrary column not in any
+        // hardcoded list is still detected as a conflict when its value differs.
+        const uuid = 'uuid-runner-1';
+        const ts = '2024-06-01T12:00:00.000Z';
+        final localRow = {
+          'uuid': uuid,
+          'name': 'Alice',
+          'new_arbitrary_column': 'old_value',
+          'updated_at': ts,
+          'is_dirty': 0,
+        };
+        final remoteRow = {
+          'uuid': uuid,
+          'name': 'Alice',
+          'new_arbitrary_column': 'new_value',
+          'updated_at': ts,
+          'owner_user_id': 'user-1',
+        };
+
+        when(mockSyncClient.fetchTableRows(
+          'runners',
+          any,
+          cursor: anyNamed('cursor'),
+        )).thenAnswer((_) async => [remoteRow]);
+
+        when(mockDatabase.rawQuery(
+          argThat(contains('WHERE uuid IN')),
+          any,
+        )).thenAnswer((_) async => [localRow]);
+
+        await service.pullAll();
+
+        verify(mockDatabase.update(
+          'runners',
+          argThat(containsPair('new_arbitrary_column', 'new_value')),
+          where: anyNamed('where'),
+          whereArgs: anyNamed('whereArgs'),
+        )).called(1);
+      });
+
       test('emits SyncEvent after a pull that wrote at least one row', () async {
         const uuid = 'uuid-runner-1';
         final remoteRow = {
@@ -595,12 +653,6 @@ void main() {
           any,
           cursor: anyNamed('cursor'),
         )).thenAnswer((_) async => [remoteRow]);
-
-        when(mockDatabase.query(
-          'runners',
-          where: anyNamed('where'),
-          whereArgs: anyNamed('whereArgs'),
-        )).thenAnswer((_) async => []);
 
         // Use expectLater so the stream subscription is active before pullAll runs.
         final streamExpectation = expectLater(

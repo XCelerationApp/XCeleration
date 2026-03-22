@@ -93,7 +93,12 @@ class ModelDownloadService implements IModelDownloadService {
 
   Future<String> _writeHotwordsFile(String modelDir) async {
     final path = p.join(modelDir, 'hotwords.txt');
-    await File(path).writeAsString(_hotwords.join('\n'));
+    final file = File(path);
+    final expected = _hotwords.join('\n');
+    if (file.existsSync() && await file.readAsString() == expected) {
+      return path;
+    }
+    await file.writeAsString(expected);
     return path;
   }
 }

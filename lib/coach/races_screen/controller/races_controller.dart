@@ -22,6 +22,7 @@ import '../../race_screen/controller/race_screen_controller.dart';
 import '../../race_screen/screen/race_screen.dart';
 import '../services/races_service.dart';
 import 'i_parent_race_controller.dart';
+import 'race_creation_form_state.dart';
 
 class RacesController extends ChangeNotifier implements IParentRaceController {
   // Subscription to event bus events
@@ -39,24 +40,47 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
   final IColorPickerDialogService _colorPickerDialogService;
 
   List<Race> races = [];
-  bool isLocationButtonVisible = true;
-  final TextEditingController nameController = TextEditingController();
-  final TextEditingController locationController = TextEditingController();
-  final TextEditingController dateController = TextEditingController();
-  final TextEditingController distanceController = TextEditingController();
-  final TextEditingController unitController = TextEditingController();
-  final TextEditingController userLocationController = TextEditingController();
-  final List<TextEditingController> teamControllers = [];
-  final List<Color> teamColors = [];
-  String unit = 'mi';
 
-  final TutorialManager tutorialManager;
+  // All race creation form state is owned by this form object.
+  // Widgets that consumed controller.nameController etc. should now access
+  // the same-named getters below, which delegate to [form].
+  final RaceCreationFormState form = RaceCreationFormState();
 
-  // Validation error messages
-  String? nameError;
-  String? locationError;
-  String? dateError;
-  String? distanceError;
+  // Delegating getters — maintain backward compatibility with widgets that
+  // access form fields directly on the controller.
+  TextEditingController get nameController => form.nameController;
+  TextEditingController get locationController => form.locationController;
+  TextEditingController get dateController => form.dateController;
+  TextEditingController get distanceController => form.distanceController;
+  TextEditingController get unitController => form.unitController;
+  TextEditingController get userLocationController =>
+      form.userLocationController;
+  List<TextEditingController> get teamControllers => form.teamControllers;
+  List<Color> get teamColors => form.teamColors;
+
+  ValueNotifier<String?> get nameErrorNotifier => form.nameErrorNotifier;
+  ValueNotifier<String?> get locationErrorNotifier =>
+      form.locationErrorNotifier;
+  ValueNotifier<String?> get dateErrorNotifier => form.dateErrorNotifier;
+  ValueNotifier<String?> get distanceErrorNotifier =>
+      form.distanceErrorNotifier;
+  ValueNotifier<bool> get locationButtonVisibleNotifier =>
+      form.locationButtonVisibleNotifier;
+
+  String? get nameError => form.nameError;
+  set nameError(String? v) => form.nameError = v;
+  String? get locationError => form.locationError;
+  set locationError(String? v) => form.locationError = v;
+  String? get dateError => form.dateError;
+  set dateError(String? v) => form.dateError = v;
+  String? get distanceError => form.distanceError;
+  set distanceError(String? v) => form.distanceError = v;
+  bool get isLocationButtonVisible => form.isLocationButtonVisible;
+  set isLocationButtonVisible(bool v) => form.isLocationButtonVisible = v;
+
+  // teamsError intentionally remains a plain String? field (not ValueNotifier)
+  // because it is consumed via setSheetState in competing_teams_field.dart,
+  // not via a targeted ValueNotifier subscription.
   String? teamsError;
 
   @override
@@ -83,13 +107,10 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
         _colorPickerDialogService =
             colorPickerDialogService ?? ColorPickerDialogService();
 
+  final TutorialManager tutorialManager;
+
   void initState(BuildContext context) {
     loadRaces();
-    teamControllers.add(TextEditingController());
-    teamControllers.add(TextEditingController());
-    teamColors.add(Colors.white);
-    teamColors.add(Colors.white);
-    unitController.text = 'mi';
     _postFrameCallbackScheduler.addPostFrameCallback(() {
       final role = canEdit ? Role.coach : Role.spectator;
       RoleBar.showInstructionsSheet(context, role).then((_) {
@@ -117,21 +138,18 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
     ]);
   }
 
-  void updateLocationButtonVisibility() {
-    isLocationButtonVisible =
-        locationController.text.trim() != userLocationController.text.trim();
-    notifyListeners();
-  }
+  void updateLocationButtonVisibility() =>
+      form.updateLocationButtonVisibility();
 
   // Method to add a new TextEditingController
   void addTeamField() {
-    teamControllers.add(TextEditingController());
-    teamColors.add(Colors.white);
+    form.addTeamField();
     notifyListeners();
   }
 
   Future<void> showCreateRaceSheet(BuildContext context) async {
-    resetControllers();
+    form.reset();
+    teamsError = null;
 
     // Show the race creation sheet and await the returned race ID
     final int? newRaceId = await sheet(
@@ -141,97 +159,66 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
     );
 
     // If a valid race ID was returned and the context is still mounted,
-    // navigate to the race screen
+    // navigate to the race screen. The first sheet() already awaited its own
+    // dismissal, so the UI has settled — no delay needed.
     if (newRaceId != null && context.mounted) {
-      // Add a small delay to let the UI settle after sheet dismissal
-      await Future.delayed(const Duration(milliseconds: 300));
       final masterRace = MasterRace.getInstance(newRaceId);
-
-      if (context.mounted) {
-        await sheet(
-          context: context,
-          body: ChangeNotifierProvider(
-            create: (ctx) {
-              final raceController = RaceScreenController(
-                masterRace: masterRace,
-                parentController: this,
-              );
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                raceController.loadAllData(ctx);
-              });
-              return raceController;
-            },
-            child: RaceScreen(
-              masterRace: masterRace,
-              parentController: this,
-            ),
-          ),
-          takeUpScreen: false,
-          showHeader: true,
-        );
-        await loadRaces();
-      }
+      await _openRaceSheet(context, masterRace);
     }
+  }
+
+  Future<void> _openRaceSheet(BuildContext context, MasterRace masterRace) async {
+    await sheet(
+      context: context,
+      body: ChangeNotifierProvider(
+        create: (ctx) {
+          final raceController = RaceScreenController(
+            masterRace: masterRace,
+            parentController: this,
+          );
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            raceController.loadAllData(ctx);
+          });
+          return raceController;
+        },
+        child: RaceScreen(
+          masterRace: masterRace,
+          parentController: this,
+        ),
+      ),
+      takeUpScreen: false,
+      showHeader: true,
+    );
+    await loadRaces();
   }
 
   void validateName(String name) {
-    nameError = _racesService.validateName(name);
-    notifyListeners();
+    form.nameErrorNotifier.value = _racesService.validateName(name);
   }
 
   void validateLocation(String location) {
-    locationError = _racesService.validateLocation(location);
-    notifyListeners();
+    form.locationErrorNotifier.value = _racesService.validateLocation(location);
   }
 
   void validateDate(String dateString) {
-    dateError = _racesService.validateDate(dateString);
-    notifyListeners();
+    form.dateErrorNotifier.value = _racesService.validateDate(dateString);
   }
 
   void validateDistance(String distanceString) {
-    distanceError = _racesService.validateDistance(distanceString);
-    notifyListeners();
+    form.distanceErrorNotifier.value =
+        _racesService.validateDistance(distanceString);
   }
 
   void resetControllers() {
-    nameController.text = '';
-    locationController.text = '';
-    dateController.text = '';
-    distanceController.text = '';
-    userLocationController.text = '';
-    isLocationButtonVisible = true;
-    teamControllers.clear();
-    teamControllers.add(TextEditingController());
-    teamControllers.add(TextEditingController());
-    teamColors.clear();
-    teamColors.add(Colors.white);
-    teamColors.add(Colors.white);
-    unitController.text = 'mi';
-    nameError = null;
-    locationError = null;
-    dateError = null;
-    distanceError = null;
+    form.reset();
     teamsError = null;
-
     notifyListeners();
   }
 
-  bool validateRaceName() {
-    if (nameController.text.trim().isEmpty) {
-      nameError = 'Race name is required';
-      notifyListeners();
-      return false;
-    }
-    nameError = null;
-    notifyListeners();
-    return true;
-  }
+  bool validateRaceName() => form.validateRaceName();
 
   // For simplified creation, we only validate the race name
-  bool validateRaceCreation() {
-    return validateRaceName();
-  }
+  bool validateRaceCreation() => form.validateRaceCreation();
 
   Future<void> getCurrentLocation(BuildContext context) async {
     try {
@@ -277,11 +264,10 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
       if (!context.mounted) return; // Check if context is still valid
 
       final placemark = placemarks.first;
-      locationController.text =
+      form.locationController.text =
           '${placemark.subThoroughfare} ${placemark.thoroughfare}, ${placemark.locality}, ${placemark.administrativeArea} ${placemark.postalCode}';
-      userLocationController.text = locationController.text;
-      locationError = null;
-      notifyListeners();
+      form.userLocationController.text = form.locationController.text;
+      form.locationErrorNotifier.value = null;
       updateLocationButtonVisibility();
     } catch (e) {
       Logger.d('Error getting location: $e');
@@ -294,9 +280,8 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
   Future<void> selectDate(BuildContext context) async {
     final DateTime? picked = await _datePickerService.pickDate(context);
     if (picked != null) {
-      dateController.text = picked.toLocal().toString().split(' ')[0];
-      dateError = null;
-      notifyListeners();
+      form.dateController.text = picked.toLocal().toString().split(' ')[0];
+      form.dateErrorNotifier.value = null;
     }
   }
 
@@ -304,13 +289,13 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
       BuildContext context,
       StateSetter setSheetState,
       TextEditingController controller) {
-    final index = teamControllers.indexOf(controller);
+    final index = form.teamControllers.indexOf(controller);
     _colorPickerDialogService.showColorPicker(
       context,
-      currentColor: teamColors[index],
+      currentColor: form.teamColors[index],
       onColorChanged: (color) {
         setSheetState(() {
-          teamColors[index] = color;
+          form.teamColors[index] = color;
         });
       },
     );
@@ -331,28 +316,7 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
     }
     final masterRace = MasterRace.getInstance(race.raceId!);
     if (!context.mounted) return;
-    await sheet(
-      context: context,
-      body: ChangeNotifierProvider(
-        create: (ctx) {
-          final raceController = RaceScreenController(
-            masterRace: masterRace,
-            parentController: this,
-          );
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            raceController.loadAllData(ctx);
-          });
-          return raceController;
-        },
-        child: RaceScreen(
-          masterRace: masterRace,
-          parentController: this,
-        ),
-      ),
-      takeUpScreen: false,
-      showHeader: true,
-    );
-    await loadRaces();
+    await _openRaceSheet(context, masterRace);
   }
 
   Future<void> deleteRace(Race race, BuildContext context) async {
@@ -405,16 +369,7 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
 
   @override
   void dispose() {
-    nameController.dispose();
-    locationController.dispose();
-    dateController.dispose();
-    distanceController.dispose();
-    userLocationController.dispose();
-    unitController.dispose();
-    for (var controller in teamControllers) {
-      controller.dispose();
-    }
-    teamColors.clear();
+    form.dispose();
     tutorialManager.dispose();
     _eventSubscription?.cancel();
     _syncSubscription?.cancel();

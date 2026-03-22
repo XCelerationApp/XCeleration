@@ -1,6 +1,16 @@
 import 'package:flutter/material.dart';
 
-/// Model for storing runner data in the database
+/// Assistant-side runner model, scoped to a single race recording session.
+///
+/// **Why this differs from [lib/shared/models/database/runner.dart]:**
+/// The shared Runner is a generic Coach-side database entity with UUID-based
+/// sync tracking (`uuid`, `isDirty`, `int grade`). This model represents a
+/// runner as seen by the Assistant during a live recording: it is always
+/// associated with a specific `raceId`, carries display fields
+/// (`teamAbbreviation`, `teamColor`) resolved at load time, and uses
+/// `String grade` to match the bib-datum encoding used over P2P transport.
+/// The two must not be merged: they exist on separate SQLite databases and
+/// serve different lifecycle concerns.
 class Runner {
   final int raceId;
   final String bibNumber;

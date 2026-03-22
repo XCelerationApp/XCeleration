@@ -16,6 +16,7 @@ class QRConnectionController extends ChangeNotifier {
   final PlatformCheckerInterface _platformChecker;
   final BarcodeScannerInterface _barcodeScanner;
   final Function _callback;
+  final bool inSheet;
 
   AppError? _error;
 
@@ -27,6 +28,7 @@ class QRConnectionController extends ChangeNotifier {
     required PlatformCheckerInterface platformChecker,
     required Function callback,
     BarcodeScannerInterface barcodeScanner = const DefaultBarcodeScanner(),
+    this.inSheet = false,
   })  : _devices = devices,
         _platformChecker = platformChecker,
         _barcodeScanner = barcodeScanner,
@@ -47,8 +49,22 @@ class QRConnectionController extends ChangeNotifier {
     final String qrData =
         '${getDeviceNameString(_devices.currentDeviceName)}:$rawData';
 
+    final BuildContext sheetContext;
+    final bool useRoot;
+    if (inSheet) {
+      final nav = Navigator.of(context, rootNavigator: true);
+      nav.pop();
+      if (!nav.context.mounted) return;
+      sheetContext = nav.context;
+      useRoot = true;
+    } else {
+      sheetContext = context;
+      useRoot = false;
+    }
+
     await sheet(
-      context: context,
+      context: sheetContext,
+      useRootNavigator: useRoot,
       title: 'QR Code',
       body: Column(
         mainAxisSize: MainAxisSize.min,

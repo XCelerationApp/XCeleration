@@ -28,7 +28,7 @@ class FlowActionButton extends StatelessWidget {
 
 // This class was renamed from ActionButton to FlowOptionButton to avoid
 // naming conflicts with the new button components
-class FlowOptionButton extends StatefulWidget {
+class FlowOptionButton extends StatelessWidget {
   final String label;
   final VoidCallback? onTap;
   final IconData? icon;
@@ -41,17 +41,12 @@ class FlowOptionButton extends StatefulWidget {
   });
 
   @override
-  State<FlowOptionButton> createState() => _FlowOptionButtonState();
-}
-
-class _FlowOptionButtonState extends State<FlowOptionButton> {
-  @override
   Widget build(BuildContext context) {
     // Using SecondaryButton to implement the flow option button
     return SecondaryButton(
-      text: widget.label,
-      onPressed: widget.onTap,
-      icon: widget.icon,
+      text: label,
+      onPressed: onTap,
+      icon: icon,
       iconLeading: true,
       size: ButtonSize.fullWidth,
       elevation: 0,

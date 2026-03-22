@@ -25,17 +25,17 @@ class LoadResultsWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Use AnimatedBuilder to rebuild when controller changes
-    return AnimatedBuilder(
-      animation: controller,
-      builder: (context, _) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          child: Column(
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: AnimatedBuilder(
+        animation: controller,
+        builder: (context, _) {
+          return Column(
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Display device connection widget
+              // Read devices inside the builder so resetDevices() reassignments
+              // are never stale.
               DeviceConnectionWidget(
                 devices: controller.devices,
                 callback: () => controller.processReceivedData(context),
@@ -44,38 +44,44 @@ class LoadResultsWidget extends StatelessWidget {
 
               const SizedBox(height: 24),
 
-              // Display conflicts or success message
-              if (controller.resultsLoaded) ...[
-                if (controller.hasBibConflicts || controller.hasTimingConflicts)
-                  ConflictButton(
-                    title: 'Race Conflicts',
-                    description:
-                        'Your race contains conflicts. Please resolve them before proceeding.',
-                    buttonText: 'Resolve',
-                    onPressed: () {
-                      debugPrint(
-                          'Conflict button pressed - Bib conflicts: ${controller.hasBibConflicts}, Timing conflicts: ${controller.hasTimingConflicts}');
-                      if (controller.hasBibConflicts) {
-                        controller.showBibConflictsSheet(context);
-                      } else {
-                        controller.showTimingConflictsSheet(context);
-                      }
-                    },
-                  )
-                else
-                  const SuccessMessage(),
-                const SizedBox(height: 16),
-              ],
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Display conflicts or success message
+                  if (controller.resultsLoaded) ...[
+                    if (controller.hasBibConflicts ||
+                        controller.hasTimingConflicts)
+                      ConflictButton(
+                        title: 'Race Conflicts',
+                        description:
+                            'Your race contains conflicts. Please resolve them before proceeding.',
+                        buttonText: 'Resolve',
+                        onPressed: () {
+                          debugPrint(
+                              'Conflict button pressed - Bib conflicts: ${controller.hasBibConflicts}, Timing conflicts: ${controller.hasTimingConflicts}');
+                          if (controller.hasBibConflicts) {
+                            controller.showBibConflictsSheet(context);
+                          } else {
+                            controller.showTimingConflictsSheet(context);
+                          }
+                        },
+                      )
+                    else
+                      const SuccessMessage(),
+                    const SizedBox(height: 16),
+                  ],
 
-              // Reload button
-              if (controller.resultsLoaded)
-                ReloadButton(onPressed: controller.resetDevices)
-              else
-                const SizedBox.shrink(),
+                  // Reload button
+                  if (controller.resultsLoaded)
+                    ReloadButton(onPressed: controller.resetDevices)
+                  else
+                    const SizedBox.shrink(),
+                ],
+              ),
             ],
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }

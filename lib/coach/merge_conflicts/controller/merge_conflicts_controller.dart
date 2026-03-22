@@ -2,7 +2,7 @@ import 'package:xceleration/coach/merge_conflicts/models/conflict_time.dart';
 import 'package:xceleration/coach/merge_conflicts/models/ui_chunk.dart';
 import 'package:xceleration/coach/merge_conflicts/models/ui_record.dart';
 import 'package:xceleration/coach/merge_conflicts/utils/merge_conflicts_utils.dart';
-import 'package:xceleration/coach/merge_conflicts/utils/timing_data_converter.dart';
+import 'package:xceleration/coach/merge_conflicts/utils/timing_data_converter.dart' show CoachTimingDataConverter;
 import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/services/post_frame_callback_scheduler.dart';
 import 'package:xceleration/core/utils/index.dart';
@@ -48,7 +48,7 @@ class MergeConflictsController with ChangeNotifier {
         _cachedUIChunks!.length != timingChunks.length ||
         _needsUIRebuild) {
       _cachedUIChunks =
-          TimingDataConverter.convertToUIChunks(timingChunks, raceRunners);
+          CoachTimingDataConverter.convertToUIChunks(timingChunks, raceRunners);
       _needsUIRebuild = false;
     }
     return _cachedUIChunks!;
@@ -134,7 +134,6 @@ class MergeConflictsController with ChangeNotifier {
       isOriginallyTBD: record.isOriginallyTBD,
       validationError: validationError,
     ));
-    notifyListeners();
   }
 
   /// Called by widget when user taps the insert TBD button.
@@ -191,36 +190,15 @@ class MergeConflictsController with ChangeNotifier {
   }
 
   /// Manually resolve an extra time conflict for a specific chunk
-  Future<void> resolveExtraTimeConflict(int chunkIndex) async {
-    if (chunkIndex < 0 || chunkIndex >= timingChunks.length) {
-      return;
-    }
-
-    final chunk = timingChunks[chunkIndex];
-    if (!chunk.hasConflict ||
-        chunk.conflictRecord == null ||
-        chunk.conflictRecord!.conflict == null ||
-        chunk.conflictRecord!.conflict!.type != ConflictType.extraTime) {
-      return;
-    }
-
-    // Resolution is now checked in UI based on local state
-
-    // Convert to confirmRunner conflict
-    chunk.conflictRecord = TimingDatum(
-      time: chunk.conflictRecord!.time,
-      conflict: Conflict(type: ConflictType.confirmRunner, offBy: 0),
-    );
-
-    // Invalidate UI cache since conflict type changed
-    _needsUIRebuild = true;
-
-    // Consolidate adjacent confirmRunner chunks after resolving the conflict
-    await consolidateConfirmedTimes();
-  }
+  Future<void> resolveExtraTimeConflict(int chunkIndex) =>
+      _resolveConflict(chunkIndex, ConflictType.extraTime);
 
   /// Manually resolve a missing time conflict for a specific chunk
-  Future<void> resolveMissingTimeConflict(int chunkIndex) async {
+  Future<void> resolveMissingTimeConflict(int chunkIndex) =>
+      _resolveConflict(chunkIndex, ConflictType.missingTime);
+
+  Future<void> _resolveConflict(
+      int chunkIndex, ConflictType expectedType) async {
     if (chunkIndex < 0 || chunkIndex >= timingChunks.length) {
       return;
     }
@@ -229,11 +207,9 @@ class MergeConflictsController with ChangeNotifier {
     if (!chunk.hasConflict ||
         chunk.conflictRecord == null ||
         chunk.conflictRecord!.conflict == null ||
-        chunk.conflictRecord!.conflict!.type != ConflictType.missingTime) {
+        chunk.conflictRecord!.conflict!.type != expectedType) {
       return;
     }
-
-    // Resolution is now checked in UI based on local state
 
     // Convert to confirmRunner conflict
     chunk.conflictRecord = TimingDatum(
@@ -274,9 +250,12 @@ class MergeConflictsController with ChangeNotifier {
         Logger.d(
             'MergeConflictsController: Chunk ${uiChunk.chunkId} synced and is now fully resolved, consolidating confirmed times');
 
-        // Consolidate confirmed times (merge adjacent confirmRunner chunks)
+        // Consolidate confirmed times (merge adjacent confirmRunner chunks).
+        // consolidateConfirmedTimes() calls notifyListeners() internally, so
+        // we return early to avoid a redundant second rebuild.
         await consolidateConfirmedTimes();
         _needsUIRebuild = true;
+        return;
       }
     }
 

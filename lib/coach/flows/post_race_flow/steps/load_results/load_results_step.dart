@@ -8,6 +8,8 @@ class LoadResultsStep extends FlowStep {
   /// Controller for managing load results functionality
   final LoadResultsController controller;
 
+  late final Widget _content = LoadResultsWidget(controller: controller);
+
   /// Creates a new instance of LoadResultsStep
   LoadResultsStep({
     required this.controller,
@@ -42,7 +44,7 @@ class LoadResultsStep extends FlowStep {
   }
 
   @override
-  Widget get content => LoadResultsWidget(controller: controller);
+  Widget get content => _content;
 
   @override
   bool Function()? get canProceed => () {

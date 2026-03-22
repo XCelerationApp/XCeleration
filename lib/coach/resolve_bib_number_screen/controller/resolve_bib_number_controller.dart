@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show VoidCallback;
 import 'package:flutter/material.dart' show ChangeNotifier, TextEditingController;
 import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/utils/logger.dart';
@@ -17,7 +18,11 @@ class ResolveBibNumberController with ChangeNotifier {
   final TextEditingController teamController = TextEditingController();
   final TextEditingController bibController = TextEditingController();
   bool showCreateNew = false;
+  List<Team> teamsList = [];
+  bool isLoadingTeams = true;
   final List<RaceRunner> raceRunners;
+  late final Set<String?> _recordedBibs;
+  late final VoidCallback _masterRaceListener;
   final int raceId;
   final Function(RaceRunner) onComplete;
   final RaceRunner raceRunner;
@@ -30,46 +35,77 @@ class ResolveBibNumberController with ChangeNotifier {
     IMasterRaceResolver? masterRace,
   }) {
     this.masterRace = masterRace ?? MasterRace.getInstance(raceId);
+    _recordedBibs = raceRunners.map((rr) => rr.runner.bibNumber).toSet();
 
-    // Listen to changes from MasterRace
-    this.masterRace.addListener(() {
-      notifyListeners();
-    });
+    // Listen to changes from MasterRace — stored so the same reference can
+    // be passed to removeListener in dispose(). Only re-notifies when the
+    // search results relevant to this screen actually change.
+    _masterRaceListener = _refreshIfResultsChanged;
+    this.masterRace.addListener(_masterRaceListener);
   }
 
-  /// Get all teams (cached by MasterRace)
-  Future<List<Team>> get teams => masterRace.teams;
+  /// Loads teams from MasterRace and notifies listeners when done.
+  Future<void> loadTeams() async {
+    try {
+      final loaded = await masterRace.teams;
+      teamsList = loaded;
+    } catch (_) {
+      teamsList = [];
+    }
+    isLoadingTeams = false;
+    notifyListeners();
+  }
+
+  /// Updates [showCreateNew] and notifies consumers so the screen does not
+  /// need a separate setState call.
+  void setShowCreateNew(bool value) {
+    showCreateNew = value;
+    notifyListeners();
+  }
+
+  /// Fetches and filters runners without notifying listeners.
+  Future<List<RaceRunner>> _fetchFilteredResults(String query) async {
+    List<RaceRunner> candidates;
+    if (query.isEmpty) {
+      candidates = await masterRace.raceRunners;
+    } else {
+      await masterRace.searchRaceRunners(query);
+      candidates = (await masterRace.filteredSearchResults)
+          .values
+          .expand((list) => list)
+          .toList();
+    }
+    return candidates
+        .where((rr) => !_recordedBibs.contains(rr.runner.bibNumber))
+        .toList();
+  }
+
+  /// Called when MasterRace notifies. Only rebuilds consumers if the results
+  /// relevant to this screen have actually changed, preventing rebuilds caused
+  /// by unrelated MasterRace mutations.
+  Future<void> _refreshIfResultsChanged() async {
+    final fresh = await _fetchFilteredResults(searchController.text);
+    if (_resultsChanged(searchResults, fresh)) {
+      searchResults = fresh;
+      notifyListeners();
+    }
+  }
+
+  bool _resultsChanged(List<RaceRunner> a, List<RaceRunner> b) {
+    if (a.length != b.length) return true;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i].runner.bibNumber != b[i].runner.bibNumber) return true;
+    }
+    return false;
+  }
 
   Future<void> searchRunners(String query) async {
     Logger.d('Searching runners...');
     Logger.d('Query: $query');
     Logger.d('Race ID: $raceId');
+    Logger.d('Already recorded bibs: ${_recordedBibs.join(', ')}');
 
-    // Get already recorded runners for this race (runners that already have results)
-    final recordedBibs =
-        raceRunners.map((raceRunner) => raceRunner.runner.bibNumber).toSet();
-
-    Logger.d('Already recorded bibs: ${recordedBibs.join(', ')}');
-
-    List<RaceRunner> filteredRaceRunners;
-    if (query.isEmpty) {
-      // Get all race runners
-      filteredRaceRunners = await masterRace.raceRunners;
-    } else {
-      // Search race runners by query
-      await masterRace.searchRaceRunners(query);
-      filteredRaceRunners = (await masterRace.filteredSearchResults)
-          .values
-          .expand((list) => list)
-          .toList();
-    }
-
-    // Filter out runners that have already been recorded
-    searchResults = filteredRaceRunners
-        .where(
-            (raceRunner) => !recordedBibs.contains(raceRunner.runner.bibNumber))
-        .toList();
-
+    searchResults = await _fetchFilteredResults(query);
     notifyListeners();
     Logger.d('Filtered search results');
   }
@@ -84,23 +120,34 @@ class ResolveBibNumberController with ChangeNotifier {
               'Please enter a name, grade, team, and bib number for the runner');
     }
 
+    final bib = bibController.text;
+    if (bib.isEmpty) {
+      return const AppError(userMessage: 'Bib number is required');
+    }
+
     Logger.d(
-        'Creating new runner with bib: "${bibController.text}", name: "${nameController.text}"');
+        'Creating new runner with bib: "$bib", name: "${nameController.text}"');
 
     try {
       // Create runner with form data
       final formRunner = Runner(
-        bibNumber: bibController.text, // Use bib from form
+        bibNumber: bib,
         name: nameController.text,
         grade: int.tryParse(gradeController.text),
       );
 
-      // Find the team by name (this is a bit hacky, but necessary since teamController only has the name)
-      final teams = await masterRace.teams;
-      final selectedTeam = teams.firstWhere(
-        (team) => team.name == teamController.text,
-        orElse: () => raceRunner.team, // fallback to original team
-      );
+      // Find the team by name — fail explicitly if no match is found
+      final enteredName = teamController.text;
+      final Team selectedTeam;
+      try {
+        selectedTeam = teamsList.firstWhere((t) => t.name == enteredName);
+      } catch (_) {
+        return AppError(
+          userMessage:
+              'Team "$enteredName" was not found. Please choose a valid team.',
+        );
+      }
+
       Logger.d(
           'Selected team: ${selectedTeam.name} (id: ${selectedTeam.teamId}) for new runner');
 
@@ -112,14 +159,13 @@ class ResolveBibNumberController with ChangeNotifier {
       );
 
       // Check if runner already exists by bib
-      final existingRunner =
-          await masterRace.getRunnerByBib(formRunner.bibNumber!);
+      final existingRunner = await masterRace.getRunnerByBib(bib);
 
       int runnerId;
       if (existingRunner == null) {
         // Create new runner and get the ID
         runnerId = await masterRace.createRunner(formRunner);
-        masterRace.addRunnerToTeam(selectedTeam.teamId!, runnerId);
+        await masterRace.addRunnerToTeam(selectedTeam.teamId!, runnerId);
       } else {
         // Runner already exists, use existing ID
         runnerId = existingRunner.runnerId!;
@@ -170,9 +216,7 @@ class ResolveBibNumberController with ChangeNotifier {
     gradeController.dispose();
     teamController.dispose();
     bibController.dispose();
-    masterRace.removeListener(() {
-      notifyListeners();
-    });
+    masterRace.removeListener(_masterRaceListener);
     super.dispose();
   }
 }

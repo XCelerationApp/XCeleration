@@ -16,6 +16,7 @@ import 'i_master_race_resolver.dart';
 class MasterRace with ChangeNotifier implements IMasterRaceResolver {
   static final Map<int, MasterRace> _instances = {};
 
+  @override
   final int raceId;
 
   // Core race data
@@ -75,6 +76,7 @@ class MasterRace with ChangeNotifier implements IMasterRaceResolver {
   }
 
   /// Get all runners in the race (lazy loaded)
+  @override
   Future<List<RaceParticipant>> get raceParticipants async {
     if (_raceParticipants == null) {
       await _loadRaceParticipants();
@@ -207,6 +209,7 @@ class MasterRace with ChangeNotifier implements IMasterRaceResolver {
   // DATA OPERATIONS
   // ============================================================================
 
+  @override
   Future<void> updateRaceParticipant(RaceParticipant raceParticipant) async {
     await _raceRepo.updateRaceParticipant(raceParticipant);
 
@@ -238,6 +241,7 @@ class MasterRace with ChangeNotifier implements IMasterRaceResolver {
 
   /// Add multiple race participants in one operation to avoid notifying
   /// listeners repeatedly and causing UI flicker during bulk imports.
+  @override
   Future<void> addRaceParticipantsBulk(
       List<RaceParticipant> raceParticipants) async {
     if (raceParticipants.any((rp) => rp.raceId != raceId)) {
@@ -257,6 +261,7 @@ class MasterRace with ChangeNotifier implements IMasterRaceResolver {
     notifyListeners();
   }
 
+  @override
   Future<void> removeRaceParticipant(RaceParticipant raceParticipant) async {
     if (raceParticipant.raceId != raceId) {
       throw Exception('Race participant race ID does not match race ID');
@@ -273,6 +278,7 @@ class MasterRace with ChangeNotifier implements IMasterRaceResolver {
     notifyListeners();
   }
 
+  @override
   Future<void> addTeamParticipant(TeamParticipant teamParticipant) async {
     if (teamParticipant.raceId != raceId) {
       throw Exception('Team participant race ID does not match race ID');
@@ -290,6 +296,7 @@ class MasterRace with ChangeNotifier implements IMasterRaceResolver {
     notifyListeners();
   }
 
+  @override
   Future<void> removeTeamFromRace(TeamParticipant teamParticipant) async {
     if (teamParticipant.raceId != raceId) {
       throw Exception('Team participant race ID does not match race ID');
@@ -319,6 +326,7 @@ class MasterRace with ChangeNotifier implements IMasterRaceResolver {
   }
 
   /// Remove a race runner from the race
+  @override
   Future<void> removeRaceRunner(RaceRunner raceRunner) async {
     await removeRaceParticipant(RaceParticipant(
       raceId: raceId,
@@ -363,6 +371,7 @@ class MasterRace with ChangeNotifier implements IMasterRaceResolver {
   // }
 
   /// Find a team by name
+  @override
   Future<Team?> getTeamByName(String teamName) async {
     final teamsList = await teams;
     try {
@@ -491,6 +500,7 @@ class MasterRace with ChangeNotifier implements IMasterRaceResolver {
       _runnerRepo.addRunnerToTeam(teamId, runnerId);
 
   /// Get all available teams (from other races) that could be added to this race
+  @override
   Future<List<Team>> getOtherTeams() async {
     final allTeams = await _teamRepo.getAllTeams();
     final currentTeams = await teams;
@@ -507,6 +517,7 @@ class MasterRace with ChangeNotifier implements IMasterRaceResolver {
   // ============================================================================
 
   /// Invalidate all cached data
+  @override
   void invalidateCache() {
     _race = null;
     _raceParticipants = null;
