@@ -279,8 +279,9 @@ void main() {
         expect(teams.length, 2);
       });
 
-      test('throws when race does not exist', () async {
-        expect(() => repo.getRaceTeams(9999), throwsException);
+      test('returns empty list when race does not exist', () async {
+        final teams = await repo.getRaceTeams(9999);
+        expect(teams, isEmpty);
       });
     });
 

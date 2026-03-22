@@ -55,24 +55,25 @@ class RaceRepository implements IRaceRepository {
   Future<void> updateRace(Race race) async {
     if (race.raceId == null) throw Exception('Race id is required');
     if (!race.isValid) throw Exception('Race is not valid');
-    if (await getRace(race.raceId!) == null) {
-      throw Exception('Race with id ${race.raceId} not found');
-    }
     final db = await _db;
     final map = race.toMap();
     map['is_dirty'] = 1;
-    await db
+    final affectedRows = await db
         .update('races', map, where: 'race_id = ?', whereArgs: [race.raceId]);
+    if (affectedRows == 0) {
+      throw Exception('Race with id ${race.raceId} not found');
+    }
     _writeBus?.notify();
   }
 
   @override
   Future<void> deleteRace(int raceId) async {
-    if (await getRace(raceId) == null) {
+    final db = await _db;
+    final affectedRows =
+        await db.delete('races', where: 'race_id = ?', whereArgs: [raceId]);
+    if (affectedRows == 0) {
       throw Exception('Race with id $raceId not found');
     }
-    final db = await _db;
-    await db.delete('races', where: 'race_id = ?', whereArgs: [raceId]);
     _writeBus?.notify();
   }
 
@@ -132,9 +133,6 @@ class RaceRepository implements IRaceRepository {
 
   @override
   Future<List<Team>> getRaceTeams(int raceId) async {
-    if (await getRace(raceId) == null) {
-      throw Exception('Race with id $raceId not found');
-    }
     final db = await _db;
     final rows = await db.rawQuery('''
       SELECT t.*, rtp.team_color_override
