@@ -159,15 +159,11 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
     );
 
     // If a valid race ID was returned and the context is still mounted,
-    // navigate to the race screen
+    // navigate to the race screen. The first sheet() already awaited its own
+    // dismissal, so the UI has settled — no delay needed.
     if (newRaceId != null && context.mounted) {
-      // Add a small delay to let the UI settle after sheet dismissal
-      await Future.delayed(const Duration(milliseconds: 300));
       final masterRace = MasterRace.getInstance(newRaceId);
-
-      if (context.mounted) {
-        await _openRaceSheet(context, masterRace);
-      }
+      await _openRaceSheet(context, masterRace);
     }
   }
 

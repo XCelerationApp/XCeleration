@@ -318,7 +318,7 @@ class RaceScreenController with ChangeNotifier {
 
     if (previousState == Race.FLOW_SETUP &&
         newState == Race.FLOW_SETUP_COMPLETED) {
-      Future.delayed(Duration.zero, () {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
         if (context.mounted) {
           DialogUtils.showMessageDialog(context,
               title: 'Setup Complete',
