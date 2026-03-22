@@ -39,23 +39,19 @@ jobs:
             pubspec.lock
             analysis_options.yaml
 
-  analyze:
-    name: Analyze Code
+  analyze-and-test:
+    name: Analyze & Test
     runs-on: ubuntu-latest
     needs: detect-changes
     if: needs.detect-changes.outputs.dart-changed == 'true'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
 
       - name: Cache Flutter dependencies
         uses: actions/cache@v5
         with:
-          path: |
-            ~/.pub-cache
-            .dart_tool
+          path: ~/.pub-cache
           key: ${{ runner.os }}-flutter-deps-${{ hashFiles('**/pubspec.lock') }}
           restore-keys: |
             ${{ runner.os }}-flutter-deps-
@@ -70,54 +66,13 @@ jobs:
       - name: Get Flutter dependencies
         run: flutter pub get
 
-      - name: Create .env file for analyzer
+      - name: Create .env file
         run: touch .env
 
-      - name: Analyze changed files only (faster)
+      - name: Analyze changed files
         run: |
-          echo "🔍 Analyzing only changed Dart files for faster feedback..."
-
           changed_files="${{ needs.detect-changes.outputs.dart-files }}"
-          for file in $changed_files; do
-            echo "  Analyzing: $file"
-            flutter analyze --fatal-infos --fatal-warnings "$file" || exit 1
-          done
-
-          echo "✅ Incremental analysis complete!"
-
-  test:
-    name: Run Tests
-    runs-on: ubuntu-latest
-    needs: detect-changes
-    if: needs.detect-changes.outputs.dart-changed == 'true'
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-
-      - name: Cache Flutter dependencies
-        uses: actions/cache@v5
-        with:
-          path: |
-            ~/.pub-cache
-            .dart_tool
-          key: ${{ runner.os }}-flutter-deps-${{ hashFiles('**/pubspec.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-flutter-deps-
-
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.32.5'
-          channel: 'stable'
-          cache: true
-
-      - name: Get Flutter dependencies
-        run: flutter pub get
-
-      - name: Create .env file for tests
-        run: touch .env
+          flutter analyze --fatal-infos --fatal-warnings $changed_files
 
       - name: Run unit and widget tests
         run: flutter test --concurrency=4
@@ -125,24 +80,19 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-    needs: [detect-changes, analyze, test]
+    needs: [detect-changes, analyze-and-test]
     if: |
       always() &&
       needs.detect-changes.outputs.build-changed == 'true' &&
-      (needs.analyze.result == 'success' || needs.analyze.result == 'skipped') &&
-      (needs.test.result == 'success' || needs.test.result == 'skipped')
+      (needs.analyze-and-test.result == 'success' || needs.analyze-and-test.result == 'skipped')
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
 
       - name: Cache Flutter dependencies
         uses: actions/cache@v5
         with:
-          path: |
-            ~/.pub-cache
-            .dart_tool
+          path: ~/.pub-cache
           key: ${{ runner.os }}-flutter-deps-${{ hashFiles('**/pubspec.lock') }}
           restore-keys: |
             ${{ runner.os }}-flutter-deps-
