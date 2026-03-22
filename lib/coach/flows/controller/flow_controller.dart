@@ -81,9 +81,12 @@ class MasterFlowController {
 
     final currentState = race.flowState!;
 
-    // Setup state: validate completeness before advancing
+    // Setup state: validate completeness before advancing.
+    // Pass the already-fetched race and cached teams to avoid extra DB reads.
     if (currentState == Race.FLOW_SETUP) {
       final canAdvance = await RaceService.checkSetupComplete(
+        race: race,
+        teams: raceController.teamsOrNull ?? [],
         masterRace: raceController.masterRace,
         nameController: raceController.form.nameController,
         locationController: raceController.form.locationController,
@@ -112,10 +115,10 @@ class MasterFlowController {
       return;
     }
 
-    // Completed states: advance to the next active state
+    // Completed states: advance to the next active state.
+    // Track the resolved state locally so we can navigate without a second DB read.
+    String nextState = currentState;
     if (currentState.contains(Race.FLOW_COMPLETED_SUFFIX)) {
-      String nextState;
-
       if (currentState == Race.FLOW_SETUP_COMPLETED) {
         nextState = Race.FLOW_PRE_RACE;
       } else if (currentState == Race.FLOW_PRE_RACE_COMPLETED) {
@@ -131,10 +134,8 @@ class MasterFlowController {
 
     if (!context.mounted) return;
 
-    // Navigate to the current flow's screen
-    final currentRace = await raceController.masterRace.race;
-    if (!context.mounted) return;
-    await handleFlowNavigation(context, currentRace.flowState!);
+    // Navigate using the already-known state — eliminates a redundant DB read.
+    await handleFlowNavigation(context, nextState);
   }
 
   /// Navigate to the appropriate screen based on flow state
@@ -206,8 +207,10 @@ class MasterFlowController {
     // Set the race state directly to finished after post-race flow completes
     await updateRaceFlowState(context, Race.FLOW_FINISHED);
 
-    // Add a short delay to let the UI settle
-    await Future.delayed(const Duration(milliseconds: 500));
+    // Wait for the next frame so the UI reflects the new state before animating.
+    final frameReady = Completer<void>();
+    WidgetsBinding.instance.addPostFrameCallback((_) => frameReady.complete());
+    await frameReady.future;
 
     // Return to race results tab
     Logger.d('MasterFlowController: Navigating to results tab');
@@ -333,28 +336,39 @@ Future<bool> showFlow({
     horizontalPadding: 0,
     body: ChangeNotifierProvider.value(
       value: controller,
-      child: Consumer<FlowController>(
-        builder: (context, controller, _) {
-          final currentStep = controller.currentStep;
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (showProgressIndicator)
-                Padding(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Indicator: rebuilds only on step navigation (currentIndex change)
+          if (showProgressIndicator)
+            Selector<FlowController, (int, bool)>(
+              selector: (_, c) => (c.currentIndex, c.canGoBack),
+              builder: (ctx, data, __) {
+                final (currentIndex, canGoBack) = data;
+                return Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: EnhancedFlowIndicator(
                     totalSteps: steps.length,
-                    currentStep: controller.currentIndex,
-                    onBack: controller.canGoBack ? controller.goBack : null,
+                    currentStep: currentIndex,
+                    onBack: canGoBack
+                        ? () => ctx.read<FlowController>().goBack()
+                        : null,
                   ),
-                ),
-              Padding(
+                );
+              },
+            ),
+          // Title + description: rebuilds only on step navigation
+          Selector<FlowController, int>(
+            selector: (_, c) => c.currentIndex,
+            builder: (_, index, __) {
+              final step = steps[index];
+              return Padding(
                 padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      currentStep.title,
+                      step.title,
                       style: const TextStyle(
                         fontSize: 32,
                         fontWeight: FontWeight.bold,
@@ -364,7 +378,7 @@ Future<bool> showFlow({
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      currentStep.description,
+                      step.description,
                       style: const TextStyle(
                         fontSize: 16,
                         color: Colors.black54,
@@ -373,35 +387,45 @@ Future<bool> showFlow({
                     ),
                   ],
                 ),
-              ),
-              Expanded(
-                child: currentStep.canScroll
-                    ? SingleChildScrollView(
-                        child: currentStep.content,
-                      )
-                    : currentStep.content,
-              ),
-              Padding(
+              );
+            },
+          ),
+          // Content: rebuilds only on step navigation
+          Expanded(
+            child: Selector<FlowController, int>(
+              selector: (_, c) => c.currentIndex,
+              builder: (_, index, __) {
+                final step = steps[index];
+                return step.canScroll
+                    ? SingleChildScrollView(child: step.content)
+                    : step.content;
+              },
+            ),
+          ),
+          // Next button: rebuilds only when canProceed or step changes
+          Selector<FlowController, (bool, int)>(
+            selector: (_, c) => (c.canProceed, c.currentIndex),
+            builder: (ctx, data, __) {
+              final (canProceed, _) = data;
+              return Padding(
                 padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
                 child: FullWidthButton(
                   text: 'Next',
                   borderRadius: 6,
                   fontSize: 16,
                   textColor: Colors.white,
-                  backgroundColor: controller.canProceed
-                      ? AppColors.primaryColor
-                      : Colors.grey,
+                  backgroundColor:
+                      canProceed ? AppColors.primaryColor : Colors.grey,
                   fontWeight: FontWeight.w600,
-                  onPressed: controller.canProceed
+                  onPressed: canProceed
                       ? () async {
-                          if (controller.canGoForward) {
-                            await controller.goToNext();
-                          } else if (controller.isLastStep) {
-                            // Call onNext for the final step before completing
-                            if (controller.currentStep.onNext != null) {
-                              await controller.currentStep.onNext!();
+                          final c = ctx.read<FlowController>();
+                          if (c.canGoForward) {
+                            await c.goToNext();
+                          } else if (c.isLastStep) {
+                            if (c.currentStep.onNext != null) {
+                              await c.currentStep.onNext!();
                             }
-                            // Complete the flow
                             completed = true;
                             if (!contextToUse.mounted) return;
                             Navigator.of(context, rootNavigator: true).pop();
@@ -409,10 +433,10 @@ Future<bool> showFlow({
                         }
                       : null,
                 ),
-              ),
-            ],
-          );
-        },
+              );
+            },
+          ),
+        ],
       ),
     ),
   );

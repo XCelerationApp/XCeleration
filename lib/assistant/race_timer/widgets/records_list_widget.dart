@@ -34,18 +34,18 @@ class RecordsListWidget extends StatelessWidget {
         separatorBuilder: (context, index) => const SizedBox(height: 1),
         itemBuilder: (context, index) {
           final uiRecord = uiRecords[index];
-          return _buildRecordItem(uiRecord, index, context);
+          return _buildRecordItem(uiRecord, index, context, uiRecords.length);
         },
       ))
     ]);
   }
 
-  Widget _buildRecordItem(UIRecord uiRecord, int index, BuildContext context) {
+  Widget _buildRecordItem(UIRecord uiRecord, int index, BuildContext context, int totalCount) {
     final item = RecordListItem(uiRecord: uiRecord, index: index);
 
     final bool canSwipe = (uiRecord.textColor == Colors.black) || // unconfirmed
         (uiRecord.type != RecordType.runnerTime &&
-            index == controller.uiRecords.length - 1); // conflict and last
+            index == totalCount - 1); // conflict and last
 
     if (!canSwipe) return item;
 

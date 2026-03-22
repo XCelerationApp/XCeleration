@@ -118,23 +118,44 @@ class _AnimatedRow extends StatefulWidget {
   State<_AnimatedRow> createState() => _AnimatedRowState();
 }
 
-class _AnimatedRowState extends State<_AnimatedRow> {
-  double _opacity = 0;
+class _AnimatedRowState extends State<_AnimatedRow>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _opacity;
+
+  static const _revealMs = 350; // AppAnimations.reveal
+  static const _staggerMs = 40;
 
   @override
   void initState() {
     super.initState();
-    Future.delayed(Duration(milliseconds: widget.index * 40), () {
-      if (mounted) setState(() => _opacity = 1);
-    });
+    final delayMs = widget.index * _staggerMs;
+    final totalMs = delayMs + _revealMs;
+    _controller = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: totalMs),
+    );
+    _opacity = CurvedAnimation(
+      parent: _controller,
+      curve: Interval(
+        totalMs > 0 ? delayMs / totalMs : 0.0,
+        1.0,
+        curve: AppAnimations.enter,
+      ),
+    );
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedOpacity(
+    return FadeTransition(
       opacity: _opacity,
-      duration: AppAnimations.reveal,
-      curve: AppAnimations.enter,
       child: _ResolutionRow(entry: widget.entry),
     );
   }

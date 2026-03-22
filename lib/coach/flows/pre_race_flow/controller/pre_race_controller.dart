@@ -71,8 +71,6 @@ class PreRaceController {
         devices.bibRecorder!.data = '$encodedRaceData---$encodedBibData';
       },
     );
-    // Seed initial canProceed so the first render uses a correct value
-    _reviewRunnersStep.seedInitialProceed();
     _shareRaceStep = ShareRaceStep(devices: devices);
     _preRaceFlowCompleteStep = PreRaceFlowCompleteStep();
   }

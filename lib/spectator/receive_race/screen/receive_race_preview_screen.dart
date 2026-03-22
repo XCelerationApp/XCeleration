@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:xceleration/shared/services/race_results_service.dart';
 import 'package:xceleration/coach/race_results/widgets/team_results_widget.dart';
@@ -12,7 +13,15 @@ import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/core/components/dialog_utils.dart';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
+
+/// Top-level function required by [compute] — decodes the encoded payload and
+/// returns the inner race metadata map.
+Map<String, dynamic> _decodeRaceMap(String encodedPayload) {
+  final b = base64Decode(encodedPayload);
+  final decoded = utf8.decode(gzip.decode(b));
+  final map = jsonDecode(decoded) as Map<String, dynamic>;
+  return map['race'] as Map<String, dynamic>;
+}
 
 class ReceiveRacePreviewScreen extends StatefulWidget {
   final RaceResultsData data;
@@ -43,12 +52,9 @@ class _ReceiveRacePreviewScreenState extends State<ReceiveRacePreviewScreen> {
     });
 
     try {
-      // Decode the payload to extract race metadata
-      final Uint8List b = base64Decode(widget.encodedPayload!);
-      final String decoded = utf8.decode(gzip.decode(b));
-      final Map<String, dynamic> map =
-          jsonDecode(decoded) as Map<String, dynamic>;
-      final raceMap = map['race'] as Map<String, dynamic>;
+      // Decode the payload off the UI thread to extract race metadata
+      final raceMap =
+          await compute(_decodeRaceMap, widget.encodedPayload!);
 
       // Save the race to local storage
       await SpectatorStorageService.instance.saveRace(

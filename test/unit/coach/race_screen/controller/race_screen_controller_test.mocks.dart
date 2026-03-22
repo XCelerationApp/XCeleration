@@ -70,9 +70,9 @@ class _FakeRaceResultsData_1 extends _i1.SmartFake
         );
 }
 
-class _FakeRaceController_2 extends _i1.SmartFake
+class _FakeRaceScreenController_2 extends _i1.SmartFake
     implements _i4.RaceScreenController {
-  _FakeRaceController_2(
+  _FakeRaceScreenController_2(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -510,7 +510,7 @@ class MockMasterFlowController extends _i1.Mock
   @override
   _i4.RaceScreenController get raceController => (super.noSuchMethod(
         Invocation.getter(#raceController),
-        returnValue: _FakeRaceController_2(
+        returnValue: _FakeRaceScreenController_2(
           this,
           Invocation.getter(#raceController),
         ),

@@ -29,9 +29,10 @@ class BibConflictsOverview extends StatefulWidget {
 class _BibConflictsOverviewState extends State<BibConflictsOverview> {
   late List<dynamic> _raceRunners;
   List<RaceRunner>? _unknownRaceRunners;
-  List<RaceRunner>? _duplicateRaceRunners;
+  Set<RaceRunner>? _duplicateRaceRunners;
   List<int>? _duplicateBibNumberPlaces;
   List<RaceRunner>? _errorRaceRunners;
+  bool _resolved = false;
 
   @override
   void initState() {
@@ -43,10 +44,11 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
   }
 
   Future<void> _getErrorRaceRunners() async {
+    _resolved = false;
     Logger.d('Race Runners: $_raceRunners');
     try {
       final unknownRunners = <RaceRunner>[];
-      final duplicateRunners = <RaceRunner>[];
+      final duplicateRunners = <RaceRunner>{};
       final duplicateBibNumberPlaces = <int>[];
 
       // Find duplicate bibs within the resolved runners
@@ -64,25 +66,32 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
         }
       }
 
-      // Collect runners for bib numbers that need resolution
+      // Collect runners for bib numbers that need resolution.
+      // Fire all DB lookups concurrently rather than awaiting each one in turn.
+      final futures = <Future<RaceRunner?>>[];
+      final futureIndices = <int>[];
+
       for (int i = 0; i < _raceRunners.length; i++) {
         final bibNumber = _raceRunners[i];
         if (bibNumber is int) {
           if (seenBibs.contains(bibNumber.toString())) {
-            final raceRunner = await widget.masterRace
-                .getRaceRunnerByBib(bibNumber.toString());
-            duplicateRunners.add(raceRunner!);
-            duplicateBibNumberPlaces.add(i);
+            futures.add(widget.masterRace.getRaceRunnerByBib(bibNumber.toString()));
+            futureIndices.add(i);
           } else {
             // Create a placeholder runner for display purposes
-            final placeholderRunner = RaceRunner(
+            unknownRunners.add(RaceRunner(
               raceId: widget.masterRace.raceId,
               runner: Runner(bibNumber: bibNumber.toString()),
               team: Team(),
-            );
-            unknownRunners.add(placeholderRunner);
+            ));
           }
         }
+      }
+
+      final resolved = await Future.wait(futures);
+      for (int j = 0; j < resolved.length; j++) {
+        duplicateRunners.add(resolved[j]!);
+        duplicateBibNumberPlaces.add(futureIndices[j]);
       }
 
       if (mounted) {
@@ -97,7 +106,7 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
       if (mounted) {
         setState(() {
           _unknownRaceRunners = [];
-          _duplicateRaceRunners = [];
+          _duplicateRaceRunners = {};
           _duplicateBibNumberPlaces = [];
           _errorRaceRunners = [];
         });
@@ -124,13 +133,15 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
     final errorRaceRunners = _errorRaceRunners!;
 
     if (errorRaceRunners.isEmpty) {
-      // All conflicts resolved - call onResolved callback and close the sheet
-      final resolvedRunners = _raceRunners.whereType<RaceRunner>().toList();
-
-      // Use addPostFrameCallback to ensure the widget tree is updated before calling the callback
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        widget.onResolved(resolvedRunners);
-      });
+      // All conflicts resolved - call onResolved callback exactly once per resolution event.
+      if (!_resolved) {
+        _resolved = true;
+        final resolvedRunners = _raceRunners.whereType<RaceRunner>().toList();
+        // Use addPostFrameCallback to ensure the widget tree is updated before calling the callback
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) widget.onResolved(resolvedRunners);
+        });
+      }
 
       return Center(
         child: Column(
@@ -262,29 +273,22 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
           );
 
           if (updatedRaceRunner != null) {
-            setState(() {
-              // Handle both unknown bib conflicts (integers) and duplicate bib conflicts (RaceRunner objects)
-              int index = -1;
+            // Compute the index outside setState so the async refresh runs after the sync state update.
+            int index = -1;
+            if (_duplicateRaceRunners!.contains(raceRunner)) {
+              index = _raceRunners.indexWhere(
+                  (r) => r is int && r.toString() == raceRunner.runner.bibNumber);
+            } else {
+              final conflictBib =
+                  int.tryParse(raceRunner.runner.bibNumber!) ??
+                      raceRunner.runner.bibNumber;
+              index = _raceRunners.indexWhere((r) => r == conflictBib);
+            }
 
-              if (_duplicateRaceRunners!.contains(raceRunner)) {
-                // This is a duplicate bib conflict - find the RaceRunner object in the list
-                // For duplicates, find any RaceRunner with the same bib number (since we're replacing the entire duplicate)
-                // Note: This finds the first RaceRunner with this bib number - there may be multiple duplicates
-                index = _raceRunners.indexWhere((r) =>
-                    r is int && r.toString() == raceRunner.runner.bibNumber);
-              } else {
-                // This is an unknown bib conflict - find the integer in the list
-                final conflictBib =
-                    int.tryParse(raceRunner.runner.bibNumber!) ??
-                        raceRunner.runner.bibNumber;
-                index = _raceRunners.indexWhere((r) => r == conflictBib);
-              }
-
-              if (index != -1) {
-                _raceRunners[index] = updatedRaceRunner;
-                _getErrorRaceRunners();
-              } else {}
-            });
+            if (index != -1) {
+              setState(() => _raceRunners[index] = updatedRaceRunner);
+              _getErrorRaceRunners();
+            }
           }
         },
         borderRadius: BorderRadius.circular(12),

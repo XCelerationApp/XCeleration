@@ -57,19 +57,14 @@ class _RunnerAssignmentListState extends State<RunnerAssignmentList> {
     final filtered = _filter(nearbyRunners);
     final grouped = _groupByTeam(filtered);
 
+    // Build a flat list of typed item descriptors so ListView.builder can
+    // lazily construct only the widgets currently in view.
     var rowIndex = 0;
-    final rows = <Widget>[];
+    final items = <_ListItem>[];
     for (final team in grouped.keys) {
-      rows.add(_TeamSection(team: team, count: grouped[team]!.length));
+      items.add(_SectionHeader(team: team, count: grouped[team]!.length));
       for (final runner in grouped[team]!) {
-        final idx = rowIndex++;
-        rows.add(_AnimatedRunnerRow(
-          key: ValueKey(runner.runner.bibNumber),
-          index: idx,
-          runner: runner,
-          isSelected: _selectedRunner?.runner.bibNumber == runner.runner.bibNumber,
-          onSelect: () => setState(() => _selectedRunner = runner),
-        ));
+        items.add(_RunnerRow(runner: runner, animIndex: rowIndex++));
       }
     }
 
@@ -89,19 +84,30 @@ class _RunnerAssignmentListState extends State<RunnerAssignmentList> {
         // Scrollable runner list — bounded so the CTA below stays visible.
         ConstrainedBox(
           constraints: const BoxConstraints(maxHeight: 440),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (nearbyRunners.isEmpty)
-                  _EmptyState(message: 'No unassigned runners — create a new one.')
-                else if (filtered.isEmpty)
-                  const _EmptyState(message: 'No runners from this school.')
-                else
-                  ...rows,
-              ],
-            ),
-          ),
+          child: nearbyRunners.isEmpty
+              ? _EmptyState(message: 'No unassigned runners — create a new one.')
+              : filtered.isEmpty
+                  ? const _EmptyState(message: 'No runners from this school.')
+                  : ListView.builder(
+                      itemCount: items.length,
+                      itemBuilder: (_, i) {
+                        final item = items[i];
+                        return switch (item) {
+                          _SectionHeader(:final team, :final count) =>
+                            _TeamSection(team: team, count: count),
+                          _RunnerRow(:final runner, :final animIndex) =>
+                            _AnimatedRunnerRow(
+                              key: ValueKey(runner.runner.bibNumber),
+                              index: animIndex,
+                              runner: runner,
+                              isSelected: _selectedRunner?.runner.bibNumber ==
+                                  runner.runner.bibNumber,
+                              onSelect: () =>
+                                  setState(() => _selectedRunner = runner),
+                            ),
+                        };
+                      },
+                    ),
         ),
         const SizedBox(height: AppSpacing.sm),
         // CTA lives outside the scroll so it stays visible when a runner is selected.
@@ -125,6 +131,24 @@ class _RunnerAssignmentListState extends State<RunnerAssignmentList> {
       ],
     );
   }
+}
+
+// ---------------------------------------------------------------------------
+// List item descriptors for lazy ListView.builder rendering
+// ---------------------------------------------------------------------------
+
+sealed class _ListItem {}
+
+final class _SectionHeader extends _ListItem {
+  _SectionHeader({required this.team, required this.count});
+  final String team;
+  final int count;
+}
+
+final class _RunnerRow extends _ListItem {
+  _RunnerRow({required this.runner, required this.animIndex});
+  final RaceRunner runner;
+  final int animIndex;
 }
 
 // ---------------------------------------------------------------------------
@@ -233,24 +257,46 @@ class _AnimatedRunnerRow extends StatefulWidget {
   State<_AnimatedRunnerRow> createState() => _AnimatedRunnerRowState();
 }
 
-class _AnimatedRunnerRowState extends State<_AnimatedRunnerRow> {
-  double _opacity = 0;
+class _AnimatedRunnerRowState extends State<_AnimatedRunnerRow>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _opacity;
   bool _expanded = false;
+
+  static const _revealMs = 350; // AppAnimations.reveal
+  static const _staggerMs = 40;
 
   @override
   void initState() {
     super.initState();
-    Future.delayed(Duration(milliseconds: widget.index * 40), () {
-      if (mounted) setState(() => _opacity = 1);
-    });
+    final delayMs = widget.index * _staggerMs;
+    final totalMs = delayMs + _revealMs;
+    _controller = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: totalMs),
+    );
+    _opacity = CurvedAnimation(
+      parent: _controller,
+      curve: Interval(
+        totalMs > 0 ? delayMs / totalMs : 0.0,
+        1.0,
+        curve: AppAnimations.enter,
+      ),
+    );
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final bibInt = int.parse(widget.runner.runner.bibNumber ?? '0');
-    return AnimatedOpacity(
+    return FadeTransition(
       opacity: _opacity,
-      duration: AppAnimations.reveal,
       child: GestureDetector(
         onTap: () {
           if (_expanded && !widget.isSelected) {

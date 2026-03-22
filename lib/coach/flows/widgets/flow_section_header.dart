@@ -6,6 +6,14 @@ import '../../../core/theme/app_border_radius.dart';
 
 // Utility widget for section headers
 class FlowSectionHeader extends StatelessWidget {
+  static final TextStyle _countStyleActive = AppTypography.caption.copyWith(
+    color: AppColors.primaryColor,
+    fontWeight: FontWeight.w600,
+  );
+  static final TextStyle _countStyleInactive = AppTypography.caption.copyWith(
+    color: AppColors.mediumColor,
+    fontWeight: FontWeight.w600,
+  );
   final String title;
   final int? count;
   final VoidCallback? onToggle;
@@ -39,12 +47,9 @@ class FlowSectionHeader extends StatelessWidget {
             ),
             child: Text(
               '$count',
-              style: AppTypography.caption.copyWith(
-                color: (count ?? 0) > 0
-                    ? AppColors.primaryColor
-                    : AppColors.mediumColor,
-                fontWeight: FontWeight.w600,
-              ),
+              style: (count ?? 0) > 0
+                  ? _countStyleActive
+                  : _countStyleInactive,
             ),
           ),
         ],
