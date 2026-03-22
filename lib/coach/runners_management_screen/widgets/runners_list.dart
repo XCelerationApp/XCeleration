@@ -58,7 +58,7 @@ class _RunnersListState extends State<RunnersList> {
   }
 
   bool _isExpanded(Team team) =>
-      _expanded[team.teamId] ?? true;
+      _expanded[team.teamId ?? -1] ?? true;
 
   void _toggleExpanded(Team team) {
     setState(() {
