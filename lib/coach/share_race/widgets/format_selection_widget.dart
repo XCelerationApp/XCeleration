@@ -13,55 +13,47 @@ class FormatSelectionWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              color: AppColors.backgroundColor,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: ColorUtils.withOpacity(Colors.black, 0.05),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 0),
-              child: Column(
-                children: [
-                  _buildFormatOption(
-                    format: ResultFormat.plainText,
-                    label: 'Plain Text',
-                    icon: Icons.text_snippet,
-                    description: 'Copy Results as Plain Text',
-                  ),
-                  const Divider(
-                      height: 1, thickness: 0.5, color: Colors.black12),
-                  _buildFormatOption(
-                    format: ResultFormat.googleSheet,
-                    label: 'Google Sheet',
-                    icon: Icons.cloud_upload,
-                    description: 'Save/Share Results to Google Sheet',
-                  ),
-                  const Divider(
-                      height: 1, thickness: 0.5, color: Colors.black12),
-                  _buildFormatOption(
-                    format: ResultFormat.pdf,
-                    label: 'PDF',
-                    icon: Icons.picture_as_pdf,
-                    description: 'Save/Share Results as PDF',
-                  ),
-                ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.backgroundColor,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: ColorUtils.withOpacity(Colors.black, 0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
               ),
-            ),
+            ],
           ),
-        ],
-      ),
+          child: Column(
+            children: [
+              _buildFormatOption(
+                format: ResultFormat.plainText,
+                label: 'Plain Text',
+                icon: Icons.text_snippet,
+                description: 'Copy Results as Plain Text',
+              ),
+              const Divider(height: 1, thickness: 0.5, color: Colors.black12),
+              _buildFormatOption(
+                format: ResultFormat.googleSheet,
+                label: 'Google Sheet',
+                icon: Icons.cloud_upload,
+                description: 'Save/Share Results to Google Sheet',
+              ),
+              const Divider(height: 1, thickness: 0.5, color: Colors.black12),
+              _buildFormatOption(
+                format: ResultFormat.pdf,
+                label: 'PDF',
+                icon: Icons.picture_as_pdf,
+                description: 'Save/Share Results as PDF',
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
