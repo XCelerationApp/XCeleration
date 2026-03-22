@@ -27,7 +27,7 @@ import '../services/race_share_service.dart';
 import '../widgets/spectator_broadcast_sheet.dart';
 
 /// Controller class responsible for all sharing logic in the app
-class ShareRaceController extends ChangeNotifier {
+class ShareRaceController {
   final RaceResultsData raceResultsData;
   final MasterRace masterRace;
   final ShareResultsController _shareResultsController;

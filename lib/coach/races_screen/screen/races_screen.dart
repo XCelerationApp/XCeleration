@@ -74,78 +74,75 @@ class RacesScreenState extends State<RacesScreen> {
   @override
   Widget build(BuildContext context) {
     final role = widget.canEdit ? Role.coach : Role.spectator;
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        return TutorialRoot(
-            tutorialManager: _controller.tutorialManager,
-            child: Scaffold(
-                floatingActionButton: widget.canEdit
-                    ? Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Main Create Race FAB
-                          CoachMark(
-                            id: 'create_race_button_tutorial',
-                            tutorialManager: _controller.tutorialManager,
-                            config: const CoachMarkConfig(
-                              title: 'Create Race',
-                              alignmentX: AlignmentX.left,
-                              alignmentY: AlignmentY.top,
-                              description: 'Click here to create a new race',
-                              icon: Icons.add,
-                              type: CoachMarkType.targeted,
-                              backgroundColor: AppColors.statusPreRace,
-                              elevation: 12,
-                            ),
-                            child: FloatingActionButton(
-                              heroTag: 'create_race',
-                              onPressed: () =>
-                                  _controller.showCreateRaceSheet(context),
-                              backgroundColor: AppColors.primaryColor,
-                              child: const Icon(Icons.add),
-                            ),
-                          ),
-                        ],
-                      )
-                    : null,
-                body: Column(
-                  children: [
-                    // Sticky header
-                    AppHeader(
-                      title: 'My Races',
-                      currentRole: role,
-                      tutorialManager: _controller.tutorialManager,
-                      onRoleTap: () =>
-                          RoleSelectorSheet.showRoleSelection(context, role),
-                      onSettingsTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => SettingsScreen(
-                            currentRole: role.toValueString(),
-                          ),
+    // Static Scaffold — no outer AnimatedBuilder. RacesList subscribes to
+    // _controller directly so only the list rebuilds when races change.
+    return TutorialRoot(
+        tutorialManager: _controller.tutorialManager,
+        child: Scaffold(
+            floatingActionButton: widget.canEdit
+                ? Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Main Create Race FAB
+                      CoachMark(
+                        id: 'create_race_button_tutorial',
+                        tutorialManager: _controller.tutorialManager,
+                        config: const CoachMarkConfig(
+                          title: 'Create Race',
+                          alignmentX: AlignmentX.left,
+                          alignmentY: AlignmentY.top,
+                          description: 'Click here to create a new race',
+                          icon: Icons.add,
+                          type: CoachMarkType.targeted,
+                          backgroundColor: AppColors.statusPreRace,
+                          elevation: 12,
+                        ),
+                        child: FloatingActionButton(
+                          heroTag: 'create_race',
+                          onPressed: () =>
+                              _controller.showCreateRaceSheet(context),
+                          backgroundColor: AppColors.primaryColor,
+                          child: const Icon(Icons.add),
                         ),
                       ),
-                    ),
-                    // Scrollable content
-                    Expanded(
-                      child: RaceCoachMark(
-                        controller: _controller,
-                        child: CustomScrollView(
-                          slivers: [
-                            SliverPadding(
-                              padding: EdgeInsets.fromLTRB(AppSpacing.xl, 0, AppSpacing.xl, AppSpacing.xl),
-                              sliver: RacesList(
-                                controller: _controller,
-                                canEdit: widget.canEdit,
-                              ),
-                            ),
-                          ],
-                        ),
+                    ],
+                  )
+                : null,
+            body: Column(
+              children: [
+                // Sticky header
+                AppHeader(
+                  title: 'My Races',
+                  currentRole: role,
+                  tutorialManager: _controller.tutorialManager,
+                  onRoleTap: () =>
+                      RoleSelectorSheet.showRoleSelection(context, role),
+                  onSettingsTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => SettingsScreen(
+                        currentRole: role.toValueString(),
                       ),
                     ),
-                  ],
-                )));
-      },
-    );
+                  ),
+                ),
+                // Scrollable content
+                Expanded(
+                  child: RaceCoachMark(
+                    controller: _controller,
+                    child: CustomScrollView(
+                      slivers: [
+                        SliverPadding(
+                          padding: EdgeInsets.fromLTRB(AppSpacing.xl, 0, AppSpacing.xl, AppSpacing.xl),
+                          sliver: RacesList(
+                            controller: _controller,
+                            canEdit: widget.canEdit,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            )));
   }
 }

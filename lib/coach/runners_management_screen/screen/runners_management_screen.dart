@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:provider/provider.dart'; // Selector, ChangeNotifierProvider
 import 'package:xceleration/core/services/i_sync_service.dart';
 import '../controller/runners_management_controller.dart';
 import '../../../core/theme/app_border_radius.dart';
@@ -62,19 +62,30 @@ class _TeamsAndRunnersManagementWidgetState
   Widget build(BuildContext context) {
     return ChangeNotifierProvider.value(
       value: _controller,
-      child: Consumer<RunnersManagementController>(
-        builder: (context, controller, child) {
+      // Selector gates rebuilds of the header/search section to only the
+      // fields those sections actually read. RunnersList subscribes to the
+      // controller independently, so it is placed outside the Selector —
+      // search/filter notifications no longer cause a full-column rebuild.
+      child: Selector<RunnersManagementController,
+          ({bool showHeader, bool isLoading, int totalRunnerCount, String searchAttribute})>(
+        selector: (_, c) => (
+          showHeader: c.showHeader,
+          isLoading: c.isLoading,
+          totalRunnerCount: c.totalRunnerCount,
+          searchAttribute: c.searchAttribute,
+        ),
+        builder: (context, data, _) {
           return Material(
             color: AppColors.backgroundColor,
             child: Column(
               mainAxisSize: MainAxisSize.max,
               children: [
-                if (controller.showHeader)
+                if (data.showHeader)
                   ColoredBox(
                     color: AppColors.backgroundColor,
-                    child: _buildHeader(controller),
+                    child: _buildHeader(_controller),
                   ),
-                if (!controller.isLoading)
+                if (!data.isLoading)
                   ColoredBox(
                     color: AppColors.backgroundColor,
                     child: Padding(
@@ -88,7 +99,7 @@ class _TeamsAndRunnersManagementWidgetState
                     ),
                   ),
                 Expanded(
-                  child: RunnersList(controller: controller),
+                  child: RunnersList(controller: _controller),
                 ),
               ],
             ),

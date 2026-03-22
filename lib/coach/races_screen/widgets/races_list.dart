@@ -21,6 +21,20 @@ class _RacesListState extends State<RacesList> {
   bool _finishedExpanded = true;
 
   @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_onControllerChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onControllerChanged);
+    super.dispose();
+  }
+
+  void _onControllerChanged() => setState(() {});
+
+  @override
   Widget build(BuildContext context) {
     final List<Race> raceData = widget.controller.races;
     final finishedRaces =
