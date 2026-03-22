@@ -69,6 +69,9 @@ class PreRaceController {
           return;
         }
         devices.bibRecorder!.data = '$encodedRaceData---$encodedBibData';
+        devices.bibRecorderV2?.data = '$encodedRaceData---$encodedBibData';
+        devices.verifier?.data = '$encodedRaceData---$encodedBibData';
+        devices.fixer?.data = '$encodedRaceData---$encodedBibData';
       },
     );
     _shareRaceStep = ShareRaceStep(devices: devices);
