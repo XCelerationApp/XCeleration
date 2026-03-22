@@ -33,17 +33,20 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
   List<int>? _duplicateBibNumberPlaces;
   List<RaceRunner>? _errorRaceRunners;
   bool _resolved = false;
+  bool _isRefreshing = false;
 
   @override
   void initState() {
     super.initState();
-    _raceRunners = widget.raceRunners;
+    _raceRunners = List.from(widget.raceRunners);
     Logger.d('Loading race runners');
 
     _getErrorRaceRunners();
   }
 
   Future<void> _getErrorRaceRunners() async {
+    if (_isRefreshing) return;
+    _isRefreshing = true;
     _resolved = false;
     Logger.d('Race Runners: $_raceRunners');
     try {
@@ -56,7 +59,8 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
       for (int i = 0; i < _raceRunners.length; i++) {
         final item = _raceRunners[i];
         if (item is RaceRunner) {
-          final bibNumber = item.runner.bibNumber!;
+          final bibNumber = item.runner.bibNumber;
+          if (bibNumber == null) continue;
           if (seenBibs.contains(bibNumber)) {
             duplicateRunners.add(item);
             duplicateBibNumberPlaces.add(i);
@@ -90,8 +94,18 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
 
       final resolved = await Future.wait(futures);
       for (int j = 0; j < resolved.length; j++) {
-        duplicateRunners.add(resolved[j]!);
-        duplicateBibNumberPlaces.add(futureIndices[j]);
+        final runner = resolved[j];
+        if (runner == null) {
+          // DB lookup returned nothing — treat as unknown
+          unknownRunners.add(RaceRunner(
+            raceId: widget.masterRace.raceId,
+            runner: Runner(bibNumber: _raceRunners[futureIndices[j]].toString()),
+            team: Team(),
+          ));
+        } else {
+          duplicateRunners.add(runner);
+          duplicateBibNumberPlaces.add(futureIndices[j]);
+        }
       }
 
       if (mounted) {
@@ -111,6 +125,8 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
           _errorRaceRunners = [];
         });
       }
+    } finally {
+      _isRefreshing = false;
     }
   }
 
@@ -119,7 +135,7 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
     super.didUpdateWidget(oldWidget);
     if (widget.raceRunners != oldWidget.raceRunners) {
       setState(() {
-        _raceRunners = widget.raceRunners;
+        _raceRunners = List.from(widget.raceRunners);
       });
       _getErrorRaceRunners();
     }
@@ -256,7 +272,8 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
                     if (item is RaceRunner &&
                         item.runner.bibNumber == record.runner.bibNumber) {
                       // Convert other RaceRunners with same bib to unresolved integers
-                      _raceRunners[i] = int.parse(item.runner.bibNumber!);
+                      final bib = item.runner.bibNumber;
+                      if (bib != null) _raceRunners[i] = int.parse(bib);
                     } else if (item is int &&
                         item.toString() == record.runner.bibNumber) {
                       if (position == 0) {
@@ -280,14 +297,14 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
                   (r) => r is int && r.toString() == raceRunner.runner.bibNumber);
             } else {
               final conflictBib =
-                  int.tryParse(raceRunner.runner.bibNumber!) ??
+                  int.tryParse(raceRunner.runner.bibNumber ?? '') ??
                       raceRunner.runner.bibNumber;
               index = _raceRunners.indexWhere((r) => r == conflictBib);
             }
 
             if (index != -1) {
               setState(() => _raceRunners[index] = updatedRaceRunner);
-              _getErrorRaceRunners();
+              await _getErrorRaceRunners();
             }
           }
         },
@@ -320,7 +337,7 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
                   children: [
                     if (_duplicateRaceRunners!.contains(raceRunner)) ...[
                       Text(
-                        '${raceRunner.runner.name!}.',
+                        '${raceRunner.runner.name ?? ''}.',
                         style: AppTypography.bodyRegular.copyWith(
                           color: AppColors.mediumColor,
                         ),
