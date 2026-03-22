@@ -328,6 +328,9 @@ class _AssistantScreenState extends State<_AssistantScreen>
   late final List<_RoleData> _roles;
   late final AnimationController _entranceController;
   late final List<CurvedAnimation> _rowAnimations;
+  // Cached controller — created once per tap, cleared after the screen pops.
+  // Prevents multiple live instances when the user taps rapidly.
+  BibNumberController? _bibController;
 
   @override
   void initState() {
@@ -363,19 +366,29 @@ class _AssistantScreenState extends State<_AssistantScreen>
         InitialPageRouteAnimation(child: const TimingScreen()),
       );
 
-  void _onRecorder() => Navigator.of(context).push(
-        InitialPageRouteAnimation(
-          child: BibNumberScreen(
-            controller: BibNumberController(
-              storage: AssistantStorageService.instance,
-              tutorialManager: TutorialManager(),
-              demoRaceGenerator: const DemoRaceGeneratorImpl(),
-              deviceConnectionFactory: const DeviceConnectionFactoryImpl(),
-              scheduler: const PostFrameScheduler(),
-            ),
-          ),
-        ),
-      );
+  Future<void> _onRecorder() async {
+    // Guard: a session is already active; ignore the tap.
+    if (_bibController != null) return;
+    _bibController = BibNumberController(
+      storage: AssistantStorageService.instance,
+      tutorialManager: TutorialManager(),
+      demoRaceGenerator: const DemoRaceGeneratorImpl(),
+      deviceConnectionFactory: const DeviceConnectionFactoryImpl(),
+      scheduler: const PostFrameScheduler(),
+    );
+    if (!mounted) {
+      _bibController!.dispose();
+      _bibController = null;
+      return;
+    }
+    await Navigator.of(context).push(
+      InitialPageRouteAnimation(
+        child: BibNumberScreen(controller: _bibController!),
+      ),
+    );
+    // BibNumberScreen.dispose() has already disposed the controller.
+    _bibController = null;
+  }
 
   @override
   Widget build(BuildContext context) {
