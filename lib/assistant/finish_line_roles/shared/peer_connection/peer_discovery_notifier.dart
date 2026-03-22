@@ -81,7 +81,7 @@ enum PeerStatus { searching, found, connected, offline }
 
 /// Fixed Bonjour service type (≤ 15 chars) declared in ios/Runner/Info.plist
 /// under NSBonjourServices as `_xce-finline._tcp`.
-const _kServiceType = 'xce-finline';
+const kXceServiceType = 'xce-finline';
 
 // ── Role encoding ─────────────────────────────────────────────────────────────
 
@@ -103,12 +103,12 @@ Role? _roleFromCode(String code) => switch (code) {
 /// identify each other without an extra handshake message.
 ///
 /// Format: `xce|<ROLE_CODE>|<RACE_ID>|<HOSTNAME>`
-String _buildAdvertisedName(Role role, int raceId) =>
+String buildXceAdvertisedName(Role role, int raceId) =>
     'xce|${_roleCode(role)}|$raceId|${Platform.localHostname}';
 
-/// Parses a device name built by [_buildAdvertisedName].
+/// Parses a device name built by [buildXceAdvertisedName].
 /// Returns `(role, raceId, humanName)` or `null` for non-XCeleration devices.
-(Role, int, String)? _parseDeviceName(String deviceName) {
+(Role, int, String)? parseXceDeviceName(String deviceName) {
   final parts = deviceName.split('|');
   if (parts.length < 4 || parts[0] != 'xce') return null;
   final peerRole = _roleFromCode(parts[1]);
@@ -176,8 +176,8 @@ class PeerDiscoveryNotifier extends ChangeNotifier {
     _nearbyService = service;
 
     await service.init(
-      serviceType: _kServiceType,
-      deviceName: _buildAdvertisedName(role, raceId),
+      serviceType: kXceServiceType,
+      deviceName: buildXceAdvertisedName(role, raceId),
       strategy: Strategy.P2P_CLUSTER,
       callback: (isRunning) async {
         if (isRunning == true) {
@@ -201,7 +201,7 @@ class PeerDiscoveryNotifier extends ChangeNotifier {
     bool changed = false;
 
     for (final device in devices) {
-      final parsed = _parseDeviceName(device.deviceName);
+      final parsed = parseXceDeviceName(device.deviceName);
       if (parsed == null) continue;
       final (peerRole, peerRaceId, humanName) = parsed;
       if (peerRaceId != raceId) continue;
