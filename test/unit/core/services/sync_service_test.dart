@@ -511,10 +511,11 @@ void main() {
         ));
       });
 
-      test('preserves is_dirty flag when local is dirty and time diff < 5 min',
+      test(
+          'clears is_dirty flag when local is dirty and remote wins LWW (small time diff)',
           () async {
         const uuid = 'uuid-runner-1';
-        // Remote is 2 minutes newer than local — within the 5-minute window
+        // Remote is 2 minutes newer than local — remote still wins LWW
         final localRow = {
           'uuid': uuid,
           'name': 'Alice',
@@ -549,8 +550,8 @@ void main() {
         )).captured;
 
         final updated = captured.first as Map<String, dynamic>;
-        expect(updated['is_dirty'], 1,
-            reason: 'dirty flag must be preserved when diff < 5 minutes');
+        expect(updated['is_dirty'], 0,
+            reason: 'dirty flag is always cleared when remote wins LWW');
       });
 
       test('clears is_dirty flag when remote is significantly newer (>= 5 min)',
