@@ -59,7 +59,7 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
 
   Future<void> _loadSavedRaces() async {
     try {
-      final races = await SpectatorStorageService.instance.getAllRaces();
+      final races = await ServiceLocator.get<SpectatorStorageService>().getAllRaces();
       if (mounted) {
         setState(() {
           _savedRaces = races;
@@ -193,7 +193,7 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
 
     if (confirmed == true) {
       try {
-        await SpectatorStorageService.instance.deleteRace(raceId);
+        await ServiceLocator.get<SpectatorStorageService>().deleteRace(raceId);
         _loadSavedRaces();
       } catch (e) {
         Logger.e('Failed to delete race: $e');
