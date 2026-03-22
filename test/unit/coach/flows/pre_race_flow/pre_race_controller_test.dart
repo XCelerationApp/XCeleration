@@ -36,7 +36,8 @@ PreRaceController _buildController(
 }
 
 void _stubCheckRunners(MockMasterRace mockMasterRace) {
-  when(mockMasterRace.teamtoRaceRunnersMap).thenAnswer((_) async => {});
+  when(mockMasterRace.teams).thenAnswer((_) async => []);
+  when(mockMasterRace.raceRunners).thenAnswer((_) async => []);
 }
 
 // ---------------------------------------------------------------------------
