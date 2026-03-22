@@ -399,7 +399,7 @@ void main() {
       test('populates runner info and clears notInDatabase when runner found',
           () async {
         final controller = buildController();
-        controller.runners.add(BibDatum(
+        controller.addRunnerForTesting(BibDatum(
           bib: '42',
           name: 'Alice',
           teamAbbreviation: 'EAG',
@@ -418,7 +418,7 @@ void main() {
       test('marks duplicateBibNumber for second occurrence of same bib',
           () async {
         final controller = buildController();
-        controller.runners.add(BibDatum(
+        controller.addRunnerForTesting(BibDatum(
           bib: '7',
           name: 'Bob',
           teamAbbreviation: 'TIG',
@@ -456,7 +456,7 @@ void main() {
 
       test('returns null when bib is not found', () {
         final controller = buildController();
-        controller.runners.add(BibDatum(
+        controller.addRunnerForTesting(BibDatum(
           bib: '1',
           name: 'Alice',
           teamAbbreviation: 'EAG',
@@ -470,7 +470,7 @@ void main() {
 
       test('returns matching runner when bib is found', () {
         final controller = buildController();
-        controller.runners.add(BibDatum(
+        controller.addRunnerForTesting(BibDatum(
           bib: '42',
           name: 'Alice',
           teamAbbreviation: 'EAG',
@@ -547,7 +547,7 @@ void main() {
       test('validates new record after debounce using fakeAsync', () {
         fakeAsync((async) {
           final controller = buildController();
-          controller.runners.add(BibDatum(
+          controller.addRunnerForTesting(BibDatum(
             bib: '42',
             name: 'Alice',
             teamAbbreviation: 'EAG',
@@ -568,7 +568,7 @@ void main() {
           () {
         fakeAsync((async) {
           final controller = buildController();
-          controller.runners.add(BibDatum(
+          controller.addRunnerForTesting(BibDatum(
             bib: '99',
             name: 'Bob',
             teamAbbreviation: 'TIG',

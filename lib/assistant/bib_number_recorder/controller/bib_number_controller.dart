@@ -70,6 +70,17 @@ class BibNumberController extends BibNumberDataController {
     _runnersJustLoaded = false;
   }
 
+  /// Testing helper — adds [runner] to both [runners] and [_runnersByBib]
+  /// atomically so that [getRunnerByBib]'s sync-guard assert passes.
+  ///
+  /// Production code must go through [_loadRunners] / [_loadRaceWithRunners],
+  /// which populate both collections together.
+  @visibleForTesting
+  void addRunnerForTesting(BibDatum runner) {
+    runners.add(runner);
+    _runnersByBib[runner.bib] = runner;
+  }
+
   BibNumberController({
     required super.storage,
     super.textInputFactory = const TextInputFactory(),
@@ -100,7 +111,7 @@ class BibNumberController extends BibNumberDataController {
     }
     if (bibRecords.isNotEmpty) {
       if (bibRecords.last.bib.isEmpty) {
-        bibRecords.removeLast();
+        removeLastBibRecordSilent();
       }
     }
     notifyListeners();
