@@ -48,14 +48,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Cache Flutter dependencies
-        uses: actions/cache@v5
-        with:
-          path: ~/.pub-cache
-          key: ${{ runner.os }}-flutter-deps-${{ hashFiles('**/pubspec.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-flutter-deps-
-
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -88,14 +80,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
-
-      - name: Cache Flutter dependencies
-        uses: actions/cache@v5
-        with:
-          path: ~/.pub-cache
-          key: ${{ runner.os }}-flutter-deps-${{ hashFiles('**/pubspec.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-flutter-deps-
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
