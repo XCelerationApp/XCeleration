@@ -550,6 +550,94 @@ void main() {
     });
   });
 
+  group('DevicesManager initialization — finish-line roles', () {
+    test('bibRecorderV2 in browserDevice mode connects to coach only', () {
+      final dm = DevicesManager(
+        DeviceName.bibRecorderV2,
+        DeviceType.browserDevice,
+      );
+
+      expect(dm.coach, isNotNull);
+      expect(dm.bibRecorderV2, isNotNull);
+      expect(dm.verifier, isNull);
+      expect(dm.fixer, isNull);
+      expect(dm.otherDevices.map((d) => d.name),
+          containsAll([DeviceName.coach]));
+      expect(dm.otherDevices.map((d) => d.name),
+          isNot(contains(DeviceName.verifier)));
+      expect(dm.otherDevices.map((d) => d.name),
+          isNot(contains(DeviceName.fixer)));
+    });
+
+    test('verifier in browserDevice mode connects to coach only', () {
+      final dm = DevicesManager(
+        DeviceName.verifier,
+        DeviceType.browserDevice,
+      );
+
+      expect(dm.coach, isNotNull);
+      expect(dm.verifier, isNotNull);
+      expect(dm.bibRecorderV2, isNull);
+      expect(dm.fixer, isNull);
+      expect(dm.otherDevices.map((d) => d.name),
+          containsAll([DeviceName.coach]));
+      expect(dm.otherDevices.map((d) => d.name),
+          isNot(contains(DeviceName.bibRecorderV2)));
+    });
+
+    test('fixer in browserDevice mode connects to coach only', () {
+      final dm = DevicesManager(
+        DeviceName.fixer,
+        DeviceType.browserDevice,
+      );
+
+      expect(dm.coach, isNotNull);
+      expect(dm.fixer, isNotNull);
+      expect(dm.bibRecorderV2, isNull);
+      expect(dm.verifier, isNull);
+      expect(dm.otherDevices.map((d) => d.name),
+          containsAll([DeviceName.coach]));
+      expect(dm.otherDevices.map((d) => d.name),
+          isNot(contains(DeviceName.verifier)));
+    });
+
+    test('bibRecorderV2 in advertiserDevice mode uses finish-line mesh', () {
+      final dm = DevicesManager(
+        DeviceName.bibRecorderV2,
+        DeviceType.advertiserDevice,
+      );
+
+      expect(dm.coach, isNull);
+      expect(dm.bibRecorderV2, isNotNull);
+      expect(dm.verifier, isNotNull);
+      expect(dm.fixer, isNotNull);
+    });
+
+    test('verifier in advertiserDevice mode uses finish-line mesh', () {
+      final dm = DevicesManager(
+        DeviceName.verifier,
+        DeviceType.advertiserDevice,
+      );
+
+      expect(dm.coach, isNull);
+      expect(dm.verifier, isNotNull);
+      expect(dm.bibRecorderV2, isNotNull);
+      expect(dm.fixer, isNotNull);
+    });
+
+    test('fixer in advertiserDevice mode uses finish-line mesh', () {
+      final dm = DevicesManager(
+        DeviceName.fixer,
+        DeviceType.advertiserDevice,
+      );
+
+      expect(dm.coach, isNull);
+      expect(dm.fixer, isNotNull);
+      expect(dm.verifier, isNotNull);
+      expect(dm.bibRecorderV2, isNotNull);
+    });
+  });
+
   group('Rescan behavior', () {
     test('rescan occurs when devices are searching and not all finished',
         () async {

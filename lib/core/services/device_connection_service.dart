@@ -86,22 +86,39 @@ class DevicesManager {
   }
 
   void _initializeDevices() {
-    // Finish-line roles connect to both their peers regardless of device type
-    // and do not require an initial data payload.
+    // Finish-line roles: when browsing (pre-race "Receive from Coach" mode),
+    // connect to _coach — mirroring the bibRecorder browser path. When
+    // advertising or acting as finish-line peers (race phase), set up the
+    // finish-line mesh instead.
     if (_currentDeviceName == DeviceName.bibRecorderV2) {
-      _bibRecorderV2 = ConnectedDevice(DeviceName.bibRecorderV2);
-      _verifier = ConnectedDevice(DeviceName.verifier);
-      _fixer = ConnectedDevice(DeviceName.fixer);
+      if (_currentDeviceType == DeviceType.browserDevice) {
+        _bibRecorderV2 = ConnectedDevice(DeviceName.bibRecorderV2);
+        _coach = ConnectedDevice(DeviceName.coach);
+      } else {
+        _bibRecorderV2 = ConnectedDevice(DeviceName.bibRecorderV2);
+        _verifier = ConnectedDevice(DeviceName.verifier);
+        _fixer = ConnectedDevice(DeviceName.fixer);
+      }
       return;
     } else if (_currentDeviceName == DeviceName.verifier) {
-      _verifier = ConnectedDevice(DeviceName.verifier);
-      _bibRecorderV2 = ConnectedDevice(DeviceName.bibRecorderV2);
-      _fixer = ConnectedDevice(DeviceName.fixer);
+      if (_currentDeviceType == DeviceType.browserDevice) {
+        _verifier = ConnectedDevice(DeviceName.verifier);
+        _coach = ConnectedDevice(DeviceName.coach);
+      } else {
+        _verifier = ConnectedDevice(DeviceName.verifier);
+        _bibRecorderV2 = ConnectedDevice(DeviceName.bibRecorderV2);
+        _fixer = ConnectedDevice(DeviceName.fixer);
+      }
       return;
     } else if (_currentDeviceName == DeviceName.fixer) {
-      _fixer = ConnectedDevice(DeviceName.fixer);
-      _verifier = ConnectedDevice(DeviceName.verifier);
-      _bibRecorderV2 = ConnectedDevice(DeviceName.bibRecorderV2);
+      if (_currentDeviceType == DeviceType.browserDevice) {
+        _fixer = ConnectedDevice(DeviceName.fixer);
+        _coach = ConnectedDevice(DeviceName.coach);
+      } else {
+        _fixer = ConnectedDevice(DeviceName.fixer);
+        _verifier = ConnectedDevice(DeviceName.verifier);
+        _bibRecorderV2 = ConnectedDevice(DeviceName.bibRecorderV2);
+      }
       return;
     }
 

@@ -4,15 +4,14 @@ import 'package:xceleration/core/utils/enums.dart';
 
 void main() {
   group('DevicesManager finish-line role behavior', () {
-    test('bibRecorderV2 sets verifier and fixer as peers', () {
+    test('bibRecorderV2 in browserDevice mode connects to coach', () {
       final devices = DeviceConnectionService.createDevices(
         DeviceName.bibRecorderV2,
         DeviceType.browserDevice,
       );
 
-      expect(devices.otherDevices.length, 2);
-      final names = devices.otherDevices.map((d) => d.name).toSet();
-      expect(names, {DeviceName.verifier, DeviceName.fixer});
+      expect(devices.otherDevices.length, 1);
+      expect(devices.otherDevices.first.name, DeviceName.coach);
     });
 
     test('bibRecorderV2 advertiser sets verifier and fixer as peers', () {
@@ -26,26 +25,24 @@ void main() {
       expect(names, {DeviceName.verifier, DeviceName.fixer});
     });
 
-    test('verifier sets bibRecorderV2 and fixer as peers', () {
+    test('verifier in browserDevice mode connects to coach', () {
       final devices = DeviceConnectionService.createDevices(
         DeviceName.verifier,
         DeviceType.browserDevice,
       );
 
-      expect(devices.otherDevices.length, 2);
-      final names = devices.otherDevices.map((d) => d.name).toSet();
-      expect(names, {DeviceName.bibRecorderV2, DeviceName.fixer});
+      expect(devices.otherDevices.length, 1);
+      expect(devices.otherDevices.first.name, DeviceName.coach);
     });
 
-    test('fixer sets verifier and bibRecorderV2 as peers', () {
+    test('fixer in browserDevice mode connects to coach', () {
       final devices = DeviceConnectionService.createDevices(
         DeviceName.fixer,
         DeviceType.browserDevice,
       );
 
-      expect(devices.otherDevices.length, 2);
-      final names = devices.otherDevices.map((d) => d.name).toSet();
-      expect(names, {DeviceName.verifier, DeviceName.bibRecorderV2});
+      expect(devices.otherDevices.length, 1);
+      expect(devices.otherDevices.first.name, DeviceName.coach);
     });
 
     test('finish-line roles do not require a data payload', () {
