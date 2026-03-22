@@ -220,31 +220,7 @@ class _RaceScreenContent extends StatelessWidget {
                           }
                           // Lightweight placeholder — avoids constructing
                           // the full runners widget before it is visible.
-                          return Container(
-                            padding: const EdgeInsets.all(16),
-                            child: Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.group,
-                                      size: 48, color: Colors.grey),
-                                  const SizedBox(height: 16),
-                                  const Text(
-                                    'Runners Management',
-                                    style: TextStyle(
-                                        fontSize: 18, color: Colors.grey),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'Navigate from the main screen to manage runners',
-                                    textAlign: TextAlign.center,
-                                    style:
-                                        TextStyle(color: Colors.grey[600]),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
+                          return const RunnersManagementPlaceholder();
                         },
                       ),
                     ),

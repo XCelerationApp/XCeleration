@@ -53,6 +53,7 @@ class RacesScreenState extends State<RacesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final role = widget.canEdit ? Role.coach : Role.spectator;
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
@@ -93,19 +94,14 @@ class RacesScreenState extends State<RacesScreen> {
                     // Sticky header
                     AppHeader(
                       title: 'My Races',
-                      currentRole:
-                          widget.canEdit ? Role.coach : Role.spectator,
+                      currentRole: role,
                       tutorialManager: _controller.tutorialManager,
-                      onRoleTap: () => RoleSelectorSheet.showRoleSelection(
-                          context,
-                          widget.canEdit ? Role.coach : Role.spectator),
+                      onRoleTap: () =>
+                          RoleSelectorSheet.showRoleSelection(context, role),
                       onSettingsTap: () => Navigator.of(context).push(
                         MaterialPageRoute(
                           builder: (_) => SettingsScreen(
-                            currentRole: (widget.canEdit
-                                    ? Role.coach
-                                    : Role.spectator)
-                                .toValueString(),
+                            currentRole: role.toValueString(),
                           ),
                         ),
                       ),
