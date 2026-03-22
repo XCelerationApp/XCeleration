@@ -9,34 +9,66 @@ import 'package:xceleration/assistant/finish_line_roles/shared/models/fixer_entr
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/i_bib_correction_channel.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/messages/messages.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/p2p_session_service.dart';
+import 'package:xceleration/assistant/shared/models/race_record.dart';
 import 'package:xceleration/assistant/shared/models/runner.dart';
+import 'package:xceleration/assistant/shared/services/i_assistant_storage_service.dart';
+import 'package:xceleration/core/app_error.dart';
+import 'package:xceleration/core/result.dart';
 import 'package:xceleration/shared/role_bar/models/role_enums.dart';
 
 import 'fixer_controller_test.mocks.dart';
 
-@GenerateMocks([P2PSessionService, IBibCorrectionChannel])
+@GenerateMocks([P2PSessionService, IBibCorrectionChannel, IAssistantStorageService])
 void main() {
+  setUpAll(() {
+    provideDummy<Result<void>>(Failure<void>(const AppError(userMessage: '')));
+    provideDummy<Result<List<Runner>>>(const Success([]));
+    provideDummy<Result<List<RaceRecord>>>(const Success([]));
+    provideDummy<Runner>(Runner(raceId: 0, bibNumber: '', createdAt: DateTime(2026)));
+  });
+
   late MockP2PSessionService mockSession;
+  late MockIAssistantStorageService mockStorage;
   late StreamController<(Role, MessageEnvelope)> incomingController;
 
   setUp(() {
     mockSession = MockP2PSessionService();
+    mockStorage = MockIAssistantStorageService();
     incomingController =
         StreamController<(Role, MessageEnvelope)>.broadcast();
 
     when(mockSession.incomingMessages)
         .thenAnswer((_) => incomingController.stream);
     when(mockSession.sendMessage(any, any)).thenAnswer((_) => Future.value());
+    when(mockStorage.getRunners(any))
+        .thenAnswer((_) async => const Success<List<Runner>>([]));
+    when(mockStorage.updateBibRecordValue(any, any, any))
+        .thenAnswer((_) async => const Success<void>(null));
+    when(mockStorage.saveRunner(any))
+        .thenAnswer((_) async => const Success<void>(null));
   });
 
   tearDown(() async {
     await incomingController.close();
   });
 
+  FixerController makeController({
+    P2PSessionService? session,
+    IBibCorrectionChannel? correctionChannel,
+    IAssistantStorageService? storage,
+    int raceId = 1,
+  }) =>
+      FixerController(
+        storage: storage ?? mockStorage,
+        raceId: raceId,
+        session: session,
+        correctionChannel: correctionChannel,
+      );
+
   group('FixerController', () {
     group('initialize', () {
       test('subscribes to incoming messages when session is set', () async {
-        final controller = FixerController(session: mockSession);
+        final controller = makeController(session: mockSession);
         controller.initialize();
 
         incomingController.add((
@@ -60,7 +92,7 @@ void main() {
 
     group('incoming VerifierFlagMessage', () {
       test('adds entry with verifierFlagged reason for wrongName', () async {
-        final controller = FixerController(session: mockSession);
+        final controller = makeController(session: mockSession);
         controller.initialize();
 
         incomingController.add((
@@ -87,7 +119,7 @@ void main() {
       });
 
       test('adds entry with unknown reason', () async {
-        final controller = FixerController(session: mockSession);
+        final controller = makeController(session: mockSession);
         controller.initialize();
 
         incomingController.add((
@@ -109,7 +141,7 @@ void main() {
       });
 
       test('adds entry with duplicate reason', () async {
-        final controller = FixerController(session: mockSession);
+        final controller = makeController(session: mockSession);
         controller.initialize();
 
         incomingController.add((
@@ -131,7 +163,7 @@ void main() {
       });
 
       test('ignores non-verifierFlag message types', () async {
-        final controller = FixerController(session: mockSession);
+        final controller = makeController(session: mockSession);
         controller.initialize();
 
         incomingController.add((
@@ -152,7 +184,7 @@ void main() {
 
     group('resolveWithRunner', () {
       test('sends FixerCorrectionMessage with matched correction type', () async {
-        final controller = FixerController(session: mockSession);
+        final controller = makeController(session: mockSession);
         controller.initialize();
 
         incomingController.add((
@@ -193,7 +225,7 @@ void main() {
 
     group('resolveWithBib', () {
       test('sends FixerCorrectionMessage with bibCorrected correction type', () async {
-        final controller = FixerController(session: mockSession);
+        final controller = makeController(session: mockSession);
         controller.initialize();
 
         incomingController.add((
@@ -226,7 +258,7 @@ void main() {
 
     group('resolveAsNewRunner', () {
       test('sends FixerCorrectionMessage with newRunner correction type', () async {
-        final controller = FixerController(session: mockSession);
+        final controller = makeController(session: mockSession);
         controller.initialize();
 
         incomingController.add((
@@ -254,9 +286,9 @@ void main() {
         expect(msg.correctedBib, 199);
       });
 
-      test('does not send message when no session is set', () {
-        final controller = FixerController();
-        controller.joinRace();
+      test('does not send message when no session is set', () async {
+        final controller = makeController();
+        await controller.joinRace();
 
         verifyNever(mockSession.sendMessage(any, any));
       });
@@ -270,7 +302,7 @@ void main() {
       });
 
       test('resolveWithRunner calls sendCorrection with correct fields', () async {
-        final controller = FixerController(
+        final controller = makeController(
           session: mockSession,
           correctionChannel: mockChannel,
         );
@@ -310,7 +342,7 @@ void main() {
       });
 
       test('resolveWithBib calls sendCorrection with correct fields', () async {
-        final controller = FixerController(
+        final controller = makeController(
           session: mockSession,
           correctionChannel: mockChannel,
         );
@@ -343,7 +375,7 @@ void main() {
       });
 
       test('resolveAsNewRunner calls sendCorrection with isNewRunner true', () async {
-        final controller = FixerController(
+        final controller = makeController(
           session: mockSession,
           correctionChannel: mockChannel,
         );
@@ -376,7 +408,7 @@ void main() {
       });
 
       test('does not call sendCorrection when correctionChannel is null', () async {
-        final controller = FixerController(session: mockSession);
+        final controller = makeController(session: mockSession);
         controller.initialize();
 
         incomingController.add((
@@ -396,6 +428,132 @@ void main() {
         controller.resolveWithBib(1, 102);
 
         verifyNever(mockChannel.sendCorrection(any));
+      });
+    });
+
+    group('joinRace loads runner roster (XCE-377)', () {
+      test('populates allRunners from storage and search returns matches', () async {
+        final runner1 = Runner(
+          raceId: 1,
+          bibNumber: '105',
+          name: 'Alex Johnson',
+          createdAt: DateTime(2026),
+        );
+        final runner2 = Runner(
+          raceId: 1,
+          bibNumber: '107',
+          name: 'Ryan Smith',
+          createdAt: DateTime(2026),
+        );
+        when(mockStorage.getRunners(1))
+            .thenAnswer((_) async => Success<List<Runner>>([runner1, runner2]));
+
+        final controller = makeController(session: mockSession);
+        controller.initialize();
+        await controller.joinRace();
+
+        controller.search('alex');
+
+        expect(controller.searchResults, isNotEmpty);
+        expect(controller.searchResults.any((r) => r.bibNumber == '105'), isTrue);
+      });
+
+      test('leaves roster empty and logs on storage failure', () async {
+        when(mockStorage.getRunners(any)).thenAnswer(
+          (_) async => Failure<List<Runner>>(
+            const AppError(userMessage: 'Storage error'),
+          ),
+        );
+
+        final controller = makeController(session: mockSession);
+        controller.initialize();
+        await controller.joinRace();
+
+        controller.search('ryan');
+
+        expect(controller.searchResults, isEmpty);
+      });
+    });
+
+    group('resolve methods persist to storage (XCE-378)', () {
+      Future<FixerController> makeControllerWithEntry({
+        required int finishPosition,
+        required int bib,
+      }) async {
+        final controller = makeController(session: mockSession);
+        controller.initialize();
+
+        incomingController.add((
+          Role.verifier,
+          MessageEnvelope.wrapVerifierFlag(VerifierFlagMessage(
+            entry: BibEntryMessage(
+              finishPosition: finishPosition,
+              bib: bib,
+              status: BibEntryStatus.unknown,
+              timestamp: DateTime.now(),
+            ),
+            reason: FlagReason.unknown,
+          )),
+        ));
+        await Future.microtask(() {});
+        return controller;
+      }
+
+      test('resolveWithRunner calls updateBibRecordValue', () async {
+        final controller = await makeControllerWithEntry(finishPosition: 1, bib: 107);
+        final runner = Runner(
+          raceId: 1,
+          bibNumber: '110',
+          name: 'Ryan Smith',
+          createdAt: DateTime(2026),
+        );
+
+        controller.resolveWithRunner(1, runner);
+        await Future.microtask(() {});
+
+        verify(mockStorage.updateBibRecordValue(1, 1, '110')).called(1);
+      });
+
+      test('resolveWithBib calls updateBibRecordValue', () async {
+        final controller = await makeControllerWithEntry(finishPosition: 2, bib: 105);
+
+        controller.resolveWithBib(2, 115);
+        await Future.microtask(() {});
+
+        verify(mockStorage.updateBibRecordValue(1, 2, '115')).called(1);
+      });
+
+      test('resolveAsNewRunner calls saveRunner with correct bibNumber', () async {
+        final controller = await makeControllerWithEntry(finishPosition: 3, bib: 199);
+
+        controller.resolveAsNewRunner(3, name: 'Jane Doe', newBib: 200);
+        await Future.microtask(() {});
+
+        final captured = verify(mockStorage.saveRunner(captureAny)).captured;
+        final runner = captured.single as Runner;
+        expect(runner.bibNumber, '200');
+        expect(runner.name, 'Jane Doe');
+        expect(runner.raceId, 1);
+      });
+
+      test('resolveAsNewRunner also calls updateBibRecordValue when newBib is provided', () async {
+        final controller = await makeControllerWithEntry(finishPosition: 3, bib: 199);
+
+        controller.resolveAsNewRunner(3, name: 'Jane Doe', newBib: 200);
+        await Future.microtask(() {});
+
+        verify(mockStorage.updateBibRecordValue(1, 3, '200')).called(1);
+      });
+
+      test('resolveAsNewRunner uses entryId as bibNumber when newBib is null', () async {
+        final controller = await makeControllerWithEntry(finishPosition: 4, bib: 188);
+
+        controller.resolveAsNewRunner(4, name: 'Unknown');
+        await Future.microtask(() {});
+
+        final captured = verify(mockStorage.saveRunner(captureAny)).captured;
+        final runner = captured.single as Runner;
+        expect(runner.bibNumber, '4');
       });
     });
   });
