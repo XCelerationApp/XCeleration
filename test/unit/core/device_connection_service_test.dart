@@ -933,4 +933,74 @@ void main() {
       expect((result as Success<bool>).value, isFalse);
     });
   });
+
+  group('DevicesManager initialization — coach advertiser path', () {
+    test('initialises bibRecorderV2, verifier, and fixer alongside bibRecorder and raceTimer', () {
+      final dm = DevicesManager(
+        DeviceName.coach,
+        DeviceType.advertiserDevice,
+        data: 'bibdata  timerdata',
+      );
+
+      expect(dm.bibRecorder, isNotNull);
+      expect(dm.raceTimer, isNotNull);
+      expect(dm.bibRecorderV2, isNotNull);
+      expect(dm.verifier, isNotNull);
+      expect(dm.fixer, isNotNull);
+    });
+
+    test('assigns bibData to bibRecorderV2, verifier, and fixer', () {
+      final dm = DevicesManager(
+        DeviceName.coach,
+        DeviceType.advertiserDevice,
+        data: 'mybibdata  mytimerdata',
+      );
+
+      expect(dm.bibRecorder!.data, 'mybibdata');
+      expect(dm.bibRecorderV2!.data, 'mybibdata');
+      expect(dm.verifier!.data, 'mybibdata');
+      expect(dm.fixer!.data, 'mybibdata');
+    });
+
+    test('assigns timerData to raceTimer only', () {
+      final dm = DevicesManager(
+        DeviceName.coach,
+        DeviceType.advertiserDevice,
+        data: 'mybibdata  mytimerdata',
+      );
+
+      expect(dm.raceTimer!.data, 'mytimerdata');
+    });
+
+    test('otherDevices includes bibRecorderV2, verifier, and fixer', () {
+      final dm = DevicesManager(
+        DeviceName.coach,
+        DeviceType.advertiserDevice,
+        data: 'bibdata  timerdata',
+      );
+
+      final names = dm.otherDevices.map((d) => d.name).toList();
+      expect(names, containsAll([
+        DeviceName.bibRecorder,
+        DeviceName.raceTimer,
+        DeviceName.bibRecorderV2,
+        DeviceName.verifier,
+        DeviceName.fixer,
+      ]));
+    });
+
+    test('falls back to empty data when payload has no double-space separator', () {
+      final dm = DevicesManager(
+        DeviceName.coach,
+        DeviceType.advertiserDevice,
+        data: 'malformed-no-separator',
+      );
+
+      expect(dm.bibRecorder!.data, '');
+      expect(dm.raceTimer!.data, '');
+      expect(dm.bibRecorderV2!.data, '');
+      expect(dm.verifier!.data, '');
+      expect(dm.fixer!.data, '');
+    });
+  });
 }
