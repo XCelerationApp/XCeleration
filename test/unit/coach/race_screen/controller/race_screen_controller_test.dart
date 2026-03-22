@@ -145,78 +145,89 @@ void main() {
     });
 
     // -------------------------------------------------------------------------
-    group('validateName', () {
+    group('validateName (via form.applyValidation)', () {
       test('sets name error when name is empty', () {
-        controller.validateName('');
+        controller.form.nameController.text = '';
+        controller.form.applyValidation(RaceField.name);
 
         expect(controller.form.errorFor(RaceField.name), isNotNull);
       });
 
       test('clears name error when name is valid', () {
-        controller.validateName('Valid Name');
+        controller.form.nameController.text = 'Valid Name';
+        controller.form.applyValidation(RaceField.name);
 
         expect(controller.form.errorFor(RaceField.name), isNull);
       });
     });
 
     // -------------------------------------------------------------------------
-    group('validateLocation', () {
+    group('validateLocation (via form.applyValidation)', () {
       test('sets location error when location is empty', () {
-        controller.validateLocation('');
+        controller.form.locationController.text = '';
+        controller.form.applyValidation(RaceField.location);
 
         expect(controller.form.errorFor(RaceField.location), isNotNull);
       });
 
       test('clears location error when location is valid', () {
-        controller.validateLocation('Some Location');
+        controller.form.locationController.text = 'Some Location';
+        controller.form.applyValidation(RaceField.location);
 
         expect(controller.form.errorFor(RaceField.location), isNull);
       });
     });
 
     // -------------------------------------------------------------------------
-    group('validateDate', () {
+    group('validateDate (via form.applyValidation)', () {
       test('sets date error when date is empty', () {
-        controller.validateDate('');
+        controller.form.dateController.text = '';
+        controller.form.applyValidation(RaceField.date);
 
         expect(controller.form.errorFor(RaceField.date), isNotNull);
       });
 
       test('sets date error when date is invalid format', () {
-        controller.validateDate('not-a-date');
+        controller.form.dateController.text = 'not-a-date';
+        controller.form.applyValidation(RaceField.date);
 
         expect(controller.form.errorFor(RaceField.date), isNotNull);
       });
 
       test('clears date error when date is valid', () {
-        controller.validateDate('2024-06-15');
+        controller.form.dateController.text = '2024-06-15';
+        controller.form.applyValidation(RaceField.date);
 
         expect(controller.form.errorFor(RaceField.date), isNull);
       });
     });
 
     // -------------------------------------------------------------------------
-    group('validateDistance', () {
+    group('validateDistance (via form.applyValidation)', () {
       test('sets distance error when distance is empty', () {
-        controller.validateDistance('');
+        controller.form.distanceController.text = '';
+        controller.form.applyValidation(RaceField.distance);
 
         expect(controller.form.errorFor(RaceField.distance), isNotNull);
       });
 
       test('sets distance error when distance is not a number', () {
-        controller.validateDistance('abc');
+        controller.form.distanceController.text = 'abc';
+        controller.form.applyValidation(RaceField.distance);
 
         expect(controller.form.errorFor(RaceField.distance), isNotNull);
       });
 
       test('sets distance error when distance is zero or negative', () {
-        controller.validateDistance('0');
+        controller.form.distanceController.text = '0';
+        controller.form.applyValidation(RaceField.distance);
 
         expect(controller.form.errorFor(RaceField.distance), isNotNull);
       });
 
       test('clears distance error when distance is valid', () {
-        controller.validateDistance('5.0');
+        controller.form.distanceController.text = '5.0';
+        controller.form.applyValidation(RaceField.distance);
 
         expect(controller.form.errorFor(RaceField.distance), isNull);
       });
