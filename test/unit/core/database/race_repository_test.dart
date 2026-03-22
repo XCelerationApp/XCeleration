@@ -461,6 +461,13 @@ void main() {
             await repo.searchRaceParticipants(raceId, 'XYZ', 'name');
         expect(results, isEmpty);
       });
+
+      test('throws ArgumentError for unknown searchParameter', () async {
+        expect(
+          () => repo.searchRaceParticipants(raceId, 'x', 'injected_column'),
+          throwsA(isA<ArgumentError>()),
+        );
+      });
     });
 
     // =========================================================================
@@ -481,13 +488,17 @@ void main() {
     });
 
     group('updateRaceFlowState', () {
-      // updateRaceFlowState delegates to updateRace(Race(raceId, flowState))
-      // which fails validation because raceName is null. This is a known
-      // limitation of the current implementation.
-      test('throws because partial Race fails isValid check', () async {
+      test('updates only the flow_state column without touching other fields', () async {
         final id = await repo.createRace(validRace());
+        await repo.updateRaceFlowState(id, Race.FLOW_PRE_RACE);
+        final updated = await repo.getRace(id);
+        expect(updated!.flowState, Race.FLOW_PRE_RACE);
+        expect(updated.raceName, validRace().raceName);
+      });
+
+      test('throws for unknown race id', () async {
         expect(
-          () => repo.updateRaceFlowState(id, Race.FLOW_PRE_RACE),
+          () => repo.updateRaceFlowState(9999, Race.FLOW_PRE_RACE),
           throwsException,
         );
       });
