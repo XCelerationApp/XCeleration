@@ -354,7 +354,16 @@ class SyncService implements ISyncService {
             copy, remoteMap[copy['uuid'] as String?]);
         if (conflictCheck.hasConflict) {
           Logger.d(
-              '⚠️ Push conflict detected for $table UUID:${copy['uuid']}: ${conflictCheck.details}');
+              '⚠️ Push conflict detected for $table UUID:${copy['uuid']}: ${conflictCheck.details} — skipping push, clearing dirty flag');
+          // Remote is newer: clear the dirty flag without pushing so we don't
+          // overwrite the more-recent remote data. The next pullAll will bring
+          // the remote version down.
+          final skippedUuid = copy['uuid'] as String?;
+          if (skippedUuid != null) {
+            await db.rawUpdate(
+                'UPDATE $table SET is_dirty = 0 WHERE uuid = ?', [skippedUuid]);
+          }
+          continue;
         }
 
         payload.add(copy);
@@ -436,7 +445,14 @@ class SyncService implements ISyncService {
           copy, remoteMap[copy['uuid'] as String?]);
       if (conflictCheck.hasConflict) {
         Logger.d(
-            '⚠️ Push conflict for race_results UUID:${copy['uuid']}: ${conflictCheck.details}');
+            '⚠️ Push conflict for race_results UUID:${copy['uuid']}: ${conflictCheck.details} — skipping push, clearing dirty flag');
+        final skippedUuid = copy['uuid'] as String?;
+        if (skippedUuid != null) {
+          await db.rawUpdate(
+              'UPDATE race_results SET is_dirty = 0 WHERE uuid = ?',
+              [skippedUuid]);
+        }
+        continue;
       }
 
       payload.add(copy);
@@ -638,18 +654,9 @@ class SyncService implements ISyncService {
 
           if (shouldUpdateLocal) {
             final update = Map<String, dynamic>.from(remote);
-
-            // Preserve local dirty flag if local has unsaved changes and remote is not significantly newer
-            final localDirty = local['is_dirty'] == 1;
-            final timeDifference = remoteUpdated.difference(localUpdated);
-            if (localDirty && timeDifference.inMinutes < 5) {
-              // Keep local dirty flag if changes were recent and local is dirty
-              update['is_dirty'] = 1;
-              Logger.d(
-                  'Preserving dirty flag for $table UUID:$uuid - local has recent unsaved changes');
-            } else {
-              update['is_dirty'] = 0;
-            }
+            // Remote won LWW — always clear the dirty flag so this row is not
+            // re-pushed over the newer remote data on the next sync cycle.
+            update['is_dirty'] = 0;
 
             await db
                 .update(table, update, where: 'uuid = ?', whereArgs: [uuid]);
@@ -852,15 +859,7 @@ class SyncService implements ISyncService {
 
         if (shouldUpdateLocal) {
           final update = Map<String, dynamic>.from(remote);
-          final localDirty = local['is_dirty'] == 1;
-          final timeDifference = remoteUpdated.difference(localUpdated);
-          if (localDirty && timeDifference.inMinutes < 5) {
-            update['is_dirty'] = 1;
-            Logger.d(
-                'Preserving dirty flag for $table UUID:$uuid — local has recent unsaved changes');
-          } else {
-            update['is_dirty'] = 0;
-          }
+          update['is_dirty'] = 0;
           await db.update(table, update, where: 'uuid = ?', whereArgs: [uuid]);
           Logger.d('Updated $table UUID:$uuid from remote ($conflictReason)');
           hadWrites = true;
@@ -1048,13 +1047,7 @@ class SyncService implements ISyncService {
 
         if (shouldUpdateLocal) {
           final update = Map<String, dynamic>.from(remote);
-          final localDirty = local['is_dirty'] == 1;
-          final timeDifference = remoteUpdated.difference(localUpdated);
-          if (localDirty && timeDifference.inMinutes < 5) {
-            update['is_dirty'] = 1;
-          } else {
-            update['is_dirty'] = 0;
-          }
+          update['is_dirty'] = 0;
           await db.update(table, update,
               where: 'uuid = ?', whereArgs: [uuid]);
           Logger.d(
