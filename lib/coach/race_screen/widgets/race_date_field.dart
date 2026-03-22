@@ -28,7 +28,7 @@ class RaceDateField extends StatelessWidget {
           onPressed: () => controller.selectDate(context),
         ),
         onChanged: (value) {
-          controller.validateDate(controller.form.dateController.text);
+          controller.form.applyValidation(RaceField.date);
           if (onChanged != null) onChanged!(value);
         },
       ),

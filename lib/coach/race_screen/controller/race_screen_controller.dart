@@ -170,15 +170,13 @@ class RaceScreenController with ChangeNotifier {
       }
       notifyListeners();
 
-      final results = await Future.wait([
-        masterRace.race,
-        masterRace.raceRunners,
-        masterRace.teams,
-      ]);
-
-      _race = results[0] as Race;
-      _raceRunners = results[1] as List<RaceRunner>;
-      _teams = results[2] as List<Team>;
+      // Start all three futures in parallel for efficient loading.
+      final raceF = masterRace.race;
+      final runnersF = masterRace.raceRunners;
+      final teamsF = masterRace.teams;
+      _race = await raceF;
+      _raceRunners = await runnersF;
+      _teams = await teamsF;
 
       final flowState = _race!.flowState;
       final roleAllowsEdit = parentController.canEdit;
@@ -220,31 +218,36 @@ class RaceScreenController with ChangeNotifier {
   // Save orchestration
 
   Future<void> saveRaceDetails(BuildContext context) async {
+    if (_race == null) return;
+
+    // Parse values once — used for both the service call and in-memory update.
+    final raceName = form.nameController.text.trim();
+    final location = form.locationController.text;
+    final dateText = form.dateController.text;
+    final date = dateText.isNotEmpty ? DateTime.tryParse(dateText) : null;
+    final distanceText = form.distanceController.text;
+    final distance = double.tryParse(distanceText) ?? 0;
+    final unit = form.unitController.text;
+
     await _raceService.saveRaceDetails(
       masterRace: masterRace,
-      nameController: form.nameController,
-      locationController: form.locationController,
-      dateController: form.dateController,
-      distanceController: form.distanceController,
-      unitController: form.unitController,
+      currentRace: _race!,
+      raceName: raceName,
+      location: location,
+      date: date,
+      distance: distance,
+      unit: unit,
     );
 
     // Update _race in memory from the saved form values instead of
     // re-fetching from the DB (eliminates a redundant read).
-    if (_race != null) {
-      DateTime? date;
-      if (form.dateController.text.isNotEmpty) {
-        date = DateTime.tryParse(form.dateController.text);
-      }
-      final distance = double.tryParse(form.distanceController.text) ?? 0;
-      _race = _race!.copyWith(
-        raceName: form.nameController.text.trim(),
-        location: form.locationController.text,
-        raceDate: date,
-        distance: distance,
-        distanceUnit: form.unitController.text,
-      );
-    }
+    _race = _race!.copyWith(
+      raceName: raceName,
+      location: location,
+      raceDate: date,
+      distance: distance,
+      distanceUnit: unit,
+    );
     notifyListeners();
 
     // Pass already-loaded race and teams — avoids two extra DB reads.
@@ -254,10 +257,10 @@ class RaceScreenController with ChangeNotifier {
       race: race,
       teams: _teams ?? [],
       masterRace: masterRace,
-      nameController: form.nameController,
-      locationController: form.locationController,
-      dateController: form.dateController,
-      distanceController: form.distanceController,
+      name: raceName,
+      location: location,
+      date: dateText,
+      distance: distanceText,
     );
     if (setupComplete && context.mounted) {
       await updateRaceFlowState(context, Race.FLOW_SETUP_COMPLETED);
@@ -386,8 +389,7 @@ class RaceScreenController with ChangeNotifier {
 
   Future<void> navigateToRaceDetails(BuildContext context) async {
     _showingRunnersManagement = false;
-    await refreshRaceData(context);
-    notifyListeners();
+    await refreshRaceData(context); // _loadData inside already calls notifyListeners
   }
 
   Future<void> refreshRaceData(BuildContext context) async {
@@ -402,15 +404,6 @@ class RaceScreenController with ChangeNotifier {
     return flowState == Race.FLOW_PRE_RACE_COMPLETED ||
         flowState == Race.FLOW_POST_RACE;
   }
-
-  // ---------------------------------------------------------------------------
-  // Validation — thin delegations to RaceFormState
-
-  void validateName(String name) => form.validateName(name);
-  void validateLocation(String location) => form.validateLocation(location);
-  void validateDate(String dateString) => form.validateDate(dateString);
-  void validateDistance(String distanceString) =>
-      form.validateDistance(distanceString);
 
   // ---------------------------------------------------------------------------
   // Date picker

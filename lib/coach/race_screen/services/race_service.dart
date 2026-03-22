@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import '../../../shared/models/database/race.dart';
 import '../../../shared/models/database/master_race.dart';
 import '../../../shared/models/database/i_master_race_resolver.dart';
@@ -11,33 +10,19 @@ class RaceService implements IRaceService {
   @override
   Future<void> saveRaceDetails({
     required MasterRace masterRace,
-    required TextEditingController nameController,
-    required TextEditingController locationController,
-    required TextEditingController dateController,
-    required TextEditingController distanceController,
-    required TextEditingController unitController,
+    required Race currentRace,
+    required String raceName,
+    required String location,
+    required DateTime? date,
+    required double distance,
+    required String unit,
   }) async {
-    // Parse date
-    DateTime? date;
-    if (dateController.text.isNotEmpty) {
-      date = DateTime.tryParse(dateController.text);
-    }
-    // Parse distance
-    double distance = 0;
-    if (distanceController.text.isNotEmpty) {
-      final parsedDistance = double.tryParse(distanceController.text);
-      distance =
-          (parsedDistance != null && parsedDistance > 0) ? parsedDistance : 0;
-    }
-    // Preserve existing race fields (like flowState, ownerUserId, etc.)
-    // and only update the edited fields
-    final currentRace = await masterRace.race;
     final updatedRace = currentRace.copyWith(
-      raceName: nameController.text.trim(),
-      location: locationController.text,
+      raceName: raceName,
+      location: location,
       raceDate: date,
       distance: distance,
-      distanceUnit: unitController.text,
+      distanceUnit: unit,
     );
 
     await masterRace.updateRace(updatedRace);
@@ -70,10 +55,10 @@ class RaceService implements IRaceService {
     required Race race,
     required List<Team> teams,
     required MasterRace masterRace,
-    required TextEditingController nameController,
-    required TextEditingController locationController,
-    required TextEditingController dateController,
-    required TextEditingController distanceController,
+    required String name,
+    required String location,
+    required String date,
+    required String distance,
   }) async {
     if (race.flowState != Race.FLOW_SETUP) return true;
 
@@ -82,10 +67,10 @@ class RaceService implements IRaceService {
     final hasTeams = teams.isNotEmpty;
 
     // Check if essential race fields are filled
-    final fieldsComplete = nameController.text.isNotEmpty &&
-        locationController.text.isNotEmpty &&
-        dateController.text.isNotEmpty &&
-        distanceController.text.isNotEmpty &&
+    final fieldsComplete = name.isNotEmpty &&
+        location.isNotEmpty &&
+        date.isNotEmpty &&
+        distance.isNotEmpty &&
         hasTeams;
     return hasMinimumRunners && fieldsComplete;
   }

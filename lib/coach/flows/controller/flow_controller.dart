@@ -93,10 +93,10 @@ class MasterFlowController {
         race: race,
         teams: raceController.teamsOrNull ?? [],
         masterRace: raceController.masterRace,
-        nameController: raceController.form.nameController,
-        locationController: raceController.form.locationController,
-        dateController: raceController.form.dateController,
-        distanceController: raceController.form.distanceController,
+        name: raceController.form.nameController.text.trim(),
+        location: raceController.form.locationController.text,
+        date: raceController.form.dateController.text,
+        distance: raceController.form.distanceController.text,
       );
 
       if (!context.mounted) return;
