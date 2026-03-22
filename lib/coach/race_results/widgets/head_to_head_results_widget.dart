@@ -106,7 +106,7 @@ class _HeadToHeadResultsWidgetState extends State<HeadToHeadResultsWidget> {
             ),
             const SizedBox(height: 16),
 
-            CollapsibleResultsWidget(
+            CollapsibleIndividualResultsWidget(
               results: allResults,
               initialVisibleCount: 3,
             ),
