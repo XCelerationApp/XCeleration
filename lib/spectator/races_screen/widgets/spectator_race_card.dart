@@ -24,6 +24,8 @@ class SpectatorRaceCard extends StatefulWidget {
 }
 
 class _SpectatorRaceCardState extends State<SpectatorRaceCard> {
+  static final _dateFormat = DateFormat('MMM d, y');
+
   DateTime? _parsedDate;
 
   @override
@@ -183,7 +185,7 @@ class _SpectatorRaceCardState extends State<SpectatorRaceCard> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          DateFormat('MMM d, y').format(_parsedDate!),
+                          _dateFormat.format(_parsedDate!),
                           style: AppTypography.bodyRegular
                               .copyWith(color: Colors.black54),
                         ),

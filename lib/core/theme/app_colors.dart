@@ -35,4 +35,7 @@ class AppColors {
 
   /// Warm orange — gradient end paired with [primaryColor].
   static const Color primaryGradientEnd = Color(0xFFF07A50);
+
+  /// Default fallback colour for a team that has no colour set.
+  static const Color defaultTeamColor = Color(0xFF2196F3);
 }

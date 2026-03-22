@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 
 // Enhanced progress indicator with animations
-class EnhancedFlowIndicator extends StatefulWidget {
+class EnhancedFlowIndicator extends StatelessWidget {
   final int totalSteps;
   final int currentStep;
   final VoidCallback? onBack;
@@ -15,11 +15,6 @@ class EnhancedFlowIndicator extends StatefulWidget {
   });
 
   @override
-  State<EnhancedFlowIndicator> createState() => _EnhancedFlowIndicatorState();
-}
-
-class _EnhancedFlowIndicatorState extends State<EnhancedFlowIndicator> {
-  @override
   Widget build(BuildContext context) {
     return SizedBox(
       height: 32,
@@ -27,7 +22,7 @@ class _EnhancedFlowIndicatorState extends State<EnhancedFlowIndicator> {
         fit: StackFit.expand,
         children: [
           // Back Button (if present)
-          if (widget.onBack != null)
+          if (onBack != null)
             Positioned(
               left: 16,
               top: 0,
@@ -36,7 +31,7 @@ class _EnhancedFlowIndicatorState extends State<EnhancedFlowIndicator> {
                 child: IconButton(
                   icon: const Icon(Icons.arrow_back,
                       size: 24, color: Colors.black),
-                  onPressed: widget.onBack,
+                  onPressed: onBack,
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                 ),
@@ -50,9 +45,9 @@ class _EnhancedFlowIndicatorState extends State<EnhancedFlowIndicator> {
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(widget.totalSteps, (index) {
-                  final isCurrentStep = index == widget.currentStep;
-                  final isCompleted = index < widget.currentStep;
+                children: List.generate(totalSteps, (index) {
+                  final isCurrentStep = index == currentStep;
+                  final isCompleted = index < currentStep;
                   return Expanded(
                     flex: isCurrentStep ? 3 : 1,
                     child: AnimatedContainer(
@@ -60,7 +55,7 @@ class _EnhancedFlowIndicatorState extends State<EnhancedFlowIndicator> {
                       curve: Curves.easeInOut,
                       height: 5,
                       margin: EdgeInsets.only(
-                        right: index < widget.totalSteps - 1 ? 4 : 0,
+                        right: index < totalSteps - 1 ? 4 : 0,
                       ),
                       decoration: BoxDecoration(
                         color: isCompleted || isCurrentStep

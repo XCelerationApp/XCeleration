@@ -9,6 +9,7 @@ import 'package:xceleration/coach/race_screen/controller/race_form_state.dart';
 import 'package:xceleration/coach/race_screen/controller/race_screen_controller.dart';
 import 'package:xceleration/shared/models/database/master_race.dart';
 import 'package:xceleration/shared/models/database/race.dart';
+import 'package:xceleration/coach/race_screen/services/race_service.dart';
 
 @GenerateMocks([
   RaceScreenController,
@@ -70,6 +71,7 @@ void main() {
       raceController: mockRaceController,
       preRaceController: mockPreRaceController,
       postRaceController: mockPostRaceController,
+      raceService: RaceService(),
     );
   });
 

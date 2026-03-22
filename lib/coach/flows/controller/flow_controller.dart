@@ -12,7 +12,8 @@ import 'dart:async';
 import '../../../coach/race_screen/controller/race_screen_controller.dart';
 import '../../../shared/models/database/race.dart';
 import '../../../core/components/dialog_utils.dart';
-import '../../../coach/race_screen/services/race_service.dart';
+import '../../../coach/race_screen/services/i_race_service.dart';
+import '../../../core/services/service_locator.dart';
 
 /// Controller class for handling all flow-related operations
 class MasterFlowController {
@@ -20,11 +21,15 @@ class MasterFlowController {
   late PreRaceController preRaceController;
   late PostRaceController postRaceController;
 
+  late final IRaceService _raceService;
+
   MasterFlowController({
     required this.raceController,
     PreRaceController? preRaceController,
     PostRaceController? postRaceController,
+    IRaceService? raceService,
   }) {
+    _raceService = raceService ?? ServiceLocator.get<IRaceService>();
     this.preRaceController = preRaceController ??
         PreRaceController(masterRace: raceController.masterRace);
     this.postRaceController = postRaceController ??
@@ -84,14 +89,14 @@ class MasterFlowController {
     // Setup state: validate completeness before advancing.
     // Pass the already-fetched race and cached teams to avoid extra DB reads.
     if (currentState == Race.FLOW_SETUP) {
-      final canAdvance = await RaceService.checkSetupComplete(
+      final canAdvance = await _raceService.checkSetupComplete(
         race: race,
         teams: raceController.teamsOrNull ?? [],
         masterRace: raceController.masterRace,
-        nameController: raceController.form.nameController,
-        locationController: raceController.form.locationController,
-        dateController: raceController.form.dateController,
-        distanceController: raceController.form.distanceController,
+        name: raceController.form.nameController.text.trim(),
+        location: raceController.form.locationController.text,
+        date: raceController.form.dateController.text,
+        distance: raceController.form.distanceController.text,
       );
 
       if (!context.mounted) return;

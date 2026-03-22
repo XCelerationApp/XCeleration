@@ -6,6 +6,43 @@ import '../../../core/components/sliding_page_view.dart';
 import '../../runners_management_screen/screen/runners_management_screen.dart';
 import '../widgets/race_header.dart';
 
+/// Shared placeholder shown in the second page of the [SlidingPageView]
+/// before the runners management panel is navigated to.
+class RunnersManagementPlaceholder extends StatelessWidget {
+  final String message;
+
+  const RunnersManagementPlaceholder({
+    super.key,
+    this.message = 'Navigate from the main screen to manage runners',
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.group, size: 48, color: Colors.grey),
+            const SizedBox(height: 16),
+            const Text(
+              'Runners Management',
+              style: TextStyle(fontSize: 18, color: Colors.grey),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class TabBarViewWidget extends StatelessWidget {
   final RaceScreenController controller;
   const TabBarViewWidget({super.key, required this.controller});
@@ -56,27 +93,8 @@ class TabBarViewWidget extends StatelessWidget {
                       isViewMode: true, // Always view mode when race is finished
                     );
                   } else {
-                    return Container(
-                      padding: EdgeInsets.all(16),
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.group, size: 48, color: Colors.grey),
-                            SizedBox(height: 16),
-                            Text(
-                              'Runners Management',
-                              style: TextStyle(fontSize: 18, color: Colors.grey),
-                            ),
-                            SizedBox(height: 8),
-                            Text(
-                              'Navigate from the main screen to view runners',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(color: Colors.grey[600]),
-                            ),
-                          ],
-                        ),
-                      ),
+                    return const RunnersManagementPlaceholder(
+                      message: 'Navigate from the main screen to view runners',
                     );
                   }
                 },

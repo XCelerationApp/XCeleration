@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/shared/services/i_race_results_service.dart';
 import 'package:xceleration/shared/services/race_results_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
@@ -8,8 +9,13 @@ import 'collapsible_results_widget.dart';
 
 class HeadToHeadResultsWidget extends StatefulWidget {
   final List<TeamRecord> matchup;
+  final IRaceResultsService raceResultsService;
 
-  const HeadToHeadResultsWidget({super.key, required this.matchup});
+  const HeadToHeadResultsWidget({
+    super.key,
+    required this.matchup,
+    this.raceResultsService = const RaceResultsService(),
+  });
 
   @override
   State<HeadToHeadResultsWidget> createState() =>
@@ -45,8 +51,7 @@ class _HeadToHeadResultsWidgetState extends State<HeadToHeadResultsWidget> {
 
     // Convert RaceResult objects to ResultsRecord objects for display
     // No dedicated race distance context here; pace/splits not critical for H2H
-    allResults =
-        const RaceResultsService().convertToResultsRecords(raceResults);
+    allResults = widget.raceResultsService.convertToResultsRecords(raceResults);
   }
 
   @override
@@ -101,7 +106,7 @@ class _HeadToHeadResultsWidgetState extends State<HeadToHeadResultsWidget> {
             ),
             const SizedBox(height: 16),
 
-            CollapsibleResultsWidget(
+            CollapsibleIndividualResultsWidget(
               results: allResults,
               initialVisibleCount: 3,
             ),

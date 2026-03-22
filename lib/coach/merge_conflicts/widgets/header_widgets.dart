@@ -125,9 +125,7 @@ class ConfirmHeader extends StatelessWidget {
 }
 
 class ConfirmationRecord extends StatelessWidget {
-  const ConfirmationRecord(this.context, this.index, this.timeRecord,
-      {super.key});
-  final BuildContext context;
+  const ConfirmationRecord(this.index, this.timeRecord, {super.key});
   final int index;
   final TimingDatum timeRecord;
 

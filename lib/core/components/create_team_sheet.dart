@@ -9,11 +9,11 @@ import '../theme/app_colors.dart';
 import '../theme/app_opacity.dart';
 import '../theme/app_spacing.dart';
 import 'textfield_utils.dart';
-import '../../shared/models/database/master_race.dart';
+import '../../shared/models/database/i_master_race_resolver.dart';
 import '../../shared/models/database/team.dart';
 
 class CreateTeamSheet extends StatefulWidget {
-  final MasterRace masterRace;
+  final IMasterRaceResolver masterRace;
   final Future<void> Function(Team) createTeam;
 
   const CreateTeamSheet({

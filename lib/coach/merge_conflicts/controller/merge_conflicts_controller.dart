@@ -190,36 +190,15 @@ class MergeConflictsController with ChangeNotifier {
   }
 
   /// Manually resolve an extra time conflict for a specific chunk
-  Future<void> resolveExtraTimeConflict(int chunkIndex) async {
-    if (chunkIndex < 0 || chunkIndex >= timingChunks.length) {
-      return;
-    }
-
-    final chunk = timingChunks[chunkIndex];
-    if (!chunk.hasConflict ||
-        chunk.conflictRecord == null ||
-        chunk.conflictRecord!.conflict == null ||
-        chunk.conflictRecord!.conflict!.type != ConflictType.extraTime) {
-      return;
-    }
-
-    // Resolution is now checked in UI based on local state
-
-    // Convert to confirmRunner conflict
-    chunk.conflictRecord = TimingDatum(
-      time: chunk.conflictRecord!.time,
-      conflict: Conflict(type: ConflictType.confirmRunner, offBy: 0),
-    );
-
-    // Invalidate UI cache since conflict type changed
-    _needsUIRebuild = true;
-
-    // Consolidate adjacent confirmRunner chunks after resolving the conflict
-    await consolidateConfirmedTimes();
-  }
+  Future<void> resolveExtraTimeConflict(int chunkIndex) =>
+      _resolveConflict(chunkIndex, ConflictType.extraTime);
 
   /// Manually resolve a missing time conflict for a specific chunk
-  Future<void> resolveMissingTimeConflict(int chunkIndex) async {
+  Future<void> resolveMissingTimeConflict(int chunkIndex) =>
+      _resolveConflict(chunkIndex, ConflictType.missingTime);
+
+  Future<void> _resolveConflict(
+      int chunkIndex, ConflictType expectedType) async {
     if (chunkIndex < 0 || chunkIndex >= timingChunks.length) {
       return;
     }
@@ -228,11 +207,9 @@ class MergeConflictsController with ChangeNotifier {
     if (!chunk.hasConflict ||
         chunk.conflictRecord == null ||
         chunk.conflictRecord!.conflict == null ||
-        chunk.conflictRecord!.conflict!.type != ConflictType.missingTime) {
+        chunk.conflictRecord!.conflict!.type != expectedType) {
       return;
     }
-
-    // Resolution is now checked in UI based on local state
 
     // Convert to confirmRunner conflict
     chunk.conflictRecord = TimingDatum(

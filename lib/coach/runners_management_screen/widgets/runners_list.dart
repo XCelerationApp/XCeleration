@@ -30,7 +30,7 @@ class _RunnersListState extends State<RunnersList> {
   void initState() {
     super.initState();
     widget.controller.addListener(_onControllerChanged);
-    _filteredFuture = widget.controller.masterRace.filteredSearchResults;
+    _filteredFuture = widget.controller.filteredSearchResults;
   }
 
   @override
@@ -40,7 +40,7 @@ class _RunnersListState extends State<RunnersList> {
       oldWidget.controller.removeListener(_onControllerChanged);
       widget.controller.addListener(_onControllerChanged);
       setState(() {
-        _filteredFuture = widget.controller.masterRace.filteredSearchResults;
+        _filteredFuture = widget.controller.filteredSearchResults;
       });
     }
   }
@@ -53,12 +53,12 @@ class _RunnersListState extends State<RunnersList> {
 
   void _onControllerChanged() {
     setState(() {
-      _filteredFuture = widget.controller.masterRace.filteredSearchResults;
+      _filteredFuture = widget.controller.filteredSearchResults;
     });
   }
 
   bool _isExpanded(Team team) =>
-      _expanded[team.teamId] ?? true;
+      _expanded[team.teamId ?? -1] ?? true;
 
   void _toggleExpanded(Team team) {
     setState(() {
@@ -79,6 +79,28 @@ class _RunnersListState extends State<RunnersList> {
     return FutureBuilder<Map<Team, List<RaceRunner>>>(
       future: _filteredFuture,
       builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  size: 48,
+                  color: AppColors.mediumColor.withValues(alpha: AppOpacity.solid),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                Text(
+                  'Could not load runners',
+                  style: AppTypography.titleSemibold.copyWith(
+                    color: AppColors.mediumColor,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
         if (!snapshot.hasData) {
           return Center(
             child: CircularProgressIndicator(
@@ -88,7 +110,7 @@ class _RunnersListState extends State<RunnersList> {
           );
         }
 
-        final teamMap = snapshot.data!;
+        final teamMap = snapshot.requireData;
 
         if (teamMap.isEmpty) {
           return _EmptyState(controller: widget.controller);

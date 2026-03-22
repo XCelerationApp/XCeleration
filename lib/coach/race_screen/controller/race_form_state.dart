@@ -212,18 +212,6 @@ class RaceFormState extends ChangeNotifier {
     }
   }
 
-  void validateName(String name) =>
-      setError(RaceField.name, RaceService.validateName(name));
-
-  void validateLocation(String location) =>
-      setError(RaceField.location, RaceService.validateLocation(location));
-
-  void validateDate(String dateString) =>
-      setError(RaceField.date, RaceService.validateDate(dateString));
-
-  void validateDistance(String distanceString) =>
-      setError(RaceField.distance, RaceService.validateDistance(distanceString));
-
   @override
   void dispose() {
     nameController.dispose();

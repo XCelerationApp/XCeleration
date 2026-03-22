@@ -50,7 +50,7 @@ class IndividualResultsWidget extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
-            CollapsibleResultsWidget(
+            CollapsibleIndividualResultsWidget(
               results: raceResultsData.individualResults,
               initialVisibleCount: initialVisibleCount,
             ),
