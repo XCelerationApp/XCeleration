@@ -160,13 +160,14 @@ class MockBibRecorderV2Controller extends _i1.Mock
       );
 
   @override
-  void deleteRace() => super.noSuchMethod(
+  _i7.Future<void> deleteRace() => (super.noSuchMethod(
         Invocation.method(
           #deleteRace,
           [],
         ),
-        returnValueForMissingStub: null,
-      );
+        returnValue: _i7.Future<void>.value(),
+        returnValueForMissingStub: _i7.Future<void>.value(),
+      ) as _i7.Future<void>);
 
   @override
   String? flagFor(
