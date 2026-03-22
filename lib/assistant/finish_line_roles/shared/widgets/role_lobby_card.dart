@@ -59,7 +59,7 @@ class RoleLobbySearchingCard extends StatelessWidget {
                 Text(
                   subtitle,
                   style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.lightColor,
+                    color: AppColors.mediumColor,
                   ),
                 ),
               ],
