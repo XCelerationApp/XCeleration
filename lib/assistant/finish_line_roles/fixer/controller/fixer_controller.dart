@@ -48,6 +48,8 @@ class FixerController extends ChangeNotifier {
   bool _inRace = false;
   StreamSubscription<(Role, MessageEnvelope)>? _sessionSub;
 
+  List<RaceRecord> _races = [];
+
   List<FixerEntry> get queue => List.unmodifiable(_queue);
   List<Runner> get searchResults => List.unmodifiable(_searchResults);
   String get searchQuery => _searchQuery;
@@ -55,10 +57,25 @@ class FixerController extends ChangeNotifier {
   int get unresolvedCount => _queue.where((e) => !e.isResolved).length;
   bool get isInRace => _inRace;
 
-  void initialize() {
+  /// Locally stored races loaded from storage (pre-loaded from Coach).
+  List<RaceRecord> get races => List.unmodifiable(_races);
+
+  Future<void> initialize() async {
     if (_session != null) {
       _sessionSub = _session.incomingMessages.listen(_onSessionMessage);
     }
+    await _loadRaces();
+  }
+
+  Future<void> _loadRaces() async {
+    final result = await _storage.getRaces(DeviceName.fixer.toString());
+    switch (result) {
+      case Success(:final value):
+        _races = value;
+      case Failure(:final error):
+        Logger.e('[FixerController._loadRaces] ${error.originalException}');
+    }
+    notifyListeners();
   }
 
   // ── Race loading ──────────────────────────────────────────────────────────
@@ -117,6 +134,7 @@ class FixerController extends ChangeNotifier {
       await _storage.saveRunners(raceRecord.raceId, dbRunners);
     }
 
+    await _loadRaces();
     return const Success(null);
   }
 
