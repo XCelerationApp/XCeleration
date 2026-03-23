@@ -78,9 +78,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "INPUT=$(cat); CMD=$(echo \"$INPUT\" | jq -r '.tool_input.command // \"\"'); if echo \"$CMD\" | grep -q 'build_runner'; then MATCHES=$(grep -rln '// ignore:' test/ --include='*.mocks.dart' 2>/dev/null); if [ -n \"$MATCHES\" ]; then FILES=$(echo \"$MATCHES\" | tr '\\n' ' '); jq -n --arg m \"WARNING: duplicate_ignore in mocks — remove per-line // ignore: that duplicate // ignore_for_file: in: $FILES\" '{systemMessage: $m}'; fi; fi",
-            "timeout": 10,
-            "statusMessage": "Checking mocks for duplicate ignores..."
+            "command": "jq -r '.tool_input.command' | grep -q 'build_runner' && python3 scripts/fix_mock_ignores.py || true",
+            "statusMessage": "Fixing duplicate ignores in mock files…"
           }
         ]
       }
