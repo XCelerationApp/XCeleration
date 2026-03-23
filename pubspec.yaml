@@ -29,7 +29,7 @@ dependencies:
   # Networking & APIs
   http: ^1.2.0
   googleapis: ^11.0.0
-  google_sign_in: ^6.1.6
+  google_sign_in: ^7.2.0
   supabase_flutter: ^2.5.7
   gotrue: ^2.13.0
   connectivity_plus: ^7.0.0
