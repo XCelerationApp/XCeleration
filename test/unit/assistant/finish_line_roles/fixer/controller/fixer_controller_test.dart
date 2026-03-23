@@ -40,6 +40,8 @@ void main() {
     when(mockSession.incomingMessages)
         .thenAnswer((_) => incomingController.stream);
     when(mockSession.sendMessage(any, any)).thenAnswer((_) => Future.value());
+    when(mockStorage.getRaces(any))
+        .thenAnswer((_) async => const Success<List<RaceRecord>>([]));
     when(mockStorage.getRunners(any))
         .thenAnswer((_) async => const Success<List<Runner>>([]));
     when(mockStorage.updateBibRecordValue(any, any, any))

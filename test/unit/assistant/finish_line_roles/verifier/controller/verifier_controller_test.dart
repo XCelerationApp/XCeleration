@@ -41,6 +41,8 @@ void main() {
     when(mockSession.incomingMessages)
         .thenAnswer((_) => incomingController.stream);
     when(mockSession.sendMessage(any, any)).thenAnswer((_) async {});
+    when(mockStorage.getRaces(any))
+        .thenAnswer((_) async => const Success<List<RaceRecord>>([]));
     when(mockStorage.saveNewRace(any))
         .thenAnswer((_) async => const Success<void>(null));
     when(mockStorage.saveRunners(any, any))

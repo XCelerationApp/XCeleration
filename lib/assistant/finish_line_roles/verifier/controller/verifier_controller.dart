@@ -36,10 +36,15 @@ class VerifierController extends ChangeNotifier {
   StreamSubscription<(Role, MessageEnvelope)>? _sessionSub;
   bool _inRace = false;
 
+  List<RaceRecord> _races = [];
+
   /// Active queue — pending entries plus any recently actioned (within 3 s).
   List<VerifierEntry> get entries => List.unmodifiable(_entries);
 
   bool get isInRace => _inRace;
+
+  /// Locally stored races loaded from storage (pre-loaded from Coach).
+  List<RaceRecord> get races => List.unmodifiable(_races);
 
   // ── Stats (committed to history only) ────────────────────────────────────
 
@@ -52,10 +57,23 @@ class VerifierController extends ChangeNotifier {
   int get pending =>
       _entries.where((e) => e.status == VerificationStatus.pending).length;
 
-  void initialize() {
+  Future<void> initialize() async {
     if (_session != null) {
       _sessionSub = _session.incomingMessages.listen(_onSessionMessage);
     }
+    await _loadRaces();
+  }
+
+  Future<void> _loadRaces() async {
+    if (_storage == null) return;
+    final result = await _storage.getRaces(DeviceName.verifier.toString());
+    switch (result) {
+      case Success(:final value):
+        _races = value;
+      case Failure(:final error):
+        Logger.e('[VerifierController._loadRaces] ${error.originalException}');
+    }
+    notifyListeners();
   }
 
   // ── Race loading ──────────────────────────────────────────────────────────
@@ -118,6 +136,7 @@ class VerifierController extends ChangeNotifier {
       await _storage.saveRunners(raceRecord.raceId, dbRunners);
     }
 
+    await _loadRaces();
     return const Success(null);
   }
 
