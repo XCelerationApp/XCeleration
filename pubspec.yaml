@@ -17,7 +17,7 @@ dependencies:
 
   # File & Data Processing
   file_picker: ^8.1.4
-  csv: ^5.0.2
+  csv: ^8.0.0
   excel: ^4.0.6
   path_provider: ^2.0.15
   path: ^1.8.3
