@@ -213,10 +213,10 @@ packages:
     dependency: "direct dev"
     description:
       name: build_runner
-      sha256: "7981eb922842c77033026eb4341d5af651562008cdb116bdfa31fc46516b6462"
+      sha256: "521daf8d189deb79ba474e43a696b41c49fb3987818dbacf3308f1e03673a75e"
       url: "https://pub.dev"
     source: hosted
-    version: "2.12.2"
+    version: "2.13.1"
   built_collection:
     dependency: transitive
     description:
@@ -265,6 +265,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.2"
+  code_assets:
+    dependency: transitive
+    description:
+      name: code_assets
+      sha256: "83ccdaa064c980b5596c35dd64a8d3ecc68620174ab9b90b6343b753aa721687"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.0"
   code_builder:
     dependency: transitive
     description:
@@ -546,10 +554,10 @@ packages:
     dependency: "direct main"
     description:
       name: flutter_svg
-      sha256: "87fbd7c534435b6c5d9d98b01e1fd527812b82e68ddd8bd35fc45ed0fa8f0a95"
+      sha256: "1ded017b39c8e15c8948ea855070a5ff8ff8b3d5e83f3446e02d6bb12add7ad9"
       url: "https://pub.dev"
     source: hosted
-    version: "2.2.3"
+    version: "2.2.4"
   flutter_test:
     dependency: "direct dev"
     description: flutter
@@ -768,6 +776,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.0"
+  hooks:
+    dependency: transitive
+    description:
+      name: hooks
+      sha256: e79ed1e8e1929bc6ecb6ec85f0cb519c887aa5b423705ded0d0f2d9226def388
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.2"
   html:
     dependency: transitive
     description:
@@ -900,10 +916,10 @@ packages:
     dependency: transitive
     description:
       name: matcher
-      sha256: "12956d0ad8390bbcc63ca2e1469c0619946ccb52809807067a7020d57e647aa6"
+      sha256: dc0b7dc7651697ea4ff3e69ef44b0407ea32c487a39fff6a4004fa585e901861
       url: "https://pub.dev"
     source: hosted
-    version: "0.12.18"
+    version: "0.12.19"
   material_color_utilities:
     dependency: transitive
     description:
@@ -936,6 +952,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "5.6.3"
+  native_toolchain_c:
+    dependency: transitive
+    description:
+      name: native_toolchain_c
+      sha256: "6ba77bb18063eebe9de401f5e6437e95e1438af0a87a3a39084fbd37c90df572"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.17.6"
   nested:
     dependency: transitive
     description:
@@ -1044,10 +1068,10 @@ packages:
     dependency: "direct main"
     description:
       name: pdf
-      sha256: "28eacad99bffcce2e05bba24e50153890ad0255294f4dd78a17075a2ba5c8416"
+      sha256: e47a275b267873d5944ad5f5ff0dcc7ac2e36c02b3046a0ffac9b72fd362c44b
       url: "https://pub.dev"
     source: hosted
-    version: "3.11.3"
+    version: "3.12.0"
   permission_handler:
     dependency: "direct main"
     description:
@@ -1220,18 +1244,18 @@ packages:
     dependency: transitive
     description:
       name: sentry
-      sha256: "605ad1f6f1ae5b72018cbe8fc20f490fa3bd53e58882e5579566776030d8c8c1"
+      sha256: a49b4fb1cba576fe216347dc2a0e6d76076fb998e6012857db96f991c23b7b3c
       url: "https://pub.dev"
     source: hosted
-    version: "9.14.0"
+    version: "9.15.0"
   sentry_flutter:
     dependency: "direct main"
     description:
       name: sentry_flutter
-      sha256: "7fd0fb80050c1f6a77ae185bda997a76d384326d6777cf5137a6c38952c4ac7d"
+      sha256: "25150030c93bd1d4b727ab61cfb09e99121c69ce90fa820bb9ca16dab433e43a"
       url: "https://pub.dev"
     source: hosted
-    version: "9.14.0"
+    version: "9.15.0"
   share_plus:
     dependency: "direct main"
     description:
@@ -1324,50 +1348,50 @@ packages:
     dependency: "direct main"
     description:
       name: sherpa_onnx
-      sha256: "3ac66fd2ded0c198f16bba6aadf3b1ccbe599f90c89827473a2e53cc2c4d5bbb"
+      sha256: "7958f9449e904c57eca69c2155ce25d896a4bd77cc455ab8a8c7b6fa314505e5"
       url: "https://pub.dev"
     source: hosted
-    version: "1.12.29"
+    version: "1.12.32"
   sherpa_onnx_android:
     dependency: transitive
     description:
       name: sherpa_onnx_android
-      sha256: ef4c155f05cfa2934a028fbab73567cc873690ff2e08e6d84df80789734cda9d
+      sha256: f52b3b9e176e1ff7340d3cb1f05b061a757e72930d78715c85555c229d09df09
       url: "https://pub.dev"
     source: hosted
-    version: "1.12.29"
+    version: "1.12.32"
   sherpa_onnx_ios:
     dependency: transitive
     description:
       name: sherpa_onnx_ios
-      sha256: cf158df4ab0953da6873a879b3f1ce230ac58d2bf50bcee198d8b4f33a928886
+      sha256: "99343ecf3247c45389db0e54219f0dfdd41a00c4ee3098f73cc969cceae9f4d6"
       url: "https://pub.dev"
     source: hosted
-    version: "1.12.29"
+    version: "1.12.32"
   sherpa_onnx_linux:
     dependency: transitive
     description:
       name: sherpa_onnx_linux
-      sha256: f241519d56b39735079a15661b42892d7b47017a1beb029af47328f299e4c3f3
+      sha256: "5b45b20e0e1122ebd30baf5b9849f5a6cc9e98d1261f56ede6069ac20172d017"
       url: "https://pub.dev"
     source: hosted
-    version: "1.12.29"
+    version: "1.12.32"
   sherpa_onnx_macos:
     dependency: transitive
     description:
       name: sherpa_onnx_macos
-      sha256: e4a356fcdee0dee572e123a287de982d4bc0333a7ad2505e1c51767ff8e0ceae
+      sha256: "3a06f7eea15fd8469992a403b1e139f9ffa10787dca902bf77bcfdb3b86bfc96"
       url: "https://pub.dev"
     source: hosted
-    version: "1.12.29"
+    version: "1.12.32"
   sherpa_onnx_windows:
     dependency: transitive
     description:
       name: sherpa_onnx_windows
-      sha256: "9283347fcb93a4c76f995568f83bda39fc4ef243c05a12f499b09e37eec63fa4"
+      sha256: "5a9a31b54ac63a76ccb732a1b172dd7a11c2667f7e0ae9edc056871cfa8ca4ea"
       url: "https://pub.dev"
     source: hosted
-    version: "1.12.29"
+    version: "1.12.32"
   sky_engine:
     dependency: transitive
     description: flutter
@@ -1417,10 +1441,10 @@ packages:
     dependency: "direct dev"
     description:
       name: sqflite_common_ffi
-      sha256: "8d7b8749a516cbf6e9057f9b480b716ad14fc4f3d3873ca6938919cc626d9025"
+      sha256: c59fcdc143839a77581f7a7c4de018e53682408903a0a0800b95ef2dc4033eff
       url: "https://pub.dev"
     source: hosted
-    version: "2.3.7+1"
+    version: "2.4.0+2"
   sqflite_darwin:
     dependency: transitive
     description:
@@ -1441,10 +1465,10 @@ packages:
     dependency: transitive
     description:
       name: sqlite3
-      sha256: "3145bd74dcdb4fd6f5c6dda4d4e4490a8087d7f286a14dee5d37087290f0f8a2"
+      sha256: caa693ad15a587a2b4fde093b728131a1827903872171089dedb16f7665d3a91
       url: "https://pub.dev"
     source: hosted
-    version: "2.9.4"
+    version: "3.2.0"
   stack_trace:
     dependency: transitive
     description:
@@ -1521,10 +1545,10 @@ packages:
     dependency: transitive
     description:
       name: test_api
-      sha256: "93167629bfc610f71560ab9312acdda4959de4df6fac7492c89ff0d3886f6636"
+      sha256: "8161c84903fd860b26bfdefb7963b3f0b68fee7adea0f59ef805ecca346f0c7a"
       url: "https://pub.dev"
     source: hosted
-    version: "0.7.9"
+    version: "0.7.10"
   typed_data:
     dependency: transitive
     description:
