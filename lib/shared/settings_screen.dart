@@ -164,7 +164,7 @@ class SettingsScreen extends StatelessWidget {
         if (syncSucceeded) {
           DialogUtils.showSuccessDialog(
             context,
-            message: 'Done, synced successfully',
+            message: 'Done, synced successfully!',
           );
         }
       },
