@@ -145,13 +145,28 @@ class SettingsScreen extends StatelessWidget {
       isSelected: false,
       onTap: () async {
         final syncService = context.read<ISyncService>();
-        await DialogUtils.executeWithLoadingDialog(
-          context,
-          loadingMessage: 'Syncing...',
-          operation: () async {
-            await syncService.syncAll();
-          },
-        );
+        bool syncSucceeded = false;
+        try {
+          await DialogUtils.executeWithLoadingDialog(
+            context,
+            loadingMessage: 'Syncing...',
+            operation: () async {
+              await syncService.syncAll();
+              syncSucceeded = true;
+            },
+          );
+        } catch (e) {
+          if (!context.mounted) return;
+          DialogUtils.showErrorDialog(context, message: 'Sync failed: $e');
+          return;
+        }
+        if (!context.mounted) return;
+        if (syncSucceeded) {
+          DialogUtils.showSuccessDialog(
+            context,
+            message: 'Done, synced successfully!',
+          );
+        }
       },
     );
   }
