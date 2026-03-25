@@ -36,9 +36,10 @@ import 'google_drive_service.dart';
 ///
 /// ## Setup requirements
 ///
-/// `xcelerationapp://picker` must be added as an authorised redirect URI on the
-/// OAuth client in Google Cloud Console. The `xcelerationapp` custom scheme is
-/// already registered in `ios/Runner/Info.plist`.
+/// Uses the iOS OAuth client (`GOOGLE_IOS_OAUTH_CLIENT_ID`). The reverse-DNS
+/// redirect URI scheme (`com.googleusercontent.apps.<ID>:/oauthredirect`) is
+/// pre-configured on iOS OAuth clients in Google Cloud Console and is already
+/// registered in `ios/Runner/Info.plist` — no Cloud Console changes needed.
 ///
 /// ## Auth note
 ///
@@ -56,9 +57,17 @@ class GooglePickerService {
   final GoogleDriveService _driveService = GoogleDriveService.instance;
 
   static String get _clientId =>
-      dotenv.env['GOOGLE_WEB_OAUTH_CLIENT_ID'] ?? '';
+      dotenv.env['GOOGLE_IOS_OAUTH_CLIENT_ID'] ?? '';
 
-  static const _redirectUri = 'xcelerationapp://picker';
+  /// Derives the reverse-DNS URL scheme from the full iOS OAuth client ID.
+  /// e.g. "529...3.apps.googleusercontent.com" → "com.googleusercontent.apps.529...3"
+  static String _callbackScheme(String iosClientId) {
+    const suffix = '.apps.googleusercontent.com';
+    if (!iosClientId.endsWith(suffix)) return iosClientId;
+    final id = iosClientId.substring(0, iosClientId.length - suffix.length);
+    return 'com.googleusercontent.apps.$id';
+  }
+
   static const _mimeTypes =
       'application/vnd.google-apps.spreadsheet,'
       'application/vnd.ms-excel,'
@@ -81,13 +90,16 @@ class GooglePickerService {
       {required BuildContext context}) async {
     final clientId = _clientId;
     if (clientId.isEmpty) {
-      Logger.e('[Picker] GOOGLE_WEB_OAUTH_CLIENT_ID is not set');
+      Logger.e('[Picker] GOOGLE_IOS_OAUTH_CLIENT_ID is not set');
       return {'action': 'error', 'message': 'Google Authentication Failed'};
     }
 
+    final scheme = _callbackScheme(clientId);
+    final redirectUri = '$scheme:/oauthredirect';
+
     final uri = Uri.https('accounts.google.com', '/o/oauth2/v2/auth', {
       'client_id': clientId,
-      'redirect_uri': _redirectUri,
+      'redirect_uri': redirectUri,
       'response_type': 'code',
       'scope': 'https://www.googleapis.com/auth/drive.file',
       'trigger_onepick': 'true',
@@ -99,7 +111,7 @@ class GooglePickerService {
     try {
       final result = await FlutterWebAuth2.authenticate(
         url: uri.toString(),
-        callbackUrlScheme: 'xcelerationapp',
+        callbackUrlScheme: scheme,
       );
 
       final callbackUri = Uri.parse(result);
