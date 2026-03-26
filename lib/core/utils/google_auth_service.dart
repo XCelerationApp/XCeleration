@@ -236,14 +236,46 @@ class GoogleAuthService {
   /// Get the current signed-in user
   GoogleSignInAccount? get currentUser => _currentUser;
 
+  /// Stores an access token obtained outside of google_sign_in (e.g. from
+  /// the picker OAuth code exchange) so that services can use it via
+  /// [iosAccessToken] without a google_sign_in session.
+  /// Also persists the token to SharedPreferences.
+  Future<void> setIosToken(String token, DateTime expiry) async {
+    _iosAccessToken = token;
+    _iosAccessTokenExpiry = expiry;
+    await _saveAuthDataToPrefs();
+  }
+
+  /// Stores an access token as the web token (e.g. from the picker OAuth code
+  /// exchange) so that subsequent [signIn] calls with [requireWebToken]=true
+  /// skip the interactive auth screen while this token is still valid.
+  Future<void> setWebToken(String token, DateTime expiry) async {
+    _webAccessToken = token;
+    _webAccessTokenExpiry = expiry;
+    await _saveAuthDataToPrefs();
+  }
+
+  /// Stores [token] as both the iOS and web tokens in a single SharedPreferences
+  /// write. Use this after a picker code exchange where both tokens should be
+  /// set to the same value.
+  Future<void> setPickerTokens(String token, DateTime expiry) async {
+    _iosAccessToken = token;
+    _iosAccessTokenExpiry = expiry;
+    _webAccessToken = token;
+    _webAccessTokenExpiry = expiry;
+    await _saveAuthDataToPrefs();
+  }
+
   /// Get or refresh the ios access token if we have a signed-in user
   Future<String?> get iosAccessToken async {
     // Ensure prefs are loaded and sign-in is initialized
     await _ensureInitialized();
 
-    if (_currentUser == null) return null;
-
+    // Return a directly-set token (e.g. from picker code exchange) even
+    // without a google_sign_in session.
     if (hasValidIosToken) return _iosAccessToken;
+
+    if (_currentUser == null) return null;
 
     try {
       final auth = await _currentUser!.authentication;
@@ -392,10 +424,27 @@ class GoogleAuthService {
   }
 
   /// Sign in the user - only use when explicitly requested by the user
-  /// Tries silent sign-in first before prompting interactive sign-in
-  Future<bool> signIn() async {
+  /// Tries silent sign-in first before prompting interactive sign-in.
+  ///
+  /// [requireWebToken] controls whether the web OAuth token is obtained.
+  /// Pass `false` when the caller will handle its own auth (e.g. the Google
+  /// Picker, which runs its own OAuth flow and exchanges the resulting code for
+  /// an access token). In that case this method only checks connectivity and
+  /// returns `true` — no google_sign_in UI is shown.
+  Future<bool> signIn({bool requireWebToken = true}) async {
     try {
       await _ensureInitialized();
+
+      if (!requireWebToken) {
+        // Caller will handle auth — just verify connectivity.
+        if (!await _connectivity.isOnline()) {
+          Logger.d('No internet connection — skipping Google sign-in');
+          return false;
+        }
+        Logger.d('signIn(requireWebToken: false) — skipping google_sign_in UI');
+        return true;
+      }
+
       // Check if we already have valid tokens
       if (_currentUser != null && hasValidIosToken && hasValidWebToken) {
         Logger.d('Already signed in with valid iOS and Web tokens');

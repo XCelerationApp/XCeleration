@@ -93,6 +93,23 @@ class MockGoogleAuthService extends _i1.Mock implements _i5.GoogleAuthService {
       ) as _i4.Future<String?>);
 
   @override
+  _i4.Future<void> setIosToken(
+    String? token,
+    DateTime? expiry,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #setIosToken,
+          [
+            token,
+            expiry,
+          ],
+        ),
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
+
+  @override
   _i4.Future<_i6.Client?> getAuthClient() => (super.noSuchMethod(
         Invocation.method(
           #getAuthClient,
@@ -102,10 +119,12 @@ class MockGoogleAuthService extends _i1.Mock implements _i5.GoogleAuthService {
       ) as _i4.Future<_i6.Client?>);
 
   @override
-  _i4.Future<bool> signIn() => (super.noSuchMethod(
+  _i4.Future<bool> signIn({bool? requireWebToken = true}) =>
+      (super.noSuchMethod(
         Invocation.method(
           #signIn,
           [],
+          {#requireWebToken: requireWebToken},
         ),
         returnValue: _i4.Future<bool>.value(false),
       ) as _i4.Future<bool>);
@@ -211,6 +230,15 @@ class MockGoogleDriveService extends _i1.Mock
         ),
         returnValue: _i4.Future<bool>.value(false),
       ) as _i4.Future<bool>);
+
+  @override
+  _i4.Future<List<_i8.File>> listAccessibleFiles() => (super.noSuchMethod(
+        Invocation.method(
+          #listAccessibleFiles,
+          [],
+        ),
+        returnValue: _i4.Future<List<_i8.File>>.value(<_i8.File>[]),
+      ) as _i4.Future<List<_i8.File>>);
 
   @override
   _i4.Future<_i9.File?> downloadFile(
