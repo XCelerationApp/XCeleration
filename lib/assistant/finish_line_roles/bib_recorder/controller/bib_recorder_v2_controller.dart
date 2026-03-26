@@ -191,6 +191,17 @@ class BibRecorderV2Controller extends ChangeNotifier {
     }
   }
 
+  Future<void> deleteRaceFromLobby(int raceId) async {
+    final result = await _storage.deleteRace(raceId, DeviceName.bibRecorderV2.toString());
+    switch (result) {
+      case Success():
+        _races.removeWhere((r) => r.raceId == raceId);
+        notifyListeners();
+      case Failure(:final error):
+        Logger.e('[BibRecorderV2Controller.deleteRaceFromLobby] ${error.originalException}');
+    }
+  }
+
   // ── Runners ───────────────────────────────────────────────────────────────
 
   Future<void> _loadRunners() async {

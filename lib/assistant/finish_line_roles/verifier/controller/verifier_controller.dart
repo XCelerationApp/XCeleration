@@ -221,6 +221,18 @@ class VerifierController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> deleteRaceFromLobby(int raceId) async {
+    if (_storage == null) return;
+    final result = await _storage.deleteRace(raceId, DeviceName.verifier.toString());
+    switch (result) {
+      case Success():
+        _races.removeWhere((r) => r.raceId == raceId);
+        notifyListeners();
+      case Failure(:final error):
+        Logger.e('[VerifierController.deleteRaceFromLobby] ${error.originalException}');
+    }
+  }
+
   // ── P2P ───────────────────────────────────────────────────────────────────
 
   void _onSessionMessage((Role, MessageEnvelope) event) {

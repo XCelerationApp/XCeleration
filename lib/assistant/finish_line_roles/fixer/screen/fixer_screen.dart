@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/assistant/finish_line_roles/bib_recorder/widgets/race_lobby_widget.dart';
 import 'package:xceleration/assistant/finish_line_roles/fixer/controller/fixer_controller.dart';
 import 'package:xceleration/assistant/shared/models/race_record.dart';
 import 'package:xceleration/assistant/shared/services/i_assistant_storage_service.dart';
@@ -13,12 +14,8 @@ import 'package:xceleration/core/services/device_connection_factory_impl.dart';
 import 'package:xceleration/core/services/tutorial_manager.dart';
 import 'package:xceleration/assistant/finish_line_roles/bib_recorder/widgets/overflow_menu_button.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/widgets/role_bottom_bar.dart';
-import 'package:xceleration/assistant/finish_line_roles/shared/widgets/role_lobby_card.dart';
 import 'package:xceleration/assistant/finish_line_roles/fixer/widgets/fixer_queue_widgets.dart';
-import 'package:xceleration/core/theme/app_animations.dart';
-import 'package:xceleration/core/theme/app_border_radius.dart';
 import 'package:xceleration/core/theme/app_colors.dart';
-import 'package:xceleration/core/theme/app_opacity.dart';
 import 'package:xceleration/core/theme/app_spacing.dart';
 import 'package:xceleration/core/theme/typography.dart';
 import 'package:xceleration/core/utils/enums.dart';
@@ -168,9 +165,10 @@ class _FixerScreenState extends State<FixerScreen> {
                       onLeave: _onConnectionLeave,
                     );
                   }
-                  return _RaceLobby(
-                    controller: _controller,
-                    onJoin: _onJoinTapped,
+                  return RaceLobbyWidget(
+                    races: _controller.races,
+                    onSelectRace: _onJoinTapped,
+                    onDeleteRace: _controller.deleteRaceFromLobby,
                     onGetFromCoach: _onGetFromCoach,
                   );
                 }
@@ -272,207 +270,4 @@ class _FixerQueue extends StatelessWidget {
   }
 }
 
-// ── Race lobby ────────────────────────────────────────────────────────────────
 
-class _RaceLobby extends StatelessWidget {
-  const _RaceLobby({
-    required this.controller,
-    required this.onJoin,
-    required this.onGetFromCoach,
-  });
-
-  final FixerController controller;
-  final void Function(RaceRecord race) onJoin;
-  final VoidCallback onGetFromCoach;
-
-  @override
-  Widget build(BuildContext context) {
-    return ColoredBox(
-      color: AppColors.backgroundColor,
-      child: SafeArea(
-        top: false,
-        child: ListenableBuilder(
-          listenable: controller,
-          builder: (_, __) {
-            final localRaces = controller.races;
-            return ListView(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.lg,
-                vertical: AppSpacing.sm,
-              ),
-              children: [
-                if (localRaces.isNotEmpty) ...[
-                  const RoleLobbySectionLabel(label: 'Your Races'),
-                  const SizedBox(height: AppSpacing.sm),
-                  for (final race in localRaces)
-                    _PreloadedRaceCard(
-                      race: race,
-                      onTap: () => onJoin(race),
-                    ),
-                  const SizedBox(height: AppSpacing.lg),
-                ],
-                _GetFromCoachButton(
-                  onTap: onGetFromCoach,
-                  isSecondary: localRaces.isNotEmpty,
-                ),
-              ],
-            );
-          },
-        ),
-      ),
-    );
-  }
-}
-
-// ── Coach transfer widgets ─────────────────────────────────────────────────────
-
-class _PreloadedRaceCard extends StatefulWidget {
-  const _PreloadedRaceCard({required this.race, required this.onTap});
-
-  final RaceRecord race;
-  final VoidCallback onTap;
-
-  @override
-  State<_PreloadedRaceCard> createState() => _PreloadedRaceCardState();
-}
-
-class _PreloadedRaceCardState extends State<_PreloadedRaceCard> {
-  bool _pressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-      child: GestureDetector(
-        onTapDown: (_) => setState(() => _pressed = true),
-        onTapUp: (_) => setState(() => _pressed = false),
-        onTapCancel: () => setState(() => _pressed = false),
-        onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: AppAnimations.fast,
-          curve: AppAnimations.spring,
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.lg,
-            vertical: AppSpacing.md,
-          ),
-          decoration: BoxDecoration(
-            color: _pressed
-                ? AppColors.primaryColor.withValues(alpha: AppOpacity.faint)
-                : Colors.white,
-            borderRadius: BorderRadius.circular(AppBorderRadius.lg),
-            border: Border.all(color: AppColors.borderColor),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.race.formattedName,
-                      style: AppTypography.smallBodySemibold.copyWith(
-                        color: AppColors.darkColor,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      widget.race.formattedDate,
-                      style: AppTypography.bodySmall.copyWith(
-                        color: AppColors.mediumColor,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.md,
-                  vertical: AppSpacing.xs,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.statusPreRace.withValues(alpha: AppOpacity.light),
-                  borderRadius: BorderRadius.circular(AppBorderRadius.full),
-                  border: Border.all(
-                    color: AppColors.statusPreRace.withValues(alpha: AppOpacity.medium),
-                  ),
-                ),
-                child: Text(
-                  'Pre-loaded',
-                  style: AppTypography.bodySmall.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.statusPreRace,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _GetFromCoachButton extends StatefulWidget {
-  const _GetFromCoachButton({required this.onTap, required this.isSecondary});
-
-  final VoidCallback onTap;
-  final bool isSecondary;
-
-  @override
-  State<_GetFromCoachButton> createState() => _GetFromCoachButtonState();
-}
-
-class _GetFromCoachButtonState extends State<_GetFromCoachButton> {
-  bool _pressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final isPrimary = !widget.isSecondary;
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapUp: (_) => setState(() => _pressed = false),
-      onTapCancel: () => setState(() => _pressed = false),
-      onTap: widget.onTap,
-      child: AnimatedContainer(
-        duration: AppAnimations.fast,
-        curve: AppAnimations.spring,
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.lg,
-          vertical: AppSpacing.md,
-        ),
-        decoration: BoxDecoration(
-          color: isPrimary
-              ? (_pressed
-                  ? AppColors.darkPrimaryColor
-                  : AppColors.primaryColor)
-              : (_pressed
-                  ? AppColors.primaryColor.withValues(alpha: AppOpacity.light)
-                  : AppColors.primaryColor.withValues(alpha: AppOpacity.faint)),
-          borderRadius: BorderRadius.circular(AppBorderRadius.lg),
-          border: Border.all(
-            color: isPrimary
-                ? Colors.transparent
-                : AppColors.primaryColor.withValues(alpha: AppOpacity.strong),
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.wifi_rounded,
-              size: 18,
-              color: isPrimary ? Colors.white : AppColors.primaryColor,
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Text(
-              isPrimary ? 'Get Race from Coach' : 'Sync a new race from Coach',
-              style: AppTypography.smallBodySemibold.copyWith(
-                color: isPrimary ? Colors.white : AppColors.primaryColor,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

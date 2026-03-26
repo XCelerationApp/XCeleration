@@ -161,6 +161,17 @@ class FixerController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> deleteRaceFromLobby(int raceId) async {
+    final result = await _storage.deleteRace(raceId, DeviceName.fixer.toString());
+    switch (result) {
+      case Success():
+        _races.removeWhere((r) => r.raceId == raceId);
+        notifyListeners();
+      case Failure(:final error):
+        Logger.e('[FixerController.deleteRaceFromLobby] ${error.originalException}');
+    }
+  }
+
   // ── Search ────────────────────────────────────────────────────────────────
 
   /// Filters runners using phonetic (Soundex) + substring scoring.
