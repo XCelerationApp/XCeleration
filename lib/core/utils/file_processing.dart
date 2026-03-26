@@ -5,6 +5,49 @@ import 'package:xceleration/core/components/dialog_utils.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'google_drive_service.dart';
 import 'file_utils.dart';
+import 'recent_local_spreadsheet_service.dart';
+
+/// Processes an already-downloaded [file] through the spreadsheet pipeline
+/// (parse → validate → extract runner rows). Used for the "Recent Spreadsheets"
+/// flow where the file has already been downloaded before this call.
+Future<List<Map<String, dynamic>>> processSpreadsheetFromFile(
+    BuildContext context, File file) async {
+  final navigatorContext = Navigator.of(context, rootNavigator: true).context;
+  try {
+    BuildContext ctx = context.mounted ? context : navigatorContext;
+    List<Map<String, dynamic>>? result;
+    if (ctx.mounted) {
+      result = await DialogUtils.executeWithLoadingDialog<
+          List<Map<String, dynamic>>>(ctx, operation: () async {
+        final parsedData = await FileUtils.parseSpreadsheetFile(file);
+        if (parsedData == null || parsedData.isEmpty) {
+          if (ctx.mounted) {
+            DialogUtils.showErrorDialog(ctx,
+                message:
+                    'Invalid Spreadsheet: The selected file does not contain valid spreadsheet data.');
+          }
+          return [];
+        }
+        return _processSpreadsheetData(parsedData);
+      }, loadingMessage: 'Processing spreadsheet...');
+    } else {
+      final parsedData = await FileUtils.parseSpreadsheetFile(file);
+      if (parsedData == null || parsedData.isEmpty) return [];
+      result = _processSpreadsheetData(parsedData);
+    }
+    return result ?? [];
+  } catch (e) {
+    Logger.e('Error processing spreadsheet file: $e');
+    final ctx =
+        context.mounted ? context : navigatorContext;
+    if (ctx.mounted) {
+      DialogUtils.showErrorDialog(ctx,
+          message:
+              'File Selection Error: An error occurred while processing the file: ${e.toString()}');
+    }
+    return [];
+  }
+}
 
 /// Process a spreadsheet for runner data, either from local storage or Google Drive
 /// Uses the modern GoogleDriveService with drive.file scope for Google Drive operations
@@ -21,6 +64,12 @@ Future<List<Map<String, dynamic>>> processSpreadsheet(BuildContext context,
     } else {
       // Use local file picker with loading dialog
       selectedFile = await FileUtils.pickLocalSpreadsheetFile();
+      if (selectedFile != null) {
+        // Record in recents after a successful local pick.
+        final name = selectedFile.uri.pathSegments.last;
+        await RecentLocalSpreadsheetService.instance
+            .record(name, selectedFile.path);
+      }
     }
 
     // Check if user cancelled or error occurred

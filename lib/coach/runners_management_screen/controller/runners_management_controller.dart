@@ -23,6 +23,7 @@ import '../widgets/add_runners_to_team_sheet.dart';
 import '../widgets/add_runner_choice_sheet.dart';
 import '../widgets/add_team_choice_sheet.dart';
 import '../widgets/imported_runners_selection_sheet.dart';
+import '../widgets/recent_spreadsheets_sheet.dart';
 import '../widgets/spreadsheet_load_sheet.dart';
 
 class RunnersManagementController with ChangeNotifier {
@@ -666,15 +667,28 @@ class RunnersManagementController with ChangeNotifier {
   }
 
   Future<void> loadSpreadsheet(BuildContext context, Team team) async {
-    final bool? useGoogleDrive = await showSpreadsheetLoadSheet(context);
-    if (useGoogleDrive == null) return;
+    final action = await showSpreadsheetLoadSheet(context);
+    if (action == null) return;
     if (!context.mounted) return;
 
     try {
-      final List<Map<String, dynamic>> importData = await processSpreadsheet(
-        context,
-        useGoogleDrive: useGoogleDrive,
-      );
+      List<Map<String, dynamic>> importData;
+
+      if (action == SpreadsheetImportAction.recent) {
+        // Show the recent spreadsheets picker and process the selected file.
+        final file = await sheet(
+          context: context,
+          title: 'Previously Selected',
+          body: const RecentSpreadsheetsSheet(),
+        );
+        if (file == null || !context.mounted) return;
+        importData = await processSpreadsheetFromFile(context, file);
+      } else {
+        importData = await processSpreadsheet(
+          context,
+          useGoogleDrive: action == SpreadsheetImportAction.googleDrive,
+        );
+      }
 
       if (importData.isEmpty) {
         if (context.mounted) {
@@ -889,14 +903,14 @@ class RunnersManagementController with ChangeNotifier {
     }
   }
 
-  Future<bool?> showSpreadsheetLoadSheet(BuildContext context) async {
-    final result = await sheet(
+  Future<SpreadsheetImportAction?> showSpreadsheetLoadSheet(
+      BuildContext context) async {
+    return await sheet(
       context: context,
       title: 'Import Runners',
       titleSize: 24,
       body: const SpreadsheetLoadSheet(),
     );
-    return result?['useGoogleDrive'] ?? false;
   }
 
   @override

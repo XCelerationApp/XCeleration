@@ -1,12 +1,18 @@
+import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
+import 'package:http/http.dart' as http;
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/core/components/dialog_utils.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'google_auth_service.dart';
 import 'google_sheets_service.dart';
 import 'google_drive_service.dart';
+import 'recent_drive_selection_service.dart';
 
 /// A service that handles picking files from Google Drive using Google's native
 /// Picker API for desktop/mobile apps (OAuth redirect flow, currently in beta).
@@ -53,6 +59,7 @@ class GooglePickerService {
   static GooglePickerService get instance =>
       _instance ??= GooglePickerService._();
 
+  final GoogleAuthService _authService = GoogleAuthService.instance;
   final GoogleSheetsService _sheetsService = GoogleSheetsService.instance;
   final GoogleDriveService _driveService = GoogleDriveService.instance;
 
@@ -97,6 +104,9 @@ class GooglePickerService {
     final scheme = _callbackScheme(clientId);
     final redirectUri = '$scheme:/oauthredirect';
 
+    final codeVerifier = _generateCodeVerifier();
+    final codeChallenge = _generateCodeChallenge(codeVerifier);
+
     final uri = Uri.https('accounts.google.com', '/o/oauth2/v2/auth', {
       'client_id': clientId,
       'redirect_uri': redirectUri,
@@ -104,6 +114,9 @@ class GooglePickerService {
       'scope': 'https://www.googleapis.com/auth/drive.file',
       'trigger_onepick': 'true',
       'mimetypes': _mimeTypes,
+      'prompt': 'consent',
+      'code_challenge': codeChallenge,
+      'code_challenge_method': 'S256',
     });
 
     Logger.d('Opening Google Picker via ASWebAuthenticationSession');
@@ -133,7 +146,13 @@ class GooglePickerService {
       }
 
       final fileId = fileIdsParam.split(',').first.trim();
-      return {'action': 'picked', 'data': {'id': fileId}};
+      final code = callbackUri.queryParameters['code'];
+      return {
+        'action': 'picked',
+        'data': {'id': fileId},
+        'code': code,
+        'code_verifier': codeVerifier,
+      };
     } on PlatformException catch (e) {
       if (e.code == 'CANCELED') {
         Logger.d('[Picker] User canceled ASWebAuthenticationSession');
@@ -173,6 +192,20 @@ class GooglePickerService {
           }
         }
         return null;
+      }
+
+      // Exchange the picker code for an access token so Drive API calls below
+      // work without a prior google_sign_in session.
+      final code = pickerResult['code'] as String?;
+      final codeVerifier = pickerResult['code_verifier'] as String?;
+      if (code != null && codeVerifier != null) {
+        final token = await _exchangePickerCode(code, codeVerifier);
+        if (token != null) {
+          await _authService.setPickerTokens(
+            token,
+            DateTime.now().add(const Duration(minutes: 55)),
+          );
+        }
       }
 
       final doc = pickerResult['data'] as Map<String, dynamic>?;
@@ -219,29 +252,30 @@ class GooglePickerService {
       }
 
       try {
+        File? downloaded;
+
         if (mimeType == 'application/vnd.google-apps.spreadsheet') {
           Logger.d('Using GoogleSheetsService for downloading Google Sheet');
           if (context.mounted) {
-            return await _sheetsService.downloadGoogleSheet(
+            downloaded = await _sheetsService.downloadGoogleSheet(
               fileId: fileId,
               fileName: fileName,
               context: context,
             );
           }
-          return null;
-        }
-
-        if (context.mounted) {
-          final tempFile = await DialogUtils.executeWithLoadingDialog<File?>(
+        } else if (context.mounted) {
+          downloaded = await DialogUtils.executeWithLoadingDialog<File?>(
             context,
             loadingMessage: 'Downloading file from Google Drive...',
             operation: () => _driveService.downloadFile(fileId, fileName),
             allowCancel: true,
           );
+        }
 
-          if (tempFile != null) {
-            return tempFile;
-          }
+        if (downloaded != null) {
+          await RecentDriveSelectionService.instance
+              .record(fileId, fileName, mimeType);
+          return downloaded;
         }
 
         return null;
@@ -295,5 +329,54 @@ class GooglePickerService {
     }
 
     return false;
+  }
+
+  static String _generateCodeVerifier() {
+    final random = Random.secure();
+    final bytes = List<int>.generate(32, (_) => random.nextInt(256));
+    return base64UrlEncode(bytes).replaceAll('=', '');
+  }
+
+  static String _generateCodeChallenge(String codeVerifier) {
+    final digest = sha256.convert(utf8.encode(codeVerifier));
+    return base64UrlEncode(digest.bytes).replaceAll('=', '');
+  }
+
+  /// Exchanges the authorization code returned by the picker for an access
+  /// token using the iOS OAuth client (public client — no secret required).
+  static Future<String?> _exchangePickerCode(
+      String code, String codeVerifier) async {
+    final clientId = _clientId;
+    final scheme = _callbackScheme(clientId);
+    final redirectUri = '$scheme:/oauthredirect';
+
+    try {
+      final response = await http.post(
+        Uri.parse('https://oauth2.googleapis.com/token'),
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: {
+          'code': code,
+          'client_id': clientId,
+          'redirect_uri': redirectUri,
+          'grant_type': 'authorization_code',
+          'code_verifier': codeVerifier,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body) as Map<String, dynamic>;
+        final token = json['access_token'] as String?;
+        Logger.d('[Picker] Token exchange: '
+            'access_token ${token != null ? "present (length=${token.length})" : "MISSING"}');
+        return token;
+      } else {
+        Logger.e('[Picker] Token exchange failed: '
+            '${response.statusCode} ${response.body}');
+        return null;
+      }
+    } catch (e) {
+      Logger.e('[Picker] Token exchange error: $e');
+      return null;
+    }
   }
 }
