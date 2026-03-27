@@ -27,25 +27,24 @@ class LoadResultsWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 16),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // DeviceConnectionWidget does not depend on controller state changes;
-          // keep it outside the AnimatedBuilder to avoid unnecessary rebuilds.
-          DeviceConnectionWidget(
-            devices: controller.devices,
-            callback: () => controller.processReceivedData(context),
-            inSheet: closeWhenDone,
-          ),
+      child: AnimatedBuilder(
+        animation: controller,
+        builder: (context, _) {
+          return Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Read devices inside the builder so resetDevices() reassignments
+              // are never stale.
+              DeviceConnectionWidget(
+                devices: controller.devices,
+                callback: () => controller.processReceivedData(context),
+                inSheet: closeWhenDone,
+              ),
 
-          const SizedBox(height: 24),
+              const SizedBox(height: 24),
 
-          // Only the state-dependent section rebuilds on controller changes.
-          AnimatedBuilder(
-            animation: controller,
-            builder: (context, _) {
-              return Column(
+              Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   // Display conflicts or success message
@@ -78,10 +77,10 @@ class LoadResultsWidget extends StatelessWidget {
                   else
                     const SizedBox.shrink(),
                 ],
-              );
-            },
-          ),
-        ],
+              ),
+            ],
+          );
+        },
       ),
     );
   }

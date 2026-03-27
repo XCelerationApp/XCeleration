@@ -362,7 +362,7 @@ class _SignInHeader extends StatelessWidget {
 
 // ─── Form body ────────────────────────────────────────────────────────────────
 
-class _FormBody extends StatelessWidget {
+class _FormBody extends StatefulWidget {
   const _FormBody({
     required this.isLogin,
     required this.emailController,
@@ -398,6 +398,22 @@ class _FormBody extends StatelessWidget {
   final VoidCallback? onSwitchMode;
 
   @override
+  State<_FormBody> createState() => _FormBodyState();
+}
+
+class _FormBodyState extends State<_FormBody> {
+  late final Listenable _buttonListenable;
+
+  @override
+  void initState() {
+    super.initState();
+    _buttonListenable = Listenable.merge([
+      widget.emailController,
+      widget.passwordController,
+    ]);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
@@ -410,29 +426,29 @@ class _FormBody extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _AuthTextField(
-            controller: emailController,
-            focusNode: emailFocus,
+            controller: widget.emailController,
+            focusNode: widget.emailFocus,
             label: 'Email',
-            error: emailError,
+            error: widget.emailError,
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
-            onChanged: onEmailChanged,
-            onSubmitted: (_) => passwordFocus.requestFocus(),
-            disabled: busy,
+            onChanged: widget.onEmailChanged,
+            onSubmitted: (_) => widget.passwordFocus.requestFocus(),
+            disabled: widget.busy,
           ),
           const SizedBox(height: AppSpacing.lg),
           _AuthTextField(
-            controller: passwordController,
-            focusNode: passwordFocus,
+            controller: widget.passwordController,
+            focusNode: widget.passwordFocus,
             label: 'Password',
-            error: passwordError,
-            obscureText: obscure,
+            error: widget.passwordError,
+            obscureText: widget.obscure,
             textInputAction: TextInputAction.done,
-            onChanged: onPasswordChanged,
-            onSubmitted: (_) => onSubmit?.call(),
-            disabled: busy,
+            onChanged: widget.onPasswordChanged,
+            onSubmitted: (_) => widget.onSubmit?.call(),
+            disabled: widget.busy,
             suffix: TextButton(
-              onPressed: onToggleObscure,
+              onPressed: widget.onToggleObscure,
               style: TextButton.styleFrom(
                 padding: const EdgeInsets.symmetric(
                     horizontal: AppSpacing.md),
@@ -440,18 +456,18 @@ class _FormBody extends StatelessWidget {
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
               child: Text(
-                obscure ? 'Show' : 'Hide',
+                widget.obscure ? 'Show' : 'Hide',
                 style: AppTypography.smallBodySemibold
                     .copyWith(color: AppColors.mediumColor),
               ),
             ),
           ),
-          if (isLogin) ...[
+          if (widget.isLogin) ...[
             const SizedBox(height: AppSpacing.sm),
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
-                onPressed: onForgotPassword,
+                onPressed: widget.onForgotPassword,
                 style: TextButton.styleFrom(
                   padding: EdgeInsets.zero,
                   foregroundColor: AppColors.primaryColor,
@@ -465,23 +481,23 @@ class _FormBody extends StatelessWidget {
               ),
             ),
           ],
-          SizedBox(height: isLogin ? AppSpacing.xl : AppSpacing.xxl),
+          SizedBox(height: widget.isLogin ? AppSpacing.xl : AppSpacing.xxl),
           ListenableBuilder(
-            listenable: Listenable.merge([emailController, passwordController]),
+            listenable: _buttonListenable,
             builder: (context, _) {
-              final canSubmit = emailController.text.trim().isNotEmpty &&
-                  passwordController.text.length >= 6 &&
-                  !busy;
+              final canSubmit = widget.emailController.text.trim().isNotEmpty &&
+                  widget.passwordController.text.length >= 6 &&
+                  !widget.busy;
               return _SubmitButton(
-                isLogin: isLogin,
+                isLogin: widget.isLogin,
                 canSubmit: canSubmit,
-                busy: busy,
-                onPressed: onSubmit,
+                busy: widget.busy,
+                onPressed: widget.onSubmit,
               );
             },
           ),
           const SizedBox(height: AppSpacing.xl),
-          _ModeToggle(isLogin: isLogin, onSwitch: onSwitchMode),
+          _ModeToggle(isLogin: widget.isLogin, onSwitch: widget.onSwitchMode),
         ],
       ),
     );

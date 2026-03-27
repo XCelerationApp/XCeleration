@@ -55,24 +55,25 @@ class RaceRepository implements IRaceRepository {
   Future<void> updateRace(Race race) async {
     if (race.raceId == null) throw Exception('Race id is required');
     if (!race.isValid) throw Exception('Race is not valid');
-    if (await getRace(race.raceId!) == null) {
-      throw Exception('Race with id ${race.raceId} not found');
-    }
     final db = await _db;
     final map = race.toMap();
     map['is_dirty'] = 1;
-    await db
+    final affectedRows = await db
         .update('races', map, where: 'race_id = ?', whereArgs: [race.raceId]);
+    if (affectedRows == 0) {
+      throw Exception('Race with id ${race.raceId} not found');
+    }
     _writeBus?.notify();
   }
 
   @override
   Future<void> deleteRace(int raceId) async {
-    if (await getRace(raceId) == null) {
+    final db = await _db;
+    final affectedRows =
+        await db.delete('races', where: 'race_id = ?', whereArgs: [raceId]);
+    if (affectedRows == 0) {
       throw Exception('Race with id $raceId not found');
     }
-    final db = await _db;
-    await db.delete('races', where: 'race_id = ?', whereArgs: [raceId]);
     _writeBus?.notify();
   }
 
@@ -132,9 +133,6 @@ class RaceRepository implements IRaceRepository {
 
   @override
   Future<List<Team>> getRaceTeams(int raceId) async {
-    if (await getRace(raceId) == null) {
-      throw Exception('Race with id $raceId not found');
-    }
     final db = await _db;
     final rows = await db.rawQuery('''
       SELECT t.*, rtp.team_color_override
@@ -260,6 +258,8 @@ class RaceRepository implements IRaceRepository {
     return rows.map((m) => RaceParticipant.fromMap(m)).toList();
   }
 
+  static const _allowedRunnerColumns = {'name', 'bib_number', 'grade'};
+
   @override
   Future<List<RaceParticipant>> searchRaceParticipants(int raceId, String query,
       [String searchParameter = 'all']) async {
@@ -274,9 +274,15 @@ class RaceRepository implements IRaceRepository {
     } else if (searchParameter == 'team_name') {
       whereClause = 'rp.race_id = ? AND t.name LIKE ?';
       whereArgs.add('%$query%');
-    } else {
+    } else if (_allowedRunnerColumns.contains(searchParameter)) {
       whereClause = 'rp.race_id = ? AND r.$searchParameter LIKE ?';
       whereArgs.add('%$query%');
+    } else {
+      throw ArgumentError.value(
+        searchParameter,
+        'searchParameter',
+        'Must be one of: all, team_name, ${_allowedRunnerColumns.join(', ')}',
+      );
     }
 
     final rows = await db.rawQuery('''
@@ -303,7 +309,21 @@ class RaceRepository implements IRaceRepository {
 
   @override
   Future<void> updateRaceFlowState(int raceId, String flowState) async {
-    await updateRace(Race(raceId: raceId, flowState: flowState));
+    final db = await _db;
+    final affectedRows = await db.update(
+      'races',
+      {
+        'flow_state': flowState,
+        'is_dirty': 1,
+        'updated_at': DateTime.now().toIso8601String(),
+      },
+      where: 'race_id = ?',
+      whereArgs: [raceId],
+    );
+    if (affectedRows == 0) {
+      throw Exception('Race with id $raceId not found');
+    }
+    _writeBus?.notify();
   }
 
   // ============================================================================

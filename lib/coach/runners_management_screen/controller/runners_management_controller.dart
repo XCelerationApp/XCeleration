@@ -12,7 +12,7 @@ import '../../../core/components/dialog_utils.dart';
 import '../../../core/components/runner_input_form.dart';
 import '../../../core/utils/file_processing.dart';
 import '../../../core/utils/sheet_utils.dart';
-import '../../../shared/models/database/master_race.dart';
+import '../../../shared/models/database/i_master_race_resolver.dart';
 import '../../../shared/models/database/runner.dart';
 import '../../../shared/models/database/team.dart';
 import '../../../core/components/create_team_sheet.dart';
@@ -32,8 +32,8 @@ class RunnersManagementController with ChangeNotifier {
   final bool isViewMode;
   bool showHeader = true;
 
-  // Use MasterRace for all data management
-  final MasterRace masterRace;
+  // Use IMasterRaceResolver for all data management
+  final IMasterRaceResolver masterRace;
 
   // Repository interfaces
   late final IRunnerRepository _runners;
@@ -61,10 +61,13 @@ class RunnersManagementController with ChangeNotifier {
     this.onContentChanged,
     this.isViewMode = false,
     Stream<SyncEvent>? syncStream,
+    IRunnerRepository? runners,
+    ITeamRepository? teams,
+    IRaceRepository? races,
   }) {
-    _runners = ServiceLocator.get<IRunnerRepository>();
-    _teams = ServiceLocator.get<ITeamRepository>();
-    _races = ServiceLocator.get<IRaceRepository>();
+    _runners = runners ?? ServiceLocator.get<IRunnerRepository>();
+    _teams = teams ?? ServiceLocator.get<ITeamRepository>();
+    _races = races ?? ServiceLocator.get<IRaceRepository>();
     // Create and store the listener function
     _masterRaceListener = () {
       // The listener's only job is to tell the UI to rebuild.
@@ -101,7 +104,7 @@ class RunnersManagementController with ChangeNotifier {
       }
 
       totalRunnerCount = raceRunners.length;
-      _updateFilteredRaceRunners();
+      await _updateFilteredRaceRunners();
       isLoading = false;
       notifyListeners();
       onContentChanged?.call();
@@ -120,7 +123,16 @@ class RunnersManagementController with ChangeNotifier {
   // SEARCH AND FILTERING
   // ============================================================================
 
-  void filterRaceRunners(String query) async {
+  Future<Map<Team, List<RaceRunner>>> get filteredSearchResults =>
+      masterRace.filteredSearchResults;
+
+  void setSearchAttribute(String value) {
+    searchAttribute = value;
+    notifyListeners();
+    filterRaceRunners(searchController.text.trim());
+  }
+
+  Future<void> filterRaceRunners(String query) async {
     final searchAttr = (() {
       switch (searchAttribute) {
         case 'All':
@@ -142,8 +154,8 @@ class RunnersManagementController with ChangeNotifier {
     notifyListeners();
   }
 
-  void _updateFilteredRaceRunners() async {
-    filterRaceRunners(searchController.text);
+  Future<void> _updateFilteredRaceRunners() async {
+    await filterRaceRunners(searchController.text);
   }
   // ============================================================================
   // RUNNER OPERATIONS
@@ -368,7 +380,7 @@ class RunnersManagementController with ChangeNotifier {
         runnerId: runnerId,
         teamId: newTeamId,
       ));
-    } else {}
+    }
   }
 
   // ============================================================================
@@ -893,10 +905,10 @@ class RunnersManagementController with ChangeNotifier {
       final raceRunners = await masterRace.raceRunners;
       totalRunnerCount = raceRunners.length;
 
-      // Update filtered results
-      _updateFilteredRaceRunners();
+      // Update filtered results and notify UI
+      await _updateFilteredRaceRunners();
+      notifyListeners();
 
-      // Notify UI
       onContentChanged?.call();
     } catch (e) {
       Logger.e('Error: $e');

@@ -10,6 +10,7 @@ import 'package:xceleration/shared/settings_screen.dart';
 import 'package:xceleration/core/services/tutorial_manager.dart';
 import 'package:xceleration/spectator/receive_race/screen/receive_race_screen.dart';
 import 'package:xceleration/core/utils/sheet_utils.dart';
+import 'package:xceleration/core/services/service_locator.dart';
 import 'package:xceleration/spectator/services/spectator_storage_service.dart';
 import 'package:xceleration/core/utils/race_share_decoder.dart';
 import 'package:xceleration/core/result.dart';
@@ -58,7 +59,7 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
 
   Future<void> _loadSavedRaces() async {
     try {
-      final races = await SpectatorStorageService.instance.getAllRaces();
+      final races = await ServiceLocator.get<SpectatorStorageService>().getAllRaces();
       if (mounted) {
         setState(() {
           _savedRaces = races;
@@ -77,7 +78,7 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
 
   Future<void> _viewRace(Map<String, dynamic> race) async {
     final raceId = race['id'] as int;
-    final fullRace = await SpectatorStorageService.instance.getRace(raceId);
+    final fullRace = await ServiceLocator.get<SpectatorStorageService>().getRace(raceId);
     final encodedPayload = fullRace?['encoded_payload'] as String?;
     if (encodedPayload == null) {
       if (mounted) {
@@ -89,6 +90,7 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
     final result =
         await compute(RaceShareDecoder.decodeWithRaw, encodedPayload);
 
+    if (!mounted) return;
     switch (result) {
       case Failure(:final error):
         Logger.e('[SpectatorRacesScreen._viewRace] ${error.originalException}');
@@ -117,7 +119,7 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
   Future<void> _shareRace(Map<String, dynamic> race) async {
     try {
       final raceId = race['id'] as int;
-      final fullRace = await SpectatorStorageService.instance.getRace(raceId);
+      final fullRace = await ServiceLocator.get<SpectatorStorageService>().getRace(raceId);
       final encodedPayload = fullRace?['encoded_payload'] as String?;
       if (encodedPayload == null) {
         if (mounted) {
@@ -191,7 +193,7 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
 
     if (confirmed == true) {
       try {
-        await SpectatorStorageService.instance.deleteRace(raceId);
+        await ServiceLocator.get<SpectatorStorageService>().deleteRace(raceId);
         _loadSavedRaces();
       } catch (e) {
         Logger.e('Failed to delete race: $e');

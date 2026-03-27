@@ -154,7 +154,7 @@ class _AnimatedListItemState extends State<_AnimatedListItem>
   late final AnimationController _controller;
   late final Animation<double> _opacity;
 
-  static const _revealMs = 350; // AppAnimations.reveal
+  static final _revealMs = AppAnimations.reveal.inMilliseconds;
   static const _staggerMs = 40;
 
   @override

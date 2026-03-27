@@ -12,17 +12,15 @@ class ShareRaceScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: controller,
-      builder: (context, _) => Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ShareFormatSelectionWidget(
-            controller: controller,
-          ),
-        ],
-      ),
+    // ShareRaceController never calls notifyListeners() — no listener needed.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ShareFormatSelectionWidget(
+          controller: controller,
+        ),
+      ],
     );
   }
 }

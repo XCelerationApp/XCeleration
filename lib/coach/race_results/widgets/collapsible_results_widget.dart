@@ -4,61 +4,49 @@ import '../model/results_record.dart';
 import '../model/team_record.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
 
-/// A widget that displays a collapsible list of race results
-/// Can handle both individual results (ResultsRecord) and team results (TeamRecord)
-class CollapsibleResultsWidget extends StatefulWidget {
-  final List<dynamic> results;
+/// A generic widget that displays a collapsible list of items.
+///
+/// Callers supply a typed [headerBuilder] and [rowBuilder].
+/// Use [CollapsibleIndividualResultsWidget] or [CollapsibleTeamResultsWidget]
+/// for the pre-built race-result variants.
+class CollapsibleResultsWidget<T> extends StatefulWidget {
+  final List<T> results;
   final int initialVisibleCount;
+  final Widget Function() headerBuilder;
+  final Widget Function(T) rowBuilder;
 
-  const CollapsibleResultsWidget(
-      {super.key, required this.results, this.initialVisibleCount = 5});
+  const CollapsibleResultsWidget({
+    super.key,
+    required this.results,
+    required this.headerBuilder,
+    required this.rowBuilder,
+    this.initialVisibleCount = 5,
+  });
 
   @override
-  State<CollapsibleResultsWidget> createState() =>
-      _CollapsibleResultsWidgetState();
+  State<CollapsibleResultsWidget<T>> createState() =>
+      _CollapsibleResultsWidgetState<T>();
 }
 
-class _CollapsibleResultsWidgetState extends State<CollapsibleResultsWidget> {
+class _CollapsibleResultsWidgetState<T>
+    extends State<CollapsibleResultsWidget<T>> {
   bool isExpanded = false;
-  late List<dynamic> displayResults;
-  static const int nameCharacterLimit = 18;
-
-  @override
-  void initState() {
-    super.initState();
-    _updateDisplayResults();
-  }
-
-  void _updateDisplayResults() {
-    displayResults = isExpanded
-        ? widget.results
-        : widget.results.take(widget.initialVisibleCount).toList();
-  }
 
   void toggleExpansion() {
     setState(() {
       isExpanded = !isExpanded;
-      _updateDisplayResults();
     });
-  }
-
-  /// Truncates a string to the specified character limit
-  String _truncateName(String name, {int limit = nameCharacterLimit}) {
-    if (name.length <= limit) {
-      return name;
-    }
-    return '${name.substring(0, limit)}...';
   }
 
   @override
   Widget build(BuildContext context) {
-    // Check if results list is empty
     if (widget.results.isEmpty) {
       return const Center(child: Text('No results to display'));
     }
 
-    // Determine the type of results we're displaying
-    bool isTeamResults = widget.results.first is TeamRecord;
+    final displayResults = isExpanded
+        ? widget.results
+        : widget.results.take(widget.initialVisibleCount).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -69,13 +57,8 @@ class _CollapsibleResultsWidgetState extends State<CollapsibleResultsWidget> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Display the appropriate header
-              isTeamResults
-                  ? _buildTeamResultsHeader()
-                  : _buildIndividualResultsHeader(),
-
+              widget.headerBuilder(),
               const SizedBox(height: 8),
-
               // Display results rows — inside a horizontal scroll view so a
               // vertical viewport (ListView) cannot be used here (unbounded
               // cross-axis width). Use a Column spread instead; the list is
@@ -90,9 +73,7 @@ class _CollapsibleResultsWidgetState extends State<CollapsibleResultsWidget> {
                 return Container(
                   color: backgroundColor,
                   padding: const EdgeInsets.symmetric(vertical: 6.0),
-                  child: isTeamResults
-                      ? _buildTeamResultRow(item as TeamRecord)
-                      : _buildIndividualResultRow(item as ResultsRecord),
+                  child: widget.rowBuilder(item),
                 );
               }),
             ],
@@ -120,8 +101,27 @@ class _CollapsibleResultsWidgetState extends State<CollapsibleResultsWidget> {
       ],
     );
   }
+}
 
-  Widget _buildIndividualResultsHeader() {
+/// Pre-built [CollapsibleResultsWidget] variant for individual race results.
+class CollapsibleIndividualResultsWidget extends StatelessWidget {
+  final List<ResultsRecord> results;
+  final int initialVisibleCount;
+
+  const CollapsibleIndividualResultsWidget({
+    super.key,
+    required this.results,
+    this.initialVisibleCount = 5,
+  });
+
+  static const int _nameCharacterLimit = 18;
+
+  static String _truncateName(String name, {int limit = _nameCharacterLimit}) {
+    if (name.length <= limit) return name;
+    return '${name.substring(0, limit)}...';
+  }
+
+  static Widget _buildHeader() {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
       child: Row(
@@ -146,29 +146,7 @@ class _CollapsibleResultsWidgetState extends State<CollapsibleResultsWidget> {
     );
   }
 
-  Widget _buildTeamResultsHeader() {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
-      child: Row(
-        children: [
-          SizedBox(
-              width: 60,
-              child: Text('Place', style: AppTypography.bodySemibold)),
-          SizedBox(
-              width: 70,
-              child: Text('Team', style: AppTypography.bodySemibold)),
-          SizedBox(
-              width: 150,
-              child: Text('Scorers', style: AppTypography.bodySemibold)),
-          SizedBox(
-              width: 50,
-              child: Text('Score', style: AppTypography.bodySemibold)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildIndividualResultRow(ResultsRecord result) {
+  static Widget _buildRow(ResultsRecord result) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -207,8 +185,51 @@ class _CollapsibleResultsWidgetState extends State<CollapsibleResultsWidget> {
     );
   }
 
-  Widget _buildTeamResultRow(TeamRecord team) {
-    // Format the scorer places as a string (e.g., "1, 4, 7, 12, 15")
+  @override
+  Widget build(BuildContext context) {
+    return CollapsibleResultsWidget<ResultsRecord>(
+      results: results,
+      initialVisibleCount: initialVisibleCount,
+      headerBuilder: _buildHeader,
+      rowBuilder: _buildRow,
+    );
+  }
+}
+
+/// Pre-built [CollapsibleResultsWidget] variant for team race results.
+class CollapsibleTeamResultsWidget extends StatelessWidget {
+  final List<TeamRecord> results;
+  final int initialVisibleCount;
+
+  const CollapsibleTeamResultsWidget({
+    super.key,
+    required this.results,
+    this.initialVisibleCount = 5,
+  });
+
+  static Widget _buildHeader() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        children: [
+          SizedBox(
+              width: 60,
+              child: Text('Place', style: AppTypography.bodySemibold)),
+          SizedBox(
+              width: 70,
+              child: Text('Team', style: AppTypography.bodySemibold)),
+          SizedBox(
+              width: 150,
+              child: Text('Scorers', style: AppTypography.bodySemibold)),
+          SizedBox(
+              width: 50,
+              child: Text('Score', style: AppTypography.bodySemibold)),
+        ],
+      ),
+    );
+  }
+
+  static Widget _buildRow(TeamRecord team) {
     final scorerPlaces = team.scorers.isNotEmpty
         ? [
             ...team.scorers.map((scorer) => scorer.place.toString()),
@@ -216,6 +237,10 @@ class _CollapsibleResultsWidgetState extends State<CollapsibleResultsWidget> {
               '(${team.topSeven.sublist(5, team.topSeven.length).map((runner) => runner.place.toString()).join(', ')})'
           ].join(', ')
         : 'N/A';
+
+    final abbrev = team.team.abbreviation ?? 'N/A';
+    final truncatedAbbrev =
+        abbrev.length <= 15 ? abbrev : '${abbrev.substring(0, 15)}...';
 
     return Row(
       children: [
@@ -226,8 +251,7 @@ class _CollapsibleResultsWidgetState extends State<CollapsibleResultsWidget> {
         ),
         SizedBox(
           width: 70,
-          child: Text(_truncateName(team.team.abbreviation ?? 'N/A', limit: 15),
-              style: AppTypography.bodyRegular),
+          child: Text(truncatedAbbrev, style: AppTypography.bodyRegular),
         ),
         SizedBox(
           width: 150,
@@ -239,6 +263,16 @@ class _CollapsibleResultsWidgetState extends State<CollapsibleResultsWidget> {
               style: AppTypography.bodyRegular),
         ),
       ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return CollapsibleResultsWidget<TeamRecord>(
+      results: results,
+      initialVisibleCount: initialVisibleCount,
+      headerBuilder: _buildHeader,
+      rowBuilder: _buildRow,
     );
   }
 }
