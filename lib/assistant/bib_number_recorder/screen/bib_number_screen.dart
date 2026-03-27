@@ -192,6 +192,9 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                             ? () =>
                                 _controller.showRunnersLoadedSheet(context)
                             : null,
+                        onDownloadRace: currentRace != null
+                            ? () => _controller.downloadRace(context)
+                            : null,
                       ),
                     ),
                   ),
