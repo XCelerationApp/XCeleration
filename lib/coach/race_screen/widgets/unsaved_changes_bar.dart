@@ -40,7 +40,8 @@ class UnsavedChangesBar extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Divider(height: 1, thickness: 1, color: AppColors.lightColor),
+          if (showSaveRow)
+            const Divider(height: 1, thickness: 1, color: AppColors.lightColor),
           Padding(
             padding: const EdgeInsets.fromLTRB(
                 AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.lg),
