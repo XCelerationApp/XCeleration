@@ -1121,5 +1121,124 @@ void main() {
         await secondController.close();
       });
     });
+
+    group('_loadBibRecords populates position map (XCE-523)', () {
+      MockIAssistantStorageService makeStorage(List<BibRecord> records) {
+        final s = MockIAssistantStorageService();
+        when(s.getRaces(any))
+            .thenAnswer((_) async => const Success<List<RaceRecord>>([]));
+        when(s.getRunners(any))
+            .thenAnswer((_) async => const Success<List<Runner>>([]));
+        when(s.getBibRecords(any))
+            .thenAnswer((_) async => Success<List<BibRecord>>(records));
+        when(s.addBibRecord(any, any, any))
+            .thenAnswer((_) async => const Success(null));
+        return s;
+      }
+
+      RaceRecord makeRace() => RaceRecord(
+            raceId: 1,
+            date: DateTime(2026),
+            name: 'Test Race',
+            type: 'bibRecorderV2',
+          );
+
+      test('Fixer correction for pre-loaded entry is applied correctly', () async {
+        final records = [
+          BibRecord(raceId: 1, bibId: 1001, bibNumber: '101', createdAt: DateTime(2026)),
+          BibRecord(raceId: 1, bibId: 1002, bibNumber: '102', createdAt: DateTime(2026)),
+        ];
+        final controller = BibRecorderV2Controller(
+          storage: makeStorage(records),
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+        );
+        controller.attachSession(mockSession);
+        controller.selectRace(makeRace());
+        await Future.microtask(() {});
+
+        // Position 1 corresponds to the first loaded entry (bibId 1001).
+        incomingController.add((
+          Role.fixer,
+          MessageEnvelope.wrapFixerCorrection(const FixerCorrectionMessage(
+            finishPosition: 1,
+            originalBib: 101,
+            correctedBib: 114,
+            correctionType: CorrectionType.bibCorrected,
+          )),
+        ));
+        await Future.microtask(() {});
+
+        final entry = controller.entries.firstWhere((e) => e.id == 1001);
+        expect(entry.correctedTo, 114);
+      });
+
+      test('new bibs after resume continue positions from loaded count', () async {
+        final records = [
+          BibRecord(raceId: 1, bibId: 2001, bibNumber: '50', createdAt: DateTime(2026)),
+          BibRecord(raceId: 1, bibId: 2002, bibNumber: '51', createdAt: DateTime(2026)),
+        ];
+        final controller = BibRecorderV2Controller(
+          storage: makeStorage(records),
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+          session: mockSession,
+        );
+        controller.selectRace(makeRace());
+        await Future.microtask(() {});
+
+        // 2 loaded entries → _nextPosition == 2. New bib gets position 3.
+        controller.addBib(99);
+
+        final captured =
+            verify(mockSession.sendMessage(Role.verifier, captureAny)).captured;
+        final msg = (captured.last as MessageEnvelope).decode() as BibEntryMessage;
+        expect(msg.finishPosition, 3);
+      });
+    });
+
+    group('incoming FixerCorrectionMessage — newRunner handling (XCE-525)', () {
+      test('sets isNewRunner on entry when correctedBib is null and type is newRunner', () async {
+        final controller = await makeInitializedController();
+        controller.addBib(177); // position 1
+
+        incomingController.add((
+          Role.fixer,
+          MessageEnvelope.wrapFixerCorrection(
+            const FixerCorrectionMessage(
+              finishPosition: 1,
+              originalBib: 177,
+              correctedBib: null,
+              correctionType: CorrectionType.newRunner,
+            ),
+          ),
+        ));
+        await Future.microtask(() {});
+
+        expect(controller.entries.first.isNewRunner, isTrue);
+        expect(controller.entries.first.correctedTo, isNull);
+      });
+
+      test('flagFor returns null for isNewRunner entry (no longer flagged)', () async {
+        final controller = await makeInitializedController();
+        controller.addBib(177); // position 1
+
+        incomingController.add((
+          Role.fixer,
+          MessageEnvelope.wrapFixerCorrection(
+            const FixerCorrectionMessage(
+              finishPosition: 1,
+              originalBib: 177,
+              correctedBib: null,
+              correctionType: CorrectionType.newRunner,
+            ),
+          ),
+        ));
+        await Future.microtask(() {});
+
+        final entry = controller.entries.first;
+        expect(controller.flagFor(entry.bib, excludeId: entry.id), isNull);
+      });
+    });
   });
 }

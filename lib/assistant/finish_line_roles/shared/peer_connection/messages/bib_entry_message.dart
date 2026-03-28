@@ -21,6 +21,7 @@ class BibEntryMessage {
     required this.bib,
     required this.status,
     required this.timestamp,
+    this.entryId,
     this.runnerName,
     this.teamAbbreviation,
     this.teamColor,
@@ -30,6 +31,10 @@ class BibEntryMessage {
   final int bib;
   final BibEntryStatus status;
   final DateTime timestamp;
+
+  /// The BibRecorder's local DB entry ID (e.g. DateTime.now().millisecondsSinceEpoch).
+  /// Null when receiving messages from older clients that don't include it.
+  final int? entryId;
 
   /// Runner's display name, or null if bib is unmatched.
   final String? runnerName;
@@ -46,6 +51,7 @@ class BibEntryMessage {
         'bib': bib,
         'status': status.wireValue,
         'timestamp': timestamp.toUtc().toIso8601String(),
+        if (entryId != null) 'entry_id': entryId,
         if (runnerName != null) 'runner_name': runnerName,
         if (teamAbbreviation != null) 'team_abbreviation': teamAbbreviation,
         if (teamColor != null) 'team_color': teamColor,
@@ -57,6 +63,7 @@ class BibEntryMessage {
         bib: json['bib'] as int,
         status: BibEntryStatus.fromWireValue(json['status'] as String),
         timestamp: DateTime.parse(json['timestamp'] as String),
+        entryId: json['entry_id'] as int?,
         runnerName: json['runner_name'] as String?,
         teamAbbreviation: json['team_abbreviation'] as String?,
         teamColor: json['team_color'] as int?,
