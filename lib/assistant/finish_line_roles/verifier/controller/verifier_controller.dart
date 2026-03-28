@@ -118,6 +118,7 @@ class VerifierController extends ChangeNotifier {
     if (saveResult case Failure(:final error)) {
       Logger.e(
           '[VerifierController.processLoadedRaceData] ${error.originalException}');
+      await _loadRaces();
       return Failure(error);
     }
 

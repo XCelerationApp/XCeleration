@@ -112,7 +112,7 @@ class BibRecorderV2Controller extends ChangeNotifier {
   }
 
   Future<void> _loadRaces() async {
-    final result = await _storage.getRaces(DeviceName.bibRecorder.toString());
+    final result = await _storage.getRaces(DeviceName.bibRecorderV2.toString());
     switch (result) {
       case Success(:final value):
         _races = value;
@@ -449,6 +449,7 @@ class BibRecorderV2Controller extends ChangeNotifier {
     if (saveResult case Failure(:final error)) {
       Logger.e(
           '[BibRecorderV2Controller.processLoadedRaceData] ${error.originalException}');
+      await _loadRaces();
       return Failure(error);
     }
 
