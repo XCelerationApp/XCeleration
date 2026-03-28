@@ -131,6 +131,16 @@ class MockFixerController extends _i1.Mock implements _i2.FixerController {
       );
 
   @override
+  _i7.Future<void> deleteRaceFromLobby(int? raceId) => (super.noSuchMethod(
+        Invocation.method(
+          #deleteRaceFromLobby,
+          [raceId],
+        ),
+        returnValue: _i7.Future<void>.value(),
+        returnValueForMissingStub: _i7.Future<void>.value(),
+      ) as _i7.Future<void>);
+
+  @override
   void search(String? query) => super.noSuchMethod(
         Invocation.method(
           #search,

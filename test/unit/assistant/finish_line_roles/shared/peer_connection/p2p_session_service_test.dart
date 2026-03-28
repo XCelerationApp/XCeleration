@@ -76,14 +76,14 @@ void main() {
   /// Simulates a peer device connecting and entering the [connected] state.
   Future<void> connectVerifier() async {
     await capturedStateCallback([
-      Device('verifier-device-id', 'xce-verifier', 2 /* SessionState.connected */),
+      Device('verifier-device-id', 'xce|VFR|42|test-phone', 2 /* SessionState.connected */),
     ]);
   }
 
   /// Simulates the verifier disconnecting (notConnected state).
   Future<void> disconnectVerifier() async {
     await capturedStateCallback([
-      Device('verifier-device-id', 'xce-verifier', 0 /* SessionState.notConnected */),
+      Device('verifier-device-id', 'xce|VFR|42|test-phone', 0 /* SessionState.notConnected */),
     ]);
   }
 
@@ -472,12 +472,12 @@ void main() {
   group('peer discovery', () {
     test('invites peer when it is found but not yet connected', () async {
       await capturedStateCallback([
-        Device('verifier-device-id', 'xce-verifier', 0 /* SessionState.notConnected */),
+        Device('verifier-device-id', 'xce|VFR|42|test-phone', 0 /* SessionState.notConnected */),
       ]);
 
       verify(mockNearby.invitePeer(
         deviceID: 'verifier-device-id',
-        deviceName: 'xce-verifier',
+        deviceName: 'xce|VFR|42|test-phone',
       )).called(1);
     });
 
@@ -502,12 +502,24 @@ void main() {
     test('ignores devices with the same role as localRole', () async {
       // Another bibRecorderV2 device should not be invited or tracked.
       await capturedStateCallback([
-        Device('other-recorder-id', 'xce-bibRecorderV2',
+        Device('other-recorder-id', 'xce|BIB|42|other-phone',
             0 /* SessionState.notConnected */),
       ]);
 
       verifyNever(mockNearby.invitePeer(
         deviceID: 'other-recorder-id',
+        deviceName: anyNamed('deviceName'),
+      ));
+    });
+
+    test('ignores devices from a different race ID', () async {
+      // raceId 99 ≠ 42 (the service's raceId) — must not be invited or tracked.
+      await capturedStateCallback([
+        Device('other-race-id', 'xce|VFR|99|test-phone', 0 /* SessionState.notConnected */),
+      ]);
+
+      verifyNever(mockNearby.invitePeer(
+        deviceID: 'other-race-id',
         deviceName: anyNamed('deviceName'),
       ));
     });
@@ -522,6 +534,77 @@ void main() {
       final envelope = MessageEnvelope.wrapBibEntry(makeEntry());
       await service.sendMessage(Role.verifier, envelope);
       verifyNever(mockNearby.sendMessage(any, any));
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // peerStateEvents
+  // ---------------------------------------------------------------------------
+
+  group('peerStateEvents', () {
+    test('emits connected event when peer connects', () async {
+      final events = <PeerStateEvent>[];
+      final sub = service.peerStateEvents.listen(events.add);
+
+      await connectVerifier();
+
+      expect(events.length, 1);
+      expect(events.first.role, Role.verifier);
+      expect(events.first.state, SessionState.connected);
+      expect(events.first.deviceName, 'test-phone');
+      await sub.cancel();
+    });
+
+    test('emits notConnected event when peer disconnects', () async {
+      await connectVerifier();
+
+      final events = <PeerStateEvent>[];
+      final sub = service.peerStateEvents.listen(events.add);
+
+      await disconnectVerifier();
+
+      expect(events.length, 1);
+      expect(events.first.role, Role.verifier);
+      expect(events.first.state, SessionState.notConnected);
+      await sub.cancel();
+    });
+
+    test('emits connecting event for connecting state', () async {
+      final events = <PeerStateEvent>[];
+      final sub = service.peerStateEvents.listen(events.add);
+
+      await capturedStateCallback([
+        Device('verifier-device-id', 'xce|VFR|42|test-phone', 1 /* SessionState.connecting */),
+      ]);
+
+      expect(events.length, 1);
+      expect(events.first.role, Role.verifier);
+      expect(events.first.state, SessionState.connecting);
+      await sub.cancel();
+    });
+
+    test('does not emit events for unrecognised device names', () async {
+      final events = <PeerStateEvent>[];
+      final sub = service.peerStateEvents.listen(events.add);
+
+      await capturedStateCallback([
+        Device('rogue-id', 'SomeOtherApp', 2 /* connected */),
+      ]);
+
+      expect(events, isEmpty);
+      await sub.cancel();
+    });
+
+    test('does not emit events for different race IDs', () async {
+      final events = <PeerStateEvent>[];
+      final sub = service.peerStateEvents.listen(events.add);
+
+      await capturedStateCallback([
+        Device('other-race-id', 'xce|VFR|99|test-phone', 2 /* connected */),
+      ]);
+
+      expect(events, isEmpty);
+      await sub.cancel();
     });
   });
 
@@ -543,7 +626,7 @@ void main() {
     test('disconnects all connected peers on dispose', () async {
       await connectVerifier();
       await capturedStateCallback([
-        Device('fixer-device-id', 'xce-fixer', 2 /* SessionState.connected */),
+        Device('fixer-device-id', 'xce|FIX|42|test-phone', 2 /* SessionState.connected */),
       ]);
 
       await service.dispose();

@@ -3,15 +3,27 @@ import 'dart:convert';
 
 import 'package:flutter_nearby_connections/flutter_nearby_connections.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/messages/messages.dart';
+import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/xce_peer_name.dart';
 import 'package:xceleration/core/utils/connection_interfaces.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/shared/role_bar/models/role_enums.dart';
 
-/// Prefix embedded in each device's advertised name so peers can identify
-/// each other's [Role] without a secondary handshake.
+/// A connection state transition for a single peer, emitted by [P2PSessionService].
 ///
-/// Format: `xce-<roleName>` e.g. `xce-bibRecorderV2`
-const _kDeviceNamePrefix = 'xce-';
+/// [role] identifies the peer. [state] is the raw Nearby Connections session
+/// state. [deviceName] is the human-readable hostname from the structured
+/// advertised name (`xce|ROLE|RACE|HOSTNAME`).
+class PeerStateEvent {
+  const PeerStateEvent({
+    required this.role,
+    required this.state,
+    required this.deviceName,
+  });
+
+  final Role role;
+  final SessionState state;
+  final String deviceName;
+}
 
 /// Maximum number of messages buffered per peer while they are offline.
 /// When this cap is reached the oldest message is evicted to make room.
@@ -21,10 +33,10 @@ const int _kQueueCap = 500;
 /// send/receive for the three finish-line roles.
 ///
 /// Responsibilities:
-/// - Initialises a single Nearby Connections instance scoped to the race via
-///   `serviceType = 'xce-race-<raceId>'`.
-/// - Advertises the local device's role via a name prefix so peers can
-///   identify each other.
+/// - Initialises a single Nearby Connections instance using the fixed service
+///   type `xce-finline` (declared in iOS Info.plist) and the structured device
+///   name `xce|ROLE|RACE_ID|HOSTNAME` so peers can identify each other and
+///   filter by race without a secondary handshake.
 /// - Keeps `Role → deviceId` and `deviceId → Role` maps up-to-date as
 ///   devices connect and disconnect.
 /// - Exposes [sendMessage] for typed outbound messages and [incomingMessages]
@@ -37,6 +49,8 @@ const int _kQueueCap = 500;
 ///   number and sends a lightweight ACK after each processed message.
 /// - Drops messages from unrecognised device IDs silently (defence against
 ///   misconfigured devices).
+/// - Emits [peerStateEvents] so subscribers (e.g. [PeerDiscoveryNotifier])
+///   can derive UI connection state without running a second NC session.
 class P2PSessionService {
   P2PSessionService({
     required this.localRole,
@@ -67,6 +81,11 @@ class P2PSessionService {
   final StreamController<(Role, MessageEnvelope)> _incomingController =
       StreamController.broadcast();
 
+  // sync: true so that add() delivers events synchronously to listeners,
+  // ensuring PeerDiscoveryNotifier sees state changes immediately.
+  final StreamController<PeerStateEvent> _peerEventsController =
+      StreamController.broadcast(sync: true);
+
   StreamSubscription<dynamic>? _stateSubscription;
   StreamSubscription<dynamic>? _dataSubscription;
 
@@ -82,14 +101,26 @@ class P2PSessionService {
   Stream<(Role, MessageEnvelope)> get incomingMessages =>
       _incomingController.stream;
 
+  /// Stream of raw peer connection state changes.
+  ///
+  /// Emitted for every [SessionState] transition on a peer whose device name
+  /// matches the XCeleration format and shares the same [raceId]. Subscribers
+  /// such as [PeerDiscoveryNotifier] use this to derive UI connection state
+  /// without running a second Nearby Connections session.
+  Stream<PeerStateEvent> get peerStateEvents => _peerEventsController.stream;
+
   /// Initialises Nearby Connections, starts advertising and browsing, and
   /// wires up state-change and data-received subscriptions.
+  ///
+  /// Uses the fixed service type `xce-finline` (declared in iOS Info.plist)
+  /// and the structured device name `xce|ROLE|RACE_ID|HOSTNAME` so that all
+  /// finish-line roles share one NC session per race.
   ///
   /// Must be called once before [sendMessage] or [incomingMessages].
   Future<void> init() async {
     await _nearbyConnections.init(
-      serviceType: 'xce-race-$raceId',
-      deviceName: '$_kDeviceNamePrefix${localRole.name}',
+      serviceType: kXceServiceType,
+      deviceName: buildXceAdvertisedName(localRole, raceId),
       strategy: Strategy.P2P_CLUSTER,
       callback: (isRunning) async {
         if (isRunning != true) return;
@@ -148,7 +179,7 @@ class P2PSessionService {
   /// peer-status strip.
   int pendingCount(Role peer) => _outboundQueues[peer]?.length ?? 0;
 
-  /// Stops advertising/browsing, cancels subscriptions, and closes the stream.
+  /// Stops advertising/browsing, cancels subscriptions, and closes the streams.
   Future<void> dispose() async {
     await _stateSubscription?.cancel();
     await _dataSubscription?.cancel();
@@ -167,6 +198,9 @@ class P2PSessionService {
     if (!_incomingController.isClosed) {
       await _incomingController.close();
     }
+    if (!_peerEventsController.isClosed) {
+      await _peerEventsController.close();
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -175,13 +209,20 @@ class P2PSessionService {
 
   Future<void> _onDevicesChanged(List<Device> devices) async {
     for (final device in devices) {
-      final role = _roleFromDeviceName(device.deviceName);
-      if (role == null || role == localRole) continue;
+      final parsed = parseXceDeviceName(device.deviceName);
+      if (parsed == null) continue;
+      final (role, peerRaceId, humanName) = parsed;
+      if (peerRaceId != raceId) continue;
+      if (role == localRole) continue;
 
       switch (device.state) {
         case SessionState.connected:
           _deviceIdToRole[device.deviceId] = role;
           _roleToDeviceId[role] = device.deviceId;
+          _peerEventsController.add(
+            PeerStateEvent(
+                role: role, state: SessionState.connected, deviceName: humanName),
+          );
           await _flushQueue(role);
         case SessionState.notConnected:
           // Re-queue any un-ACKed messages before the device goes offline so
@@ -197,12 +238,22 @@ class P2PSessionService {
             Logger.e(
                 '[P2PSessionService] invitePeer(${device.deviceId}) failed: $e');
           }
+          _peerEventsController.add(
+            PeerStateEvent(
+                role: role,
+                state: SessionState.notConnected,
+                deviceName: humanName),
+          );
           // Clean up maps in case this device was previously connected.
           _deviceIdToRole.remove(device.deviceId);
           _roleToDeviceId.remove(role);
         case SessionState.connecting:
-          // Transitioning — wait for connected or notConnected.
-          break;
+          _peerEventsController.add(
+            PeerStateEvent(
+                role: role,
+                state: SessionState.connecting,
+                deviceName: humanName),
+          );
       }
     }
   }
@@ -289,21 +340,6 @@ class P2PSessionService {
       ...sorted.map((e) => e.value),
       ...existing,
     ];
-  }
-
-  /// Extracts a [Role] from a device name formatted as `xce-<roleName>`.
-  ///
-  /// Returns `null` for device names that don't follow this format (e.g.
-  /// devices from other apps or misconfigured peers).
-  static Role? _roleFromDeviceName(String deviceName) {
-    if (!deviceName.startsWith(_kDeviceNamePrefix)) return null;
-    final roleName = deviceName.substring(_kDeviceNamePrefix.length);
-    return switch (roleName) {
-      'bibRecorderV2' => Role.bibRecorderV2,
-      'verifier' => Role.verifier,
-      'fixer' => Role.fixer,
-      _ => null,
-    };
   }
 }
 

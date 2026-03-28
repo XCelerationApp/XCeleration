@@ -78,7 +78,8 @@ class _BibRecorderV2ScreenState extends State<BibRecorderV2Screen> {
       final notifier = PeerDiscoveryNotifier(
         role: Role.bibRecorderV2,
         raceId: race.raceId,
-      )..startDiscovery();
+        session: session,
+      );
       setState(() {
         _connecting = true;
         _peerNotifier = notifier;
