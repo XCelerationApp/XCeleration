@@ -9,6 +9,7 @@ import 'package:xceleration/assistant/shared/models/runner.dart';
 import 'package:xceleration/assistant/shared/services/i_assistant_storage_service.dart';
 import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/result.dart';
+import 'package:xceleration/core/services/haptic_feedback_service.dart';
 import 'package:xceleration/core/utils/decode_utils.dart';
 import 'package:xceleration/core/utils/enums.dart';
 import 'package:xceleration/core/utils/logger.dart';
@@ -24,11 +25,14 @@ class VerifierController extends ChangeNotifier {
   VerifierController({
     P2PSessionService? session,
     IAssistantStorageService? storage,
+    IHapticFeedback? haptic,
   })  : _session = session,
-        _storage = storage;
+        _storage = storage,
+        _haptic = haptic ?? HapticFeedbackService();
 
   P2PSessionService? _session;
   final IAssistantStorageService? _storage;
+  final IHapticFeedback _haptic;
 
   final List<VerifierEntry> _entries = [];
   final List<VerifierEntry> _history = [];
@@ -150,10 +154,14 @@ class VerifierController extends ChangeNotifier {
   // ── Actions ───────────────────────────────────────────────────────────────
 
   /// ✓ — runner confirmed; name matches bib.
-  void verify(int id) => _act(id, VerificationStatus.verified);
+  void verify(int id) {
+    unawaited(_haptic.lightImpact());
+    _act(id, VerificationStatus.verified);
+  }
 
   /// ✗ — runner could not be confirmed; escalate to Fixer.
   void flag(int id) {
+    unawaited(_haptic.vibrate());
     final idx = _entries.indexWhere((e) => e.id == id);
     _act(id, VerificationStatus.flagged);
     if (_session != null && idx != -1) {
@@ -179,7 +187,10 @@ class VerifierController extends ChangeNotifier {
   }
 
   /// — — skip / defer.
-  void skip(int id) => _act(id, VerificationStatus.skipped);
+  void skip(int id) {
+    unawaited(_haptic.lightImpact());
+    _act(id, VerificationStatus.skipped);
+  }
 
   /// Cancel the commit timer and revert the entry to pending.
   void undo(int id) {

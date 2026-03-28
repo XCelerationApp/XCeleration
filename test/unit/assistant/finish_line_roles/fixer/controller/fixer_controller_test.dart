@@ -14,11 +14,12 @@ import 'package:xceleration/assistant/shared/models/runner.dart';
 import 'package:xceleration/assistant/shared/services/i_assistant_storage_service.dart';
 import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/result.dart';
+import 'package:xceleration/core/services/haptic_feedback_service.dart';
 import 'package:xceleration/shared/role_bar/models/role_enums.dart';
 
 import 'fixer_controller_test.mocks.dart';
 
-@GenerateMocks([P2PSessionService, IBibCorrectionChannel, IAssistantStorageService])
+@GenerateMocks([P2PSessionService, IBibCorrectionChannel, IAssistantStorageService, IHapticFeedback])
 void main() {
   setUpAll(() {
     provideDummy<Result<void>>(Failure<void>(const AppError(userMessage: '')));
@@ -29,17 +30,21 @@ void main() {
 
   late MockP2PSessionService mockSession;
   late MockIAssistantStorageService mockStorage;
+  late MockIHapticFeedback mockHaptic;
   late StreamController<(Role, MessageEnvelope)> incomingController;
 
   setUp(() {
     mockSession = MockP2PSessionService();
     mockStorage = MockIAssistantStorageService();
+    mockHaptic = MockIHapticFeedback();
     incomingController =
         StreamController<(Role, MessageEnvelope)>.broadcast();
 
     when(mockSession.incomingMessages)
         .thenAnswer((_) => incomingController.stream);
     when(mockSession.sendMessage(any, any)).thenAnswer((_) => Future.value());
+    when(mockHaptic.vibrate()).thenAnswer((_) async {});
+    when(mockHaptic.lightImpact()).thenAnswer((_) async {});
     when(mockStorage.getRaces(any))
         .thenAnswer((_) async => const Success<List<RaceRecord>>([]));
     when(mockStorage.getRunners(any))
@@ -58,6 +63,7 @@ void main() {
     P2PSessionService? session,
     IBibCorrectionChannel? correctionChannel,
     IAssistantStorageService? storage,
+    IHapticFeedback? haptic,
     int raceId = 1,
   }) =>
       FixerController(
@@ -65,6 +71,7 @@ void main() {
         raceId: raceId,
         session: session,
         correctionChannel: correctionChannel,
+        haptic: haptic ?? mockHaptic,
       );
 
   group('FixerController', () {
@@ -288,11 +295,88 @@ void main() {
         expect(msg.correctedBib, 199);
       });
 
+      test('sends FixerCorrectionMessage with null correctedBib when newBib is null', () async {
+        final controller = makeController(session: mockSession);
+        controller.initialize();
+
+        incomingController.add((
+          Role.verifier,
+          MessageEnvelope.wrapVerifierFlag(VerifierFlagMessage(
+            entry: BibEntryMessage(
+              finishPosition: 5,
+              bib: 177,
+              status: BibEntryStatus.unknown,
+              timestamp: DateTime.now(),
+            ),
+            reason: FlagReason.unknown,
+          )),
+        ));
+        await Future.microtask(() {});
+
+        controller.resolveAsNewRunner(5);
+
+        final captured =
+            verify(mockSession.sendMessage(Role.bibRecorderV2, captureAny))
+                .captured;
+        final msg =
+            (captured.last as MessageEnvelope).decode() as FixerCorrectionMessage;
+        expect(msg.correctionType, CorrectionType.newRunner);
+        expect(msg.correctedBib, isNull);
+        expect(msg.originalBib, 177);
+      });
+
       test('does not send message when no session is set', () async {
         final controller = makeController();
         await controller.joinRace();
 
         verifyNever(mockSession.sendMessage(any, any));
+      });
+    });
+
+    group('incoming VerifierFlagMessage uses entryId for FixerEntry.id (XCE-522)', () {
+      test('FixerEntry.id uses entryId from BibEntryMessage when present', () async {
+        final controller = makeController(session: mockSession);
+        controller.initialize();
+
+        incomingController.add((
+          Role.verifier,
+          MessageEnvelope.wrapVerifierFlag(VerifierFlagMessage(
+            entry: BibEntryMessage(
+              finishPosition: 1,
+              bib: 101,
+              status: BibEntryStatus.unknown,
+              timestamp: DateTime.now(),
+              entryId: 1711000000000,
+            ),
+            reason: FlagReason.unknown,
+          )),
+        ));
+        await Future.microtask(() {});
+
+        expect(controller.queue.first.id, 1711000000000);
+        expect(controller.queue.first.position, 1);
+      });
+
+      test('FixerEntry.id falls back to finishPosition when entryId is absent', () async {
+        final controller = makeController(session: mockSession);
+        controller.initialize();
+
+        incomingController.add((
+          Role.verifier,
+          MessageEnvelope.wrapVerifierFlag(VerifierFlagMessage(
+            entry: BibEntryMessage(
+              finishPosition: 7,
+              bib: 202,
+              status: BibEntryStatus.duplicate,
+              timestamp: DateTime.now(),
+            ),
+            reason: FlagReason.duplicate,
+          )),
+        ));
+        await Future.microtask(() {});
+
+        expect(controller.queue.first.id, 7);
+        expect(controller.queue.first.position, 7);
       });
     });
 
@@ -852,7 +936,7 @@ void main() {
       });
     });
 
-    group('resolve methods persist to storage (XCE-378)', () {
+    group('resolve methods storage behaviour (XCE-378, XCE-524)', () {
       Future<FixerController> makeControllerWithEntry({
         required int finishPosition,
         required int bib,
@@ -876,7 +960,7 @@ void main() {
         return controller;
       }
 
-      test('resolveWithRunner calls updateBibRecordValue', () async {
+      test('resolveWithRunner does not call updateBibRecordValue', () async {
         final controller = await makeControllerWithEntry(finishPosition: 1, bib: 107);
         final runner = Runner(
           raceId: 1,
@@ -888,16 +972,16 @@ void main() {
         controller.resolveWithRunner(1, runner);
         await Future.microtask(() {});
 
-        verify(mockStorage.updateBibRecordValue(1, 1, '110')).called(1);
+        verifyNever(mockStorage.updateBibRecordValue(any, any, any));
       });
 
-      test('resolveWithBib calls updateBibRecordValue', () async {
+      test('resolveWithBib does not call updateBibRecordValue', () async {
         final controller = await makeControllerWithEntry(finishPosition: 2, bib: 105);
 
         controller.resolveWithBib(2, 115);
         await Future.microtask(() {});
 
-        verify(mockStorage.updateBibRecordValue(1, 2, '115')).called(1);
+        verifyNever(mockStorage.updateBibRecordValue(any, any, any));
       });
 
       test('resolveAsNewRunner calls saveRunner with correct bibNumber', () async {
@@ -913,13 +997,13 @@ void main() {
         expect(runner.raceId, 1);
       });
 
-      test('resolveAsNewRunner also calls updateBibRecordValue when newBib is provided', () async {
+      test('resolveAsNewRunner does not call updateBibRecordValue', () async {
         final controller = await makeControllerWithEntry(finishPosition: 3, bib: 199);
 
         controller.resolveAsNewRunner(3, name: 'Jane Doe', newBib: 200);
         await Future.microtask(() {});
 
-        verify(mockStorage.updateBibRecordValue(1, 3, '200')).called(1);
+        verifyNever(mockStorage.updateBibRecordValue(any, any, any));
       });
 
       test('resolveAsNewRunner uses entryId as bibNumber when newBib is null', () async {
@@ -998,6 +1082,83 @@ void main() {
         expect(result, isA<Success<void>>());
         verify(mockStorage.saveNewRace(any)).called(1);
         verify(mockStorage.saveRunners(any, any)).called(1);
+      });
+    });
+
+    group('haptics', () {
+      Future<FixerController> makeControllerWithEntry({
+        required int finishPosition,
+        required int bib,
+      }) async {
+        final controller = makeController(session: mockSession);
+        controller.initialize();
+        incomingController.add((
+          Role.verifier,
+          MessageEnvelope.wrapVerifierFlag(VerifierFlagMessage(
+            entry: BibEntryMessage(
+              finishPosition: finishPosition,
+              bib: bib,
+              status: BibEntryStatus.unknown,
+              timestamp: DateTime.now(),
+            ),
+            reason: FlagReason.wrongName,
+          )),
+        ));
+        await Future.microtask(() {});
+        return controller;
+      }
+
+      test('vibrates when a new entry arrives in the queue', () async {
+        final controller = makeController(session: mockSession);
+        controller.initialize();
+
+        incomingController.add((
+          Role.verifier,
+          MessageEnvelope.wrapVerifierFlag(VerifierFlagMessage(
+            entry: BibEntryMessage(
+              finishPosition: 1,
+              bib: 101,
+              status: BibEntryStatus.unknown,
+              timestamp: DateTime.now(),
+            ),
+            reason: FlagReason.wrongName,
+          )),
+        ));
+        await Future.microtask(() {});
+
+        verify(mockHaptic.vibrate()).called(1);
+        verifyNever(mockHaptic.lightImpact());
+      });
+
+      test('resolveWithRunner calls lightImpact', () async {
+        final controller = await makeControllerWithEntry(finishPosition: 1, bib: 107);
+        final runner = Runner(raceId: 1, bibNumber: '110', createdAt: DateTime(2026));
+        clearInteractions(mockHaptic);
+
+        controller.resolveWithRunner(1, runner);
+
+        verify(mockHaptic.lightImpact()).called(1);
+        verifyNever(mockHaptic.vibrate());
+      });
+
+      test('resolveWithBib calls lightImpact', () async {
+        final controller = await makeControllerWithEntry(finishPosition: 2, bib: 105);
+        clearInteractions(mockHaptic);
+
+        controller.resolveWithBib(2, 115);
+
+        verify(mockHaptic.lightImpact()).called(1);
+        verifyNever(mockHaptic.vibrate());
+      });
+
+      test('resolveAsNewRunner calls lightImpact', () async {
+        final controller = await makeControllerWithEntry(finishPosition: 3, bib: 199);
+        clearInteractions(mockHaptic);
+
+        controller.resolveAsNewRunner(3, name: 'Jane Doe', newBib: 200);
+
+        verify(mockHaptic.lightImpact()).called(1);
+        verifyNever(mockHaptic.vibrate());
       });
     });
   });
