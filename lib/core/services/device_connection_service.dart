@@ -169,10 +169,10 @@ class DevicesManager {
 
   /// Get all connected devices (non-null only)
   List<ConnectedDevice> get devices => [
-        if (_coach != null) _coach!,
-        if (_bibRecorder != null) _bibRecorder!,
-        if (_raceTimer != null) _raceTimer!,
-        if (_spectator != null) _spectator!,
+        ?_coach,
+        ?_bibRecorder,
+        ?_raceTimer,
+        ?_spectator,
       ];
 
   List<ConnectedDevice> get otherDevices {

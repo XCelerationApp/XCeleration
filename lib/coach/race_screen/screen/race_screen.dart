@@ -240,7 +240,7 @@ class _RaceScreenContent extends StatelessWidget {
               flowState: c.flowState,
               showingRunners: c.showingRunnersManagement,
             ),
-            builder: (_, state, ___) {
+            builder: (_, state, _) {
               if (state.showingRunners) return const SizedBox.shrink();
               return UnsavedChangesBar(controller: controller);
             },

@@ -507,42 +507,6 @@ class MockRaceScreenController extends _i1.Mock
       ) as _i14.Future<void>);
 
   @override
-  void validateName(String? name) => super.noSuchMethod(
-        Invocation.method(
-          #validateName,
-          [name],
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
-  void validateLocation(String? location) => super.noSuchMethod(
-        Invocation.method(
-          #validateLocation,
-          [location],
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
-  void validateDate(String? dateString) => super.noSuchMethod(
-        Invocation.method(
-          #validateDate,
-          [dateString],
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
-  void validateDistance(String? distanceString) => super.noSuchMethod(
-        Invocation.method(
-          #validateDistance,
-          [distanceString],
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
   _i14.Future<void> selectDate(_i2.BuildContext? context) =>
       (super.noSuchMethod(
         Invocation.method(

@@ -69,22 +69,21 @@ class GoogleAuthClient extends http.BaseClient {
 /// obtain a new serverAuthCode, which is then exchanged for a new web token.
 class GoogleAuthService {
   static GoogleAuthService? _instance;
-  // Retrieve client ID from environment variables
-  // static String get _iosClientId => dotenv.env['GOOGLE_IOS_OAUTH_CLIENT_ID'] ?? '';
   static String get _webClientId =>
       dotenv.env['GOOGLE_WEB_OAUTH_CLIENT_ID'] ?? '';
 
-  final ConnectivityService _connectivity;
-  final GoogleSignIn? _googleSignInOverride;
+  static const String _driveScope =
+      'https://www.googleapis.com/auth/drive.file';
 
-  GoogleSignIn? _googleSignIn;
+  final ConnectivityService _connectivity;
+
   GoogleSignInAccount? _currentUser;
   String? _iosAccessToken;
   String? _webAccessToken;
   DateTime? _iosAccessTokenExpiry;
   DateTime? _webAccessTokenExpiry;
   bool _prefsLoaded = false;
-  bool _signInInitialized = false;
+  bool _googleSignInInitialized = false;
 
   // Keys for shared preferences
   static const String _keyIosAccessToken = 'google_ios_auth_token';
@@ -104,9 +103,7 @@ class GoogleAuthService {
 
   GoogleAuthService({
     ConnectivityService? connectivity,
-    GoogleSignIn? googleSignIn,
-  })  : _connectivity = connectivity ?? const ConnectivityService(),
-        _googleSignInOverride = googleSignIn;
+  }) : _connectivity = connectivity ?? const ConnectivityService();
 
   /// Asynchronously load preferences but don't block instance creation
   Future<void> _loadPrefsAsync() async {
@@ -195,28 +192,6 @@ class GoogleAuthService {
     }
   }
 
-  /// Initialize Google Sign In
-  void _initGoogleSignIn() {
-    if (_googleSignIn != null) return;
-    if (_googleSignInOverride != null) {
-      _googleSignIn = _googleSignInOverride;
-      return;
-    }
-    _googleSignIn = GoogleSignIn(
-      scopes: [
-        'https://www.googleapis.com/auth/drive.file',
-      ],
-      // serverClientId causes the sign-in to also produce a serverAuthCode
-      // that can be exchanged server-side for a web access token. This is
-      // required for the Google Drive Picker — see class-level comment above.
-      serverClientId: _webClientId,
-      // forceCodeForRefreshToken ensures serverAuthCode is always returned
-      // even if the user has previously consented. Without this, subsequent
-      // sign-ins may not include a fresh code, breaking web token refresh.
-      forceCodeForRefreshToken: true,
-    );
-  }
-
   /// Check if the user is already authenticated with a valid ios token
   bool get hasValidIosToken {
     if (_iosAccessToken == null || _iosAccessTokenExpiry == null) return false;
@@ -278,18 +253,23 @@ class GoogleAuthService {
     if (_currentUser == null) return null;
 
     try {
-      final auth = await _currentUser!.authentication;
-      if (auth.accessToken != null) {
-        _iosAccessToken = auth.accessToken;
-        _iosAccessTokenExpiry = DateTime.now().add(const Duration(minutes: 55));
+      // Try without prompting first
+      GoogleSignInClientAuthorization? authz = await _currentUser!
+          .authorizationClient
+          .authorizationForScopes([_driveScope]);
 
-        // Save the updated token to preferences
-        await _saveAuthDataToPrefs();
-        return _iosAccessToken;
-      } else {
-        Logger.d('Failed to get iOS token - no access token');
-        return null;
-      }
+      // If silent authorization failed, prompt the user
+      authz ??=
+          await _currentUser!.authorizationClient.authorizeScopes([_driveScope]);
+
+      _iosAccessToken = authz.accessToken;
+      _iosAccessTokenExpiry = DateTime.now().add(const Duration(minutes: 55));
+
+      // Save the updated token to preferences
+      await _saveAuthDataToPrefs();
+      return _iosAccessToken;
+    } on GoogleSignInException catch (e) {
+      Logger.d('Error getting iOS access token: $e');
     } catch (e) {
       Logger.d('Error getting iOS access token: $e');
     }
@@ -326,12 +306,12 @@ class GoogleAuthService {
       return _webAccessToken;
     }
 
-    Logger.d('[WebToken] No valid cached token — '
-        'attempting server auth code exchange. '
-        'serverAuthCode present: ${_currentUser!.serverAuthCode != null}');
+    Logger.d('[WebToken] No valid cached token — attempting server auth code exchange.');
 
     try {
-      final serverAuthCode = _currentUser!.serverAuthCode;
+      final serverAuthz = await _currentUser!.authorizationClient
+          .authorizeServer([_driveScope]);
+      final serverAuthCode = serverAuthz?.serverAuthCode;
       if (serverAuthCode != null) {
         Logger.d('[WebToken] Exchanging server auth code for access token');
         _webAccessToken =
@@ -364,10 +344,12 @@ class GoogleAuthService {
       _prefsLoaded = true;
     }
 
-    // Initialize sign-in if not already initialized
-    if (!_signInInitialized) {
-      _initGoogleSignIn();
-      _signInInitialized = true;
+    // Initialize GoogleSignIn if not already done
+    if (!_googleSignInInitialized) {
+      await GoogleSignIn.instance.initialize(
+        serverClientId: _webClientId,
+      );
+      _googleSignInInitialized = true;
     }
   }
 
@@ -457,17 +439,36 @@ class GoogleAuthService {
       // If we need a web token but don't have a valid one, force interactive sign-in
       if (!hasValidWebToken) {
         Logger.d('Need web token, forcing interactive sign-in');
-        await _googleSignIn!.signOut();
-        _currentUser = await _googleSignIn!.signIn();
+        await GoogleSignIn.instance.signOut();
+        try {
+          _currentUser = await GoogleSignIn.instance.authenticate(
+            scopeHint: [_driveScope],
+          );
+        } on GoogleSignInException catch (e) {
+          Logger.d('Sign-in failed: ${e.description}');
+          return false;
+        }
       } else {
         if (_currentUser == null) {
-          // Try silent sign-in first
-          Logger.d('Attempting silent sign-in');
-          _currentUser = await _googleSignIn!.signInSilently();
+          // Try lightweight authentication first
+          Logger.d('Attempting lightweight authentication');
+          final lightweightFuture =
+              GoogleSignIn.instance.attemptLightweightAuthentication();
+          if (lightweightFuture != null) {
+            _currentUser = await lightweightFuture;
+          }
 
           if (_currentUser == null) {
-            Logger.d('Silent sign-in failed, trying interactive sign-in');
-            _currentUser = await _googleSignIn!.signIn();
+            Logger.d(
+                'Lightweight authentication failed, trying interactive sign-in');
+            try {
+              _currentUser = await GoogleSignIn.instance.authenticate(
+                scopeHint: [_driveScope],
+              );
+            } on GoogleSignInException catch (e) {
+              Logger.d('Sign-in failed: ${e.description}');
+              return false;
+            }
           }
         }
       }
@@ -506,7 +507,7 @@ class GoogleAuthService {
     _iosAccessTokenExpiry = null;
     _webAccessToken = null;
     _webAccessTokenExpiry = null;
-    await _googleSignIn!.signOut();
+    await GoogleSignIn.instance.signOut();
     _currentUser = null;
 
     // Clear all saved auth data

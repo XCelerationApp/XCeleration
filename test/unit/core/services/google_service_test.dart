@@ -1,32 +1,36 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:google_sign_in/google_sign_in.dart';
+import 'package:google_sign_in_platform_interface/google_sign_in_platform_interface.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xceleration/core/services/connectivity_service.dart';
 import 'package:xceleration/core/services/google_service.dart';
+import '../../../helpers/fake_google_sign_in_platform.dart';
 
-@GenerateMocks([ConnectivityService, GoogleSignIn, GoogleSignInAccount, GoogleSignInAuthentication])
+@GenerateMocks([ConnectivityService])
 import 'google_service_test.mocks.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late MockConnectivityService mockConnectivity;
-  late MockGoogleSignIn mockGoogleSignIn;
+  late FakeGoogleSignInPlatform fakePlatform;
+
+  setUpAll(() {
+    dotenv.loadFromString(isOptional: true);
+  });
 
   setUp(() {
     mockConnectivity = MockConnectivityService();
-    mockGoogleSignIn = MockGoogleSignIn();
+    fakePlatform = FakeGoogleSignInPlatform();
+    GoogleSignInPlatform.instance = fakePlatform;
     SharedPreferences.setMockInitialValues({});
   });
 
   GoogleService buildService({bool online = true}) {
     when(mockConnectivity.isOnline()).thenAnswer((_) async => online);
-    return GoogleService(
-      connectivity: mockConnectivity,
-      googleSignIn: mockGoogleSignIn,
-    );
+    return GoogleService(connectivity: mockConnectivity);
   }
 
   group('GoogleService', () {
@@ -51,13 +55,12 @@ void main() {
 
         await service.signIn();
 
-        verifyNever(mockGoogleSignIn.signInSilently());
-        verifyNever(mockGoogleSignIn.signIn());
+        expect(fakePlatform.lightweightCallCount, 0);
+        expect(fakePlatform.authenticateCallCount, 0);
       });
 
-      test('returns false when GoogleSignIn.signIn returns null', () async {
-        when(mockGoogleSignIn.signInSilently()).thenAnswer((_) async => null);
-        when(mockGoogleSignIn.signIn()).thenAnswer((_) async => null);
+      test('returns false when authenticate throws', () async {
+        // Default fake throws GoogleSignInException(canceled)
         final service = buildService();
 
         final result = await service.signIn();
@@ -65,9 +68,9 @@ void main() {
         expect(result, isFalse);
       });
 
-      test('returns false when GoogleSignIn throws', () async {
-        when(mockGoogleSignIn.signInSilently())
-            .thenThrow(Exception('sign-in error'));
+      test('returns false when authenticate throws generic exception',
+          () async {
+        fakePlatform.shouldThrowGenericException = true;
         final service = buildService();
 
         final result = await service.signIn();
@@ -75,39 +78,30 @@ void main() {
         expect(result, isFalse);
       });
 
-      test('attempts silent sign-in before interactive sign-in', () async {
-        final mockAccount = MockGoogleSignInAccount();
-        final mockAuth = MockGoogleSignInAuthentication();
-        when(mockGoogleSignIn.signInSilently())
-            .thenAnswer((_) async => mockAccount);
-        when(mockAccount.authentication).thenAnswer((_) async => mockAuth);
-        when(mockAuth.accessToken).thenReturn('test-token');
+      test('attempts lightweight authentication before interactive sign-in',
+          () async {
+        fakePlatform.setupLightweightSuccess();
         final service = buildService();
 
         await service.signIn();
 
-        verify(mockGoogleSignIn.signInSilently()).called(1);
-        verifyNever(mockGoogleSignIn.signIn());
+        expect(fakePlatform.lightweightCallCount, 1);
+        expect(fakePlatform.authenticateCallCount, 0);
       });
 
-      test('falls back to interactive sign-in when silent fails', () async {
-        when(mockGoogleSignIn.signInSilently()).thenAnswer((_) async => null);
-        when(mockGoogleSignIn.signIn()).thenAnswer((_) async => null);
+      test('falls back to interactive sign-in when lightweight fails',
+          () async {
+        fakePlatform.setupSuccessfulSignIn();
         final service = buildService();
 
         await service.signIn();
 
-        verify(mockGoogleSignIn.signInSilently()).called(1);
-        verify(mockGoogleSignIn.signIn()).called(1);
+        expect(fakePlatform.lightweightCallCount, 1);
+        expect(fakePlatform.authenticateCallCount, 1);
       });
 
       test('isSignedIn returns true after successful sign-in', () async {
-        final mockAccount = MockGoogleSignInAccount();
-        final mockAuth = MockGoogleSignInAuthentication();
-        when(mockGoogleSignIn.signInSilently())
-            .thenAnswer((_) async => mockAccount);
-        when(mockAccount.authentication).thenAnswer((_) async => mockAuth);
-        when(mockAuth.accessToken).thenReturn('test-token');
+        fakePlatform.setupSuccessfulSignIn();
         final service = buildService();
 
         await service.signIn();
@@ -118,28 +112,21 @@ void main() {
 
     group('signOut', () {
       test('calls GoogleSignIn.signOut', () async {
-        when(mockGoogleSignIn.signOut()).thenAnswer((_) async => null);
         final service = buildService();
 
         await service.signOut();
 
-        verify(mockGoogleSignIn.signOut()).called(1);
+        expect(fakePlatform.signOutCallCount, 1);
       });
 
       test('isSignedIn returns false after sign-out', () async {
-        final mockAccount = MockGoogleSignInAccount();
-        final mockAuth = MockGoogleSignInAuthentication();
-        when(mockGoogleSignIn.signInSilently())
-            .thenAnswer((_) async => mockAccount);
-        when(mockAccount.authentication).thenAnswer((_) async => mockAuth);
-        when(mockAuth.accessToken).thenReturn('test-token');
-        when(mockGoogleSignIn.signOut()).thenAnswer((_) async => null);
+        fakePlatform.setupSuccessfulSignIn();
         final service = buildService();
-
         await service.signIn();
         expect(service.isSignedIn, isTrue);
 
         await service.signOut();
+
         expect(service.isSignedIn, isFalse);
       });
 
@@ -148,7 +135,6 @@ void main() {
           'google_access_token': 'token',
           'google_token_expiry': 12345,
         });
-        when(mockGoogleSignIn.signOut()).thenAnswer((_) async => null);
         final service = buildService();
 
         await service.signOut();
@@ -187,12 +173,7 @@ void main() {
       });
 
       test('returns null when offline and signed in', () async {
-        final mockAccount = MockGoogleSignInAccount();
-        final mockAuth = MockGoogleSignInAuthentication();
-        when(mockGoogleSignIn.signInSilently())
-            .thenAnswer((_) async => mockAccount);
-        when(mockAccount.authentication).thenAnswer((_) async => mockAuth);
-        when(mockAuth.accessToken).thenReturn('test-token');
+        fakePlatform.setupSuccessfulSignIn();
         final service = buildService();
         await service.signIn();
 
@@ -215,12 +196,7 @@ void main() {
       });
 
       test('returns null when offline and signed in', () async {
-        final mockAccount = MockGoogleSignInAccount();
-        final mockAuth = MockGoogleSignInAuthentication();
-        when(mockGoogleSignIn.signInSilently())
-            .thenAnswer((_) async => mockAccount);
-        when(mockAccount.authentication).thenAnswer((_) async => mockAuth);
-        when(mockAuth.accessToken).thenReturn('test-token');
+        fakePlatform.setupSuccessfulSignIn();
         final service = buildService();
         await service.signIn();
 
