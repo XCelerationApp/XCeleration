@@ -192,28 +192,6 @@ class GoogleAuthService {
     }
   }
 
-  /// Initialize Google Sign In
-  void _initGoogleSignIn() {
-    if (_googleSignIn != null) return;
-    if (_googleSignInOverride != null) {
-      _googleSignIn = _googleSignInOverride;
-      return;
-    }
-    _googleSignIn = GoogleSignIn(
-      scopes: [
-        'https://www.googleapis.com/auth/drive.file',
-      ],
-      // serverClientId causes the sign-in to also produce a serverAuthCode
-      // that can be exchanged server-side for a web access token. This is
-      // required for the Google Drive Picker — see class-level comment above.
-      serverClientId: _webClientId,
-      // forceCodeForRefreshToken ensures serverAuthCode is always returned
-      // even if the user has previously consented. Without this, subsequent
-      // sign-ins may not include a fresh code, breaking web token refresh.
-      forceCodeForRefreshToken: true,
-    );
-  }
-
   /// Check if the user is already authenticated with a valid ios token
   bool get hasValidIosToken {
     if (_iosAccessToken == null || _iosAccessTokenExpiry == null) return false;
@@ -328,9 +306,7 @@ class GoogleAuthService {
       return _webAccessToken;
     }
 
-    Logger.d('[WebToken] No valid cached token — '
-        'attempting server auth code exchange. '
-        'serverAuthCode present: ${_currentUser!.serverAuthCode != null}');
+    Logger.d('[WebToken] No valid cached token — attempting server auth code exchange.');
 
     try {
       final serverAuthz = await _currentUser!.authorizationClient
