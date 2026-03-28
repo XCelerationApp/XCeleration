@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_nearby_connections/flutter_nearby_connections.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/messages/messages.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/xce_peer_name.dart';
 import 'package:xceleration/core/utils/connection_interfaces.dart';
@@ -28,6 +29,10 @@ class PeerStateEvent {
 /// Maximum number of messages buffered per peer while they are offline.
 /// When this cap is reached the oldest message is evicted to make room.
 const int _kQueueCap = 500;
+
+/// Maximum number of sequence numbers retained in the seen-sequence set per
+/// sender.  Older entries are evicted once this cap is reached.
+const int _kSeenSequenceCap = 1000;
 
 /// Wraps [NearbyConnectionsInterface] and exposes typed [MessageEnvelope]
 /// send/receive for the three finish-line roles.
@@ -56,11 +61,16 @@ class P2PSessionService {
     required this.localRole,
     required this.raceId,
     required NearbyConnectionsInterface nearbyConnections,
-  }) : _nearbyConnections = nearbyConnections;
+    required SharedPreferences prefs,
+  })  : _nearbyConnections = nearbyConnections,
+        _prefs = prefs;
 
   final Role localRole;
   final int raceId;
   final NearbyConnectionsInterface _nearbyConnections;
+  final SharedPreferences _prefs;
+
+  String get _sequenceKey => 'p2p_seq_${raceId}_${localRole.name}';
 
   // Role ↔ device-ID look-ups for currently connected peers.
   final Map<String, Role> _deviceIdToRole = {};
@@ -72,8 +82,9 @@ class P2PSessionService {
   // Messages sent but not yet ACKed, keyed by target role then sequence number.
   final Map<Role, Map<int, MessageEnvelope>> _pendingAck = {};
 
-  // Highest sequence number seen from each sender role, for deduplication.
-  final Map<Role, int> _highestSeenSequence = {};
+  // Sequence numbers seen from each sender role, for deduplication.
+  // Bounded to [_kSeenSequenceCap] entries per sender to prevent unbounded growth.
+  final Map<Role, Set<int>> _seenSequences = {};
 
   // Monotonically increasing counter — assigned at sendMessage time.
   int _nextSequence = 0;
@@ -118,6 +129,8 @@ class P2PSessionService {
   ///
   /// Must be called once before [sendMessage] or [incomingMessages].
   Future<void> init() async {
+    _nextSequence = _prefs.getInt(_sequenceKey) ?? 0;
+
     await _nearbyConnections.init(
       serviceType: kXceServiceType,
       deviceName: buildXceAdvertisedName(localRole, raceId),
@@ -152,6 +165,7 @@ class P2PSessionService {
   /// queue and will be flushed automatically when it reconnects.
   Future<void> sendMessage(Role target, MessageEnvelope msg) async {
     final stamped = msg.withSequence(_nextSequence++);
+    _prefs.setInt(_sequenceKey, _nextSequence).ignore();
     final deviceId = _roleToDeviceId[target];
     if (deviceId == null) {
       final queue = _outboundQueues.putIfAbsent(target, () => []);
@@ -178,6 +192,14 @@ class P2PSessionService {
   /// Non-zero only when [peer] is offline.  Useful for showing a badge in the
   /// peer-status strip.
   int pendingCount(Role peer) => _outboundQueues[peer]?.length ?? 0;
+
+  /// Removes the persisted sequence number for this race + role from storage.
+  ///
+  /// Call this when a race ends or is deleted so that stale counters do not
+  /// accumulate in SharedPreferences.
+  Future<void> clearPersistedSequence() async {
+    await _prefs.remove(_sequenceKey);
+  }
 
   /// Stops advertising/browsing, cancels subscriptions, and closes the streams.
   Future<void> dispose() async {
@@ -285,13 +307,17 @@ class P2PSessionService {
 
       final seq = envelope.sequence;
       if (seq != null) {
-        final highest = _highestSeenSequence[senderRole];
-        if (highest != null && seq <= highest) {
+        final seen = _seenSequences.putIfAbsent(senderRole, () => {});
+        if (seen.contains(seq)) {
           // Duplicate re-delivery — acknowledge again and drop.
           unawaited(_sendAck(senderDeviceId, seq));
           return;
         }
-        _highestSeenSequence[senderRole] = seq;
+        seen.add(seq);
+        // Evict the smallest entry once the cap is reached.
+        if (seen.length > _kSeenSequenceCap) {
+          seen.remove(seen.reduce((a, b) => a < b ? a : b));
+        }
         unawaited(_sendAck(senderDeviceId, seq));
       }
 
@@ -313,16 +339,30 @@ class P2PSessionService {
 
   /// Drains the outbound queue for [role], sending each buffered message in
   /// FIFO order.  Assumes the peer is already registered in [_roleToDeviceId].
+  ///
+  /// All messages are registered in [_pendingAck] before any send is attempted.
+  /// If a send fails mid-flush, the remaining unsent messages are already in
+  /// [_pendingAck] and will be re-queued by [_requeuePending] when the peer's
+  /// next disconnect event fires — preventing permanent message loss.
   Future<void> _flushQueue(Role role) async {
     final queue = _outboundQueues.remove(role);
     if (queue == null || queue.isEmpty) return;
+
+    // Pre-register every message so none are lost if the peer drops mid-flush.
+    final ackMap = _pendingAck.putIfAbsent(role, () => {});
+    for (final msg in queue) {
+      ackMap[msg.sequence!] = msg;
+    }
+
     final deviceId = _roleToDeviceId[role]!;
     for (final msg in queue) {
       try {
         await _nearbyConnections.sendMessage(deviceId, jsonEncode(msg.toJson()));
-        _pendingAck.putIfAbsent(role, () => {})[msg.sequence!] = msg;
       } catch (e) {
         Logger.e('[P2PSessionService] Flush sendMessage to $role failed: $e');
+        // Remaining messages are already in _pendingAck; _requeuePending will
+        // move them back to the offline queue on the next disconnect event.
+        return;
       }
     }
   }
