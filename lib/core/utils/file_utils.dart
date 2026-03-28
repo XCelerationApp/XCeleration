@@ -103,13 +103,12 @@ class FileUtils {
       }
 
       // Parse with detected delimiter
-      final converter = CsvToListConverter(
+      final decoder = CsvDecoder(
         fieldDelimiter: delimiter,
-        eol: '\n',
-        shouldParseNumbers: true, // Convert strings to numbers when possible
+        dynamicTyping: true, // Convert strings to numbers when possible
       );
 
-      final rows = converter.convert(contents);
+      final rows = decoder.convert(contents);
       Logger.d('Parsed CSV file: $rows');
       // Remove empty rows
       return rows
@@ -121,7 +120,7 @@ class FileUtils {
       // If custom parsing fails, fall back to default parsing
       Logger.d(
           'Advanced CSV parsing failed: $e. Falling back to default parser.');
-      return const CsvToListConverter().convert(contents);
+      return const CsvDecoder().convert(contents);
     }
   }
 }
