@@ -62,13 +62,16 @@ void main() {
     IAssistantStorageService? storage,
     IHapticFeedback? haptic,
     int raceId = 1,
-  }) =>
-      FixerController(
-        storage: storage ?? mockStorage,
-        raceId: raceId,
-        session: session,
-        haptic: haptic ?? mockHaptic,
-      );
+  }) {
+    final controller = FixerController(
+      storage: storage ?? mockStorage,
+      haptic: haptic ?? mockHaptic,
+    );
+    if (session != null) {
+      controller.attachSession(session, raceId: raceId);
+    }
+    return controller;
+  }
 
   group('FixerController', () {
     group('initialize', () {
@@ -697,7 +700,7 @@ void main() {
     group('search', () {
       Future<FixerController> makeControllerWithRunners(
           List<Runner> runners) async {
-        when(mockStorage.getRunners(1)).thenAnswer(
+        when(mockStorage.getRunners(any)).thenAnswer(
           (_) async => Success<List<Runner>>(runners),
         );
         final controller = makeController();
@@ -775,7 +778,7 @@ void main() {
 
     group('clearSearch', () {
       test('clears query and results', () async {
-        when(mockStorage.getRunners(1)).thenAnswer(
+        when(mockStorage.getRunners(any)).thenAnswer(
           (_) async => Success<List<Runner>>([
             Runner(
               raceId: 1,
