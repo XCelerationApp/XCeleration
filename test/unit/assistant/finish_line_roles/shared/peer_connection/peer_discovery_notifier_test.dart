@@ -176,8 +176,11 @@ void main() {
       expect(n.statusFor(Role.verifier), PeerStatus.offline);
     });
 
-    test('transitions to offline when previously found peer disconnects',
+    test(
+        'keeps found status when notConnected fires during handshake (prev == found)',
         () async {
+      // connecting sets status → found; a notConnected mid-handshake should
+      // leave it at found rather than flashing offline.
       emitEvent(PeerStateEvent(
         role: Role.verifier,
         state: SessionState.connecting,
@@ -192,7 +195,29 @@ void main() {
       ));
       await Future.delayed(Duration.zero);
 
-      expect(n.statusFor(Role.verifier), PeerStatus.offline);
+      expect(n.statusFor(Role.verifier), PeerStatus.found);
+    });
+
+    test(
+        'keeps found status when a second notConnected fires after initial discovery',
+        () async {
+      // First notConnected → found; second notConnected (re-invite cycle)
+      // should still stay at found.
+      emitEvent(PeerStateEvent(
+        role: Role.verifier,
+        state: SessionState.notConnected,
+        deviceName: 'verifier-phone',
+      ));
+      await Future.delayed(Duration.zero);
+
+      emitEvent(PeerStateEvent(
+        role: Role.verifier,
+        state: SessionState.notConnected,
+        deviceName: 'verifier-phone',
+      ));
+      await Future.delayed(Duration.zero);
+
+      expect(n.statusFor(Role.verifier), PeerStatus.found);
     });
 
     test('ignores events for peers not in this role\'s peer config', () async {
