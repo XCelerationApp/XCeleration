@@ -4,7 +4,7 @@ publish_to: "none"
 version: 1.0.2+2
 
 environment:
-  sdk: ^3.5.4
+  sdk: ^3.9.0
 
 dependencies:
   flutter:
@@ -28,7 +28,7 @@ dependencies:
 
   # Networking & APIs
   http: ^1.2.0
-  googleapis: ^11.0.0
+  googleapis: ^16.0.0
   google_sign_in: ^6.1.6
   supabase_flutter: ^2.5.7
   gotrue: ^2.13.0
