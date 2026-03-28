@@ -232,15 +232,6 @@ class MockGoogleDriveService extends _i1.Mock
       ) as _i4.Future<bool>);
 
   @override
-  _i4.Future<List<_i8.File>> listAccessibleFiles() => (super.noSuchMethod(
-        Invocation.method(
-          #listAccessibleFiles,
-          [],
-        ),
-        returnValue: _i4.Future<List<_i8.File>>.value(<_i8.File>[]),
-      ) as _i4.Future<List<_i8.File>>);
-
-  @override
   _i4.Future<_i9.File?> downloadFile(
     String? fileId,
     String? fileName,
