@@ -2,10 +2,12 @@
 """
 Start working on a Linear issue.
 Creates a git worktree branched from dev and opens it in Cursor.
-Also creates and boots a dedicated iPhone simulator for the worktree.
 
-Usage: python3 scripts/start_issue.py 123
+Usage:
+  python3 scripts/start_issue.py 123             # no simulator
+  python3 scripts/start_issue.py 123 --simulator # create & boot a dedicated simulator
 """
+import argparse
 import json
 import os
 import shutil
@@ -87,17 +89,24 @@ def create_simulator(issue_id: str, worktree_path: str) -> None:
 
 
 def main():
-    if len(sys.argv) != 2:
-        print("Usage: python3 scripts/start_issue.py 123")
+    parser = argparse.ArgumentParser(
+        description="Start working on a Linear issue.",
+        usage="python3 scripts/start_issue.py 123 [--simulator]",
+    )
+    parser.add_argument("issue_number", help="Linear issue number (digits only, e.g. 123)")
+    parser.add_argument(
+        "--simulator", "-s",
+        action="store_true",
+        default=False,
+        help="Create and boot a dedicated iPhone simulator for this worktree",
+    )
+    args = parser.parse_args()
+
+    if not args.issue_number.isdigit():
+        print(f"Error: '{args.issue_number}' is not a valid issue number — pass only the number, e.g. 123")
         sys.exit(1)
 
-    arg = sys.argv[1]
-
-    if not arg.isdigit():
-        print(f"Error: '{arg}' is not a valid issue number — pass only the number, e.g. 123")
-        sys.exit(1)
-
-    issue_id = f"XCE-{arg}"
+    issue_id = f"XCE-{args.issue_number}"
 
     repo_root = get_repo_root()
     worktree_path = os.path.join(os.path.dirname(repo_root), f"{issue_id}")
@@ -140,8 +149,9 @@ def main():
     with open(marker_path, "w") as f:
         f.write(issue_id + "\n")
 
-    # Create and boot a dedicated simulator for this worktree
-    create_simulator(issue_id, worktree_path)
+    # Optionally create and boot a dedicated simulator for this worktree
+    if args.simulator:
+        create_simulator(issue_id, worktree_path)
 
     # Run flutter pub get in the new worktree
     subprocess.run(["flutter", "pub", "get"], cwd=worktree_path)
