@@ -50,14 +50,13 @@ class _FixerScreenState extends State<FixerScreen> {
   // Connection setup state
   bool _connecting = false;
   PeerDiscoveryNotifier? _peerNotifier;
-  P2PSessionService? _session;
   String? _selectedRaceName;
   SharedPreferences? _prefs;
 
   @override
   void initState() {
     super.initState();
-    _controller = FixerController(storage: widget.storage, raceId: 0);
+    _controller = FixerController(storage: widget.storage);
     _controller.initialize();
     SharedPreferences.getInstance().then((p) => _prefs = p);
   }
@@ -65,9 +64,6 @@ class _FixerScreenState extends State<FixerScreen> {
   Future<void> _onJoinTapped(RaceRecord race) async {
     _selectedRaceName = race.name;
     _prefs ??= await SharedPreferences.getInstance();
-    // Re-create the controller now that the raceId and session are known.
-    _session?.dispose();
-    _controller.dispose();
     final session = P2PSessionService(
       localRole: Role.fixer,
       raceId: race.raceId,
@@ -75,12 +71,7 @@ class _FixerScreenState extends State<FixerScreen> {
       prefs: _prefs!,
     );
     unawaited(session.init());
-    _controller = FixerController(
-      storage: widget.storage,
-      raceId: race.raceId,
-      session: session,
-    );
-    _controller.initialize();
+    _controller.attachSession(session, raceId: race.raceId);
     final notifier = PeerDiscoveryNotifier(
       role: Role.fixer,
       raceId: race.raceId,
@@ -89,7 +80,6 @@ class _FixerScreenState extends State<FixerScreen> {
     setState(() {
       _connecting = true;
       _peerNotifier = notifier;
-      _session = session;
     });
   }
 
@@ -102,22 +92,20 @@ class _FixerScreenState extends State<FixerScreen> {
   Future<void> _onConnectionSkip() async {
     // Offline mode: discard notifier and session.
     _peerNotifier?.dispose();
-    _session?.dispose();
+    _controller.detachSession();
     setState(() {
       _connecting = false;
       _peerNotifier = null;
-      _session = null;
     });
     await _controller.joinRace();
   }
 
   void _onConnectionLeave() {
     _peerNotifier?.dispose();
-    _session?.dispose();
+    _controller.detachSession();
     setState(() {
       _connecting = false;
       _peerNotifier = null;
-      _session = null;
     });
   }
 
@@ -144,10 +132,9 @@ class _FixerScreenState extends State<FixerScreen> {
   /// Tears down the active P2P session and returns to the lobby.
   void _leaveRace() {
     _peerNotifier?.dispose();
-    _session?.dispose();
+    _controller.detachSession();
     setState(() {
       _peerNotifier = null;
-      _session = null;
     });
     _controller.leaveRace();
   }
@@ -156,7 +143,6 @@ class _FixerScreenState extends State<FixerScreen> {
   void dispose() {
     _controller.dispose();
     _peerNotifier?.dispose();
-    _session?.dispose();
     super.dispose();
   }
 

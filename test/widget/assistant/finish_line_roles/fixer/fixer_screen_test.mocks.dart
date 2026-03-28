@@ -4,7 +4,7 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i7;
-import 'dart:ui' as _i9;
+import 'dart:ui' as _i10;
 
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i5;
@@ -12,9 +12,11 @@ import 'package:xceleration/assistant/finish_line_roles/fixer/controller/fixer_c
     as _i2;
 import 'package:xceleration/assistant/finish_line_roles/shared/models/fixer_entry.dart'
     as _i3;
+import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/p2p_session_service.dart'
+    as _i8;
 import 'package:xceleration/assistant/shared/models/race_record.dart' as _i6;
 import 'package:xceleration/assistant/shared/models/runner.dart' as _i4;
-import 'package:xceleration/core/result.dart' as _i8;
+import 'package:xceleration/core/result.dart' as _i9;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -95,21 +97,44 @@ class MockFixerController extends _i1.Mock implements _i2.FixerController {
       ) as _i7.Future<void>);
 
   @override
-  _i7.Future<_i8.Result<void>> processLoadedRaceData(String? data) =>
+  void attachSession(
+    _i8.P2PSessionService? session, {
+    required int? raceId,
+  }) =>
+      super.noSuchMethod(
+        Invocation.method(
+          #attachSession,
+          [session],
+          {#raceId: raceId},
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void detachSession() => super.noSuchMethod(
+        Invocation.method(
+          #detachSession,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  _i7.Future<_i9.Result<void>> processLoadedRaceData(String? data) =>
       (super.noSuchMethod(
         Invocation.method(
           #processLoadedRaceData,
           [data],
         ),
         returnValue:
-            _i7.Future<_i8.Result<void>>.value(_i5.dummyValue<_i8.Result<void>>(
+            _i7.Future<_i9.Result<void>>.value(_i5.dummyValue<_i9.Result<void>>(
           this,
           Invocation.method(
             #processLoadedRaceData,
             [data],
           ),
         )),
-      ) as _i7.Future<_i8.Result<void>>);
+      ) as _i7.Future<_i9.Result<void>>);
 
   @override
   _i7.Future<void> joinRace() => (super.noSuchMethod(
@@ -218,7 +243,7 @@ class MockFixerController extends _i1.Mock implements _i2.FixerController {
       );
 
   @override
-  void addListener(_i9.VoidCallback? listener) => super.noSuchMethod(
+  void addListener(_i10.VoidCallback? listener) => super.noSuchMethod(
         Invocation.method(
           #addListener,
           [listener],
@@ -227,7 +252,7 @@ class MockFixerController extends _i1.Mock implements _i2.FixerController {
       );
 
   @override
-  void removeListener(_i9.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i10.VoidCallback? listener) => super.noSuchMethod(
         Invocation.method(
           #removeListener,
           [listener],

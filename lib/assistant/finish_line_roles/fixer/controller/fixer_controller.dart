@@ -27,18 +27,14 @@ import 'package:xceleration/shared/role_bar/models/role_enums.dart';
 class FixerController extends ChangeNotifier {
   FixerController({
     required IAssistantStorageService storage,
-    required int raceId,
-    P2PSessionService? session,
     IHapticFeedback? haptic,
   })  : _storage = storage,
-        _raceId = raceId,
-        _session = session,
         _haptic = haptic ?? HapticFeedbackService();
 
   final IAssistantStorageService _storage;
-  final int _raceId;
-  final P2PSessionService? _session;
   final IHapticFeedback _haptic;
+  int _raceId = 0;
+  P2PSessionService? _session;
 
   final List<FixerEntry> _queue = [];
   final List<Runner> _allRunners = [];
@@ -60,10 +56,27 @@ class FixerController extends ChangeNotifier {
   List<RaceRecord> get races => List.unmodifiable(_races);
 
   Future<void> initialize() async {
-    if (_session != null) {
-      _sessionSub = _session.incomingMessages.listen(_onSessionMessage);
-    }
     await _loadRaces();
+  }
+
+  /// Attaches [session] to this controller for the race identified by [raceId].
+  ///
+  /// Cancels any existing session subscription and disposes the old session
+  /// before subscribing to [session]'s incoming messages.
+  void attachSession(P2PSessionService session, {required int raceId}) {
+    _sessionSub?.cancel();
+    _session?.dispose();
+    _session = session;
+    _raceId = raceId;
+    _sessionSub = session.incomingMessages.listen(_onSessionMessage);
+  }
+
+  /// Cancels the active session subscription and disposes the session.
+  void detachSession() {
+    _sessionSub?.cancel();
+    _sessionSub = null;
+    _session?.dispose();
+    _session = null;
   }
 
   Future<void> _loadRaces() async {
@@ -216,7 +229,7 @@ class FixerController extends ChangeNotifier {
       resolvedName: resolvedName,
     );
     if (_session != null) {
-      unawaited(_session.sendMessage(
+      unawaited(_session!.sendMessage(
         Role.bibRecorderV2,
         MessageEnvelope.wrapFixerCorrection(FixerCorrectionMessage(
           finishPosition: original.position,
@@ -237,7 +250,7 @@ class FixerController extends ChangeNotifier {
     final original = _queue[idx];
     _queue[idx] = original.copyWith(isResolved: true, correctedBib: newBib);
     if (_session != null) {
-      unawaited(_session.sendMessage(
+      unawaited(_session!.sendMessage(
         Role.bibRecorderV2,
         MessageEnvelope.wrapFixerCorrection(FixerCorrectionMessage(
           finishPosition: original.position,
@@ -268,7 +281,7 @@ class FixerController extends ChangeNotifier {
       correctedBib: newBib,
     );
     if (_session != null) {
-      unawaited(_session.sendMessage(
+      unawaited(_session!.sendMessage(
         Role.bibRecorderV2,
         MessageEnvelope.wrapFixerCorrection(FixerCorrectionMessage(
           finishPosition: original.position,
