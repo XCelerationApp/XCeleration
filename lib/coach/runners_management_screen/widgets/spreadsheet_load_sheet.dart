@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/components/dropup_button.dart';
+import 'package:xceleration/core/theme/app_colors.dart';
 import 'package:xceleration/core/theme/typography.dart';
 import 'package:xceleration/core/utils/sheet_utils.dart';
 import 'sample_spreadsheet_sheet.dart';
+
+/// The action the user chose in the import sheet.
+enum SpreadsheetImportAction { googleDrive, local, recent }
 
 class SpreadsheetLoadSheet extends StatelessWidget {
   const SpreadsheetLoadSheet({super.key});
@@ -25,7 +29,7 @@ class SpreadsheetLoadSheet extends StatelessWidget {
             ),
             child: const Icon(
               Icons.insert_drive_file_outlined,
-              color: Color(0xFFE2572B),
+              color: AppColors.primaryColor,
               size: 40,
             ),
           ),
@@ -53,7 +57,7 @@ class SpreadsheetLoadSheet extends StatelessWidget {
               body: const SampleSpreadsheetSheet(),
             ),
             style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFFE2572B),
+              foregroundColor: AppColors.primaryColor,
             ),
             child: const Text(
               'View Sample Spreadsheet',
@@ -63,7 +67,7 @@ class SpreadsheetLoadSheet extends StatelessWidget {
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
-            child: DropupButton<Map<String, dynamic>>(
+            child: DropupButton<SpreadsheetImportAction>(
               onSelected: (result) {
                 if (result != null) {
                   Navigator.pop(context, result);
@@ -75,7 +79,7 @@ class SpreadsheetLoadSheet extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12)),
               menuColor: Colors.white,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFE2572B),
+                backgroundColor: AppColors.primaryColor,
                 foregroundColor: Colors.white,
                 elevation: 0,
                 padding: const EdgeInsets.symmetric(vertical: 16),
@@ -84,27 +88,39 @@ class SpreadsheetLoadSheet extends StatelessWidget {
                 ),
               ),
               items: [
-                PopupMenuItem<Map<String, dynamic>>(
-                  value: const {'useGoogleDrive': true},
+                PopupMenuItem<SpreadsheetImportAction>(
+                  value: SpreadsheetImportAction.recent,
                   child: const Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Select Google Sheet',
+                      Text('Previously Selected Spreadsheets',
                           style: TextStyle(fontWeight: FontWeight.w500)),
-                      Icon(Icons.arrow_forward_ios,
-                          color: Color(0xFFE2572B), size: 20),
+                      Icon(Icons.history,
+                          color: AppColors.primaryColor, size: 20),
                     ],
                   ),
                 ),
-                PopupMenuItem<Map<String, dynamic>>(
-                  value: const {'useGoogleDrive': false},
+                PopupMenuItem<SpreadsheetImportAction>(
+                  value: SpreadsheetImportAction.googleDrive,
                   child: const Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Select Local File',
+                      Text('Select from Google Drive',
                           style: TextStyle(fontWeight: FontWeight.w500)),
                       Icon(Icons.arrow_forward_ios,
-                          color: Color(0xFFE2572B), size: 20),
+                          color: AppColors.primaryColor, size: 20),
+                    ],
+                  ),
+                ),
+                PopupMenuItem<SpreadsheetImportAction>(
+                  value: SpreadsheetImportAction.local,
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Select from Local Files',
+                          style: TextStyle(fontWeight: FontWeight.w500)),
+                      Icon(Icons.arrow_forward_ios,
+                          color: AppColors.primaryColor, size: 20),
                     ],
                   ),
                 ),
