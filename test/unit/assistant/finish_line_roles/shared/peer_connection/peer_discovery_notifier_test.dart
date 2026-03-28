@@ -4,6 +4,7 @@ import 'package:flutter_nearby_connections/flutter_nearby_connections.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/p2p_session_service.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/peer_discovery_notifier.dart';
 import 'package:xceleration/core/utils/connection_interfaces.dart';
@@ -11,15 +12,20 @@ import 'package:xceleration/shared/role_bar/models/role_enums.dart';
 
 import 'peer_discovery_notifier_test.mocks.dart';
 
-@GenerateMocks([NearbyConnectionsInterface])
+@GenerateMocks([NearbyConnectionsInterface, SharedPreferences])
 void main() {
   late MockNearbyConnectionsInterface mockNearby;
+  late MockSharedPreferences mockPrefs;
   late StreamController<PeerStateEvent> peerEventsController;
   late P2PSessionService session;
   late PeerDiscoveryNotifier notifier;
 
   setUp(() async {
     mockNearby = MockNearbyConnectionsInterface();
+    mockPrefs = MockSharedPreferences();
+    when(mockPrefs.getInt(any)).thenReturn(null);
+    when(mockPrefs.setInt(any, any)).thenAnswer((_) async => true);
+    when(mockPrefs.remove(any)).thenAnswer((_) async => true);
 
     when(mockNearby.init(
       serviceType: anyNamed('serviceType'),
@@ -42,6 +48,7 @@ void main() {
       localRole: Role.bibRecorderV2,
       raceId: 1,
       nearbyConnections: mockNearby,
+      prefs: mockPrefs,
     );
     await session.init();
 
@@ -99,7 +106,7 @@ void main() {
     peerEventsController = StreamController<PeerStateEvent>.broadcast();
 
     // Create a minimal fake P2PSessionService that exposes our controller's stream.
-    final fakeSession = _FakeP2PSessionService(peerEventsController.stream);
+    final fakeSession = _FakeP2PSessionService(peerEventsController.stream, mockPrefs);
     return PeerDiscoveryNotifier(role: role, raceId: 1, session: fakeSession);
   }
 
@@ -359,11 +366,12 @@ void main() {
 // ---------------------------------------------------------------------------
 
 class _FakeP2PSessionService extends P2PSessionService {
-  _FakeP2PSessionService(this._events)
+  _FakeP2PSessionService(this._events, SharedPreferences prefs)
       : super(
           localRole: Role.bibRecorderV2,
           raceId: 1,
           nearbyConnections: _NoOpNearbyConnections(),
+          prefs: prefs,
         );
 
   final Stream<PeerStateEvent> _events;

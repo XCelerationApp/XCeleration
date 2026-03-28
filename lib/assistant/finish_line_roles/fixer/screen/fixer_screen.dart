@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xceleration/assistant/finish_line_roles/bib_recorder/widgets/race_lobby_widget.dart';
 import 'package:xceleration/assistant/finish_line_roles/fixer/controller/fixer_controller.dart';
 import 'package:xceleration/assistant/shared/models/race_record.dart';
@@ -51,16 +52,19 @@ class _FixerScreenState extends State<FixerScreen> {
   PeerDiscoveryNotifier? _peerNotifier;
   P2PSessionService? _session;
   String? _selectedRaceName;
+  SharedPreferences? _prefs;
 
   @override
   void initState() {
     super.initState();
     _controller = FixerController(storage: widget.storage, raceId: 0);
     _controller.initialize();
+    SharedPreferences.getInstance().then((p) => _prefs = p);
   }
 
-  void _onJoinTapped(RaceRecord race) {
+  Future<void> _onJoinTapped(RaceRecord race) async {
     _selectedRaceName = race.name;
+    _prefs ??= await SharedPreferences.getInstance();
     // Re-create the controller now that the raceId and session are known.
     _controller.dispose();
     _session?.dispose();
@@ -68,6 +72,7 @@ class _FixerScreenState extends State<FixerScreen> {
       localRole: Role.fixer,
       raceId: race.raceId,
       nearbyConnections: NearbyConnections(),
+      prefs: _prefs!,
     );
     unawaited(session.init());
     _controller = FixerController(

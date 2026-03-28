@@ -108,6 +108,16 @@ class MockP2PSessionService extends _i1.Mock implements _i2.P2PSessionService {
       ) as int);
 
   @override
+  _i4.Future<void> clearPersistedSequence() => (super.noSuchMethod(
+        Invocation.method(
+          #clearPersistedSequence,
+          [],
+        ),
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
+
+  @override
   _i4.Future<void> dispose() => (super.noSuchMethod(
         Invocation.method(
           #dispose,
