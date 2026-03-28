@@ -54,7 +54,7 @@ class CsvUtils {
       ]);
     }
 
-    return const CsvEncoder().convert(rows);
+    return Csv().asCodec().encode(rows);
   }
 
   // Save the generated CSV content using file_saver (cross-platform)
