@@ -345,7 +345,7 @@ List<Map<String, dynamic>> _processSpreadsheetData(List<List<dynamic>> data) {
         'name': name,
         'grade': grade,
         'bib': bibNumber,
-        if (gender != null) 'gender': gender,
+        'gender': ?gender,
       });
     } else {
       Logger.d(

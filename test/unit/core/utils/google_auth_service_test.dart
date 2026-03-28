@@ -1,32 +1,36 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:google_sign_in/google_sign_in.dart';
+import 'package:google_sign_in_platform_interface/google_sign_in_platform_interface.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xceleration/core/services/connectivity_service.dart';
 import 'package:xceleration/core/utils/google_auth_service.dart';
+import '../../../helpers/fake_google_sign_in_platform.dart';
 
-@GenerateMocks([ConnectivityService, GoogleSignIn, GoogleSignInAccount, GoogleSignInAuthentication])
+@GenerateMocks([ConnectivityService])
 import 'google_auth_service_test.mocks.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late MockConnectivityService mockConnectivity;
-  late MockGoogleSignIn mockGoogleSignIn;
+  late FakeGoogleSignInPlatform fakePlatform;
+
+  setUpAll(() {
+    dotenv.loadFromString(isOptional: true);
+  });
 
   setUp(() {
     mockConnectivity = MockConnectivityService();
-    mockGoogleSignIn = MockGoogleSignIn();
+    fakePlatform = FakeGoogleSignInPlatform();
+    GoogleSignInPlatform.instance = fakePlatform;
     SharedPreferences.setMockInitialValues({});
   });
 
   GoogleAuthService buildService({bool online = true}) {
     when(mockConnectivity.isOnline()).thenAnswer((_) async => online);
-    return GoogleAuthService(
-      connectivity: mockConnectivity,
-      googleSignIn: mockGoogleSignIn,
-    );
+    return GoogleAuthService(connectivity: mockConnectivity);
   }
 
   group('GoogleAuthService', () {
@@ -68,83 +72,69 @@ void main() {
         expect(result, isFalse);
       });
 
-      test('does not call GoogleSignIn.signIn when offline', () async {
+      test('does not call GoogleSignIn when offline', () async {
         final service = buildService(online: false);
 
         await service.signIn();
 
-        verifyNever(mockGoogleSignIn.signIn());
-        verifyNever(mockGoogleSignIn.signInSilently());
+        expect(fakePlatform.authenticateCallCount, 0);
+        expect(fakePlatform.lightweightCallCount, 0);
       });
 
-      test('returns false when GoogleSignIn.signIn returns null', () async {
-        when(mockGoogleSignIn.signOut()).thenAnswer((_) async => null);
-        when(mockGoogleSignIn.signIn()).thenAnswer((_) async => null);
+      test('returns false when authenticate throws', () async {
+        // Default fake throws GoogleSignInException(canceled)
         final service = buildService();
 
         final result = await service.signIn();
 
         expect(result, isFalse);
-      });
-
-      test('returns true when already signed in with valid tokens', () async {
-        // Pre-populate valid tokens via SharedPreferences
-        final futureExpiry =
-            DateTime.now().add(const Duration(hours: 1)).millisecondsSinceEpoch;
-        SharedPreferences.setMockInitialValues({
-          'google_ios_auth_token': 'ios_token',
-          'google_ios_auth_token_expiry': futureExpiry,
-          'google_web_auth_token': 'web_token',
-          'google_web_auth_token_expiry': futureExpiry,
-        });
-
-        // Build a service without a mock sign-in (uses real GoogleSignIn normally)
-        // but here we simulate already-signed-in state by checking that:
-        // When hasValidIosToken and hasValidWebToken are both true but _currentUser is null,
-        // it would attempt sign-in. We test the offline guard first.
-        final service = buildService(online: false);
-
-        final result = await service.signIn();
-
-        expect(result, isFalse);
-        verifyNever(mockGoogleSignIn.signIn());
       });
 
       test('calls signOut before interactive sign-in when web token missing',
           () async {
-        when(mockGoogleSignIn.signOut()).thenAnswer((_) async => null);
-        when(mockGoogleSignIn.signIn()).thenAnswer((_) async => null);
+        // Default fake: authenticate throws, but signOut is called first
         final service = buildService();
 
         await service.signIn();
 
-        verify(mockGoogleSignIn.signOut()).called(1);
-        verify(mockGoogleSignIn.signIn()).called(1);
+        expect(fakePlatform.signOutCallCount, 1);
+        expect(fakePlatform.authenticateCallCount, 1);
       });
 
       test('returns false when sign-in throws', () async {
-        when(mockGoogleSignIn.signOut()).thenAnswer((_) async => null);
-        when(mockGoogleSignIn.signIn()).thenThrow(Exception('sign-in error'));
         final service = buildService();
 
         final result = await service.signIn();
 
         expect(result, isFalse);
+      });
+
+      test('uses lightweight auth when web token already valid', () async {
+        final service = buildService();
+        // Pre-load a valid web token so the service skips forced interactive sign-in
+        await service.setWebToken(
+          'cached-web-token',
+          DateTime.now().add(const Duration(hours: 1)),
+        );
+        fakePlatform.setupLightweightSuccess();
+
+        await service.signIn();
+
+        expect(fakePlatform.lightweightCallCount, 1);
+        expect(fakePlatform.authenticateCallCount, 0);
       });
     });
 
     group('signOut', () {
       test('calls GoogleSignIn.signOut', () async {
-        when(mockGoogleSignIn.signOut()).thenAnswer((_) async => null);
         final service = buildService();
 
         await service.signOut();
 
-        verify(mockGoogleSignIn.signOut()).called(1);
+        expect(fakePlatform.signOutCallCount, 1);
       });
 
       test('clears current user after sign-out', () async {
-        when(mockGoogleSignIn.signOut()).thenAnswer((_) async => null);
         final service = buildService();
 
         await service.signOut();
@@ -159,7 +149,6 @@ void main() {
           'google_web_auth_token': 'web_token',
           'google_web_auth_token_expiry': 12345,
         });
-        when(mockGoogleSignIn.signOut()).thenAnswer((_) async => null);
         final service = buildService();
 
         await service.signOut();
@@ -170,21 +159,11 @@ void main() {
       });
     });
 
-    group('_exchangeServerAuthCodeForAccessToken (via webAccessToken)', () {
-      test('skips token exchange when offline', () async {
-        final mockAccount = MockGoogleSignInAccount();
-        when(mockGoogleSignIn.signOut()).thenAnswer((_) async => null);
-        when(mockGoogleSignIn.signIn())
-            .thenAnswer((_) async => mockAccount);
-        when(mockAccount.serverAuthCode).thenReturn('auth_code');
-
-        // We can't easily drive the token exchange from the public API,
-        // but the offline guard in _exchangeServerAuthCodeForAccessToken
-        // is exercised indirectly when webAccessToken is requested.
-        // Here we just verify signIn() returns false offline.
+    group('token exchange (via webAccessToken)', () {
+      test('returns false when offline (offline guard exercises token path)',
+          () async {
         final service = buildService(online: false);
         final result = await service.signIn();
-
         expect(result, isFalse);
       });
     });
