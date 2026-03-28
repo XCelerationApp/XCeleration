@@ -90,6 +90,42 @@ void main() {
         expect(decoded.teamAbbreviation, isNull);
         expect(decoded.teamColor, isNull);
       });
+
+      test('round-trips entryId when present', () {
+        final msg = BibEntryMessage(
+          finishPosition: 3,
+          bib: 42,
+          status: BibEntryStatus.resolved,
+          timestamp: timestamp,
+          entryId: 1711000000000,
+        );
+        final decoded = BibEntryMessage.fromJson(msg.toJson());
+
+        expect(decoded.entryId, 1711000000000);
+      });
+
+      test('entryId is null when omitted from payload', () {
+        final decoded = BibEntryMessage.fromJson(makeEntry().toJson());
+        expect(decoded.entryId, isNull);
+      });
+    });
+
+    group('toJson', () {
+      test('omits entry_id key when entryId is null', () {
+        final json = makeEntry().toJson();
+        expect(json.containsKey('entry_id'), isFalse);
+      });
+
+      test('includes entry_id when entryId is set', () {
+        final msg = BibEntryMessage(
+          finishPosition: 1,
+          bib: 42,
+          status: BibEntryStatus.resolved,
+          timestamp: timestamp,
+          entryId: 1711000000000,
+        );
+        expect(msg.toJson()['entry_id'], 1711000000000);
+      });
     });
   });
 
@@ -162,7 +198,7 @@ void main() {
     FixerCorrectionMessage makeCorrection({
       int finishPosition = 5,
       int originalBib = 99,
-      int correctedBib = 100,
+      int? correctedBib = 100,
       int? matchedRunnerId = 42,
       CorrectionType type = CorrectionType.matched,
     }) =>
@@ -230,6 +266,20 @@ void main() {
         );
         expect(decoded.correctionType, CorrectionType.newRunner);
         expect(decoded.matchedRunnerId, isNull);
+      });
+
+      test('round-trips null correctedBib for newRunner with no bib', () {
+        final msg = FixerCorrectionMessage(
+          finishPosition: 3,
+          originalBib: 199,
+          correctedBib: null,
+          correctionType: CorrectionType.newRunner,
+        );
+        final decoded = FixerCorrectionMessage.fromJson(msg.toJson());
+
+        expect(decoded.correctedBib, isNull);
+        expect(decoded.correctionType, CorrectionType.newRunner);
+        expect(decoded.originalBib, 199);
       });
     });
   });

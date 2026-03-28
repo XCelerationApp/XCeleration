@@ -224,10 +224,14 @@ class BibRecorderV2Controller extends ChangeNotifier {
     switch (result) {
       case Success(:final value):
         _entries.clear();
+        _positionToEntryId.clear();
+        _nextPosition = 0;
         for (final BibRecord record in value) {
           final bib = int.tryParse(record.bibNumber);
           if (bib != null) {
             _entries.add(BibEntry(id: record.bibId, bib: bib));
+            _nextPosition++;
+            _positionToEntryId[_nextPosition] = record.bibId;
           }
         }
         notifyListeners();
@@ -241,11 +245,16 @@ class BibRecorderV2Controller extends ChangeNotifier {
   /// Returns `'duplicate'`, `'unknown'`, or `null` for a given bib.
   /// Pass [excludeId] to skip the entry being edited/checked.
   ///
-  /// Corrected entries (where [BibEntry.correctedTo] is non-null) are excluded
-  /// from the duplicate check — their original bib is no longer the active value.
+  /// Corrected entries (where [BibEntry.correctedTo] is non-null) and new-runner
+  /// entries (where [BibEntry.isNewRunner] is true) are excluded from duplicate
+  /// checks — their original bib is no longer the active value.
   String? flagFor(int bib, {int? excludeId}) {
+    // If the specific entry being checked is a new runner, it's already resolved.
+    if (excludeId != null && _entries.any((e) => e.id == excludeId && e.isNewRunner)) {
+      return null;
+    }
     final isDuplicate = _entries.any(
-      (e) => e.bib == bib && e.id != excludeId && e.correctedTo == null,
+      (e) => e.bib == bib && e.id != excludeId && e.correctedTo == null && !e.isNewRunner,
     );
     if (isDuplicate) return 'duplicate';
     final inRoster = _runners.any((r) => r.bibNumber == bib.toString());
@@ -517,6 +526,7 @@ class BibRecorderV2Controller extends ChangeNotifier {
         bib: bib,
         status: status,
         timestamp: DateTime.now(),
+        entryId: entryId,
         runnerName: runner?.name,
         teamAbbreviation: runner?.teamAbbreviation,
         teamColor: runner?.teamColor?.toARGB32(),
@@ -535,7 +545,11 @@ class BibRecorderV2Controller extends ChangeNotifier {
     if (entryId == null) return;
     final idx = _entries.indexWhere((e) => e.id == entryId);
     if (idx == -1) return;
-    _entries[idx] = _entries[idx].copyWith(correctedTo: msg.correctedBib);
+    if (msg.correctedBib != null) {
+      _entries[idx] = _entries[idx].copyWith(correctedTo: msg.correctedBib);
+    } else if (msg.correctionType == CorrectionType.newRunner) {
+      _entries[idx] = _entries[idx].copyWith(isNewRunner: true);
+    }
     notifyListeners();
   }
 

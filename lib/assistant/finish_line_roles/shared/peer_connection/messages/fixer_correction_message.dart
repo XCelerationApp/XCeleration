@@ -26,18 +26,25 @@ enum CorrectionType {
 }
 
 /// A correction back-propagated by the Fixer, sent Fixer → BibRecorderV2.
+///
+/// [correctedBib] is null when the resolution does not change the bib number
+/// (e.g. new-runner creation with no bib edit). The BibRecorder should mark the
+/// entry as resolved without altering the displayed bib.
 class FixerCorrectionMessage {
   const FixerCorrectionMessage({
     required this.finishPosition,
     required this.originalBib,
-    required this.correctedBib,
+    this.correctedBib,
     this.matchedRunnerId,
     required this.correctionType,
   });
 
   final int finishPosition;
   final int originalBib;
-  final int correctedBib;
+
+  /// The corrected bib number, or null when only runner identity changed
+  /// (e.g. new-runner resolution with no bib assigned).
+  final int? correctedBib;
 
   /// The ID of the matched runner, or null when no roster match was found.
   final int? matchedRunnerId;
@@ -56,7 +63,7 @@ class FixerCorrectionMessage {
       FixerCorrectionMessage(
         finishPosition: json['finish_position'] as int,
         originalBib: json['original_bib'] as int,
-        correctedBib: json['corrected_bib'] as int,
+        correctedBib: json['corrected_bib'] as int?,
         matchedRunnerId: json['matched_runner_id'] as int?,
         correctionType: CorrectionType.fromWireValue(
           json['correction_type'] as String,
