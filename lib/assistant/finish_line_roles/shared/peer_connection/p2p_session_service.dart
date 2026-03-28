@@ -100,6 +100,9 @@ class P2PSessionService {
   StreamSubscription<dynamic>? _stateSubscription;
   StreamSubscription<dynamic>? _dataSubscription;
 
+  // Guard against re-entrant init callback — see [init].
+  bool _discoveryStarted = false;
+
   // ---------------------------------------------------------------------------
   // Public API
   // ---------------------------------------------------------------------------
@@ -137,10 +140,13 @@ class P2PSessionService {
       strategy: Strategy.P2P_CLUSTER,
       callback: (isRunning) async {
         if (isRunning != true) return;
+        if (_discoveryStarted) return;
+        _discoveryStarted = true;
         try {
           await _nearbyConnections.startAdvertisingPeer();
           await _nearbyConnections.startBrowsingForPeers();
         } catch (e) {
+          _discoveryStarted = false;
           Logger.e(
               '[P2PSessionService] Failed to start advertising/browsing: $e');
         }
