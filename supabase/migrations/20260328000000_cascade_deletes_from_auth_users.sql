@@ -22,6 +22,14 @@
 
 begin;
 
+-- Clean up any orphaned rows that pre-date this migration (users deleted before
+-- FK constraints existed). These rows have no corresponding auth.users entry and
+-- cannot satisfy the new constraints.
+delete from public.user_profiles where user_id not in (select id from auth.users);
+delete from public.runners where owner_user_id not in (select id from auth.users);
+delete from public.teams where owner_user_id not in (select id from auth.users);
+delete from public.races where owner_user_id not in (select id from auth.users);
+
 alter table public.user_profiles
   add constraint fk_user_profiles_auth_user
   foreign key (user_id)
