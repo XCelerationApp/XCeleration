@@ -12,6 +12,7 @@ import 'package:xceleration/assistant/shared/models/runner.dart';
 import 'package:xceleration/assistant/shared/services/i_assistant_storage_service.dart';
 import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/result.dart';
+import 'package:xceleration/core/services/haptic_feedback_service.dart';
 import 'package:xceleration/core/utils/decode_utils.dart';
 import 'package:xceleration/core/utils/enums.dart';
 import 'package:xceleration/core/utils/logger.dart';
@@ -31,15 +32,18 @@ class FixerController extends ChangeNotifier {
     required int raceId,
     P2PSessionService? session,
     IBibCorrectionChannel? correctionChannel,
+    IHapticFeedback? haptic,
   })  : _storage = storage,
         _raceId = raceId,
         _session = session,
-        _correctionChannel = correctionChannel;
+        _correctionChannel = correctionChannel,
+        _haptic = haptic ?? HapticFeedbackService();
 
   final IAssistantStorageService _storage;
   final int _raceId;
   final P2PSessionService? _session;
   final IBibCorrectionChannel? _correctionChannel;
+  final IHapticFeedback _haptic;
 
   final List<FixerEntry> _queue = [];
   final List<Runner> _allRunners = [];
@@ -207,6 +211,7 @@ class FixerController extends ChangeNotifier {
   void resolveWithRunner(int entryId, Runner runner) {
     final idx = _queue.indexWhere((e) => e.id == entryId);
     if (idx == -1) return;
+    unawaited(_haptic.lightImpact());
     final original = _queue[idx];
     final correctedBib = int.tryParse(runner.bibNumber) ?? original.bib;
     final resolvedName = runner.name ?? runner.bibNumber;
@@ -232,11 +237,6 @@ class FixerController extends ChangeNotifier {
         )),
       ));
     }
-    unawaited(_storage.updateBibRecordValue(_raceId, entryId, correctedBib.toString()).then((result) {
-      if (result case Failure(:final error)) {
-        Logger.e('[FixerController.resolveWithRunner] ${error.originalException}');
-      }
-    }));
     notifyListeners();
   }
 
@@ -244,6 +244,7 @@ class FixerController extends ChangeNotifier {
   void resolveWithBib(int entryId, int newBib) {
     final idx = _queue.indexWhere((e) => e.id == entryId);
     if (idx == -1) return;
+    unawaited(_haptic.lightImpact());
     final original = _queue[idx];
     _queue[idx] = original.copyWith(isResolved: true, correctedBib: newBib);
     _correctionChannel?.sendCorrection(BibCorrectionMessage(
@@ -262,18 +263,17 @@ class FixerController extends ChangeNotifier {
         )),
       ));
     }
-    unawaited(_storage.updateBibRecordValue(_raceId, entryId, newBib.toString()).then((result) {
-      if (result case Failure(:final error)) {
-        Logger.e('[FixerController.resolveWithBib] ${error.originalException}');
-      }
-    }));
     notifyListeners();
   }
 
   /// Resolve by creating a new runner record (unknown runner, no roster match).
+  ///
+  /// When [newBib] is null, a correction is still sent to the BibRecorder to
+  /// mark the entry as a new-runner resolution without changing the bib number.
   void resolveAsNewRunner(int entryId, {String? name, int? newBib}) {
     final idx = _queue.indexWhere((e) => e.id == entryId);
     if (idx == -1) return;
+    unawaited(_haptic.lightImpact());
     final original = _queue[idx];
     final resolvedName = name ?? 'New Runner';
     final bibNumber = (newBib ?? entryId).toString();
@@ -296,7 +296,7 @@ class FixerController extends ChangeNotifier {
         MessageEnvelope.wrapFixerCorrection(FixerCorrectionMessage(
           finishPosition: original.position,
           originalBib: original.bib,
-          correctedBib: newBib ?? original.bib,
+          correctedBib: newBib,
           correctionType: CorrectionType.newRunner,
         )),
       ));
@@ -311,13 +311,6 @@ class FixerController extends ChangeNotifier {
         Logger.e('[FixerController.resolveAsNewRunner] ${error.originalException}');
       }
     }));
-    if (newBib != null) {
-      unawaited(_storage.updateBibRecordValue(_raceId, entryId, newBib.toString()).then((result) {
-        if (result case Failure(:final error)) {
-          Logger.e('[FixerController.resolveAsNewRunner] ${error.originalException}');
-        }
-      }));
-    }
     notifyListeners();
   }
 
@@ -330,6 +323,7 @@ class FixerController extends ChangeNotifier {
   }
 
   void _addEntryFromFlag(VerifierFlagMessage msg) {
+    unawaited(_haptic.vibrate());
     final reason = switch (msg.reason) {
       FlagReason.wrongName => FixReason.verifierFlagged,
       FlagReason.unknown => FixReason.unknown,
@@ -338,7 +332,7 @@ class FixerController extends ChangeNotifier {
     _queue.insert(
       0,
       FixerEntry(
-        id: msg.entry.finishPosition,
+        id: msg.entry.entryId ?? msg.entry.finishPosition,
         position: msg.entry.finishPosition,
         bib: msg.entry.bib,
         reason: reason,

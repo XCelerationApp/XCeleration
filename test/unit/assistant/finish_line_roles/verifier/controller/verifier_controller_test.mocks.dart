@@ -17,6 +17,7 @@ import 'package:xceleration/assistant/shared/models/runner.dart' as _i12;
 import 'package:xceleration/assistant/shared/services/i_assistant_storage_service.dart'
     as _i6;
 import 'package:xceleration/core/result.dart' as _i7;
+import 'package:xceleration/core/services/haptic_feedback_service.dart' as _i14;
 import 'package:xceleration/shared/models/timing_records/timing_chunk.dart'
     as _i10;
 import 'package:xceleration/shared/models/timing_records/timing_datum.dart'
@@ -1052,4 +1053,33 @@ class MockIAssistantStorageService extends _i1.Mock
           ),
         )),
       ) as _i4.Future<_i7.Result<int>>);
+}
+
+/// A class which mocks [IHapticFeedback].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockIHapticFeedback extends _i1.Mock implements _i14.IHapticFeedback {
+  MockIHapticFeedback() {
+    _i1.throwOnMissingStub(this);
+  }
+
+  @override
+  _i4.Future<void> vibrate() => (super.noSuchMethod(
+        Invocation.method(
+          #vibrate,
+          [],
+        ),
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
+
+  @override
+  _i4.Future<void> lightImpact() => (super.noSuchMethod(
+        Invocation.method(
+          #lightImpact,
+          [],
+        ),
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 }
