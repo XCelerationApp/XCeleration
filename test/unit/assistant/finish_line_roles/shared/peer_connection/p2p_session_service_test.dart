@@ -5,6 +5,7 @@ import 'package:flutter_nearby_connections/flutter_nearby_connections.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/messages/messages.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/p2p_session_service.dart';
 import 'package:xceleration/core/utils/connection_interfaces.dart';
@@ -12,9 +13,10 @@ import 'package:xceleration/shared/role_bar/models/role_enums.dart';
 
 import 'p2p_session_service_test.mocks.dart';
 
-@GenerateMocks([NearbyConnectionsInterface])
+@GenerateMocks([NearbyConnectionsInterface, SharedPreferences])
 void main() {
   late MockNearbyConnectionsInterface mockNearby;
+  late MockSharedPreferences mockPrefs;
   late P2PSessionService service;
 
   // Callbacks captured from the mock so tests can drive them directly.
@@ -23,11 +25,17 @@ void main() {
 
   setUp(() async {
     mockNearby = MockNearbyConnectionsInterface();
+    mockPrefs = MockSharedPreferences();
+
+    when(mockPrefs.getInt(any)).thenReturn(null);
+    when(mockPrefs.setInt(any, any)).thenAnswer((_) async => true);
+    when(mockPrefs.remove(any)).thenAnswer((_) async => true);
 
     service = P2PSessionService(
       localRole: Role.bibRecorderV2,
       raceId: 42,
       nearbyConnections: mockNearby,
+      prefs: mockPrefs,
     );
 
     when(mockNearby.init(
@@ -605,6 +613,164 @@ void main() {
 
       expect(events, isEmpty);
       await sub.cancel();
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // out-of-order deduplication (XCE-519)
+  // ---------------------------------------------------------------------------
+
+  group('out-of-order deduplication', () {
+    test('all three messages delivered out of order are processed exactly once',
+        () async {
+      await connectVerifier();
+
+      final events = <(Role, MessageEnvelope)>[];
+      final sub = service.incomingMessages.listen(events.add);
+
+      // Deliver seq 1, then 3, then 2 — all three must reach the stream.
+      receiveFromVerifier(
+          MessageEnvelope.wrapBibEntry(makeEntryAt(1)).withSequence(1));
+      receiveFromVerifier(
+          MessageEnvelope.wrapBibEntry(makeEntryAt(3)).withSequence(3));
+      receiveFromVerifier(
+          MessageEnvelope.wrapBibEntry(makeEntryAt(2)).withSequence(2));
+      await Future.delayed(Duration.zero);
+
+      expect(events.length, 3);
+      await sub.cancel();
+    });
+
+    test('redelivered duplicate after out-of-order burst is still dropped',
+        () async {
+      await connectVerifier();
+
+      final events = <(Role, MessageEnvelope)>[];
+      final sub = service.incomingMessages.listen(events.add);
+
+      final envelope =
+          MessageEnvelope.wrapBibEntry(makeEntryAt(1)).withSequence(1);
+      receiveFromVerifier(
+          MessageEnvelope.wrapBibEntry(makeEntryAt(3)).withSequence(3));
+      receiveFromVerifier(envelope);
+      receiveFromVerifier(
+          MessageEnvelope.wrapBibEntry(makeEntryAt(2)).withSequence(2));
+      receiveFromVerifier(envelope); // duplicate of seq 1
+      await Future.delayed(Duration.zero);
+
+      expect(events.length, 3);
+      await sub.cancel();
+    });
+
+    test('seen-sequence set is bounded — entries beyond cap are evicted',
+        () async {
+      await connectVerifier();
+
+      final events = <(Role, MessageEnvelope)>[];
+      final sub = service.incomingMessages.listen(events.add);
+
+      // Deliver 1001 unique messages — all should be processed (none dropped
+      // as duplicates), confirming cap eviction does not cause false drops.
+      for (int i = 0; i <= 1000; i++) {
+        receiveFromVerifier(
+            MessageEnvelope.wrapBibEntry(makeEntryAt(i % 10)).withSequence(i));
+      }
+      await Future.delayed(Duration.zero);
+
+      expect(events.length, 1001);
+      await sub.cancel();
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // mid-flush message loss fix (XCE-520)
+  // ---------------------------------------------------------------------------
+
+  group('mid-flush message loss', () {
+    test(
+        'all queued messages are re-queued after a mid-flush disconnect',
+        () async {
+      // Queue 5 messages while offline.
+      for (int i = 1; i <= 5; i++) {
+        await service.sendMessage(
+            Role.verifier, MessageEnvelope.wrapBibEntry(makeEntryAt(i)));
+      }
+      expect(service.pendingCount(Role.verifier), 5);
+
+      // Make sends fail starting from the 3rd message.
+      int sendCount = 0;
+      when(mockNearby.sendMessage(any, any)).thenAnswer((_) async {
+        sendCount++;
+        if (sendCount > 2) throw Exception('peer disconnected');
+      });
+
+      // Connect triggers flush; 3rd send throws.
+      await capturedStateCallback([
+        Device('verifier-device-id', 'xce|VFR|42|test-phone',
+            2 /* connected */),
+      ]);
+
+      // Disconnect re-queues everything in _pendingAck (all 5 messages were
+      // pre-registered before the first send was attempted).
+      await capturedStateCallback([
+        Device('verifier-device-id', 'xce|VFR|42|test-phone',
+            0 /* notConnected */),
+      ]);
+
+      // All 5 messages must be back in the offline queue.
+      expect(service.pendingCount(Role.verifier), 5);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // sequence number persistence (XCE-521)
+  // ---------------------------------------------------------------------------
+
+  group('sequence number persistence', () {
+    test('init() restores _nextSequence from SharedPreferences', () async {
+      when(mockPrefs.getInt('p2p_seq_42_bibRecorderV2')).thenReturn(7);
+
+      final restoredService = P2PSessionService(
+        localRole: Role.bibRecorderV2,
+        raceId: 42,
+        nearbyConnections: mockNearby,
+        prefs: mockPrefs,
+      );
+      await restoredService.init();
+
+      // Connect verifier and send — first message should get sequence 7.
+      await capturedStateCallback([
+        Device('verifier-device-id', 'xce|VFR|42|test-phone', 2),
+      ]);
+      await restoredService.sendMessage(
+          Role.verifier, MessageEnvelope.wrapBibEntry(makeEntry()));
+
+      final captured =
+          verify(mockNearby.sendMessage('verifier-device-id', captureAny))
+              .captured;
+      final sent = captured
+          .map((j) => MessageEnvelope.fromJson(
+                (jsonDecode(j as String) as Map).cast<String, dynamic>(),
+              ))
+          .where((e) => e.type != MessageType.ack)
+          .toList();
+
+      expect(sent.first.sequence, 7);
+      await restoredService.dispose();
+    });
+
+    test('sendMessage() persists the updated sequence counter', () async {
+      await connectVerifier();
+      await service.sendMessage(
+          Role.verifier, MessageEnvelope.wrapBibEntry(makeEntry()));
+
+      verify(mockPrefs.setInt('p2p_seq_42_bibRecorderV2', 1)).called(1);
+    });
+
+    test('clearPersistedSequence() removes the key from storage', () async {
+      await service.clearPersistedSequence();
+
+      verify(mockPrefs.remove('p2p_seq_42_bibRecorderV2')).called(1);
     });
   });
 
