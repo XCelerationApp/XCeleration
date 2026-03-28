@@ -215,13 +215,25 @@ void main() {
 
         expect(controller.entries, isEmpty);
       });
-    });
 
-    group('flag', () {
-      test('sends VerifierFlagMessage to fixer for entry with no bib flag', () async {
+      test('malformed bibEntry payload is dropped and stream listener remains alive', () async {
         final controller = VerifierController(session: mockSession, haptic: mockHaptic);
         controller.initialize();
 
+        // Malformed: missing required fields — fromJson will throw.
+        incomingController.add((
+          Role.bibRecorderV2,
+          MessageEnvelope(
+            type: MessageType.bibEntry,
+            version: messageSchemaVersion,
+            payload: const {'bad_field': 'garbage'},
+          ),
+        ));
+        await Future.microtask(() {});
+
+        expect(controller.entries, isEmpty);
+
+        // Subsequent valid message is still processed — listener still alive.
         incomingController.add((
           Role.bibRecorderV2,
           MessageEnvelope.wrapBibEntry(BibEntryMessage(
@@ -233,72 +245,136 @@ void main() {
         ));
         await Future.microtask(() {});
 
-        controller.flag(1);
+        expect(controller.entries.length, 1);
+        expect(controller.entries.first.bib, 101);
+      });
+    });
 
-        final captured =
-            verify(mockSession.sendMessage(Role.fixer, captureAny)).captured;
-        final envelope = captured.last as MessageEnvelope;
-        expect(envelope.type, MessageType.verifierFlag);
-        final msg = envelope.decode() as VerifierFlagMessage;
-        expect(msg.entry.bib, 101);
-        expect(msg.entry.finishPosition, 1);
-        expect(msg.reason, FlagReason.wrongName);
+    group('flag', () {
+      test('sends VerifierFlagMessage to fixer after 3-second undo window', () {
+        fakeAsync((fake) {
+          final controller = VerifierController(session: mockSession, haptic: mockHaptic);
+          controller.initialize();
+
+          incomingController.add((
+            Role.bibRecorderV2,
+            MessageEnvelope.wrapBibEntry(BibEntryMessage(
+              finishPosition: 1,
+              bib: 101,
+              status: BibEntryStatus.resolved,
+              timestamp: DateTime.now(),
+            )),
+          ));
+          fake.flushMicrotasks();
+
+          controller.flag(1);
+
+          // Message not sent yet — undo window still open.
+          verifyNever(mockSession.sendMessage(any, any));
+
+          fake.elapse(const Duration(seconds: 3));
+
+          final captured =
+              verify(mockSession.sendMessage(Role.fixer, captureAny)).captured;
+          final envelope = captured.last as MessageEnvelope;
+          expect(envelope.type, MessageType.verifierFlag);
+          final msg = envelope.decode() as VerifierFlagMessage;
+          expect(msg.entry.bib, 101);
+          expect(msg.entry.finishPosition, 1);
+          expect(msg.reason, FlagReason.wrongName);
+        });
       });
 
-      test('sends FlagReason.unknown for unknown-flagged entry', () async {
-        final controller = VerifierController(session: mockSession, haptic: mockHaptic);
-        controller.initialize();
+      test('sends FlagReason.unknown for unknown-flagged entry after undo window', () {
+        fakeAsync((fake) {
+          final controller = VerifierController(session: mockSession, haptic: mockHaptic);
+          controller.initialize();
 
-        incomingController.add((
-          Role.bibRecorderV2,
-          MessageEnvelope.wrapBibEntry(BibEntryMessage(
-            finishPosition: 2,
-            bib: 999,
-            status: BibEntryStatus.unknown,
-            timestamp: DateTime.now(),
-          )),
-        ));
-        await Future.microtask(() {});
+          incomingController.add((
+            Role.bibRecorderV2,
+            MessageEnvelope.wrapBibEntry(BibEntryMessage(
+              finishPosition: 2,
+              bib: 999,
+              status: BibEntryStatus.unknown,
+              timestamp: DateTime.now(),
+            )),
+          ));
+          fake.flushMicrotasks();
 
-        controller.flag(2);
+          controller.flag(2);
+          fake.elapse(const Duration(seconds: 3));
 
-        final captured =
-            verify(mockSession.sendMessage(Role.fixer, captureAny)).captured;
-        final msg =
-            (captured.last as MessageEnvelope).decode() as VerifierFlagMessage;
-        expect(msg.reason, FlagReason.unknown);
+          final captured =
+              verify(mockSession.sendMessage(Role.fixer, captureAny)).captured;
+          final msg =
+              (captured.last as MessageEnvelope).decode() as VerifierFlagMessage;
+          expect(msg.reason, FlagReason.unknown);
+        });
       });
 
-      test('sends FlagReason.duplicate for duplicate-flagged entry', () async {
-        final controller = VerifierController(session: mockSession, haptic: mockHaptic);
-        controller.initialize();
+      test('sends FlagReason.duplicate for duplicate-flagged entry after undo window', () {
+        fakeAsync((fake) {
+          final controller = VerifierController(session: mockSession, haptic: mockHaptic);
+          controller.initialize();
 
-        incomingController.add((
-          Role.bibRecorderV2,
-          MessageEnvelope.wrapBibEntry(BibEntryMessage(
-            finishPosition: 3,
-            bib: 107,
-            status: BibEntryStatus.duplicate,
-            timestamp: DateTime.now(),
-          )),
-        ));
-        await Future.microtask(() {});
+          incomingController.add((
+            Role.bibRecorderV2,
+            MessageEnvelope.wrapBibEntry(BibEntryMessage(
+              finishPosition: 3,
+              bib: 107,
+              status: BibEntryStatus.duplicate,
+              timestamp: DateTime.now(),
+            )),
+          ));
+          fake.flushMicrotasks();
 
-        controller.flag(3);
+          controller.flag(3);
+          fake.elapse(const Duration(seconds: 3));
 
-        final captured =
-            verify(mockSession.sendMessage(Role.fixer, captureAny)).captured;
-        final msg =
-            (captured.last as MessageEnvelope).decode() as VerifierFlagMessage;
-        expect(msg.reason, FlagReason.duplicate);
+          final captured =
+              verify(mockSession.sendMessage(Role.fixer, captureAny)).captured;
+          final msg =
+              (captured.last as MessageEnvelope).decode() as VerifierFlagMessage;
+          expect(msg.reason, FlagReason.duplicate);
+        });
+      });
+
+      test('does not send message when flag is undone within 3 seconds', () {
+        fakeAsync((fake) {
+          final controller = VerifierController(session: mockSession, haptic: mockHaptic);
+          controller.initialize();
+
+          incomingController.add((
+            Role.bibRecorderV2,
+            MessageEnvelope.wrapBibEntry(BibEntryMessage(
+              finishPosition: 1,
+              bib: 101,
+              status: BibEntryStatus.resolved,
+              timestamp: DateTime.now(),
+            )),
+          ));
+          fake.flushMicrotasks();
+
+          controller.flag(1);
+          controller.undo(1); // cancel within undo window
+
+          fake.elapse(const Duration(seconds: 5));
+
+          verifyNever(mockSession.sendMessage(any, any));
+        });
       });
 
       test('does not send message when no session is set', () {
-        final controller = VerifierController(haptic: mockHaptic);
-        controller.joinRace();
+        fakeAsync((fake) {
+          final controller = VerifierController(haptic: mockHaptic);
+          controller.joinRace();
 
-        // Without a session, flag should not call any sendMessage.
-        verifyNever(mockSession.sendMessage(any, any));
+          controller.flag(1); // no session — flag is a no-op for P2P
+
+          fake.elapse(const Duration(seconds: 3));
+
+          verifyNever(mockSession.sendMessage(any, any));
+        });
       });
     });
 

@@ -354,7 +354,14 @@ class P2PSessionService {
       ackMap[msg.sequence!] = msg;
     }
 
-    final deviceId = _roleToDeviceId[role]!;
+    final deviceId = _roleToDeviceId[role];
+    if (deviceId == null) {
+      // Peer disconnected between the connected event and the flush — move
+      // the pre-registered messages back to the outbound queue so they are
+      // re-delivered on the next reconnect.
+      _requeuePending(role);
+      return;
+    }
     for (final msg in queue) {
       try {
         await _nearbyConnections.sendMessage(deviceId, jsonEncode(msg.toJson()));

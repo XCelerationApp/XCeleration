@@ -160,10 +160,13 @@ class VerifierController extends ChangeNotifier {
   }
 
   /// ✗ — runner could not be confirmed; escalate to Fixer.
+  ///
+  /// The P2P message to the Fixer is sent only after the 3-second undo window
+  /// expires. If [undo] is called before the timer fires, no message is sent.
   void flag(int id) {
     unawaited(_haptic.vibrate());
     final idx = _entries.indexWhere((e) => e.id == id);
-    _act(id, VerificationStatus.flagged);
+    VoidCallback? onCommit;
     if (_session != null && idx != -1) {
       final e = _entries[idx];
       final reason = switch (e.flag) {
@@ -171,19 +174,18 @@ class VerifierController extends ChangeNotifier {
         BibFlag.duplicate => FlagReason.duplicate,
         BibFlag.none => FlagReason.wrongName,
       };
-      unawaited(_session!.sendMessage(
-        Role.fixer,
-        MessageEnvelope.wrapVerifierFlag(VerifierFlagMessage(
-          entry: BibEntryMessage(
-            finishPosition: e.position,
-            bib: e.bib,
-            status: _bibEntryStatusFor(e.flag),
-            timestamp: DateTime.now(),
-          ),
-          reason: reason,
-        )),
+      final message = MessageEnvelope.wrapVerifierFlag(VerifierFlagMessage(
+        entry: BibEntryMessage(
+          finishPosition: e.position,
+          bib: e.bib,
+          status: _bibEntryStatusFor(e.flag),
+          timestamp: DateTime.now(),
+        ),
+        reason: reason,
       ));
+      onCommit = () => unawaited(_session!.sendMessage(Role.fixer, message));
     }
+    _act(id, VerificationStatus.flagged, onCommit: onCommit);
   }
 
   /// — — skip / defer.
@@ -202,7 +204,7 @@ class VerifierController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _act(int id, VerificationStatus status) {
+  void _act(int id, VerificationStatus status, {VoidCallback? onCommit}) {
     final idx = _entries.indexWhere((e) => e.id == id);
     if (idx == -1) return;
     _entries[idx] = _entries[idx].copyWith(status: status);
@@ -212,6 +214,7 @@ class VerifierController extends ChangeNotifier {
     _undoTimers[id] = Timer(const Duration(seconds: 3), () {
       if (_undoTimers.containsKey(id)) {
         _undoTimers.remove(id);
+        onCommit?.call();
         final entry = _entries.where((e) => e.id == id).firstOrNull;
         if (entry != null) {
           _history.insert(0, entry);
@@ -260,7 +263,11 @@ class VerifierController extends ChangeNotifier {
   void _onSessionMessage((Role, MessageEnvelope) event) {
     final (_, envelope) = event;
     if (envelope.type != MessageType.bibEntry) return;
-    _addEntryFromMessage(envelope.decode() as BibEntryMessage);
+    try {
+      _addEntryFromMessage(envelope.decode() as BibEntryMessage);
+    } catch (e) {
+      Logger.e('[VerifierController._onSessionMessage] Malformed message dropped: $e');
+    }
   }
 
   void _addEntryFromMessage(BibEntryMessage msg) {
@@ -282,6 +289,7 @@ class VerifierController extends ChangeNotifier {
       t.cancel();
     }
     _sessionSub?.cancel();
+    _session?.dispose();
     super.dispose();
   }
 }

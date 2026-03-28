@@ -66,8 +66,8 @@ class _FixerScreenState extends State<FixerScreen> {
     _selectedRaceName = race.name;
     _prefs ??= await SharedPreferences.getInstance();
     // Re-create the controller now that the raceId and session are known.
-    _controller.dispose();
     _session?.dispose();
+    _controller.dispose();
     final session = P2PSessionService(
       localRole: Role.fixer,
       raceId: race.raceId,
