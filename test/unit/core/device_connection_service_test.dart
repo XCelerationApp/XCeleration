@@ -412,7 +412,7 @@ void main() {
 
       final token = await deviceConnectionService.monitorMessageReceives(
         mockDevice,
-        messageReceivedCallback: (_, __) {},
+        messageReceivedCallback: (_, _) {},
       );
 
       expect(token, isNull);
@@ -425,7 +425,7 @@ void main() {
 
       await deviceConnectionService.monitorMessageReceives(
         mockDevice,
-        messageReceivedCallback: (_, __) {
+        messageReceivedCallback: (_, _) {
           callbackInvoked = true;
         },
       );
@@ -768,7 +768,7 @@ void main() {
 
       final token = await deviceConnectionService.monitorMessageReceives(
         mockDevice,
-        messageReceivedCallback: (_, __) {
+        messageReceivedCallback: (_, _) {
           callbackInvoked = true;
         },
       );

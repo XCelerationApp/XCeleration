@@ -348,7 +348,7 @@ Future<bool> showFlow({
           if (showProgressIndicator)
             Selector<FlowController, (int, bool)>(
               selector: (_, c) => (c.currentIndex, c.canGoBack),
-              builder: (ctx, data, __) {
+              builder: (ctx, data, _) {
                 final (currentIndex, canGoBack) = data;
                 return Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -365,7 +365,7 @@ Future<bool> showFlow({
           // Title + description: rebuilds only on step navigation
           Selector<FlowController, int>(
             selector: (_, c) => c.currentIndex,
-            builder: (_, index, __) {
+            builder: (_, index, _) {
               final step = steps[index];
               return Padding(
                 padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
@@ -399,7 +399,7 @@ Future<bool> showFlow({
           Expanded(
             child: Selector<FlowController, int>(
               selector: (_, c) => c.currentIndex,
-              builder: (_, index, __) {
+              builder: (_, index, _) {
                 final step = steps[index];
                 return step.canScroll
                     ? SingleChildScrollView(child: step.content)
@@ -410,7 +410,7 @@ Future<bool> showFlow({
           // Next button: rebuilds only when canProceed or step changes
           Selector<FlowController, (bool, int)>(
             selector: (_, c) => (c.canProceed, c.currentIndex),
-            builder: (ctx, data, __) {
+            builder: (ctx, data, _) {
               final (canProceed, _) = data;
               return Padding(
                 padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),

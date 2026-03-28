@@ -115,7 +115,7 @@ Future<dynamic> sheet(
           children: [
             if (showHeader) createSheetHeader(title, titleSize: titleSize),
             Flexible(child: body),
-            if (actionButtons != null) actionButtons,
+            ?actionButtons,
           ],
         ),
       ),
