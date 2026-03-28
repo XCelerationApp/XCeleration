@@ -5,7 +5,9 @@ import 'package:xceleration/assistant/shared/models/race_record.dart';
 import 'package:xceleration/assistant/shared/services/i_assistant_storage_service.dart';
 import 'package:xceleration/assistant/finish_line_roles/fixer/widgets/fixer_entry_card.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/connection_setup_screen.dart';
+import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/p2p_session_service.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/peer_discovery_notifier.dart';
+import 'package:xceleration/core/services/nearby_connections.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/peer_status_strip.dart';
 import 'package:xceleration/core/components/app_header.dart';
 import 'package:xceleration/core/components/device_connection_widget.dart';
@@ -47,6 +49,7 @@ class _FixerScreenState extends State<FixerScreen> {
   // Connection setup state
   bool _connecting = false;
   PeerDiscoveryNotifier? _peerNotifier;
+  P2PSessionService? _session;
   String? _selectedRaceName;
 
   @override
@@ -58,9 +61,20 @@ class _FixerScreenState extends State<FixerScreen> {
 
   void _onJoinTapped(RaceRecord race) {
     _selectedRaceName = race.name;
-    // Re-create the controller now that the raceId is known.
+    // Re-create the controller now that the raceId and session are known.
     _controller.dispose();
-    _controller = FixerController(storage: widget.storage, raceId: race.raceId);
+    _session?.dispose();
+    final session = P2PSessionService(
+      localRole: Role.fixer,
+      raceId: race.raceId,
+      nearbyConnections: NearbyConnections(),
+    );
+    unawaited(session.init());
+    _controller = FixerController(
+      storage: widget.storage,
+      raceId: race.raceId,
+      session: session,
+    );
     _controller.initialize();
     final notifier = PeerDiscoveryNotifier(
       role: Role.fixer,
@@ -69,6 +83,7 @@ class _FixerScreenState extends State<FixerScreen> {
     setState(() {
       _connecting = true;
       _peerNotifier = notifier;
+      _session = session;
     });
   }
 
@@ -79,19 +94,24 @@ class _FixerScreenState extends State<FixerScreen> {
   }
 
   Future<void> _onConnectionSkip() async {
+    // Offline mode: discard notifier and session.
     _peerNotifier?.dispose();
+    _session?.dispose();
     setState(() {
       _connecting = false;
       _peerNotifier = null;
+      _session = null;
     });
     await _controller.joinRace();
   }
 
   void _onConnectionLeave() {
     _peerNotifier?.dispose();
+    _session?.dispose();
     setState(() {
       _connecting = false;
       _peerNotifier = null;
+      _session = null;
     });
   }
 
@@ -118,7 +138,11 @@ class _FixerScreenState extends State<FixerScreen> {
   /// Tears down the active P2P session and returns to the lobby.
   void _leaveRace() {
     _peerNotifier?.dispose();
-    setState(() => _peerNotifier = null);
+    _session?.dispose();
+    setState(() {
+      _peerNotifier = null;
+      _session = null;
+    });
     _controller.leaveRace();
   }
 
@@ -126,6 +150,7 @@ class _FixerScreenState extends State<FixerScreen> {
   void dispose() {
     _controller.dispose();
     _peerNotifier?.dispose();
+    _session?.dispose();
     super.dispose();
   }
 

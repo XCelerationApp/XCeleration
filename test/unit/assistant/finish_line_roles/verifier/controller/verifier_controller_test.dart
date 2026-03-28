@@ -724,5 +724,61 @@ void main() {
         });
       });
     });
+
+    group('attachSession', () {
+      test('subscribes to incoming messages after construction without session',
+          () async {
+        final controller = VerifierController();
+
+        controller.attachSession(mockSession);
+
+        incomingController.add((
+          Role.bibRecorderV2,
+          MessageEnvelope.wrapBibEntry(BibEntryMessage(
+            finishPosition: 1,
+            bib: 77,
+            status: BibEntryStatus.resolved,
+            timestamp: DateTime.now(),
+          )),
+        ));
+
+        await Future.microtask(() {});
+
+        expect(controller.entries.length, 1);
+        expect(controller.entries.first.bib, 77);
+      });
+
+      test('replaces prior session subscription without leaking', () async {
+        final secondController =
+            StreamController<(Role, MessageEnvelope)>.broadcast();
+        final secondSession = MockP2PSessionService();
+        when(secondSession.incomingMessages)
+            .thenAnswer((_) => secondController.stream);
+
+        final controller = VerifierController(session: mockSession);
+        controller.initialize();
+
+        // Replace with second session.
+        controller.attachSession(secondSession);
+
+        // Message on old stream — should be ignored.
+        incomingController.add((
+          Role.bibRecorderV2,
+          MessageEnvelope.wrapBibEntry(BibEntryMessage(
+            finishPosition: 1,
+            bib: 88,
+            status: BibEntryStatus.resolved,
+            timestamp: DateTime.now(),
+          )),
+        ));
+
+        await Future.microtask(() {});
+
+        // Entry should not appear — old subscription was cancelled.
+        expect(controller.entries, isEmpty);
+
+        await secondController.close();
+      });
+    });
   });
 }

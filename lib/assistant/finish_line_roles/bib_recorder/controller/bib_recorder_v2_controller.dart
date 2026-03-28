@@ -43,7 +43,7 @@ class BibRecorderV2Controller extends ChangeNotifier {
   final IAssistantStorageService _storage;
   final IVoiceRecognitionService _voice;
   final IHapticFeedback _haptic;
-  final P2PSessionService? _session;
+  P2PSessionService? _session;
 
   StreamSubscription<int?>? _bibSub;
   StreamSubscription<String>? _transcriptSub;
@@ -103,7 +103,7 @@ class BibRecorderV2Controller extends ChangeNotifier {
   /// subscribes to incoming [FixerCorrectionMessage]s.
   Future<void> initialize() async {
     if (_session != null) {
-      _sessionSub = _session.incomingMessages.listen(_onSessionMessage);
+      _sessionSub = _session!.incomingMessages.listen(_onSessionMessage);
     }
     await Future.wait([
       _loadRaces(),
@@ -491,6 +491,16 @@ class BibRecorderV2Controller extends ChangeNotifier {
 
   // ── P2P ───────────────────────────────────────────────────────────────────
 
+  /// Attaches [session] to this controller for the current race.
+  ///
+  /// Safe to call after [initialize]. Cancels any existing session subscription
+  /// before subscribing to [session]'s incoming messages.
+  void attachSession(P2PSessionService session) {
+    _sessionSub?.cancel();
+    _session = session;
+    _sessionSub = session.incomingMessages.listen(_onSessionMessage);
+  }
+
   void _sendBibEntry(int entryId, int bib, int position) {
     if (_session == null) return;
     final flag = flagFor(bib, excludeId: entryId);
@@ -500,7 +510,7 @@ class BibRecorderV2Controller extends ChangeNotifier {
             ? BibEntryStatus.unknown
             : BibEntryStatus.resolved;
     final runner = runnerFor(bib);
-    unawaited(_session.sendMessage(
+    unawaited(_session!.sendMessage(
       Role.verifier,
       MessageEnvelope.wrapBibEntry(BibEntryMessage(
         finishPosition: position,
