@@ -36,8 +36,15 @@ void main() {
     when(mockController.runnerFor(any)).thenReturn(null);
   });
 
-  Widget wrapLobby() => MaterialApp(
-        home: Scaffold(body: RaceLobbyWidget(controller: mockController)),
+  Widget wrapLobby({List<RaceRecord> races = const []}) => MaterialApp(
+        home: Scaffold(
+          body: RaceLobbyWidget(
+            races: races,
+            onSelectRace: (_) {},
+            onDeleteRace: (_) {},
+            onGetFromCoach: () {},
+          ),
+        ),
       );
 
   Widget wrapRaceMode() => MaterialApp(
@@ -46,8 +53,6 @@ void main() {
 
   group('RaceLobbyWidget', () {
     testWidgets('shows empty state when no races are loaded', (tester) async {
-      when(mockController.races).thenReturn([]);
-
       await tester.pumpWidget(wrapLobby());
       await tester.pump();
 
@@ -61,17 +66,14 @@ void main() {
         name: 'State Meet',
         type: 'bibRecorderV2',
       );
-      when(mockController.races).thenReturn([race]);
 
-      await tester.pumpWidget(wrapLobby());
+      await tester.pumpWidget(wrapLobby(races: [race]));
       await tester.pump();
 
       expect(find.text('State Meet'), findsOneWidget);
     });
 
     testWidgets('no entries shown in lobby state', (tester) async {
-      when(mockController.races).thenReturn([]);
-
       await tester.pumpWidget(wrapLobby());
       await tester.pump();
 

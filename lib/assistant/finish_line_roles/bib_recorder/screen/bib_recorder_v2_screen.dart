@@ -4,7 +4,9 @@ import 'package:xceleration/assistant/finish_line_roles/bib_recorder/widgets/man
 import 'package:xceleration/assistant/finish_line_roles/bib_recorder/widgets/race_lobby_widget.dart';
 import 'package:xceleration/assistant/finish_line_roles/bib_recorder/widgets/race_mode_widget.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/connection_setup_screen.dart';
+import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/p2p_session_service.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/peer_discovery_notifier.dart';
+import 'package:xceleration/core/services/nearby_connections.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/peer_status_strip.dart';
 import 'package:xceleration/assistant/shared/models/race_record.dart';
 import 'package:xceleration/assistant/shared/services/i_assistant_storage_service.dart';
@@ -47,6 +49,7 @@ class _BibRecorderV2ScreenState extends State<BibRecorderV2Screen> {
   // Connection setup state
   bool _connecting = false;
   PeerDiscoveryNotifier? _peerNotifier;
+  P2PSessionService? _session;
   RaceRecord? _previousRace;
 
   @override
@@ -65,6 +68,13 @@ class _BibRecorderV2ScreenState extends State<BibRecorderV2Screen> {
     // Detect race selection: null → non-null transition.
     if (_previousRace == null && _controller.selectedRace != null) {
       final race = _controller.selectedRace!;
+      final session = P2PSessionService(
+        localRole: Role.bibRecorderV2,
+        raceId: race.raceId,
+        nearbyConnections: NearbyConnections(),
+      );
+      _controller.attachSession(session);
+      unawaited(session.init());
       final notifier = PeerDiscoveryNotifier(
         role: Role.bibRecorderV2,
         raceId: race.raceId,
@@ -72,6 +82,7 @@ class _BibRecorderV2ScreenState extends State<BibRecorderV2Screen> {
       setState(() {
         _connecting = true;
         _peerNotifier = notifier;
+        _session = session;
       });
     }
     _previousRace = _controller.selectedRace;
@@ -83,20 +94,24 @@ class _BibRecorderV2ScreenState extends State<BibRecorderV2Screen> {
   }
 
   void _onConnectionSkip() {
-    // Offline mode: discard the notifier.
+    // Offline mode: discard the notifier and session.
     _peerNotifier?.dispose();
+    _session?.dispose();
     setState(() {
       _connecting = false;
       _peerNotifier = null;
+      _session = null;
     });
   }
 
   void _onConnectionLeave() {
     _peerNotifier?.dispose();
+    _session?.dispose();
     _controller.leaveRace();
     setState(() {
       _connecting = false;
       _peerNotifier = null;
+      _session = null;
     });
   }
 
@@ -125,6 +140,7 @@ class _BibRecorderV2ScreenState extends State<BibRecorderV2Screen> {
     _controller.removeListener(_onControllerChanged);
     _controller.dispose();
     _peerNotifier?.dispose();
+    _session?.dispose();
     super.dispose();
   }
 

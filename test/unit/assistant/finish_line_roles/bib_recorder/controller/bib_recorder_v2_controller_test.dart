@@ -1038,5 +1038,88 @@ void main() {
         verify(mockStorage.saveRunners(any, any)).called(1);
       });
     });
+
+    group('attachSession', () {
+      test('subscribes to incoming messages after construction without session',
+          () async {
+        final controller = BibRecorderV2Controller(
+          storage: MockIAssistantStorageService(),
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+        );
+
+        controller.attachSession(mockSession);
+
+        final msg = FixerCorrectionMessage(
+          finishPosition: 1,
+          originalBib: 99,
+          correctedBib: 42,
+          correctionType: CorrectionType.bibCorrected,
+        );
+        // addBib first so position 1 is mapped
+        controller.addBib(99);
+        incomingController
+            .add((Role.fixer, MessageEnvelope.wrapFixerCorrection(msg)));
+
+        await Future.microtask(() {});
+
+        expect(controller.entries.first.correctedTo, 42);
+      });
+
+      test('sends bib messages via newly attached session', () {
+        final controller = BibRecorderV2Controller(
+          storage: MockIAssistantStorageService(),
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+        );
+
+        controller.attachSession(mockSession);
+        controller.addBib(55);
+
+        final captured =
+            verify(mockSession.sendMessage(Role.verifier, captureAny)).captured;
+        expect(captured.length, 1);
+        final envelope = captured.first as MessageEnvelope;
+        expect(envelope.type, MessageType.bibEntry);
+      });
+
+      test('replaces prior session subscription without leaking', () async {
+        final secondController =
+            StreamController<(Role, MessageEnvelope)>.broadcast();
+        final secondSession = MockP2PSessionService();
+        when(secondSession.incomingMessages)
+            .thenAnswer((_) => secondController.stream);
+        when(secondSession.sendMessage(any, any)).thenAnswer((_) async {});
+
+        final controller = BibRecorderV2Controller(
+          storage: MockIAssistantStorageService(),
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+          session: mockSession,
+        );
+
+        // Replace with second session.
+        controller.attachSession(secondSession);
+
+        // Message on old stream — should be ignored.
+        controller.addBib(10);
+        incomingController.add((
+          Role.fixer,
+          MessageEnvelope.wrapFixerCorrection(FixerCorrectionMessage(
+            finishPosition: 1,
+            originalBib: 10,
+            correctedBib: 99,
+            correctionType: CorrectionType.bibCorrected,
+          )),
+        ));
+
+        await Future.microtask(() {});
+
+        // correctedTo should still be null — old stream was cancelled.
+        expect(controller.entries.first.correctedTo, isNull);
+
+        await secondController.close();
+      });
+    });
   });
 }

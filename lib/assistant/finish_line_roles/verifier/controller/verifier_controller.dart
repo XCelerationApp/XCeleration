@@ -27,7 +27,7 @@ class VerifierController extends ChangeNotifier {
   })  : _session = session,
         _storage = storage;
 
-  final P2PSessionService? _session;
+  P2PSessionService? _session;
   final IAssistantStorageService? _storage;
 
   final List<VerifierEntry> _entries = [];
@@ -59,7 +59,7 @@ class VerifierController extends ChangeNotifier {
 
   Future<void> initialize() async {
     if (_session != null) {
-      _sessionSub = _session.incomingMessages.listen(_onSessionMessage);
+      _sessionSub = _session!.incomingMessages.listen(_onSessionMessage);
     }
     await _loadRaces();
   }
@@ -163,7 +163,7 @@ class VerifierController extends ChangeNotifier {
         BibFlag.duplicate => FlagReason.duplicate,
         BibFlag.none => FlagReason.wrongName,
       };
-      unawaited(_session.sendMessage(
+      unawaited(_session!.sendMessage(
         Role.fixer,
         MessageEnvelope.wrapVerifierFlag(VerifierFlagMessage(
           entry: BibEntryMessage(
@@ -235,6 +235,16 @@ class VerifierController extends ChangeNotifier {
   }
 
   // ── P2P ───────────────────────────────────────────────────────────────────
+
+  /// Attaches [session] to this controller for the current race.
+  ///
+  /// Safe to call after [initialize]. Cancels any existing session subscription
+  /// before subscribing to [session]'s incoming messages.
+  void attachSession(P2PSessionService session) {
+    _sessionSub?.cancel();
+    _session = session;
+    _sessionSub = session.incomingMessages.listen(_onSessionMessage);
+  }
 
   void _onSessionMessage((Role, MessageEnvelope) event) {
     final (_, envelope) = event;

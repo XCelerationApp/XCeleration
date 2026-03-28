@@ -4,7 +4,9 @@ import 'package:xceleration/assistant/finish_line_roles/verifier/controller/veri
 import 'package:xceleration/assistant/shared/services/i_assistant_storage_service.dart';
 import 'package:xceleration/assistant/finish_line_roles/verifier/widgets/verifier_entry_card.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/connection_setup_screen.dart';
+import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/p2p_session_service.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/peer_discovery_notifier.dart';
+import 'package:xceleration/core/services/nearby_connections.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/peer_status_strip.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/widgets/role_bottom_bar.dart';
 import 'package:xceleration/assistant/shared/models/race_record.dart';
@@ -44,6 +46,7 @@ class _VerifierScreenState extends State<VerifierScreen> {
   // Connection setup state
   bool _connecting = false;
   PeerDiscoveryNotifier? _peerNotifier;
+  P2PSessionService? _session;
   String? _selectedRaceName;
 
   @override
@@ -55,6 +58,13 @@ class _VerifierScreenState extends State<VerifierScreen> {
 
   void _onJoinTapped(RaceRecord race) {
     _selectedRaceName = race.name;
+    final session = P2PSessionService(
+      localRole: Role.verifier,
+      raceId: race.raceId,
+      nearbyConnections: NearbyConnections(),
+    );
+    _controller.attachSession(session);
+    unawaited(session.init());
     final notifier = PeerDiscoveryNotifier(
       role: Role.verifier,
       raceId: race.raceId,
@@ -62,6 +72,7 @@ class _VerifierScreenState extends State<VerifierScreen> {
     setState(() {
       _connecting = true;
       _peerNotifier = notifier;
+      _session = session;
     });
   }
 
@@ -72,19 +83,24 @@ class _VerifierScreenState extends State<VerifierScreen> {
   }
 
   void _onConnectionSkip() {
+    // Offline mode: discard notifier and session.
     _peerNotifier?.dispose();
+    _session?.dispose();
     setState(() {
       _connecting = false;
       _peerNotifier = null;
+      _session = null;
     });
     _controller.joinRace();
   }
 
   void _onConnectionLeave() {
     _peerNotifier?.dispose();
+    _session?.dispose();
     setState(() {
       _connecting = false;
       _peerNotifier = null;
+      _session = null;
     });
   }
 
@@ -111,7 +127,11 @@ class _VerifierScreenState extends State<VerifierScreen> {
   /// Tears down the active P2P session and returns to the lobby.
   void _leaveRace() {
     _peerNotifier?.dispose();
-    setState(() => _peerNotifier = null);
+    _session?.dispose();
+    setState(() {
+      _peerNotifier = null;
+      _session = null;
+    });
     _controller.leaveRace();
   }
 
@@ -119,6 +139,7 @@ class _VerifierScreenState extends State<VerifierScreen> {
   void dispose() {
     _controller.dispose();
     _peerNotifier?.dispose();
+    _session?.dispose();
     super.dispose();
   }
 
