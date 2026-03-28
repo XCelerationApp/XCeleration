@@ -25,7 +25,23 @@ Fetch the issue using `mcp__linear__get_issue`. Check whether it has a parent is
 
 Use `mcp__linear__save_issue` to set the status to Done.
 
-## 5. Remove the local worktree
+## 5. Delete the paired simulator (if present)
+
+Read the UDID from `.simulator_udid` in the worktree root:
+```bash
+WORKTREE=$(git rev-parse --show-toplevel)
+UDID_FILE="$WORKTREE/.simulator_udid"
+```
+
+If the file exists and is non-empty, delete the simulator before removing the worktree:
+```bash
+UDID=$(tr -d '[:space:]' < "$UDID_FILE")
+xcrun simctl delete "$UDID"
+```
+
+If the file does not exist, skip this step silently.
+
+## 6. Remove the local worktree
 
 Get the paths:
 ```bash
@@ -38,7 +54,7 @@ Remove the worktree from the main repo:
 git -C "$MAIN" worktree remove "$WORKTREE" --force
 ```
 
-## 6. Confirm to the user
+## 7. Confirm to the user
 
 Tell the user:
 - The issue has been marked Done

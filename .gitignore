@@ -48,8 +48,9 @@ app.*.map.json
 # Environment variables
 .env
 
-# Worktree issue marker (created by scripts/start_issue.py)
+# Worktree issue marker and simulator pairing (created by scripts/start_issue.py)
 .linear-issue
+.simulator_udid
 
 # Claude Code local settings (MCP config, machine-specific)
 .claude/settings.local.json
