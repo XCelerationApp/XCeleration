@@ -6,7 +6,6 @@ import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:xceleration/assistant/bib_number_recorder/services/i_voice_recognition_service.dart';
 import 'package:xceleration/assistant/finish_line_roles/bib_recorder/controller/bib_recorder_v2_controller.dart';
-import 'package:xceleration/assistant/finish_line_roles/shared/models/bib_correction_message.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/messages/messages.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/p2p_session_service.dart';
 import 'package:xceleration/assistant/shared/models/bib_record.dart';
@@ -262,7 +261,7 @@ void main() {
       });
     });
 
-    group('applyCorrection', () {
+    group('incoming FixerCorrectionMessage applies correction', () {
       test('sets correctedTo on matching entry and notifies listeners', () async {
         final controller = await makeInitializedController();
         controller.addBib(101); // position 1
@@ -270,41 +269,55 @@ void main() {
         var notified = false;
         controller.addListener(() => notified = true);
 
-        controller.applyCorrection(const BibCorrectionMessage(
-          entryId: 1,
-          originalBib: 101,
-          correctedBib: 114,
+        incomingController.add((
+          Role.fixer,
+          MessageEnvelope.wrapFixerCorrection(const FixerCorrectionMessage(
+            finishPosition: 1,
+            originalBib: 101,
+            correctedBib: 114,
+            correctionType: CorrectionType.bibCorrected,
+          )),
         ));
+        await Future.microtask(() {});
 
         expect(controller.entries.first.correctedTo, 114);
         expect(notified, isTrue);
       });
 
-      test('is a no-op when entryId does not match any finish position', () async {
+      test('is a no-op when finishPosition does not match any known entry', () async {
         final controller = await makeInitializedController();
         controller.addBib(101); // position 1
 
-        controller.applyCorrection(const BibCorrectionMessage(
-          entryId: 99,
-          originalBib: 101,
-          correctedBib: 114,
+        incomingController.add((
+          Role.fixer,
+          MessageEnvelope.wrapFixerCorrection(const FixerCorrectionMessage(
+            finishPosition: 99,
+            originalBib: 101,
+            correctedBib: 114,
+            correctionType: CorrectionType.bibCorrected,
+          )),
         ));
+        await Future.microtask(() {});
 
         expect(controller.entries.first.correctedTo, isNull);
       });
 
-      test('sets correctedTo to null when correctedBib is null', () async {
+      test('sets isNewRunner and leaves correctedTo null when correctionType is newRunner', () async {
         final controller = await makeInitializedController();
         controller.addBib(101); // position 1
 
-        controller.applyCorrection(const BibCorrectionMessage(
-          entryId: 1,
-          originalBib: 101,
-          isNewRunner: true,
+        incomingController.add((
+          Role.fixer,
+          MessageEnvelope.wrapFixerCorrection(const FixerCorrectionMessage(
+            finishPosition: 1,
+            originalBib: 101,
+            correctionType: CorrectionType.newRunner,
+          )),
         ));
+        await Future.microtask(() {});
 
-        // correctedBib is null → correctedTo should not be changed from null
         expect(controller.entries.first.correctedTo, isNull);
+        expect(controller.entries.first.isNewRunner, isTrue);
       });
     });
 
@@ -315,12 +328,17 @@ void main() {
         await Future.delayed(const Duration(milliseconds: 2));
         controller.addBib(101); // position 2 — duplicate
 
-        // Apply correction to first entry (bib 101 → 114)
-        controller.applyCorrection(const BibCorrectionMessage(
-          entryId: 1,
-          originalBib: 101,
-          correctedBib: 114,
+        // Apply correction to first entry (bib 101 → 114) via session stream.
+        incomingController.add((
+          Role.fixer,
+          MessageEnvelope.wrapFixerCorrection(const FixerCorrectionMessage(
+            finishPosition: 1,
+            originalBib: 101,
+            correctedBib: 114,
+            correctionType: CorrectionType.bibCorrected,
+          )),
         ));
+        await Future.microtask(() {});
 
         // Second entry (bib 101) should no longer be a duplicate
         final secondEntry = controller.entries.firstWhere(
@@ -572,20 +590,25 @@ void main() {
           storage: mockStorage,
           voice: MockIVoiceRecognitionService(),
           haptic: MockIHapticFeedback(),
-          session: mockSession,
         );
+        controller.attachSession(mockSession);
         controller.selectRace(race);
         await Future.microtask(() {});
 
         controller.addBib(101); // unknown — unresolved
         await Future.microtask(() {});
 
-        // Apply correction so correctedTo is set.
-        controller.applyCorrection(const BibCorrectionMessage(
-          entryId: 1,
-          originalBib: 101,
-          correctedBib: 200,
+        // Apply correction via session stream so correctedTo is set.
+        incomingController.add((
+          Role.fixer,
+          MessageEnvelope.wrapFixerCorrection(const FixerCorrectionMessage(
+            finishPosition: 1,
+            originalBib: 101,
+            correctedBib: 200,
+            correctionType: CorrectionType.bibCorrected,
+          )),
         ));
+        await Future.microtask(() {});
 
         controller.stopRace();
         await Future.delayed(Duration.zero);
