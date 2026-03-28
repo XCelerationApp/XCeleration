@@ -163,6 +163,20 @@ class RaceHeaderWidget extends StatelessWidget {
                     ),
                   );
 
+                  // Always show "Download Race"
+                  items.add(
+                    const PopupMenuItem<String>(
+                      value: 'download_race',
+                      child: Row(
+                        children: [
+                          Icon(Icons.download_outlined, size: 18),
+                          SizedBox(width: 8),
+                          Text('Download Race'),
+                        ],
+                      ),
+                    ),
+                  );
+
                   // Always show "Delete Race"
                   items.add(
                     const PopupMenuItem<String>(
@@ -196,6 +210,9 @@ class RaceHeaderWidget extends StatelessWidget {
         break;
       case 'load_new':
         controller.showLoadRaceSheet(context);
+        break;
+      case 'download_race':
+        controller.downloadRace(context);
         break;
       case 'delete_race':
         _showDeleteConfirmation(context);
