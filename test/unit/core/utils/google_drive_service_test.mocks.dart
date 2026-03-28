@@ -77,6 +77,23 @@ class MockGoogleAuthService extends _i1.Mock implements _i4.GoogleAuthService {
       ) as _i3.Future<String?>);
 
   @override
+  _i3.Future<void> setIosToken(
+    String? token,
+    DateTime? expiry,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #setIosToken,
+          [
+            token,
+            expiry,
+          ],
+        ),
+        returnValue: _i3.Future<void>.value(),
+        returnValueForMissingStub: _i3.Future<void>.value(),
+      ) as _i3.Future<void>);
+
+  @override
   _i3.Future<_i5.Client?> getAuthClient() => (super.noSuchMethod(
         Invocation.method(
           #getAuthClient,
@@ -86,10 +103,12 @@ class MockGoogleAuthService extends _i1.Mock implements _i4.GoogleAuthService {
       ) as _i3.Future<_i5.Client?>);
 
   @override
-  _i3.Future<bool> signIn() => (super.noSuchMethod(
+  _i3.Future<bool> signIn({bool? requireWebToken = true}) =>
+      (super.noSuchMethod(
         Invocation.method(
           #signIn,
           [],
+          {#requireWebToken: requireWebToken},
         ),
         returnValue: _i3.Future<bool>.value(false),
       ) as _i3.Future<bool>);
