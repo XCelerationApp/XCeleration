@@ -3,95 +3,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:google_sign_in_platform_interface/google_sign_in_platform_interface.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
-import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xceleration/core/services/connectivity_service.dart';
 import 'package:xceleration/core/utils/google_auth_service.dart';
+import '../../../helpers/fake_google_sign_in_platform.dart';
 
 @GenerateMocks([ConnectivityService])
 import 'google_auth_service_test.mocks.dart';
-
-// ignore: must_be_immutable
-class FakeGoogleSignInPlatform extends Fake
-    with MockPlatformInterfaceMixin
-    implements GoogleSignInPlatform {
-  bool _shouldSucceed = false;
-  String _accessToken = 'fake-access-token';
-  int authenticateCallCount = 0;
-  int lightweightCallCount = 0;
-  int signOutCallCount = 0;
-
-  void setupSuccessfulSignIn({String accessToken = 'fake-access-token'}) {
-    _accessToken = accessToken;
-    _shouldSucceed = true;
-  }
-
-  static const _fakeUser =
-      GoogleSignInUserData(id: 'user-id', email: 'user@example.com');
-  static const _fakeTokens = AuthenticationTokenData(idToken: 'id-token');
-
-  @override
-  Stream<AuthenticationEvent>? get authenticationEvents => null;
-
-  @override
-  Future<void> init(InitParameters params) async {}
-
-  @override
-  bool supportsAuthenticate() => true;
-
-  @override
-  bool authorizationRequiresUserInteraction() => false;
-
-  @override
-  Future<AuthenticationResults?>? attemptLightweightAuthentication(
-    AttemptLightweightAuthenticationParameters params,
-  ) {
-    lightweightCallCount++;
-    return Future.value(null);
-  }
-
-  @override
-  Future<AuthenticationResults> authenticate(
-      AuthenticateParameters params) async {
-    authenticateCallCount++;
-    if (!_shouldSucceed) {
-      throw const GoogleSignInException(
-          code: GoogleSignInExceptionCode.canceled);
-    }
-    return const AuthenticationResults(
-      user: _fakeUser,
-      authenticationTokens: _fakeTokens,
-    );
-  }
-
-  @override
-  Future<ClientAuthorizationTokenData?> clientAuthorizationTokensForScopes(
-    ClientAuthorizationTokensForScopesParameters params,
-  ) async {
-    if (!_shouldSucceed) return null;
-    return ClientAuthorizationTokenData(accessToken: _accessToken);
-  }
-
-  @override
-  Future<ServerAuthorizationTokenData?> serverAuthorizationTokensForScopes(
-    ServerAuthorizationTokensForScopesParameters params,
-  ) async {
-    return null;
-  }
-
-  @override
-  Future<void> signOut(SignOutParams params) async {
-    signOutCallCount++;
-    _shouldSucceed = false;
-  }
-
-  @override
-  Future<void> disconnect(DisconnectParams params) async {}
-
-  @override
-  Future<void> clearAuthorizationToken(
-      ClearAuthorizationTokenParams params) async {}
-}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -189,6 +107,21 @@ void main() {
         final result = await service.signIn();
 
         expect(result, isFalse);
+      });
+
+      test('uses lightweight auth when web token already valid', () async {
+        final service = buildService();
+        // Pre-load a valid web token so the service skips forced interactive sign-in
+        await service.setWebToken(
+          'cached-web-token',
+          DateTime.now().add(const Duration(hours: 1)),
+        );
+        fakePlatform.setupLightweightSuccess();
+
+        await service.signIn();
+
+        expect(fakePlatform.lightweightCallCount, 1);
+        expect(fakePlatform.authenticateCallCount, 0);
       });
     });
 
