@@ -2,9 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:xceleration/assistant/finish_line_roles/fixer/services/phonetic_search.dart';
-import 'package:xceleration/assistant/finish_line_roles/shared/models/bib_correction_message.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/models/fixer_entry.dart';
-import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/i_bib_correction_channel.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/messages/messages.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/p2p_session_service.dart';
 import 'package:xceleration/assistant/shared/models/race_record.dart';
@@ -31,18 +29,15 @@ class FixerController extends ChangeNotifier {
     required IAssistantStorageService storage,
     required int raceId,
     P2PSessionService? session,
-    IBibCorrectionChannel? correctionChannel,
     IHapticFeedback? haptic,
   })  : _storage = storage,
         _raceId = raceId,
         _session = session,
-        _correctionChannel = correctionChannel,
         _haptic = haptic ?? HapticFeedbackService();
 
   final IAssistantStorageService _storage;
   final int _raceId;
   final P2PSessionService? _session;
-  final IBibCorrectionChannel? _correctionChannel;
   final IHapticFeedback _haptic;
 
   final List<FixerEntry> _queue = [];
@@ -220,12 +215,6 @@ class FixerController extends ChangeNotifier {
       correctedBib: correctedBib,
       resolvedName: resolvedName,
     );
-    _correctionChannel?.sendCorrection(BibCorrectionMessage(
-      entryId: original.position,
-      originalBib: original.bib,
-      correctedBib: correctedBib,
-      resolvedName: resolvedName,
-    ));
     if (_session != null) {
       unawaited(_session.sendMessage(
         Role.bibRecorderV2,
@@ -247,11 +236,6 @@ class FixerController extends ChangeNotifier {
     unawaited(_haptic.lightImpact());
     final original = _queue[idx];
     _queue[idx] = original.copyWith(isResolved: true, correctedBib: newBib);
-    _correctionChannel?.sendCorrection(BibCorrectionMessage(
-      entryId: original.position,
-      originalBib: original.bib,
-      correctedBib: newBib,
-    ));
     if (_session != null) {
       unawaited(_session.sendMessage(
         Role.bibRecorderV2,
@@ -283,13 +267,6 @@ class FixerController extends ChangeNotifier {
       resolvedName: resolvedName,
       correctedBib: newBib,
     );
-    _correctionChannel?.sendCorrection(BibCorrectionMessage(
-      entryId: original.position,
-      originalBib: original.bib,
-      correctedBib: newBib,
-      resolvedName: resolvedName,
-      isNewRunner: true,
-    ));
     if (_session != null) {
       unawaited(_session.sendMessage(
         Role.bibRecorderV2,
