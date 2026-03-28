@@ -95,7 +95,7 @@ class _VerifierScreenState extends State<VerifierScreen> {
     );
     await sheet(
       context: context,
-      title: 'Get Race from Coach',
+      title: 'Load a new race from Coach',
       body: DeviceConnectionWidget(devices: devices),
     );
     final data = devices.coach?.data;

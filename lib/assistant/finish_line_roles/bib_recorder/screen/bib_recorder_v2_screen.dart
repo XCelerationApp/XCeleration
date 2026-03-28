@@ -107,7 +107,7 @@ class _BibRecorderV2ScreenState extends State<BibRecorderV2Screen> {
     );
     await sheet(
       context: context,
-      title: 'Get Race from Coach',
+      title: 'Load a new race from Coach',
       body: DeviceConnectionWidget(devices: devices),
     );
     final data = devices.coach?.data;

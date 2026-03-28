@@ -313,7 +313,7 @@ class _GetFromCoachButtonState extends State<_GetFromCoachButton> {
             ),
             const SizedBox(width: AppSpacing.sm),
             Text(
-              isPrimary ? 'Get Race from Coach' : 'Sync a new race from Coach',
+              'Load a new race from Coach',
               style: AppTypography.smallBodySemibold.copyWith(
                 color: isPrimary ? Colors.white : AppColors.primaryColor,
               ),
